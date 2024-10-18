@@ -495,25 +495,25 @@ static void test3_lastJournalSyncPoint()
     }
 }
 
-static void test4_loadAppIdKeyPairs()
+static void test4_loadAppInfos()
 // ------------------------------------------------------------------------
 // Testing:
-//   loadAppIdKeyPairs()
+//   loadAppInfos()
 // ------------------------------------------------------------------------
 {
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppIdKeyPair;
-    typedef bsl::vector<AppIdKeyPair>                AppIdKeyPairs;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
+    typedef bsl::vector<AppInfo>                     AppInfos;
 
     {
         // No appIds.
 
         char*             p = static_cast<char*>(s_allocator_p->allocate(1));
         mqbs::MemoryBlock mb(p, 1);
-        AppIdKeyPairs     appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(s_allocator_p);
 
-        mqbs::FileStoreProtocolUtil::loadAppIdKeyPairs(&appIdKeyPairs,
-                                                       mb,
-                                                       0);  // no appIds
+        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                  mb,
+                                                  0);  // no appIds
 
         ASSERT_EQ(0u, appIdKeyPairs.size());
 
@@ -563,11 +563,11 @@ static void test4_loadAppIdKeyPairs()
 
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppIdKeyPairs     appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(s_allocator_p);
 
-        mqbs::FileStoreProtocolUtil::loadAppIdKeyPairs(&appIdKeyPairs,
-                                                       mb,
-                                                       1);  // 1 appId
+        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                  mb,
+                                                  1);  // 1 appId
 
         ASSERT_EQ(1U, appIdKeyPairs.size());
         ASSERT_EQ(appId, appIdKeyPairs[0].first);
@@ -652,11 +652,11 @@ static void test4_loadAppIdKeyPairs()
 
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppIdKeyPairs     appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(s_allocator_p);
 
-        mqbs::FileStoreProtocolUtil::loadAppIdKeyPairs(&appIdKeyPairs,
-                                                       mb,
-                                                       numAppIds);
+        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                  mb,
+                                                  numAppIds);
 
         ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
 
@@ -911,7 +911,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 5: test5_calculateMd5Digest(); break;
-    case 4: test4_loadAppIdKeyPairs(); break;
+    case 4: test4_loadAppInfos(); break;
     case 3: test3_lastJournalSyncPoint(); break;
     case 2: test2_lastJournalRecord(); break;
     case 1: test1_hasBmqHeader(); break;

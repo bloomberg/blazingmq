@@ -128,9 +128,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef ReplicatedStorage::RecordHandles RecordHandles;
 
@@ -331,8 +331,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Load into the specified 'buffer' the list of pairs of appId and appKey
     // for all the virtual storages registered with this instance.
-    virtual void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
-        BSLS_KEYWORD_OVERRIDE;
+    virtual void
+    loadVirtualStorageDetails(AppInfos* buffer) const BSLS_KEYWORD_OVERRIDE;
 
     /// Store in the specified 'msgSize' the size, in bytes, of the message
     /// having the specified 'msgGUID' if found and return success, or return
@@ -717,7 +717,7 @@ inline bool FileBackedStorage::hasVirtualStorage(const bsl::string& appId,
 }
 
 inline void
-FileBackedStorage::loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
+FileBackedStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 {
     return d_virtualStorageCatalog.loadVirtualStorageDetails(buffer);
 }

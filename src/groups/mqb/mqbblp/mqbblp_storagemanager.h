@@ -399,7 +399,7 @@ class StorageManager : public mqbi::StorageManager {
                          int                     partitionId,
                          const bmqt::Uri&        uri,
                          const mqbu::StorageKey& queueKey,
-                         const AppIdKeyPairs&    appIdKeyPairs,
+                         const AppInfos&         appIdKeyPairs,
                          bool                    isNewQueue);
 
     void queueDeletionCb(int*                    status,
@@ -520,7 +520,7 @@ class StorageManager : public mqbi::StorageManager {
     virtual void registerQueue(const bmqt::Uri&        uri,
                                const mqbu::StorageKey& queueKey,
                                int                     partitionId,
-                               const AppIdKeyPairs&    appIdKeyPairs,
+                               const AppInfos&         appIdKeyPairs,
                                mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
     /// Synchronously unregister the queue with the specified `uri` from the
@@ -543,8 +543,8 @@ class StorageManager : public mqbi::StorageManager {
     virtual int updateQueuePrimary(const bmqt::Uri&        uri,
                                    const mqbu::StorageKey& queueKey,
                                    int                     partitionId,
-                                   const AppIdKeyPairs&    addedIdKeyPairs,
-                                   const AppIdKeyPairs&    removedIdKeyPairs)
+                                   const AppInfos&         addedIdKeyPairs,
+                                   const AppInfos&         removedIdKeyPairs)
         BSLS_KEYWORD_OVERRIDE;
 
     virtual void
@@ -564,7 +564,7 @@ class StorageManager : public mqbi::StorageManager {
     updateQueueReplica(int                     partitionId,
                        const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
-                       const AppIdKeyPairs&    appIdKeyPairs,
+                       const AppInfos&         appIdKeyPairs,
                        mqbi::Domain*           domain = 0,
                        bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
 

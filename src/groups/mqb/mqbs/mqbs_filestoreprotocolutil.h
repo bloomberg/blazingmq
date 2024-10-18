@@ -41,6 +41,7 @@
 #include <bdlbb_blob.h>
 #include <bdlde_md5.h>
 #include <bsl_string.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsls_types.h>
@@ -108,10 +109,11 @@ struct FileStoreProtocolUtil {
                                   const mwcu::BlobPosition& startPos,
                                   unsigned int              length);
 
-    static void loadAppIdKeyPairs(
-        bsl::vector<bsl::pair<bsl::string, mqbu::StorageKey> >* appIdKeyPairs,
-        const MemoryBlock&                                      appIdsBlock,
-        unsigned int                                            numAppIds);
+    static void
+    loadAppInfos(bsl::unordered_set<bsl::pair<bsl::string, mqbu::StorageKey> >*
+                                    appIdKeyPairs,
+                 const MemoryBlock& appIdsBlock,
+                 unsigned int       numAppIds);
 };
 
 }  // close package namespace
