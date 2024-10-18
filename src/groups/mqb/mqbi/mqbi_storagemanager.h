@@ -168,9 +168,9 @@ class StorageManagerIterator {
 class StorageManager : public mqbi::AppKeyGenerator {
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair   AppIdKeyPair;
-    typedef mqbi::Storage::AppIdKeyPairs  AppIdKeyPairs;
-    typedef AppIdKeyPairs::const_iterator AppIdKeyPairsCIter;
+    typedef mqbi::Storage::AppInfo   AppInfo;
+    typedef mqbi::Storage::AppInfos  AppInfos;
+    typedef AppInfos::const_iterator AppInfosCIter;
 
     typedef bsl::unordered_set<bsl::string> AppIds;
     typedef AppIds::iterator                AppIdsIter;
@@ -237,7 +237,7 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual void registerQueue(const bmqt::Uri&        uri,
                                const mqbu::StorageKey& queueKey,
                                int                     partitionId,
-                               const AppIdKeyPairs&    appIdKeyPairs,
+                               const AppInfos&         appIdKeyPairs,
                                mqbi::Domain*           domain) = 0;
 
     /// Synchronously unregister the queue with the specified `uri` from the
@@ -259,8 +259,8 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual int updateQueuePrimary(const bmqt::Uri&        uri,
                                    const mqbu::StorageKey& queueKey,
                                    int                     partitionId,
-                                   const AppIdKeyPairs&    addedIdKeyPairs,
-                                   const AppIdKeyPairs& removedIdKeyPairs) = 0;
+                                   const AppInfos&         addedIdKeyPairs,
+                                   const AppInfos& removedIdKeyPairs) = 0;
 
     virtual void registerQueueReplica(int                     partitionId,
                                       const bmqt::Uri&        uri,
@@ -276,7 +276,7 @@ class StorageManager : public mqbi::AppKeyGenerator {
     virtual void updateQueueReplica(int                     partitionId,
                                     const bmqt::Uri&        uri,
                                     const mqbu::StorageKey& queueKey,
-                                    const AppIdKeyPairs&    appIdKeyPairs,
+                                    const AppInfos&         appIdKeyPairs,
                                     mqbi::Domain*           domain = 0,
                                     bool allowDuplicate = false) = 0;
 

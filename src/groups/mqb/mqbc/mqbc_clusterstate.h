@@ -161,9 +161,9 @@ class ClusterStatePartitionInfo {
 class ClusterStateQueueInfo {
   public:
     // TYPES
-    typedef mqbi::ClusterStateManager::AppIdInfo       AppIdInfo;
-    typedef mqbi::ClusterStateManager::AppIdInfos      AppIdInfos;
-    typedef mqbi::ClusterStateManager::AppIdInfosCIter AppIdInfosCIter;
+    typedef mqbi::ClusterStateManager::AppInfo       AppInfo;
+    typedef mqbi::ClusterStateManager::AppInfos      AppInfos;
+    typedef mqbi::ClusterStateManager::AppInfosCIter AppInfosCIter;
 
   private:
     // DATA
@@ -178,7 +178,7 @@ class ClusterStateQueueInfo {
     // Assigned partitionId
     // (mqbs::DataStore::k_INVALID_PARTITION_ID if unassigned)
 
-    AppIdInfos d_appIdInfos;
+    AppInfos d_appInfos;
     // List of App id and key pairs
     //
     // TBD: Should also be added to mqbconfm::Domain
@@ -210,7 +210,7 @@ class ClusterStateQueueInfo {
     ClusterStateQueueInfo(const bmqt::Uri&        uri,
                           const mqbu::StorageKey& key,
                           int                     partitionId,
-                          const AppIdInfos&       appIdInfos,
+                          const AppInfos&         appIdInfos,
                           bslma::Allocator*       allocator);
 
     // MANIPULATORS
@@ -222,7 +222,7 @@ class ClusterStateQueueInfo {
     ClusterStateQueueInfo& setPendingUnassignment(bool value);
 
     /// Get a modifiable reference to this object's appIdInfos.
-    AppIdInfos& appIdInfos();
+    AppInfos& appInfos();
 
     /// Reset the `key`, `partitionId`, `appIdInfos` members of this object.
     /// Note that `uri` is left untouched because it is an invariant member
@@ -233,7 +233,7 @@ class ClusterStateQueueInfo {
     const bmqt::Uri&        uri() const;
     const mqbu::StorageKey& key() const;
     int                     partitionId() const;
-    const AppIdInfos&       appIdInfos() const;
+    const AppInfos&         appInfos() const;
 
     /// Return the value of the corresponding member of this object.
     bool pendingUnassignment() const;
@@ -271,7 +271,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 class ClusterStateObserver {
   public:
     // TYPES
-    typedef ClusterStateQueueInfo::AppIdInfos AppIdInfos;
+    typedef ClusterStateQueueInfo::AppInfos AppInfos;
 
   public:
     // CREATORS
@@ -318,11 +318,10 @@ class ClusterStateObserver {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void
-    onQueueUpdated(const bmqt::Uri&   uri,
-                   const bsl::string& domain,
-                   const AppIdInfos&  addedAppIds,
-                   const AppIdInfos&  removedAppIds = AppIdInfos());
+    virtual void onQueueUpdated(const bmqt::Uri&   uri,
+                                const bsl::string& domain,
+                                const AppInfos&    addedAppIds,
+                                const AppInfos&    removedAppIds = AppInfos());
 
     /// Callback invoked when a partition with the specified `partitionId`
     /// has been orphan above a certain threshold amount of time.
@@ -366,8 +365,8 @@ class ClusterState {
 
   public:
     // TYPES
-    typedef ClusterStateQueueInfo::AppIdInfos      AppIdInfos;
-    typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
+    typedef ClusterStateQueueInfo::AppInfos      AppInfos;
+    typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
     typedef bsl::vector<ClusterStatePartitionInfo> PartitionsInfo;
 
@@ -567,7 +566,7 @@ class ClusterState {
     bool assignQueue(const bmqt::Uri&        uri,
                      const mqbu::StorageKey& key,
                      int                     partitionId,
-                     const AppIdInfos&       appIdInfos);
+                     const AppInfos&         appIdInfos);
 
     /// Un-assign the queue with the specified `uri`.  Return true if
     /// successful, or false if the queue does not exist.
@@ -592,8 +591,8 @@ class ClusterState {
     /// cluster's dispatcher thread.
     int updateQueue(const bmqt::Uri&   uri,
                     const bsl::string& domain,
-                    const AppIdInfos&  addedAppIds,
-                    const AppIdInfos&  removedAppIds = AppIdInfos());
+                    const AppInfos&    addedAppIds,
+                    const AppInfos&    removedAppIds = AppInfos());
 
     /// Clear this cluster state object, without firing any observers.
     void clear();
@@ -767,7 +766,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 : d_uri(uri, allocator)
 , d_key()
 , d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
-, d_appIdInfos(allocator)
+, d_appInfos(allocator)
 , d_pendingUnassignment(false)
 {
     // NOTHING
@@ -777,12 +776,12 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& key,
     int                     partitionId,
-    const AppIdInfos&       appIdInfos,
+    const AppInfos&         appIdInfos,
     bslma::Allocator*       allocator)
 : d_uri(uri, allocator)
 , d_key(key)
 , d_partitionId(partitionId)
-, d_appIdInfos(appIdInfos, allocator)
+, d_appInfos(appIdInfos, allocator)
 , d_pendingUnassignment(false)
 {
     // NOTHING
@@ -809,9 +808,9 @@ ClusterStateQueueInfo::setPendingUnassignment(bool value)
     return *this;
 }
 
-inline ClusterStateQueueInfo::AppIdInfos& ClusterStateQueueInfo::appIdInfos()
+inline ClusterStateQueueInfo::AppInfos& ClusterStateQueueInfo::appInfos()
 {
-    return d_appIdInfos;
+    return d_appInfos;
 }
 
 inline void ClusterStateQueueInfo::reset()
@@ -821,7 +820,7 @@ inline void ClusterStateQueueInfo::reset()
 
     d_key.reset();
     d_partitionId = mqbs::DataStore::k_INVALID_PARTITION_ID;
-    d_appIdInfos.clear();
+    d_appInfos.clear();
 }
 
 // ACCESSORS
@@ -840,10 +839,10 @@ inline int ClusterStateQueueInfo::partitionId() const
     return d_partitionId;
 }
 
-inline const ClusterStateQueueInfo::AppIdInfos&
-ClusterStateQueueInfo::appIdInfos() const
+inline const ClusterStateQueueInfo::AppInfos&
+ClusterStateQueueInfo::appInfos() const
 {
-    return d_appIdInfos;
+    return d_appInfos;
 }
 
 inline bool ClusterStateQueueInfo::pendingUnassignment() const

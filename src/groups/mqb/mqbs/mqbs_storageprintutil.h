@@ -66,8 +66,8 @@ namespace mqbs {
 struct StoragePrintUtil {
   private:
     // PRIVATE TYPES
-    typedef mqbi::StorageManager::AppIdKeyPairs AppIdKeyPairs;
-    typedef AppIdKeyPairs::const_iterator       AppIdKeyPairsCIter;
+    typedef mqbi::StorageManager::AppInfos AppInfos;
+    typedef AppInfos::const_iterator       AppInfosCIter;
 
   public:
     // TYPES

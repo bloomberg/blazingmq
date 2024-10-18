@@ -618,12 +618,12 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         const mqbu::StorageKey receivedKey(
             mqbu::StorageKey::BinaryRepresentation(),
             queueInfo.key().data());
-        AppIdInfos appIdInfos;
+        AppInfos appIdInfos;
         for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
                  queueInfo.appIds().cbegin();
              cit != queueInfo.appIds().cend();
              ++cit) {
-            AppIdInfo appIdInfo;
+            AppInfo appIdInfo;
             appIdInfo.first = cit->appId();
             appIdInfo.second.fromBinary(cit->appKey().data());
 
@@ -1181,7 +1181,7 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
 void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
                                             int              partitionId,
                                             const mqbu::StorageKey& queueKey,
-                                            const AppIdInfos&       appIdInfos,
+                                            const AppInfos&         appIdInfos,
                                             bool forceUpdate)
 {
     // executed by the *DISPATCHER* thread
@@ -1695,7 +1695,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                         uri,
                         queueKey,
                         queueInfo.partitionId(),
-                        AppIdInfos());
+                        AppInfos());
                     BSLS_ASSERT_SAFE(rc == false);
                 }
                 else {
@@ -1732,7 +1732,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             d_state_p->assignQueue(uri,
                                    queueKey,
                                    queueInfo.partitionId(),
-                                   AppIdInfos());
+                                   AppInfos());
 
             d_state_p->domainStates()
                 .at(uri.qualifiedDomain())
