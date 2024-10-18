@@ -395,7 +395,7 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
     if (0 == --it->second.d_refCount) {
         // Outstanding refCount for this message is zero now.
         // In this case we intentionally skip recording the last CONFIRM
-        // due to optimization of jounral file usage
+        // due to optimization of journal file usage
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
     }
