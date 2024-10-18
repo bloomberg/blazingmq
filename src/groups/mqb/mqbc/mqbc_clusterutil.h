@@ -88,9 +88,9 @@ struct ClusterUtil {
 
   public:
     // TYPES
-    typedef ClusterStateQueueInfo::AppIdInfo       AppIdInfo;
-    typedef ClusterStateQueueInfo::AppIdInfos      AppIdInfos;
-    typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
+    typedef ClusterStateQueueInfo::AppInfo       AppInfo;
+    typedef ClusterStateQueueInfo::AppInfos      AppInfos;
+    typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
     typedef mqbc::ClusterState::QueueInfoSp      QueueInfoSp;
     typedef ClusterState::UriToQueueInfoMap      UriToQueueInfoMap;
@@ -270,17 +270,17 @@ struct ClusterUtil {
                                   const bmqt::Uri&        uri,
                                   int                     partitionId,
                                   const mqbu::StorageKey& queueKey,
-                                  const AppIdInfos&       appIdInfos,
+                                  const AppInfos&         appIdInfos,
                                   const QueueAssigningCb& queueAssigningCb,
                                   bool                    forceUpdate);
 
     /// Generate appKeys based on the appIds in the specified `domainConfig`
     /// and populate them into the specified `appIdInfos`.
-    static void populateAppIdInfos(AppIdInfos*                appIdInfos,
-                                   const mqbconfm::QueueMode& domainConfig);
+    static void populateAppInfos(AppInfos*                  appIdInfos,
+                                 const mqbconfm::QueueMode& domainConfig);
     static void
-    populateAppIdInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
-                       const mqbconfm::QueueMode&            domainConfig);
+    populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
+                     const mqbconfm::QueueMode&            domainConfig);
 
     /// Register the specified `appId` for all queues in the specified
     /// `domain`, using the specified `clusterData` and `clusterState`.
