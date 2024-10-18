@@ -5611,7 +5611,7 @@ void BrokerSession::actionResumeHealthSensitiveQueues()
 bmqt::GenericResult::Enum
 BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
                                const bmqp::QueueId&                 queueId,
-                               const bdlbb::Blob&                   blob,
+                               const bsl::shared_ptr<bdlbb::Blob>&  blob,
                                bsls::Types::Int64                   watermark)
 {
     // executed by the FSM thread
@@ -5623,7 +5623,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
 
     if (isBuffered) {
         const bmqt::MessageGUID guid =
-            d_messageCorrelationIdContainer.add(context, queueId, blob);
+            d_messageCorrelationIdContainer.add(context, queueId, *blob);
         char guidHex[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(guidHex);
         context->adoptUserData(
@@ -5642,7 +5642,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
         return bmqt::GenericResult::e_SUCCESS;  // RETURN
     }
 
-    bmqt::GenericResult::Enum res = writeOrBuffer(blob, watermark);
+    bmqt::GenericResult::Enum res = writeOrBuffer(*blob, watermark);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             res != bmqt::GenericResult::e_SUCCESS && isBuffered)) {

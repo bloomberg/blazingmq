@@ -245,7 +245,7 @@ class FileStore : public DataStore {
         DataStoreRecordKey d_key;
         // last Receipt from/to this
         // node (Replica/Primary).
-        bdlbb::Blob d_blob;
+        bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
         // Receipt to this node.
         bsl::shared_ptr<mwcu::AtomicState> d_state;
 
@@ -1115,7 +1115,8 @@ inline FileStore::NodeContext::NodeContext(bdlbb::BlobBufferFactory* factory,
                                            const DataStoreRecordKey& key,
                                            bslma::Allocator* basicAllocator)
 : d_key(key)
-, d_blob(factory, basicAllocator)
+, d_blob_sp(new(*basicAllocator) bdlbb::Blob(factory, basicAllocator),
+            basicAllocator)
 {
     // NOTHING
 }

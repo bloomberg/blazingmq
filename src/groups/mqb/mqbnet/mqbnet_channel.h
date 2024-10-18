@@ -221,7 +221,7 @@ class Channel {
     /// `control` builder.
     struct ControlArgs {
         bmqp::EventType::Enum d_type;
-        const bdlbb::Blob&    d_data;
+        const bsl::shared_ptr<bdlbb::Blob> d_data;
         int                   d_messageCount;
 
         ControlArgs(Item& item);
@@ -253,7 +253,7 @@ class Channel {
         const int                                  d_flags;
         const bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
         const bmqp::MessagePropertiesInfo          d_messagePropertiesInfo;
-        const bdlbb::Blob                          d_data;
+        const bsl::shared_ptr<bdlbb::Blob>         d_data;
         const bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
         const int                                  d_correlationId;
         const int                                  d_status;
@@ -306,7 +306,7 @@ class Channel {
              bmqp::EventType::Enum                     type,
              bslma::Allocator*                         allocator);
 
-        Item(const bdlbb::Blob&                        data,
+        Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
              bmqp::EventType::Enum                     type,
              const bsl::shared_ptr<mwcu::AtomicState>& state,
              bslma::Allocator*                         allocator);
@@ -604,7 +604,7 @@ class Channel {
     /// Replication Receipt).  Return e_SUCCESS even if the channel is in
     /// High WaterMark.
     bmqt::GenericResult::Enum
-    writeBlob(const bdlbb::Blob&                        data,
+    writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
               bmqp::EventType::Enum                     type,
               const bsl::shared_ptr<mwcu::AtomicState>& state = 0);
 
@@ -784,7 +784,7 @@ inline Channel::ControlArgs::~ControlArgs()
 
 inline const bdlbb::Blob& Channel::ControlArgs::blob() const
 {
-    return d_data;
+    return *d_data;
 }
 
 inline size_t Channel::ControlArgs::messageCount() const
@@ -809,7 +809,7 @@ inline Channel::Item::Item(bslma::Allocator* allocator)
 , d_subQueueId(0)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
@@ -832,7 +832,7 @@ inline Channel::Item::Item(const bmqp::PutHeader&              ph,
 , d_subQueueId(0)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
@@ -861,7 +861,7 @@ inline Channel::Item::Item(
 , d_flags(flags)
 , d_compressionAlgorithmType(compressionAlgorithmType)
 , d_messagePropertiesInfo(messagePropertiesInfo)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(subQueueInfos, allocator)
 , d_correlationId(0)
 , d_status(0)
@@ -888,7 +888,7 @@ inline Channel::Item::Item(
 , d_flags(flags)
 , d_compressionAlgorithmType(compressionAlgorithmType)
 , d_messagePropertiesInfo(messagePropertiesInfo)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(subQueueInfos, allocator)
 , d_correlationId(0)
 , d_status(0)
@@ -912,7 +912,7 @@ inline Channel::Item::Item(int                      status,
 , d_msgId(guid)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(allocator)
 , d_correlationId(correlationId)
 , d_status(status)
@@ -935,7 +935,7 @@ inline Channel::Item::Item(int                      queueId,
 , d_msgId(guid)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_data(allocator)
+, d_data(0, allocator)
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
@@ -954,7 +954,7 @@ inline Channel::Item::Item(int                      queueId,
     }
 }
 
-inline Channel::Item::Item(const bdlbb::Blob&                        data,
+inline Channel::Item::Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
                            bmqp::EventType::Enum                     type,
                            const bsl::shared_ptr<mwcu::AtomicState>& state,
                            bslma::Allocator*                         allocator)
@@ -964,12 +964,12 @@ inline Channel::Item::Item(const bdlbb::Blob&                        data,
 , d_subQueueId(0)
 , d_flags(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_data(data, allocator)
+, d_data(data)
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
 , d_state(state)
-, d_numBytes(data.length())
+, d_numBytes(data->length())
 {
     // NOTHING
 }

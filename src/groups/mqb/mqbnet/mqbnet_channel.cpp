@@ -42,7 +42,7 @@ size_t Channel::ControlArgs::eventSize() const
         return 0;  // RETURN
     }
 
-    return d_data.length();
+    return d_data->length();
 }
 
 // --------------------
@@ -227,7 +227,7 @@ Channel::writeReject(int                                       queueId,
 }
 
 bmqt::GenericResult::Enum
-Channel::writeBlob(const bdlbb::Blob&                        data,
+Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<mwcu::AtomicState>& state)
 {

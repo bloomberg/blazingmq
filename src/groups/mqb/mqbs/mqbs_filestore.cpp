@@ -6478,7 +6478,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
     }
 
     if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
-        char* buffer = nodeContext->d_blob.buffer(0).data();
+        char* buffer = nodeContext->d_blob_sp->buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
@@ -6491,7 +6491,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         nodeContext->d_state->unlock();
     }
     else {
-        bmqp::ProtocolUtil::buildReceipt(&nodeContext->d_blob,
+        bmqp::ProtocolUtil::buildReceipt(nodeContext->d_blob_sp.get(),
                                          d_config.partitionId(),
                                          primaryLeaseId,
                                          sequenceNumber);
@@ -6508,7 +6508,7 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
         return;  // RETURN
     }
 
-    int rc = node->channel().writeBlob(nodeContext->d_blob,
+    int rc = node->channel().writeBlob(nodeContext->d_blob_sp,
                                        bmqp::EventType::e_REPLICATION_RECEIPT,
                                        nodeContext->d_state);
 
@@ -6914,7 +6914,7 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
                            << d_storageEventBuilder.messageCount()
                            << " STORAGE messages.";
             const int maxChannelPendingItems = d_cluster_p->broadcast(
-                d_storageEventBuilder.blob());
+                d_storageEventBuilder.blob_sp());
             if (maxChannelPendingItems > 0) {
                 if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
                     // back off

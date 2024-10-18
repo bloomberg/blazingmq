@@ -524,8 +524,11 @@ int IncoreClusterStateLedger::applyRecordInternal(
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
-            bdlbb::Blob advisoryEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&advisoryEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> advisoryEvent(
+                new (*d_allocator_p)
+                    bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+                d_allocator_p);
+            constructEventBlob(advisoryEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 advisoryEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -567,8 +570,11 @@ int IncoreClusterStateLedger::applyRecordInternal(
             }
         }
         else {
-            bdlbb::Blob ackEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&ackEvent, ackRecord);
+            bsl::shared_ptr<bdlbb::Blob> ackEvent(
+                new (*d_allocator_p)
+                    bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+                d_allocator_p);
+            constructEventBlob(ackEvent.get(), ackRecord);
 
             mqbnet::ClusterNode* leaderNode =
                 d_clusterData_p->electorInfo().leaderNode();
@@ -632,8 +638,11 @@ int IncoreClusterStateLedger::applyRecordInternal(
         }
 
         if (isSelfLeader()) {
-            bdlbb::Blob commitEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&commitEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> commitEvent(
+                new (*d_allocator_p)
+                    bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+                d_allocator_p);
+            constructEventBlob(commitEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 commitEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
