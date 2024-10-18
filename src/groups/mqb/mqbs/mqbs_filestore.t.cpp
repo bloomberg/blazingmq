@@ -85,7 +85,7 @@ const int k_NODE_ID = 12345;
 
 // ALIASES
 typedef mqbs::FileStoreTestUtil_Record                 Record;
-typedef mqbs::DataStore::AppIdKeyPairs                 AppIdKeyPairs;
+typedef mqbs::DataStore::AppInfos                      AppInfos;
 typedef mqbs::FileStore::SyncPointOffsetPairs          SyncPointOffsetPairs;
 typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
@@ -368,7 +368,7 @@ struct Tester {
                                                   bmqt::Uri(rec.d_uri,
                                                             s_allocator_p),
                                                   rec.d_queueKey,
-                                                  AppIdKeyPairs(),
+                                                  AppInfos(),
                                                   rec.d_timestamp,
                                                   true);  // isNewQueue
 

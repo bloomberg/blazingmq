@@ -113,8 +113,8 @@ class ClusterStateManager : public mqbc::ClusterStateObserver,
 
     typedef bsl::vector<QueueAdvisoryAndSource> QueueAdvisories;
 
-    typedef mqbc::ClusterStateQueueInfo::AppIdInfo  AppIdInfo;
-    typedef mqbc::ClusterStateQueueInfo::AppIdInfos AppIdInfos;
+    typedef mqbc::ClusterStateQueueInfo::AppInfo  AppInfo;
+    typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
 
     typedef mqbc::ClusterState::UriToQueueInfoMap      UriToQueueInfoMap;
     typedef mqbc::ClusterState::UriToQueueInfoMapCIter UriToQueueInfoMapCIter;
@@ -380,7 +380,7 @@ class ClusterStateManager : public mqbc::ClusterStateObserver,
     virtual void registerQueueInfo(const bmqt::Uri&        uri,
                                    int                     partitionId,
                                    const mqbu::StorageKey& queueKey,
-                                   const AppIdInfos&       appIdInfos,
+                                   const AppInfos&         appIdInfos,
                                    bool forceUpdate) BSLS_KEYWORD_OVERRIDE;
 
     /// Unassign the queue in the specified `advisory` by applying the

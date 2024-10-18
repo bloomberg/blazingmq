@@ -420,9 +420,9 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// queue which have a proper valid unique queueId.
     typedef bsl::unordered_map<int, QueueContext*> QueueContextByIdMap;
 
-    typedef AppIdInfos::const_iterator AppIdInfosCIter;
+    typedef AppInfos::const_iterator AppInfosCIter;
 
-    typedef mqbc::ClusterStateQueueInfo::AppIdInfos AppIdInfos;
+    typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
 
   private:
     // DATA
@@ -997,8 +997,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///         dispatcher thread.
     virtual void onQueueUpdated(const bmqt::Uri&   uri,
                                 const bsl::string& domain,
-                                const AppIdInfos&  addedAppIds,
-                                const AppIdInfos& removedAppIds = AppIdInfos())
+                                const AppInfos&    addedAppIds,
+                                const AppInfos&    removedAppIds = AppInfos())
         BSLS_KEYWORD_OVERRIDE;
 
   private:

@@ -104,8 +104,8 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     typedef QueueMap::iterator       QueueMapIter;
     typedef QueueMap::const_iterator QueueMapCIter;
 
-    typedef mqbi::Storage::AppIdKeyPairs  AppIdKeyPairs;
-    typedef AppIdKeyPairs::const_iterator AppIdKeyPairsCIter;
+    typedef mqbi::Storage::AppInfos  AppInfos;
+    typedef AppInfos::const_iterator AppInfosCIter;
 
     enum DomainState { e_STARTED = 0, e_STOPPING = 1, e_STOPPED = 2 };
 
@@ -199,9 +199,8 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
 
     /// Update the list of authorized appIds by adding the specified
     /// `addedAppIds` and removing the specified `removedAppIds`.
-    void
-    updateAuthorizedAppIds(const AppIdInfos& addedAppIds,
-                           const AppIdInfos& removedAppIds = AppIdInfos());
+    void updateAuthorizedAppIds(const AppInfos& addedAppIds,
+                                const AppInfos& removedAppIds = AppInfos());
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateObserver)
@@ -223,8 +222,8 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     ///       which case this queue update is ignored.
     virtual void onQueueUpdated(const bmqt::Uri&   uri,
                                 const bsl::string& domain,
-                                const AppIdInfos&  addedAppIds,
-                                const AppIdInfos& removedAppIds = AppIdInfos())
+                                const AppInfos&    addedAppIds,
+                                const AppInfos&    removedAppIds = AppInfos())
         BSLS_KEYWORD_OVERRIDE;
 
   private:

@@ -139,8 +139,8 @@ void createQueueUriKey(bmqt::Uri*        out,
 }
 
 void afterAppIdRegisteredDispatched(
-    mqbi::Queue*                                  queue,
-    const mqbc::ClusterStateQueueInfo::AppIdInfo& appIdInfo)
+    mqbi::Queue*                                queue,
+    const mqbc::ClusterStateQueueInfo::AppInfo& appIdInfo)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -148,12 +148,12 @@ void afterAppIdRegisteredDispatched(
     BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
 
     queue->queueEngine()->afterAppIdRegistered(
-        mqbi::Storage::AppIdKeyPair(appIdInfo.first, appIdInfo.second));
+        mqbi::Storage::AppInfo(appIdInfo.first, appIdInfo.second));
 }
 
 void afterAppIdUnregisteredDispatched(
-    mqbi::Queue*                                  queue,
-    const mqbc::ClusterStateQueueInfo::AppIdInfo& appIdInfo)
+    mqbi::Queue*                                queue,
+    const mqbc::ClusterStateQueueInfo::AppInfo& appIdInfo)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -161,7 +161,7 @@ void afterAppIdUnregisteredDispatched(
     BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
 
     queue->queueEngine()->afterAppIdUnregistered(
-        mqbi::Storage::AppIdKeyPair(appIdInfo.first, appIdInfo.second));
+        mqbi::Storage::AppInfo(appIdInfo.first, appIdInfo.second));
 }
 
 void handleHolderDummy(const bsl::shared_ptr<mqbi::QueueHandle>& handle)
@@ -2152,27 +2152,18 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         // queue but the queue is never opened, it will not be registered with
         // the StorageMgr.  This is ok.
 
-        if (d_cluster_p->isCSLModeEnabled()) {
-            const AppIdInfos& appIdInfos =
-                context.d_queueContext_p->d_stateQInfo_sp->appIdInfos();
-            const mqbi::Storage::AppIdKeyPairs appIdKeyPairs(
-                appIdInfos.cbegin(),
-                appIdInfos.cend());
-            d_storageManager_p->registerQueue(
-                context.d_queueContext_p->uri(),
-                context.d_queueContext_p->key(),
-                context.d_queueContext_p->partitionId(),
-                appIdKeyPairs,
-                context.d_domain_p);
-        }
-        else {
-            d_storageManager_p->registerQueue(
-                context.d_queueContext_p->uri(),
-                context.d_queueContext_p->key(),
-                context.d_queueContext_p->partitionId(),
-                mqbi::Storage::AppIdKeyPairs(),
-                context.d_domain_p);
-        }
+        // Use keys in the CSL instead of generating new ones to keep CSL and
+        // non-CSL consistent.
+
+        const AppInfos& appIdInfos =
+            context.d_queueContext_p->d_stateQInfo_sp->appInfos();
+
+        d_storageManager_p->registerQueue(
+            context.d_queueContext_p->uri(),
+            context.d_queueContext_p->key(),
+            context.d_queueContext_p->partitionId(),
+            appIdInfos,
+            context.d_domain_p);
 
         // Queue must have been registered with storage manager before
         // registering it with the domain, otherwise Queue.configure() will
@@ -3699,17 +3690,14 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // 'createQueueFactory').
 
                     if (d_cluster_p->isCSLModeEnabled()) {
-                        const AppIdInfos& appIdInfos =
-                            queueContext->d_stateQInfo_sp->appIdInfos();
-                        const mqbi::Storage::AppIdKeyPairs appIdKeyPairs(
-                            appIdInfos.cbegin(),
-                            appIdInfos.cend());
+                        const AppInfos& appIdInfos =
+                            queueContext->d_stateQInfo_sp->appInfos();
 
                         d_storageManager_p->registerQueue(
                             queueContext->uri(),
                             queueContext->key(),
                             queueContext->partitionId(),
-                            appIdKeyPairs,
+                            appIdInfos,
                             qinfo.d_queue_sp->domain());
                     }
                     else {
@@ -3717,7 +3705,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                             queueContext->uri(),
                             queueContext->key(),
                             queueContext->partitionId(),
-                            mqbi::Storage::AppIdKeyPairs(),
+                            mqbi::Storage::AppInfos(),
                             qinfo.d_queue_sp->domain());
                     }
 
@@ -4109,6 +4097,7 @@ void ClusterQueueHelper::onQueueAssigned(
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
     if (!d_cluster_p->isCSLModeEnabled()) {
+        // REVISIT
         return;  // RETURN
     }
 
@@ -4229,14 +4218,11 @@ void ClusterQueueHelper::onQueueAssigned(
                 ->domain(),
             true);  // allowDuplicate
 
-        const mqbi::Storage::AppIdKeyPairs appIdKeyPairs(
-            info.appIdInfos().cbegin(),
-            info.appIdInfos().cend());
         d_storageManager_p->updateQueueReplica(
             info.partitionId(),
             info.uri(),
             info.key(),
-            appIdKeyPairs,
+            info.appInfos(),
             d_clusterState_p->domainStates()
                 .at(info.uri().qualifiedDomain())
                 ->domain(),
@@ -4395,8 +4381,8 @@ void ClusterQueueHelper::onQueueUnassigned(
 
 void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                                         const bsl::string& domain,
-                                        const AppIdInfos&  addedAppIds,
-                                        const AppIdInfos&  removedAppIds)
+                                        const AppInfos&    addedAppIds,
+                                        const AppInfos&    removedAppIds)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4424,19 +4410,21 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
     const int      partitionId = qiter->second->partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
-    for (AppIdInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
+    for (AppInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
          ++cit) {
         if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
             // Note: In non-CSL mode, the queue creation callback is
             // invoked at replica nodes when they receive a queue creation
             // record from the primary in the partition stream.
-            mqbi::Storage::AppIdKeyPair  appIdKeyPair(cit->first, cit->second);
-            mqbi::Storage::AppIdKeyPairs appIdKeyPairs(1, appIdKeyPair);
+
+            mqbi::Storage::AppInfos one(1, d_allocator_p);
+            one.emplace(*cit);
+
             d_storageManager_p->updateQueueReplica(
                 partitionId,
                 uri,
                 qiter->second->key(),
-                appIdKeyPairs,
+                one,
                 d_clusterState_p->domainStates()
                     .at(uri.qualifiedDomain())
                     ->domain());
@@ -4450,7 +4438,7 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
         }
     }
 
-    for (AppIdInfosCIter cit = removedAppIds.cbegin();
+    for (AppInfosCIter cit = removedAppIds.cbegin();
          cit != removedAppIds.cend();
          ++cit) {
         if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
@@ -4471,8 +4459,8 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
         }
     }
 
-    bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
-    bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
+    bmqu::Printer<AppInfos> printer1(&addedAppIds);
+    bmqu::Printer<AppInfos> printer2(&removedAppIds);
     BALL_LOG_INFO << d_cluster_p->description() << ": Updated queue: " << uri
                   << ", addedAppIds: " << printer1
                   << ", removedAppIds: " << printer2;

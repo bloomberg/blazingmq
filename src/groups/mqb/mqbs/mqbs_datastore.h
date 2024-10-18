@@ -271,9 +271,9 @@ struct DataStoreRecordKeyLess {
 class DataStoreConfigQueueInfo {
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
   private:
     // DATA
@@ -281,7 +281,7 @@ class DataStoreConfigQueueInfo {
 
     int d_partitionId;
 
-    AppIdKeyPairs d_appIdKeyPairs;
+    AppInfos d_appIdKeyPairs;
 
   public:
     // TRAITS
@@ -299,14 +299,14 @@ class DataStoreConfigQueueInfo {
 
     void setPartitionId(int value);
 
-    void addAppIdKeyPair(const AppIdKeyPair& value);
+    void addAppInfo(const AppInfo& value);
 
     // ACCESSORS
     const bsl::string& canonicalQueueUri() const;
 
     int partitionId() const;
 
-    const AppIdKeyPairs& appIdKeyPairs() const;
+    const AppInfos& appIdKeyPairs() const;
 };
 
 // =====================
@@ -335,15 +335,15 @@ class DataStoreConfig {
 
     typedef Records::const_iterator RecordConstIterator;
 
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef bsl::function<void(int*                    status,
                                int                     partitionId,
                                const bmqt::Uri&        uri,
                                const mqbu::StorageKey& queueKey,
-                               const AppIdKeyPairs&    appIdKeyPairs,
+                               const AppInfos&         appIdKeyPairs,
                                bool                    isNewQueue)>
         QueueCreationCb;
 
@@ -541,9 +541,9 @@ class DataStore : public mqbi::DispatcherClient {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
 
@@ -596,7 +596,7 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                          const bmqt::Uri&        queueUri,
                                          const mqbu::StorageKey& queueKey,
-                                         const AppIdKeyPairs&    appIdKeyPairs,
+                                         const AppInfos&         appIdKeyPairs,
                                          bsls::Types::Uint64     timestamp,
                                          bool isNewQueue) = 0;
 
@@ -889,10 +889,9 @@ inline void DataStoreConfigQueueInfo::setPartitionId(int value)
     d_partitionId = value;
 }
 
-inline void
-DataStoreConfigQueueInfo::addAppIdKeyPair(const AppIdKeyPair& value)
+inline void DataStoreConfigQueueInfo::addAppInfo(const AppInfo& value)
 {
-    d_appIdKeyPairs.push_back(value);
+    d_appIdKeyPairs.insert(value);
 }
 
 // ACCESSORS
@@ -906,7 +905,7 @@ inline int DataStoreConfigQueueInfo::partitionId() const
     return d_partitionId;
 }
 
-inline const DataStoreConfigQueueInfo::AppIdKeyPairs&
+inline const DataStoreConfigQueueInfo::AppInfos&
 DataStoreConfigQueueInfo::appIdKeyPairs() const
 {
     return d_appIdKeyPairs;

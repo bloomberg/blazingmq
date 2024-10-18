@@ -101,9 +101,9 @@ struct StorageUtil {
 
   private:
     // TYPES
-    typedef mqbi::StorageManager::AppIdKeyPair       AppIdKeyPair;
-    typedef mqbi::StorageManager::AppIdKeyPairs      AppIdKeyPairs;
-    typedef mqbi::StorageManager::AppIdKeyPairsCIter AppIdKeyPairsCIter;
+    typedef mqbi::StorageManager::AppInfo       AppInfo;
+    typedef mqbi::StorageManager::AppInfos      AppInfos;
+    typedef mqbi::StorageManager::AppInfosCIter AppInfosCIter;
 
     typedef mqbi::StorageManager::AppIds         AppIds;
     typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
@@ -177,38 +177,37 @@ struct StorageUtil {
     /// Load into the specified `result` the list of elements present in
     /// `baseSet` which are not present in `subtractionSet`.
     template <typename T>
-    static void loadDifference(bsl::vector<T>*       result,
-                               const bsl::vector<T>& baseSet,
-                               const bsl::vector<T>& subtractionSet);
+    static void loadDifference(bsl::unordered_set<T>*       result,
+                               const bsl::unordered_set<T>& baseSet,
+                               const bsl::unordered_set<T>& subtractionSet);
 
-    /// Load into the specified `addedAppIdKeyPairs` and
-    /// `removedAppIdKeyPairs` the appId/key pairs which have been added and
+    /// Load into the specified `addedAppInfos` and
+    /// `removedAppInfos` the appId/key pairs which have been added and
     /// removed respectively for the specified `storage` based on the
-    /// specified `newAppIdKeyPairs` or `cfgAppIds`, as well as the
+    /// specified `newAppInfos` or `cfgAppIds`, as well as the
     /// specified `isCSLMode` mode.  If new app keys are generated, load
     /// them into the specified `appKeys`.  If the optionally specified
     /// `appKeysLock` is provided, lock it.  Return true if there are any
     /// added or removed appId/key pairs, false otherwise.
     ///
     /// THREAD: Executed by the cluster dispatcher thread.
-    static bool
-    loadUpdatedAppIdKeyPairs(AppIdKeyPairs* addedAppIdKeyPairs,
-                             AppIdKeyPairs* removedAppIdKeyPairs,
-                             AppKeys*       appKeys,
-                             bslmt::Mutex*  appKeysLock,
-                             const mqbs::ReplicatedStorage&  storage,
-                             const AppIdKeyPairs&            newAppIdKeyPairs,
-                             const bsl::vector<bsl::string>& cfgAppIds,
-                             bool                            isCSLMode);
+    static bool loadUpdatedAppInfos(AppInfos*     addedAppInfos,
+                                    AppInfos*     removedAppInfos,
+                                    AppKeys*      appKeys,
+                                    bslmt::Mutex* appKeysLock,
+                                    const mqbs::ReplicatedStorage& storage,
+                                    const AppInfos&                newAppInfos,
+                                    const bsl::vector<bsl::string>& cfgAppIds,
+                                    bool                            isCSLMode);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
     static void
     registerQueueDispatched(const mqbi::Dispatcher::ProcessorHandle& processor,
                             mqbs::FileStore*                         fs,
                             mqbs::ReplicatedStorage*                 storage,
-                            const bsl::string&   clusterDescription,
-                            int                  partitionId,
-                            const AppIdKeyPairs& appIdKeyPairs);
+                            const bsl::string& clusterDescription,
+                            int                partitionId,
+                            const AppInfos&    appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
     static void updateQueuePrimaryDispatched(
@@ -220,8 +219,8 @@ struct StorageUtil {
         bslmt::Mutex*                            appKeysLock,
         const bsl::string&                       clusterDescription,
         int                                      partitionId,
-        const AppIdKeyPairs&                     addedIdKeyPairs,
-        const AppIdKeyPairs&                     removedIdKeyPairs,
+        const AppInfos&                          addedIdKeyPairs,
+        const AppInfos&                          removedIdKeyPairs,
         bool                                     isFanout,
         bool                                     isCSLMode);
 
@@ -233,18 +232,18 @@ struct StorageUtil {
                                      mqbs::FileStore*         fs,
                                      AppKeys*                 appKeys,
                                      bslmt::Mutex*            appKeysLock,
-                                     const bsl::string&   clusterDescription,
-                                     int                  partitionId,
-                                     const AppIdKeyPairs& addedIdKeyPairs,
-                                     const AppIdKeyPairs& removedIdKeyPairs,
-                                     bool                 isFanout,
-                                     bool                 isCSLMode);
+                                     const bsl::string& clusterDescription,
+                                     int                partitionId,
+                                     const AppInfos&    addedIdKeyPairs,
+                                     const AppInfos&    removedIdKeyPairs,
+                                     bool               isFanout,
+                                     bool               isCSLMode);
 
     static int
     addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
                                AppKeys*                 appKeys,
                                bslmt::Mutex*            appKeysLock,
-                               const AppIdKeyPairs&     appIdKeyPairs,
+                               const AppInfos&          appIdKeyPairs,
                                const bsl::string&       clusterDescription,
                                int                      partitionId,
                                bool                     isFanout,
@@ -387,10 +386,10 @@ struct StorageUtil {
     /// present in `existingEntries` but not in `newEntries`.
     template <typename T>
     static void
-    loadAddedAndRemovedEntries(bsl::vector<T>*       addedEntries,
-                               bsl::vector<T>*       removedEntries,
-                               const bsl::vector<T>& existingEntries,
-                               const bsl::vector<T>& newEntries);
+    loadAddedAndRemovedEntries(bsl::unordered_set<T>*       addedEntries,
+                               bsl::unordered_set<T>*       removedEntries,
+                               const bsl::unordered_set<T>& existingEntries,
+                               const bsl::unordered_set<T>& newEntries);
 
     /// Return true if the queue having specified `uri` and assigned to the
     /// specified `partitionId` has no messages in the specified
@@ -639,7 +638,7 @@ struct StorageUtil {
                   const mqbu::StorageKey&                  queueKey,
                   const bsl::string&                       clusterDescription,
                   int                                      partitionId,
-                  const AppIdKeyPairs&                     appIdKeyPairs,
+                  const AppInfos&                          appIdKeyPairs,
                   mqbi::Domain*                            domain);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
@@ -671,8 +670,8 @@ struct StorageUtil {
                                   const bmqt::Uri&        uri,
                                   const mqbu::StorageKey& queueKey,
                                   int                     partitionId,
-                                  const AppIdKeyPairs&    addedIdKeyPairs,
-                                  const AppIdKeyPairs&    removedIdKeyPairs,
+                                  const AppInfos&         addedIdKeyPairs,
+                                  const AppInfos&         removedIdKeyPairs,
                                   bool                    isCSLMode);
 
     static void
@@ -714,7 +713,7 @@ struct StorageUtil {
                                  int                     partitionId,
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
-                                 const AppIdKeyPairs&    addedIdKeyPairs,
+                                 const AppInfos&         addedIdKeyPairs,
                                  bool                    isCSLMode,
                                  mqbi::Domain*           domain = 0,
                                  bool allowDuplicate            = false);
@@ -822,29 +821,28 @@ unsigned int StorageUtil::extractPartitionId<true>(const bmqp::Event& event);
 // ------------------
 
 template <typename T>
-void StorageUtil::loadDifference(bsl::vector<T>*       result,
-                                 const bsl::vector<T>& baseSet,
-                                 const bsl::vector<T>& subtractionSet)
+void StorageUtil::loadDifference(bsl::unordered_set<T>*       result,
+                                 const bsl::unordered_set<T>& baseSet,
+                                 const bsl::unordered_set<T>& subtractionSet)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
 
-    typedef typename bsl::vector<T>::const_iterator CIter;
+    typedef typename bsl::unordered_set<T>::const_iterator CIter;
 
-    for (CIter it = baseSet.begin(); it != baseSet.end(); ++it) {
-        if (subtractionSet.end() ==
-            bsl::find(subtractionSet.begin(), subtractionSet.end(), *it)) {
-            result->push_back(*it);
+    for (CIter it = baseSet.cbegin(); it != baseSet.cend(); ++it) {
+        if (subtractionSet.end() == subtractionSet.find(*it)) {
+            result->emplace(*it);
         }
     }
 }
 
 template <typename T>
 void StorageUtil::loadAddedAndRemovedEntries(
-    bsl::vector<T>*       addedEntries,
-    bsl::vector<T>*       removedEntries,
-    const bsl::vector<T>& existingEntries,
-    const bsl::vector<T>& newEntries)
+    bsl::unordered_set<T>*       addedEntries,
+    bsl::unordered_set<T>*       removedEntries,
+    const bsl::unordered_set<T>& existingEntries,
+    const bsl::unordered_set<T>& newEntries)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(addedEntries);

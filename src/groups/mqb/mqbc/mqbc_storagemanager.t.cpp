@@ -767,14 +767,14 @@ struct TestHelper {
             handle,
             uri_t,
             rec.d_queueKey,
-            mqbs::DataStore::AppIdKeyPairs(),
+            mqbs::DataStore::AppInfos(),
             rec.d_timestamp,
             true);  // isNewQueue
 
         d_cluster_mp->_state().assignQueue(uri_t,
                                            queueKey,
                                            partitionId,
-                                           mqbc::ClusterState::AppIdInfos());
+                                           mqbc::ClusterState::AppInfos());
 
         BSLS_ASSERT_OPT(rc == 0);
         return queueKey;

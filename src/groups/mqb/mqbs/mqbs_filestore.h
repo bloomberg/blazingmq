@@ -213,8 +213,8 @@ class FileStore : public DataStore {
     typedef DataStoreConfig::QueueKeyInfoMapConstIter QueueKeyInfoMapConstIter;
     typedef DataStoreConfig::QueueKeyInfoMapInsertRc  QueueKeyInfoMapInsertRc;
 
-    typedef mqbi::Storage::AppIdKeyPair  AppIdKeyPair;
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfo  AppInfo;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef StorageCollectionUtil::StoragesMap         StoragesMap;
     typedef StorageCollectionUtil::StorageMapIter      StorageMapIter;
@@ -773,7 +773,7 @@ class FileStore : public DataStore {
     int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                  const bmqt::Uri&        queueUri,
                                  const mqbu::StorageKey& queueKey,
-                                 const AppIdKeyPairs&    appIdKeyPairs,
+                                 const AppInfos&         appIdKeyPairs,
                                  bsls::Types::Uint64     timestamp,
                                  bool isNewQueue) BSLS_KEYWORD_OVERRIDE;
 

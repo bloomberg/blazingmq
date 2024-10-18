@@ -400,14 +400,14 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdRegistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+        const mqbi::Storage::AppInfo& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `appIdKeyPair` has been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdUnregistered(
-        const mqbi::Storage::AppIdKeyPair& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+        const mqbi::Storage::AppInfo& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.

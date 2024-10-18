@@ -1589,7 +1589,7 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     mqbcmd::RelayQueueEngine& relayQueueEngine = out->makeRelay();
 
     int                          numSubStreams = 0;
-    mqbi::Storage::AppIdKeyPairs appIdKeyPairs;
+    mqbi::Storage::AppInfos      appIdKeyPairs;
 
     numSubStreams = storage()->numVirtualStorages();
     storage()->loadVirtualStorageDetails(&appIdKeyPairs);
@@ -1601,8 +1601,12 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
         bsl::vector<mqbcmd::RelayQueueEngineSubStream>& subStreams =
             relayQueueEngine.subStreams();
         subStreams.reserve(appIdKeyPairs.size());
-        for (size_t i = 0; i < appIdKeyPairs.size(); ++i) {
-            const mqbi::Storage::AppIdKeyPair& p = appIdKeyPairs[i];
+
+        for (mqbi::Storage::AppInfos::const_iterator cit =
+                 appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit) {
+            const mqbi::Storage::AppInfo& p = *cit;
 
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();

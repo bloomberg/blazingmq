@@ -65,7 +65,7 @@ namespace {
 class AppIdMatcher {
   private:
     // TYPES
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppIdKeyPair;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
 
     // DATA
     const bsl::string& d_expectedAppId;
@@ -78,7 +78,7 @@ class AppIdMatcher {
     }
 
     // ACCESSORS
-    bool operator()(const AppIdKeyPair& appIdKeyPair) const
+    bool operator()(const AppInfo& appIdKeyPair) const
     {
         return d_expectedAppId == appIdKeyPair.first;
     }
@@ -99,26 +99,26 @@ void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 // ------------------
 
 // PRIVATE FUNCTIONS
-bool StorageUtil::loadUpdatedAppIdKeyPairs(
-    AppIdKeyPairs*                  addedAppIdKeyPairs,
-    AppIdKeyPairs*                  removedAppIdKeyPairs,
+bool StorageUtil::loadUpdatedAppInfos(
+    AppInfos*                       addedAppInfos,
+    AppInfos*                       removedAppInfos,
     AppKeys*                        appKeys,
     bslmt::Mutex*                   appKeysLock,
     const mqbs::ReplicatedStorage&  storage,
-    const AppIdKeyPairs&            newAppIdKeyPairs,
+    const AppInfos&                 newAppInfos,
     const bsl::vector<bsl::string>& cfgAppIds,
     bool                            isCSLMode)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(addedAppIdKeyPairs);
-    BSLS_ASSERT_SAFE(removedAppIdKeyPairs);
+    BSLS_ASSERT_SAFE(addedAppInfos);
+    BSLS_ASSERT_SAFE(removedAppInfos);
     if (isCSLMode) {
         BSLS_ASSERT_SAFE(cfgAppIds.empty());
     }
     else {
-        BSLS_ASSERT_SAFE(newAppIdKeyPairs.empty());
+        BSLS_ASSERT_SAFE(newAppInfos.empty());
     }
 
     // This function is invoked by 'StorageManager::registerQueue' if the queue
@@ -135,32 +135,38 @@ bool StorageUtil::loadUpdatedAppIdKeyPairs(
     // list of newly added and removed appIds, and then invoking 'updateQueue'
     // in the appropriate thread.
 
-    AppIdKeyPairs existingAppIdKeyPairs;
-    storage.loadVirtualStorageDetails(&existingAppIdKeyPairs);
+    AppInfos existingAppInfos;
+    storage.loadVirtualStorageDetails(&existingAppInfos);
 
     if (isCSLMode) {
-        loadAddedAndRemovedEntries(addedAppIdKeyPairs,
-                                   removedAppIdKeyPairs,
-                                   existingAppIdKeyPairs,
-                                   newAppIdKeyPairs);
+        loadAddedAndRemovedEntries(addedAppInfos,
+                                   removedAppInfos,
+                                   existingAppInfos,
+                                   newAppInfos);
 
-        if (addedAppIdKeyPairs->empty() && removedAppIdKeyPairs->empty()) {
+        if (addedAppInfos->empty() && removedAppInfos->empty()) {
             // No appIds to add or remove.
             return false;  // RETURN
         }
     }
     else {
-        bsl::vector<bsl::string> existingAppIds;
-        for (size_t i = 0; i < existingAppIdKeyPairs.size(); ++i) {
-            existingAppIds.push_back(existingAppIdKeyPairs[i].first);
+        bsl::unordered_set<bsl::string> existingAppIds;
+        for (AppInfos::const_iterator cit = existingAppInfos.cbegin();
+             cit != existingAppInfos.cend();
+             ++cit) {
+            existingAppIds.emplace(cit->first);
         }
 
-        bsl::vector<bsl::string> addedAppIds;
-        bsl::vector<bsl::string> removedAppIds;
+        bsl::unordered_set<bsl::string> addedAppIds;
+        bsl::unordered_set<bsl::string> removedAppIds;
+
+        bsl::unordered_set<bsl::string> cfgAppSet(cfgAppIds.cbegin(),
+                                                  cfgAppIds.cend());
+
         loadAddedAndRemovedEntries(&addedAppIds,
                                    &removedAppIds,
                                    existingAppIds,
-                                   cfgAppIds);
+                                   cfgAppSet);
 
         if (addedAppIds.empty() && removedAppIds.empty()) {
             // No appIds to add or remove.
@@ -168,24 +174,27 @@ bool StorageUtil::loadUpdatedAppIdKeyPairs(
         }
 
         // Generate unique appKeys for the added appIds, and populate
-        // 'addedAppIdKeyPairs'.
-        for (size_t i = 0; i < addedAppIds.size(); ++i) {
+        // 'addedAppInfos'.
+        for (bsl::unordered_set<bsl::string>::const_iterator cit =
+                 addedAppIds.cbegin();
+             cit != addedAppIds.cend();
+             ++cit) {
             mqbu::StorageKey appKey = generateAppKey(appKeys,
                                                      appKeysLock,
-                                                     addedAppIds[i]);
-            addedAppIdKeyPairs->push_back(
-                bsl::make_pair(addedAppIds[i], appKey));
+                                                     *cit);
+            addedAppInfos->emplace(bsl::make_pair(*cit, appKey));
         }
 
-        // Populate 'removedAppIdKeyPairs'.
-        for (size_t i = 0; i < removedAppIds.size(); ++i) {
-            AppIdKeyPairsCIter it = bsl::find_if(
-                existingAppIdKeyPairs.begin(),
-                existingAppIdKeyPairs.end(),
-                AppIdMatcher(removedAppIds[i]));
-            BSLS_ASSERT_SAFE(it != existingAppIdKeyPairs.end());
-            removedAppIdKeyPairs->push_back(
-                bsl::make_pair(it->first, it->second));
+        // Populate 'removedAppInfos'.
+        for (bsl::unordered_set<bsl::string>::const_iterator cit =
+                 removedAppIds.cbegin();
+             cit != removedAppIds.cend();
+             ++cit) {
+            AppInfosCIter it = bsl::find_if(existingAppInfos.cbegin(),
+                                            existingAppInfos.cend(),
+                                            AppIdMatcher(*cit));
+            BSLS_ASSERT_SAFE(it != existingAppInfos.end());
+            removedAppInfos->emplace(bsl::make_pair(it->first, it->second));
         }
     }
 
@@ -196,9 +205,9 @@ void StorageUtil::registerQueueDispatched(
     BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
     mqbs::FileStore*                                                fs,
     mqbs::ReplicatedStorage*                                        storage,
-    const bsl::string&   clusterDescription,
-    int                  partitionId,
-    const AppIdKeyPairs& appIdKeyPairs)
+    const bsl::string& clusterDescription,
+    int                partitionId,
+    const AppInfos&    appIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -255,16 +264,16 @@ void StorageUtil::registerQueueDispatched(
 void StorageUtil::updateQueuePrimaryDispatched(
     BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
     mqbs::ReplicatedStorage*                                        storage,
-    bslmt::Mutex*        storagesLock,
-    mqbs::FileStore*     fs,
-    AppKeys*             appKeys,
-    bslmt::Mutex*        appKeysLock,
-    const bsl::string&   clusterDescription,
-    int                  partitionId,
-    const AppIdKeyPairs& addedIdKeyPairs,
-    const AppIdKeyPairs& removedIdKeyPairs,
-    bool                 isFanout,
-    bool                 isCSLMode)
+    bslmt::Mutex*      storagesLock,
+    mqbs::FileStore*   fs,
+    AppKeys*           appKeys,
+    bslmt::Mutex*      appKeysLock,
+    const bsl::string& clusterDescription,
+    int                partitionId,
+    const AppInfos&    addedIdKeyPairs,
+    const AppInfos&    removedIdKeyPairs,
+    bool               isFanout,
+    bool               isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -293,12 +302,12 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                        mqbs::FileStore*         fs,
                                        AppKeys*                 appKeys,
                                        bslmt::Mutex*            appKeysLock,
-                                       const bsl::string&   clusterDescription,
-                                       int                  partitionId,
-                                       const AppIdKeyPairs& addedIdKeyPairs,
-                                       const AppIdKeyPairs& removedIdKeyPairs,
-                                       bool                 isFanout,
-                                       bool                 isCSLMode)
+                                       const bsl::string& clusterDescription,
+                                       int                partitionId,
+                                       const AppInfos&    addedIdKeyPairs,
+                                       const AppInfos&    removedIdKeyPairs,
+                                       bool               isFanout,
+                                       bool               isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -352,7 +361,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
         BALL_LOG_INFO_BLOCK
         {
-            bmqu::Printer<AppIdKeyPairs> printer(&addedIdKeyPairs);
+            bmqu::Printer<AppInfos> printer(&addedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
                 << clusterDescription << ": Partition [" << partitionId
@@ -364,7 +373,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     }
 
     if (!removedIdKeyPairs.empty()) {
-        for (AppIdKeyPairsCIter cit = removedIdKeyPairs.begin();
+        for (AppInfosCIter cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
             // Write QueueDeletionRecord to data store for removed appIds.
@@ -409,7 +418,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
         BALL_LOG_INFO_BLOCK
         {
-            bmqu::Printer<AppIdKeyPairs> printer(&removedIdKeyPairs);
+            bmqu::Printer<AppInfos> printer(&removedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
                 << clusterDescription << ": Partition [" << partitionId
@@ -424,8 +433,8 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     // away.
     fs->dispatcherFlush(true, false);
 
-    bmqu::Printer<AppIdKeyPairs> printer1(&addedIdKeyPairs);
-    bmqu::Printer<AppIdKeyPairs> printer2(&removedIdKeyPairs);
+    bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
+    bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
     BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] updated [" << storage->queueUri() << "], queueKey ["
                   << storage->queueKey() << "] with the storage as primary: "
@@ -439,7 +448,7 @@ int StorageUtil::addVirtualStoragesInternal(
     mqbs::ReplicatedStorage* storage,
     AppKeys*                 appKeys,
     bslmt::Mutex*            appKeysLock,
-    const AppIdKeyPairs&     appIdKeyPairs,
+    const AppInfos&          appIdKeyPairs,
     const bsl::string&       clusterDescription,
     int                      partitionId,
     bool                     isFanout,
@@ -466,7 +475,7 @@ int StorageUtil::addVirtualStoragesInternal(
         // Register appKeys with 'appKeys' and then with the underlying
         // physical 'storage'.
 
-        for (AppIdKeyPairsCIter cit = appIdKeyPairs.begin();
+        for (AppInfosCIter cit = appIdKeyPairs.begin();
              cit != appIdKeyPairs.end();
              ++cit) {
             AppKeysInsertRc irc = appKeys->insert(cit->second);
@@ -1524,13 +1533,15 @@ void StorageUtil::recoveredQueuesCb(
         }
 
         if (qinfo.appIdKeyPairs().size() != 1 ||
-            qinfo.appIdKeyPairs()[0].first !=
+            qinfo.appIdKeyPairs().cbegin()->first !=
                 bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
-            // This ia a fanout queue
+            // This is a fanout queue
             AppIds appIds;
 
-            for (size_t n = 0; n < qinfo.appIdKeyPairs().size(); ++n) {
-                const AppIdKeyPair& p = qinfo.appIdKeyPairs()[n];
+            for (AppInfos::const_iterator cit = qinfo.appIdKeyPairs().cbegin();
+                 cit != qinfo.appIdKeyPairs().cend();
+                 ++cit) {
+                const AppInfo& p = *cit;
 
                 AppIdsInsertRc appIdsIrc = appIds.insert(p.first);
                 if (false == appIdsIrc.second) {
@@ -1662,7 +1673,7 @@ void StorageUtil::recoveredQueuesCb(
          ++qit) {
         const mqbu::StorageKey&               queueKey = qit->first;
         const mqbs::DataStoreConfigQueueInfo& qinfo    = qit->second;
-        const AppIdKeyPairs& appIdKeyPairs             = qinfo.appIdKeyPairs();
+        const AppInfos&      appIdKeyPairs             = qinfo.appIdKeyPairs();
         const bmqt::Uri      queueUri(qinfo.canonicalQueueUri());
         BSLS_ASSERT_SAFE(queueUri.isValid());
 
@@ -1696,7 +1707,7 @@ void StorageUtil::recoveredQueuesCb(
                 BSLS_ASSERT_SAFE(queueKey == rstorage->queueKey());
                 BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
 
-                for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
+                for (AppInfosCIter ait = appIdKeyPairs.begin();
                      ait != appIdKeyPairs.end();
                      ++ait) {
                     BSLA_MAYBE_UNUSED const bsl::string& appId = ait->first;
@@ -1830,7 +1841,7 @@ void StorageUtil::recoveredQueuesCb(
         bmqu::MemOutStream errorDesc;
         int                rc;
         if (domain->config().mode().isFanoutValue()) {
-            for (AppIdKeyPairsCIter ait = appIdKeyPairs.begin();
+            for (AppInfosCIter ait = appIdKeyPairs.begin();
                  ait != appIdKeyPairs.end();
                  ++ait) {
                 const bsl::string&      appId  = ait->first;
@@ -2338,7 +2349,7 @@ void StorageUtil::registerQueue(
     const mqbu::StorageKey&                  queueKey,
     const bsl::string&                       clusterDescription,
     int                                      partitionId,
-    const AppIdKeyPairs&                     appIdKeyPairs,
+    const AppInfos&                          appIdKeyPairs,
     mqbi::Domain*                            domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
@@ -2357,9 +2368,6 @@ void StorageUtil::registerQueue(
         partitionId <
             cluster->clusterConfig()->partitionConfig().numPartitions());
     BSLS_ASSERT_SAFE(domain);
-    if (!cluster->isCSLModeEnabled()) {
-        BSLS_ASSERT_SAFE(appIdKeyPairs.empty());
-    }
 
     // StorageMgr is either aware of the queue (the 'uri') or it isn't.  If it
     // is already aware, either this queue was registered earlier or it was
@@ -2374,7 +2382,7 @@ void StorageUtil::registerQueue(
     // and deployed before the node started (some appIds were added or removed
     // or both).  We need to make sure that these appIds are handled correctly.
     // The logic to get a list of added and/or removed appId/key pairs is
-    // handled by invoking 'loadUpdatedAppIdKeyPairs' in this function if queue
+    // handled by invoking 'loadUpdatedAppInfos' in this function if queue
     // is in fanout mode.
 
     // If StorageMgr is not aware of the queue, then its a simpler process --
@@ -2438,33 +2446,31 @@ void StorageUtil::registerQueue(
             // to be added or removed (see comments at the beginning of this
             // routine for explanation).
 
-            AppIdKeyPairs addedAppIdKeyPairs, removedAppIdKeyPairs;
+            AppInfos addedAppInfos, removedAppInfos;
 
             bool hasUpdate = false;
             if (cluster->isCSLModeEnabled()) {
                 // In CSL mode, queue assignment procedure is split into queue
                 // assignment and queue update, so we simply remove all appIds
                 // here, and re-add them during queue update phase.
-                hasUpdate = loadUpdatedAppIdKeyPairs(
-                    &addedAppIdKeyPairs,
-                    &removedAppIdKeyPairs,
-                    appKeys,
-                    appKeysLock,
-                    *storageSp.get(),
-                    appIdKeyPairs,
-                    bsl::vector<bsl::string>(),
-                    true);  // isCSLMode
+                hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
+                                                &removedAppInfos,
+                                                appKeys,
+                                                appKeysLock,
+                                                *storageSp.get(),
+                                                appIdKeyPairs,
+                                                bsl::vector<bsl::string>(),
+                                                true);  // isCSLMode
             }
             else {
-                hasUpdate = loadUpdatedAppIdKeyPairs(
-                    &addedAppIdKeyPairs,
-                    &removedAppIdKeyPairs,
-                    appKeys,
-                    appKeysLock,
-                    *storageSp.get(),
-                    AppIdKeyPairs(),
-                    queueMode.fanout().appIDs(),
-                    false);  // isCSLMode
+                hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
+                                                &removedAppInfos,
+                                                appKeys,
+                                                appKeysLock,
+                                                *storageSp.get(),
+                                                AppInfos(),
+                                                queueMode.fanout().appIDs(),
+                                                false);  // isCSLMode
             }
             if (!hasUpdate) {
                 // No update needed for AppId/Key pairs.
@@ -2490,8 +2496,8 @@ void StorageUtil::registerQueue(
                     appKeysLock,
                     clusterDescription,
                     partitionId,
-                    addedAppIdKeyPairs,
-                    removedAppIdKeyPairs,
+                    addedAppInfos,
+                    removedAppInfos,
                     domain->config().mode().isFanoutValue(),
                     cluster->isCSLModeEnabled()));
 
@@ -2501,7 +2507,7 @@ void StorageUtil::registerQueue(
 
             // Wait for 'updateQueuePrimaryDispatched' operation to complete.
             // We need to wait because 'updateQueuePrimaryDispatched' creates
-            // virtual storages corresponding to 'addedAppIdKeyPairs' (if any),
+            // virtual storages corresponding to 'addedAppInfos' (if any),
             // and the caller of 'registerQueue' expects these virtual storages
             // to be created this routine or its caller returns.  Before
             // waiting, release the 'storagesLock' guard and unlock it to avoid
@@ -2535,10 +2541,10 @@ void StorageUtil::registerQueue(
 
     bmqu::MemOutStream errorDesc;
     int                rc = 0;
-    AppIdKeyPairs      appIdKeyPairsToUse;
+    AppInfos           appIdKeyPairsToUse;
     if (queueMode.isFanoutValue()) {
-        if (cluster->isCSLModeEnabled()) {
-            for (AppIdKeyPairsCIter citer = appIdKeyPairs.begin();
+        if (cluster->isCSLModeEnabled() || !appIdKeyPairs.empty()) {
+            for (AppInfosCIter citer = appIdKeyPairs.begin();
                  citer != appIdKeyPairs.end();
                  ++citer) {
                 rc = storageSp->addVirtualStorage(errorDesc,
@@ -2566,7 +2572,7 @@ void StorageUtil::registerQueue(
 
                 rc = storageSp->addVirtualStorage(errorDesc, *citer, appKey);
 
-                appIdKeyPairsToUse.push_back(bsl::make_pair(*citer, appKey));
+                appIdKeyPairsToUse.emplace(bsl::make_pair(*citer, appKey));
             }
         }
     }
@@ -2762,8 +2768,8 @@ int StorageUtil::updateQueuePrimary(StorageSpMap*           storageMap,
                                     const bmqt::Uri&        uri,
                                     const mqbu::StorageKey& queueKey,
                                     int                     partitionId,
-                                    const AppIdKeyPairs&    addedIdKeyPairs,
-                                    const AppIdKeyPairs&    removedIdKeyPairs,
+                                    const AppInfos&         addedIdKeyPairs,
+                                    const AppInfos&         removedIdKeyPairs,
                                     bool                    isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
@@ -2783,8 +2789,8 @@ int StorageUtil::updateQueuePrimary(StorageSpMap*           storageMap,
 
     StorageSpMapIter it = storageMap->find(uri);
     if (storageMap->end() == it) {
-        bmqu::Printer<AppIdKeyPairs> printer1(&addedIdKeyPairs);
-        bmqu::Printer<AppIdKeyPairs> printer2(&removedIdKeyPairs);
+        bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
+        bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
         BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
                        << "]: Error when updating queue '" << uri
                        << "' with addedAppIds: [" << printer1
@@ -3134,7 +3140,7 @@ void StorageUtil::updateQueueReplicaDispatched(
     int                     partitionId,
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& queueKey,
-    const AppIdKeyPairs&    appIdKeyPairs,
+    const AppInfos&         appIdKeyPairs,
     bool                    isCSLMode,
     mqbi::Domain*           domain,
     bool                    allowDuplicate)
@@ -3166,7 +3172,7 @@ void StorageUtil::updateQueueReplicaDispatched(
     if (it == storageMap->end()) {
         // Cluster state and/or partition are out of sync at this replica.
 
-        bmqu::Printer<AppIdKeyPairs> printer(&appIdKeyPairs);
+        bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "At partition [" << partitionId
             << "], failure while registering appIds [" << printer
@@ -3198,7 +3204,7 @@ void StorageUtil::updateQueueReplicaDispatched(
         isCSLMode);
     if (rc != 0) {
         if (!allowDuplicate) {
-            bmqu::Printer<AppIdKeyPairs> printer(&appIdKeyPairs);
+            bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
             BMQTSK_ALARMLOG_ALARM("REPLICATION")
                 << "At partition [" << partitionId
                 << "], failure while registering appIds [" << printer
@@ -3213,7 +3219,7 @@ void StorageUtil::updateQueueReplicaDispatched(
         return;  // RETURN
     }
 
-    bmqu::Printer<AppIdKeyPairs> printer(&appIdKeyPairs);
+    bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
     BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] updated [" << uri << "], queueKey [" << queueKey
                   << "] with the storage as replica: " << "addedIdKeyPairs:"

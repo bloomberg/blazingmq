@@ -110,7 +110,7 @@ class ClusterStateManager
     typedef ClusterFSM::ClusterFSMArgs    ClusterFSMArgs;
     typedef ClusterFSM::ClusterFSMArgsSp  ClusterFSMArgsSp;
 
-    typedef mqbi::ClusterStateManager::AppIdInfos AppIdInfos;
+    typedef mqbi::ClusterStateManager::AppInfos AppInfos;
 
   public:
     // TYPES
@@ -483,7 +483,7 @@ class ClusterStateManager
     virtual void registerQueueInfo(const bmqt::Uri&        uri,
                                    int                     partitionId,
                                    const mqbu::StorageKey& queueKey,
-                                   const AppIdInfos&       appIdInfos,
+                                   const AppInfos&         appIdInfos,
                                    bool forceUpdate) BSLS_KEYWORD_OVERRIDE;
 
     /// Unassign the queue in the specified `advisory` by applying the

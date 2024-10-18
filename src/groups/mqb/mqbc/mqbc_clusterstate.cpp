@@ -46,7 +46,7 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("uri", uri());
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
-    printer.printAttribute("appIdInfos", appIdInfos());
+    printer.printAttribute("appIdInfos", appInfos());
     printer.end();
 
     return stream;
@@ -87,8 +87,8 @@ void ClusterStateObserver::onQueueUnassigned(
 void ClusterStateObserver::onQueueUpdated(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const bsl::string& domain,
-    BSLS_ANNOTATION_UNUSED const AppIdInfos&  addedAppIds,
-    BSLS_ANNOTATION_UNUSED const AppIdInfos&  removedAppIds)
+    BSLS_ANNOTATION_UNUSED const AppInfos&    addedAppIds,
+    BSLS_ANNOTATION_UNUSED const AppInfos&    removedAppIds)
 {
     // NOTHING
 }
@@ -315,7 +315,7 @@ ClusterState& ClusterState::updatePartitionNumActiveQueues(int partitionId,
 bool ClusterState::assignQueue(const bmqt::Uri&        uri,
                                const mqbu::StorageKey& key,
                                int                     partitionId,
-                               const AppIdInfos&       appIdInfos)
+                               const AppInfos&         appIdInfos)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -353,14 +353,14 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
 
             updatePartitionQueueMapped(iter->second->partitionId(), -1);
             iter->second->setKey(key).setPartitionId(partitionId);
-            iter->second->appIdInfos() = appIdInfos;
+            iter->second->appInfos() = appIdInfos;
             iter->second->setPendingUnassignment(false);
         }
     }
 
     updatePartitionQueueMapped(partitionId, 1);
 
-    bmqu::Printer<AppIdInfos> printer(&appIdInfos);
+    bmqu::Printer<AppInfos> printer(&appIdInfos);
     BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                   << "Assigning queue [" << uri << "], queueKey: [" << key
                   << "] to Partition [" << partitionId
@@ -453,8 +453,8 @@ void ClusterState::clearQueues()
 
 int ClusterState::updateQueue(const bmqt::Uri&   uri,
                               const bsl::string& domain,
-                              const AppIdInfos&  addedAppIds,
-                              const AppIdInfos&  removedAppIds)
+                              const AppInfos&    addedAppIds,
+                              const AppInfos&    removedAppIds)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -484,8 +484,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
             return rc_QUEUE_NOT_FOUND;  // RETURN
         }
 
-        AppIdInfos& appIdInfos = iter->second->appIdInfos();
-        for (AppIdInfosCIter citer = addedAppIds.cbegin();
+        AppInfos& appIdInfos = iter->second->appInfos();
+        for (AppInfosCIter citer = addedAppIds.cbegin();
              citer != addedAppIds.cend();
              ++citer) {
             if (!appIdInfos.insert(*citer).second) {
@@ -493,18 +493,18 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
             }
         }
 
-        for (AppIdInfosCIter citer = removedAppIds.begin();
+        for (AppInfosCIter citer = removedAppIds.begin();
              citer != removedAppIds.end();
              ++citer) {
-            const AppIdInfosCIter appIdInfoCIter = appIdInfos.find(*citer);
+            const AppInfosCIter appIdInfoCIter = appIdInfos.find(*citer);
             if (appIdInfoCIter == appIdInfos.cend()) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
             appIdInfos.erase(appIdInfoCIter);
         }
 
-        bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
-        bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
+        bmqu::Printer<AppInfos> printer1(&addedAppIds);
+        bmqu::Printer<AppInfos> printer2(&removedAppIds);
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating queue [" << uri << "], queueKey: ["
                       << iter->second->key() << "], partitionId: ["
@@ -515,8 +515,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
     else {
         // This update is for an entire domain, instead of any individual
         // queue.
-        bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
-        bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
+        bmqu::Printer<AppInfos> printer1(&addedAppIds);
+        bmqu::Printer<AppInfos> printer2(&removedAppIds);
         BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
                       << "Updating domain: [" << domain
                       << "], addedAppIds: " << printer1

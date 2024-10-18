@@ -102,9 +102,9 @@ class ClusterStateManager {
         AfterPartitionPrimaryAssignmentCb;
 
     /// Pair of (appId, appKey)
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppIdInfo;
-    typedef bsl::unordered_set<AppIdInfo>            AppIdInfos;
-    typedef AppIdInfos::const_iterator               AppIdInfosCIter;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
+    typedef bsl::unordered_set<AppInfo>              AppInfos;
+    typedef AppInfos::const_iterator                 AppInfosCIter;
 
     struct QueueAssignmentResult {
         enum Enum {
@@ -226,7 +226,7 @@ class ClusterStateManager {
     virtual void registerQueueInfo(const bmqt::Uri&        uri,
                                    int                     partitionId,
                                    const mqbu::StorageKey& queueKey,
-                                   const AppIdInfos&       appIdInfos,
+                                   const AppInfos&         appIdInfos,
                                    bool                    forceUpdate) = 0;
 
     /// Unassign the queue in the specified `advisory` by applying the
