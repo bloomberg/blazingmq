@@ -876,7 +876,8 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUT == event.type());
     BSLS_ASSERT_SAFE(event.asPutEvent()->isRelay() == true);
 
-    const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+    const mqbi::DispatcherPutEvent* realEvent =
+        &event.getAs<mqbi::DispatcherPutEvent>();
 
     // This relay-PUT message is enqueued by the RemoteQueue on either cluster
     // (in case of replica) or clusterProxy (in case of proxy).  This is a
@@ -1052,7 +1053,8 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
     // replica source node is event.clusterNode().  This routine is similar to
     // that of ClientSession.
 
-    const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+    const mqbi::DispatcherPutEvent* realEvent =
+        &event.getAs<mqbi::DispatcherPutEvent>();
 
     mqbnet::ClusterNode*      source = realEvent->clusterNode();
     mqbc::ClusterNodeSession* ns =
@@ -1287,7 +1289,8 @@ void Cluster::onAckEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_ACK == event.type());
     BSLS_ASSERT_SAFE(event.asAckEvent()->isRelay() == false);
 
-    const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
+    const mqbi::DispatcherAckEvent* realEvent =
+        &event.getAs<mqbi::DispatcherAckEvent>();
 
     // This ACK message is enqueued by mqbblp::Queue on this node, and needs to
     // be forwarded to 'event.clusterNode()' (the replica node).
@@ -1363,7 +1366,8 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
     // (this) node.  Iterate over each message in the event and forward it to
     // appropriate remote queue.
 
-    const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
+    const mqbi::DispatcherAckEvent* realEvent =
+        &event.getAs<mqbi::DispatcherAckEvent>();
 
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData.membership().selfNodeStatus();
@@ -1425,7 +1429,8 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
     // this (primary) node, and it needs to be forwarded to the queue after
     // appropriate checks.  Iterate over each CONFIRM message in the event and
     // forward it to the queue handle.
-    const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
+    const mqbi::DispatcherConfirmEvent* realEvent =
+        &event.getAs<mqbi::DispatcherConfirmEvent>();
 
     mqbnet::ClusterNode*      source = realEvent->clusterNode();
     mqbc::ClusterNodeSession* ns =
@@ -1523,7 +1528,8 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
     // this (primary) node, and it needs to be forwarded to the queue after
     // appropriate checks.  Iterate over each REJECT message in the event and
     // forward it to the queue handle.
-    const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+    const mqbi::DispatcherRejectEvent* realEvent =
+        &event.getAs<mqbi::DispatcherRejectEvent>();
 
     mqbnet::ClusterNode*      source = realEvent->clusterNode();
     mqbc::ClusterNodeSession* ns =
@@ -1669,7 +1675,8 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_REJECT == event.type());
     BSLS_ASSERT_SAFE(true == event.asRejectEvent()->isRelay());
 
-    const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+    const mqbi::DispatcherRejectEvent* realEvent =
+        &event.getAs<mqbi::DispatcherRejectEvent>();
 
     // This relay-REJECT message is enqueued by the RemoteQueue on either
     // cluster (in case of replica) or clusterProxy (in case of proxy).  This
@@ -1728,7 +1735,8 @@ void Cluster::onRelayConfirmEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_CONFIRM == event.type());
     BSLS_ASSERT_SAFE(true == event.asConfirmEvent()->isRelay());
 
-    const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
+    const mqbi::DispatcherConfirmEvent* realEvent =
+        &event.getAs<mqbi::DispatcherConfirmEvent>();
 
     // This relay-CONFIRM message is enqueued by the RemoteQueue on either
     // cluster (in case of replica) or clusterProxy (in case of proxy).  This
@@ -1851,7 +1859,8 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUSH == event.type());
     BSLS_ASSERT_SAFE(event.asPushEvent()->isRelay() == false);
 
-    const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+    const mqbi::DispatcherPushEvent* realEvent =
+        &event.getAs<mqbi::DispatcherPushEvent>();
 
     // This PUSH message is enqueued by mqbblp::Queue/QueueHandle on this node,
     // and needs to be forwarded to 'event.clusterNode()' (the replica node,
@@ -1998,7 +2007,8 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
     // replica (this) node.  Iterate over each message in the event and forward
     // it to appropriate remote queue.  Note that these PUSH msgs won't have
     // payloads.
-    const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+    const mqbi::DispatcherPushEvent* realEvent =
+        &event.getAs<mqbi::DispatcherPushEvent>();
 
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData.membership().selfNodeStatus();
@@ -3270,9 +3280,9 @@ void Cluster::processEvent(const bmqp::Event&   event,
             d_clusterData.blobSpPool().getObject();                           \
         *_blobSp = *(event.blob());                                           \
         (*_evt)                                                               \
-            .setType(T)                                                       \
-            .setIsRelay(R)                                                    \
             .setSource(this)                                                  \
+            .make##T##Event()                                                 \
+            .setIsRelay(R)                                                    \
             .setBlob(_blobSp)                                                 \
             .setClusterNode(source);                                          \
         dispatcher()->dispatchEvent(_evt, this);                              \
@@ -3330,29 +3340,29 @@ void Cluster::processEvent(const bmqp::Event&   event,
         // This event arrives from a replica to this node, which should be the
         // primary of the partition of the queue to which this PUT event
         // belongs.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_PUT, false);
+        DISPATCH_EVENT(Put, false);
     } break;  // BREAK
     case bmqp::EventType::e_CONFIRM: {
         // This event arrives from a replica to this node, which should be the
         // primary of the partition of the queue to which this CONFIRM event
         // belongs.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_CONFIRM, false);
+        DISPATCH_EVENT(Confirm, false);
     } break;  // BREAK
     case bmqp::EventType::e_REJECT: {
         // This event arrives from a replica to this node, which should be the
         // primary of the partition of the queue to which this REJECT event
         // belongs.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_REJECT, false);
+        DISPATCH_EVENT(Reject, false);
     } break;  // BREAK
     case bmqp::EventType::e_PUSH: {
         // This event arrives from primary to replica, and hence is a relay
         // event.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_PUSH, true);
+        DISPATCH_EVENT(Push, true);
     } break;  // BREAK
     case bmqp::EventType::e_ACK: {
         // This event arrives from primary to replica, and hence is a relay
         // event.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_ACK, true);
+        DISPATCH_EVENT(Ack, true);
     } break;  // BREAK
     case bmqp::EventType::e_CLUSTER_STATE: {
         if (isLocal()) {
@@ -3366,11 +3376,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
             return;  // RETURN
         }
 
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_CLUSTER_STATE, false);
+        DISPATCH_EVENT(ClusterState, false);
     } break;
     case bmqp::EventType::e_STORAGE: {
         // Storage event arrives from primary to replica/replication nodes.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_STORAGE, false);
+        DISPATCH_EVENT(Storage, false);
     } break;  // BREAK
     case bmqp::EventType::e_PARTITION_SYNC: {
         // PartitionSync event may arrive from a passive primary to replicas,
@@ -3378,11 +3388,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
         // currently don't have a dispatcher event type for
         // EventType::e_PARTITION_SYNC.  So we overload
         // DispatcherEventType::e_STORAGE.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_STORAGE, false);
+        DISPATCH_EVENT(Storage, false);
     } break;  // BREAK
     case bmqp::EventType::e_RECOVERY: {
         // This event arrives from a peer cluster node.
-        DISPATCH_EVENT(mqbi::DispatcherEventType::e_RECOVERY, false);
+        DISPATCH_EVENT(Recovery, false);
     } break;  // BREAK
     case bmqp::EventType::e_HEARTBEAT_REQ:
     case bmqp::EventType::e_HEARTBEAT_RSP: {
@@ -3420,12 +3430,14 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+            &event.getAs<mqbi::DispatcherCallbackEvent>();
         BSLS_ASSERT_SAFE(realEvent->callback());
         realEvent->callback()(dispatcherClientData().processorHandle());
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        // TODO refactor using concrete event types
+        const mqbi::DispatcherPutEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPutEvent>();
         if (realEvent->isRelay()) {
             onRelayPutEvent(event);
         }
@@ -3434,7 +3446,8 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
-        const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
+        const mqbi::DispatcherAckEvent* realEvent =
+            &event.getAs<mqbi::DispatcherAckEvent>();
         if (realEvent->isRelay()) {
             onRelayAckEvent(event);
         }
@@ -3443,7 +3456,8 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
+        const mqbi::DispatcherConfirmEvent* realEvent =
+            &event.getAs<mqbi::DispatcherConfirmEvent>();
         if (realEvent->isRelay()) {
             onRelayConfirmEvent(event);
         }
@@ -3452,7 +3466,8 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+        const mqbi::DispatcherRejectEvent* realEvent =
+            &event.getAs<mqbi::DispatcherRejectEvent>();
         if (realEvent->isRelay()) {
             onRelayRejectEvent(event);
         }
@@ -3462,21 +3477,22 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
         const mqbi::DispatcherClusterStateEvent* clusterStateEvt =
-            event.asClusterStateEvent();
+            &event.getAs<mqbi::DispatcherClusterStateEvent>();
         d_clusterOrchestrator.processClusterStateEvent(*clusterStateEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_STORAGE: {
         const mqbi::DispatcherStorageEvent* storageEvt =
-            event.asStorageEvent();
+            &event.getAs<mqbi::DispatcherStorageEvent>();
         d_storageManager_mp->processStorageEvent(*storageEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_RECOVERY: {
         const mqbi::DispatcherRecoveryEvent* recoveryEvt =
-            event.asRecoveryEvent();
+            &event.getAs<mqbi::DispatcherRecoveryEvent>();
         d_storageManager_mp->processRecoveryEvent(*recoveryEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+        const mqbi::DispatcherPushEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPushEvent>();
         if (realEvent->isRelay()) {
             onRelayPushEvent(event);
         }
