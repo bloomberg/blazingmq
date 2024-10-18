@@ -376,12 +376,12 @@ class Storage {
   public:
     // PUBLIC TYPES
 
-    /// `AppIdKeyPair` is an alias for an (appId, appKey) pairing
+    /// `AppInfo` is an alias for an (appId, appKey) pairing
     /// representing unique virtual storage identification.
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppIdKeyPair;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
 
-    /// `AppIdKeyPairs` is an alias for a list of pairs of appId and appKey
-    typedef bsl::vector<AppIdKeyPair> AppIdKeyPairs;
+    /// `AppInfos` is an alias for a set of pairs of appId and appKey
+    typedef bsl::unordered_set<AppInfo> AppInfos;
 
     typedef mwcc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
@@ -649,7 +649,7 @@ class Storage {
 
     /// Load into the specified `buffer` the list of pairs of appId and
     /// appKey for all the virtual storages registered with this instance.
-    virtual void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const = 0;
+    virtual void loadVirtualStorageDetails(AppInfos* buffer) const = 0;
 
     /// Return the number of auto confirmed Apps for the current message.
     virtual unsigned int numAutoConfirms() const = 0;
