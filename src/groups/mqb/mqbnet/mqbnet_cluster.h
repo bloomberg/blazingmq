@@ -148,8 +148,9 @@ class ClusterNode {
     /// success, and a non-zero value otherwise.  Note that success does not
     /// imply that the data has been written or will be successfully written
     /// to the underlying stream used by this channel.
-    virtual bmqt::GenericResult::Enum write(const bdlbb::Blob&    blob,
-                                            bmqp::EventType::Enum type) = 0;
+    virtual bmqt::GenericResult::Enum
+    write(const bsl::shared_ptr<bdlbb::Blob>& blob,
+          bmqp::EventType::Enum               type) = 0;
 
     // ACCESSORS
 
@@ -215,13 +216,13 @@ class Cluster {
     /// nodes of this cluster (with the exception of the current node).
     /// Return the maximum number of pending items across all cluster
     /// channels prior to broadcasting.
-    virtual int writeAll(const bdlbb::Blob&    blob,
-                         bmqp::EventType::Enum type) = 0;
+    virtual int writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                         bmqp::EventType::Enum               type) = 0;
 
     /// Send the specified `blob` to all currently up nodes of this cluster
     /// (exception of the current node).  Return the maximum number of
     /// pending items across all cluster channels prior to broadcasting.
-    virtual int broadcast(const bdlbb::Blob& blob) = 0;
+    virtual int broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob) = 0;
 
     /// Close the channels associated to all nodes in this cluster.
     virtual void closeChannels() = 0;

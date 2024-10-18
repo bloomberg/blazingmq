@@ -142,8 +142,9 @@ void ClusterNodeImp::closeChannel()
     d_channel.closeChannel();
 }
 
-bmqt::GenericResult::Enum ClusterNodeImp::write(const bdlbb::Blob&    blob,
-                                                bmqp::EventType::Enum type)
+bmqt::GenericResult::Enum
+ClusterNodeImp::write(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                      bmqp::EventType::Enum               type)
 {
     return d_channel.writeBlob(blob, type);
 }
@@ -233,7 +234,8 @@ Cluster* ClusterImp::unregisterObserver(ClusterObserver* observer)
     return this;
 }
 
-int ClusterImp::writeAll(const bdlbb::Blob& blob, bmqp::EventType::Enum type)
+int ClusterImp::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                         bmqp::EventType::Enum               type)
 {
     unsigned int maxPushChannelPendingItems = 0;
     unsigned int maxChannelPendingItems     = 0;
@@ -264,7 +266,7 @@ int ClusterImp::writeAll(const bdlbb::Blob& blob, bmqp::EventType::Enum type)
                 if (d_failedWritesThrottler.requestPermission()) {
                     BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                                    << "Failed to write blob of length ["
-                                   << blob.length() << "] bytes, to node "
+                                   << blob->length() << "] bytes, to node "
                                    << it->nodeDescription() << ", rc: " << rc
                                    << ".";
                 }
@@ -279,7 +281,7 @@ int ClusterImp::writeAll(const bdlbb::Blob& blob, bmqp::EventType::Enum type)
     return maxPushChannelPendingItems;
 }
 
-int ClusterImp::broadcast(const bdlbb::Blob& blob)
+int ClusterImp::broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     return writeAll(blob, bmqp::EventType::e_STORAGE);
 }

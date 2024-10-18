@@ -1553,7 +1553,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         }
 
         bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-            builder.blob(),
+            builder.blob_sp(),
             bmqp::EventType::e_RECOVERY);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1601,7 +1601,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
     }
 
     bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-        builder.blob(),
+        builder.blob_sp(),
         bmqp::EventType::e_RECOVERY);
 
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1804,7 +1804,7 @@ int RecoveryManager::replayPartition(
                 .syncConfig()
                 .partitionSyncEventSize() <= builder.eventSize()) {
             bmqt::GenericResult::Enum writeRc = destination->write(
-                builder.blob(),
+                builder.blob_sp(),
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1828,7 +1828,7 @@ int RecoveryManager::replayPartition(
 
     if (0 < builder.messageCount()) {
         bmqt::GenericResult::Enum writeRc = destination->write(
-            builder.blob(),
+            builder.blob_sp(),
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {

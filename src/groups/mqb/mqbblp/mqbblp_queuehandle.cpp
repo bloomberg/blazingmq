@@ -392,10 +392,7 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
         bsls::Types::Int64 bytesDelta = msgSize;
         bytesDelta *= -1;
 
-        resourceUsageStateChange =
-            subscription->d_unconfirmedMonitor.update(bytesDelta, -1);
-        BSLS_ASSERT_SAFE(subscription->d_unconfirmedMonitor.messages() >= 0 &&
-                         subscription->d_unconfirmedMonitor.bytes() >= 0);
+        return subscription->d_unconfirmedMonitor.update(bytesDelta, -1);
     }
     else {
         // The subscription is gone (by ConfigureStream)

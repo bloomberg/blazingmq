@@ -602,7 +602,8 @@ class RequestManager {
     /// specified `blob`.  Return 0 on success, and a non-zero value
     /// otherwise, populating the optionally specified `status` with
     /// information pertaining to the error.
-    typedef bsl::function<bmqt::GenericResult::Enum(const bdlbb::Blob& blob)>
+    typedef bsl::function<bmqt::GenericResult::Enum(
+        bsl::shared_ptr<bdlbb::Blob> blob)>
         SendFn;
 
     typedef RequestManagerRequest<REQUEST, RESPONSE> RequestType;
@@ -1363,7 +1364,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
 
     // Send the request
     request->d_sendTime              = mwcsys::Time::highResolutionTimer();
-    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob());
+    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob_sp());
     if (sendRc != bmqt::GenericResult::e_SUCCESS) {
         mwcu::MemOutStream errorDesc;
         errorDesc << "WRITE_FAILED, status: " << sendRc;

@@ -1447,7 +1447,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     bmqt::GenericResult::Enum
     requestWriterCb(const RequestManagerType::RequestSp& context,
                     const bmqp::QueueId&                 queueId,
-                    const bdlbb::Blob&                   blob,
+                    const bsl::shared_ptr<bdlbb::Blob>&  blob,
                     bsls::Types::Int64                   highWatermark);
 
     /// Write the specified `blob` into the channel providing the specified

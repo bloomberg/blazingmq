@@ -52,8 +52,9 @@ void ControlMessageTransmitter::sendMessageHelper(
         return;  // RETURN
     }
 
-    bmqt::GenericResult::Enum writeRc =
-        destination->write(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
+    bmqt::GenericResult::Enum writeRc = destination->write(
+        schemaBuilder->blob_sp(),
+        bmqp::EventType::e_CONTROL);
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                        << "Failed to write schema message: " << message
@@ -84,7 +85,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     // Broadcast to cluster, using the unicast channel to ensure ordering of
     // events.
 
-    d_cluster_p->netCluster().writeAll(schemaBuilder->blob(),
+    d_cluster_p->netCluster().writeAll(schemaBuilder->blob_sp(),
                                        bmqp::EventType::e_CONTROL);
 
     BALL_LOG_INFO << "Broadcasted message '" << message
