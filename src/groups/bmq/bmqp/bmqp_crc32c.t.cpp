@@ -17,12 +17,11 @@
 #include <bmqp_crc32c.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -247,7 +246,7 @@ static void printTableRows(bsl::ostream&                   out,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(headerCols.size() == 4);
 
-    mwcu::OutStreamFormatSaver fmtSaver(out);
+    bmqu::OutStreamFormatSaver fmtSaver(out);
 
     out << bsl::right << bsl::fixed;
 
@@ -309,7 +308,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         PV("BUFFER");
@@ -492,7 +491,7 @@ static void test2_calculateOnBuffer()
 //   both the default and software flavors for calculating CRC32-C.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CALCULATE CRC32-C ON BUFFER");
+    bmqtst::TestHelper::printTestName("CALCULATE CRC32-C ON BUFFER");
 
     struct Test {
         int          d_line;
@@ -601,7 +600,7 @@ static void test3_calculateOnMisalignedBuffer()
 //                                      unsigned int  crc = k_NULL_CRC32C);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON MISALIGNED BUFFER");
 
     const int k_BUFFER_SIZE = 1024;
@@ -712,7 +711,7 @@ static void test3_calculateOnMisalignedBuffer()
 /// ------------------------------------------------------------------------
 static void test4_calculateOnBufferWithPreviousCrc()
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BUFFER WITH PREVIOUS CRC");
 
     struct Test {
@@ -856,7 +855,7 @@ static void test5_multithreadedCrc32cDefault()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    mwctst::TestHelper::printTestName("MULTITHREAD DEFAULT CRC32-C");
+    bmqtst::TestHelper::printTestName("MULTITHREAD DEFAULT CRC32-C");
 
     enum { k_NUM_PAYLOADS = 10000, k_NUM_THREADS = 10 };
 
@@ -949,7 +948,7 @@ static void test6_multithreadedCrc32cSoftware()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    mwctst::TestHelper::printTestName("MULTITHREAD SOFTWARE CRC32-C");
+    bmqtst::TestHelper::printTestName("MULTITHREAD SOFTWARE CRC32-C");
 
     enum { k_NUM_PAYLOADS = 10000, k_NUM_THREADS = 10 };
 
@@ -1036,7 +1035,7 @@ static void test7_calculateOnBlob()
 //   both the default and software flavors.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BLOB w/o PREVIOUS CRC");
 
     {
@@ -1160,7 +1159,7 @@ static void test8_calculateOnBlobWithPreviousCrc()
 //   using both the default and software flavors.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "CALCULATE CRC32-C ON BLOB WITH PREVIOUS CRC");
 
     {
@@ -1302,7 +1301,7 @@ static void testN1_performanceDefaultUserInput()
 //   on an user input.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C DEFAULT ON USER INPUT");
 
     cout << "Please enter the string:" << endl << "> ";
@@ -1348,7 +1347,7 @@ static void testN2_performanceDefault()
 //   Performance of calculating CRC32-C using the default implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C ON BUFFER DEFAULT");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -1464,7 +1463,7 @@ static void testN3_defaultCalculateThroughput()
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BENCHMARK: CALCULATE CRC32-C THROUGPUT DEFAULT");
 
     const bsls::Types::Uint64 k_NUM_ITERS = 1000000;  // 1M
@@ -1497,15 +1496,15 @@ static void testN3_defaultCalculateThroughput()
     cout << "=========================\n";
     cout << "For a payload of length " << bufLen << ", completed "
          << k_NUM_ITERS << " HW-version iterations in "
-         << mwcu::PrintUtil::prettyTimeInterval(diffDef) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(diffDef) << ".\n"
          << "Above implies that 1 HW-version iteration was calculated in "
          << diffDef / k_NUM_ITERS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) / diffDef))
          << " HW-version iterations per second." << endl
          << "HW-version throughput: "
-         << mwcu::PrintUtil::prettyBytes(
+         << bmqu::PrintUtil::prettyBytes(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * bufLen) /
                 diffDef)
          << " per second.\n\n"
@@ -1535,7 +1534,7 @@ static void testN3_softwareCalculateThroughput()
 //   software implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BENCHMARK: CALCULATE CRC32-C THROUGPUT SOFTWARE");
 
     const bsls::Types::Uint64 k_NUM_ITERS = 1000000;  // 1M
@@ -1560,15 +1559,15 @@ static void testN3_softwareCalculateThroughput()
     cout << "=========================\n";
     cout << "For a payload of length " << bufLen << ", completed "
          << k_NUM_ITERS << " SW-version iterations in "
-         << mwcu::PrintUtil::prettyTimeInterval(diffSW) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(diffSW) << ".\n"
          << "Above implies that 1 SW-version iteration was calculated in "
          << diffSW / k_NUM_ITERS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) / diffSW))
          << " SW-version iterations per second." << endl
          << "SW-version throughput: "
-         << mwcu::PrintUtil::prettyBytes(
+         << bmqu::PrintUtil::prettyBytes(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * bufLen) /
                 diffSW)
          << " per second.\n"
@@ -1599,7 +1598,7 @@ static void testN3_bdldCalculateThroughput()
 //   BDE implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "BENCHMARK: CALCULATE CRC32-C THROUGPUT BDE");
 
     const bsls::Types::Uint64 k_NUM_ITERS = 1000000;  // 1M
@@ -1629,15 +1628,15 @@ static void testN3_bdldCalculateThroughput()
     cout << "==========================\n";
     cout << "For a payload of length " << bufLen << ", completed "
          << k_NUM_ITERS << " BDE-version iterations in "
-         << mwcu::PrintUtil::prettyTimeInterval(diffBde) << ".\n"
+         << bmqu::PrintUtil::prettyTimeInterval(diffBde) << ".\n"
          << "Above implies that 1 BDE-version iteration was calculated in "
          << diffBde / k_NUM_ITERS << " nano seconds.\n"
          << "In other words: "
-         << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+         << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) / diffBde))
          << " BDE-version iterations per second." << endl
          << "BDE-version throughput: "
-         << mwcu::PrintUtil::prettyBytes(
+         << bmqu::PrintUtil::prettyBytes(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * bufLen) /
                 diffBde)
          << " per second.\n"
@@ -1666,7 +1665,7 @@ static void testN4_calculateSerialDefault()
 //   Performance of crc32c calculation using the default implementation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C DEFAULT");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -1748,7 +1747,7 @@ static void testN4_calculateHardwareSerial()
 //   Performance of crc32c calculation using the 'hardware serial' approach
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C HARDWARE SERIAL");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -1835,7 +1834,7 @@ static void testN5_bmqpPerformanceSoftware()
 //   Performance of calculating CRC32-C using the software implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C ON BUFFER SOFTWARE");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -1922,7 +1921,7 @@ static void testN5_bdldPerformanceSoftware()
 //   Performance of calculating CRC32-C using the bdlde::crc32 implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C ON BUFFER SOFTWARE");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -2014,7 +2013,7 @@ static void testN6_bmqpPerformanceDefault()
 {
     s_ignoreCheckDefAlloc = true;
     s_ignoreCheckGblAlloc = true;
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C ON BUFFER DEFAULT");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -2104,7 +2103,7 @@ static void testN6_bdldPerformanceDefault()
 {
     s_ignoreCheckDefAlloc = true;
     s_ignoreCheckGblAlloc = true;
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C ON BUFFER BDE");
 
     const int k_NUM_ITERS = 100000;  // 100K
@@ -2187,7 +2186,7 @@ testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
 //   on an user input.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK PERFORMANCE: "
         "CALCULATE CRC32-C DEFAULT ON USER INPUT");
 
@@ -2227,7 +2226,7 @@ testN3_defaultCalculateThroughput_GoogleBenchmark(benchmark::State& state)
 //   implementation in a single thread environment.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: "
                                       "CALCULATE CRC32-C THROUGHPUT DEFAULT");
     for (auto _ : state) {
         const int bufLen = 12345;
@@ -2248,7 +2247,7 @@ testN3_softwareCalculateThroughput_GoogleBenchmark(benchmark::State& state)
 {
     //=======================================================================//
     //                        [2] Crc32c (software)
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: "
                                       "CALCULATE CRC32-C THROUGHPUT SOFTWARE");
     for (auto _ : state) {
         const int bufLen = 12345;
@@ -2270,7 +2269,7 @@ testN3_bdldCalculateThroughput_GoogleBenchmark(benchmark::State& state)
 {
     //=======================================================================//
     //                           [3] BDE bdlde::crc32
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: "
                                       "CALCULATE CRC32-C THROUGPUT BDE");
 
     const int bufLen = 12345;
@@ -2308,7 +2307,7 @@ testN4_calculateSerialDefault_GoogleBenchmark(benchmark::State& state)
 //   Performance of crc32c calculation using the default implementation
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C DEFAULT");
 
     const int k_MAX_SIZE = 67108864;  // 64 Mi
@@ -2351,7 +2350,7 @@ testN4_calculateHardwareSerial_GoogleBenchmark(benchmark::State& state)
     //   approach.
     // ------------------------------------------------------------------------
     //                [2] Crc32c (hardware serial)
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C HARDWARE SERIAL");
 
     const int k_MAX_SIZE = 67108864;  // 64 Mi
@@ -2391,7 +2390,7 @@ testN5_bmqpPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
 //   Performance of calculating CRC32-C using the software implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C ON BUFFER SOFTWARE");
 
     const int k_MAX_SIZE = 67108864;  // 64 Mi
@@ -2432,7 +2431,7 @@ testN5_bdldPerformanceSoftware_GoogleBenchmark(benchmark::State& state)
 //   Performance of calculating CRC32-C using the BDE software implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK PERFORMANCE: "
         "CALCULATE CRC32-C ON BUFFER SOFTWARE BDE");
 
@@ -2482,7 +2481,7 @@ testN6_bmqpPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 //   Performance of calculating CRC32-C using the default implementation.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C ON BUFFER DEFAULT");
 
     const int k_MAX_SIZE = 67108864;  // 64 Mi
@@ -2511,7 +2510,7 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 {
     //===================================================================//
     //                         [2] BDE bdlde::crc32
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE: "
                                       "CALCULATE CRC32-C ON BUFFER BDE");
 
     const int k_MAX_SIZE = 67108864;  // 64 Mi
@@ -2546,7 +2545,7 @@ int main(int argc, char* argv[])
     // case where the associated logging infrastructure triggers a default
     // allocation violation for no apparent reason.
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     size_t seed = bsl::time(0);
     PV("Seed: " << seed);
@@ -2562,43 +2561,43 @@ int main(int argc, char* argv[])
     case 3: test3_calculateOnMisalignedBuffer(); break;
     case 2: test2_calculateOnBuffer(); break;
     case 1: test1_breathingTest(); break;
-    case -1: MWC_BENCHMARK(testN1_performanceDefaultUserInput); break;
+    case -1: BMQTST_BENCHMARK(testN1_performanceDefaultUserInput); break;
     case -2: testN2_performanceDefault(); break;
     case -3:
-        MWC_BENCHMARK_WITH_ARGS(testN3_defaultCalculateThroughput,
-                                RangeMultiplier(10)
-                                    ->Range(10, 1000000)
-                                    ->Unit(benchmark::kMillisecond));
-        MWC_BENCHMARK_WITH_ARGS(testN3_softwareCalculateThroughput,
-                                RangeMultiplier(10)
-                                    ->Range(10, 1000000)
-                                    ->Unit(benchmark::kMillisecond));
-        MWC_BENCHMARK_WITH_ARGS(testN3_bdldCalculateThroughput,
-                                RangeMultiplier(10)
-                                    ->Range(10, 1000000)
-                                    ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN3_defaultCalculateThroughput,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 1000000)
+                                       ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN3_softwareCalculateThroughput,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 1000000)
+                                       ->Unit(benchmark::kMillisecond));
+        BMQTST_BENCHMARK_WITH_ARGS(testN3_bdldCalculateThroughput,
+                                   RangeMultiplier(10)
+                                       ->Range(10, 1000000)
+                                       ->Unit(benchmark::kMillisecond));
         break;
     case -4:
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN4_calculateSerialDefault,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Small));
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN4_calculateHardwareSerial,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Small));
         break;
     case -5:
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN5_bmqpPerformanceSoftware,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Small));
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN5_bdldPerformanceSoftware,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Small));
         break;
     case -6:
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN6_bmqpPerformanceDefault,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Large));
-        MWC_BENCHMARK_WITH_ARGS(
+        BMQTST_BENCHMARK_WITH_ARGS(
             testN6_bdldPerformanceDefault,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Large));
         break;
@@ -2613,5 +2612,5 @@ int main(int argc, char* argv[])
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

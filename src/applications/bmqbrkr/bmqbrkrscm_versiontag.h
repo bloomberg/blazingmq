@@ -57,7 +57,7 @@
 #define BMQBRKR_VERSION_PATCH 99
 // BMQBRKR patch level
 
-#define BMQBRKR_MAKE_VERSION(major, minor) ((major)*10000 + (minor)*100)
+#define BMQBRKR_MAKE_VERSION(major, minor) ((major) * 10000 + (minor) * 100)
 // Construct a composite version number in the range [ 0 .. 999900 ] from
 // the specified 'major' and 'minor' version numbers.  The resulting value,
 // when expressed as a 6-digit decimal string, has "00" as the two
@@ -73,7 +73,7 @@
 // and 'minor' are integral values in the range '[ 0 .. 99 ]'.
 
 #define BMQBRKR_MAKE_EXT_VERSION(major, minor, patch)                         \
-    ((major)*10000 + (minor)*100 + (patch))
+    ((major) * 10000 + (minor) * 100 + (patch))
 // Similar to BMQBRKR_MAKE_VERSION(), but include the patch number as well.
 
 #define BMQBRKR_VERSION                                                       \

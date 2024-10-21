@@ -38,12 +38,11 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_severity.h>
@@ -186,7 +185,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         // previously created storage.
         bslma::ManagedPtr<mqbi::Storage>      storageMp;
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        mwcu::MemOutStream                    errorDesc(&localAllocator);
+        bmqu::MemOutStream                    errorDesc(&localAllocator);
         rc = d_state_p->storageManager()->makeStorage(
             errorDesc,
             &storageMp,
@@ -200,13 +199,13 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             // This most likely means that this queue's partition at this
             // replica is out of sync.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_state_p->domain()->cluster()->name() << ": Partition ["
                 << d_state_p->partitionId()
                 << "]: failed to retrieve storage for remote queue ["
                 << d_state_p->uri() << "], queueKey [" << d_state_p->key()
                 << "], rc: " << rc << ", reason [" << errorDesc.str() << "]."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             return 10 * rc + rc_QUEUE_CONFIGURE_FAILURE;  // RETURN
         }
@@ -216,12 +215,12 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         }
 
         if (!d_state_p->isStorageCompatible(storageMp)) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_state_p->domain()->cluster()->name() << ": Partition ["
                 << d_state_p->partitionId()
                 << "]: incompatible storage type for remote queue ["
                 << d_state_p->uri() << "], queueKey [" << d_state_p->key()
-                << "]" << MWCTSK_ALARMLOG_END;
+                << "]" << BMQTSK_ALARMLOG_END;
             return 10 * rc + rc_QUEUE_CONFIGURE_FAILURE;  // RETURN
         }
 
@@ -246,16 +245,16 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     }
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                    errorDesc(&localAllocator);
+    bmqu::MemOutStream                    errorDesc(&localAllocator);
     rc = d_queueEngine_mp->configure(errorDesc);
     if (rc != 0) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_state_p->domain()->cluster()->name() << ": Partition ["
             << d_state_p->partitionId()
             << "]: failed to configure queue engine for remote queue ["
             << d_state_p->uri() << "], queueKey [" << d_state_p->key()
             << "], rc: " << rc << ", reason [" << errorDesc.str() << "]."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         return 10 * rc + rc_ENGINE_CONFIGURE_FAILURE;  // RETURN
     }
 
@@ -291,7 +290,7 @@ bool RemoteQueue::loadSubQueueInfos(
     // Load 'SubQueueIdsOption' from 'options'.
 
     int rc = d_optionsView.reset(&options,
-                                 mwcu::BlobPosition(),
+                                 bmqu::BlobPosition(),
                                  options.length());
     if (rc) {
         BALL_LOG_ERROR
@@ -480,7 +479,7 @@ RemoteQueue::RemoteQueue(QueueState*       state,
 
     // Description, to identify a 'remote' queue, prefix its URI with an '@'.
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                    os(&localAllocator);
+    bmqu::MemOutStream                    os(&localAllocator);
     os << '@' << d_state_p->uri().asString();
     d_state_p->setDescription(os.str());
 
@@ -777,39 +776,39 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CONFIRM: {
         BSLS_ASSERT_OPT(false && "'CONFIRM' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_REJECT: {
         BSLS_ASSERT_OPT(false && "'REJECT' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_DISPATCHER: {
         BSLS_ASSERT_OPT(false &&
                         "'DISPATCHER' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
         BSLS_ASSERT_OPT(false &&
                         "'CLUSTER_STATE' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_STORAGE: {
         BSLS_ASSERT_OPT(false && "'STORAGE' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_RECOVERY: {
         BSLS_ASSERT_OPT(false &&
                         "'RECOVERY' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
         BSLS_ASSERT_OPT(
             false && "'REPLICATION_RECEIPT' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     case mqbi::DispatcherEventType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false && "'NONE' type dispatcher event unexpected");
         return;  // RETURN
-    }            // break;
+    }  // break;
     default: {
         BALL_LOG_ERROR << "#QUEUE_UNEXPECTED_EVENT "
                        << d_state_p->description()
@@ -913,7 +912,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     //  - if this is broadcast PUT, just GUID unless there is no upstream
     //  - else, also keep 'appData' and 'options'
 
-    bsl::shared_ptr<mwcu::AtomicState> state = d_statePool_p->getObject();
+    bsl::shared_ptr<bmqu::AtomicState> state = d_statePool_p->getObject();
     bsls::Types::Int64                 now   = 0;
 
     if (d_state_p->isAtMostOnce()) {
@@ -940,7 +939,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
         // an ACK for 'd_ackWindowSize' PUTs.
     }
     else {
-        now = mwcsys::Time::highResolutionTimer();
+        now = bmqsys::Time::highResolutionTimer();
 
         if (!d_pendingMessagesTimerEventHandle) {
             bsls::TimeInterval time;
@@ -1284,7 +1283,7 @@ void RemoteQueue::expirePendingMessagesDispatched()
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    bsls::Types::Int64 now         = mwcsys::Time::highResolutionTimer();
+    bsls::Types::Int64 now         = bmqsys::Time::highResolutionTimer();
     bsls::Types::Int64 nextTime    = 0;
     bsls::Types::Int64 numExpired  = 0;
     bsls::Types::Int64 numMessages = d_pendingMessages.size();
@@ -1315,9 +1314,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
     if (numExpired) {
         if (d_throttledFailedPutMessages.requestPermission()) {
             BALL_LOG_INFO << "[THROTTLED] " << d_state_p->uri() << ": expired "
-                          << mwcu::PrintUtil::prettyNumber(numExpired)
+                          << bmqu::PrintUtil::prettyNumber(numExpired)
                           << " pending PUT messages ("
-                          << mwcu::PrintUtil::prettyNumber(numMessages -
+                          << bmqu::PrintUtil::prettyNumber(numMessages -
                                                            numExpired)
                           << " remaining messages).";
         }
@@ -1336,8 +1335,8 @@ void RemoteQueue::expirePendingMessagesDispatched()
 
         BALL_LOG_DEBUG << d_state_p->uri() << ": will check again to expire"
                        << " pending PUSH messages in "
-                       << mwcu::PrintUtil::prettyTimeInterval(
-                              nextTime - mwcsys::Time::highResolutionTimer());
+                       << bmqu::PrintUtil::prettyTimeInterval(
+                              nextTime - bmqsys::Time::highResolutionTimer());
     }
     else {
         d_pendingMessagesTimerEventHandle.release();
@@ -1488,7 +1487,7 @@ void RemoteQueue::sendPutMessage(
     const bmqp::PutHeader&                    putHeader,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
     const bsl::shared_ptr<bdlbb::Blob>&       options,
-    const bsl::shared_ptr<mwcu::AtomicState>& state,
+    const bsl::shared_ptr<bmqu::AtomicState>& state,
     bsls::Types::Uint64                       genCount)
 {
     mqbi::Cluster* cluster = d_state_p->domain()->cluster();

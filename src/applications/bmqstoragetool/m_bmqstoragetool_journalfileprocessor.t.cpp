@@ -24,8 +24,8 @@
 #include <mqbs_offsetptr.h>
 #include <mqbu_messageguidutil.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_list.h>
@@ -33,7 +33,7 @@
 #include <bslma_allocator.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -176,10 +176,10 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -192,7 +192,7 @@ static void test1_breathingTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -201,10 +201,10 @@ static void test1_breathingTest()
     searchProcessor->process();
 
     // Prepare expected output with list of message GUIDs in Journal file
-    mwcu::MemOutStream                  expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(s_allocator_p);
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
-    bsl::size_t                         foundMessagesCount = 0;
+    bsl::size_t foundMessagesCount = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -231,10 +231,10 @@ static void test2_searchGuidTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH GUID");
+    bmqtst::TestHelper::printTestName("SEARCH GUID");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -242,10 +242,10 @@ static void test2_searchGuidTest()
     // Prepare parameters
     Parameters params(s_allocator_p);
     // Get list of message GUIDs for searching
-    bsl::vector<bsl::string>&           searchGuids = params.d_guid;
+    bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
-    bsl::size_t                         msgCnt      = 0;
+    bsl::size_t msgCnt = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -253,7 +253,7 @@ static void test2_searchGuidTest()
                 continue;  // Skip odd messages for test purposes
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
             ss << msg.messageGUID();
             searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
         }
@@ -264,7 +264,7 @@ static void test2_searchGuidTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -273,7 +273,7 @@ static void test2_searchGuidTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream                       expectedStream(s_allocator_p);
+    bmqu::MemOutStream                       expectedStream(s_allocator_p);
     bsl::vector<bsl::string>::const_iterator guidIt = searchGuids.cbegin();
     for (; guidIt != searchGuids.cend(); ++guidIt) {
         expectedStream << (*guidIt) << bsl::endl;
@@ -295,10 +295,10 @@ static void test3_searchNonExistingGuidTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
+    bmqtst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -310,7 +310,7 @@ static void test3_searchNonExistingGuidTest()
     bmqt::MessageGUID         guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
-        mwcu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(s_allocator_p);
         ss << guid;
         searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
     }
@@ -321,7 +321,7 @@ static void test3_searchNonExistingGuidTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -330,7 +330,7 @@ static void test3_searchNonExistingGuidTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(s_allocator_p);
     expectedStream << "No message GUID found." << bsl::endl;
 
     expectedStream << bsl::endl
@@ -353,10 +353,10 @@ static void test4_searchExistingAndNonExistingGuidTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
+    bmqtst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -370,7 +370,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Get two existing message GUIDs
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
-    size_t                              msgCnt     = 0;
+    size_t msgCnt = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -378,7 +378,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
                 break;  // Take two GUIDs
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
             ss << msg.messageGUID();
             searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
         }
@@ -388,7 +388,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     bmqt::MessageGUID guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
-        mwcu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(s_allocator_p);
         ss << guid;
         searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
     }
@@ -399,7 +399,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -408,7 +408,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(s_allocator_p);
     expectedStream << searchGuids[0] << bsl::endl
                    << searchGuids[1] << bsl::endl;
     expectedStream << "2 message GUID(s) found." << bsl::endl;
@@ -431,10 +431,10 @@ static void test5_searchOutstandingMessagesTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH OUTSTANDING MESSAGES TEST");
+    bmqtst::TestHelper::printTestName("SEARCH OUTSTANDING MESSAGES TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     JournalFile::GuidVectorType  outstandingGUIDS(s_allocator_p);
@@ -452,7 +452,7 @@ static void test5_searchOutstandingMessagesTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -461,7 +461,7 @@ static void test5_searchOutstandingMessagesTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         outstandingGUIDS.cbegin();
     for (; guidIt != outstandingGUIDS.cend(); ++guidIt) {
@@ -492,10 +492,10 @@ static void test6_searchConfirmedMessagesTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
+    bmqtst::TestHelper::printTestName("SEARCH CONFIRMED MESSAGES TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
@@ -513,7 +513,7 @@ static void test6_searchConfirmedMessagesTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -522,7 +522,7 @@ static void test6_searchConfirmedMessagesTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         confirmedGUIDS.cbegin();
     for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
@@ -553,13 +553,13 @@ static void test7_searchPartiallyConfirmedMessagesTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "SEARCH PARTIALLY CONFIRMED MESSAGES TEST");
 
     // Simulate journal file
     // k_NUM_RECORDS must be multiple 3 plus one to cover all combinations
     // (confirmed, deleted, not confirmed)
-    const size_t    k_NUM_RECORDS = 16;
+    const size_t                 k_NUM_RECORDS = 16;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
@@ -576,7 +576,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -585,7 +585,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         partiallyConfirmedGUIDS.cbegin();
     for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
@@ -616,14 +616,14 @@ static void test8_searchMessagesByQueueKeyTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    const char*     queueKey1 = "ABCDE12345";
-    const char*     queueKey2 = "12345ABCDE";
+    const char*                  queueKey1 = "ABCDE12345";
+    const char*                  queueKey2 = "12345ABCDE";
     JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
@@ -639,7 +639,7 @@ static void test8_searchMessagesByQueueKeyTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -648,7 +648,7 @@ static void test8_searchMessagesByQueueKeyTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -673,14 +673,14 @@ static void test9_searchMessagesByQueueNameTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    const char*     queueKey1 = "ABCDE12345";
-    const char*     queueKey2 = "12345ABCDE";
+    const char*                  queueKey1 = "ABCDE12345";
+    const char*                  queueKey2 = "12345ABCDE";
     JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
@@ -706,7 +706,7 @@ static void test9_searchMessagesByQueueNameTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -715,7 +715,7 @@ static void test9_searchMessagesByQueueNameTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -740,15 +740,15 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "SEARCH MESSAGES BY QUEUE NAME AND QUEUE KEY TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    const char*     queueKey1 = "ABCDE12345";
-    const char*     queueKey2 = "12345ABCDE";
+    const char*                  queueKey1 = "ABCDE12345";
+    const char*                  queueKey2 = "12345ABCDE";
     JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
@@ -777,7 +777,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -786,7 +786,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream             expectedStream(s_allocator_p);
+    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -810,10 +810,10 @@ static void test11_searchMessagesByTimestamp()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY TIMESTAMP TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 50;
+    const size_t                 k_NUM_RECORDS = 50;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -831,11 +831,11 @@ static void test11_searchMessagesByTimestamp()
 
     // Get GUIDs of messages with matching timestamps and prepare expected
     // output
-    mwcu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(s_allocator_p);
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
-    bsl::size_t                         msgCnt     = 0;
+    bsl::size_t msgCnt = 0;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -851,7 +851,7 @@ static void test11_searchMessagesByTimestamp()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -873,7 +873,7 @@ static void test12_printMessagesDetailsTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
+    bmqtst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
     s_ignoreCheckDefAlloc = true;
@@ -882,7 +882,7 @@ static void test12_printMessagesDetailsTest()
 #endif
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
@@ -900,7 +900,7 @@ static void test12_printMessagesDetailsTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -922,7 +922,7 @@ static void test12_printMessagesDetailsTest()
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check GUID
-        mwcu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(s_allocator_p);
         outputGuidString(ss, confirmedGUIDS.at(i));
         bsl::string guidStr(ss.str(), s_allocator_p);
         foundIdx = resultString.find(guidStr, startIdx);
@@ -960,7 +960,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "SEARCH MESSAGES WITH PAYLOAD DUMP TEST");
 
     // Simulate data file
@@ -1030,7 +1030,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
         .WillRepeatedly(testing::Return(&dataIt));
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -1055,7 +1055,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
     for (unsigned int i = 0; i < k_NUM_MSGS; i++) {
         // Check GUID
         bmqt::MessageGUID  guid = confirmedGUIDS.at(i);
-        mwcu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(s_allocator_p);
         outputGuidString(ss, guid);
         bsl::string guidStr(ss.str(), s_allocator_p);
         size_t      foundIdx = resultString.find(guidStr, startIdx);
@@ -1088,10 +1088,10 @@ static void test14_summaryTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("OUTPUT SUMMARY TEST");
+    bmqtst::TestHelper::printTestName("OUTPUT SUMMARY TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 15;
+    const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
@@ -1108,7 +1108,7 @@ static void test14_summaryTest()
         s_allocator_p);
 
     // Run search
-    mwcu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
         CommandProcessorFactory::createCommandProcessor(&params,
                                                         fileManager,
@@ -1117,7 +1117,7 @@ static void test14_summaryTest()
     searchProcessor->process();
 
     // Prepare expected output
-    mwcu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(s_allocator_p);
     expectedStream
         << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
            "partially confirmed messages: 2\n"
@@ -1139,10 +1139,10 @@ static void test15_timestampSearchTest()
 //   m_bmqstoragetool::moveToLowerBound()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TIMESTAMP SEARCH TEST");
+    bmqtst::TestHelper::printTestName("TIMESTAMP SEARCH TEST");
 
     // Simulate journal file
-    const size_t    k_NUM_RECORDS = 50;
+    const size_t                 k_NUM_RECORDS = 50;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
@@ -1257,7 +1257,7 @@ static void test15_timestampSearchTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -1282,5 +1282,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

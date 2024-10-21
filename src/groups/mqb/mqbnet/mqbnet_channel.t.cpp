@@ -24,9 +24,8 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcio_testchannel.h>
-#include <mwcu_atomicstate.h>
+#include <bmqio_testchannel.h>
+#include <bmqu_atomicstate.h>
 
 // BDE
 #include <bdlb_random.h>
@@ -44,14 +43,14 @@
 #include <bsls_systemtime.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
 
 namespace BloombergLP {
-namespace mwcio {
+namespace bmqio {
 
 class TestChannelEx : public TestChannel {
   private:
@@ -67,12 +66,12 @@ class TestChannelEx : public TestChannel {
                   bslma::Allocator*         basicAllocator);
     ~TestChannelEx() BSLS_KEYWORD_OVERRIDE;
 
-    void write(mwcio::Status*     status,
+    void write(bmqio::Status*     status,
                const bdlbb::Blob& blob,
                bsls::Types::Int64 watermark = bsl::numeric_limits<int>::max())
         BSLS_KEYWORD_OVERRIDE;
 
-    void setWriteStatus(const mwcio::Status& status);
+    void setWriteStatus(const bmqio::Status& status);
     void setLimit(size_t limit);
     bool waitForChannel(const bsls::TimeInterval& interval);
     void lowWatermark();
@@ -126,7 +125,7 @@ class Tester {
            bslma::Allocator*               allocator_p);
 
     void   test();
-    size_t verify(const bsl::shared_ptr<mwcio::TestChannelEx>& testChannel);
+    size_t verify(const bsl::shared_ptr<bmqio::TestChannelEx>& testChannel);
 
     void createThread(bslmt::Barrier* phase1, bslmt::Barrier* phase2);
     void stop();
@@ -289,7 +288,7 @@ inline void setContent(bdlbb::BlobBuffer* buffer)
 // -----------------
 
 namespace BloombergLP {
-namespace mwcio {
+namespace bmqio {
 
 TestChannelEx::TestChannelEx(mqbnet::Channel&          channel,
                              bdlbb::BlobBufferFactory* factory,
@@ -316,7 +315,7 @@ TestChannelEx::~TestChannelEx()
     // NOTHING
 }
 
-void TestChannelEx::setWriteStatus(const mwcio::Status& status)
+void TestChannelEx::setWriteStatus(const bmqio::Status& status)
 {
     bslmt::WriteLockGuard<bslmt::ReaderWriterMutex> guard(&d_mutex);
     // WRITE-LOCK
@@ -332,12 +331,12 @@ void TestChannelEx::setLimit(size_t limit)
         if (limit == 0 || writeCalls().size() < limit) {
             d_isInHWM = false;
             d_channel.onWatermark(
-                mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+                bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
         }
     }
     else if (writeCalls().size() >= limit) {
         d_isInHWM = true;
-        d_channel.onWatermark(mwcio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
     d_limit = limit;
 }
@@ -349,31 +348,31 @@ void TestChannelEx::lowWatermark()
 
     if (d_isInHWM) {
         d_isInHWM = false;
-        d_channel.onWatermark(mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
     }
 }
 
-void TestChannelEx::write(mwcio::Status*     status,
+void TestChannelEx::write(bmqio::Status*     status,
                           const bdlbb::Blob& blob,
                           bsls::Types::Int64 watermark)
 {
     bslmt::ReadLockGuard<bslmt::ReaderWriterMutex> guard(
         &d_mutex);  // READ-LOCK
 
-    if (writeStatus().category() != mwcio::StatusCategory::e_SUCCESS) {
+    if (writeStatus().category() != bmqio::StatusCategory::e_SUCCESS) {
         *status = writeStatus();
         return;  // RETURN
     }
 
     if (d_isInHWM) {
-        status->setCategory(mwcio::StatusCategory::e_LIMIT);
+        status->setCategory(bmqio::StatusCategory::e_LIMIT);
         return;  // RETURN
     }
 
     if (d_limit && writeCalls().size() >= d_limit) {
         d_isInHWM = true;
-        status->setCategory(mwcio::StatusCategory::e_LIMIT);
-        d_channel.onWatermark(mwcio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        status->setCategory(bmqio::StatusCategory::e_LIMIT);
+        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
 
     TestChannel::write(status, blob, watermark);
@@ -437,8 +436,8 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PutEventBuilder>::build()
         new (*d_allocator_p) bdlbb::Blob(&d_bufferFactory, d_allocator_p),
         d_allocator_p);
     bdlbb::BlobBuffer                  blobBuffer;
-    bsl::shared_ptr<mwcu::AtomicState> state(new (*d_allocator_p)
-                                                 mwcu::AtomicState,
+    bsl::shared_ptr<bmqu::AtomicState> state(new (*d_allocator_p)
+                                                 bmqu::AtomicState,
                                              d_allocator_p);
 
     d_bufferFactory.allocate(&blobBuffer);
@@ -615,14 +614,14 @@ inline bmqt::EventBuilderResult::Enum Tester<PseudoBuilder>::build()
 
 template <class Builder>
 inline size_t Tester<Builder>::verify(
-    const bsl::shared_ptr<mwcio::TestChannelEx>& testChannel)
+    const bsl::shared_ptr<bmqio::TestChannelEx>& testChannel)
 {
     if (d_builder.messageCount()) {
         d_history.push_back(d_builder.blob());
         d_builder.reset();
     }
 
-    typedef bsl::deque<mwcio::TestChannel::WriteCall>::const_iterator Writes;
+    typedef bsl::deque<bmqio::TestChannel::WriteCall>::const_iterator Writes;
 
     Writes            writes = testChannel->writeCalls().begin();
     Iterator<Builder> itEvents(&d_bufferFactory, d_allocator_p);
@@ -730,9 +729,9 @@ static void test1_write()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
     Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
@@ -745,7 +744,7 @@ static void test1_write()
                                             bufferFactory,
                                             s_allocator_p);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannel>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
 
     for (size_t i = 0; i < 5000; i++) {
         put.test();
@@ -755,7 +754,7 @@ static void test1_write()
         reject.test();
     }
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_LIMIT);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     for (size_t i = 0; i < 5000; i++) {
         put.test();
@@ -765,8 +764,8 @@ static void test1_write()
         reject.test();
     }
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -798,9 +797,9 @@ static void test2_highWatermark()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
     Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
@@ -817,7 +816,7 @@ static void test2_highWatermark()
     bslmt::Barrier phase1(6 + 1);
     bslmt::Barrier phase2(6 + 1);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannel>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
 
     confirm.createThread(&phase1, &phase2);
     put.createThread(&phase1, &phase2);
@@ -836,8 +835,8 @@ static void test2_highWatermark()
     control.stop();
     reject.stop();
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_LIMIT);
-    channel.onWatermark(mwcio::ChannelWatermarkType::e_HIGH_WATERMARK);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_LIMIT);
+    channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 
     phase2.wait();
 
@@ -855,8 +854,8 @@ static void test2_highWatermark()
     control.join();
     reject.join();
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
+    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -890,9 +889,9 @@ static void test3_highWatermarkInWriteCb()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
     Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
@@ -908,7 +907,7 @@ static void test3_highWatermarkInWriteCb()
     bslmt::Barrier phase1(5 + 1);
     bslmt::Barrier phase2(5 + 1);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannelEx>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
     confirm.createThread(&phase1, &phase2);
     put.createThread(&phase1, &phase2);
@@ -982,9 +981,9 @@ static void test4_controlBlob()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
     Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
@@ -997,7 +996,7 @@ static void test4_controlBlob()
                                             bufferFactory,
                                             s_allocator_p);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannelEx>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
     put.test();
     push.test();
@@ -1053,12 +1052,12 @@ static void test5_reconnect()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannelEx>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
     {
         bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
@@ -1078,7 +1077,7 @@ static void test5_reconnect()
     }
     ASSERT_EQ(testChannel->writeCalls().size(), 1U);
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_CONNECTION);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_CONNECTION);
 
     {
         bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
@@ -1095,9 +1094,9 @@ static void test5_reconnect()
 
     // simulate reconnection
     channel.resetChannel();
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannelEx>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
-    testChannel->setWriteStatus(mwcio::StatusCategory::e_SUCCESS);
+    testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
 
     {
         bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
@@ -1134,23 +1133,23 @@ static void test6_weakData()
                                        s_allocator_p);
     mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannelEx> testChannel(
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
-            mwcio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
+            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
         s_allocator_p);
 
-    channel.setChannel(bsl::weak_ptr<mwcio::TestChannelEx>(testChannel));
+    channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
     // Saturate the channel causing it to buffer next write
-    channel.onWatermark(mwcio::ChannelWatermarkType::e_HIGH_WATERMARK);
+    channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 
     {
         bsl::shared_ptr<bdlbb::Blob> payload(
             new (*s_allocator_p) bdlbb::Blob(&bufferFactory, s_allocator_p),
             s_allocator_p);
         bdlbb::BlobBuffer                  blobBuffer;
-        bsl::shared_ptr<mwcu::AtomicState> state(new (*s_allocator_p)
-                                                     mwcu::AtomicState,
+        bsl::shared_ptr<bmqu::AtomicState> state(new (*s_allocator_p)
+                                                     bmqu::AtomicState,
                                                  s_allocator_p);
         bmqp::PutHeader                    ph;
 
@@ -1172,8 +1171,8 @@ static void test6_weakData()
             new (*s_allocator_p) bdlbb::Blob(&bufferFactory, s_allocator_p),
             s_allocator_p);
         bdlbb::BlobBuffer                  blobBuffer;
-        bsl::shared_ptr<mwcu::AtomicState> state(new (*s_allocator_p)
-                                                     mwcu::AtomicState,
+        bsl::shared_ptr<bmqu::AtomicState> state(new (*s_allocator_p)
+                                                     bmqu::AtomicState,
                                                  s_allocator_p);
         bmqp::PutHeader                    ph;
 
@@ -1186,7 +1185,7 @@ static void test6_weakData()
                   bmqt::GenericResult::e_SUCCESS);
     }
 
-    channel.onWatermark(mwcio::ChannelWatermarkType::e_LOW_WATERMARK);
+    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
 
@@ -1203,7 +1202,7 @@ int main(int argc, char* argv[])
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     // expect BALL_LOG_ERROR
@@ -1223,5 +1222,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

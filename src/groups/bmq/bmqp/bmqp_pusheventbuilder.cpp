@@ -17,8 +17,8 @@
 #include <bmqp_pusheventbuilder.h>
 
 #include <bmqscm_version.h>
-// MWC
-#include <mwcu_blob.h>
+
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -133,8 +133,8 @@ void PushEventBuilder::ensurePushHeader()
     }
 
     // Add the PushHeader
-    mwcu::BlobPosition phOffset;
-    mwcu::BlobUtil::reserve(&phOffset, &d_blob, sizeof(PushHeader));
+    bmqu::BlobPosition phOffset;
+    bmqu::BlobUtil::reserve(&phOffset, &d_blob, sizeof(PushHeader));
 
     d_currPushHeader.reset(&d_blob,
                            phOffset,

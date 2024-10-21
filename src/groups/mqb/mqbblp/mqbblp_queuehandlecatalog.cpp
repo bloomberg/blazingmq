@@ -28,8 +28,7 @@
 #include <bmqp_queueutil.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -357,7 +356,7 @@ void QueueHandleCatalog::loadInternals(
          ++it) {
         out->resize(out->size() + 1);
         mqbi::QueueHandle* handle = it->key1();
-        mwcu::MemOutStream description;
+        bmqu::MemOutStream description;
         description << handle << "  ~ " << handle->client()->description();
         out->back().clientDescription() = description.str();
         handle->loadInternals(&out->back());

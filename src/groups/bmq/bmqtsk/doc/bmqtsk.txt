@@ -1,0 +1,33 @@
+    bmqtsk.txt
+
+@PURPOSE: Provide application level mechanisms.
+
+@MNEMONIC: BlazingMQ Task (bmqtsk)
+
+@DESCRIPTION: This package provides application level mechanisms.
+
+/Hierarchical Synopsis
+/---------------------
+The 'bmqtsk' package currently has 4 components having 2 levels of physical
+dependency.  The list below shows the hierarchal ordering of the components.
+..
+  2. bmqtsk_logcontroller
+
+  1. bmqtsk_alarmlog
+     bmqtsk_consoleobserver
+     bmqtsk_logcleaner
+..
+
+/Component Synopsis
+/------------------
+: 'bmqtsk_alarmlog':
+:      Provide a BALL observer for ALARMS with rate-controlled output.
+:
+: 'bmqtsk_consoleobserver':
+:      Provide a customizable colorized console output for BALL logging.
+:
+: 'bmqtsk_logcleaner:
+:      Provide a mechanism to periodically clean up old logs.
+:
+: 'bmqtsk_logcontroller':
+:      Provide a mechanism to interface with the BALL log infrastructure.

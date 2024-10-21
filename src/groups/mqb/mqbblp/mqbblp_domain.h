@@ -78,7 +78,7 @@ class QueueHandle;
 namespace mqbi {
 class Queue;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -137,7 +137,7 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
     // Blob buffer factory to use
 
-    mwcst::StatContext* d_domainsStatContext_p;
+    bmqst::StatContext* d_domainsStatContext_p;
     // Stat context dedicated to this
     // domain, to use as the parent
     // stat context for any domain in
@@ -146,7 +146,7 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     mqbstat::DomainStats d_domainsStats;
     // Statistics of the domain.
 
-    bslma::ManagedPtr<mwcst::StatContext> d_queuesStatContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_queuesStatContext_mp;
     // Stat context dedicated to this
     // domain, to use as the parent
     // stat context for any queue in
@@ -250,8 +250,8 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
            mqbi::Dispatcher*                      dispatcher,
            bdlbb::BlobBufferFactory*              blobBufferFactory,
            const bsl::shared_ptr<mqbi::Cluster>&  cluster,
-           mwcst::StatContext*                    domainsStatContext,
-           bslma::ManagedPtr<mwcst::StatContext>& queuesStatContext,
+           bmqst::StatContext*                    domainsStatContext,
+           bslma::ManagedPtr<bmqst::StatContext>& queuesStatContext,
            bslma::Allocator*                      allocator);
 
     /// Destructor
@@ -340,7 +340,7 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     mqbstat::DomainStats* domainStats() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the stat context associated to this Domain.
-    mwcst::StatContext* queueStatContext() BSLS_KEYWORD_OVERRIDE;
+    bmqst::StatContext* queueStatContext() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the cluster associated to this Domain.
     mqbi::Cluster* cluster() const BSLS_KEYWORD_OVERRIDE;
@@ -387,7 +387,7 @@ inline mqbstat::DomainStats* Domain::domainStats()
     return &d_domainsStats;
 }
 
-inline mwcst::StatContext* Domain::queueStatContext()
+inline bmqst::StatContext* Domain::queueStatContext()
 {
     return d_queuesStatContext_mp.get();
 }

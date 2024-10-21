@@ -17,8 +17,8 @@
 #include <mqbu_resourceusagemonitor.h>
 
 #include <mqbscm_version.h>
-// MWC
-#include <mwcu_printutil.h>
+
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -497,27 +497,25 @@ bsl::ostream& ResourceUsageMonitor::print(bsl::ostream& stream,
                                           int           level,
                                           int           spacesPerLevel) const
 {
-    stream << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-           << state() << " "
-           << "[Messages (" << messageState()
-           << "): " << mwcu::PrintUtil::prettyNumber(messages()) << " ("
-           << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+    stream << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+           << state() << " " << "[Messages (" << messageState()
+           << "): " << bmqu::PrintUtil::prettyNumber(messages()) << " ("
+           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                   d_messages.lowWatermarkRatio() * d_messages.capacity()))
            << " - "
-           << mwcu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                   d_messages.highWatermarkRatio() * d_messages.capacity()))
-           << " - " << mwcu::PrintUtil::prettyNumber(d_messages.capacity())
-           << "), "
-           << "Bytes (" << byteState()
-           << "): " << mwcu::PrintUtil::prettyBytes(bytes()) << " ("
-           << mwcu::PrintUtil::prettyBytes(d_bytes.lowWatermarkRatio() *
+           << " - " << bmqu::PrintUtil::prettyNumber(d_messages.capacity())
+           << "), " << "Bytes (" << byteState()
+           << "): " << bmqu::PrintUtil::prettyBytes(bytes()) << " ("
+           << bmqu::PrintUtil::prettyBytes(d_bytes.lowWatermarkRatio() *
                                                d_bytes.capacity(),
                                            2)
            << " - "
-           << mwcu::PrintUtil::prettyBytes(d_bytes.highWatermarkRatio() *
+           << bmqu::PrintUtil::prettyBytes(d_bytes.highWatermarkRatio() *
                                                d_bytes.capacity(),
                                            2)
-           << " - " << mwcu::PrintUtil::prettyBytes(d_bytes.capacity())
+           << " - " << bmqu::PrintUtil::prettyBytes(d_bytes.capacity())
            << ")] ";
 
     return stream;

@@ -38,8 +38,8 @@
 #include <bsls_atomic.h>
 
 // TEST DRIVER
-#include <mwcio_testchannel.h>
-#include <mwctst_testhelper.h>
+#include <bmqio_testchannel.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -118,7 +118,7 @@ class TestContext {
     bdlmt::EventScheduler& d_scheduler;
 
     // Mocked network channel object to be used in the request manager
-    mwcio::TestChannel d_testChannel;
+    bmqio::TestChannel d_testChannel;
 
     // RequestManager object under testing
     ReqManagerType d_requestManager;
@@ -147,7 +147,7 @@ class TestContext {
     bslma::Allocator* allocator() const;
 
     /// Return reference to the mocked network channel object.
-    mwcio::TestChannel& channel();
+    bmqio::TestChannel& channel();
 
     /// Return reference to the buffer factory
     bdlbb::PooledBlobBufferFactory& factory();
@@ -211,8 +211,8 @@ TestContext::TestContext(bool lateResponseMode, bslma::Allocator* allocator)
                    allocator)
 , d_allocator_p(allocator)
 {
-    mwcsys::Time::shutdown();
-    mwcsys::Time::initialize(
+    bmqsys::Time::shutdown();
+    bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
@@ -235,7 +235,7 @@ bslma::Allocator* TestContext::allocator() const
     return d_allocator_p;
 }
 
-mwcio::TestChannel& TestContext::channel()
+bmqio::TestChannel& TestContext::channel()
 {
     return d_testChannel;
 }
@@ -298,7 +298,7 @@ Mes TestContext::createResponseCancel()
 Mes TestContext::getNextRequest()
 {
     ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
-    mwcio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
+    bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
     ASSERT(ev.isControlEvent());
     Mes controlMessage(d_allocator_p);
@@ -375,7 +375,7 @@ static void test1_creatorsTest()
 //    RequestManager::RequestManager()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CREATORS TEST");
+    bmqtst::TestHelper::printTestName("CREATORS TEST");
 
     bdlbb::PooledBlobBufferFactory blobBufferFactory(4096, s_allocator_p);
 
@@ -406,14 +406,14 @@ static void test1_creatorsTest()
                                    &blobBufferFactory,
                                    &scheduler,
                                    false,  // late response mode is off
-                                   mwcex::SystemExecutor(),
+                                   bmqex::SystemExecutor(),
                                    s_allocator_p));
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
                                    &blobBufferFactory,
                                    &scheduler,
                                    false,  // late response mode is off
-                                   mwcex::SystemExecutor(),
+                                   bmqex::SystemExecutor(),
                                    ReqManagerType::DTContextSp(),
                                    s_allocator_p));
     }
@@ -425,12 +425,12 @@ static void test2_setExecutorTest()
 //    void RequestManager::setExecutor()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SET EXECUTOR TEST");
+    bmqtst::TestHelper::printTestName("SET EXECUTOR TEST");
 
     {
         // set SystemExecutor
         TestContext context(false, s_allocator_p);
-        ASSERT_PASS(context.manager().setExecutor(mwcex::SystemExecutor()));
+        ASSERT_PASS(context.manager().setExecutor(bmqex::SystemExecutor()));
     }
 }
 
@@ -440,7 +440,7 @@ static void test3_createRequestTest()
 //    RequestSp RequestManager::createRequest();
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CREATE REQUEST TEST");
+    bmqtst::TestHelper::printTestName("CREATE REQUEST TEST");
 
     {
         // Check that RequestManager really creates request
@@ -456,7 +456,7 @@ static void test4_sendRequestTest()
 //    void RequestManager::sendRequest();
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SEND REQUEST TEST");
+    bmqtst::TestHelper::printTestName("SEND REQUEST TEST");
 
     /// Check that the specified `blob` contains the same request as the
     /// specified `request`, and set the specified `called` flag to true
@@ -616,7 +616,7 @@ static void test5_processResponseTest()
 //   int RequestManager::processResponse()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PROCESS RESPONSE TEST");
+    bmqtst::TestHelper::printTestName("PROCESS RESPONSE TEST");
 
     {
         // Correct response
@@ -827,7 +827,7 @@ static void test6_cancelAllRequestsTest()
 //   void RequestManager::cancelAllRequests()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CANCEL ALL REQUESTS TEST");
+    bmqtst::TestHelper::printTestName("CANCEL ALL REQUESTS TEST");
 
     {
         // Cancel one event
@@ -914,7 +914,7 @@ static void test7_requestBreathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REQUEST BREATHING TEST");
+    bmqtst::TestHelper::printTestName("REQUEST BREATHING TEST");
 
     {
         // Create request and check its initial state
@@ -997,7 +997,7 @@ static void test8_requestSignalWaitTest()
 //   void RequestManagerRequest::wait()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("REQUEST SIGNAL WAIT TEST");
+    bmqtst::TestHelper::printTestName("REQUEST SIGNAL WAIT TEST");
 
     /// Call wait function of the specified `request`, and then set the
     /// specified `worked` flag to true.
@@ -1042,9 +1042,9 @@ static void test8_requestSignalWaitTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
     switch (_testCase) {
@@ -1063,10 +1063,10 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
-    // Default: EventQueue uses mwcex::BindUtil::bindExecute(), which uses
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
+    // Default: EventQueue uses bmqex::BindUtil::bindExecute(), which uses
     //          default allocator.
 }

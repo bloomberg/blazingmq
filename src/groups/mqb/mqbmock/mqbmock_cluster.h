@@ -51,10 +51,9 @@
 #include <mqbnet_cluster.h>
 #include <mqbnet_transportmanager.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcio_testchannel.h>
-#include <mwcst_statcontext.h>
+#include <bmqio_status.h>
+#include <bmqio_testchannel.h>
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -127,7 +126,7 @@ class Cluster : public mqbi::Cluster {
     typedef mqbnet::Cluster::NodesList NodesList;
     typedef NodesList::iterator        NodesListIter;
 
-    typedef bsl::shared_ptr<mwcst::StatContext> StatContextSp;
+    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
     typedef mqbc::ClusterData::StatContextsMap  StatContextsMap;
 
     typedef bdlcc::SharedObjectPool<
@@ -140,7 +139,7 @@ class Cluster : public mqbi::Cluster {
     // TYPES
     typedef bsl::vector<mqbcfg::ClusterNode> ClusterNodeDefs;
 
-    typedef bsl::shared_ptr<mwcio::TestChannel> TestChannelSp;
+    typedef bsl::shared_ptr<bmqio::TestChannel> TestChannelSp;
     typedef bsl::unordered_map<mqbnet::ClusterNode*, TestChannelSp>
                                            TestChannelMap;
     typedef TestChannelMap::iterator       TestChannelMapIter;

@@ -204,14 +204,14 @@ InMemoryLog::write(const void* entry, int offset, int length)
 }
 
 mqbsi::Log::Offset InMemoryLog::write(const bdlbb::Blob&        entry,
-                                      const mwcu::BlobPosition& offset,
+                                      const bmqu::BlobPosition& offset,
                                       int                       length)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(length >= 0);
 
     bdlbb::Blob blob(d_blobBufferFactory_p, d_allocator_p);
-    mwcu::BlobUtil::appendBlobFromIndex(&blob,
+    bmqu::BlobUtil::appendBlobFromIndex(&blob,
                                         entry,
                                         offset.buffer(),
                                         offset.byte(),
@@ -221,10 +221,10 @@ mqbsi::Log::Offset InMemoryLog::write(const bdlbb::Blob&        entry,
 }
 
 mqbsi::Log::Offset InMemoryLog::write(const bdlbb::Blob&       entry,
-                                      const mwcu::BlobSection& section)
+                                      const bmqu::BlobSection& section)
 {
     int length;
-    int rc = mwcu::BlobUtil::sectionSize(&length, entry, section);
+    int rc = bmqu::BlobUtil::sectionSize(&length, entry, section);
     if (rc != 0) {
         return LogOpResult::e_INVALID_BLOB_SECTION;  // RETURN
     }
@@ -247,9 +247,9 @@ int InMemoryLog::read(void* entry, int length, Offset offset) const
         return rc;  // RETURN
     }
 
-    mwcu::BlobUtil::readNBytes(static_cast<char*>(entry),
+    bmqu::BlobUtil::readNBytes(static_cast<char*>(entry),
                                d_records[offset],
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                length);
 
     return LogOpResult::e_SUCCESS;

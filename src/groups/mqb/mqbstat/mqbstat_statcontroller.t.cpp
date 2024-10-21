@@ -21,9 +21,8 @@
 #include <mqbcfg_messages.h>
 #include <mqbplug_pluginmanager.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -32,7 +31,7 @@
 #include <bsl_string.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -75,7 +74,7 @@ static void test1_breathingTest()
 //   Breathing test of the component
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("breathing test");
+    bmqtst::TestHelper::printTestName("breathing test");
 
     // Create a default StatController, make sure it can start/stop
     mqbcfg::AppConfig cfg(s_allocator_p);  // empty default config
@@ -98,7 +97,7 @@ static void test1_breathingTest()
         &scheduler,
         s_allocator_p);
 
-    mwcu::MemOutStream errStream(s_allocator_p);
+    bmqu::MemOutStream errStream(s_allocator_p);
     int                rc = obj.start(errStream);
     ASSERT_EQ(rc, 0);
     obj.stop();
@@ -111,9 +110,9 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize();
+    bmqsys::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -124,6 +123,6 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check fro default/global allocator usage.
 }

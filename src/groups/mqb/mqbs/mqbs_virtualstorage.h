@@ -44,8 +44,7 @@
 // BMQ
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -93,7 +92,7 @@ class VirtualStorage {
     /// msgGUID -> MessageContext
     /// Must be a container in which iteration order is same as insertion
     /// order.
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  DataStreamMessage,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         DataStream;

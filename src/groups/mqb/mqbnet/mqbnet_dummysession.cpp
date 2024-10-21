@@ -30,7 +30,7 @@ namespace mqbnet {
 // ------------------
 
 DummySession::DummySession(
-    const bsl::shared_ptr<mwcio::Channel>&  channel,
+    const bsl::shared_ptr<bmqio::Channel>&  channel,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     ClusterNode*                            clusterNode,
     const bsl::string&                      description,

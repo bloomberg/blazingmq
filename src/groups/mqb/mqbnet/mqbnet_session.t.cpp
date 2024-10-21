@@ -19,15 +19,14 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_channel.h>
+#include <bmqio_channel.h>
 
 // BDE
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -78,7 +77,7 @@ struct SessionTestImp : bsls::ProtocolTestImp<mqbnet::Session> {
 
     void invalidate() BSLS_KEYWORD_OVERRIDE { markDone(); }
 
-    bsl::shared_ptr<mwcio::Channel> channel() const BSLS_KEYWORD_OVERRIDE
+    bsl::shared_ptr<bmqio::Channel> channel() const BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
@@ -152,7 +151,7 @@ static void test1_SessionEventProcessor()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SessionEventProcessor");
+    bmqtst::TestHelper::printTestName("SessionEventProcessor");
 
     PV("Creating a test object");
     bsls::ProtocolTest<SessionEventProcessorTestImp> testObj(s_verbosityLevel >
@@ -218,7 +217,7 @@ static void test2_Session()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Session");
+    bmqtst::TestHelper::printTestName("Session");
 
     PV("Creating a test object");
     bsls::ProtocolTest<SessionTestImp> testObj(s_verbosityLevel > 2);
@@ -256,7 +255,7 @@ static void test2_Session()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -268,5 +267,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

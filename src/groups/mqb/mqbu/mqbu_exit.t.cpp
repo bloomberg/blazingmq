@@ -16,8 +16,7 @@
 // mqbu_exit.t.cpp                                                    -*-C++-*-
 #include <mqbu_exit.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // SYS
 #include <sys/wait.h>
@@ -42,7 +41,7 @@
 #include <bsls_timeinterval.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -100,7 +99,7 @@ static void test1_exitCode_toAscii()
 //   'ExitCode::toAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXIT CODE - TO ASCII");
+    bmqtst::TestHelper::printTestName("EXIT CODE - TO ASCII");
 
     struct Test {
         int         d_line;
@@ -154,7 +153,7 @@ static void test2_exitCode_fromAscii()
 //   'ExitCode::fromAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXIT CODE - FROM ASCII");
+    bmqtst::TestHelper::printTestName("EXIT CODE - FROM ASCII");
 
     struct Test {
         int         d_line;
@@ -214,7 +213,7 @@ static void test3_exitCode_print()
 //   'ExitCode::print'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EXIT CODE - PRINT");
+    bmqtst::TestHelper::printTestName("EXIT CODE - PRINT");
 
     // 1.
     struct Test {
@@ -246,7 +245,7 @@ static void test3_exitCode_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        mwcu::MemOutStream   out(s_allocator_p);
+        bmqu::MemOutStream   out(s_allocator_p);
         mqbu::ExitCode::Enum obj(
             static_cast<mqbu::ExitCode::Enum>(test.d_value));
 
@@ -303,7 +302,7 @@ static void test4_exit_terminate(int argc, char* argv[])
             static_cast<mqbu::ExitCode::Enum>(terminateReason));  // EXIT
     }
 
-    mwctst::TestHelper::printTestName("EXIT UTIL - TERMINATE");
+    bmqtst::TestHelper::printTestName("EXIT UTIL - TERMINATE");
 
     struct Test {
         int                  d_line;
@@ -394,7 +393,7 @@ static void test5_exit_shutdown()
     // Ignore global allocation because we create a thread, which allocates
     // from global.
 
-    mwctst::TestHelper::printTestName("EXIT UTIL - SHUTDOWN");
+    bmqtst::TestHelper::printTestName("EXIT UTIL - SHUTDOWN");
 
     const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 3;
 
@@ -470,7 +469,7 @@ static void test5_exit_shutdown()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -485,5 +484,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

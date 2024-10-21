@@ -1,0 +1,27 @@
+ bmqtst.txt
+
+@PURPOSE: Provide macros and utilities to assist in writing test drivers.
+
+@MNEMONIC: BlazingMQ Test
+
+@DESCRIPTION: The bmqtst' package provides macros and utilities to assist in
+writing test drivers.
+
+/Hierarchical Synopsis
+/---------------------
+ The bmqtst' package currently has 3 components having 1 level of physical
+ dependency.  The list below shows the hierarchical ordering of the components.
+..
+  1. bmqtst_blobtestutil
+     bmqtst_scopedlogobserver
+     bmqtst_testhelper
+..
+
+/Component Synopsis
+/------------------
+: 'bmqtst_blobtestutil':
+:      Provide blob utilities for use in test drivers.
+: 'bmqtst_scopedlogobserver':
+:      Provide a scoped tester implementation of the log observer protocol.
+: 'bmqtst_testhelper':
+:      Provide macros and utilities to assist in writing test drivers.

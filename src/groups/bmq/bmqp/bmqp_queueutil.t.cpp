@@ -28,7 +28,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -51,7 +51,7 @@ static void test1_createQueueIdFromHandleParameters()
 //   createQueueIdFromHandleParameters
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("createQueueIdFromHandleParameters");
+    bmqtst::TestHelper::printTestName("createQueueIdFromHandleParameters");
 
     struct Test {
         int          d_line;
@@ -106,7 +106,7 @@ static void test2_extractSubQueueId()
 //   extractSubQueueId
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("extractSubQueueId");
+    bmqtst::TestHelper::printTestName("extractSubQueueId");
 
     struct Test {
         int          d_line;
@@ -170,7 +170,7 @@ static void test3_extractCanonicalHandleParameters()
 //   extractCanonicalHandleParameters
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("extractCanonicalHandleParameters");
+    bmqtst::TestHelper::printTestName("extractCanonicalHandleParameters");
 
     // Short alias
     const int k_READ  = bmqt::QueueFlags::e_READ;
@@ -290,7 +290,7 @@ static void test4_isEmpty()
 //   isEmpty
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("isEmpty");
+    bmqtst::TestHelper::printTestName("isEmpty");
 
     struct Test {
         int  d_line;
@@ -356,7 +356,7 @@ static void test4_isEmpty()
 
 static void test5_isValidFanoutConsumerSubId()
 {
-    mwctst::TestHelper::printTestName("isValidFanoutConsumerSubQueueId");
+    bmqtst::TestHelper::printTestName("isValidFanoutConsumerSubQueueId");
 
     using namespace bmqp;
 
@@ -378,7 +378,7 @@ static void test5_isValidFanoutConsumerSubId()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -397,5 +397,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -36,9 +36,8 @@
 #include <mqbsi_log.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcu_blob.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <ball_log.h>
@@ -77,7 +76,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     typedef mqbsi::Log            Log;
     typedef Log::Offset           Offset;
 
-    typedef mwcc::OrderedHashMap<mqbu::StorageKey, LogSp> LogsMap;
+    typedef bmqc::OrderedHashMap<mqbu::StorageKey, LogSp> LogsMap;
     typedef LogsMap::iterator                             LogsMapIt;
     typedef LogsMap::const_iterator                       LogsMapCIt;
 
@@ -257,7 +256,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     /// corresponding log.
     virtual int writeRecord(LedgerRecordId*           recordId,
                             const bdlbb::Blob&        record,
-                            const mwcu::BlobPosition& offset,
+                            const bmqu::BlobPosition& offset,
                             int length) BSLS_KEYWORD_OVERRIDE;
 
     /// Write the specified `section` of the specified `record` into this
@@ -268,7 +267,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     virtual int
     writeRecord(LedgerRecordId*          recordId,
                 const bdlbb::Blob&       record,
-                const mwcu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
+                const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
 
     /// Flush any cached data in this ledger to the underlying storing
     /// mechanism, and return 0 on success, or a non-zero value on error.

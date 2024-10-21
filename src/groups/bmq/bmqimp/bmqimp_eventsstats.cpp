@@ -17,9 +17,9 @@
 #include <bmqimp_eventsstats.h>
 
 #include <bmqscm_version.h>
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statutil.h>
+
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
 
 // BDE
 #include <bdlma_localsequentialallocator.h>
@@ -75,15 +75,15 @@ EventsStats::EventsStats(bslma::Allocator* allocator)
 }
 
 void EventsStats::initializeStats(
-    mwcst::StatContext*                       rootStatContext,
-    const mwcst::StatValue::SnapshotLocation& start,
-    const mwcst::StatValue::SnapshotLocation& end)
+    bmqst::StatContext*                       rootStatContext,
+    const bmqst::StatValue::SnapshotLocation& start,
+    const bmqst::StatValue::SnapshotLocation& end)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     // Create the root stat context
     // ----------------------------
-    mwcst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
+    bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
     config.isTable(true);
     config.value("event").value("message");
     d_stat.d_statContext_mp = rootStatContext->addSubcontext(config);
@@ -94,41 +94,41 @@ void EventsStats::initializeStats(
         const char* name = EventsStatsEventType::toAscii(
             static_cast<EventsStatsEventType::Enum>(type));
         d_statContexts_mp[type] = d_stat.d_statContext_mp->addSubcontext(
-            mwcst::StatContextConfiguration(name, &localAllocator));
+            bmqst::StatContextConfiguration(name, &localAllocator));
     }
 
     // Create table (with Delta stats)
     // -------------------------------
-    mwcst::TableSchema& schema = d_stat.d_table.schema();
+    bmqst::TableSchema& schema = d_stat.d_table.schema();
     schema.addDefaultIdColumn("id");
 
     schema.addColumn("messages",
                      k_STAT_MESSAGE,
-                     mwcst::StatUtil::value,
+                     bmqst::StatUtil::value,
                      start);
     schema.addColumn("events",
                      k_STAT_EVENT,
-                     mwcst::StatUtil::increments,
+                     bmqst::StatUtil::increments,
                      start);
-    schema.addColumn("bytes", k_STAT_EVENT, mwcst::StatUtil::value, start);
+    schema.addColumn("bytes", k_STAT_EVENT, bmqst::StatUtil::value, start);
     schema.addColumn("messages_delta",
                      k_STAT_MESSAGE,
-                     mwcst::StatUtil::valueDifference,
+                     bmqst::StatUtil::valueDifference,
                      start,
                      end);
     schema.addColumn("events_delta",
                      k_STAT_EVENT,
-                     mwcst::StatUtil::incrementsDifference,
+                     bmqst::StatUtil::incrementsDifference,
                      start,
                      end);
     schema.addColumn("bytes_delta",
                      k_STAT_EVENT,
-                     mwcst::StatUtil::valueDifference,
+                     bmqst::StatUtil::valueDifference,
                      start,
                      end);
 
     // Configure records
-    mwcst::TableRecords& records = d_stat.d_table.records();
+    bmqst::TableRecords& records = d_stat.d_table.records();
     records.setContext(d_stat.d_statContext_mp.get());
     records.setFilter(&StatUtil::filterDirectAndTopLevel);
     records.considerChildrenOfFilteredContexts(true);
@@ -153,26 +153,26 @@ void EventsStats::initializeStats(
     // Create the table (without Delta stats)
     // --------------------------------------
     // We always use current snapshot for this
-    mwcst::StatValue::SnapshotLocation loc(0, 0);
+    bmqst::StatValue::SnapshotLocation loc(0, 0);
 
-    mwcst::TableSchema& schemaNoDelta = d_stat.d_tableNoDelta.schema();
+    bmqst::TableSchema& schemaNoDelta = d_stat.d_tableNoDelta.schema();
     schemaNoDelta.addDefaultIdColumn("id");
 
     schemaNoDelta.addColumn("messages",
                             k_STAT_MESSAGE,
-                            mwcst::StatUtil::value,
+                            bmqst::StatUtil::value,
                             loc);
     schemaNoDelta.addColumn("events",
                             k_STAT_EVENT,
-                            mwcst::StatUtil::increments,
+                            bmqst::StatUtil::increments,
                             loc);
     schemaNoDelta.addColumn("bytes",
                             k_STAT_EVENT,
-                            mwcst::StatUtil::value,
+                            bmqst::StatUtil::value,
                             loc);
 
     // Configure records
-    mwcst::TableRecords& recordsNoDelta = d_stat.d_tableNoDelta.records();
+    bmqst::TableRecords& recordsNoDelta = d_stat.d_tableNoDelta.records();
     recordsNoDelta.setContext(d_stat.d_statContext_mp.get());
     recordsNoDelta.setFilter(&StatUtil::filterDirectAndTopLevel);
     recordsNoDelta.considerChildrenOfFilteredContexts(true);

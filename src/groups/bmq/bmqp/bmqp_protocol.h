@@ -143,12 +143,10 @@
 
 // BMQ
 
+#include <bmqc_array.h>
 #include <bmqp_queueid.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
-
-// MWC
-#include <mwcc_array.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -347,7 +345,7 @@ struct Protocol {
     /// An array of subQueueInfos with statically reserved space for a
     /// number of subQueueInfos (as indicated by the second template
     /// parameter).
-    typedef mwcc::Array<SubQueueInfo, k_SUBID_ARRAY_STATIC_LEN>
+    typedef bmqc::Array<SubQueueInfo, k_SUBID_ARRAY_STATIC_LEN>
         SubQueueInfosArray;
 
     /// An array of subQueueIds with statically reserved space for a number
@@ -355,7 +353,7 @@ struct Protocol {
     /// is deprecated by the new SubQueueInfosArray above inside the
     /// brokers, but the SDK still receives and process this older flavor
     /// due to backward compatibility issues.
-    typedef mwcc::Array<unsigned int, k_SUBID_ARRAY_STATIC_LEN>
+    typedef bmqc::Array<unsigned int, k_SUBID_ARRAY_STATIC_LEN>
         SubQueueIdsArrayOld;
 
     /// Holds the client-provided Group Id.

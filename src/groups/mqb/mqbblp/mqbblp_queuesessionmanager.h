@@ -35,8 +35,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
 
-// MWC
-#include <mwcu_atomicvalidator.h>
+#include <bmqu_atomicvalidator.h>
 
 // BDE
 #include <ball_log.h>
@@ -63,7 +62,7 @@ class DispatcherClient;
 namespace mqbstat {
 class QueueStatsClient;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -165,7 +164,7 @@ class QueueSessionManager {
     // Dispatcher client to use, held not
     // owned
 
-    mwcst::StatContext* d_statContext_p;
+    bmqst::StatContext* d_statContext_p;
     // StatContext to use, held not owned
 
     mqbi::DomainFactory* d_domainFactory_p;
@@ -183,7 +182,7 @@ class QueueSessionManager {
     // sort should be delivered to the
     // client.
 
-    mwcu::AtomicValidatorSp d_validator_sp;
+    bmqu::AtomicValidatorSp d_validator_sp;
     // Object validator used in callbacks,
     // to avoid executing a callback if the
     // session has been destroyed: this is
@@ -239,7 +238,7 @@ class QueueSessionManager {
                              const ErrorCallback&        errorCallback,
                              const bmqt::Uri&            uri,
                              const bmqp_ctrlmsg::ControlMessage& request,
-                             const mwcu::AtomicValidatorSp&      validator);
+                             const bmqu::AtomicValidatorSp&      validator);
 
     /// Callback invoked in response to an open domain request (in the
     /// specified `controlMessage`) made to the domain manager, for the
@@ -255,7 +254,7 @@ class QueueSessionManager {
                         const ErrorCallback&                errorCallback,
                         const bmqt::Uri&                    uri,
                         const bmqp_ctrlmsg::ControlMessage& request,
-                        const mwcu::AtomicValidatorSp&      validator);
+                        const bmqu::AtomicValidatorSp&      validator);
 
     void onQueueOpenCb(
         const bmqp_ctrlmsg::Status&                      status,
@@ -264,7 +263,7 @@ class QueueSessionManager {
         const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
         const GetHandleCallback&                         responseCallback,
         const bmqp_ctrlmsg::ControlMessage&              request,
-        const mwcu::AtomicValidatorSp&                   validator);
+        const bmqu::AtomicValidatorSp&                   validator);
 
     /// Callback invoked in response to an open queue request (in the
     /// specified `controlMessage`).  If the specified `status` is SUCCESS,
@@ -288,7 +287,7 @@ class QueueSessionManager {
                           const CloseHandleCallback&          successCallback,
                           const ErrorCallback&                errorCallback,
                           const bmqp_ctrlmsg::ControlMessage& request,
-                          const mwcu::AtomicValidatorSp&      validator);
+                          const bmqu::AtomicValidatorSp&      validator);
 
     /// Callback invoked by the queue engine in response to a
     /// `QueueHandle::release` call for the specified `handle`.  If the
@@ -322,7 +321,7 @@ class QueueSessionManager {
     /// Create a `QueueSessionManager` object.
     QueueSessionManager(mqbi::DispatcherClient*             dispatcherClient,
                         const bmqp_ctrlmsg::ClientIdentity& clientIdentity,
-                        mwcst::StatContext*                 statContext,
+                        bmqst::StatContext*                 statContext,
                         mqbi::DomainFactory*                domainFactory,
                         bslma::Allocator*                   allocator);
 

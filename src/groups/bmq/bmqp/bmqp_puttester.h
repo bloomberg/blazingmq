@@ -36,8 +36,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -128,8 +127,8 @@ struct PutTester {
                              bmqp::EventHeader*       eh,
                              bdlbb::Blob*             eb,
                              int*                     ebLen,
-                             mwcu::BlobPosition*      headerPosition,
-                             mwcu::BlobPosition*      payloadPosition,
+                             bmqu::BlobPosition*      headerPosition,
+                             bmqu::BlobPosition*      payloadPosition,
                              int                      queueId,
                              const bmqt::MessageGUID& messageGUID,
                              bmqt::CompressionAlgorithmType::Enum cat =

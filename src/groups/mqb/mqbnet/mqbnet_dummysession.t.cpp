@@ -22,8 +22,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_testchannel.h>
+#include <bmqio_testchannel.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -31,7 +30,7 @@
 #include <bsl_string.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -43,7 +42,7 @@ using namespace bsl;
 
 static void test1_BreathingTest()
 {
-    mwctst::TestHelper::printTestName("BreathingTest");
+    bmqtst::TestHelper::printTestName("BreathingTest");
 
     // Create some needed dummy/mocked objects
     bsl::string description("DummyDescription", s_allocator_p);
@@ -67,7 +66,7 @@ static void test1_BreathingTest()
                                             &itemPool,
                                             s_allocator_p);
 
-    bsl::shared_ptr<mwcio::TestChannel> testChannel;
+    bsl::shared_ptr<bmqio::TestChannel> testChannel;
     testChannel.createInplace(s_allocator_p);
 
     // Create a test object
@@ -103,7 +102,7 @@ static void test1_BreathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -116,5 +115,5 @@ int main(int argc, char* argv[])
 
     // NOTE: Can't check default allocation because of BALL logging from
     //       constructor/desctructor of the object under test.
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

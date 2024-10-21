@@ -102,7 +102,7 @@ class QueueState {
                                bmqp_ctrlmsg::QueueHandleParameters>
         SubQueuesHandleParameters;
 
-    typedef mwcc::Array<bsl::shared_ptr<QueueEngineUtil_AppState>,
+    typedef bmqc::Array<bsl::shared_ptr<QueueEngineUtil_AppState>,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         SubQueues;
 

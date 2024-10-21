@@ -20,8 +20,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_schemalearner.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_random.h>
@@ -29,7 +28,7 @@
 #include <bslstl_map.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -241,7 +240,7 @@ static void test5_emptyMPs()
 {
     // Even if SDK does not send out empty MPS, streaming out/in should work.
 
-    mwctst::TestHelper::printTestName("'empty MPs' TEST");
+    bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
     bmqp::SchemaLearner            theLearner(s_allocator_p);
@@ -311,7 +310,7 @@ static void test6_partialRead()
         ASSERT_EQ(y, out3.getPropertyAsString("y"));
         ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
-        mwcu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(s_allocator_p);
         out3.print(os, 0, -1);
 
         PV(os.str());
@@ -401,7 +400,7 @@ static void test7_removeBeforeRead()
                 }
             }
 
-            mwcu::MemOutStream os(s_allocator_p);
+            bmqu::MemOutStream os(s_allocator_p);
             out2.print(os, 0, -1);
 
             PV(os.str());
@@ -448,7 +447,7 @@ static void test7_removeBeforeRead()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
     switch (_testCase) {
@@ -467,5 +466,5 @@ int main(int argc, char* argv[])
     }
 
     bmqp::ProtocolUtil::shutdown();
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

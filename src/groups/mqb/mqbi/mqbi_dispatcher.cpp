@@ -17,8 +17,8 @@
 #include <mqbi_dispatcher.h>
 
 #include <mqbscm_version.h>
-// MWC
-#include <mwcu_memoutstream.h>
+
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -369,7 +369,7 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
         for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
              i < d_subQueueInfos.size();
              ++i) {
-            mwcu::MemOutStream out;
+            bmqu::MemOutStream out;
             out << "subQueueInfo[" << i << "]: ";
             printer.printAttribute(out.str().data(), d_subQueueInfos[i]);
         }

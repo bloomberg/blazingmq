@@ -29,7 +29,7 @@
 #include <bsls_timeinterval.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -41,7 +41,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create a default application
     bmqt::SessionOptions                     options(s_allocator_p);
@@ -73,7 +73,7 @@ static void test2_startStopTest()
 //   isStarted()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("START STOP TEST");
+    bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
     bmqt::SessionOptions                     options(s_allocator_p);
@@ -123,7 +123,7 @@ static void test3_startStopAsyncTest()
 //   stopAsync()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("START STOP TEST");
+    bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
     bmqt::SessionOptions                     options(s_allocator_p);
@@ -176,7 +176,7 @@ static void test3_startStopAsyncTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -189,10 +189,10 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Global:  The global allocator is used to initialize the
     //          bmqt::URIParser RegEx.
-    // Default: EventQueue uses mwcc::MonitoredFixedQueue, which uses
+    // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
     //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.

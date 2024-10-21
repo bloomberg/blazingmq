@@ -18,10 +18,9 @@
 
 #include <mqbscm_version.h>
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcsys_threadutil.h>
+#include <bmqsys_threadutil.h>
 
 // BDE
 #include <bdlf_bind.h>
@@ -87,7 +86,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT(d_processorPool_p->isStarted());
 
     // create an event containing the function to be invoked on the processor
-    mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
+    bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
         d_processorPool_p->getUnmanagedEvent();
 
     event->object()
@@ -99,7 +98,7 @@ void Dispatcher_Executor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT_OPT(rc == 0);
 
     // TODO: We should call 'releaseUnmanagedEvent' on the
-    //      'mwcc::MultiQueueThreadPool' in case of exception to prevent the
+    //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
     //      event from leaking. But somehow this method is declared but not
     //      implemented.
 }
@@ -128,7 +127,7 @@ void Dispatcher_Executor::dispatch(const bsl::function<void()>& f) const
 // -------------------------------
 
 // PRIVATE ACCESSORS
-mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>*
+bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>*
 Dispatcher_ClientExecutor::processorPool() const BSLS_CPP11_NOEXCEPT
 {
     const mqba::Dispatcher* dispatcher = static_cast<const mqba::Dispatcher*>(
@@ -179,7 +178,7 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT(processorPool()->isStarted());
 
     // create an event containing the function to be invoked on the processor
-    mwcc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
+    bmqc::MultiQueueThreadPool<mqbi::DispatcherEvent>::Event* event =
         processorPool()->getUnmanagedEvent();
 
     event->object()
@@ -192,7 +191,7 @@ void Dispatcher_ClientExecutor::post(const bsl::function<void()>& f) const
     BSLS_ASSERT_OPT(rc == 0);
 
     // TODO: We should call 'releaseUnmanagedEvent' on the
-    //      'mwcc::MultiQueueThreadPool' in case of exception to prevent the
+    //      'bmqc::MultiQueueThreadPool' in case of exception to prevent the
     //      event from leaking. But somehow this method is declared but not
     //      implemented.
 }
@@ -259,7 +258,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
     // Create and start the threadPool
     context->d_threadPool_mp.load(
         new (*d_allocator_p)
-            bdlmt::ThreadPool(mwcsys::ThreadUtil::defaultAttributes(),
+            bdlmt::ThreadPool(bmqsys::ThreadUtil::defaultAttributes(),
                               config.numProcessors(),           // min threads
                               config.numProcessors(),           // max threads
                               bsl::numeric_limits<int>::max(),  // idle time
@@ -295,7 +294,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 
     processorPoolConfig.setName(mqbi::DispatcherClientType::toAscii(type))
         .setEventScheduler(d_scheduler_p)
-        .setFinalizeEvents(ProcessorPool::Config::MWCC_FINALIZE_MULTI_QUEUE)
+        .setFinalizeEvents(ProcessorPool::Config::BMQC_FINALIZE_MULTI_QUEUE)
         .setMonitorAlarm("ALARM [DISPATCHER_QUEUE_STUCK] ",
                          bsls::TimeInterval(k_QUEUE_STUCK_INTERVAL));
     // TBD: .statContext(...) / .createSubcontext(true)
@@ -329,7 +328,7 @@ Dispatcher::ProcessorPool::Queue* Dispatcher::queueCreator(
     int                                                    processorId,
     bslma::Allocator*                                      allocator)
 {
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "ProcessorQueue " << processorId << " for '" << type << "'";
     bsl::string queueName(os.str().data(), os.str().length());
 
@@ -339,7 +338,7 @@ Dispatcher::ProcessorPool::Queue* Dispatcher::queueCreator(
     queue->setWatermarks(config.queueSizeLowWatermark(),
                          config.queueSizeHighWatermark());
     queue->setStateCallback(
-        bdlf::BindUtil::bind(&mwcc::MonitoredQueueUtil::stateLogCallback,
+        bdlf::BindUtil::bind(&bmqc::MonitoredQueueUtil::stateLogCallback,
                              queueName,
                              "ALARM [DISPATCHER]",  // warning string
                              config.queueSizeLowWatermark(),
@@ -357,7 +356,7 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
                               const ProcessorPool::Event*      event)
 {
     switch (event->type()) {
-    case ProcessorPool::Event::MWCC_USER: {
+    case ProcessorPool::Event::BMQC_USER: {
         BALL_LOG_TRACE << "Dispatching Event to queue " << processorId
                        << " of " << type << " dispatcher: " << event->object();
         if (event->object().type() ==
@@ -395,10 +394,10 @@ void Dispatcher::queueEventCb(mqbi::DispatcherClientType::Enum type,
             }
         }
     } break;
-    case ProcessorPool::Event::MWCC_QUEUE_EMPTY: {
+    case ProcessorPool::Event::BMQC_QUEUE_EMPTY: {
         flushClients(type, processorId);
     } break;
-    case ProcessorPool::Event::MWCC_FINALIZE_EVENT: {
+    case ProcessorPool::Event::BMQC_FINALIZE_EVENT: {
         // We only set finalizeCallback on e_DISPATCHER events
         if (event->object().type() ==
             mqbi::DispatcherEventType::e_DISPATCHER) {
@@ -505,14 +504,14 @@ int Dispatcher::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
-    if (mwcsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        execute(bdlf::BindUtil::bind(&mwcsys::ThreadUtil::setCurrentThreadName,
+    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
+        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
                                      "bmqDispSession"),
                 mqbi::DispatcherClientType::e_SESSION);
-        execute(bdlf::BindUtil::bind(&mwcsys::ThreadUtil::setCurrentThreadName,
+        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
                                      "bmqDispQueue"),
                 mqbi::DispatcherClientType::e_QUEUE);
-        execute(bdlf::BindUtil::bind(&mwcsys::ThreadUtil::setCurrentThreadName,
+        execute(bdlf::BindUtil::bind(&bmqsys::ThreadUtil::setCurrentThreadName,
                                      "bmqDispCluster"),
                 mqbi::DispatcherClientType::e_CLUSTER);
     }
@@ -604,7 +603,7 @@ Dispatcher::registerClient(mqbi::DispatcherClient*           client,
             .setDestination(client);                           // not needed
         context.d_processorPool_mp->enqueueEvent(event, processor);
         return processor;  // RETURN
-    }                      // break;
+    }  // break;
     case mqbi::DispatcherClientType::e_UNDEFINED:
     case mqbi::DispatcherClientType::e_ALL:
     default: {
@@ -727,7 +726,7 @@ void Dispatcher::synchronize(mqbi::DispatcherClientType::Enum  type,
     semaphore.wait();
 }
 
-mwcex::Executor
+bmqex::Executor
 Dispatcher::executor(const mqbi::DispatcherClient* client) const
 {
     // PRECONDITIONS
@@ -741,7 +740,7 @@ Dispatcher::executor(const mqbi::DispatcherClient* client) const
     return Dispatcher_Executor(this, client);
 }
 
-mwcex::Executor
+bmqex::Executor
 Dispatcher::clientExecutor(const mqbi::DispatcherClient* client) const
 {
     // PRECONDITIONS

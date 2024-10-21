@@ -20,13 +20,12 @@
 // MQB
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcio_statchannelfactory.h>
-#include <mwcma_countingallocator.h>
-#include <mwcst_statvalue.h>
-#include <mwcst_tableutil.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqio_statchannelfactory.h>
+#include <bmqma_countingallocator.h>
+#include <bmqst_statvalue.h>
+#include <bmqst_tableutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_context.h>
@@ -75,11 +74,11 @@ void Printer::initializeTablesAndTips()
     ContextsMap::iterator it = d_contexts.find("allocators");
     if (it != d_contexts.end()) {
         Context* context = it->second.get();
-        mwcma::CountingAllocator::configureStatContextTableInfoProvider(
+        bmqma::CountingAllocator::configureStatContextTableInfoProvider(
             &context->d_table,
             &context->d_tip,
-            mwcst::StatValue::SnapshotLocation(0, 0),
-            mwcst::StatValue::SnapshotLocation(0, 1));
+            bmqst::StatValue::SnapshotLocation(0, 0),
+            bmqst::StatValue::SnapshotLocation(0, 1));
         context->d_table.records().setContext(
             context->d_statContext_p->getSubcontext(k_SUBCONTEXT_ALLOCATORS));
     }
@@ -103,9 +102,9 @@ void Printer::initializeTablesAndTips()
                                                  context->d_statContext_p);
 
     context = d_contexts["channels"].get();
-    mwcst::StatValue::SnapshotLocation start(0, 0);
-    mwcst::StatValue::SnapshotLocation end(0, historySize - 1);
-    mwcio::StatChannelFactoryUtil::initializeStatsTable(
+    bmqst::StatValue::SnapshotLocation start(0, 0);
+    bmqst::StatValue::SnapshotLocation end(0, historySize - 1);
+    bmqio::StatChannelFactoryUtil::initializeStatsTable(
         &context->d_table,
         &context->d_tip,
         context->d_statContext_p,
@@ -220,28 +219,28 @@ void Printer::printStats(bsl::ostream& stream)
            << ":::::::::: :::::::::: DOMAINQUEUES >>";
     Context* context = d_contexts["domainQueues"].get();
     context->d_table.records().update();
-    mwcst::TableUtil::printTable(stream, context->d_tip);
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 
     // CLIENTS
     stream << "\n"
            << ":::::::::: :::::::::: CLIENTS >>";
     context = d_contexts["clients"].get();
     context->d_table.records().update();
-    mwcst::TableUtil::printTable(stream, context->d_tip);
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 
     // CLUSTERS
     stream << "\n"
            << ":::::::::: :::::::::: CLUSTERS >>";
     context = d_contexts["clusterNodes"].get();
     context->d_table.records().update();
-    mwcst::TableUtil::printTable(stream, context->d_tip);
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 
     // CHANNELS
     stream << "\n"
            << ":::::::::: :::::::::: TCP CHANNELS >>";
     context = d_contexts["channels"].get();
     context->d_table.records().update();
-    mwcst::TableUtil::printTable(stream, context->d_tip);
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 
     // ALLOCATORS
     stream << "\n"
@@ -256,7 +255,7 @@ void Printer::printStats(bsl::ostream& stream)
     //       prior to this method.
     if (d_lastAllocatorSnapshot != 0) {
         stream << " Last snapshot was "
-               << mwcu::PrintUtil::prettyTimeInterval(
+               << bmqu::PrintUtil::prettyTimeInterval(
                       bsls::TimeUtil::getTimer() - d_lastAllocatorSnapshot)
                << " ago.";
     }
@@ -264,7 +263,7 @@ void Printer::printStats(bsl::ostream& stream)
 
     context = it->second.get();
     context->d_table.records().update();
-    mwcst::TableUtil::printTable(stream, context->d_tip);
+    bmqst::TableUtil::printTable(stream, context->d_tip);
 }
 
 void Printer::logStats()

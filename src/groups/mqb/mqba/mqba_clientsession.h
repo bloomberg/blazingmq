@@ -48,12 +48,11 @@
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_channelfactory.h>
-#include <mwcsys_time.h>
-#include <mwcu_operationchain.h>
-#include <mwcu_sharedresource.h>
+#include <bmqio_channel.h>
+#include <bmqio_channelfactory.h>
+#include <bmqsys_time.h>
+#include <bmqu_operationchain.h>
+#include <bmqu_sharedresource.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -91,7 +90,7 @@ class QueueHandle;
 namespace mqbblp {
 class ClusterCatalog;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -149,7 +148,7 @@ struct ClientSessionState {
     typedef bsl::pair<UnackedMessageInfoMap::iterator, bool>
         UnackedMessageInfoMapInsertRc;
 
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
   public:
     // PUBLIC DATA
@@ -238,7 +237,7 @@ struct ClientSessionState {
     /// builder will use. Memory allocations are performed using the
     /// specified `allocator`.
     ClientSessionState(
-        bslma::ManagedPtr<mwcst::StatContext>& clientStatContext,
+        bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
         BlobSpPool*                            blobSpPool,
         bdlbb::BlobBufferFactory*              bufferFactory,
         bmqp::EncodingType::Enum               encodingType,
@@ -309,7 +308,7 @@ class ClientSession : public mqbnet::Session,
 
   private:
     // DATA
-    mwcu::SharedResource<ClientSession> d_self;
+    bmqu::SharedResource<ClientSession> d_self;
     // This object is used to avoid
     // executing a callback if the session
     // has been destroyed: this is *ONLY* to
@@ -363,7 +362,7 @@ class ClientSession : public mqbnet::Session,
     bsl::string d_description;
     // Short identifier for this session.
 
-    bsl::shared_ptr<mwcio::Channel> d_channel_sp;
+    bsl::shared_ptr<bmqio::Channel> d_channel_sp;
     // Channel associated to this session.
 
     ClientSessionState d_state;
@@ -387,7 +386,7 @@ class ClientSession : public mqbnet::Session,
     // the unconfirmed messages during the
     // session shutdown.
 
-    mwcu::OperationChain d_shutdownChain;
+    bmqu::OperationChain d_shutdownChain;
     // Mechanism used for the session
     // graceful shutdown to serialize
     // execution of the queue handle
@@ -400,7 +399,7 @@ class ClientSession : public mqbnet::Session,
     bsls::Types::Int64 d_beginTimestamp;
     // HiRes timer value of the begin session/queue operation
 
-    mwcu::MemOutStream d_currentOpDescription;
+    bmqu::MemOutStream d_currentOpDescription;
     // Stream for constructing current session/queue operation description.
 
   private:
@@ -625,7 +624,7 @@ class ClientSession : public mqbnet::Session,
     /// Log session/queue operation time for the specified `opDescription`
     /// using the stored operation begin timestamp. After logging reset
     /// `opDescription` and set begin timestamp to 0.
-    void logOperationTime(mwcu::MemOutStream& opDescription);
+    void logOperationTime(bmqu::MemOutStream& opDescription);
 
     // PRIVATE ACCESSORS
 
@@ -649,13 +648,13 @@ class ClientSession : public mqbnet::Session,
     /// received from the peer during negotiation, and the specified
     /// `sessionDescription` is the short form description of the session.
     /// Memory allocations are performed using the specified `allocator`.
-    ClientSession(const bsl::shared_ptr<mwcio::Channel>&  channel,
+    ClientSession(const bsl::shared_ptr<bmqio::Channel>&  channel,
                   const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                   const bsl::string&                      sessionDescription,
                   mqbi::Dispatcher*                       dispatcher,
                   mqbblp::ClusterCatalog*                 clusterCatalog,
                   mqbi::DomainFactory*                    domainFactory,
-                  bslma::ManagedPtr<mwcst::StatContext>&  clientStatContext,
+                  bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
                   ClientSessionState::BlobSpPool*         blobSpPool,
                   bdlbb::BlobBufferFactory*               bufferFactory,
                   bdlmt::EventScheduler*                  scheduler,
@@ -701,7 +700,7 @@ class ClientSession : public mqbnet::Session,
     void invalidate() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
-    void onWatermark(mwcio::ChannelWatermarkType::Enum type);
+    void onWatermark(bmqio::ChannelWatermarkType::Enum type);
     void onHighWatermark();
 
     /// Watermark notification methods from observing the specified
@@ -727,7 +726,7 @@ class ClientSession : public mqbnet::Session,
     //  (virtual: mqbnet::Session)
 
     /// Return the channel associated to this session.
-    bsl::shared_ptr<mwcio::Channel> channel() const BSLS_KEYWORD_OVERRIDE;
+    bsl::shared_ptr<bmqio::Channel> channel() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the clusterNode associated to this session, or 0 if there are
     /// none.
@@ -797,7 +796,7 @@ inline ClientSession::ShutdownContext::ShutdownContext(
     const ShutdownCb&         callback,
     const bsls::TimeInterval& timeout)
 : d_callback(callback)
-, d_stopTime(mwcsys::Time::nowMonotonicClock())
+, d_stopTime(bmqsys::Time::nowMonotonicClock())
 , d_numUnconfirmedTotal(0)
 {
     BSLS_ASSERT_SAFE(d_callback);
@@ -837,7 +836,7 @@ inline bool ClientSession::isProxy() const
            bmqp_ctrlmsg::ClientType::E_TCPBROKER;
 }
 
-inline bsl::shared_ptr<mwcio::Channel> ClientSession::channel() const
+inline bsl::shared_ptr<bmqio::Channel> ClientSession::channel() const
 {
     return d_channel_sp;
 }

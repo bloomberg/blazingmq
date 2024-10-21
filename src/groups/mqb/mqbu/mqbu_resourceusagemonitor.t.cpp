@@ -17,10 +17,10 @@
 #include <mqbu_resourceusagemonitor.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BMQ
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsls_types.h>
@@ -312,7 +312,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // 1
     ASSERT_LT(mqbu::ResourceUsageMonitorState::e_STATE_NORMAL,
@@ -519,7 +519,7 @@ static void test2_zeroCapacity()
 //   messageCapacity or byteCapacity is zero.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("UPDATE ONE RESOURCE");
+    bmqtst::TestHelper::printTestName("UPDATE ONE RESOURCE");
 
     // 1 Create an instance with zero messageCapacity and zero byteCapacity
     mqbu::ResourceUsageMonitor obj(0, 0, 0, 0, 0, 0);
@@ -585,7 +585,7 @@ static void test3_updateOneResource()
 //     - updateMessages(bsls::Types::Int64 delta)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("UPDATE ONE RESOURCE");
+    bmqtst::TestHelper::printTestName("UPDATE ONE RESOURCE");
 
     // TYPES
     typedef mqbu::ResourceUsageMonitorStateTransition RUMStateTransition;
@@ -904,7 +904,7 @@ static void test4_updateBothResources()
 //               bsls::Types::Int64 deltaMessages)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("UPDATE BOTH RESOURCES");
+    bmqtst::TestHelper::printTestName("UPDATE BOTH RESOURCES");
 
     // TYPES
     typedef mqbu::ResourceUsageMonitorStateTransition RUMStateTransition;
@@ -1378,7 +1378,7 @@ static void test5_stateOneResource()
 //     - messageState()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("STATE ONE RESOURCE");
+    bmqtst::TestHelper::printTestName("STATE ONE RESOURCE");
 
     // TYPES
     typedef mqbu::ResourceUsageMonitorState RUMState;
@@ -1806,7 +1806,7 @@ static void test6_stateBothResources()
 //     - state()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("STATE BOTH RESOURCES");
+    bmqtst::TestHelper::printTestName("STATE BOTH RESOURCES");
 
     // TYPES
     typedef mqbu::ResourceUsageMonitorState RUMState;
@@ -2148,7 +2148,7 @@ static void test6_stateBothResources()
 
 static void test7_jumpingStates()
 {
-    mwctst::TestHelper::printTestName("JUMPING STATES");
+    bmqtst::TestHelper::printTestName("JUMPING STATES");
 
     // LOW_WATERMARK < HIGH_WATERMARK and HIGH_WATERMARK < CAPACITY
     bsls::Types::Int64 k_BYTE_LOW_WATERMARK  = 5;
@@ -2276,7 +2276,7 @@ static void test8_zeroWatermarksUpdate()
 //   'update' with low, high, and capacity watermark values all equal to 0.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EQUAL WATERMARKS UPDATE");
+    bmqtst::TestHelper::printTestName("EQUAL WATERMARKS UPDATE");
 
     // 1. Instantiate a ResourceUsageMonitor with equal low, high, and capacity
     //    watermarks.
@@ -2375,7 +2375,7 @@ static void test9_print()
 //                                 int           spacesPerLevel = 4) const;
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     // 1
     {
@@ -2468,7 +2468,7 @@ static void test9_print()
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
             bsl::string        ascii(s_allocator_p);
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
 
             PVV(test.d_line << ": checking 'RUMState::print(ostream, "
                             << "RUMState::e_" << test.d_expected
@@ -2517,7 +2517,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
 
             PVV(test.d_line << ": checking 'RUMStateTransition::print(ostream"
                             << ", RUMStateTransition::e_" << test.d_expected
@@ -2638,7 +2638,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
-            mwcu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(s_allocator_p);
 
             PVV(test.d_line << ": checking 'monitor.print(ostream)'");
 
@@ -2721,7 +2721,7 @@ static void test10_usageExample()
 //   Usage example
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("USAGE EXAMPLE");
+    bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
     // First, create the monitor.
 
@@ -2791,7 +2791,7 @@ static void test10_usageExample()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -2811,5 +2811,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

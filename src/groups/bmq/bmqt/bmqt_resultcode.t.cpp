@@ -24,11 +24,10 @@
 #include <bsl_ios.h>
 #include <bsl_string.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -55,7 +54,7 @@ struct PrintTestData {
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     PV("Testing GenericResult");
     bmqt::GenericResult::Enum obj;
@@ -89,7 +88,7 @@ static void test1_breathingTest()
 
 static void test2_schemaConsistency()
 {
-    mwctst::TestHelper::printTestName("SCHEMA CONSISTENCY");
+    bmqtst::TestHelper::printTestName("SCHEMA CONSISTENCY");
 
     PV("Ensuring GenericResult and bmqp_ctrlmsg::StatusCategory in sync");
 
@@ -127,8 +126,8 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         typedef typename ENUM_TYPE::Enum T;
 
@@ -155,7 +154,7 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
 static void test3_printTest()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing bmqt::GenericResult print");
     {
@@ -338,7 +337,7 @@ static void idempotenceHelper(typename RESULT_TYPE::Enum enumVal,
 
 static void test4_idempotence()
 {
-    mwctst::TestHelper::printTestName("IDEMPOTENCE");
+    bmqtst::TestHelper::printTestName("IDEMPOTENCE");
 #define TEST_IDEMPOTENCE(ENUM_TYPE, ENUM_VAL)                                 \
     {                                                                         \
         PV("Testing idempotence for " #ENUM_VAL " value of " #ENUM_TYPE       \
@@ -423,7 +422,7 @@ static void invalidValueFromAsciiHelper()
 
 static void test5_invalidValueFromAscii()
 {
-    mwctst::TestHelper::printTestName("INVALID VALUES FOR 'fromAscii'");
+    bmqtst::TestHelper::printTestName("INVALID VALUES FOR 'fromAscii'");
     invalidValueFromAsciiHelper<bmqt::GenericResult>();
     invalidValueFromAsciiHelper<bmqt::OpenQueueResult>();
     invalidValueFromAsciiHelper<bmqt::PostResult>();
@@ -438,7 +437,7 @@ static void test5_invalidValueFromAscii()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -453,5 +452,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -43,8 +43,7 @@
 #include <mqbsi_log.h>
 #include <mqbsl_ondisklog.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bslma_allocator.h>
@@ -214,7 +213,7 @@ class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// `updateOutstandingNumBytes` properly before overwriting an existing
     /// record.
     virtual Offset write(const bdlbb::Blob&        entry,
-                         const mwcu::BlobPosition& offset,
+                         const bmqu::BlobPosition& offset,
                          int length) BSLS_KEYWORD_OVERRIDE;
 
     /// Write the specified `section` of the specified `entry` into the
@@ -227,7 +226,7 @@ class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// properly before overwriting an existing record.
     virtual Offset
     write(const bdlbb::Blob&       entry,
-          const mwcu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
+          const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
 
     /// Flush any cached data up to the optionally specified `offset` to the
     /// underlying storing mechanism, and return 0 on success, or a negative
