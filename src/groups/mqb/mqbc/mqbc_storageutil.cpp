@@ -60,30 +60,6 @@ namespace mqbc {
 
 namespace {
 
-/// Unary predicate used in certain `find` algorithms to match an element
-/// having the specified AppId.
-class AppIdMatcher {
-  private:
-    // TYPES
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-
-    // DATA
-    const bsl::string& d_expectedAppId;
-
-  public:
-    // CREATORS
-    AppIdMatcher(const bsl::string& expectedAppId)
-    : d_expectedAppId(expectedAppId)
-    {
-    }
-
-    // ACCESSORS
-    bool operator()(const AppInfo& appIdKeyPair) const
-    {
-        return d_expectedAppId == appIdKeyPair.first;
-    }
-};
-
 /// Post on the optionally specified `semaphore`.
 void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 {
@@ -99,27 +75,17 @@ void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 // ------------------
 
 // PRIVATE FUNCTIONS
-bool StorageUtil::loadUpdatedAppInfos(
-    AppInfos*                       addedAppInfos,
-    AppInfos*                       removedAppInfos,
-    AppKeys*                        appKeys,
-    bslmt::Mutex*                   appKeysLock,
-    const mqbs::ReplicatedStorage&  storage,
-    const AppInfos&                 newAppInfos,
-    const bsl::vector<bsl::string>& cfgAppIds,
-    bool                            isCSLMode)
+bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
+                                      AppInfos* removedAppInfos,
+                                      const mqbs::ReplicatedStorage& storage,
+                                      const AppInfos& newAppInfos)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(addedAppInfos);
     BSLS_ASSERT_SAFE(removedAppInfos);
-    if (isCSLMode) {
-        BSLS_ASSERT_SAFE(cfgAppIds.empty());
-    }
-    else {
-        BSLS_ASSERT_SAFE(newAppInfos.empty());
-    }
+    BSLS_ASSERT_SAFE(!newAppInfos.empty());
 
     // This function is invoked by 'StorageManager::registerQueue' if the queue
     // with specified 'storage' is in fanout mode, in order to add or remove
@@ -138,64 +104,14 @@ bool StorageUtil::loadUpdatedAppInfos(
     AppInfos existingAppInfos;
     storage.loadVirtualStorageDetails(&existingAppInfos);
 
-    if (isCSLMode) {
-        loadAddedAndRemovedEntries(addedAppInfos,
-                                   removedAppInfos,
-                                   existingAppInfos,
-                                   newAppInfos);
+    loadAddedAndRemovedEntries(addedAppInfos,
+                               removedAppInfos,
+                               existingAppInfos,
+                               newAppInfos);
 
-        if (addedAppInfos->empty() && removedAppInfos->empty()) {
-            // No appIds to add or remove.
-            return false;  // RETURN
-        }
-    }
-    else {
-        bsl::unordered_set<bsl::string> existingAppIds;
-        for (AppInfos::const_iterator cit = existingAppInfos.cbegin();
-             cit != existingAppInfos.cend();
-             ++cit) {
-            existingAppIds.emplace(cit->first);
-        }
-
-        bsl::unordered_set<bsl::string> addedAppIds;
-        bsl::unordered_set<bsl::string> removedAppIds;
-
-        bsl::unordered_set<bsl::string> cfgAppSet(cfgAppIds.cbegin(),
-                                                  cfgAppIds.cend());
-
-        loadAddedAndRemovedEntries(&addedAppIds,
-                                   &removedAppIds,
-                                   existingAppIds,
-                                   cfgAppSet);
-
-        if (addedAppIds.empty() && removedAppIds.empty()) {
-            // No appIds to add or remove.
-            return false;  // RETURN
-        }
-
-        // Generate unique appKeys for the added appIds, and populate
-        // 'addedAppInfos'.
-        for (bsl::unordered_set<bsl::string>::const_iterator cit =
-                 addedAppIds.cbegin();
-             cit != addedAppIds.cend();
-             ++cit) {
-            mqbu::StorageKey appKey = generateAppKey(appKeys,
-                                                     appKeysLock,
-                                                     *cit);
-            addedAppInfos->emplace(bsl::make_pair(*cit, appKey));
-        }
-
-        // Populate 'removedAppInfos'.
-        for (bsl::unordered_set<bsl::string>::const_iterator cit =
-                 removedAppIds.cbegin();
-             cit != removedAppIds.cend();
-             ++cit) {
-            AppInfosCIter it = bsl::find_if(existingAppInfos.cbegin(),
-                                            existingAppInfos.cend(),
-                                            AppIdMatcher(*cit));
-            BSLS_ASSERT_SAFE(it != existingAppInfos.end());
-            removedAppInfos->emplace(bsl::make_pair(it->first, it->second));
-        }
+    if (addedAppInfos->empty() && removedAppInfos->empty()) {
+        // No appIds to add or remove.
+        return false;  // RETURN
     }
 
     return true;
@@ -2448,30 +2364,10 @@ void StorageUtil::registerQueue(
 
             AppInfos addedAppInfos, removedAppInfos;
 
-            bool hasUpdate = false;
-            if (cluster->isCSLModeEnabled()) {
-                // In CSL mode, queue assignment procedure is split into queue
-                // assignment and queue update, so we simply remove all appIds
-                // here, and re-add them during queue update phase.
-                hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
-                                                &removedAppInfos,
-                                                appKeys,
-                                                appKeysLock,
-                                                *storageSp.get(),
-                                                appIdKeyPairs,
-                                                bsl::vector<bsl::string>(),
-                                                true);  // isCSLMode
-            }
-            else {
-                hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
-                                                &removedAppInfos,
-                                                appKeys,
-                                                appKeysLock,
-                                                *storageSp.get(),
-                                                AppInfos(),
-                                                queueMode.fanout().appIDs(),
-                                                false);  // isCSLMode
-            }
+            bool hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
+                                                 &removedAppInfos,
+                                                 *storageSp.get(),
+                                                 appIdKeyPairs);
             if (!hasUpdate) {
                 // No update needed for AppId/Key pairs.
                 return;  // RETURN

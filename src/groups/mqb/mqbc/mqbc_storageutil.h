@@ -191,14 +191,10 @@ struct StorageUtil {
     /// added or removed appId/key pairs, false otherwise.
     ///
     /// THREAD: Executed by the cluster dispatcher thread.
-    static bool loadUpdatedAppInfos(AppInfos*     addedAppInfos,
-                                    AppInfos*     removedAppInfos,
-                                    AppKeys*      appKeys,
-                                    bslmt::Mutex* appKeysLock,
+    static bool loadUpdatedAppInfos(AppInfos* addedAppInfos,
+                                    AppInfos* removedAppInfos,
                                     const mqbs::ReplicatedStorage& storage,
-                                    const AppInfos&                newAppInfos,
-                                    const bsl::vector<bsl::string>& cfgAppIds,
-                                    bool                            isCSLMode);
+                                    const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
     static void

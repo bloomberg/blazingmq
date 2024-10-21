@@ -97,30 +97,22 @@ void applyPartitionPrimary(
 void applyQueueAssignment(mqbc::ClusterState* clusterState,
                           const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
 {
+    // TODO: refactor to use allocator(s)
+    bslma::Allocator* allocator = 0;
+
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
          ++it) {
         const bmqp_ctrlmsg::QueueInfo& queueInfo = *it;
-        const bmqt::Uri                uri(queueInfo.uri());
+        const bmqt::Uri                uri(queueInfo.uri(), allocator);
         const int                      partitionId(queueInfo.partitionId());
         const mqbu::StorageKey         queueKey(
             mqbu::StorageKey::BinaryRepresentation(),
             queueInfo.key().data());
 
-        const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& appIds =
-            queueInfo.appIds();
-        AppInfos addedAppIds;
-        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
-                 appIds.cbegin();
-             citer != appIds.cend();
-             ++citer) {
-            AppInfo appIdInfo;
-            appIdInfo.first = citer->appId();
-            appIdInfo.second.fromBinary(citer->appKey().data());
-
-            addedAppIds.insert(appIdInfo);
-        }
+        AppInfos addedAppIds(allocator);
+        mqbc::ClusterUtil::parseQueueInfo(&addedAppIds, queueInfo, allocator);
 
         // CSL commit
         clusterState->assignQueue(uri, queueKey, partitionId, addedAppIds);
@@ -1033,23 +1025,15 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
 
         // In non-CSL mode this is the shortcut to call Primary CQH instead of
-        // waiting for the quorum of acks
+        // waiting for the quorum of acks in the ledger.
 
         BSLS_ASSERT_SAFE(queueAdvisory.queues().size() == 1);
 
         bmqp_ctrlmsg::QueueInfo& queueInfo = queueAdvisory.queues().back();
 
         AppInfos appInfos(allocator);
+        mqbc::ClusterUtil::parseQueueInfo(&appInfos, queueInfo, allocator);
 
-        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
-                 queueInfo.appIds().cbegin();
-             cit != queueInfo.appIds().end();
-             ++cit) {
-            appInfos.emplace(bsl::make_pair(
-                cit->appId(),
-                mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                 cit->appKey().data())));
-        }
         BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
             uri,
             key,
@@ -2322,6 +2306,21 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                   << " be " << *out;
 
     return rc_SUCCESS;
+}
+
+void ClusterUtil::parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
+                                 const bmqp_ctrlmsg::QueueInfo& queueInfo,
+                                 bslma::Allocator*              allocator)
+{
+    for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
+             queueInfo.appIds().cbegin();
+         cit != queueInfo.appIds().cend();
+         ++cit) {
+        out->emplace(mqbi::ClusterStateManager::AppInfo(
+            bsl::string(cit->appId(), allocator),
+            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                             cit->appKey().data())));
+    }
 }
 
 }  // close package namespace

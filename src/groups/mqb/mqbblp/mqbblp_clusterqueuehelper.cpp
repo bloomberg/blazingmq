@@ -2155,14 +2155,11 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         // Use keys in the CSL instead of generating new ones to keep CSL and
         // non-CSL consistent.
 
-        const AppInfos& appIdInfos =
-            context.d_queueContext_p->d_stateQInfo_sp->appInfos();
-
         d_storageManager_p->registerQueue(
             context.d_queueContext_p->uri(),
             context.d_queueContext_p->key(),
             context.d_queueContext_p->partitionId(),
-            appIdInfos,
+            context.d_queueContext_p->d_stateQInfo_sp->appInfos(),
             context.d_domain_p);
 
         // Queue must have been registered with storage manager before
@@ -3689,25 +3686,12 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     // node creates a local queue instance (see
                     // 'createQueueFactory').
 
-                    if (d_cluster_p->isCSLModeEnabled()) {
-                        const AppInfos& appIdInfos =
-                            queueContext->d_stateQInfo_sp->appInfos();
-
-                        d_storageManager_p->registerQueue(
-                            queueContext->uri(),
-                            queueContext->key(),
-                            queueContext->partitionId(),
-                            appIdInfos,
-                            qinfo.d_queue_sp->domain());
-                    }
-                    else {
-                        d_storageManager_p->registerQueue(
-                            queueContext->uri(),
-                            queueContext->key(),
-                            queueContext->partitionId(),
-                            mqbi::Storage::AppInfos(),
-                            qinfo.d_queue_sp->domain());
-                    }
+                    d_storageManager_p->registerQueue(
+                        queueContext->uri(),
+                        queueContext->key(),
+                        queueContext->partitionId(),
+                        queueContext->d_stateQInfo_sp->appInfos(),
+                        qinfo.d_queue_sp->domain());
 
                     // Convert the queue from remote to local instance.
                     queueContext->d_liveQInfo.d_queue_sp->convertToLocal();

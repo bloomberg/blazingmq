@@ -2209,25 +2209,16 @@ void Cluster::onRecoveryStatusDispatched(
                 const bmqt::Uri uri(itMp->uri().canonical());
                 BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
                                  static_cast<int>(pid));
-                if (isCSLModeEnabled()) {
-                    AppInfos appIdInfos;
-                    itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
 
-                    d_clusterOrchestrator.registerQueueInfo(
-                        uri,
-                        pid,
-                        itMp->storage()->queueKey(),
-                        appIdInfos,
-                        false);  // Force-update?
-                }
-                else {
-                    d_clusterOrchestrator.registerQueueInfo(
-                        uri,
-                        pid,
-                        itMp->storage()->queueKey(),
-                        AppInfos(),
-                        false);  // Force-update?
-                }
+                AppInfos appIdInfos;
+                itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
+
+                d_clusterOrchestrator.registerQueueInfo(
+                    uri,
+                    pid,
+                    itMp->storage()->queueKey(),
+                    appIdInfos,
+                    false);  // Force-update?
 
                 ++(*itMp);
             }
