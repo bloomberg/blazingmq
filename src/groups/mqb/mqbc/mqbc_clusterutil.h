@@ -411,6 +411,12 @@ struct ClusterUtil {
     static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                const ClusterStateLedger&            ledger,
                                const ClusterData& clusterData);
+
+    /// Load into the specified `out` all `AppInfo` data from the specified
+    /// `queueInfo` using the specified `allocator`.
+    static void parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
+                               const bmqp_ctrlmsg::QueueInfo&       queueInfo,
+                               bslma::Allocator*                    allocator);
 };
 
 // ============================================================================
