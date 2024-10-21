@@ -83,6 +83,10 @@ void CapacityMeter::logOnMonitorStateTransition(
     switch (stateTransition) {
     case ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK:
     case ResourceUsageMonitorStateTransition::e_FULL: {
+        if (d_logAppsSubscriptionInfoCb) {
+            d_logAppsSubscriptionInfoCb(stream);
+        }
+
         MWCTSK_ALARMLOG_RAW_ALARM(categoryStream.str())
             << stream.str() << MWCTSK_ALARMLOG_END;
     } break;
@@ -102,6 +106,23 @@ void CapacityMeter::logOnMonitorStateTransition(
 
 CapacityMeter::CapacityMeter(const bsl::string& name,
                              bslma::Allocator*  allocator)
+: CapacityMeter(name, 0, allocator)
+{
+    // NOTHING
+}
+
+CapacityMeter::CapacityMeter(const bsl::string& name,
+                             CapacityMeter*     parent,
+                             bslma::Allocator*  allocator)
+: CapacityMeter(name, 0, parent, allocator)
+{
+    // NOTHING
+}
+
+CapacityMeter::CapacityMeter(
+    const bsl::string&              name,
+    const LogAppsSubscriptionInfoCb logAppsSubscriptionInfoCb,
+    bslma::Allocator*               allocator)
 : d_name(name, allocator)
 , d_isDisabled(false)
 , d_parent_p(0)
@@ -115,13 +136,16 @@ CapacityMeter::CapacityMeter(const bsl::string& name,
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
 , d_lock(bsls::SpinLock::s_unlocked)
+, d_logAppsSubscriptionInfoCb(logAppsSubscriptionInfoCb)
 {
     // NOTHING
 }
 
-CapacityMeter::CapacityMeter(const bsl::string& name,
-                             CapacityMeter*     parent,
-                             bslma::Allocator*  allocator)
+CapacityMeter::CapacityMeter(
+    const bsl::string&              name,
+    const LogAppsSubscriptionInfoCb logAppsSubscriptionInfoCb,
+    CapacityMeter*                  parent,
+    bslma::Allocator*               allocator)
 : d_name(name, allocator)
 , d_isDisabled(false)
 , d_parent_p(parent)
@@ -135,6 +159,7 @@ CapacityMeter::CapacityMeter(const bsl::string& name,
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
 , d_lock()
+, d_logAppsSubscriptionInfoCb(logAppsSubscriptionInfoCb)
 {
     // NOTHING
 }
