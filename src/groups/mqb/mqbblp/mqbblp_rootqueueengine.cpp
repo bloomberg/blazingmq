@@ -23,12 +23,15 @@
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_queuestate.h>
 #include <mqbblp_storagemanager.h>
+#include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
 #include <mqbi_appkeygenerator.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_replicatedstorage.h>
+#include <mqbs_storageprintutil.h>
+#include <mqbu_capacitymeter.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -258,7 +261,13 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                                  const mqbconfm::Domain& domainConfig,
                                  bslma::Allocator*       allocator)
 : d_queueState_p(queueState)
-, d_consumptionMonitor(queueState, allocator)
+, d_consumptionMonitor(
+      queueState,
+      bdlf::BindUtil::bind(&RootQueueEngine::logAlarmCb,
+                           this,
+                           bdlf::PlaceHolders::_1,   // appKey
+                           bdlf::PlaceHolders::_2),  // enableLog
+      allocator)
 , d_apps(allocator)
 , d_nullKeyCount(0)
 , d_hasAutoSubscriptions(false)
@@ -406,7 +415,12 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
                                      bsl::ostream&      errorDescription,
                                      unsigned int       upstreamSubQueueId)
 {
-    if (d_apps.findByKey1(appId) != d_apps.end()) {
+    Apps::iterator iter = d_apps.findByKey1(appId);
+
+    if (iter != d_apps.end()) {
+        mqbconfm::Expression empty(d_allocator_p);
+        iter->value()->setSubscription(empty);
+
         // Don't reconfigure an AppId that is already registered.
         return 0;  // RETURN
     }
@@ -430,15 +444,11 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     }
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    Apps::iterator iter = makeSubStream(appId,
-                                        AppKeyCount(appKey, 0),
-                                        upstreamSubQueueId);
+    iter = makeSubStream(appId, AppKeyCount(appKey, 0), upstreamSubQueueId);
 
     iter->value()->authorize(appKey, ordinal);
 
-    d_consumptionMonitor.registerSubStream(
-        appKey,
-        bdlf::BindUtil::bind(&RootQueueEngine::head, this, iter->value()));
+    d_consumptionMonitor.registerSubStream(appKey);
 
     BALL_LOG_INFO << "Found virtual storage for appId [" << appId
                   << "], queue [" << d_queueState_p->uri() << "], appKey ["
@@ -801,10 +811,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         if (!iter->value()->isAuthorized()) {
             if (iter->value()->authorize()) {
                 d_consumptionMonitor.registerSubStream(
-                    iter->value()->appKey(),
-                    bdlf::BindUtil::bind(&RootQueueEngine::head,
-                                         this,
-                                         iter->value()));
+                    iter->value()->appKey());
             }
         }
     }
@@ -1613,6 +1620,207 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
     d_consumptionMonitor.onTimer(currentTimer);
 }
 
+bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
+                                 bool                    enableLog) const
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    // Get AppState by appKey.
+    Apps::const_iterator cItApp = d_apps.findByKey2(AppKeyCount(appKey, 0));
+    if (cItApp == d_apps.end()) {
+        BALL_LOG_WARN << "No app found for appKey: " << appKey;
+        return false;  // RETURN
+    }
+    const AppStateSp& app = cItApp->value();
+
+    // Check if there are un-delivered messages
+    bslma::ManagedPtr<mqbi::StorageIterator> headIt = head(app);
+
+    if (!headIt) {
+        // No un-delivered messages, do nothing.
+        return false;  // RETURN
+    }
+    if (!enableLog) {
+        // There are un-delivered messages, but log is disabled.
+        return true;  // RETURN
+    }
+
+    // Logging alarm info
+    bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
+
+    mwcu::MemOutStream ss(&localAllocator);
+
+    // Log app consumers queue handles info
+    int idx          = 1;
+    int numConsumers = 0;
+
+    const QueueEngineUtil_AppState::Consumers& consumers = app->consumers();
+    for (QueueEngineUtil_AppState::Consumers::const_iterator citConsumer =
+             consumers.begin();
+         citConsumer != consumers.end();
+         ++citConsumer) {
+        mqbi::QueueHandle* const queueHandle_p = citConsumer->first;
+
+        const mqbi::QueueHandle::SubStreams& subStreamInfos =
+            queueHandle_p->subStreamInfos();
+
+        for (mqbi::QueueHandle::SubStreams::const_iterator citSubStreams =
+                 subStreamInfos.begin();
+             citSubStreams != subStreamInfos.end();
+             ++citSubStreams) {
+            numConsumers += citSubStreams->second.d_counts.d_readCount;
+
+            const int level = 2, spacesPerLevel = 2;
+
+            ss << "\n  " << idx++ << ". "
+               << queueHandle_p->client()->description()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Handle Parameters .....: "
+               << queueHandle_p->handleParameters()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "Number of unconfirmed messages .....: "
+               << queueHandle_p->countUnconfirmed()
+               << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+               << "UnconfirmedMonitors ....:";
+
+            const bsl::vector<const mqbu::ResourceUsageMonitor*> monitors =
+                queueHandle_p->unconfirmedMonitors(app->appId());
+            for (size_t i = 0; i < monitors.size(); ++i) {
+                ss << "\n  " << *monitors[i];
+            }
+        }
+    }
+
+    mwcu::MemOutStream   out(&localAllocator);
+    mqbi::Storage* const storage = d_queueState_p->storage();
+
+    out << "Queue '" << d_queueState_p->uri();
+    if (app->appId() != bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
+        out << "?id=" << app->appId();
+    }
+    out << "' ";
+    storage->capacityMeter()->printShortSummary(out);
+    out << ", max idle time "
+        << mwcu::PrintUtil::prettyTimeInterval(
+               d_queueState_p->queue()->domain()->config().maxIdleTime() *
+               bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
+        << " appears to be stuck. It currently has " << numConsumers
+        << " consumers." << ss.str() << '\n';
+
+    // Log un-delivered messages info
+    out << "\nFor appId: " << app->appId() << '\n';
+    out << "Put aside list size: " << app->putAsideListSize() << '\n';
+    out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
+    out << "Number of messages: " << storage->numMessages(appKey) << '\n';
+    out << "Number of bytes: " << storage->numBytes(appKey) << "\n\n";
+
+    // Log consumer subscriptions
+    mqbblp::Routers::QueueRoutingContext& routingContext =
+        app->routing()->d_queue;
+    mqbcmd::Routing routing;
+    routingContext.loadInternals(&routing);
+    const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
+        routing.subscriptionGroups();
+
+    // Limit to log only k_EXPR_NUM_LIMIT expressions
+    static const size_t k_EXPR_NUM_LIMIT = 50;
+    ss.reset();
+    size_t exprNum = 0;
+    for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
+             subscrGroups.begin();
+         cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
+         ++cIt) {
+        if (!cIt->expression().empty()) {
+            ss << cIt->expression() << '\n';
+            ++exprNum;
+        }
+    }
+    if (exprNum) {
+        if (exprNum == k_EXPR_NUM_LIMIT) {
+            out << "First " << k_EXPR_NUM_LIMIT
+                << " of consumer subscription expressions: ";
+        }
+        else {
+            out << "Consumer subscription expressions: ";
+        }
+        out << '\n' << ss.str() << '\n';
+    }
+
+    // Log the first (oldest) message in a put aside list and its properties
+    if (!app->putAsideList().empty()) {
+        bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
+        mqbi::StorageResult::Enum                rc = storage->getIterator(
+            &storageIt_mp,
+            appKey,
+            app->putAsideList().first());
+        if (rc == mqbi::StorageResult::e_SUCCESS) {
+            // Log timestamp
+            out << "Oldest message in the 'Put aside' list:\n";
+            mqbcmd::Result result;
+            mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                                storage,
+                                                *storageIt_mp);
+            mqbcmd::HumanPrinter::print(out, result);
+            out << '\n';
+            // Log message properties
+            const bsl::shared_ptr<bdlbb::Blob>& appData =
+                storageIt_mp->appData();
+            const bmqp::MessagePropertiesInfo& logic =
+                storageIt_mp->attributes().messagePropertiesInfo();
+            bmqp::MessageProperties properties;
+            int ret = properties.streamIn(*appData, logic.isExtended());
+            if (!ret) {
+                out << "Message Properties: " << properties << '\n';
+            }
+            else {
+                BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
+                              << rc;
+                out << "Message Properties: Failed to acquire [rc: " << rc
+                    << "]\n";
+            }
+        }
+        else {
+            BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
+                          << app->putAsideList().first() << ", rc = " << rc;
+            out << "'Put aside' list: Failed to acquire [rc: " << rc << "]\n";
+        }
+    }
+
+    // Print the 10 oldest messages in the queue
+    static const int k_NUM_MSGS = 10;
+    const int        level = 0, spacesPerLevel = 2;
+
+    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << k_NUM_MSGS << " oldest messages in the queue:\n";
+
+    mqbcmd::Result result;
+    mqbs::StoragePrintUtil::listMessages(&result.makeQueueContents(),
+                                         app->appId(),
+                                         0,
+                                         k_NUM_MSGS,
+                                         storage);
+    mqbcmd::HumanPrinter::print(out, result);
+
+    // Print the current head of the queue
+    out << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+        << "Current head of the queue:\n";
+
+    mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                        storage,
+                                        *headIt);
+
+    mqbcmd::HumanPrinter::print(out, result);
+    out << "\n";
+
+    MWCTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << MWCTSK_ALARMLOG_END;
+
+    return true;
+}
+
 void RootQueueEngine::afterAppIdRegistered(
     const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
 {
@@ -1708,7 +1916,7 @@ void RootQueueEngine::afterAppIdRegistered(
 
     BSLS_ASSERT_SAFE(!key.isNull());
 
-    d_queueState_p->storageManager()->updateQueue(
+    d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
@@ -1761,7 +1969,7 @@ void RootQueueEngine::afterAppIdUnregistered(
         }
     }
 
-    d_queueState_p->storageManager()->updateQueue(
+    d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
@@ -1769,8 +1977,8 @@ void RootQueueEngine::afterAppIdUnregistered(
         mqbi::Storage::AppIdKeyPairs(1,
                                      mqbi::Storage::AppIdKeyPair(appId,
                                                                  appKey)));
-    // No need to log in case of failure because 'updateQueue' does it (even in
-    // case of success FTM).
+    // No need to log in case of failure because 'updateQueuePrimary' does it
+    // (even in case of success FTM).
 
     d_consumptionMonitor.unregisterSubStream(appKey);
 }
@@ -1796,9 +2004,7 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
 
     iter->value()->authorize(appKey, appOrdinal);
 
-    d_consumptionMonitor.registerSubStream(
-        appKey,
-        bdlf::BindUtil::bind(&RootQueueEngine::head, this, iter->value()));
+    d_consumptionMonitor.registerSubStream(appKey);
 }
 
 void RootQueueEngine::unregisterStorage(const bsl::string&      appId,

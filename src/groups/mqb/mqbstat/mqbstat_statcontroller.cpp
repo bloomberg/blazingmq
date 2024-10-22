@@ -576,7 +576,12 @@ void StatController::snapshotAndNotify()
     // StatConsumers will report all stats
     bsl::vector<StatConsumerMp>::iterator it = d_statConsumers.begin();
     for (; it != d_statConsumers.end(); ++it) {
-        (*it)->onSnapshot();
+        try {
+            (*it)->onSnapshot();
+        }
+        catch (const bsl::exception& e) {
+            BALL_LOG_ERROR << "#PLUGIN_ERROR " << e.what();
+        }
     }
 
     const bool willPrint = d_printer_mp->nextSnapshotWillPrint();

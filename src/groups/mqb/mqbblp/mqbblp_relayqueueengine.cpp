@@ -1810,8 +1810,22 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
             itApp =
                 d_pushStream.d_apps.emplace(subQueueId, app_cit->second).first;
         }
-        else if (!checkForDuplicate(itApp->second.d_app.get(), msgGUID)) {
-            continue;  // CONTINUE
+        else {
+            const PushStream::App& app = itApp->second;
+
+            if (app.last() && app.last()->equal(itGuid)) {
+                BMQ_LOGTHROTTLE_INFO()
+                    << "Remote queue: " << d_queueState_p->uri()
+                    << " (id: " << d_queueState_p->id() << ", App '"
+                    << itApp->second.d_app->appId()
+                    << "') discarding a duplicate PUSH for guid " << msgGUID;
+
+                continue;  // CONTINUE
+            }
+
+            if (!checkForDuplicate(app.d_app.get(), msgGUID)) {
+                continue;  // CONTINUE
+            }
         }
 
         PushStream::Element* element = d_pushStream.create(subscription,
@@ -1876,12 +1890,11 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
         // in 'options' is subQueueInfos, and we won't store the specified
         // 'options' in the storage.
 
-        mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
-        result                           = storage()->put(attributes,
-                                msgGUID,
-                                appData,
-                                bsl::shared_ptr<bdlbb::Blob>()  // No options
-        );
+        mqbi::StorageResult::Enum result = storage()->put(
+            attributes,
+            msgGUID,
+            appData,
+            bsl::shared_ptr<bdlbb::Blob>());  // No options
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 result != mqbi::StorageResult::e_SUCCESS)) {

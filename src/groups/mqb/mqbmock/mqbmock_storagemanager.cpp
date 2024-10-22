@@ -73,7 +73,7 @@ void StorageManager::unregisterQueue(
     // NOTHING
 }
 
-int StorageManager::updateQueue(
+int StorageManager::updateQueuePrimary(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
     BSLS_ANNOTATION_UNUSED int                     partitionId,
