@@ -175,6 +175,10 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     bslma::Allocator* storageManagerAllocator = d_allocators.get(
         "StorageManager");
 
+    // Make a temporal pointer to the dispatcher to avoid a false-positive
+    // "uninitialized variable" warning
+    mqbi::Dispatcher* clusterDispatcher = dispatcher();
+
     // Start the StorageManager
     d_storageManager_mp.load(
         isFSMWorkflow()
@@ -185,7 +189,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       &d_clusterData,
                       d_state,
                       d_clusterData.domainFactory(),
-                      dispatcher(),
+                      clusterDispatcher,
                       k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
                                            this,
@@ -218,7 +222,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                           bdlf::PlaceHolders::_2,   // status
                           bdlf::PlaceHolders::_3),  // primary leaseId
                       d_clusterData.domainFactory(),
-                      dispatcher(),
+                      clusterDispatcher,
                       &d_clusterData.miscWorkThreadPool(),
                       storageManagerAllocator)),
         storageManagerAllocator);
@@ -3853,7 +3857,8 @@ void Cluster::getPartitionPrimaryNode(int*                  rc,
         d_state.partitions();
 
     // Check boundary conditions for partitionId
-    if (partitionId < 0 || partitionId >= partitions.size()) {
+    if (partitionId < 0 ||
+        static_cast<int>(partitions.size()) <= partitionId) {
         errorDescription << "Invalid partition id: " << partitionId;
         *rc = rc_ERROR;
         return;  // RETURN

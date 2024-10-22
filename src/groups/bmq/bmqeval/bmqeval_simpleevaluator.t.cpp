@@ -282,6 +282,42 @@ static void test2_propertyNames()
         {"aaa_111BBBaaa222__BBBaaa3_3_3BBB > 0", true},
         {"B_a_1_B_a_2_B_a_3_B_a_4_B_a_5_B_ > 0", true},
 
+        // letters + dot
+        {"name. > 0", true},
+        {"NA.ME > 0", true},
+        {"Na.me. > 0", true},
+        {"name.Name > 0", true},
+        {"Name.Name. > 0", true},
+        {"n. > 0", true},
+        {"N. > 0", true},
+        {"aB.aB..aB...aB....aB..... > 0", true},
+        {"aaa.BBBaaa..BBBaaa...BBBaaa > 0", true},
+        {"B.a.B.a.B.a.B.a.B.a.B.a.B.a. > 0", true},
+
+        // letters + digits + dots
+        {"n1a2m3e4. > 0", true},
+        {"N1A2.M3E4 > 0", true},
+        {"N1a2.m3e4. > 0", true},
+        {"n1a2m3e4.N5a6m7e8 > 0", true},
+        {"N1a2m3e4.N5a6m7e8. > 0", true},
+        {"n0. > 0", true},
+        {"N.0 > 0", true},
+        {"aB1.aB..2a...B3aB4.... > 0", true},
+        {"aaa.111BBBaaa222..BBBaaa3.3.3BBB > 0", true},
+        {"B.a.1.B.a.2.B.a.3.B.a.4.B.a.5.B. > 0", true},
+
+        // letters + digits + dots + underscores
+        {"n1a2m3e4._ > 0", true},
+        {"N1A2.M3E4_ > 0", true},
+        {"N1a2_m3e4. > 0", true},
+        {"n1a2m3e4_N5a6m7e8. > 0", true},
+        {"N1a2m3e4.N5a6m7e8_ > 0", true},
+        {"n0_. > 0", true},
+        {"N_0. > 0", true},
+        {"aB1_aB._2a__.B3aB4..._ > 0", true},
+        {"aaa.111BBBaaa222__BBBaaa3.3_3BBB > 0", true},
+        {"B.a_1_B.a_2.B_a.3.B.a_4.B_a.5.B. > 0", true},
+
         // readable examples
         {"camelCase > 0", true},
         {"snake_case > 0", true},
@@ -291,10 +327,11 @@ static void test2_propertyNames()
         {"firmId > 0", true},
         {"TheStandardAndPoor500 > 0", true},
         {"SPX_IND > 0", true},
+        {"organization.repository > 0", true},
 
         // all available characters
-        {"abcdefghijklmnopqrstuvwxyz_0123456789 > 0", true},
-        {"ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789 > 0", true},
+        {"abcdefghijklmnopqrstuvwxyz_.0123456789 > 0", true},
+        {"ABCDEFGHIJKLMNOPQRSTUVWXYZ_.0123456789 > 0", true},
 
         // negative examples
         {"0name > 0", false},
@@ -307,6 +344,13 @@ static void test2_propertyNames()
         {"_ > 0", false},
         {"_11111111111111111111111111111 > 0", false},
         {"22222222222222222222222222222_ > 0", false},
+        {".nameName > 0", false},
+        {"0.NameName > 0", false},
+        {".1n > 0", false},
+        {"1.N > 0", false},
+        {". > 0", false},
+        {".11111111111111111111111111111 > 0", false},
+        {"22222222222222222222222222222. > 0", false},
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /

@@ -540,12 +540,12 @@ class StorageManager : public mqbi::StorageManager {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    virtual int
-    updateQueue(const bmqt::Uri&        uri,
-                const mqbu::StorageKey& queueKey,
-                int                     partitionId,
-                const AppIdKeyPairs&    addedIdKeyPairs,
-                const AppIdKeyPairs& removedIdKeyPairs) BSLS_KEYWORD_OVERRIDE;
+    virtual int updateQueuePrimary(const bmqt::Uri&        uri,
+                                   const mqbu::StorageKey& queueKey,
+                                   int                     partitionId,
+                                   const AppIdKeyPairs&    addedIdKeyPairs,
+                                   const AppIdKeyPairs&    removedIdKeyPairs)
+        BSLS_KEYWORD_OVERRIDE;
 
     virtual void
     registerQueueReplica(int                     partitionId,

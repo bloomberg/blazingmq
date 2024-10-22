@@ -376,13 +376,14 @@ ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
 , d_reversedClusterConnections(d_allocator_p)
 , d_clusters(d_allocator_p)
 , d_statContexts(statContexts)
+, d_resources(resources)
+, d_adminCb()
 , d_requestManager(bmqp::EventType::e_CONTROL,
                    resources.bufferFactory(),
                    resources.scheduler(),
                    false,  // lateResponseMode
                    d_allocator_p)
 , d_stopRequestsManager(&d_requestManager, d_allocator_p)
-, d_resources(resources)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_resources.scheduler()->clockType() ==
