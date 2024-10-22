@@ -110,7 +110,7 @@ class ClusterOrchestrator {
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
-    typedef mqbc::ClusterStateQueueInfo::AppIdInfos AppIdInfos;
+    typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
 
   private:
     // DATA
@@ -516,7 +516,7 @@ class ClusterOrchestrator {
     void registerQueueInfo(const bmqt::Uri&        uri,
                            int                     partitionId,
                            const mqbu::StorageKey& queueKey,
-                           const AppIdInfos&       appIdInfos,
+                           const AppInfos&         appIdInfos,
                            bool                    forceUpdate);
 
     /// Executed by any thread.

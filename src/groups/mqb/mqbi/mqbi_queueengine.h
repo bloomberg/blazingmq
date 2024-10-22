@@ -198,14 +198,14 @@ class QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdRegistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
+    afterAppIdRegistered(const mqbi::Storage::AppInfo& appIdKeyPair);
 
     /// Called after the specified `appIdKeyPair` has been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdUnregistered(const mqbi::Storage::AppIdKeyPair& appIdKeyPair);
+    afterAppIdUnregistered(const mqbi::Storage::AppInfo& appIdKeyPair);
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.
