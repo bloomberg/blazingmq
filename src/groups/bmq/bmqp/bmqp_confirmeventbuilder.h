@@ -81,10 +81,16 @@ namespace bmqp {
 class ConfirmEventBuilder {
   private:
     // DATA
-    mutable bdlbb::Blob d_blob;  // blob being built by this object
-                                 // This has been done mutable to be able to
-                                 // skip writing the length until the blob
-                                 // is retrieved.
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Buffer factory used for blob construction.
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
     int d_msgCount;              // number of messages currently in the
                                  // event
 
@@ -140,6 +146,8 @@ class ConfirmEventBuilder {
     /// by this event.  If no messages were added, this will return an empty
     /// blob, i.e., a blob with length == 0.
     const bdlbb::Blob& blob() const;
+
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // ============================================================================
@@ -170,7 +178,7 @@ inline int ConfirmEventBuilder::eventSize() const
         return 0;  // RETURN
     }
 
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 }  // close package namespace

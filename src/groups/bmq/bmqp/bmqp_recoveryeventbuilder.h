@@ -83,11 +83,16 @@ namespace bmqp {
 class RecoveryEventBuilder BSLS_CPP11_FINAL {
   private:
     // DATA
-    mutable bdlbb::Blob d_blob;  // blob being built by this
-                                 // PushEventBuilder
-                                 // This has been done mutable to be able to
-                                 // skip writing the length until the blob
-                                 // is retrieved.
+    bslma::Allocator* d_allocator_p;
+
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    mutable bsl::shared_ptr<bdlbb::Blob>
+        d_blob_sp;  // blob being built by this
+                    // PushEventBuilder
+                    // This has been done mutable to be able to
+                    // skip writing the length until the blob
+                    // is retrieved.
 
     int d_msgCount;  // number of messages currently in the
                      // event
@@ -145,6 +150,11 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// by this event.  If no messages were added, this will return an empty
     /// blob, i.e., a blob with length == 0.
     const bdlbb::Blob& blob() const;
+
+    /// Return a reference not offering modifiable access to the blob built
+    /// by this event.  If no messages were added, this will return an empty
+    /// blob, i.e., a blob with length == 0.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // ============================================================================
@@ -158,7 +168,7 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
 // ACCESSORS
 inline int RecoveryEventBuilder::eventSize() const
 {
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int RecoveryEventBuilder::messageCount() const

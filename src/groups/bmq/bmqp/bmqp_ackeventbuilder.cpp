@@ -37,7 +37,9 @@ namespace bmqp {
 
 AckEventBuilder::AckEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
                                  bslma::Allocator*         allocator)
-: d_blob(bufferFactory, allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_bufferFactory_p(bufferFactory)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 {
     reset();
@@ -45,7 +47,7 @@ AckEventBuilder::AckEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
 
 void AckEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp.createInplace(d_allocator_p, d_bufferFactory_p, d_allocator_p);
     d_msgCount = 0;
 
     // NOTE: Since AckEventBuilder owns the blob and we just reset it, we have
@@ -57,16 +59,16 @@ void AckEventBuilder::reset()
     // Use placement new to create the object directly in the blob buffer,
     // while still calling it's constructor (to memset memory and initialize
     // some fields).
-    d_blob.setLength(sizeof(EventHeader) + sizeof(AckHeader));
-    BSLS_ASSERT_SAFE(d_blob.numDataBuffers() == 1 &&
+    d_blob_sp->setLength(sizeof(EventHeader) + sizeof(AckHeader));
+    BSLS_ASSERT_SAFE(d_blob_sp->numDataBuffers() == 1 &&
                      "The buffers allocated by the supplied bufferFactory "
                      "are too small");
 
     // EventHeader
-    new (d_blob.buffer(0).data()) EventHeader(EventType::e_ACK);
+    new (d_blob_sp->buffer(0).data()) EventHeader(EventType::e_ACK);
 
     // AckHeader
-    new (d_blob.buffer(0).data() + sizeof(EventHeader)) AckHeader();
+    new (d_blob_sp->buffer(0).data() + sizeof(EventHeader)) AckHeader();
 }
 
 bmqt::EventBuilderResult::Enum
@@ -83,9 +85,9 @@ AckEventBuilder::appendMessage(int                      status,
 
     // Resize the blob to have space for an 'AckMessage' at the end ...
     mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(AckMessage));
+    mwcu::BlobUtil::reserve(&offset, d_blob_sp.get(), sizeof(AckMessage));
 
-    mwcu::BlobObjectProxy<AckMessage> ackMessage(&d_blob,
+    mwcu::BlobObjectProxy<AckMessage> ackMessage(d_blob_sp.get(),
                                                  offset,
                                                  false,  // no read
                                                  true);  // write mode
@@ -108,7 +110,7 @@ AckEventBuilder::appendMessage(int                      status,
 const bdlbb::Blob& AckEventBuilder::blob() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
 
     // Empty event
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
@@ -118,10 +120,31 @@ const bdlbb::Blob& AckEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it.  Following is valid
     // (see comment in reset).
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(d_blob.buffer(0).data());
-    eh.setLength(d_blob.length());
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+bsl::shared_ptr<bdlbb::Blob> AckEventBuilder::blob_sp() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+
+    // Empty event
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+    }
+
+    // Fix packet's length in header now that we know it.  Following is valid
+    // (see comment in reset).
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

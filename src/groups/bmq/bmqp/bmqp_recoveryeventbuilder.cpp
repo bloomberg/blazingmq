@@ -43,7 +43,9 @@ namespace bmqp {
 RecoveryEventBuilder::RecoveryEventBuilder(
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator)
-: d_blob(bufferFactory, allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_bufferFactory_p(bufferFactory)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 {
     // PRECONDITIONS
@@ -56,7 +58,9 @@ RecoveryEventBuilder::RecoveryEventBuilder(
 // MANIPULATORS
 void RecoveryEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp.reset(new (*d_allocator_p)
+                        bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+                    d_allocator_p);
     d_msgCount = 0;
 
     // NOTE: Since RecoveryEventBuilder owns the blob and we just reset it, we
@@ -68,8 +72,8 @@ void RecoveryEventBuilder::reset()
     // Use placement new to create the object directly in the blob buffer,
     // while still calling it's constructor (to memset memory and initialize
     // some fields)
-    d_blob.setLength(sizeof(EventHeader));
-    new (d_blob.buffer(0).data()) EventHeader(EventType::e_RECOVERY);
+    d_blob_sp->setLength(sizeof(EventHeader));
+    new (d_blob_sp->buffer(0).data()) EventHeader(EventType::e_RECOVERY);
 }
 
 bmqt::EventBuilderResult::Enum
@@ -104,9 +108,9 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
 
     // Add RecoveryHeader
     mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(RecoveryHeader));
+    mwcu::BlobUtil::reserve(&offset, d_blob_sp.get(), sizeof(RecoveryHeader));
 
-    mwcu::BlobObjectProxy<RecoveryHeader> recoveryHeader(&d_blob,
+    mwcu::BlobObjectProxy<RecoveryHeader> recoveryHeader(d_blob_sp.get(),
                                                          offset,
                                                          false,  // no read
                                                          true);  // write mode
@@ -140,7 +144,7 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
     if (0 != payloadLen) {
         // Per bdlbb::Blob contract, specifying a buffer of zero length in
         // 'appendDataBuffer' is undefined.
-        d_blob.appendDataBuffer(chunkBuffer);
+        d_blob_sp->appendDataBuffer(chunkBuffer);
     }
 
     ++d_msgCount;
@@ -156,10 +160,27 @@ const bdlbb::Blob& RecoveryEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(d_blob.buffer(0).data());
-    eh.setLength(d_blob.length());
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+bsl::shared_ptr<bdlbb::Blob> RecoveryEventBuilder::blob_sp() const
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+    }
+
+    // Fix packet's length in header now that we know it ..  Following is valid
+    // (see comment in reset)
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

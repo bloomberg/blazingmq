@@ -102,7 +102,10 @@ class SchemaEventBuilder {
     // DATA
     bslma::Allocator* d_allocator_p;
     // Allocator to use by this object.
-    mutable bdlbb::Blob d_blob;
+
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
     // blob containing the event under construction.
     // This has been done mutable to be able to skip
     // writing the length until the blob is retrieved.
@@ -153,6 +156,12 @@ class SchemaEventBuilder {
     /// SchemaEventBuilder, or if `reset` has been called since, the blob
     /// returned will be an empty one.
     const bdlbb::Blob& blob() const;
+
+    /// Return the fully formatted blob corresponding to the message built.
+    /// Note that if `setMessage` has not been called on this
+    /// SchemaEventBuilder, or if `reset` has been called since, the blob
+    /// returned will be an empty one.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // =============================
@@ -182,8 +191,10 @@ inline SchemaEventBuilder::SchemaEventBuilder(
     bdlbb::BlobBufferFactory* bufferFactory,
     bslma::Allocator*         allocator,
     bmqp::EncodingType::Enum  encodingType)
-: d_allocator_p(allocator)
-, d_blob(bufferFactory, allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_bufferFactory_p(bufferFactory)
+, d_blob_sp(new(*d_allocator_p) bdlbb::Blob(bufferFactory, d_allocator_p),
+            d_allocator_p)
 , d_encodingType(encodingType)
 {
     // NOTHING
@@ -191,14 +202,16 @@ inline SchemaEventBuilder::SchemaEventBuilder(
 
 inline void SchemaEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp.reset(new (*d_allocator_p)
+                        bdlbb::Blob(d_bufferFactory_p, d_allocator_p),
+                    d_allocator_p);
 }
 
 template <class TYPE>
 int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() == 0);  // Ensure the blob is empty
+    BSLS_ASSERT_SAFE(d_blob_sp->length() == 0);  // Ensure the blob is empty
     BSLS_ASSERT_SAFE(d_encodingType != EncodingType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(type == EventType::e_CONTROL ||
                      (type == EventType::e_ELECTOR &&
@@ -215,12 +228,13 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     // Ensure blob has enough space for an EventHeader.  Use placement new to
     // create the object directly in the blob buffer, while still calling it's
     // constructor (to memset memory and initialize some fields)
-    d_blob.setLength(sizeof(EventHeader));
-    BSLS_ASSERT_SAFE(d_blob.numDataBuffers() == 1 &&
+    d_blob_sp->setLength(sizeof(EventHeader));
+    BSLS_ASSERT_SAFE(d_blob_sp->numDataBuffers() == 1 &&
                      "The buffers allocated by the supplied bufferFactory "
                      "are too small");
 
-    EventHeader* eventHeader = new (d_blob.buffer(0).data()) EventHeader(type);
+    EventHeader* eventHeader = new (d_blob_sp->buffer(0).data())
+        EventHeader(type);
 
     // Specify the encoding type in the EventHeader for control messages
     if (type == EventType::e_CONTROL) {
@@ -229,9 +243,9 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     }
 
     // Append appropriate encoding of 'message' to the blob
-    mwcu::MemOutStream os;
+    mwcu::MemOutStream os(d_allocator_p);
     int                rc = ProtocolUtil::encodeMessage(os,
-                                         &d_blob,
+                                         d_blob_sp.get(),
                                          message,
                                          d_encodingType,
                                          d_allocator_p);
@@ -247,13 +261,13 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     }
 
     // Make sure the event is padded
-    ProtocolUtil::appendPadding(&d_blob, d_blob.length());
+    ProtocolUtil::appendPadding(d_blob_sp.get(), d_blob_sp->length());
 
     // Fix packet's length in header now that we know it ..
-    eventHeader->setLength(d_blob.length());
+    eventHeader->setLength(d_blob_sp->length());
 
     // Guard against too big events
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_blob.length() >
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_blob_sp->length() >
                                               EventHeader::k_MAX_SIZE_SOFT)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         reset();
@@ -266,10 +280,19 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
 inline const bdlbb::Blob& SchemaEventBuilder::blob() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() <= EventHeader::k_MAX_SIZE_SOFT);
-    BSLS_ASSERT_SAFE(d_blob.length() % 4 == 0);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() % 4 == 0);
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+inline bsl::shared_ptr<bdlbb::Blob> SchemaEventBuilder::blob_sp() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() % 4 == 0);
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

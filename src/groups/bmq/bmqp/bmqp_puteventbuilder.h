@@ -93,9 +93,11 @@ class PutEventBuilder {
 
   private:
     // DATA
+    bslma::Allocator* d_allocator_p;
+
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
 
-    mutable bdlbb::Blob d_blob;
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
     // blob being built by this
     // PutEventBuilder.
     // This has been done mutable to be able to
@@ -158,8 +160,6 @@ class PutEventBuilder {
     // compressed, this ratio will be 1.
 
     MessagePropertiesInfo d_messagePropertiesInfo;
-
-    bslma::Allocator* d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -333,6 +333,8 @@ class PutEventBuilder {
     /// composed only of an `EventHeader`.
     const bdlbb::Blob& blob() const;
 
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
+
     const bmqp::MessageProperties* messageProperties() const;
 };
 
@@ -492,7 +494,7 @@ inline const bmqt::MessageGUID& PutEventBuilder::messageGUID() const
 
 inline int PutEventBuilder::eventSize() const
 {
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int PutEventBuilder::unpackedMessageSize() const

@@ -82,10 +82,14 @@ namespace bmqp {
 class AckEventBuilder BSLS_CPP11_FINAL {
   private:
     // DATA
-    mutable bdlbb::Blob d_blob;  // blob being built by this object.
-                                 // This has been done mutable to be able to
-                                 // skip writing the length until the blob
-                                 // is retrieved.
+    bslma::Allocator* d_allocator_p;
+
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
     int d_msgCount;              // number of messages currently in the
                                  // event
 
@@ -141,6 +145,8 @@ class AckEventBuilder BSLS_CPP11_FINAL {
     /// by this event.  If no messages were added, this will return an empty
     /// blob, i.e., a blob with length == 0.
     const bdlbb::Blob& blob() const;
+
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // ============================================================================
@@ -171,7 +177,7 @@ inline int AckEventBuilder::eventSize() const
         return 0;  // RETURN
     }
 
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 }  // close package namespace

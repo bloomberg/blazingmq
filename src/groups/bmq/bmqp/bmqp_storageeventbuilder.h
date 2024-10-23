@@ -89,13 +89,17 @@ namespace bmqp {
 class StorageEventBuilder BSLS_CPP11_FINAL {
   private:
     // DATA
+    bslma::Allocator* d_allocator_p;
+
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
     int d_storageProtocolVersion;
     // file storage protocol version
 
     EventType::Enum d_eventType;
     // Event type, either 'e_STORAGE' or 'e_PARTITION_SYNC'
 
-    mutable bdlbb::Blob d_blob;
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
     // blob being built by this PushEventBuilder.
     // This has been done mutable to be able to skip
     // writing the length until the blob is retrieved.
@@ -198,6 +202,11 @@ class StorageEventBuilder BSLS_CPP11_FINAL {
     /// by this event.  If no messages were added, this will return an empty
     /// blob, i.e., a blob with length == 0.
     const bdlbb::Blob& blob() const;
+
+    /// Return a reference not offering modifiable access to the blob built
+    /// by this event.  If no messages were added, this will return an empty
+    /// blob, i.e., a blob with length == 0.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // ============================================================================
@@ -273,7 +282,7 @@ inline EventType::Enum StorageEventBuilder::eventType() const
 
 inline int StorageEventBuilder::eventSize() const
 {
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int StorageEventBuilder::messageCount() const
