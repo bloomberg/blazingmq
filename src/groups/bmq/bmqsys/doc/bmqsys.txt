@@ -15,17 +15,13 @@ dependency.  The list below shows the hierarchal ordering of the components.
   2. bmqsys_mocktime
      bmqsys_statmonitorsnapshotrecorder
 
-  1. bmqsys_executil
-     bmqsys_statmonitor
+  1. bmqsys_statmonitor
      bmqsys_threadutil
      bmqsys_time
 ..
 
 /Component Synopsis
 /------------------
-: 'bmqsys_executil':
-:      Provide utilities to execute commands on the system.
-:
 : 'bmqsys_mocktime:
 :      Provide a mock of the time accessors usable with 'bmqsys::Time'.
 :
