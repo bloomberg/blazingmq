@@ -1333,8 +1333,12 @@ void NtcChannel::close(const Status& status)
 
 int NtcChannel::execute(const ExecuteCb& cb)
 {
-    d_streamSocket_sp->execute(cb);
-    return 0;
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    if (d_streamSocket_sp) {
+        d_streamSocket_sp->execute(cb);
+        return 0;  // RETURN
+    }
+    return -1;
 }
 
 bdlmt::SignalerConnection NtcChannel::onClose(const CloseFn& cb)
@@ -1632,7 +1636,8 @@ int NtcListener::listen(bmqio::Status*              status,
 
 #if BMQIO_NTCLISTENER_BIND_ASYNC == 0
 
-    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver();
+    bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver(
+        d_allocator_p);
 
     ntsa::EndpointOptions endpointOptions;
     endpointOptions.setTransport(ntsa::Transport::e_TCP_IPV4_STREAM);
