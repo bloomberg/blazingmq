@@ -2479,7 +2479,7 @@ void StorageUtil::registerQueue(
                 mqbi::DispatcherClientType::e_QUEUE);
 
             (*queueEvent)
-                .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+                .makeDispatcherEvent()
                 .setCallback(bdlf::BindUtil::bind(
                     updateQueuePrimaryDispatched,
                     bdlf::PlaceHolders::_1,  // processor
@@ -2593,7 +2593,7 @@ void StorageUtil::registerQueue(
         mqbi::DispatcherClientType::e_QUEUE);
 
     (*queueEvent)
-        .setType(mqbi::DispatcherEventType::e_DISPATCHER)
+        .makeDispatcherEvent()
         .setCallback(bdlf::BindUtil::bind(&registerQueueDispatched,
                                           bdlf::PlaceHolders::_1,  // processor
                                           fs,

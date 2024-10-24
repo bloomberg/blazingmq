@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,6 +123,7 @@
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_variant.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -153,18 +154,23 @@ class QueueHandle;
 struct DispatcherClientType {
     // TYPES
     enum Enum {
-        e_UNDEFINED = -1  // type has not been specified
-        ,
-        e_SESSION = 0  // client is assimilated to a session
-        ,
-        e_QUEUE = 1  // client is assimilated to a queue
-        ,
-        e_CLUSTER = 2  // client is assimilated to a cluster
-        ,
-        e_ALL = 3  // represents all of the possible types (see below)
+        /// type has not been specified
+        e_UNDEFINED = -1,
+
+        /// client is assimilated to a session
+        e_SESSION = 0,
+
+        /// client is assimilated to a queue
+        e_QUEUE = 1,
+
+        /// client is assimilated to a cluster
+        e_CLUSTER = 2,
+
+        /// represents all of the possible types (see below)
+        e_ALL = 3
     };
     // NOTE: the 'e_ALL' type is used by certain Dispatcher methods to indicate
-    //        they should be applied to all types of clients.
+    //       they should be applied to all types of clients.
 
     // CONSTANTS
     static const int k_COUNT = 3;  // Total number of different ClientTypes.
@@ -221,30 +227,20 @@ bsl::ostream& operator<<(bsl::ostream&              stream,
 struct DispatcherEventType {
     // TYPES
     enum Enum {
-        e_UNDEFINED = 0  // invalid event
-        ,
-        e_DISPATCHER = 1  // dispatcher event, see note below
-        ,
-        e_CALLBACK = 2  // event is a 'callback' event
-        ,
-        e_CONTROL_MSG = 3  // event is a 'controlMessage' event
-        ,
-        e_CONFIRM = 4  // event is a 'confirm' event
-        ,
-        e_REJECT = 5  // event is a 'reject' event
-        ,
-        e_PUSH = 6  // event is a 'push' event
-        ,
-        e_PUT = 7  // event is a 'put' event
-        ,
-        e_ACK = 8  // event is a 'ack' event
-        ,
-        e_CLUSTER_STATE = 9  // event is a 'clusterState' event
-        ,
-        e_STORAGE = 10  // event is a 'storage' event
-        ,
-        e_RECOVERY = 11  // event is a 'recovery' event
-        ,
+        /// invalid event
+        e_UNDEFINED = 0,
+        
+        e_DISPATCHER = 1,
+        e_CALLBACK = 2,
+        e_CONTROL_MSG = 3,
+        e_CONFIRM = 4,
+        e_REJECT = 5,
+        e_PUSH = 6,
+        e_PUT = 7,
+        e_ACK = 8,
+        e_CLUSTER_STATE = 9,
+        e_STORAGE = 10,
+        e_RECOVERY = 11,
         e_REPLICATION_RECEIPT = 12
     };
     // NOTE: Events of type 'e_DISPATCHER' are similar to those of type
@@ -484,221 +480,241 @@ class Dispatcher {
 // class DispatcherDispatcherEvent
 // ===============================
 
-/// DispatcherEvent interface view of an event of type `e_DISPATCHER`.
+/// Event of type `e_DISPATCHER`.
 class DispatcherDispatcherEvent {
+  private:
+    // DATA
+
+    /// Callback embedded in this event.
+    Dispatcher::ProcessorFunctor d_callback;
+
+    /// Callback embedded in this event.
+    /// This callback is called when the
+    /// 'Dispatcher::execute' method is
+    /// used to enqueue an event to
+    /// multiple processors, and will be
+    /// called when the last processor
+    /// finished processing it.
+    Dispatcher::VoidFunctor d_finalizeCallback;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherDispatcherEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherDispatcherEvent();
+    /// Construct using the specified `allocator`.
+    explicit DispatcherDispatcherEvent(bslma::Allocator *allocator = 0)
+    : d_callback(bsl::allocator_arg, allocator)
+    , d_finalizeCallback(bsl::allocator_arg, allocator)
+    {
+        // NOTHING
+    }
+
+    DispatcherDispatcherEvent(
+        bslmf::MovableRef<DispatcherDispatcherEvent> other,
+        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_callback(bslmf::MovableRefUtil::move(other.d_callback))
+    , d_finalizeCallback(bslmf::MovableRefUtil::move(other.d_finalizeCallback))
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    virtual const Dispatcher::ProcessorFunctor& callback() const = 0;
+    inline const Dispatcher::ProcessorFunctor& callback() const
+    {
+        return d_callback;
+    }
 
     /// Return a reference not offering modifiable access to the finalize
     /// callback, if any, associated to this event.
-    virtual const Dispatcher::VoidFunctor& finalizeCallback() const = 0;
+    inline const Dispatcher::VoidFunctor& finalizeCallback() const
+    {
+        return d_finalizeCallback;
+    }
+
+    // MANIPULATORS
+
+    /// Set the corresponding field to the specified `value` and return a
+    /// reference to the object currently being built.
+    inline DispatcherDispatcherEvent&
+    setCallback(const Dispatcher::ProcessorFunctor& value)
+    {
+        d_callback = value;
+        return *this;
+    }
+
+    inline DispatcherDispatcherEvent&
+    setFinalizeCallback(const Dispatcher::VoidFunctor& value)
+    {
+        d_finalizeCallback = value;
+        return *this;
+    }
 };
 
 // =============================
 // class DispatcherCallbackEvent
 // =============================
 
+/// Event of type `e_CALLBACK`.
 class DispatcherCallbackEvent {
-    // DispatcherEvent interface view of an event of type 'e_CALLBACK'.
+  private:
+    // DATA
+
+    /// Callback embedded in this event.
+    Dispatcher::ProcessorFunctor d_callback;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherCallbackEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherCallbackEvent();
+    /// Construct using the specified `allocator`.
+    explicit DispatcherCallbackEvent(bslma::Allocator *allocator = 0)
+    : d_callback(bsl::allocator_arg, allocator)
+    {
+        // NOTHING
+    }
+
+    DispatcherCallbackEvent(bslmf::MovableRef<DispatcherCallbackEvent> other,
+                            BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_callback(bslmf::MovableRefUtil::move(other.d_callback))
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    virtual const Dispatcher::ProcessorFunctor& callback() const = 0;
+    inline const Dispatcher::ProcessorFunctor& callback() const
+    {
+        return d_callback;
+    }
+
+    // MANIPULATORS
+
+    /// Set the corresponding field to the specified `value` and return a
+    /// reference to the object currently being built.
+    inline DispatcherCallbackEvent&
+    setCallback(const Dispatcher::ProcessorFunctor& value)
+    {
+        d_callback = value;
+        return *this;
+    }
 };
 
 // ===================================
 // class DispatcherControlMessageEvent
 // ===================================
 
-/// DispatcherEvent interface view of an event of type `e_CONTROL_MSG`.
+/// Event of type `e_CONTROL_MSG`.
 class DispatcherControlMessageEvent {
+  private:
+    // DATA
+
+    /// ControlMessage in this event.
+    bmqp_ctrlmsg::ControlMessage d_controlMessage;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherControlMessageEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherControlMessageEvent();
+    /// Construct using the optionally specified `allocator`
+    explicit DispatcherControlMessageEvent(bslma::Allocator *allocator = 0)
+    : d_controlMessage(allocator)
+    {
+        // NOTHING
+    }
+
+    DispatcherControlMessageEvent(
+        bslmf::MovableRef<DispatcherControlMessageEvent> other,
+        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_controlMessage(bslmf::MovableRefUtil::move(other.d_controlMessage))
+    {
+        // NOTHING
+    }
+
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the control
     /// message associated to this event.
-    virtual const bmqp_ctrlmsg::ControlMessage& controlMessage() const = 0;
+    inline const bmqp_ctrlmsg::ControlMessage& controlMessage() const
+    {
+        return d_controlMessage;
+    }
+
+    // MANIPULATORS
+
+    /// Set the corresponding field to the specified `value` and return a
+    /// reference to the object currently being built.
+    inline DispatcherControlMessageEvent&
+    setControlMessage(const bmqp_ctrlmsg::ControlMessage& value)
+    {
+        d_controlMessage = value;
+        return *this;
+    }
 };
 
 // ============================
 // class DispatcherConfirmEvent
 // ============================
 
-/// DispatcherEvent interface view of an event of type `e_CONFIRM`.
+/// Event of type `e_CONFIRM`.
 class DispatcherConfirmEvent {
+  private:
+    // DATA
+
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// ConfirmMessage in this event.
+    bmqp::ConfirmMessage d_confirmMessage;
+    
+    /// PartitionId of the message in this event.
+    int d_partitionId;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherConfirmEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherConfirmEvent();
+    /// Constructor.
+    explicit DispatcherConfirmEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_confirmMessage()
+    , d_partitionId(-1)  // TODO this const is declared in
+                         // mqbs::DataStore::k_INVALID_PARTITION_ID
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
 
-    // ACCESSORS
-
-    /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this confirmEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.  Typically, `blob` is used
-    /// when there may be multiple confirm messages; while `confirmMessage`
-    /// is used when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
-
-    /// Return a pointer to the cluster node this event originate from, or
-    /// null if it doesn't come from a cluster node.  This is mainly useful
-    /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
-
-    /// Return a reference not offering modifiable access to the confirm
-    /// message associated to this event.  This protocol struct is only
-    /// valid when `isRelay() == true`.
-    virtual const bmqp::ConfirmMessage& confirmMessage() const = 0;
-
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
-
-    /// Return the partitionId affected to the queue associated to this
-    /// confirm message.  This is only valid when `isRelay() == true`.
-    virtual int partitionId() const = 0;
-};
-
-// ===========================
-// class DispatcherRejectEvent
-// ===========================
-
-/// DispatcherEvent interface view of an event of type `e_REJECT`.
-class DispatcherRejectEvent {
-  public:
-    // CREATORS
-
-    /// Destructor.
-    virtual ~DispatcherRejectEvent();
-
-    // ACCESSORS
-
-    /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this rejectEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.  Typically, `blob` is used
-    /// when there may be multiple reject messages; while `rejectMessage`
-    /// is used when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
-
-    /// Return a pointer to the cluster node this event originate from, or
-    /// null if it doesn't come from a cluster node.  This is mainly useful
-    /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
-
-    /// Return a reference not offering modifiable access to the reject
-    /// message associated to this event.  This protocol struct is only
-    /// valid when `isRelay() == true`.
-    virtual const bmqp::RejectMessage& rejectMessage() const = 0;
-
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
-
-    /// Return the partitionId affected to the queue associated to this
-    /// reject message.  This is only valid when `isRelay() == true`.
-    virtual int partitionId() const = 0;
-};
-
-// =========================
-// class DispatcherPushEvent
-// =========================
-
-/// DispatcherEvent interface view of an event of type `e_PUSH`.
-class DispatcherPushEvent {
-  public:
-    // CREATORS
-
-    /// Destructor.
-    virtual ~DispatcherPushEvent();
-
-    // ACCESSORS
-
-    /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this pushEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.  Typically, `blob` is used
-    /// when there may be multiple push messages; while `guid` and `queueId`
-    /// are used when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
-
-    virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
-
-    /// Return a pointer to the cluster node this event originate from, or
-    /// null if it doesn't come from a cluster node.  This is mainly useful
-    /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
-
-    /// Return a reference not offering modifiable access to the GUID
-    /// associated to this event.  This data member is only valid when
-    /// `isRelay() == true`.
-    virtual const bmqt::MessageGUID& guid() const = 0;
-
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
-
-    /// Return the queueId associated to this event.  This data member is
-    /// only valid when `isRelay() == true`.
-    virtual int queueId() const = 0;
-
-    /// Return a reference not offering modifiable access to the
-    /// subQueueInfos associated with a message in this event.
-    virtual const bmqp::Protocol::SubQueueInfosArray&
-    subQueueInfos() const = 0;
-
-    /// Return a reference not offering modifiable access to the Message
-    /// Group Id associated with a message in this event.
-    virtual const bmqp::Protocol::MsgGroupId& msgGroupId() const = 0;
-
-    /// Return (true, *) if the associated PUSH message contains message
-    /// properties.  Return (true, true) if the properties is de-compressed
-    /// even if the `compressionAlgorithmType` is not `e_NONE`.
-    virtual const bmqp::MessagePropertiesInfo&
-    messagePropertiesInfo() const = 0;
-
-    /// Return the compression algorithm type using which a message in this
-    /// event is compressed.
-    virtual bmqt::CompressionAlgorithmType::Enum
-    compressionAlgorithmType() const = 0;
-
-    /// Return 'true' if the associated PUSH message is Out-of-Order - not the
-    /// first delivery attempt or put-aside (no matching subscription).
-    virtual bool isOutOfOrderPush() const = 0;
-};
-
-// ========================
-// class DispatcherPutEvent
-// ========================
-
-/// DispatcherEvent interface view of an event of type `e_PUT`.
-class DispatcherPutEvent {
-  public:
-    // CREATORS
-
-    /// Destructor.
-    virtual ~DispatcherPutEvent();
+    DispatcherConfirmEvent(bslmf::MovableRef<DispatcherConfirmEvent> other,
+                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_confirmMessage(bslmf::MovableRefUtil::move(other.d_confirmMessage))
+    , d_partitionId(other.d_partitionId)
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
@@ -708,36 +724,673 @@ class DispatcherPutEvent {
     /// only valid when `isRelay() == false`.  Typically, `blob` is used
     /// when there may be multiple push messages; while `guid` and `queueId`
     /// are used when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
-
-    virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
 
     /// Return a pointer to the cluster node this event originate from, or
     /// null if it doesn't come from a cluster node.  This is mainly useful
     /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
 
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
+    /// Return a reference not offering modifiable access to the confirm
+    /// message associated to this event.  This protocol struct is only
+    /// valid when `isRelay() == true`.
+    inline const bmqp::ConfirmMessage& confirmMessage() const
+    {
+        return d_confirmMessage;
+    }
 
     /// Return the partitionId affected to the queue associated to this
     /// put message.  This is only valid when `isRelay() == true`.
-    virtual int partitionId() const = 0;
+    inline int partitionId() const { return d_partitionId; }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
+    // MANIPULATORS
+    inline DispatcherConfirmEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherConfirmEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
+
+    inline DispatcherConfirmEvent&
+    setConfirmMessage(const bmqp::ConfirmMessage& value)
+    {
+        d_confirmMessage = value;
+        return *this;
+    }
+
+    inline DispatcherConfirmEvent& setPartitionId(int value)
+    {
+        d_partitionId = value;
+        return *this;
+    }
+
+    inline DispatcherConfirmEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+};
+
+// ===========================
+// class DispatcherRejectEvent
+// ===========================
+
+/// DispatcherEvent interface view of an event of type `e_REJECT`.
+class DispatcherRejectEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// RejectMessage in this event.
+    bmqp::RejectMessage d_rejectMessage;
+
+    /// PartitionId of the message in this event.
+    int d_partitionId;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRejectEvent, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+
+    /// Constructor.
+    explicit DispatcherRejectEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_rejectMessage()
+    , d_partitionId(-1)
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
+
+    DispatcherRejectEvent(bslmf::MovableRef<DispatcherRejectEvent> other,
+                          BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_rejectMessage(bslmf::MovableRefUtil::move(other.d_rejectMessage))
+    , d_partitionId(other.d_partitionId)
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+
+    /// Return a reference not offering modifiable access to the blob
+    /// associated to this event.  The blob represents the raw content of
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
+
+    /// Return a pointer to the cluster node this event originate from, or
+    /// null if it doesn't come from a cluster node.  This is mainly useful
+    /// for logging purposes.
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
+
+    /// Return a reference not offering modifiable access to the reject
+    /// message associated to this event.  This protocol struct is only
+    /// valid when `isRelay() == true`.
+    inline const bmqp::RejectMessage& rejectMessage() const
+    {
+        return d_rejectMessage;
+    }
+
+    /// Return the partitionId affected to the queue associated to this
+    /// put message.  This is only valid when `isRelay() == true`.
+    inline int partitionId() const { return d_partitionId; }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
+    // MANIPULATORS
+
+    inline DispatcherRejectEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherRejectEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
+
+    inline DispatcherRejectEvent&
+    setRejectMessage(const bmqp::RejectMessage& value)
+    {
+        d_rejectMessage = value;
+        return *this;
+    }
+
+    inline DispatcherRejectEvent& setPartitionId(int value)
+    {
+        d_partitionId = value;
+        return *this;
+    }
+
+    inline DispatcherRejectEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+};
+
+// =========================
+// class DispatcherPushEvent
+// =========================
+
+/// DispatcherEvent interface view of an event of type `e_PUSH`.
+class DispatcherPushEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Blob of options embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_options_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// GUID of the message in this event.
+    bmqt::MessageGUID d_guid;
+
+    /// Flags indicating if the associated message has message properties or
+    /// not (first) and if so, if the properties are compressed or not (second)
+    bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
+
+    /// Id associated to the queue this event is about (in the context of the
+    /// Client, i.e., this is the upstream SDK <-> Broker queueId).
+    int d_queueId;
+
+    bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
+
+    bool d_isOutOfOrder;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
+    /// subQueueInfos associated with the message in this event
+    bmqp::Protocol::SubQueueInfosArray d_subQueueInfos;
+
+    /// Message Group Id associated with the message in this event
+    bmqp::Protocol::MsgGroupId d_msgGroupId;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPushEvent, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    
+    /// CONSTRUCTOR
+    explicit DispatcherPushEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_options_sp(0, allocator)    
+    , d_clusterNode_p(0)
+    , d_guid()
+    , d_messagePropertiesInfo()
+    , d_queueId(-1)
+    , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+    , d_isOutOfOrder(false)
+    , d_isRelay(false)
+    , d_subQueueInfos(allocator)
+    , d_msgGroupId(allocator)
+    {
+        // NOTHING
+    }
+
+    DispatcherPushEvent(bslmf::MovableRef<DispatcherPushEvent> other,
+                        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_guid(bslmf::MovableRefUtil::move(other.d_guid))
+    , d_messagePropertiesInfo(
+          bslmf::MovableRefUtil::move(other.d_messagePropertiesInfo))
+    , d_queueId(other.d_queueId)
+    , d_compressionAlgorithmType(other.d_compressionAlgorithmType)
+    , d_isOutOfOrder(other.d_isOutOfOrder)
+    , d_isRelay(other.d_isRelay)
+    , d_subQueueInfos(bslmf::MovableRefUtil::move(other.d_subQueueInfos))
+    , d_msgGroupId(bslmf::MovableRefUtil::move(other.d_msgGroupId))
+    {
+        // NOTHING
+    }
+
+    // mqba_clientsession.t.cpp
+    inline DispatcherPushEvent(const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
+                               const bmqt::MessageGUID&             msgGUID,
+                               const bmqp::MessagePropertiesInfo&   mp,
+                               int                                  queueId,
+                               bmqt::CompressionAlgorithmType::Enum cat,
+                               bslma::Allocator* allocator = 0)
+    : d_blob_sp(blob_sp)
+    , d_options_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_guid(msgGUID)
+    , d_messagePropertiesInfo(mp)
+    , d_queueId(queueId)
+    , d_compressionAlgorithmType(cat)
+    , d_isOutOfOrder(false)
+    , d_isRelay(false)
+    , d_subQueueInfos(allocator)
+    , d_msgGroupId(allocator)
+    {
+        // NOTHING
+    }
+
+    // mqbblp_clusterproxy.cpp
+    inline DispatcherPushEvent(const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                               bslma::Allocator* allocator = 0)
+    : d_blob_sp(blob_sp)
+    , d_options_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_guid()
+    , d_messagePropertiesInfo()
+    , d_queueId(-1)
+    , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+    , d_isOutOfOrder(false)
+    , d_isRelay(false)
+    , d_subQueueInfos(allocator)
+    , d_msgGroupId(allocator)
+    {
+        // NOTHING
+    }
+
+    // mqbblp_queue.cpp
+    inline DispatcherPushEvent(const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
+                               const bsl::shared_ptr<bdlbb::Blob>&  options_sp,
+                               const bmqt::MessageGUID&             msgGUID,
+                               const bmqp::MessagePropertiesInfo&   mp,
+                               bmqt::CompressionAlgorithmType::Enum cat,
+                               bool              isOutOfOrder,
+                               bslma::Allocator* allocator = 0)
+    : d_blob_sp(blob_sp)
+    , d_options_sp(options_sp)
+    , d_clusterNode_p(0)
+    , d_guid(msgGUID)
+    , d_messagePropertiesInfo(mp)
+    , d_queueId(-1)
+    , d_compressionAlgorithmType(cat)
+    , d_isOutOfOrder(isOutOfOrder)
+    , d_isRelay(false)
+    , d_subQueueInfos(allocator)
+    , d_msgGroupId(allocator)
+    {
+        // NOTHING
+    }
+
+    // mqbblp_queuehandle.cpp
+    inline DispatcherPushEvent(
+        const bsl::shared_ptr<bdlbb::Blob>&       blob_sp,
+        const bmqt::MessageGUID&                  msgGUID,
+        const bmqp::MessagePropertiesInfo&        mp,
+        int                                       queueId,
+        bmqt::CompressionAlgorithmType::Enum      cat,
+        bool                                      isOutOfOrder,
+        const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+        const bmqp::Protocol::MsgGroupId&         msgGroupId,
+        bslma::Allocator*                         allocator = 0)
+    : d_blob_sp(blob_sp)
+    , d_options_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_guid(msgGUID)
+    , d_messagePropertiesInfo(mp)
+    , d_queueId(queueId)
+    , d_compressionAlgorithmType(cat)
+    , d_isOutOfOrder(isOutOfOrder)
+    , d_isRelay(false)
+    , d_subQueueInfos(subQueueInfos)
+    , d_msgGroupId(msgGroupId)
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+
+    /// Return a reference not offering modifiable access to the blob
+    /// associated to this event.  The blob represents the raw content of
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
+
+    inline const bsl::shared_ptr<bdlbb::Blob>& options() const
+    {
+        return d_options_sp;
+    }
+
+    /// Return a pointer to the cluster node this event originate from, or
+    /// null if it doesn't come from a cluster node.  This is mainly useful
+    /// for logging purposes.
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
+    /// Return the queueId associated to this event.  This data member is
+    /// only valid when `isRelay() == true`.
+    inline int queueId() const { return d_queueId; }
+
+    /// Return a reference not offering modifiable access to the
+    /// subQueueInfos associated with a message in this event.
+    inline const bmqp::Protocol::SubQueueInfosArray& subQueueInfos() const
+    {
+        return d_subQueueInfos;
+    }
+
+    /// Return (true, *) if the associated PUSH message contains message
+    /// properties.  Return (true, true) if the properties is de-compressed
+    /// even if the `compressionAlgorithmType` is not `e_NONE`.
+    inline const bmqp::MessagePropertiesInfo& messagePropertiesInfo() const
+    {
+        return d_messagePropertiesInfo;
+    }
+
+    /// Return the compression algorithm type using which a message in this
+    /// event is compressed.
+    inline bmqt::CompressionAlgorithmType::Enum
+    compressionAlgorithmType() const
+    {
+        return d_compressionAlgorithmType;
+    }
+
+    /// Return 'true' if the associated PUSH message is Out-of-Order - not the
+    /// first delivery attempt or put-aside (no matching subscription).
+    inline bool isOutOfOrderPush() const { return d_isOutOfOrder; }
+
+    /// Return a reference not offering modifiable access to the GUID
+    /// associated to this event.  This data member is only valid when
+    /// `isRelay() == true`.
+    inline const bmqt::MessageGUID& guid() const { return d_guid; }
+
+    /// Return a reference not offering modifiable access to the Message
+    /// Group Id associated with a message in this event.
+    inline const bmqp::Protocol::MsgGroupId& msgGroupId() const
+    {
+        return d_msgGroupId;
+    }
+
+    // MANIPULATORS
+
+    inline DispatcherPushEvent&
+    setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value)
+    {
+        d_compressionAlgorithmType = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent& setOutOfOrderPush(bool value)
+    {
+        d_isOutOfOrder = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent&
+    setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
+    {
+        d_msgGroupId = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent& setQueueId(int value)
+    {
+        d_queueId = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent&
+    setSubQueueInfos(const bmqp::Protocol::SubQueueInfosArray& value)
+    {
+        d_subQueueInfos = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent&
+    setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value)
+    {
+        d_messagePropertiesInfo = value;
+
+        return *this;
+    }
+
+    inline DispatcherPushEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent&
+    setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_options_sp = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent& setGuid(const bmqt::MessageGUID& value)
+    {
+        d_guid = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherPushEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
+};
+
+// ========================
+// class DispatcherPutEvent
+// ========================
+
+/// DispatcherEvent interface view of an event of type `e_PUT`.
+class DispatcherPutEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Blob of options embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_options_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// PutHeader in this event.
+    bmqp::PutHeader d_putHeader;
+
+    /// Queue Handle if this event.
+    QueueHandle* d_queueHandle_p;
+
+    /// PartitionId of the message in this event.
+    int d_partitionId;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
+    bsls::Types::Uint64 d_genCount;
+
+    bsl::shared_ptr<bmqu::AtomicState> d_state;
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherPutEvent, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+
+    /// Constructor.
+    DispatcherPutEvent(bslma::Allocator* allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_options_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_putHeader()
+    , d_queueHandle_p(0)
+    , d_partitionId(-1)
+    , d_isRelay(false)
+    , d_genCount(0)
+    , d_state()
+    {
+    }
+
+    DispatcherPutEvent(bslmf::MovableRef<DispatcherPutEvent> other,
+                       BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_putHeader(bslmf::MovableRefUtil::move(other.d_putHeader))
+    , d_queueHandle_p(other.d_queueHandle_p)
+    , d_partitionId(other.d_partitionId)
+    , d_isRelay(other.d_isRelay)
+    , d_genCount(other.d_genCount)
+    , d_state(bslmf::MovableRefUtil::move(other.d_state))
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+
+    /// Return a reference not offering modifiable access to the blob
+    /// associated to this event.  The blob represents the raw content of
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
+
+    inline const bsl::shared_ptr<bdlbb::Blob>& options() const
+    {
+        return d_options_sp;
+    }
+
+    /// Return a pointer to the cluster node this event originate from, or
+    /// null if it doesn't come from a cluster node.  This is mainly useful
+    /// for logging purposes.
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
+    /// Return the partitionId affected to the queue associated to this
+    /// put message.  This is only valid when `isRelay() == true`.
+    inline int partitionId() const { return d_partitionId; }
 
     /// Return a reference not offering modifiable access to the put header
     /// associated to this event.  This protocol struct is only valid when
     /// `isRelay() == true`.
-    virtual const bmqp::PutHeader& putHeader() const = 0;
+    const bmqp::PutHeader& putHeader() const { return d_putHeader; }
 
     /// TBD:
-    virtual QueueHandle* queueHandle() const = 0;
+    QueueHandle* queueHandle() const { return d_queueHandle_p; }
 
     /// PUT messages carry `genCount`; if there is a mismatch between PUT
     /// `genCount` and current upstream 'genCount, then the PUT message gets
     /// dropped to avoid out of order PUTs.
-    virtual bsls::Types::Uint64 genCount() const = 0;
+    inline bsls::Types::Uint64 genCount() const { return d_genCount; }
 
-    virtual const bsl::shared_ptr<bmqu::AtomicState>& state() const = 0;
+    inline const bsl::shared_ptr<bmqu::AtomicState>& state() const
+    {
+        return d_state;
+    }
+
+    /// MANIPULATORS
+    inline DispatcherPutEvent& setPutHeader(const bmqp::PutHeader& value)
+    {
+        d_putHeader = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent& setQueueHandle(QueueHandle* value)
+    {
+        d_queueHandle_p = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent& setGenCount(unsigned int genCount)
+    {
+        d_genCount = genCount;
+        return *this;
+    }
+
+    inline DispatcherPutEvent&
+    setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
+    {
+        d_state = state;
+        return *this;
+    }
+
+    inline DispatcherPutEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent&
+    setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_options_sp = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent& setPartitionId(int value)
+    {
+        d_partitionId = value;
+        return *this;
+    }
+
+    inline DispatcherPutEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // ========================
@@ -746,36 +1399,117 @@ class DispatcherPutEvent {
 
 /// DispatcherEvent interface view of an event of type `e_ACK`.
 class DispatcherAckEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Blob of options embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_options_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// AckMessage in this event.
+    bmqp::AckMessage d_ackMessage;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherAckEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherAckEvent();
+    /// Constructor.
+    explicit DispatcherAckEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_options_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_ackMessage()
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
+
+    DispatcherAckEvent(bslmf::MovableRef<DispatcherAckEvent> other,
+                       BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_options_sp(bslmf::MovableRefUtil::move(other.d_options_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_ackMessage(bslmf::MovableRefUtil::move(other.d_ackMessage))
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the ack message
     /// associated to this event.  This protocol struct is only valid when
     /// `isRelay() == true`.
-    virtual const bmqp::AckMessage& ackMessage() const = 0;
+    inline const bmqp::AckMessage& ackMessage() const { return d_ackMessage; }
+
+    inline const bsl::shared_ptr<bdlbb::Blob>& options() const
+    {
+        return d_options_sp;
+    }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this ackEvent originates from.  The `blob` is
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
     /// only valid when `isRelay() == false`.  Typically, `blob` is used
-    /// when there may be multiple push messages; while `ackMessage` is used
-    /// when only one is present.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
-
-    virtual const bsl::shared_ptr<bdlbb::Blob>& options() const = 0;
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
 
     /// Return a pointer to the cluster node this event originate from, or
     /// null if it doesn't come from a cluster node.  This is mainly useful
     /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
 
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
+    // MANIPULATORS
+    // todo docs
+    inline bmqp::AckMessage& ackMessage() { return d_ackMessage; }
+
+    inline DispatcherAckEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherAckEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherAckEvent&
+    setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_options_sp = value;
+        return *this;
+    }
+
+    inline DispatcherAckEvent& setAckMessage(const bmqp::AckMessage& value)
+    {
+        d_ackMessage = value;
+        return *this;
+    }
+
+    inline DispatcherAckEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // =================================
@@ -784,23 +1518,83 @@ class DispatcherAckEvent {
 
 /// DispatcherEvent interface view of an event of type `e_CLUSTER_STATE`.
 class DispatcherClusterStateEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherClusterStateEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherClusterStateEvent();
+    /// Constructor.
+    explicit DispatcherClusterStateEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
+
+    DispatcherClusterStateEvent(
+        bslmf::MovableRef<DispatcherClusterStateEvent> other,
+        BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this clusterStateEvent originates from.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
+
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
 
     /// Return a pointer to the cluster node this event originate from, or
     /// null if it doesn't come from a cluster node.  This is mainly useful
     /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
+
+    // MANIPULATORS
+    inline DispatcherClusterStateEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherClusterStateEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherClusterStateEvent&
+    setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // ============================
@@ -809,27 +1603,81 @@ class DispatcherClusterStateEvent {
 
 /// DispatcherEvent interface view of an event of type `e_ACK`.
 class DispatcherStorageEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherStorageEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherStorageEvent();
+    /// Constructor.
+    explicit DispatcherStorageEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
+
+    DispatcherStorageEvent(bslmf::MovableRef<DispatcherStorageEvent> other,
+                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this storageEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
 
     /// Return a pointer to the cluster node this event originate from, or
     /// null if it doesn't come from a cluster node.  This is mainly useful
     /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
 
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
+    // MANIPULATORS
+    inline DispatcherStorageEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherStorageEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherStorageEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // =============================
@@ -838,27 +1686,81 @@ class DispatcherStorageEvent {
 
 /// DispatcherEvent interface view of an event of type `e_RECOVERY`.
 class DispatcherRecoveryEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
+    /// Flag indicating if this is a relay event.
+    bool d_isRelay;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherRecoveryEvent();
+    /// Constructor.
+    explicit DispatcherRecoveryEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    , d_isRelay(false)
+    {
+        // NOTHING
+    }
+
+    DispatcherRecoveryEvent(bslmf::MovableRef<DispatcherRecoveryEvent> other,
+                            BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    , d_isRelay(other.d_isRelay)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
+    /// Return whether this event is a relay event or not.
+    inline bool isRelay() const { return d_isRelay; }
+
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this recoveryEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
 
     /// Return a pointer to the cluster node this event originate from, or
     /// null if it doesn't come from a cluster node.  This is mainly useful
     /// for logging purposes.
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
 
-    /// Return whether this event is a relay event or not.
-    virtual bool isRelay() const = 0;
+    // MANIPULATORS
+    inline DispatcherRecoveryEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherRecoveryEvent& setIsRelay(bool value)
+    {
+        d_isRelay = value;
+        return *this;
+    }
+
+    inline DispatcherRecoveryEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // ============================
@@ -867,21 +1769,67 @@ class DispatcherRecoveryEvent {
 
 /// DispatcherEvent interface view of an event of type `e_RECOVERY`.
 class DispatcherReceiptEvent {
+  private:
+    // DATA
+    /// Blob of data embedded in this event.
+    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// 'ClusterNode' associated to this event.
+    mqbnet::ClusterNode* d_clusterNode_p;
+
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(DispatcherRecoveryEvent, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
-    /// Destructor.
-    virtual ~DispatcherReceiptEvent();
+    /// Constructor.
+    explicit DispatcherReceiptEvent(bslma::Allocator *allocator = 0)
+    : d_blob_sp(0, allocator)
+    , d_clusterNode_p(0)
+    {
+        // NOTHING
+    }
+
+    DispatcherReceiptEvent(bslmf::MovableRef<DispatcherReceiptEvent> other,
+                           BSLA_MAYBE_UNUSED bslma::Allocator* allocator = 0)
+    : d_blob_sp(bslmf::MovableRefUtil::move(other.d_blob_sp))
+    , d_clusterNode_p(other.d_clusterNode_p)
+    {
+        // NOTHING
+    }
 
     // ACCESSORS
 
     /// Return a reference not offering modifiable access to the blob
     /// associated to this event.  The blob represents the raw content of
-    /// the `bmqp::Event` this recoveryEvent originates from.  The `blob` is
-    /// only valid when `isRelay() == false`.
-    virtual const bsl::shared_ptr<bdlbb::Blob>& blob() const = 0;
+    /// the `bmqp::Event` this putEvent originates from.  The `blob` is
+    /// only valid when `isRelay() == false`.  Typically, `blob` is used
+    /// when there may be multiple push messages; while `guid` and `queueId`
+    /// are used when only one is present.
+    inline const bsl::shared_ptr<bdlbb::Blob>& blob() const
+    {
+        return d_blob_sp;
+    }
 
-    virtual mqbnet::ClusterNode* clusterNode() const = 0;
+    /// Return a pointer to the cluster node this event originate from, or
+    /// null if it doesn't come from a cluster node.  This is mainly useful
+    /// for logging purposes.
+    inline mqbnet::ClusterNode* clusterNode() const { return d_clusterNode_p; }
+
+    // MANIPULATORS
+    inline DispatcherReceiptEvent&
+    setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+    {
+        d_blob_sp = value;
+        return *this;
+    }
+
+    inline DispatcherReceiptEvent& setClusterNode(mqbnet::ClusterNode* value)
+    {
+        d_clusterNode_p = value;
+        return *this;
+    }
 };
 
 // =====================
@@ -890,120 +1838,36 @@ class DispatcherReceiptEvent {
 
 /// Value semantic like object holding the context information of an Event
 /// dispatched by the Dispatcher.
-class DispatcherEvent : public DispatcherDispatcherEvent,
-                        public DispatcherCallbackEvent,
-                        public DispatcherControlMessageEvent,
-                        public DispatcherConfirmEvent,
-                        public DispatcherRejectEvent,
-                        public DispatcherPushEvent,
-                        public DispatcherPutEvent,
-                        public DispatcherAckEvent,
-                        public DispatcherClusterStateEvent,
-                        public DispatcherStorageEvent,
-                        public DispatcherRecoveryEvent,
-                        public DispatcherReceiptEvent
-
-{
+class DispatcherEvent {
   private:
     // DATA
-    DispatcherEventType::Enum d_type;
-    // Type of the Event.
 
+    /// Allocator to use
+    bslma::Allocator *d_allocator_p;
+
+    /// Source ('producer') of this event, if any.
     DispatcherClient* d_source_p;
-    // Source ('producer') of this event
-    // if any.
 
+    /// Destination ('consumer') for this event.
     DispatcherClient* d_destination_p;
-    // Destination ('consumer') for this
-    // event.
 
-    bmqp::AckMessage d_ackMessage;
-    // AckMessage in this event.
+    /// Type of the Event.
+    DispatcherEventType::Enum d_type;
 
-    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
-    // Blob of data embedded in this
-    // event. Refer to the corresponding
-    // accessor on the various
-    // DispatcherEvent view interfaces
-    // for more specific information.
-
-    bsl::shared_ptr<bdlbb::Blob> d_options_sp;
-    // Blob of options embedded in this
-    // event. Refer to the corresponding
-    // accessor on the various
-    // DispatcherEvent view interfaces
-    // for more specific information.
-
-    Dispatcher::ProcessorFunctor d_callback;
-    // Callback embedded in this event.
-
-    mqbnet::ClusterNode* d_clusterNode_p;
-    // 'ClusterNode' associated to this
-    // event.
-
-    bmqp::ConfirmMessage d_confirmMessage;
-    // ConfirmMessage in this event.
-
-    bmqp::RejectMessage d_rejectMessage;
-    // RejectMessage in this event.
-
-    bmqp_ctrlmsg::ControlMessage d_controlMessage;
-    // ControlMessage in this event..
-
-    Dispatcher::VoidFunctor d_finalizeCallback;
-    // Callback embedded in this event.
-    // This callback is called when the
-    // 'Dispatcher::execute' method is
-    // used to enqueue an event to
-    // multiple processors, and will be
-    // called when the last processor
-    // finished processing it.
-
-    bmqt::MessageGUID d_guid;
-    // GUID of the message in this event.
-
-    bool d_isRelay;
-    // Flag indicating if this is a relay
-    // event.
-
-    int d_partitionId;
-    // PartitionId of the message in this
-    // event.
-
-    bmqp::PutHeader d_putHeader;
-    // PutHeader in this event.
-
-    QueueHandle* d_queueHandle_p;
-    // Queue Handle if this event.
-
-    int d_queueId;
-    // Id associated to the queue this
-    // event is about (in the context of
-    // the Client, i.e., this is the
-    // upstream SDK <-> Broker queueId).
-
-    bmqp::Protocol::SubQueueInfosArray d_subQueueInfos;
-    // subQueueInfos associated with the
-    // message in this event
-
-    bmqp::Protocol::MsgGroupId d_msgGroupId;
-    // Message Group Id associated with
-    // the message in this event
-
-    bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
-    // Flags indicating if the associated
-    // message has message properties or
-    // not (first) and if so, if the
-    // properties are compressed or not
-    // (second)
-
-    bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
-
-    bool d_isOutOfOrder;
-
-    bsls::Types::Uint64 d_genCount;
-
-    bsl::shared_ptr<bmqu::AtomicState> d_state;
+    bsl::variant<bsl::monostate,
+                 DispatcherDispatcherEvent,
+                 DispatcherCallbackEvent,
+                 DispatcherControlMessageEvent,
+                 DispatcherConfirmEvent,
+                 DispatcherRejectEvent,
+                 DispatcherPushEvent,
+                 DispatcherPutEvent,
+                 DispatcherAckEvent,
+                 DispatcherClusterStateEvent,
+                 DispatcherStorageEvent,
+                 DispatcherRecoveryEvent,
+                 DispatcherReceiptEvent>
+        d_eventImpl;
 
   public:
     // TRAITS
@@ -1014,94 +1878,127 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// Constructor of a `DispatcherEvent`, using the specified `allocator`.
     explicit DispatcherEvent(bslma::Allocator* allocator);
 
-    /// Destructor.
-    ~DispatcherEvent() BSLS_KEYWORD_OVERRIDE;
-
-  private:
-    // PRIVATE ACCESSORS
-
-    // The following methods are private, because they are meant only to be
-    // accessed through one of the 'DispatcherEvent' view interfaces, after
-    // being retrieved using one of the 'asXYZEvent()' method.  However, those
-    // methods are declared here, *after* the destructor in order to prevent a
-    // CLang compiler warning:
-    //     'DispatcherEvent' has no out-of-line virtual method definitions; its
-    //     vtable will be emitted in every translation unit [-Wweak-vtables].
-
-    const bmqp::AckMessage& ackMessage() const BSLS_KEYWORD_OVERRIDE;
-    const bsl::shared_ptr<bdlbb::Blob>& blob() const BSLS_KEYWORD_OVERRIDE;
-    const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE;
-    const Dispatcher::ProcessorFunctor& callback() const BSLS_KEYWORD_OVERRIDE;
-    mqbnet::ClusterNode*        clusterNode() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::ConfirmMessage& confirmMessage() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::RejectMessage&  rejectMessage() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp_ctrlmsg::ControlMessage&
-    controlMessage() const BSLS_KEYWORD_OVERRIDE;
-    const Dispatcher::VoidFunctor&
-                             finalizeCallback() const BSLS_KEYWORD_OVERRIDE;
-    const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE;
-    bool                     isRelay() const BSLS_KEYWORD_OVERRIDE;
-    int                      partitionId() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::PutHeader&   putHeader() const BSLS_KEYWORD_OVERRIDE;
-    int                      queueId() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::Protocol::SubQueueInfosArray&
-    subQueueInfos() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::Protocol::MsgGroupId& msgGroupId() const BSLS_KEYWORD_OVERRIDE;
-    QueueHandle* queueHandle() const BSLS_KEYWORD_OVERRIDE;
-    const bmqp::MessagePropertiesInfo&
-    messagePropertiesInfo() const BSLS_KEYWORD_OVERRIDE;
-    bmqt::CompressionAlgorithmType::Enum
-                        compressionAlgorithmType() const BSLS_KEYWORD_OVERRIDE;
-    bool                isOutOfOrderPush() const BSLS_KEYWORD_OVERRIDE;
-    bsls::Types::Uint64 genCount() const BSLS_KEYWORD_OVERRIDE;
-    // Return the value of the corresponding member.  Refer to the various
-    // DispatcherEvent view interfaces for more specific information.
-
-    const bsl::shared_ptr<bmqu::AtomicState>&
-    state() const BSLS_KEYWORD_OVERRIDE;
-
   public:
     // MANIPULATORS
-    DispatcherEvent& setType(DispatcherEventType::Enum value);
+    DispatcherDispatcherEvent& makeDispatcherEvent()
+    {
+        d_type = DispatcherEventType::e_DISPATCHER;
+        return d_eventImpl.emplace<DispatcherDispatcherEvent>();
+    }
+
+    DispatcherCallbackEvent& makeCallbackEvent()
+    {
+        d_type = DispatcherEventType::e_CALLBACK;
+        return d_eventImpl.emplace<DispatcherCallbackEvent>();
+    }
+
+    DispatcherControlMessageEvent& makeControlMessageEvent()
+    {
+        d_type = DispatcherEventType::e_CONTROL_MSG;
+        return d_eventImpl.emplace<DispatcherControlMessageEvent>();
+    }
+
+    DispatcherConfirmEvent& makeConfirmEvent()
+    {
+        d_type = DispatcherEventType::e_CONFIRM;
+        return d_eventImpl.emplace<DispatcherConfirmEvent>();
+    }
+
+    DispatcherRejectEvent& makeRejectEvent()
+    {
+        d_type = DispatcherEventType::e_REJECT;
+        return d_eventImpl.emplace<DispatcherRejectEvent>();
+    }
+
+    inline DispatcherPushEvent& makePushEvent()
+    {
+        d_type = DispatcherEventType::e_PUSH;
+        return d_eventImpl.emplace<DispatcherPushEvent>();
+    }
+
+    inline DispatcherPushEvent&
+    makePushEvent(const bsl::shared_ptr<bdlbb::Blob>& blob_sp)
+    {
+        d_type = DispatcherEventType::e_PUSH;
+        return d_eventImpl.emplace<DispatcherPushEvent>(blob_sp);
+    }
+
+    inline DispatcherPushEvent&
+    makePushEvent(const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
+                  const bsl::shared_ptr<bdlbb::Blob>&  options_sp,
+                  const bmqt::MessageGUID&             msgGUID,
+                  const bmqp::MessagePropertiesInfo&   mp,
+                  bmqt::CompressionAlgorithmType::Enum cat,
+                  bool                                 isOutOfOrder)
+    {
+        d_type = DispatcherEventType::e_PUSH;
+        return d_eventImpl.emplace<DispatcherPushEvent>(blob_sp,
+                                                        options_sp,
+                                                        msgGUID,
+                                                        mp,
+                                                        cat,
+                                                        isOutOfOrder);
+    }
+
+    inline DispatcherPushEvent&
+    makePushEvent(const bsl::shared_ptr<bdlbb::Blob>&       blob_sp,
+                  const bmqt::MessageGUID&                  msgGUID,
+                  const bmqp::MessagePropertiesInfo&        mp,
+                  int                                       queueId,
+                  bmqt::CompressionAlgorithmType::Enum      cat,
+                  bool                                      isOutOfOrder,
+                  const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                  const bmqp::Protocol::MsgGroupId&         msgGroupId)
+    {
+        d_type = DispatcherEventType::e_PUSH;
+        return d_eventImpl.emplace<DispatcherPushEvent>(blob_sp,
+                                                        msgGUID,
+                                                        mp,
+                                                        queueId,
+                                                        cat,
+                                                        isOutOfOrder,
+                                                        subQueueInfos,
+                                                        msgGroupId);
+    }
+
+    inline DispatcherPutEvent& makePutEvent()
+    {
+        d_type = DispatcherEventType::e_PUT;
+        return d_eventImpl.emplace<DispatcherPutEvent>();
+    }
+
+    DispatcherReceiptEvent& makeReceiptEvent()
+    {
+        d_type = DispatcherEventType::e_REPLICATION_RECEIPT;
+        return d_eventImpl.emplace<DispatcherReceiptEvent>();
+    }
+
+    DispatcherAckEvent& makeAckEvent()
+    {
+        d_type = DispatcherEventType::e_ACK;
+        return d_eventImpl.emplace<DispatcherAckEvent>();
+    }
+
+    DispatcherStorageEvent& makeStorageEvent()
+    {
+        d_type = DispatcherEventType::e_STORAGE;
+        return d_eventImpl.emplace<DispatcherStorageEvent>();
+    }
+
+    DispatcherRecoveryEvent& makeRecoveryEvent()
+    {
+        d_type = DispatcherEventType::e_RECOVERY;
+        return d_eventImpl.emplace<DispatcherRecoveryEvent>();
+    }
+
+    DispatcherClusterStateEvent& makeClusterStateEvent()
+    {
+        d_type = DispatcherEventType::e_CLUSTER_STATE;
+        return d_eventImpl.emplace<DispatcherClusterStateEvent>();
+    }
+
     DispatcherEvent& setSource(DispatcherClient* value);
     DispatcherEvent& setDestination(DispatcherClient* value);
-    DispatcherEvent& setAckMessage(const bmqp::AckMessage& value);
-    DispatcherEvent& setBlob(const bsl::shared_ptr<bdlbb::Blob>& value);
-    DispatcherEvent& setOptions(const bsl::shared_ptr<bdlbb::Blob>& value);
-    DispatcherEvent& setCallback(const Dispatcher::ProcessorFunctor& value);
-    DispatcherEvent& setClusterNode(mqbnet::ClusterNode* value);
-    DispatcherEvent& setConfirmMessage(const bmqp::ConfirmMessage& value);
-    DispatcherEvent& setRejectMessage(const bmqp::RejectMessage& value);
-    DispatcherEvent&
-    setControlMessage(const bmqp_ctrlmsg::ControlMessage& value);
-    DispatcherEvent& setFinalizeCallback(const Dispatcher::VoidFunctor& value);
-    DispatcherEvent& setGuid(const bmqt::MessageGUID& value);
-    DispatcherEvent& setIsRelay(bool value);
-    DispatcherEvent& setPartitionId(int value);
-    DispatcherEvent& setPutHeader(const bmqp::PutHeader& value);
-    DispatcherEvent& setQueueHandle(QueueHandle* value);
-    DispatcherEvent& setQueueId(int value);
-    DispatcherEvent&
-    setSubQueueInfos(const bmqp::Protocol::SubQueueInfosArray& value);
-    DispatcherEvent& setMsgGroupId(const bmqp::Protocol::MsgGroupId& value);
-    DispatcherEvent&
-    setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
-
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    DispatcherEvent&
-    setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value);
-
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    DispatcherEvent& setOutOfOrderPush(bool value);
-
-    /// PUT messages carry `genCount`; if there is a mismatch between PUT
-    /// `genCount` and current upstream 'genCount, then the PUT message gets
-    /// dropped to avoid out of order PUTs.
-    DispatcherEvent& setGenCount(unsigned int genCount);
-
-    DispatcherEvent& setState(const bsl::shared_ptr<bmqu::AtomicState>& state);
 
     /// Reset all members of this `DispatcherEvent` to a default value.
     void reset();
@@ -1119,17 +2016,17 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     /// event.
     DispatcherClient* destination() const;
 
-    const DispatcherDispatcherEvent*     asDispatcherEvent() const;
-    const DispatcherControlMessageEvent* asControlMessageEvent() const;
-    const DispatcherCallbackEvent*       asCallbackEvent() const;
-    const DispatcherConfirmEvent*        asConfirmEvent() const;
-    const DispatcherRejectEvent*         asRejectEvent() const;
-    const DispatcherPushEvent*           asPushEvent() const;
-    const DispatcherPutEvent*            asPutEvent() const;
-    const DispatcherAckEvent*            asAckEvent() const;
-    const DispatcherClusterStateEvent*   asClusterStateEvent() const;
-    const DispatcherStorageEvent*        asStorageEvent() const;
-    const DispatcherRecoveryEvent*       asRecoveryEvent() const;
+    template <class EventType>
+    inline const EventType& getAs() const
+    {
+        return bsl::get<EventType>(d_eventImpl);
+    }
+
+    template <class EventType>
+    inline EventType& getAs()
+    {
+        return bsl::get<EventType>(d_eventImpl);
+    }
 
     /// Return this object as the corresponding event type.  The behavior is
     /// undefined unless `type()` returns the appropriate matching type.
@@ -1286,153 +2183,14 @@ bsl::ostream& operator<<(bsl::ostream& stream, const DispatcherClient& client);
 // ---------------------
 
 inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
-: d_type(DispatcherEventType::e_UNDEFINED)
+
+: d_allocator_p(bslma::Default::allocator(allocator))
 , d_source_p(0)
 , d_destination_p(0)
-, d_ackMessage()
-, d_blob_sp(0, allocator)
-, d_options_sp(0, allocator)
-, d_callback(bsl::allocator_arg, allocator)
-, d_clusterNode_p(0)
-, d_confirmMessage()
-, d_rejectMessage()
-, d_controlMessage(allocator)
-, d_finalizeCallback(bsl::allocator_arg, allocator)
-, d_guid(bmqt::MessageGUID())
-, d_isRelay(false)
-, d_partitionId(-1)
-, d_putHeader()
-, d_queueHandle_p(0)
-, d_queueId(-1)
-, d_subQueueInfos(allocator)
-, d_msgGroupId(allocator)
-, d_messagePropertiesInfo()
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_isOutOfOrder(false)
-, d_genCount(0)
+, d_type(DispatcherEventType::e_UNDEFINED)
+, d_eventImpl(bsl::allocator_arg, d_allocator_p)
 {
     // NOTHING
-}
-
-inline const bmqp::AckMessage& DispatcherEvent::ackMessage() const
-{
-    return d_ackMessage;
-}
-
-inline const bsl::shared_ptr<bdlbb::Blob>& DispatcherEvent::blob() const
-{
-    return d_blob_sp;
-}
-
-inline const bsl::shared_ptr<bdlbb::Blob>& DispatcherEvent::options() const
-{
-    return d_options_sp;
-}
-
-inline const Dispatcher::ProcessorFunctor& DispatcherEvent::callback() const
-{
-    return d_callback;
-}
-
-inline mqbnet::ClusterNode* DispatcherEvent::clusterNode() const
-{
-    return d_clusterNode_p;
-}
-
-inline const bmqp::ConfirmMessage& DispatcherEvent::confirmMessage() const
-{
-    return d_confirmMessage;
-}
-
-inline const bmqp::RejectMessage& DispatcherEvent::rejectMessage() const
-{
-    return d_rejectMessage;
-}
-
-inline const bmqp_ctrlmsg::ControlMessage&
-DispatcherEvent::controlMessage() const
-{
-    return d_controlMessage;
-}
-
-inline const Dispatcher::VoidFunctor& DispatcherEvent::finalizeCallback() const
-{
-    return d_finalizeCallback;
-}
-
-inline const bmqt::MessageGUID& DispatcherEvent::guid() const
-{
-    return d_guid;
-}
-
-inline bool DispatcherEvent::isRelay() const
-{
-    return d_isRelay;
-}
-
-inline int DispatcherEvent::partitionId() const
-{
-    return d_partitionId;
-}
-
-inline const bmqp::PutHeader& DispatcherEvent::putHeader() const
-{
-    return d_putHeader;
-}
-
-inline int DispatcherEvent::queueId() const
-{
-    return d_queueId;
-}
-
-inline const bmqp::Protocol::SubQueueInfosArray&
-DispatcherEvent::subQueueInfos() const
-{
-    return d_subQueueInfos;
-}
-
-inline const bmqp::Protocol::MsgGroupId& DispatcherEvent::msgGroupId() const
-{
-    return d_msgGroupId;
-}
-
-inline QueueHandle* DispatcherEvent::queueHandle() const
-{
-    return d_queueHandle_p;
-}
-
-inline const bmqp::MessagePropertiesInfo&
-DispatcherEvent::messagePropertiesInfo() const
-{
-    return d_messagePropertiesInfo;
-}
-
-inline bmqt::CompressionAlgorithmType::Enum
-DispatcherEvent::compressionAlgorithmType() const
-{
-    return d_compressionAlgorithmType;
-}
-
-inline bool DispatcherEvent::isOutOfOrderPush() const
-{
-    return d_isOutOfOrder;
-}
-
-inline bsls::Types::Uint64 DispatcherEvent::genCount() const
-{
-    return d_genCount;
-}
-
-inline const bsl::shared_ptr<bmqu::AtomicState>& DispatcherEvent::state() const
-{
-    return d_state;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setType(DispatcherEventType::Enum value)
-{
-    d_type = value;
-    return *this;
 }
 
 inline DispatcherEvent& DispatcherEvent::setSource(DispatcherClient* value)
@@ -1448,180 +2206,14 @@ DispatcherEvent::setDestination(DispatcherClient* value)
     return *this;
 }
 
-inline DispatcherEvent&
-DispatcherEvent::setAckMessage(const bmqp::AckMessage& value)
-{
-    d_ackMessage = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
-{
-    d_blob_sp = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
-{
-    d_options_sp = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setCallback(const Dispatcher::ProcessorFunctor& value)
-{
-    d_callback = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setClusterNode(mqbnet::ClusterNode* value)
-{
-    d_clusterNode_p = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setConfirmMessage(const bmqp::ConfirmMessage& value)
-{
-    d_confirmMessage = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setRejectMessage(const bmqp::RejectMessage& value)
-{
-    d_rejectMessage = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setControlMessage(const bmqp_ctrlmsg::ControlMessage& value)
-{
-    d_controlMessage = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setFinalizeCallback(const Dispatcher::VoidFunctor& value)
-{
-    d_finalizeCallback = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setGuid(const bmqt::MessageGUID& value)
-{
-    d_guid = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setIsRelay(bool value)
-{
-    d_isRelay = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setPartitionId(int value)
-{
-    d_partitionId = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setPutHeader(const bmqp::PutHeader& value)
-{
-    d_putHeader = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setQueueHandle(QueueHandle* value)
-{
-    d_queueHandle_p = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setQueueId(int value)
-{
-    d_queueId = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setSubQueueInfos(
-    const bmqp::Protocol::SubQueueInfosArray& value)
-{
-    d_subQueueInfos = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
-{
-    d_msgGroupId = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setMessagePropertiesInfo(
-    const bmqp::MessagePropertiesInfo& value)
-{
-    d_messagePropertiesInfo = value;
-
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setCompressionAlgorithmType(
-    bmqt::CompressionAlgorithmType::Enum value)
-{
-    d_compressionAlgorithmType = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setOutOfOrderPush(bool value)
-{
-    d_isOutOfOrder = value;
-    return *this;
-}
-
-inline DispatcherEvent& DispatcherEvent::setGenCount(unsigned int genCount)
-{
-    d_genCount = genCount;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setState(const bsl::shared_ptr<bmqu::AtomicState>& state)
-{
-    d_state = state;
-    return *this;
-}
-
 inline void DispatcherEvent::reset()
 {
+    // TODO lazy undefine
+    // keep `d_allocator_p`
+    d_eventImpl     = bsl::monostate();
     d_type          = DispatcherEventType::e_UNDEFINED;
     d_source_p      = 0;
     d_destination_p = 0;
-    d_ackMessage    = bmqp::AckMessage();
-    d_blob_sp.reset();
-    d_options_sp.reset();
-    d_callback         = bsl::nullptr_t();
-    d_clusterNode_p    = 0;
-    d_confirmMessage   = bmqp::ConfirmMessage();
-    d_rejectMessage    = bmqp::RejectMessage();
-    d_finalizeCallback = bsl::nullptr_t();
-    d_guid             = bmqt::MessageGUID();
-    d_isRelay          = false;
-    d_putHeader        = bmqp::PutHeader();
-    d_queueHandle_p    = 0;
-    d_queueId          = -1;
-    d_subQueueInfos.clear();
-    d_msgGroupId.clear();
-    d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
-    d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
-    d_isOutOfOrder             = false;
-    d_genCount                 = 0;
-    d_state.reset();
 }
 
 inline DispatcherEventType::Enum DispatcherEvent::type() const
@@ -1637,105 +2229,6 @@ inline DispatcherClient* DispatcherEvent::source() const
 inline DispatcherClient* DispatcherEvent::destination() const
 {
     return d_destination_p;
-}
-
-inline const DispatcherDispatcherEvent*
-DispatcherEvent::asDispatcherEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_DISPATCHER);
-
-    return this;
-}
-
-inline const DispatcherControlMessageEvent*
-DispatcherEvent::asControlMessageEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_CONTROL_MSG);
-
-    return this;
-}
-
-inline const DispatcherCallbackEvent* DispatcherEvent::asCallbackEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_CALLBACK);
-
-    return this;
-}
-
-inline const DispatcherConfirmEvent* DispatcherEvent::asConfirmEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_CONFIRM);
-
-    return this;
-}
-
-inline const DispatcherRejectEvent* DispatcherEvent::asRejectEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_REJECT);
-
-    return this;
-}
-
-inline const DispatcherPushEvent* DispatcherEvent::asPushEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_PUSH);
-
-    return this;
-}
-
-inline const DispatcherPutEvent* DispatcherEvent::asPutEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_PUT);
-
-    return this;
-}
-
-inline const DispatcherAckEvent* DispatcherEvent::asAckEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_ACK);
-
-    return this;
-}
-
-inline const DispatcherClusterStateEvent*
-DispatcherEvent::asClusterStateEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_CLUSTER_STATE);
-
-    return this;
-}
-
-inline const DispatcherStorageEvent* DispatcherEvent::asStorageEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_STORAGE);
-
-    return this;
-}
-
-inline const DispatcherRecoveryEvent* DispatcherEvent::asRecoveryEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_RECOVERY);
-
-    return this;
-}
-
-inline const DispatcherReceiptEvent* DispatcherEvent::asReceiptEvent() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_type == DispatcherEventType::e_REPLICATION_RECEIPT);
-
-    return this;
 }
 
 // --------------------------

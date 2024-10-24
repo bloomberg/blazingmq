@@ -2804,30 +2804,35 @@ void ClientSession::processEvent(
             return;  // RETURN
         }
 
-        // Not a control or leader message, it's either a put or a confirm ..
-        mqbi::DispatcherEventType::Enum eventType;
-
-        if (event.isPutEvent()) {
-            eventType = mqbi::DispatcherEventType::e_PUT;
+        // Dispatch the event
+        switch (event.type()) {
+        case bmqp::EventType::e_PUT:
+        case bmqp::EventType::e_CONFIRM:
+        case bmqp::EventType::e_REJECT: {
+            break;  // BREAK
         }
-        else if (event.isConfirmEvent()) {
-            eventType = mqbi::DispatcherEventType::e_CONFIRM;
-        }
-        else if (event.isRejectEvent()) {
-            eventType = mqbi::DispatcherEventType::e_REJECT;
-        }
-        else {
+        default: {
             BALL_LOG_ERROR << "#CLIENT_UNEXPECTED_EVENT " << description()
                            << ": Unexpected event type: " << event;
             return;  // RETURN
         }
+        }
 
-        // Dispatch the event
         mqbi::DispatcherEvent*       dispEvent = dispatcher()->getEvent(this);
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_state.d_blobSpPool_p->getObject();
         *blobSp = *(event.blob());
-        (*dispEvent).setType(eventType).setSource(this).setBlob(blobSp);
+
+        if (event.isPutEvent()) {
+            (*dispEvent).setSource(this).makePutEvent().setBlob(blobSp);
+        }
+        else if (event.isConfirmEvent()) {
+            (*dispEvent).setSource(this).makeConfirmEvent().setBlob(blobSp);
+        }
+        else if (event.isRejectEvent()) {
+            (*dispEvent).setSource(this).makeRejectEvent().setBlob(blobSp);
+        }
+
         dispatcher()->dispatchEvent(dispEvent, this);
     }
 }
@@ -2995,23 +3000,23 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        onConfirmEvent(*(event.asConfirmEvent()));
+        onConfirmEvent(event.getAs<mqbi::DispatcherConfirmEvent>());
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        onRejectEvent(*(event.asRejectEvent()));
+        onRejectEvent(event.getAs<mqbi::DispatcherRejectEvent>());
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.asPushEvent()));
+        onPushEvent(event.getAs<mqbi::DispatcherPushEvent>());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        onPutEvent(*(event.asPutEvent()));
+        onPutEvent(event.getAs<mqbi::DispatcherPutEvent>());
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.asAckEvent()));
+        onAckEvent(event.getAs<mqbi::DispatcherAckEvent>());
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+            &event.getAs<mqbi::DispatcherCallbackEvent>();
 
         BSLS_ASSERT_SAFE(realEvent->callback());
         flush();  // Flush any pending messages to guarantee ordering of events

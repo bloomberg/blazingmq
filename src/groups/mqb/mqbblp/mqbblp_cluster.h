@@ -442,25 +442,25 @@ class Cluster : public mqbi::Cluster,
     void processClusterSyncRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                    mqbnet::ClusterNode* requester);
 
-    void onPutEvent(const mqbi::DispatcherEvent& event);
+    void onPutEvent(const mqbi::DispatcherPutEvent& event);
 
     void onRelayPutEvent(const mqbi::DispatcherEvent& event);
 
-    void onAckEvent(const mqbi::DispatcherEvent& event);
+    void onAckEvent(const mqbi::DispatcherAckEvent& event);
 
-    void onRelayAckEvent(const mqbi::DispatcherEvent& event);
+    void onRelayAckEvent(const mqbi::DispatcherAckEvent& event);
 
-    void onConfirmEvent(const mqbi::DispatcherEvent& event);
+    void onConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
-    void onRelayConfirmEvent(const mqbi::DispatcherEvent& event);
+    void onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
-    void onRejectEvent(const mqbi::DispatcherEvent& event);
+    void onRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
-    void onRelayRejectEvent(const mqbi::DispatcherEvent& event);
+    void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
-    void onPushEvent(const mqbi::DispatcherEvent& event);
+    void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
-    void onRelayPushEvent(const mqbi::DispatcherEvent& event);
+    void onRelayPushEvent(const mqbi::DispatcherPushEvent& event);
 
     ValidationResult::Enum validateMessage(mqbi::QueueHandle**  queueHandle,
                                            const bmqp::QueueId& queueId,

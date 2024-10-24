@@ -763,14 +763,13 @@ void Queue::onPushMessage(
     mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
 
     (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_PUSH)
         .setSource(this)
-        .setBlob(appData)
-        .setOptions(options)
-        .setGuid(msgGUID)
-        .setMessagePropertiesInfo(messagePropertiesInfo)
-        .setCompressionAlgorithmType(compressionAlgorithmType)
-        .setOutOfOrderPush(isOutOfOrder);
+        .makePushEvent(appData,
+                       options,
+                       msgGUID,
+                       messagePropertiesInfo,
+                       compressionAlgorithmType,
+                       isOutOfOrder);
 
     dispatcher()->dispatchEvent(dispEvent, this);
 }
@@ -836,9 +835,7 @@ void Queue::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     mqbi::DispatcherEvent* dispEvent = dispatcher()->getEvent(this);
 
-    (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_ACK)
-        .setAckMessage(ackMessage);
+    (*dispEvent).makeAckEvent().setAckMessage(ackMessage);
 
     dispatcher()->dispatchEvent(dispEvent, this);
 }

@@ -504,22 +504,20 @@ void QueueHandle::deliverMessageImpl(
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
     mqbi::DispatcherEvent*  event  = client->dispatcher()->getEvent(client);
-    (*event)
-        .setType(mqbi::DispatcherEventType::e_PUSH)
-        .setSource(d_queue_sp.get())
-        .setGuid(msgGUID)
-        .setQueueId(id())
-        .setMessagePropertiesInfo(d_queue_sp->schemaLearner().demultiplex(
-            d_schemaLearnerPushContext,
-            attributes.messagePropertiesInfo()))
-        .setSubQueueInfos(subQueueInfos)
-        .setMsgGroupId(msgGroupId)
-        .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
-        .setOutOfOrderPush(isOutOfOrder);
-
-    if (message) {
-        event->setBlob(message);
-    }
+    mqbi::DispatcherPushEvent& pushEvent =
+        (*event)
+            .setSource(d_queue_sp.get())
+            .makePushEvent(
+                message, // might be null shared_ptr
+                msgGUID,
+                d_queue_sp->schemaLearner().demultiplex(
+                    d_schemaLearnerPushContext,
+                    attributes.messagePropertiesInfo()),
+                id(),
+                attributes.compressionAlgorithmType(),
+                isOutOfOrder,
+                subQueueInfos,
+                msgGroupId);
 
     client->dispatcher()->dispatchEvent(event, client);
 }
@@ -946,8 +944,8 @@ void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,
         d_queue_sp.get());
 
     (*event)
-        .setType(mqbi::DispatcherEventType::e_PUT)
         .setSource(d_clientContext_sp->client())
+        .makePutEvent()
         .setBlob(appData)
         .setOptions(options)
         .setPutHeader(putHeader)
@@ -1196,15 +1194,16 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
     mqbi::DispatcherEvent*  event  = client->dispatcher()->getEvent(client);
     (*event)
-        .setType(mqbi::DispatcherEventType::e_ACK)
         .setSource(d_queue_sp.get())
+        .makeAckEvent()
         .setAckMessage(ackMessage);
 
     // Override with correct downstream queueId
-    const mqbi::DispatcherAckEvent* ackEvent = event->asAckEvent();
+    mqbi::DispatcherAckEvent& ackEvent =
+        event->getAs<mqbi::DispatcherAckEvent>();
 
-    bmqp::AckMessage& ackMsg = const_cast<bmqp::AckMessage&>(
-        ackEvent->ackMessage());
+    // TODO simplify and move to DispatcherEvent build chain
+    bmqp::AckMessage& ackMsg = ackEvent.ackMessage();
     ackMsg.setQueueId(id());
 
     client->dispatcher()->dispatchEvent(event, client);

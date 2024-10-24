@@ -749,13 +749,14 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+            &event.getAs<mqbi::DispatcherCallbackEvent>();
         BSLS_ASSERT_SAFE(realEvent->callback());
         realEvent->callback()(
             d_state_p->queue()->dispatcherClientData().processorHandle());
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+        const mqbi::DispatcherPushEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPushEvent>();
         pushMessage(realEvent->guid(),
                     realEvent->blob(),
                     realEvent->options(),
@@ -764,14 +765,15 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->isOutOfOrderPush());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbi::DispatcherPutEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPutEvent>();
         postMessage(realEvent->putHeader(),
                     realEvent->blob(),
                     realEvent->options(),
                     realEvent->queueHandle());
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckMessageDispatched(*(event.asAckEvent()));
+        onAckMessageDispatched(event.getAs<mqbi::DispatcherAckEvent>());
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
         BSLS_ASSERT_OPT(false && "'CONFIRM' type dispatcher event unexpected");
@@ -1066,8 +1068,8 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
         mqbi::Dispatcher*      dispatcher = queue->dispatcher();
         mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
         (*dispEvent)
-            .setType(mqbi::DispatcherEventType::e_REJECT)
             .setSource(queue)
+            .makeRejectEvent()
             .setRejectMessage(rejectMessage)
             .setPartitionId(d_state_p->partitionId())
             .setIsRelay(true);  // Relay message
@@ -1103,8 +1105,8 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
     mqbi::Dispatcher*      dispatcher = queue->dispatcher();
     mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
     (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_CONFIRM)
         .setSource(queue)
+        .makeConfirmEvent()
         .setConfirmMessage(confirmMessage)
         .setPartitionId(d_state_p->partitionId())
         .setIsRelay(true);  // Relay message
@@ -1499,9 +1501,9 @@ void RemoteQueue::sendPutMessage(
     mqbi::Dispatcher*      dispatcher = d_state_p->queue()->dispatcher();
     mqbi::DispatcherEvent* dispEvent  = dispatcher->getEvent(cluster);
     (*dispEvent)
-        .setType(mqbi::DispatcherEventType::e_PUT)
-        .setIsRelay(true)  // Relay message
         .setSource(d_state_p->queue())
+        .makePutEvent()
+        .setIsRelay(true)  // Relay message
         .setPutHeader(ph)
         .setPartitionId(d_state_p->partitionId())  // Only replica uses
         .setBlob(appData)

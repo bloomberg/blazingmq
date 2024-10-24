@@ -229,7 +229,8 @@ TestBench::PutEvent::PutEvent(const mqbi::DispatcherPutEvent& event,
 void TestBench::eventProcessor(const mqbi::DispatcherEvent& event)
 {
     if (event.type() == mqbi::DispatcherEventType::e_PUT) {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbi::DispatcherPutEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPutEvent>();
 
         if (realEvent->isRelay()) {
             d_puts.push(PutEvent(*realEvent, event.source()));
@@ -251,7 +252,7 @@ void TestBench::ackPuts(bmqt::AckResult::Enum status)
                 bmqp::PutHeaderFlags::e_ACK_REQUESTED) ||
             status == bmqt::AckResult::e_NOT_READY) {
             mqbi::DispatcherEvent ackEvent(d_allocator_p);
-            ackEvent.setType(mqbi::DispatcherEventType::e_ACK)
+            ackEvent.makeAckEvent()
                 .setAckMessage(ackMessage)
                 .setBlob(d_puts.front().d_appData)
                 .setOptions(d_puts.front().d_options);

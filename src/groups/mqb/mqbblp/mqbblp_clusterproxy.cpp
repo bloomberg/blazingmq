@@ -750,10 +750,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
-        (*dispEvent)
-            .setType(mqbi::DispatcherEventType::e_PUSH)
-            .setSource(this)
-            .setBlob(blobSp);
+        (*dispEvent).setSource(this).makePushEvent(blobSp);
         dispatcher()->dispatchEvent(dispEvent, this);
     } break;
     case bmqp::EventType::e_ACK: {
@@ -761,10 +758,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
         bsl::shared_ptr<bdlbb::Blob> blobSp =
             d_clusterData.blobSpPool().getObject();
         *blobSp = *(event.blob());
-        (*dispEvent)
-            .setType(mqbi::DispatcherEventType::e_ACK)
-            .setSource(this)
-            .setBlob(blobSp);
+        (*dispEvent).setSource(this).makeAckEvent().setBlob(blobSp);
         dispatcher()->dispatchEvent(dispEvent, this);
     } break;
     case bmqp::EventType::e_UNDEFINED:
@@ -1352,7 +1346,8 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
+        const mqbi::DispatcherPutEvent* realEvent =
+            &event.getAs<mqbi::DispatcherPutEvent>();
         if (realEvent->isRelay()) {
             onRelayPutEvent(*realEvent, event.source());
         }
@@ -1362,7 +1357,8 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
+        const mqbi::DispatcherConfirmEvent* realEvent =
+            &event.getAs<mqbi::DispatcherConfirmEvent>();
         if (realEvent->isRelay()) {
             onRelayConfirmEvent(*realEvent);
         }
@@ -1372,7 +1368,8 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         }
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+        const mqbi::DispatcherRejectEvent* realEvent =
+            &event.getAs<mqbi::DispatcherRejectEvent>();
         if (realEvent->isRelay()) {
             onRelayRejectEvent(*realEvent);
         }
@@ -1383,15 +1380,15 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
+            &event.getAs<mqbi::DispatcherCallbackEvent>();
         BSLS_ASSERT_SAFE(realEvent->callback());
         realEvent->callback()(dispatcherClientData().processorHandle());
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
-        onPushEvent(*(event.asPushEvent()));
+        onPushEvent(event.getAs<mqbi::DispatcherPushEvent>());
     } break;
     case mqbi::DispatcherEventType::e_ACK: {
-        onAckEvent(*(event.asAckEvent()));
+        onAckEvent(event.getAs<mqbi::DispatcherAckEvent>());
     } break;
     case mqbi::DispatcherEventType::e_CONTROL_MSG: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()

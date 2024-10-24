@@ -243,7 +243,7 @@ mqbi::DispatcherClientData& DispatcherClient::dispatcherClientData()
 void DispatcherClient::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
     if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
-        event.asCallbackEvent()->callback()(0);
+        event.getAs<mqbi::DispatcherCallbackEvent>().callback()(0);
     }
 }
 
