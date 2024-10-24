@@ -30,8 +30,7 @@
 #include <bmqp_queueid.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -62,7 +61,7 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 {
     BSLS_ASSERT_SAFE(d_uri.isValid());
 
-    mwcu::MemOutStream ss(allocator);
+    bmqu::MemOutStream ss(allocator);
     ss << "|mock-queue|" << d_uri.asString();
     d_description.assign(ss.str());
 
@@ -388,7 +387,7 @@ int Queue::processCommand(mqbcmd::QueueResult*        result,
                           const mqbcmd::QueueCommand& command)
 {
     mqbcmd::Error      error = result->makeError();
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "MockQueue::processCommand " << command << " not implemented!";
     error.message() = os.str();
     return -1;

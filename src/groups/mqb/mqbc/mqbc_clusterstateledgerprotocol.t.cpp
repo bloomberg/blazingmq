@@ -16,15 +16,14 @@
 // mqbc_clusterstateledgerprotocol.t.cpp                              -*-C++-*-
 #include <mqbc_clusterstateledgerprotocol.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_limits.h>
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -63,7 +62,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     using namespace mqbc;
 
@@ -135,8 +134,8 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         typedef typename ENUM_TYPE::Enum T;
 
@@ -181,7 +180,7 @@ static void test2_enumPrint()
     //   ClusterStateRecordType::print
     //   operator<<(bsl::ostream&, ClusterStateRecordType::Enum)
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("ENUM LAYOUT");
+    bmqtst::TestHelper::printTestName("ENUM LAYOUT");
 
     PV("Test mqbc::ClusterStateRecordType printing");
     {
@@ -209,7 +208,7 @@ static void test2_enumPrint()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -221,5 +220,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

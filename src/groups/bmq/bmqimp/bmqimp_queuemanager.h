@@ -74,8 +74,7 @@
 #include <bmqt_correlationid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -175,7 +174,7 @@ class QueueManager {
     // PRIVATE TYPES
 
     /// ((queueId, subQueueId), correlationId) -> queueSp
-    typedef mwcc::TwoKeyHashMap<bmqp::QueueId, bmqt::CorrelationId, QueueSp>
+    typedef bmqc::TwoKeyHashMap<bmqp::QueueId, bmqt::CorrelationId, QueueSp>
         QueuesMap;
 
     /// canonicalUri -> queueInfo

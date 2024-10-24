@@ -25,7 +25,7 @@
 //
 //@DESCRIPTION: 'mqba::SessionNegotiator' implements the 'mqbnet::Negotiator'
 // interface to negotiate a connection with a BlazingMQ client or another
-// bmqbrkr.  From a 'mwcio::Channel', it will exchange negotiation identity
+// bmqbrkr.  From a 'bmqio::Channel', it will exchange negotiation identity
 // message, and create a session associated to the channel on success.
 //
 /// Thread Safety
@@ -42,9 +42,8 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -71,7 +70,7 @@ class Dispatcher;
 namespace mqbi {
 class DomainFactory;
 }
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -116,7 +115,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
         // negotiatorContext, passed in by
         // the caller
 
-        bsl::shared_ptr<mwcio::Channel> d_channelSp;
+        bsl::shared_ptr<bmqio::Channel> d_channelSp;
         // The channel to use for the
         // negotiation
 
@@ -163,7 +162,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // Domain factory to inject into new client
     // sessions
 
-    mwcst::StatContext* d_statContext_p;
+    bmqst::StatContext* d_statContext_p;
     // Top-level stat context for all
     // clients/queues stats
 
@@ -198,7 +197,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// `numNeeded` can be used to indicate if more bytes are needed in
     /// order to get a full message.  The specified `context` holds the
     /// negotiation context associated to this read.
-    void readCallback(const mwcio::Status&        status,
+    void readCallback(const bmqio::Status&        status,
                       int*                        numNeeded,
                       bdlbb::Blob*                blob,
                       const NegotiationContextSp& context);
@@ -276,7 +275,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// specified `allocator` for all memory allocations.
     SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                       mqbi::Dispatcher*         dispatcher,
-                      mwcst::StatContext*       statContext,
+                      bmqst::StatContext*       statContext,
                       BlobSpPool*               blobSpPool,
                       bdlmt::EventScheduler*    scheduler,
                       bslma::Allocator*         allocator);
@@ -309,7 +308,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
     void negotiate(mqbnet::NegotiatorContext*               context,
-                   const bsl::shared_ptr<mwcio::Channel>&   channel,
+                   const bsl::shared_ptr<bmqio::Channel>&   channel,
                    const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE;
 };

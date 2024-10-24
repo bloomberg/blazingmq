@@ -20,9 +20,8 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bsl_cstring.h>
@@ -86,10 +85,10 @@ RejectEventBuilder::appendMessage(int                      queueId,
     }
 
     // Resize the blob to have space for an 'RejectMessage' at the end ...
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(RejectMessage));
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(RejectMessage));
 
-    mwcu::BlobObjectProxy<RejectMessage> rejectMessage(&d_blob,
+    bmqu::BlobObjectProxy<RejectMessage> rejectMessage(&d_blob,
                                                        offset,
                                                        false,  // no read
                                                        true);  // write mode

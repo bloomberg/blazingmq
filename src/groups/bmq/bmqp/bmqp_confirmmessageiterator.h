@@ -59,10 +59,9 @@
 
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobiterator.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobiterator.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -81,14 +80,14 @@ namespace bmqp {
 class ConfirmMessageIterator {
   private:
     // DATA
-    mwcu::BlobIterator d_blobIter;
+    bmqu::BlobIterator d_blobIter;
     // Blob iterator pointing to the
     // current message in the blob.
 
-    mwcu::BlobObjectProxy<ConfirmHeader> d_header;
+    bmqu::BlobObjectProxy<ConfirmHeader> d_header;
     // Header
 
-    mwcu::BlobObjectProxy<ConfirmMessage> d_message;
+    bmqu::BlobObjectProxy<ConfirmMessage> d_message;
     // Current message
 
     int d_advanceLength;
@@ -175,7 +174,7 @@ class ConfirmMessageIterator {
 
 // CREATORS
 inline ConfirmMessageIterator::ConfirmMessageIterator()
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)
 , d_advanceLength(0)
 {
     // NOTHING
@@ -184,7 +183,7 @@ inline ConfirmMessageIterator::ConfirmMessageIterator()
 inline ConfirmMessageIterator::ConfirmMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
-: d_blobIter(0, mwcu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 {
     reset(blob, eventHeader);
 }
@@ -192,7 +191,7 @@ inline ConfirmMessageIterator::ConfirmMessageIterator(
 inline ConfirmMessageIterator::ConfirmMessageIterator(
     const ConfirmMessageIterator& src)
 : d_blobIter(0,
-             mwcu::BlobPosition(),
+             bmqu::BlobPosition(),
              0,
              true)  // no def ctor - set in copyFrom
 {
@@ -209,7 +208,7 @@ ConfirmMessageIterator::operator=(const ConfirmMessageIterator& rhs)
 
 inline void ConfirmMessageIterator::clear()
 {
-    d_blobIter.reset(0, mwcu::BlobPosition(), 0, true);
+    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
     d_header.reset();
     d_message.reset();
     d_advanceLength = 0;

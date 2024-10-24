@@ -40,15 +40,14 @@
 #include <bmqp_putmessageiterator.h>
 #include <bmqp_puttester.h>
 #include <bmqt_queueflags.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_testchannel.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqio_channel.h>
+#include <bmqio_testchannel.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -64,7 +63,7 @@
 #include <bsls_annotation.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -446,8 +445,8 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
 
   private:
     // PRIVATE DATA
-    mwcst::StatContext d_statContext;
-    // The 'mwcst::StatContext' for this 'QueueHandle'.
+    bmqst::StatContext d_statContext;
+    // The 'bmqst::StatContext' for this 'QueueHandle'.
 
     bsl::vector<Post> d_postedMessages;
 
@@ -472,7 +471,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
                            domainStats,
                            handleParameters,
                            allocator)
-    , d_statContext(mwcst::StatContextConfiguration("Test Stat Context")
+    , d_statContext(bmqst::StatContextConfiguration("Test Stat Context")
                         .value("In", 11)
                         .value("Out", 11),
                     allocator)
@@ -643,18 +642,18 @@ class TestBench {
   private:
     // PRIVATE TYPES
     typedef mqbmock::Dispatcher::EventGuard     EventGuard;
-    typedef const mwcio::TestChannel::WriteCall ConstWriteCall;
+    typedef const bmqio::TestChannel::WriteCall ConstWriteCall;
 
   public:
     // DATA
     bdlbb::PooledBlobBufferFactory        d_bufferFactory;
     BlobSpPool                            d_blobSpPool;
-    bsl::shared_ptr<mwcio::TestChannel>   d_channel;
+    bsl::shared_ptr<bmqio::TestChannel>   d_channel;
     mqbmock::Cluster                      d_cluster;
     mqbmock::Dispatcher                   d_mockDispatcher;
     MyMockDomain                          d_domain;
     mqbmock::DomainFactory                d_mockDomainFactory;
-    bslma::ManagedPtr<mwcst::StatContext> d_clientStatContext_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_clientStatContext_mp;
     bdlmt::EventScheduler                 d_scheduler;
     TestClock                             d_testClock;
     mqba::ClientSession                   d_cs;
@@ -676,7 +675,7 @@ class TestBench {
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
-    , d_channel(new mwcio::TestChannel(allocator))
+    , d_channel(new bmqio::TestChannel(allocator))
     , d_cluster(&d_bufferFactory, allocator)
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
@@ -735,8 +734,8 @@ class TestBench {
         d_mockDispatcher._setInDispatcherThread(true);
 
         // Setup test time source
-        mwcsys::Time::shutdown();
-        mwcsys::Time::initialize(
+        bmqsys::Time::shutdown();
+        bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
             bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
@@ -1047,7 +1046,7 @@ class TestBench {
         bdlbb::Blob payloadBlob(&d_bufferFactory, d_allocator_p);
         pushIt.loadApplicationData(&payloadBlob);
 
-        mwcu::BlobObjectProxy<bmqp::MessagePropertiesHeader> mpsh(
+        bmqu::BlobObjectProxy<bmqp::MessagePropertiesHeader> mpsh(
             &payloadBlob,
             true,    // read
             false);  // write
@@ -1433,7 +1432,7 @@ static void test1_ackConfigurations()
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS ACK CONFIGURATIONS FOR CLIENT SESSION");
 
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
@@ -1477,7 +1476,7 @@ static void test2_invalidPutConfigurations()
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS INVALID PUT CONFIGURATIONS FOR CLIENT SESSION");
 
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
@@ -1519,7 +1518,7 @@ static void test3_guidCollisionConfigurations()
 //   That acks are propagated or not as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS GUID COLLISION CONFIGURATIONS FOR CLIENT SESSION");
 
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
@@ -1556,7 +1555,7 @@ static void test4_ackRequestedNullCorrelationId()
 //   That ack is not propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS ACK REQUESTED NULL CORRELATION ID");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
@@ -1620,7 +1619,7 @@ static void test5_ackNotRequestedNotNullCorrelationId()
 //   That ack is propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS ACK NOT REQUESTED NOT NULL CORRELATION ID");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
@@ -1684,7 +1683,7 @@ static void test6_firstHopUnsetGUID()
 //   That nack is propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TESTS FIRST HOP UNSET GUID");
+    bmqtst::TestHelper::printTestName("TESTS FIRST HOP UNSET GUID");
 
 #define SCENARIO_RUN(var, from, to) for (int var = from; var <= to; ++var) {
 #define END_SCENARIO }
@@ -1714,7 +1713,7 @@ static void test7_oldStylePut()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TESTS CONVERSION FROM OLD STYLE PUT");
+    bmqtst::TestHelper::printTestName("TESTS CONVERSION FROM OLD STYLE PUT");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
     const int         queueId        = 4;  // A queue number
@@ -1760,7 +1759,7 @@ static void test7_oldStylePut()
     int msgPropsAreaSize;
     bmqp::ProtocolUtil::readPropertiesSize(&msgPropsAreaSize,
                                            *payloadBlob,
-                                           mwcu::BlobPosition());
+                                           bmqu::BlobPosition());
 
     ASSERT(tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
@@ -1787,7 +1786,7 @@ static void test8_oldStyleCompressedPut()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
@@ -1839,7 +1838,7 @@ static void test8_oldStyleCompressedPut()
     int msgPropsAreaSize;
     bmqp::ProtocolUtil::readPropertiesSize(&msgPropsAreaSize,
                                            *payloadBlob,
-                                           mwcu::BlobPosition());
+                                           bmqu::BlobPosition());
 
     ASSERT(tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
@@ -1867,7 +1866,7 @@ static void test9_newStylePush()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
@@ -1947,7 +1946,7 @@ static void test9_newStylePush()
     int msgPropsAreaSize;
     bmqp::ProtocolUtil::readPropertiesSize(&msgPropsAreaSize,
                                            *payloadBlob,
-                                           mwcu::BlobPosition());
+                                           bmqu::BlobPosition());
 
     ASSERT(tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize, 99));
 
@@ -1974,7 +1973,7 @@ static void test10_newStyleCompressedPush()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
@@ -2081,7 +2080,7 @@ static void test11_initiateShutdown()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TESTS SHUTTING DOWN");
+    bmqtst::TestHelper::printTestName("TESTS SHUTTING DOWN");
 
     const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
 
@@ -2361,7 +2360,7 @@ static void testN1_ackConfiguration()
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS ACK CONFIGURATION FOR CLIENT SESSION");
 
     cout << "Please enter the configuration to test followed by\n"
@@ -2446,7 +2445,7 @@ static void testN2_invalidPutConfiguration()
 //   That acks are propagated as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS INVALID PUT CONFIGURATION FOR CLIENT SESSION");
 
     cout << "Please enter the configuration to test followed by\n"
@@ -2522,7 +2521,7 @@ static void testN3_guidCollisionConfiguration()
 //   That acks are propagated or not as expected.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "TESTS GUID COLLISION CONFIGURATION FOR CLIENT SESSION");
 
     cout << "Please enter the configuration to test followed by\n"
@@ -2577,14 +2576,14 @@ static void testN3_guidCollisionConfiguration()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
     bmqp::Crc32c::initialize();
 
     {
         bmqp::ProtocolUtil::initialize(s_allocator_p);
-        mwcsys::Time::initialize(s_allocator_p);
+        bmqsys::Time::initialize(s_allocator_p);
 
         mqbcfg::AppConfig brokerConfig(s_allocator_p);
         brokerConfig.brokerVersion() = 999999;  // required for test case 8
@@ -2592,7 +2591,7 @@ int main(int argc, char* argv[])
                                                 // from v1 to v2
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
         mqbu::MessageGUIDUtil::initialize();
@@ -2619,12 +2618,12 @@ int main(int argc, char* argv[])
         } break;
         }
 
-        mwcsys::Time::shutdown();
+        bmqsys::Time::shutdown();
         bmqp::ProtocolUtil::shutdown();
     }
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.
 }

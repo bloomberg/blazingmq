@@ -27,9 +27,8 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_channel.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -146,13 +145,13 @@ void Cluster::_initializeNetcluster()
     for (NodesListIter iter = nodes.begin(); iter != nodes.end(); ++iter) {
         d_channels.emplace(
             *iter,
-            bsl::allocate_shared<mwcio::TestChannel>(d_allocator_p),
+            bsl::allocate_shared<bmqio::TestChannel>(d_allocator_p),
             d_allocator_p);
 
-        bsl::weak_ptr<mwcio::Channel> channelWp(d_channels.at(*iter));
+        bsl::weak_ptr<bmqio::Channel> channelWp(d_channels.at(*iter));
         (*iter)->setChannel(channelWp,
                             bmqp_ctrlmsg::ClientIdentity(),
-                            mwcio::Channel::ReadCallback());
+                            bmqio::Channel::ReadCallback());
     }
 
     const int selfNodeId = d_isLeader ? k_LEADER_NODE_ID
@@ -184,7 +183,7 @@ void Cluster::_initializeNodeSessions()
         nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE);
 
         // Create stat context for each cluster node
-        mwcst::StatContextConfiguration config((*nodeIter)->hostName());
+        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
         nodeSessionSp->statContext() =
             d_clusterData_mp->clusterNodesStatContext()->addSubcontext(config);
 
@@ -481,7 +480,7 @@ void Cluster::onDomainReconfigured(
 int Cluster::processCommand(mqbcmd::ClusterResult*        result,
                             const mqbcmd::ClusterCommand& command)
 {
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "MockCluster::processCommand '" << command << "' not implemented!";
     result->makeError().message() = os.str();
     return -1;

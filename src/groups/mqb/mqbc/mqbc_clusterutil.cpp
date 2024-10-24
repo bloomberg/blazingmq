@@ -37,12 +37,11 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -171,11 +170,11 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
             if (domCiter == clusterState->domainStates().end()) {
                 // First time hearing about this domain and queue - should not
                 // occur for an update advisory
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for a domain and queue "
                     << "that were not found: " << queueUpdate << "]"
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
 
@@ -184,32 +183,32 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
             if (cit == domCiter->second->queuesInfo().end()) {
                 // First time hearing about this queue - should not occur for
                 // an update advisory
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for a queue that was "
                     << "not found: " << queueUpdate << "]"
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
 
             if (cit->second->partitionId() != partitionId) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for known queue [uri: "
                     << uri << "] with a mismatched partitionId "
                     << "[expected: " << cit->second->partitionId()
                     << ", received: " << partitionId << "]: " << queueUpdate
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
 
             if (cit->second->key() != queueKey) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for known queue [uri: "
                     << uri << "] with a mismatched queueKey "
                     << "[expected: " << queueKey << ", received: " << queueKey
-                    << "]: " << queueUpdate << MWCTSK_ALARMLOG_END;
+                    << "]: " << queueUpdate << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
         }
@@ -303,12 +302,12 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
         // primary nodes for a given partition.  However, this mode is not
         // supported right now.
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << clusterData.identity().description()
             << ": Unknown cluster masterAssignmentAlgorithm '"
             << assignmentAlgo
             << "', defaulting to 'leaderIsMasterAll' algorithm."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
 
         mqbnet::ClusterNode* selfNode = clusterData.membership().selfNode();
         numNewPartitions->insert(bsl::make_pair(
@@ -384,7 +383,7 @@ void ClusterUtil::extractMessage(bmqp_ctrlmsg::ControlMessage* message,
                                  bslma::Allocator*             allocator)
 {
     // Extract event header
-    mwcu::BlobObjectProxy<bmqp::EventHeader> eventHeader(
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eventHeader(
         &eventBlob,
         -bmqp::EventHeader::k_MIN_HEADER_SIZE,
         true,    // read
@@ -400,7 +399,7 @@ void ClusterUtil::extractMessage(bmqp_ctrlmsg::ControlMessage* message,
     BSLS_ASSERT_OPT(eventHeader->type() == bmqp::EventType::e_CONTROL);
 
     // Decode message
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
     int                rc = bmqp::ProtocolUtil::decodeMessage(errorDescription,
                                                message,
                                                eventBlob,
@@ -934,21 +933,21 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
     struct local {
         static void panic(mqbi::Domain* domain)
         {
-            MWCTSK_ALARMLOG_PANIC("DOMAIN_QUEUE_LIMIT_FULL")
+            BMQTSK_ALARMLOG_PANIC("DOMAIN_QUEUE_LIMIT_FULL")
                 << "domain '" << domain->name()
                 << "' has reached the maximum number of queues (limit: "
-                << domain->config().maxQueues() << ")." << MWCTSK_ALARMLOG_END;
+                << domain->config().maxQueues() << ")." << BMQTSK_ALARMLOG_END;
         }
 
         static void alarm(mqbi::Domain* domain, int queues)
         {
-            MWCTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
+            BMQTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
                 << "domain '" << domain->name() << "' has reached the "
                 << (k_MAX_QUEUES_HIGH_WATERMARK * 100)
                 << "% watermark limit for the number of queues "
                    "(current: "
                 << queues << ", limit: " << domain->config().maxQueues()
-                << ")." << MWCTSK_ALARMLOG_END;
+                << ")." << BMQTSK_ALARMLOG_END;
         }
     };
 
@@ -1102,12 +1101,12 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 return;  // RETURN
             }
 
-            mwcu::Printer<AppIdInfos> stateAppIdInfos(&qs->appIdInfos());
-            mwcu::Printer<AppIdInfos> storageAppIdInfos(&appIdInfos);
+            bmqu::Printer<AppIdInfos> stateAppIdInfos(&qs->appIdInfos());
+            bmqu::Printer<AppIdInfos> storageAppIdInfos(&appIdInfos);
 
             // PartitionId and/or QueueKey and/or AppIdInfos mismatch.
             if (!forceUpdate) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                     << cluster->description() << ": For queue [ " << uri
                     << "], different partitionId/queueKey/appIdInfos in "
                     << "cluster state and storage.  "
@@ -1116,7 +1115,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                     << stateAppIdInfos
                     << "].  PartitionId/QueueKey/AppIdInfos in storage ["
                     << partitionId << "], [" << queueKey << "], ["
-                    << storageAppIdInfos << "]." << MWCTSK_ALARMLOG_END;
+                    << storageAppIdInfos << "]." << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
 
@@ -1140,13 +1139,13 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 ClusterState::QueueKeysInsertRc insertRc =
                     clusterState->queueKeys().insert(queueKey);
                 if (false == insertRc.second) {
-                    MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                         << cluster->description()
                         << ": re-registering a known queue with a stale view, "
                         << "but queueKey is not unique. " << "QueueKey ["
                         << queueKey << "], URI [" << uri << "], Partition ["
                         << partitionId << "], AppIdInfos ["
-                        << storageAppIdInfos << "]." << MWCTSK_ALARMLOG_END;
+                        << storageAppIdInfos << "]." << BMQTSK_ALARMLOG_END;
                     return;  // RETURN
                 }
 
@@ -1164,7 +1163,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
     // Queue is not known, so add it.
     clusterState->assignQueue(uri, queueKey, partitionId, appIdInfos);
 
-    mwcu::Printer<AppIdInfos> printer(&appIdInfos);
+    bmqu::Printer<AppIdInfos> printer(&appIdInfos);
     BALL_LOG_INFO << cluster->description() << ": Queue assigned: "
                   << "[uri: " << uri << ", queueKey: " << queueKey
                   << ", partitionId: " << partitionId
@@ -1175,12 +1174,12 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
             clusterState->queueKeys().insert(queueKey);
         if (false == insertRc.second) {
             // Duplicate queue key.
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << cluster->description()
                 << ": registering a queue for an unknown queue, but "
                 << "queueKey is not unique. QueueKey [" << queueKey
                 << "], URI [" << uri << "], Partition [" << partitionId << "]."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -1637,7 +1636,7 @@ void ClusterUtil::appendClusterNode(bsl::vector<mqbcfg::ClusterNode>* out,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
 
-    mwcu::MemOutStream endpoint(allocator);
+    bmqu::MemOutStream endpoint(allocator);
     endpoint << "tcp://localhost:" << port;
 
     out->emplace_back();
@@ -1687,10 +1686,10 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << clusterData.identity().description()
             << ": Unexpected clusterMessage: " << clusterMessage
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     }
 }
@@ -1708,7 +1707,7 @@ int ClusterUtil::validateState(bsl::ostream&             errorDescription,
     bool seenMissingQueue           = false;
     bool seenExtraQueue             = false;
 
-    mwcu::MemOutStream out;
+    bmqu::MemOutStream out;
     const int          level = 0;
 
     // Check incorrect partition information
@@ -1967,7 +1966,7 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
         return;  // RETURN
     }
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
     rc = validateState(errorDescription, tempState, clusterState);
     if (rc != 0) {
         BALL_LOG_WARN_BLOCK
@@ -2153,10 +2152,10 @@ int ClusterUtil::load(ClusterState*               state,
         } break;  // BREAK
         case MsgChoice::SELECTION_ID_UNDEFINED:
         default: {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << clusterData.identity().description()
                 << ": Unexpected clusterMessage: " << clusterMessage
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
         } break;  // BREAK
         }
     } while ((rc = latestIter->next()) == 0);

@@ -42,8 +42,7 @@
 
 #include <mqbi_dispatcher.h>
 
-// MWC
-#include <mwcex_executor.h>
+#include <bmqex_executor.h>
 
 // BDE
 #include <bsl_unordered_map.h>
@@ -224,11 +223,11 @@ class Dispatcher : public mqbi::Dispatcher {
         BSLS_KEYWORD_OVERRIDE;
 
     /// Not implemented.
-    mwcex::Executor
+    bmqex::Executor
     executor(const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 
     /// Not implemented.
-    mwcex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
+    bmqex::Executor clientExecutor(const mqbi::DispatcherClient* client) const
         BSLS_KEYWORD_OVERRIDE;
 
     class InnerEventGuard;

@@ -35,7 +35,7 @@
 #include <bsls_alignedbuffer.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -393,7 +393,7 @@ static void test1_breathingTest()
 //    Basic functionality.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         PV("Default object");
@@ -436,7 +436,7 @@ static void test2_forwardIteration()
 //   Forward iteration with non-zero journal records.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ITERATION");
+    bmqtst::TestHelper::printTestName("FORWARD ITERATION");
 
     unsigned int numRecords = 5000;
 
@@ -500,7 +500,7 @@ static void test3_forwardIterationWithZeroJournalRecords()
 //   Forward iteration with zero journal records.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ITERATION WITH ZERO JOURNAL"
+    bmqtst::TestHelper::printTestName("FORWARD ITERATION WITH ZERO JOURNAL"
                                       " RECORDS");
 
     bsls::Types::Uint64 totalSize = sizeof(FileHeader) +
@@ -605,7 +605,7 @@ static void test4_backwardIteration()
 //   Backward iteration with non-zero journal record
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ITERATION");
+    bmqtst::TestHelper::printTestName("BACKWARD ITERATION");
 
     const unsigned int k_NUM_RECORDS = 5000;
 
@@ -669,7 +669,7 @@ static void test5_backwardIterationWithZeroJournalEntries()
 //   Backward iteration with zero journal records.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ITERATION WITH ZERO JOURNAL"
+    bmqtst::TestHelper::printTestName("BACKWARD ITERATION WITH ZERO JOURNAL"
                                       " RECORDS");
 
     bsls::Types::Uint64 totalSize = sizeof(FileHeader) +
@@ -775,7 +775,7 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
 //   the journal.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ITERATION OF SPARSE JOURNAL"
+    bmqtst::TestHelper::printTestName("FORWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH NO RECORDS");
 
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
@@ -896,7 +896,7 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
 //   the journal.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ITERATION OF SPARSE JOURNAL"
+    bmqtst::TestHelper::printTestName("BACKWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH NO RECORDS");
 
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
@@ -1013,7 +1013,7 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
 //   to the journal.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ITERATION OF SPARSE JOURNAL"
+    bmqtst::TestHelper::printTestName("FORWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH RECORDS");
 
     const unsigned int k_NUM_RECORDS = 5432;
@@ -1088,7 +1088,7 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
 //   to the journal.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ITERATION OF SPARSE JOURNAL"
+    bmqtst::TestHelper::printTestName("BACKWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH RECORDS");
 
     const unsigned int k_NUM_RECORDS = 5432;
@@ -1159,7 +1159,7 @@ static void test10_bidirectionalIteration()
 //   Bi-directional iteration.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BIDIRECTIONAL ITERATION");
+    bmqtst::TestHelper::printTestName("BIDIRECTIONAL ITERATION");
 
     unsigned int k_NUM_RECORDS = 5000;
 
@@ -1269,7 +1269,7 @@ static void test11_forwardAdvance()
 //   Advance.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FORWARD ADVANCE");
+    bmqtst::TestHelper::printTestName("FORWARD ADVANCE");
 
     unsigned int k_NUM_RECORDS = 5001;
 
@@ -1339,7 +1339,7 @@ static void test12_backwardAdvance()
 //   Advance.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARD ADVANCE");
+    bmqtst::TestHelper::printTestName("BACKWARD ADVANCE");
 
     unsigned int k_NUM_RECORDS = 5001;
 
@@ -1407,7 +1407,7 @@ static void test12_backwardAdvance()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     mqbu::MessageGUIDUtil::initialize();
 
@@ -1431,7 +1431,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
     // NOTE: for some reason the default allcoator verification never
     // succeeds.
 }

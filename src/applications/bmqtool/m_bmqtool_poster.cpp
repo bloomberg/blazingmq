@@ -42,7 +42,7 @@ PostingContext::PostingContext(
     Parameters*                     parameters,
     const bmqa::QueueId&            queueId,
     FileLogger*                     fileLogger,
-    mwcst::StatContext*             statContext,
+    bmqst::StatContext*             statContext,
     bdlbb::PooledBlobBufferFactory* bufferFactory,
     bdlbb::PooledBlobBufferFactory* timeBufferFactory,
     bslma::Allocator*               allocator)
@@ -225,7 +225,7 @@ void PostingContext::postNext()
 }
 
 Poster::Poster(FileLogger*         fileLogger,
-               mwcst::StatContext* statContext,
+               bmqst::StatContext* statContext,
                bslma::Allocator*   allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 , d_bufferFactory(4096, d_allocator_p)

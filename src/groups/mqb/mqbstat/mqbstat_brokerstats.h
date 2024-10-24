@@ -43,7 +43,7 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
-namespace mwcst {
+namespace bmqst {
 class StatContext;
 }
 
@@ -82,7 +82,7 @@ class BrokerStats {
     static BrokerStats s_instance;
 
     // DATA
-    mwcst::StatContext* d_statContext_p;  // StatContext
+    bmqst::StatContext* d_statContext_p;  // StatContext
 
   private:
     // NOT IMPLEMENTED
@@ -109,7 +109,7 @@ class BrokerStats {
     /// ago.
     ///
     /// THREAD: This method can only be invoked from the `snapshot` thread.
-    static bsls::Types::Int64 getValue(const mwcst::StatContext& context,
+    static bsls::Types::Int64 getValue(const bmqst::StatContext& context,
                                        int                       snapshotId,
                                        const Stat::Enum&         stat);
 
@@ -119,7 +119,7 @@ class BrokerStats {
     /// this class, as returned by the `instance()` class method.  Register
     /// a subcontext of the specified `brokerStatContext`.  This method
     /// ought to be called exactly once.
-    void initialize(mwcst::StatContext* brokerStatContext);
+    void initialize(bmqst::StatContext* brokerStatContext);
 
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value` (depending on the `type`, `value` can represent
@@ -127,7 +127,7 @@ class BrokerStats {
     void onEvent(EventType::Enum type);
 
     /// Return a pointer to the statcontext.
-    mwcst::StatContext* statContext();
+    bmqst::StatContext* statContext();
 };
 
 // ======================
@@ -142,7 +142,7 @@ struct BrokerStatsUtil {
     /// specified `historySize` of history.  Return the created top level
     /// stat context to use for all broker level statistics.  Use the
     /// specified `allocator` for all stat context and stat values.
-    static bsl::shared_ptr<mwcst::StatContext>
+    static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
 };
 
@@ -154,7 +154,7 @@ struct BrokerStatsUtil {
 // class BrokerStats
 // -----------------
 
-inline mwcst::StatContext* BrokerStats::statContext()
+inline bmqst::StatContext* BrokerStats::statContext()
 {
     return d_statContext_p;
 }

@@ -41,8 +41,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -96,7 +95,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     typedef bsl::pair<mqbu::StorageKey, unsigned int> AppKeyCount;
 
     /// (appId, appKeyCount) -> AppStateSp
-    typedef mwcc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
+    typedef bmqc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
 
   private:
     // DATA
@@ -117,7 +116,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // resulting in multiple instances of
     // nullKeys.  We need to differentiate
     // them to use them as keys in
-    // mwcc::TwoKeyHashMap.
+    // bmqc::TwoKeyHashMap.
 
     bool d_hasAutoSubscriptions;
     // Does this queue engine have any auto subscriptions configured

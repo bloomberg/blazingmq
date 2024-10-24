@@ -1,5 +1,0 @@
- mwcst.txt
-
-@PURPOSE: Generic purpose statistics framework.
-
-@MNEMONIC: mwcst

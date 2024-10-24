@@ -38,7 +38,7 @@ function(bmq_add_plugin name)
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     # Configure link-time options.
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    _bmq_add_include_paths(${name} DEPS mqb bmq mwc)
+    _bmq_add_include_paths(${name} DEPS mqb bmq)
     target_link_libraries(${name} PRIVATE ${${name}_DEPENDS})
 
     # include( BMQTest )

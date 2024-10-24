@@ -31,12 +31,11 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -75,7 +74,7 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 
 typedef bsl::function<void()> CompletionCallback;
 
-/// Utility function used in `mwcu::OperationChain` as the operation
+/// Utility function used in `bmqu::OperationChain` as the operation
 /// callback which just calls the completion callback.
 void allSubstreamsDeconfigured(const CompletionCallback& callback)
 {
@@ -378,7 +377,7 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
     //       overflow and the update actually increments by a very large
     //       value
 
-    const bsls::Types::Int64 timeDelta = mwcsys::Time::highResolutionTimer() -
+    const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
                                          it->second.d_timeStamp;
     BSLS_ASSERT_SAFE(timeDelta >= 0);
 
@@ -826,7 +825,7 @@ void QueueHandle::deliverMessage(
 
     const int                          msgSize = message->length();
     bmqp::Protocol::SubQueueInfosArray targetSubscriptions;
-    bsls::Types::Int64 now = mwcsys::Time::highResolutionTimer();
+    bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     for (size_t i = 0; i < subscriptions.size(); ++i) {
         unsigned int          subscriptionId = subscriptions[i].id();
         const SubscriptionSp& subscription   = d_subscriptions[subscriptionId];
@@ -900,16 +899,16 @@ void QueueHandle::deliverMessage(
                 << " of client '"
                 << d_clientContext_sp->client()->description()
                 << "' has too many outstanding data ["
-                << mwcu::PrintUtil::prettyNumber(
+                << bmqu::PrintUtil::prettyNumber(
                        subscription->d_unconfirmedMonitor.messages())
                 << " msgs (max: "
-                << mwcu::PrintUtil::prettyNumber(
+                << bmqu::PrintUtil::prettyNumber(
                        subscription->d_unconfirmedMonitor.messageCapacity())
                 << "), "
-                << mwcu::PrintUtil::prettyBytes(
+                << bmqu::PrintUtil::prettyBytes(
                        subscription->d_unconfirmedMonitor.bytes())
                 << " (max: "
-                << mwcu::PrintUtil::prettyBytes(
+                << bmqu::PrintUtil::prettyBytes(
                        subscription->d_unconfirmedMonitor.byteCapacity())
                 << ")], I'm taking a break!";
         }
@@ -1018,7 +1017,7 @@ void QueueHandle::deconfigureDispatched(
     BSLS_ASSERT_SAFE(d_clientContext_sp);
 
     // Fill the first link with deconfigure operations
-    mwcu::OperationChainLink link(d_deconfigureChain.allocator());
+    bmqu::OperationChainLink link(d_deconfigureChain.allocator());
 
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         d_subStreamInfos.begin();
@@ -1285,7 +1284,7 @@ void QueueHandle::loadInternals(mqbcmd::QueueHandle* out) const
     BSLS_ASSERT_SAFE(
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << d_handleParameters;
     out->parametersJson()        = os.str();
     out->isClientClusterMember() = d_isClientClusterMember;

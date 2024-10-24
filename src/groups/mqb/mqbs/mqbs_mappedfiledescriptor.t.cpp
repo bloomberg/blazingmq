@@ -25,7 +25,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -43,7 +43,7 @@ static void test1_breathingTest()
 //   Verifies the default constructor of 'mqbs::MappedFileDescriptor'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Breathing Test");
+    bmqtst::TestHelper::printTestName("Breathing Test");
 
     // Default constructor
     mqbs::MappedFileDescriptor obj;
@@ -65,7 +65,7 @@ static void test2_operations()
 //   in a 'mqbs::MappedFileDescriptor'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Operations Test");
+    bmqtst::TestHelper::printTestName("Operations Test");
 
     const bsl::size_t         bufferLength         = 64;
     char                      buffer[bufferLength] = {0};
@@ -100,7 +100,7 @@ static void test3_reset()
 //   Verifies the manupulator 'clear()' of a 'mqbs::MappedFileDescriptor'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("Reset Test");
+    bmqtst::TestHelper::printTestName("Reset Test");
 
     const bsl::size_t         bufferLength         = 32;
     char                      buffer[bufferLength] = {0};
@@ -137,7 +137,7 @@ static void test3_reset()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -150,5 +150,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

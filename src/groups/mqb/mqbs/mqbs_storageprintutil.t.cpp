@@ -24,8 +24,7 @@
 #include <mqbu_messageguidutil.h>
 #include <mqbu_storagekey.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
@@ -38,7 +37,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -79,7 +78,7 @@ void verifyMessageConstruction(const mqbcmd::Message&   output,
                                const mqbi::Storage*     storage)
 {
     mqbcmd::Message    expected;
-    mwcu::MemOutStream guidStr;
+    bmqu::MemOutStream guidStr;
     int                msgSize = -1;
 
     guidStr << guid;
@@ -148,7 +147,7 @@ struct Tester {
                               s_allocator_p),
                           s_allocator_p);
 
-        mwcu::MemOutStream errorDescription(s_allocator_p);
+        bmqu::MemOutStream errorDescription(s_allocator_p);
         d_storage_mp->addVirtualStorage(errorDescription,
                                         k_APP_ID1,
                                         k_APP_KEY1);
@@ -222,7 +221,7 @@ static void test1_listMessage()
 //   listMessage(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LIST MESSAGE");
+    bmqtst::TestHelper::printTestName("LIST MESSAGE");
 
     Tester tester;
     tester.populateMessages();
@@ -263,7 +262,7 @@ static void test2_listMessages()
 //   listMessages(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LIST MESSAGES");
+    bmqtst::TestHelper::printTestName("LIST MESSAGES");
 
     Tester tester;
     tester.populateMessages();
@@ -303,7 +302,7 @@ static void test2_listMessages()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -319,5 +318,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

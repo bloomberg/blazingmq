@@ -30,8 +30,7 @@
 #include <bmqp_protocol.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -213,11 +212,11 @@ struct OptionUtil {
     /// `optionsWords` size - both in words and both found in message's
     /// header.  The options segment starts at the specified `startPosition`
     static bool loadOptionsPosition(int*                      optionsSize,
-                                    mwcu::BlobPosition*       optionsPosition,
+                                    bmqu::BlobPosition*       optionsPosition,
                                     const bdlbb::Blob&        blob,
                                     const int                 headerWords,
                                     const int                 optionsWords,
-                                    const mwcu::BlobPosition& startPosition);
+                                    const bmqu::BlobPosition& startPosition);
 
   public:
     /// Returns `bmqt::EventBuilderResult::e_SUCCESS` if the specified
@@ -233,9 +232,9 @@ struct OptionUtil {
     /// `headerPosition` is the position within the `blob`.
     template <class HEADER>
     static bool loadOptionsPosition(int*                     optionsSize,
-                                    mwcu::BlobPosition*      optionsPosition,
+                                    bmqu::BlobPosition*      optionsPosition,
                                     const bdlbb::Blob&       blob,
-                                    const mwcu::BlobPosition headerPosition,
+                                    const bmqu::BlobPosition headerPosition,
                                     const HEADER&            header);
 };
 
@@ -330,9 +329,9 @@ inline int OptionUtil::OptionsBox::optionsCount() const
 template <class HEADER>
 inline bool
 OptionUtil::loadOptionsPosition(int*                     optionsSize,
-                                mwcu::BlobPosition*      optionsPosition,
+                                bmqu::BlobPosition*      optionsPosition,
                                 const bdlbb::Blob&       blob,
-                                const mwcu::BlobPosition headerPosition,
+                                const bmqu::BlobPosition headerPosition,
                                 const HEADER&            header)
 {
     return loadOptionsPosition(optionsSize,

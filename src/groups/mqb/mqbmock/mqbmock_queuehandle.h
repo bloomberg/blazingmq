@@ -52,9 +52,8 @@
 #include <bmqp_queueid.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_orderedhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -92,7 +91,7 @@ class QueueHandle : public mqbi::QueueHandle {
     /// guid -> message.
     /// Must be a container in which iteration order is same as insertion
     /// order.
-    typedef mwcc::OrderedHashMap<
+    typedef bmqc::OrderedHashMap<
         bmqt::MessageGUID,
         bsl::pair<bsl::shared_ptr<bdlbb::Blob>, unsigned>,
         bslh::Hash<bmqt::MessageGUIDHashAlgo> >

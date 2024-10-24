@@ -34,7 +34,7 @@
 #include <bslma_default.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -73,7 +73,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -109,9 +109,9 @@ static void test1_breathingTest()
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
         bdlbb::Blob        expectedBlob(&bufferFactory, s_allocator_p);
         int                expectedBlobLength = 0;
-        mwcu::BlobPosition expectedHeaderPos;
-        mwcu::BlobPosition expectedPayloadPos;
-        mwcu::BlobPosition retrievedPayloadPos;
+        bmqu::BlobPosition expectedHeaderPos;
+        bmqu::BlobPosition expectedPayloadPos;
+        bmqu::BlobPosition retrievedPayloadPos;
         bdlbb::Blob        retrievedPayloadBlob(s_allocator_p);
 
         // Populate blob
@@ -142,9 +142,9 @@ static void test1_breathingTest()
         ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
         ASSERT_EQ(false, iter.hasMessageProperties());
 
-        mwcu::BlobPosition emptyPos;
+        bmqu::BlobPosition emptyPos;
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
         ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
@@ -184,10 +184,10 @@ static void test1_breathingTest()
         ASSERT_EQ(false, iter.hasMessageProperties());
 
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bdlbb::Blob        retrievedPayloadBlob2(s_allocator_p);
-        mwcu::BlobPosition retrievedPayloadPos2;
+        bmqu::BlobPosition retrievedPayloadPos2;
 
         ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
         ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
@@ -209,9 +209,9 @@ static void test1_breathingTest()
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
         bdlbb::Blob        expectedBlob(&bufferFactory, s_allocator_p);
         int                expectedBlobLength = 0;
-        mwcu::BlobPosition expectedHeaderPos;
-        mwcu::BlobPosition expectedPayloadPos;
-        mwcu::BlobPosition retrievedPayloadPos;
+        bmqu::BlobPosition expectedHeaderPos;
+        bmqu::BlobPosition expectedPayloadPos;
+        bmqu::BlobPosition retrievedPayloadPos;
         bdlbb::Blob        retrievedPayloadBlob(s_allocator_p);
 
         // Populate blob
@@ -244,9 +244,9 @@ static void test1_breathingTest()
         ASSERT_EQ(guid, iter.header().messageGUID());
         ASSERT_EQ(false, iter.hasMessageProperties());
 
-        mwcu::BlobPosition emptyPos;
+        bmqu::BlobPosition emptyPos;
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
         ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
@@ -284,10 +284,10 @@ static void test1_breathingTest()
         ASSERT_EQ(false, iter.hasMessageProperties());
 
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bdlbb::Blob        retrievedPayloadBlob2(s_allocator_p);
-        mwcu::BlobPosition retrievedPayloadPos2;
+        bmqu::BlobPosition retrievedPayloadPos2;
 
         ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
         ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
@@ -309,9 +309,9 @@ static void test1_breathingTest()
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
         bdlbb::Blob        expectedBlob(&bufferFactory, s_allocator_p);
         int                expectedBlobLength = 0;
-        mwcu::BlobPosition expectedHeaderPos;
-        mwcu::BlobPosition expectedPayloadPos;
-        mwcu::BlobPosition retrievedPayloadPos;
+        bmqu::BlobPosition expectedHeaderPos;
+        bmqu::BlobPosition expectedPayloadPos;
+        bmqu::BlobPosition retrievedPayloadPos;
         bdlbb::Blob        retrievedPayloadBlob(&bufferFactory, s_allocator_p);
 
         // Populate blob
@@ -348,9 +348,9 @@ static void test1_breathingTest()
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
 
-        mwcu::BlobPosition emptyPos;
+        bmqu::BlobPosition emptyPos;
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bmqp::MessageProperties emptyProps(s_allocator_p);
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
@@ -402,12 +402,12 @@ static void test1_breathingTest()
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
         ASSERT_EQ(0, emptyProps.numProperties());
 
         bdlbb::Blob retrievedPayloadBlob2(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition retrievedPayloadPos2;
+        bmqu::BlobPosition retrievedPayloadPos2;
 
         ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
         ASSERT_EQ(0,
@@ -434,9 +434,9 @@ static void test1_breathingTest()
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
         bdlbb::Blob        expectedBlob(&bufferFactory, s_allocator_p);
         int                expectedBlobLength = 0;
-        mwcu::BlobPosition expectedHeaderPos;
-        mwcu::BlobPosition expectedPayloadPos;
-        mwcu::BlobPosition retrievedPayloadPos;
+        bmqu::BlobPosition expectedHeaderPos;
+        bmqu::BlobPosition expectedPayloadPos;
+        bmqu::BlobPosition retrievedPayloadPos;
         bdlbb::Blob        retrievedPayloadBlob(&bufferFactory, s_allocator_p);
 
         // Populate blob
@@ -476,9 +476,9 @@ static void test1_breathingTest()
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
 
-        mwcu::BlobPosition emptyPos;
+        bmqu::BlobPosition emptyPos;
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bmqp::MessageProperties emptyProps(s_allocator_p);
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
@@ -530,12 +530,12 @@ static void test1_breathingTest()
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
         ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(mwcu::BlobPosition(), emptyPos);
+        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
         ASSERT_EQ(0, emptyProps.numProperties());
 
         bdlbb::Blob retrievedPayloadBlob2(&bufferFactory, s_allocator_p);
-        mwcu::BlobPosition retrievedPayloadPos2;
+        bmqu::BlobPosition retrievedPayloadPos2;
 
         ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
         ASSERT_EQ(0,
@@ -569,7 +569,7 @@ static void test2_reset()
 //   reset
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("RESET");
+    bmqtst::TestHelper::printTestName("RESET");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -579,8 +579,8 @@ static void test2_reset()
         bdlbb::Blob              copiedBlob(s_allocator_p);
         bdlbb::Blob              expectedBlob(&bufferFactory, s_allocator_p);
         int                      expectedBlobLength = 0;
-        mwcu::BlobPosition       headerPosition;
-        mwcu::BlobPosition       payloadPosition;
+        bmqu::BlobPosition       headerPosition;
+        bmqu::BlobPosition       payloadPosition;
         const int                queueId = 123;
         bmqp::EventHeader        eventHeader;
         bdlbb::Blob              payloadBlob(s_allocator_p);
@@ -637,8 +637,8 @@ static void test2_reset()
         bdlbb::Blob              copiedBlob(s_allocator_p);
         bdlbb::Blob              expectedBlob(&bufferFactory, s_allocator_p);
         int                      expectedBlobLength = 0;
-        mwcu::BlobPosition       headerPosition;
-        mwcu::BlobPosition       payloadPosition;
+        bmqu::BlobPosition       headerPosition;
+        bmqu::BlobPosition       payloadPosition;
         const int                queueId = 123;
         bmqp::EventHeader        eventHeader;
         bdlbb::Blob              payloadBlob(s_allocator_p);
@@ -707,7 +707,7 @@ static void test3_putEventWithNoMessages()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT EVENT WITH NO MESSAGES");
+    bmqtst::TestHelper::printTestName("PUT EVENT WITH NO MESSAGES");
 
     // Test
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -741,7 +741,7 @@ static void test4_invalidPutEvent()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("INVALID PUT EVENT");
+    bmqtst::TestHelper::printTestName("INVALID PUT EVENT");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     {
@@ -823,7 +823,7 @@ static void test5_putEventWithMultipleMessages()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT EVENT WITH MULTIPLE MESSAGES");
+    bmqtst::TestHelper::printTestName("PUT EVENT WITH MULTIPLE MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -873,9 +873,9 @@ static void test5_putEventWithMultipleMessages()
             bdlbb::Blob        props(s_allocator_p);
             bdlbb::Blob        payload(s_allocator_p);
             bdlbb::Blob        appData(s_allocator_p);
-            mwcu::BlobPosition propsPos;
-            mwcu::BlobPosition payloadPos;
-            mwcu::BlobPosition appDataPos;
+            bmqu::BlobPosition propsPos;
+            bmqu::BlobPosition payloadPos;
+            bmqu::BlobPosition appDataPos;
 
             ASSERT_EQ_D(index,
                         0,
@@ -974,9 +974,9 @@ static void test5_putEventWithMultipleMessages()
             bdlbb::Blob        props(s_allocator_p);
             bdlbb::Blob        payload(s_allocator_p);
             bdlbb::Blob        appData(s_allocator_p);
-            mwcu::BlobPosition propsPos;
-            mwcu::BlobPosition payloadPos;
-            mwcu::BlobPosition appDataPos;
+            bmqu::BlobPosition propsPos;
+            bmqu::BlobPosition payloadPos;
+            bmqu::BlobPosition appDataPos;
 
             ASSERT_EQ_D(index,
                         0,
@@ -1041,7 +1041,7 @@ static void test6_putEventWithZeroLengthPutMessages()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT EVENT WITH ZERO-LENGTH MESSAGES");
+    bmqtst::TestHelper::printTestName("PUT EVENT WITH ZERO-LENGTH MESSAGES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -1088,9 +1088,9 @@ static void test6_putEventWithZeroLengthPutMessages()
             bdlbb::Blob        props(s_allocator_p);
             bdlbb::Blob        payload(s_allocator_p);
             bdlbb::Blob        appData(s_allocator_p);
-            mwcu::BlobPosition propsPos;
-            mwcu::BlobPosition payloadPos;
-            mwcu::BlobPosition appDataPos;
+            bmqu::BlobPosition propsPos;
+            bmqu::BlobPosition payloadPos;
+            bmqu::BlobPosition appDataPos;
 
             ASSERT_EQ_D(index,
                         0,
@@ -1137,7 +1137,7 @@ static void test6_putEventWithZeroLengthPutMessages()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -1157,5 +1157,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

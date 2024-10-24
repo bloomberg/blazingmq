@@ -20,9 +20,8 @@
 // MQB
 #include <mqbcmd_messages.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
-#include <mwcu_stringutil.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -1128,7 +1127,7 @@ int ParseUtil::parse(Command*                 command,
 
         int rc = decoder.decode(&jsonStreamBuf, command, options);
         if (rc != 0) {
-            mwcu::MemOutStream err;
+            bmqu::MemOutStream err;
             err << "Error decoding JSON command "
                 << "[rc: " << rc << ", error: '" << decoder.loggedMessages()
                 << "']";
@@ -1143,10 +1142,10 @@ int ParseUtil::parse(Command*                 command,
     // contiguous spaces so that the resulting split doesn't contain any empty
     // strings.
     bsl::string inputString(input);
-    mwcu::StringUtil::squeeze(&inputString, " ");
+    bmqu::StringUtil::squeeze(&inputString, " ");
 
     const bsl::vector<bslstl::StringRef> words =
-        mwcu::StringUtil::strTokenizeRef(inputString, " ");
+        bmqu::StringUtil::strTokenizeRef(inputString, " ");
 
     return parseCommand(command,
                         error,

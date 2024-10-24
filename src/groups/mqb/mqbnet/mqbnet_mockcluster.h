@@ -33,9 +33,8 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -78,7 +77,7 @@ class MockClusterNode : public ClusterNode {
 
     bmqp_ctrlmsg::ClientIdentity d_identity;
 
-    mwcio::Channel::ReadCallback d_readCb;
+    bmqio::Channel::ReadCallback d_readCb;
 
     bool d_isReading;
     // Indicates if post-negotiation read
@@ -117,9 +116,9 @@ class MockClusterNode : public ClusterNode {
     /// return a pointer to this object.  Store the specified `identity`.
     /// The specified `readCb` serves as read data callback when
     /// `enableRead` is called.
-    ClusterNode* setChannel(const bsl::weak_ptr<mwcio::Channel>& value,
+    ClusterNode* setChannel(const bsl::weak_ptr<bmqio::Channel>& value,
                             const bmqp_ctrlmsg::ClientIdentity&  identity,
-                            const mwcio::Channel::ReadCallback&  readCb)
+                            const bmqio::Channel::ReadCallback&  readCb)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Start reading from the channel.  Return true if `read` is successful
@@ -299,7 +298,7 @@ class MockCluster : public Cluster {
 
     /// Process incoming proxy connection.
     void
-    onProxyConnectionUp(const bsl::shared_ptr<mwcio::Channel>& channel,
+    onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         const bsl::string& description) BSLS_KEYWORD_OVERRIDE;
 

@@ -35,15 +35,14 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcio_status.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqio_channel.h>
+#include <bmqio_status.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdld_datum.h>
@@ -391,7 +390,7 @@ BrokerSession::SessionFsm::setState(State::Enum value, FsmEvent::Enum event)
 
 void BrokerSession::SessionFsm::setStarted(
     FsmEvent::Enum                         event,
-    const bsl::shared_ptr<mwcio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the FSM thread
 
@@ -624,7 +623,7 @@ bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
         res = bmqt::GenericResult::e_NOT_SUPPORTED;
     } break;
     case State::e_STOPPED: {
-        d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+        d_beginTimestamp = bmqsys::Time::highResolutionTimer();
         res              = setStarting(event);
     } break;
     default: {
@@ -709,7 +708,7 @@ void BrokerSession::SessionFsm::handleStopRequest()
 
     switch (state()) {
     case State::e_STARTED: {
-        d_beginTimestamp = mwcsys::Time::highResolutionTimer();
+        d_beginTimestamp = bmqsys::Time::highResolutionTimer();
 
         bmqt::GenericResult::Enum res = setClosingSession(event);
         if (res != bmqt::GenericResult::e_SUCCESS) {
@@ -743,7 +742,7 @@ void BrokerSession::SessionFsm::handleStopRequest()
 }
 
 void BrokerSession::SessionFsm::handleChannelUp(
-    const bsl::shared_ptr<mwcio::Channel>& channel)
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the FSM thread
 
@@ -936,9 +935,9 @@ void BrokerSession::SessionFsm::logOperationTime(const char* operation)
 {
     if (d_beginTimestamp) {
         const bsls::Types::Int64 elapsed =
-            mwcsys::Time::highResolutionTimer() - d_beginTimestamp;
+            bmqsys::Time::highResolutionTimer() - d_beginTimestamp;
         BALL_LOG_INFO << operation << " took: "
-                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
+                      << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         d_beginTimestamp = 0;
     }
@@ -1184,7 +1183,7 @@ void BrokerSession::QueueFsm::actionCloseQueue(
     context->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
     const bsls::TimeInterval absTimeout =
-        mwcsys::Time::nowMonotonicClock() +
+        bmqsys::Time::nowMonotonicClock() +
         d_session.d_sessionOptions.closeQueueTimeout();
 
     actionCloseQueue(context, queue, absTimeout);
@@ -1387,9 +1386,9 @@ void BrokerSession::QueueFsm::logOperationTime(const bsl::string& queueUri,
     TimestampMap::iterator it = d_timestampMap.find(queueUri);
     if (it != d_timestampMap.end()) {
         const bsls::Types::Int64 elapsed =
-            mwcsys::Time::highResolutionTimer() - it->second;
+            bmqsys::Time::highResolutionTimer() - it->second;
         BALL_LOG_INFO << operation << " [uri=" << queueUri << "] took: "
-                      << mwcu::PrintUtil::prettyTimeInterval(elapsed) << " ("
+                      << bmqu::PrintUtil::prettyTimeInterval(elapsed) << " ("
                       << elapsed << " nanoseconds)";
         // Handling of error cases causes of several operations.
         // Log only first one (original) and skip others.
@@ -1404,7 +1403,7 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
     typedef QueueState    S;
     typedef QueueFsmEvent E;
     QueueStateTransition  table[] = {
-         // current state           event              new state
+        // current state           event              new state
         {S::e_CLOSED, E::e_OPEN_CMD, S::e_OPENING_OPN},
         //
         {S::e_OPENING_OPN, E::e_RESP_OK, S::e_OPENING_CFG},
@@ -1515,7 +1514,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
         setQueueId(queue, context);
 
         d_timestampMap[queue->uri().asString()] =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         // Switch to OPENING_OPN
         setQueueState(queue, QueueState::e_OPENING_OPN, event);
@@ -1757,7 +1756,7 @@ void BrokerSession::QueueFsm::handleReopenRequest(
     switch (state) {
     case QueueState::e_PENDING: {
         d_timestampMap[queue->uri().asString()] =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         // Set REOPENING_OPN state
         setQueueState(queue, QueueState::e_REOPENING_OPN, event);
@@ -1817,7 +1816,7 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     switch (state) {
     case QueueState::e_OPENED: {
         d_timestampMap[queue->uri().asString()] =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         // Keep the state OPENED
         setQueueState(queue, QueueState::e_OPENED, event);
@@ -1828,7 +1827,7 @@ BrokerSession::QueueFsm::handleConfigureRequest(
     } break;
     case QueueState::e_PENDING: {
         d_timestampMap[queue->uri().asString()] =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         // Keep the state PENDING
         setQueueState(queue, QueueState::e_PENDING, event);
@@ -1899,7 +1898,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
     switch (state) {
     case QueueState::e_OPENED: {
         d_timestampMap[queue->uri().asString()] =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         // Set CLOSING_CFG state
         setQueueState(queue, QueueState::e_CLOSING_CFG, event);
@@ -1919,7 +1918,7 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
                 queue->uri().canonical());
             handleResponseOk(queue,
                              context,
-                             mwcsys::Time::nowMonotonicClock() + timeout);
+                             bmqsys::Time::nowMonotonicClock() + timeout);
             break;  // BREAK
         }
 
@@ -3405,7 +3404,7 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
         BALL_LOG_ERROR << "Received invalid control message from broker "
                        << "[reason: 'failed to decode', rc: " << rc << "]"
                        << "\n"
-                       << mwcu::BlobStartHexDumper(event.blob());
+                       << bmqu::BlobStartHexDumper(event.blob());
         return;  // RETURN
     }
 
@@ -3513,7 +3512,7 @@ void BrokerSession::processPutEvent(const bmqp::Event& event)
         }
     }
 
-    const bsls::TimeInterval sentTime = mwcsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval sentTime = bmqsys::Time::nowMonotonicClock();
     bmqp::PutMessageIterator putIter(d_bufferFactory_p, d_allocator_p);
 
     // Get PUT iterator without decompression
@@ -3633,12 +3632,11 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            BALL_LOG_ERROR << "Unable to flatten PUSH event"
-                           << " [rc: " << rc
+            BALL_LOG_ERROR << "Unable to flatten PUSH event" << " [rc: " << rc
                            << ", length: " << event.blob()->length()
                            << ", eventMessageCount: " << eventMessageCount
                            << "]" << bsl::endl
-                           << mwcu::BlobStartHexDumper(
+                           << bmqu::BlobStartHexDumper(
                                   event.blob(),
                                   e_NUM_BYTES_IN_BLOB_TO_DUMP);
             return;  // RETURN
@@ -3762,7 +3760,7 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
 
         if (ackMsg.status() != 0) {
             // Non-zero ack status. Log it.
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedAckMessages,
                 BALL_LOG_ERROR
                     << "Failed ACK for queue '" << queue->uri()
@@ -3852,7 +3850,7 @@ bmqt::OpenQueueResult::Enum BrokerSession::sendOpenQueueRequest(
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
     BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
 
-    const bsls::TimeInterval absTimeout = mwcsys::Time::nowMonotonicClock() +
+    const bsls::TimeInterval absTimeout = bmqsys::Time::nowMonotonicClock() +
                                           timeout;
 
     RequestManagerType::RequestType::ResponseCb response =
@@ -4157,7 +4155,7 @@ BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue)
     closeQueueContext->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
     const bsls::TimeInterval absTimeout =
-        mwcsys::Time::nowMonotonicClock() +
+        bmqsys::Time::nowMonotonicClock() +
         d_sessionOptions.configureQueueTimeout();
     const ConfiguredCallback configuredCb = bdlf::BindUtil::bind(
         &BrokerSession::onCloseQueueConfigured,
@@ -4198,7 +4196,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
                              queue->uri().canonical()) == 1;
 
     // Set the configure callback
-    const bsls::TimeInterval absTimeout = mwcsys::Time::nowMonotonicClock() +
+    const bsls::TimeInterval absTimeout = bmqsys::Time::nowMonotonicClock() +
                                           timeout;
     const ConfiguredCallback configuredCb = bdlf::BindUtil::bind(
         &BrokerSession::onCloseQueueConfigured,
@@ -4271,7 +4269,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
         d_messageCorrelationIdContainer.getExpiredIds(
             &expiredKeys,
             d_queueRetransmissionTimeoutMap,
-            mwcsys::Time::nowMonotonicClock());
+            bmqsys::Time::nowMonotonicClock());
     d_messageCorrelationIdContainer.iterateAndInvoke(expiredKeys, callback);
 
     // Push the final ack event if there are any messages in the builder
@@ -4286,7 +4284,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
 }
 
 void BrokerSession::doHandleChannelWatermark(
-    mwcio::ChannelWatermarkType::Enum type,
+    bmqio::ChannelWatermarkType::Enum type,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
@@ -4298,7 +4296,7 @@ void BrokerSession::doHandleChannelWatermark(
 
     // HWM condition is detected by the channel 'write' result, so we do not
     // handle HWM here
-    if (type == mwcio::ChannelWatermarkType::e_HIGH_WATERMARK) {
+    if (type == bmqio::ChannelWatermarkType::e_HIGH_WATERMARK) {
         BALL_LOG_INFO << "HWM: Channel is not writable";
         return;  // RETURN
     }
@@ -4311,7 +4309,7 @@ void BrokerSession::doHandleChannelWatermark(
         // either there is the HWM again and we will expect the next LWM event,
         // or the channel is down and the user threads will be released when
         // the channel down event is handled (see 'handleChannelDown').
-        mwcio::Status status(d_allocator_p);
+        bmqio::Status status(d_allocator_p);
         d_channel_sp->write(&status,
                             d_extensionBlobBuffer.front(),
                             d_sessionOptions.channelHighWatermark());
@@ -5177,7 +5175,7 @@ void BrokerSession::doCloseQueue(
 }
 
 void BrokerSession::doSetChannel(
-    const bsl::shared_ptr<mwcio::Channel> channel,
+    const bsl::shared_ptr<bmqio::Channel> channel,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<Event>& eventSp)
 {
     // executed by the FSM thread
@@ -5665,7 +5663,7 @@ BrokerSession::writeOrBuffer(const bdlbb::Blob& eventBlob,
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
     BSLS_ASSERT_SAFE(d_channel_sp);
 
-    mwcio::Status             status(d_allocator_p);
+    bmqio::Status             status(d_allocator_p);
     bmqt::GenericResult::Enum res = bmqt::GenericResult::e_SUCCESS;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -5686,7 +5684,7 @@ BrokerSession::writeOrBuffer(const bdlbb::Blob& eventBlob,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!status)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (status.category() == mwcio::StatusCategory::e_LIMIT) {
+        if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             d_extensionBlobBuffer.push_back(eventBlob);
             d_extensionBufferEmpty = false;
         }
@@ -5794,7 +5792,7 @@ BrokerSession::BrokerSession(
 
     // Spawn the FSM thread
     bslmt::ThreadAttributes threadAttributes =
-        mwcsys::ThreadUtil::defaultAttributes();
+        bmqsys::ThreadUtil::defaultAttributes();
     threadAttributes.setThreadName("bmqFSMEvtQ");
     if (bslmt::ThreadUtil::createWithAllocator(
             &d_fsmThread,
@@ -5829,9 +5827,9 @@ BrokerSession::~BrokerSession()
 }
 
 void BrokerSession::initializeStats(
-    mwcst::StatContext*                       rootStatContext,
-    const mwcst::StatValue::SnapshotLocation& start,
-    const mwcst::StatValue::SnapshotLocation& end)
+    bmqst::StatContext*                       rootStatContext,
+    const bmqst::StatValue::SnapshotLocation& start,
+    const bmqst::StatValue::SnapshotLocation& end)
 {
     d_eventQueue.initializeStats(rootStatContext, start, end);
 
@@ -5857,7 +5855,7 @@ BrokerSession::processPacket(const bdlbb::Blob& packet)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << "Received an invalid packet: "
-                       << mwcu::BlobStartHexDumper(
+                       << bmqu::BlobStartHexDumper(
                               &packet,
                               e_NUM_BYTES_IN_BLOB_TO_DUMP);
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
@@ -5875,12 +5873,12 @@ BrokerSession::processPacket(const bdlbb::Blob& packet)
     return enqueueFsmEvent(queueEvent);
 }
 
-void BrokerSession::setChannel(const bsl::shared_ptr<mwcio::Channel>& channel)
+void BrokerSession::setChannel(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the *IO* thread
 
-    if (mwcsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
-        mwcsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
+    if (bmqsys::ThreadUtil::k_SUPPORT_THREAD_NAME) {
+        bmqsys::ThreadUtil::setCurrentThreadNameOnce("bmqTCPIO");
     }
 
     if (channel) {  // We are now connected to bmqbrkr
@@ -5918,7 +5916,7 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
         return rc;  // RETURN
     }
 
-    rc = d_startSemaphore.timedWait(mwcsys::Time::nowMonotonicClock() +
+    rc = d_startSemaphore.timedWait(bmqsys::Time::nowMonotonicClock() +
                                     timeout);
     if (rc != 0) {
         // Timeout
@@ -6139,7 +6137,7 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendOpenConfigureQueue(
         openQueueContext,        // openQueue context
         isReopenRequest);
     const bsls::TimeInterval timeout = absTimeout -
-                                       mwcsys::Time::nowMonotonicClock();
+                                       bmqsys::Time::nowMonotonicClock();
 
     // For reopen request do not reset pendingConfigureId which could have been
     // set by buffered configure request.
@@ -6180,7 +6178,7 @@ bmqt::GenericResult::Enum BrokerSession::sendCloseQueue(
     closeQueueContext->setResponseCb(response);
 
     const bsls::TimeInterval timeout = absTimeout -
-                                       mwcsys::Time::nowMonotonicClock();
+                                       bmqsys::Time::nowMonotonicClock();
     return sendRequest(closeQueueContext,
                        bmqp::QueueId(queue->id(), queue->subQueueId()),
                        timeout);
@@ -6643,7 +6641,7 @@ BrokerSession::nextEvent(const bsls::TimeInterval& timeout)
     BSLS_ASSERT_SAFE(!d_usingSessionEventHandler &&
                      "nextEvent() should be used without EventHandler");
 
-    const bsls::TimeInterval beginTime = mwcsys::Time::nowMonotonicClock();
+    const bsls::TimeInterval beginTime = bmqsys::Time::nowMonotonicClock();
     bsl::shared_ptr<Event>   event     = d_eventQueue.timedPopFront(timeout);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -6675,7 +6673,7 @@ BrokerSession::nextEvent(const bsls::TimeInterval& timeout)
 
         // Continue waiting for next event for the duration of the remaining
         // timeout (if any)
-        const bsls::TimeInterval now = mwcsys::Time::nowMonotonicClock();
+        const bsls::TimeInterval now = bmqsys::Time::nowMonotonicClock();
         const bsls::TimeInterval remainingTimeout = timeout -
                                                     (now - beginTime);
         if (remainingTimeout > bsls::TimeInterval(0, 0)) {
@@ -7108,7 +7106,7 @@ bool BrokerSession::acceptUserEvent(const bdlbb::Blob&        eventBlob,
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         const bsls::TimeInterval expireAfter =
-            mwcsys::Time::nowMonotonicClock() + timeout;
+            bmqsys::Time::nowMonotonicClock() + timeout;
 
         bslmt::LockGuard<bslmt::Mutex> guard(&d_extensionBufferLock);
         // LOCK
@@ -7466,7 +7464,7 @@ void BrokerSession::onPendingPutExpirationTimeout()
 }
 
 void BrokerSession::handleChannelWatermark(
-    mwcio::ChannelWatermarkType::Enum type)
+    bmqio::ChannelWatermarkType::Enum type)
 {
     // executed by the *IO* thread
 

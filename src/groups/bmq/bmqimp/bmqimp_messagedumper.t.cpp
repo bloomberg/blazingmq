@@ -37,10 +37,9 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_stringutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bdlb_tokenizer.h>
@@ -61,7 +60,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -340,7 +339,7 @@ Tester::Tester(bslma::Allocator* allocator)
 , d_confirmEventBuilder(&d_bufferFactory, allocator)
 , d_allocator_p(allocator)
 {
-    mwcsys::Time::initialize(
+    bmqsys::Time::initialize(
         bdlf::BindUtil::bindS(d_allocator_p, &Tester::now, this),
         bdlf::BindUtil::bindS(d_allocator_p, &Tester::now, this),
         bdlf::BindUtil::bindS(d_allocator_p,
@@ -351,7 +350,7 @@ Tester::Tester(bslma::Allocator* allocator)
 
 Tester::~Tester()
 {
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 }
 
 // MANIPULATORS
@@ -717,7 +716,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     Tester tester(s_allocator_p);
 
@@ -760,7 +759,7 @@ static void test2_parseCommand()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("PARSE COMMAND");
+    bmqtst::TestHelper::printTestName("PARSE COMMAND");
 
     struct Test {
         int                                 d_line;
@@ -1150,7 +1149,7 @@ static void test3_processDumpCommand()
 //   processDumpCommand
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PROCESS DUMP COMMAND");
+    bmqtst::TestHelper::printTestName("PROCESS DUMP COMMAND");
 
     struct Test {
         int         d_line;
@@ -1222,7 +1221,7 @@ static void test4_processDumpCommand_invalidDumpMessage()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("PROCESS DUMP COMMAND");
+    bmqtst::TestHelper::printTestName("PROCESS DUMP COMMAND");
 
     struct Test {
         int         d_line;
@@ -1311,7 +1310,7 @@ static void test5_reset()
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
-    mwctst::TestHelper::printTestName("PROCESS DUMP COMMAND");
+    bmqtst::TestHelper::printTestName("PROCESS DUMP COMMAND");
 
     struct Test {
         int         d_line;
@@ -1397,7 +1396,7 @@ static void test6_dumpPushEvent()
     // temporary string using the default allocator when performing queue
     // lookup by canonical URI
 
-    mwctst::TestHelper::printTestName("DUMP PUSH EVENT");
+    bmqtst::TestHelper::printTestName("DUMP PUSH EVENT");
 
     Tester tester(s_allocator_p);
 
@@ -1458,7 +1457,7 @@ static void test6_dumpPushEvent()
 
     // 2. Dump the PUSH event and verify that the first five messages were
     //    dumped, and that no additional messages were dumped.
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     bmqp::Event        event(s_allocator_p);
 
     tester.pushEvent(&event);
@@ -1541,7 +1540,7 @@ static void test7_dumpAckEvent()
     // temporary string using the default allocator when performing queue
     // lookup by canonical URI
 
-    mwctst::TestHelper::printTestName("DUMP ACK EVENT");
+    bmqtst::TestHelper::printTestName("DUMP ACK EVENT");
 
     Tester tester(s_allocator_p);
 
@@ -1567,7 +1566,7 @@ static void test7_dumpAckEvent()
 
     // 2. Dump the ACK event and verify that the messages in the event were
     //    dumped.
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     bmqp::Event        event(s_allocator_p);
 
     tester.ackEvent(&event);
@@ -1658,7 +1657,7 @@ static void test8_dumpPutEvent()
     // temporary string using the default allocator when performing queue
     // lookup by canonical URI
 
-    mwctst::TestHelper::printTestName("DUMP PUT EVENT");
+    bmqtst::TestHelper::printTestName("DUMP PUT EVENT");
 
     Tester tester(s_allocator_p);
 
@@ -1683,7 +1682,7 @@ static void test8_dumpPutEvent()
 
     // 2. Dump the PUT event and verify that the PUT messages were dumped, and
     //    that no additional messages were dumped.
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     bmqp::Event        event(s_allocator_p);
 
     tester.putEvent(&event);
@@ -1783,7 +1782,7 @@ static void test9_dumpConfirmEvent()
     // temporary string using the default allocator when performing queue
     // lookup by canonical URI
 
-    mwctst::TestHelper::printTestName("DUMP CONFIRM EVENT");
+    bmqtst::TestHelper::printTestName("DUMP CONFIRM EVENT");
 
     Tester tester(s_allocator_p);
 
@@ -1807,7 +1806,7 @@ static void test9_dumpConfirmEvent()
 
     // 2. Dump the CONFIRM event and verify that the first four messages were
     //    dumped, and that no additional messages were dumped.
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     bmqp::Event        event(s_allocator_p);
 
     tester.confirmEvent(&event);
@@ -1887,7 +1886,7 @@ static void test9_dumpConfirmEvent()
 
 int main(int argc, char** argv)
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
     bmqt::UriParser::initialize(s_allocator_p);
@@ -1915,8 +1914,8 @@ int main(int argc, char** argv)
     bmqt::UriParser::shutdown();
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // For an unidentified reason, 'e_CHECK_DEF_GBL_ALLOC' fails as a
-    // result of initializing 'mwcsys::Time' in the constructor of
+    // result of initializing 'bmqsys::Time' in the constructor of
     // 'Tester'.
 }

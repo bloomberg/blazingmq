@@ -20,8 +20,7 @@
 // MQB
 #include <mqbs_filesystemutil.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_scopeexit.h>
@@ -145,7 +144,7 @@ int MemoryMappedOnDiskLog::open(int flags)
         return LogOpResult::e_FILE_NOT_EXIST;  // RETURN
     }
 
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription;
     const bool         openReadOnly = flags & e_READ_ONLY;
     int                rc           = mqbs::FileSystemUtil::open(&d_mfd,
                                         logConfig().location().c_str(),
@@ -197,7 +196,7 @@ int MemoryMappedOnDiskLog::close()
 
     int rc = LogOpResult::e_UNKNOWN;
     if (!d_isReadOnly) {
-        mwcu::MemOutStream errorDescription;
+        bmqu::MemOutStream errorDescription;
         rc = mqbs::FileSystemUtil::truncate(&d_mfd,
                                             d_totalNumBytes,
                                             errorDescription);
@@ -261,7 +260,7 @@ MemoryMappedOnDiskLog::write(const void* entry, int offset, int length)
 
 mqbsi::Log::Offset
 MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
-                             const mwcu::BlobPosition& offset,
+                             const bmqu::BlobPosition& offset,
                              int                       length)
 {
     // PRECONDITIONS
@@ -276,7 +275,7 @@ MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
         return LogOpResult::e_REACHED_END_OF_LOG;  // RETURN
     }
 
-    int rc = mwcu::BlobUtil::readNBytes(d_mfd.mapping() + oldOffset,
+    int rc = bmqu::BlobUtil::readNBytes(d_mfd.mapping() + oldOffset,
                                         entry,
                                         offset,
                                         length);
@@ -291,10 +290,10 @@ MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
 
 mqbsi::Log::Offset
 MemoryMappedOnDiskLog::write(const bdlbb::Blob&       entry,
-                             const mwcu::BlobSection& section)
+                             const bmqu::BlobSection& section)
 {
     int length;
-    int rc = mwcu::BlobUtil::sectionSize(&length, entry, section);
+    int rc = bmqu::BlobUtil::sectionSize(&length, entry, section);
     if (rc != 0) {
         return LogOpResult::e_INVALID_BLOB_SECTION;  // RETURN
     }

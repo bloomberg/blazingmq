@@ -35,8 +35,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_operationchain.h>
+#include <bmqu_operationchain.h>
 
 // BDE
 #include <ball_log.h>
@@ -126,7 +125,7 @@ class QueueHandle : public mqbi::QueueHandle {
         static unsigned int nextStamp();
     };
     typedef bsl::shared_ptr<Subscription> SubscriptionSp;
-    typedef mwcc::Array<bsl::shared_ptr<Downstream>,
+    typedef bmqc::Array<bsl::shared_ptr<Downstream>,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         Downstreams;
 
@@ -196,7 +195,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
     bdlmt::Throttle d_throttledDroppedPutMessages;
 
-    mwcu::OperationChain d_deconfigureChain;
+    bmqu::OperationChain d_deconfigureChain;
     // Mechanism to serialize execution of
     // the substream deconfigure callbacks
     // and the caller callback invoked when
@@ -665,7 +664,7 @@ inline QueueHandle::Downstream::Downstream(const bsl::string& appId,
                                            bslma::Allocator* allocator_p)
 : d_appId(appId)
 , d_upstreamSubQueueId(upstreamSubQueueId)
-, d_data(new (*allocator_p)
+, d_data(new(*allocator_p)
              mqbi::QueueHandle::UnconfirmedMessageInfoMap(allocator_p),
          allocator_p)
 {

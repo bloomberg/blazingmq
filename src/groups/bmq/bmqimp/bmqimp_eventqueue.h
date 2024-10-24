@@ -134,16 +134,14 @@
 
 #include <bmqimp_event.h>
 
-// MWC
-#include <mwcc_monitoredqueue_bdlccsingleproducerqueue.h>
-#include <mwcc_multiqueuethreadpool.h>
-#include <mwcsys_time.h>
+#include <bmqc_monitoredqueue_bdlccsingleproducerqueue.h>
+#include <bmqc_multiqueuethreadpool.h>
+#include <bmqsys_time.h>
 
-// MWC
-#include <mwcst_basictableinfoprovider.h>
-#include <mwcst_statcontext.h>
-#include <mwcst_statvalue.h>
-#include <mwcst_table.h>
+#include <bmqst_basictableinfoprovider.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statvalue.h>
+#include <bmqst_table.h>
 
 // BDE
 #include <bdlcc_sharedobjectpool.h>
@@ -210,7 +208,7 @@ class EventQueue {
                   bsls::Types::Int64            enqueueTime);
     };
 
-    typedef mwcc::MonitoredQueue<bdlcc::SingleProducerQueue<QueueItem> >
+    typedef bmqc::MonitoredQueue<bdlcc::SingleProducerQueue<QueueItem> >
         MonitoredEventQueue;
 
   private:
@@ -260,19 +258,19 @@ class EventQueue {
     // Time the last popped out item
     // stayed in the queue.
 
-    bslma::ManagedPtr<mwcst::StatContext> d_stats_mp;
+    bslma::ManagedPtr<bmqst::StatContext> d_stats_mp;
     // Stat context to use
 
-    mwcst::Table d_statTable;
+    bmqst::Table d_statTable;
     // Table to use for dumping the
     // stats
 
-    mwcst::BasicTableInfoProvider d_statTip;
+    bmqst::BasicTableInfoProvider d_statTip;
     // Tip to use when printing stats,
     // include the delta stats fields
     // (diffs since previous print)
 
-    mwcst::BasicTableInfoProvider d_statTipNoDelta;
+    bmqst::BasicTableInfoProvider d_statTipNoDelta;
     // Tip to use when printing stats,
     // excluding the delta stats fields
     // (typically used when printing
@@ -297,7 +295,7 @@ class EventQueue {
 
     /// Callback invoked by the MonitoredFixedQueue when it has changed to
     /// the specified `state`.
-    void stateCallback(mwcc::MonitoredQueueState::Enum state);
+    void stateCallback(bmqc::MonitoredQueueState::Enum state);
 
     /// Return true and populate the specified `event` if any prioritized
     /// one was pending; return false and leave `event` untouched if no
@@ -344,9 +342,9 @@ class EventQueue {
     /// Configure this component to keep track of statistics: create a
     /// sub-context from the specified `rootStatContext`, using the
     /// specified `start` and `end` snapshot location.
-    void initializeStats(mwcst::StatContext* rootStatContext,
-                         const mwcst::StatValue::SnapshotLocation& start,
-                         const mwcst::StatValue::SnapshotLocation& end);
+    void initializeStats(bmqst::StatContext* rootStatContext,
+                         const bmqst::StatValue::SnapshotLocation& start,
+                         const bmqst::StatValue::SnapshotLocation& end);
 
     /// Start the EventQueue and return 0 on success, or a non zero code on
     /// error.  If an `eventHandler` was provided at construction, this will
@@ -369,7 +367,7 @@ class EventQueue {
     /// Return the front item of the queue, if the queue is not empty; or
     /// wait for up to the specified `timeout` in respect to the specified
     /// `now` - as a relative offset from between
-    /// `mwcsys::Time::nowMonotonicClock()` - argument for an item to be
+    /// `bmqsys::Time::nowMonotonicClock()` - argument for an item to be
     /// pushed to the queue.  If no item is found after the provided
     /// `timeout`, the method will return a `SessionEvent` of type
     /// `bmqt::SessionEventType::e_TIMEOUT`.  If an error occurs while

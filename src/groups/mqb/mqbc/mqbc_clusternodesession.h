@@ -37,8 +37,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 
-// MWC
-#include <mwcst_statcontextuserdata.h>
+#include <bmqst_statcontextuserdata.h>
 
 // BDE
 #include <ball_log.h>
@@ -139,7 +138,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
     typedef QueueHandleMap::const_iterator QueueHandleMapConstIter;
 
-    typedef bsl::shared_ptr<mwcst::StatContext> StatContextSp;
+    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
 
     typedef QueueState::StreamsMap StreamsMap;
 

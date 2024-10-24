@@ -28,10 +28,9 @@
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_printutil.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -829,8 +828,8 @@ void Routers::RoundRobin::print(bsl::ostream& os,
                                 int           level,
                                 int           spacesPerLevel) const
 {
-    os << mwcu::PrintUtil::indent(level, spacesPerLevel) << "Consumers: "
-       << mwcu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
+    os << bmqu::PrintUtil::indent(level, spacesPerLevel) << "Consumers: "
+       << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
        << "-----------------";
 
     for (Priorities::const_iterator itPriority = d_priorities.begin();
@@ -852,22 +851,22 @@ void Routers::RoundRobin::print(bsl::ostream& os,
                  ++it) {
                 const Subscription& subscription = *it;
 
-                os << mwcu::PrintUtil::newlineAndIndent(level + 1,
+                os << bmqu::PrintUtil::newlineAndIndent(level + 1,
                                                         spacesPerLevel)
                    << "priority .........: "
                    << subscription.d_ci.consumerPriorityCount()
-                   << mwcu::PrintUtil::newlineAndIndent(level + 1,
+                   << bmqu::PrintUtil::newlineAndIndent(level + 1,
                                                         spacesPerLevel)
                    << "count ............: "
                    << subscription.d_ci.consumerPriorityCount()
-                   << mwcu::PrintUtil::newlineAndIndent(level + 1,
+                   << bmqu::PrintUtil::newlineAndIndent(level + 1,
                                                         spacesPerLevel)
                    << "expression .......:"
                    << subscription.d_itGroup->value()
                           .d_itId->value()
                           .d_itExpression->key()
                           .text()
-                   << mwcu::PrintUtil::newlineAndIndent(level + 1,
+                   << bmqu::PrintUtil::newlineAndIndent(level + 1,
                                                         spacesPerLevel)
                    << "client---- .......:"
                    << subscriber.d_itConsumer->key()->client()->description();

@@ -26,12 +26,11 @@
 #include <mqbnet_negotiator.h>
 #include <mqbnet_transportmanager.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
-#include <mwcu_stringutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -421,7 +420,7 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
     }
 
     bsl::ifstream      configStream(configFilename.c_str());
-    mwcu::MemOutStream configParameters;
+    bmqu::MemOutStream configParameters;
     configParameters << configStream.rdbuf();
 
     if (!configStream || !configParameters) {
@@ -490,14 +489,14 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
             BALL_LOG_OUTPUT_STREAM << "  I am *NOT* member of any cluster.";
         }
         else {
-            mwcu::Printer<bsl::unordered_set<bsl::string> > printer(
+            bmqu::Printer<bsl::unordered_set<bsl::string> > printer(
                 &d_myClusters);
             BALL_LOG_OUTPUT_STREAM
                 << "  I am a member of the following clusters: " << printer;
         }
 
         if (!d_myReverseClusters.empty()) {
-            mwcu::Printer<bsl::unordered_set<bsl::string> > printer(
+            bmqu::Printer<bsl::unordered_set<bsl::string> > printer(
                 &d_myReverseClusters);
             BALL_LOG_OUTPUT_STREAM
                 << "\n  The following clusters will remote connect to me '"
@@ -510,7 +509,7 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
             for (size_t i = 0; i < d_reversedClusterConnections.size(); ++i) {
                 const mqbcfg::ReversedClusterConnection& clusterConnection =
                     d_reversedClusterConnections[i];
-                mwcu::Printer<bsl::vector<mqbcfg::ClusterNodeConnection> >
+                bmqu::Printer<bsl::vector<mqbcfg::ClusterNodeConnection> >
                     printer(&clusterConnection.connections());
                 BALL_LOG_OUTPUT_STREAM << "\n    '" << clusterConnection.name()
                                        << "': " << printer;
@@ -518,7 +517,7 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
         }
 
         if (!d_myVirtualClusters.empty()) {
-            mwcu::Printer<bsl::unordered_map<bsl::string, int> > printer(
+            bmqu::Printer<bsl::unordered_map<bsl::string, int> > printer(
                 &d_myVirtualClusters);
             BALL_LOG_OUTPUT_STREAM
                 << "\n  I am a member of the following VIRTUAL clusters: "
@@ -645,7 +644,7 @@ ClusterCatalog::getCluster(bsl::shared_ptr<mqbi::Cluster>* out,
     }
 
     bsl::shared_ptr<mqbi::Cluster> cluster;
-    mwcu::MemOutStream             errorDesc;
+    bmqu::MemOutStream             errorDesc;
     int rc = createCluster(errorDesc, &cluster, name);
     if (rc != 0) {
         status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
@@ -782,7 +781,7 @@ int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
         connection.connections().push_back(nodeConnection);
         connectionArray.push_back(connection);
 
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         int rc = initiateReversedClusterConnectionsImp(os, connectionArray);
         if (rc != 0) {
             result->makeError().message() = os.str() +
@@ -803,7 +802,7 @@ int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
             const ClustersMapIter it = d_clusters.find(
                 command.cluster().name());
             if (it == d_clusters.end()) {
-                mwcu::MemOutStream os;
+                bmqu::MemOutStream os;
                 os << "cluster '" << command.cluster().name()
                    << "' not found !";
                 result->makeError().message() = os.str();
@@ -833,7 +832,7 @@ int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
         }
     }
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;

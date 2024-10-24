@@ -38,7 +38,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -246,7 +246,7 @@ static void test1_breathingTest()
 //   Basic functionality of 'flattenPushEvent(...)'.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::PushEventBuilder pushEventBuilder(&bufferFactory, s_allocator_p);
@@ -432,7 +432,7 @@ static void test2_flattenExplodesEvent()
 //     - 'flattenPushEvent(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FLATTEN EXPLODES EVENT");
+    bmqtst::TestHelper::printTestName("FLATTEN EXPLODES EVENT");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::PushEventBuilder pushEventBuilder(&bufferFactory, s_allocator_p);
@@ -639,7 +639,7 @@ static void test3_flattenWithMessageProperties()
 //     - 'flattenPushEvent(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("FLATTEN WITH MESSAGE PROPERTIES");
+    bmqtst::TestHelper::printTestName("FLATTEN WITH MESSAGE PROPERTIES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::MessageProperties        msgProperties(s_allocator_p);
@@ -785,7 +785,7 @@ static void test3_flattenWithMessageProperties()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -806,5 +806,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

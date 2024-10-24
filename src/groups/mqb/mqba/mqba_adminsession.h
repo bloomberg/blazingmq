@@ -38,9 +38,8 @@
 // BMQ
 #include <bmqp_schemaeventbuilder.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcu_sharedresource.h>
+#include <bmqio_channel.h>
+#include <bmqu_sharedresource.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -141,7 +140,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
 
   private:
     // DATA
-    mwcu::SharedResource<AdminSession> d_self;
+    bmqu::SharedResource<AdminSession> d_self;
     // This object is used to avoid
     // executing a callback if the session
     // has been destroyed: this is *ONLY* to
@@ -165,7 +164,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     bsl::string d_description;
     // Short identifier for this session.
 
-    bsl::shared_ptr<mwcio::Channel> d_channel_sp;
+    bsl::shared_ptr<bmqio::Channel> d_channel_sp;
     // Channel associated to this session.
 
     AdminSessionState d_state;
@@ -239,7 +238,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// `allocator`.  The specified `adminEnqueueCb` callback is used to
     /// enqueue admin commands to entity that is responsible for executing
     /// admin commands.
-    AdminSession(const bsl::shared_ptr<mwcio::Channel>&  channel,
+    AdminSession(const bsl::shared_ptr<bmqio::Channel>&  channel,
                  const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                  const bsl::string&                      sessionDescription,
                  mqbi::Dispatcher*                       dispatcher,
@@ -308,7 +307,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     //  (virtual: mqbnet::Session)
 
     /// Return the channel associated to this session.
-    bsl::shared_ptr<mwcio::Channel> channel() const BSLS_KEYWORD_OVERRIDE;
+    bsl::shared_ptr<bmqio::Channel> channel() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the clusterNode associated to this session, or 0 if there are
     /// none.
@@ -354,7 +353,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
 // -------------------
 
 // MANIPULATORS
-inline bsl::shared_ptr<mwcio::Channel> AdminSession::channel() const
+inline bsl::shared_ptr<bmqio::Channel> AdminSession::channel() const
 {
     return d_channel_sp;
 }

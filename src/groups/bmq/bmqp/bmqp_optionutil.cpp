@@ -20,8 +20,7 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
@@ -103,10 +102,10 @@ void OptionUtil::OptionsBox::add(bdlbb::Blob*      blob,
                                  const OptionMeta& option)
 {
     // Write Option Header
-    mwcu::BlobPosition ohOffset;
-    mwcu::BlobUtil::reserve(&ohOffset, blob, sizeof(OptionHeader));
+    bmqu::BlobPosition ohOffset;
+    bmqu::BlobUtil::reserve(&ohOffset, blob, sizeof(OptionHeader));
 
-    mwcu::BlobObjectProxy<OptionHeader> optionHeader(blob,
+    bmqu::BlobObjectProxy<OptionHeader> optionHeader(blob,
                                                      ohOffset,
                                                      false,  // no read
                                                      true);  // write mode
@@ -198,11 +197,11 @@ OptionUtil::OptionsBox::canAdd(const int         currentSize,
 }
 
 bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
-                                     mwcu::BlobPosition*       optionsPosition,
+                                     bmqu::BlobPosition*       optionsPosition,
                                      const bdlbb::Blob&        blob,
                                      const int                 headerWords,
                                      const int                 optionsWords,
-                                     const mwcu::BlobPosition& startPosition)
+                                     const bmqu::BlobPosition& startPosition)
 {
     const int headerSize    = headerWords * Protocol::k_WORD_SIZE;
     const int myOptionsSize = optionsWords * Protocol::k_WORD_SIZE;
@@ -215,8 +214,8 @@ bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
     // Options exist.
 
     // Find start position of options area
-    mwcu::BlobPosition myOptionsPosition;
-    int                rc = mwcu::BlobUtil::findOffsetSafe(&myOptionsPosition,
+    bmqu::BlobPosition myOptionsPosition;
+    int                rc = bmqu::BlobUtil::findOffsetSafe(&myOptionsPosition,
                                             blob,
                                             startPosition,
                                             headerSize);
@@ -227,8 +226,8 @@ bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
 
     // Ensure that 'blob' contains 'myOptionsSize' bytes starting at
     // 'myOptionsPosition'.
-    mwcu::BlobPosition optionsAreaEndPos;
-    rc = mwcu::BlobUtil::findOffsetSafe(&optionsAreaEndPos,
+    bmqu::BlobPosition optionsAreaEndPos;
+    rc = bmqu::BlobUtil::findOffsetSafe(&optionsAreaEndPos,
                                         blob,
                                         myOptionsPosition,
                                         myOptionsSize);

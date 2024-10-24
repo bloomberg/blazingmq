@@ -21,7 +21,7 @@
 #include <bmqt_queueflags.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -38,7 +38,7 @@ static void test1_breathingTest()
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqa::MessageEventBuilder obj;
 }
@@ -50,7 +50,7 @@ static void test2_testMessageEventSizeCount()
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
-    mwctst::TestHelper::printTestName("MESSAGE EVENT SIZE AND COUNT TEST");
+    bmqtst::TestHelper::printTestName("MESSAGE EVENT SIZE AND COUNT TEST");
 
     // Stage 1: preparation
     // Start a session and open a queue
@@ -164,7 +164,7 @@ static void test2_testMessageEventSizeCount()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -176,5 +176,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

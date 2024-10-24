@@ -165,7 +165,7 @@ bool QueueOptions::addOrUpdateSubscription(bsl::string* errorDescription,
                 subscription.expression().text(),
                 context)) {
             if (errorDescription) {
-                mwcu::MemOutStream os(d_allocator_p);
+                bmqu::MemOutStream os(d_allocator_p);
                 os << "Expression validation failed: [ expression: \""
                    << subscription.expression().text()
                    << "\", rc: " << context.lastError() << ", reason: \""

@@ -38,14 +38,13 @@
 #include <mqbi_queue.h>
 #include <mqbs_virtualstoragecatalog.h>
 
-#include <mwcu_atomicstate.h>
+#include <bmqu_atomicstate.h>
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_optionsview.h>
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -95,9 +94,9 @@ class RemoteQueue {
         ConfirmsVisitor;
 
     typedef bdlcc::SharedObjectPool<
-        mwcu::AtomicState,
+        bmqu::AtomicState,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::Reset<mwcu::AtomicState> >
+        bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
         StateSpPool;
 
   private:
@@ -115,14 +114,14 @@ class RemoteQueue {
         // Insertion time.  Do not
         // retransmit past 'deduplication'
         // timeout.
-        bsl::shared_ptr<mwcu::AtomicState> d_state_sp;
+        bsl::shared_ptr<bmqu::AtomicState> d_state_sp;
 
         PutMessage(mqbi::QueueHandle*                  handle,
                    const bmqp::PutHeader&              header,
                    const bsl::shared_ptr<bdlbb::Blob>& appData,
                    const bsl::shared_ptr<bdlbb::Blob>& options,
                    bsls::Types::Int64                  time,
-                   bsl::shared_ptr<mwcu::AtomicState>& state);
+                   bsl::shared_ptr<bmqu::AtomicState>& state);
 
         ~PutMessage();
     };
@@ -160,7 +159,7 @@ class RemoteQueue {
 
     /// Must be a container in which iteration order is same as insertion
     /// order.
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  PutMessage,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         Puts;
@@ -173,7 +172,7 @@ class RemoteQueue {
     ///  1.  Opened and with an available upstream.  Send.
     ///  2.  Opened and without an available upstream.  Buffer.
     ///  3.  Not opened.  Drop.
-    typedef mwcc::Array<SubStreamContext,
+    typedef bmqc::Array<SubStreamContext,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         SubQueueIds;
 
@@ -302,7 +301,7 @@ class RemoteQueue {
     void sendPutMessage(const bmqp::PutHeader&                    putHeader,
                         const bsl::shared_ptr<bdlbb::Blob>&       appData,
                         const bsl::shared_ptr<bdlbb::Blob>&       options,
-                        const bsl::shared_ptr<mwcu::AtomicState>& state,
+                        const bsl::shared_ptr<bmqu::AtomicState>& state,
                         bsls::Types::Uint64                       genCount);
 
     void sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
@@ -475,7 +474,7 @@ class RemoteQueue {
 
     /// Load into the specified `out` object the internal details about this
     /// queue.
-    void loadInternals(mqbcmd::RemoteQueue* out) const;
+    void                     loadInternals(mqbcmd::RemoteQueue* out) const;
     const bmqt::MessageGUID& resumePoint() const;
 };
 
@@ -519,7 +518,7 @@ inline RemoteQueue::PutMessage::PutMessage(
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bsl::shared_ptr<bdlbb::Blob>& options,
     bsls::Types::Int64                  time,
-    bsl::shared_ptr<mwcu::AtomicState>& state)
+    bsl::shared_ptr<bmqu::AtomicState>& state)
 : d_handle(handle)
 , d_header(header)
 , d_appData(appData)

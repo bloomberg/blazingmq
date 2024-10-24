@@ -54,12 +54,11 @@
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <ball_logthrottle.h>
@@ -255,17 +254,17 @@ unsigned int ClusterQueueHelper::getNextQueueId()
     unsigned int res = d_nextQueueId++;
 
     if (d_nextQueueId == bsl::numeric_limits<unsigned int>::max() / 2) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_cluster_p->description()
             << " nextQueueId for cluster is at 50% capacity, please schedule a"
-            << " bounce of this broker." << MWCTSK_ALARMLOG_END;
+            << " bounce of this broker." << BMQTSK_ALARMLOG_END;
     }
     else if (d_nextQueueId ==
              bsl::numeric_limits<unsigned int>::max() / 10 * 9) {
-        MWCTSK_ALARMLOG_PANIC("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE")
             << d_cluster_p->description()
             << " nextQueueId for cluster is at 90% capacity, please urgently "
-            << "schedule a bounce of this broker." << MWCTSK_ALARMLOG_END;
+            << "schedule a bounce of this broker." << BMQTSK_ALARMLOG_END;
     }
     else if (d_nextQueueId == 0 ||
              d_nextQueueId >= bmqp::QueueId::k_RESERVED_QUEUE_ID) {
@@ -305,19 +304,19 @@ unsigned int ClusterQueueHelper::getNextSubQueueId(OpenQueueContext* context)
 
     if (queueInfo->d_nextSubQueueId ==
         bsl::numeric_limits<unsigned int>::max() / 2) {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_cluster_p->description() << " nextSubQueueId for queue "
             << context->d_queueContext_p->uri()
             << " in cluster is at 50% capacity, please schedule a bounce of"
-            << " this broker." << MWCTSK_ALARMLOG_END;
+            << " this broker." << BMQTSK_ALARMLOG_END;
     }
     else if (queueInfo->d_nextSubQueueId ==
              bsl::numeric_limits<unsigned int>::max() / 10 * 9) {
-        MWCTSK_ALARMLOG_PANIC("CLUSTER_STATE")
+        BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE")
             << d_cluster_p->description() << " nextSubQueueId for queue "
             << context->d_queueContext_p->uri()
             << " in cluster is at 90% capacity, please urgently schedule a"
-            << " bounce of this broker." << MWCTSK_ALARMLOG_END;
+            << " bounce of this broker." << BMQTSK_ALARMLOG_END;
     }
     else if (queueInfo->d_nextSubQueueId == 0 ||
              (queueInfo->d_nextSubQueueId >=
@@ -756,7 +755,7 @@ void ClusterQueueHelper::onQueueContextAssigned(
     BSLS_ASSERT_SAFE(isQueueAssigned(*(queueContext.get())));
 
     const int          pid = queueContext->partitionId();
-    mwcu::MemOutStream logMsg(d_allocator_p);
+    bmqu::MemOutStream logMsg(d_allocator_p);
     logMsg << d_cluster_p->description() << ": ";
 
     if (d_cluster_p->isRemote()) {
@@ -1057,7 +1056,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
 #define CALLBACK_FAILURE(CAT, RC, MSG)                                        \
     do {                                                                      \
         bdlma::LocalSequentialAllocator<128> localAllocator(d_allocator_p);   \
-        mwcu::MemOutStream                   os(&localAllocator);             \
+        bmqu::MemOutStream                   os(&localAllocator);             \
         os << MSG;                                                            \
                                                                               \
         bmqp_ctrlmsg::Status failure;                                         \
@@ -1460,11 +1459,11 @@ void ClusterQueueHelper::onReopenQueueResponse(
             // case, alarm, perform any book-keeping and return.  This error is
             // non-recoverable.
 
-            MWCTSK_ALARMLOG_ALARM("QUEUE_REOPEN_FAILURE")
+            BMQTSK_ALARMLOG_ALARM("QUEUE_REOPEN_FAILURE")
                 << d_cluster_p->description()
                 << ": error while reopening queue [" << req
                 << ", response: " << requestContext->response() << "]"
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             // Mark the queue's subStream as 'not opened', so that queue
             // does not issue further reopen-queue request for it.
@@ -1516,7 +1515,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
                              .reopenRetryIntervalMs()
                       << " milliseconds.";
 
-        bsls::TimeInterval after(mwcsys::Time::nowMonotonicClock());
+        bsls::TimeInterval after(bmqsys::Time::nowMonotonicClock());
         after.addMilliseconds(d_clusterData_p->clusterConfig()
                                   .queueOperations()
                                   .reopenRetryIntervalMs());
@@ -1980,7 +1979,7 @@ bool ClusterQueueHelper::createQueue(
                   << context.d_handleParameters << "]";
 
     mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
-        new (*d_allocator_p) mqbi::QueueHandle*(0),
+        new (*d_allocator_p) mqbi::QueueHandle * (0),
         bdlf::BindUtil::bind(
             &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
             this,
@@ -1989,7 +1988,7 @@ bool ClusterQueueHelper::createQueue(
         d_allocator_p);
 
     bdlma::LocalSequentialAllocator<1024>      la(d_allocator_p);
-    mwcu::MemOutStream                         errorDescription(&la);
+    bmqu::MemOutStream                         errorDescription(&la);
     bmqp_ctrlmsg::Status                       status;
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
@@ -4148,7 +4147,7 @@ void ClusterQueueHelper::onQueueAssigned(
                 // but queueKey specified in the advisory is present in the
                 // 'queueKeys' data structure.
 
-                MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                     << d_cluster_p->description()
                     << ": attempting to apply queue assignment for a known but"
                     << " unassigned queue, but queueKey is not unique. "
@@ -4156,7 +4155,7 @@ void ClusterQueueHelper::onQueueAssigned(
                     << "], Partition [" << info.partitionId()
                     << "]. Current leader is: '" << leaderDescription
                     << "'. Ignoring this entry in the advisory."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
 
@@ -4179,13 +4178,13 @@ void ClusterQueueHelper::onQueueAssigned(
         if (false == insertRc.second) {
             // QueueKey is not unique.
 
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": attempting to apply queue assignment for an unknown "
                 << "queue [" << info.uri() << "] assigned to Partition ["
                 << info.partitionId() << "], but queueKey [" << info.key()
                 << "] is not unique. Current leader is: '" << leaderDescription
-                << "'. Ignoring this assignment." << MWCTSK_ALARMLOG_END;
+                << "'. Ignoring this assignment." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -4472,8 +4471,8 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
         }
     }
 
-    mwcu::Printer<AppIdInfos> printer1(&addedAppIds);
-    mwcu::Printer<AppIdInfos> printer2(&removedAppIds);
+    bmqu::Printer<AppIdInfos> printer1(&addedAppIds);
+    bmqu::Printer<AppIdInfos> printer2(&removedAppIds);
     BALL_LOG_INFO << d_cluster_p->description() << ": Updated queue: " << uri
                   << ", addedAppIds: " << printer1
                   << ", removedAppIds: " << printer2;
@@ -4676,7 +4675,7 @@ void ClusterQueueHelper::openQueue(
         }
         const int pid = queueContextIt->second->partitionId();
         if (!isSelfAvailablePrimary(pid)) {
-            mwcu::MemOutStream errorDesc;
+            bmqu::MemOutStream errorDesc;
             errorDesc << "Not the primary for partitionId [" << pid << "]";
             reason    = errorDesc.str();
             errorCode = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
@@ -4953,11 +4952,11 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
     if (bmqp::QueueUtil::isEmpty(handleParams)) {
         // This code path is not expected to bit hit, so protect against it,
         // and alarm for investigation.
-        MWCTSK_ALARMLOG_ALARM("INVALID_OPENQUEUE_REQ")
+        BMQTSK_ALARMLOG_ALARM("INVALID_OPENQUEUE_REQ")
             << d_cluster_p->description()
             << ": Rejecting invalid openQueueRequest from '"
             << requester->description() << "': " << request
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
 
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
@@ -6201,7 +6200,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
     }
 
     bsls::Types::Int64 currentTimestampMs =
-        mwcsys::Time::highResolutionTimer() / bdlt::TimeUnitRatio::k_NS_PER_MS;
+        bmqsys::Time::highResolutionTimer() / bdlt::TimeUnitRatio::k_NS_PER_MS;
 
     bdlma::LocalSequentialAllocator<512> vecAlloc(d_allocator_p);
     bsl::vector<QueueContextMapIter>     queuesToGc(&vecAlloc);
@@ -6348,11 +6347,11 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
         // QueueUnassignedAdvisory.
 
         if (!d_primaryNotLeaderAlarmRaised) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description() << " Cannot gc "
                 << queuesToGc.size() << " expired queues "
                 << "since primary and leader nodes are different."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
 
             d_primaryNotLeaderAlarmRaised = true;
         }
@@ -6439,7 +6438,7 @@ void ClusterQueueHelper::loadQueuesInfo(mqbcmd::StorageContent* out) const
          ++it) {
         queuesInfo.resize(queuesInfo.size() + 1);
         mqbcmd::StorageQueueInfo& queueInfo = queuesInfo.back();
-        mwcu::MemOutStream        os;
+        bmqu::MemOutStream        os;
         os << it->second->key();
         queueInfo.queueKey()        = os.str();
         queueInfo.partitionId()     = it->second->partitionId();
@@ -6514,7 +6513,7 @@ void ClusterQueueHelper::loadState(
         }
 
         clusterQueue.partitionId() = pid;
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         if (pid != mqbs::DataStore::k_INVALID_PARTITION_ID) {
             mqbnet::ClusterNode* primary =
                 d_clusterState_p->partition(pid).primaryNode();

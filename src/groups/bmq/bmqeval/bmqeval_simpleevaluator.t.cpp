@@ -26,7 +26,7 @@
 #endif
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_sstream.h>
@@ -79,7 +79,7 @@ class MockPropertiesReader : public PropertiesReader {
 #ifdef BSLS_PLATFORM_OS_LINUX
 static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
 
     bdlma::LocalSequentialAllocator<2048> localAllocator;
     MockPropertiesReader                  reader(&localAllocator);
@@ -102,7 +102,7 @@ static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
 #else
 static void testN1_SimpleEvaluator()
 {
-    mwctst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
+    bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
     PV("GoogleBenchmark is not supported on this platform, skipping...")
 }
 #endif
@@ -113,7 +113,7 @@ static void testN1_SimpleEvaluator()
 
 static bsl::string makeTooManyOperators()
 {
-    mwcu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(s_allocator_p);
 
     for (size_t i = 0; i < SimpleEvaluator::k_MAX_OPERATORS + 1; ++i) {
         os << "!";
@@ -126,7 +126,7 @@ static bsl::string makeTooManyOperators()
 
 static bsl::string makeTooLongExpression()
 {
-    mwcu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(s_allocator_p);
 
     // Note that we want to create `k_STACK_SIZE` nested NOT objects in AST,
     // and when we call destructor chain for all these objects, we'll need
@@ -552,14 +552,14 @@ static void test3_evaluation()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
     case 3: test3_evaluation(); break;
     case 2: test2_propertyNames(); break;
     case 1: test1_compilationErrors(); break;
-    case -1: MWC_BENCHMARK(testN1_SimpleEvaluator); break;
+    case -1: BMQTST_BENCHMARK(testN1_SimpleEvaluator); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
@@ -573,5 +573,5 @@ int main(int argc, char* argv[])
     }
 #endif
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

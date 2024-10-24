@@ -548,12 +548,9 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>  // for 'bmqa::SessionEventHandler'
-
+#include <bmqst_statcontext.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_sessionoptions.h>
-
-// MWC
-#include <mwcst_statcontext.h>
 
 // BDE
 #include <ball_log.h>
@@ -791,16 +788,16 @@ class MockSession : public AbstractSession {
   private:
     // CONSTANTS
 
-    /// Constant representing the maximum size of a `mwcc::TwoKeyHashMap`
-    /// object, so that the below AlignedBuffer is big enough.  No `mwc`
+    /// Constant representing the maximum size of a `bmqc::TwoKeyHashMap`
+    /// object, so that the below AlignedBuffer is big enough.  No `bmqc`
     /// headers can be included in `bmq` public headers, to prevent build
     /// time dependency.
-    static const int k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP = 256;
+    static const int k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP = 256;
 
     // PRIVATE TYPES
 
     /// Aligned buffer holding the two key hash map
-    typedef bsls::AlignedBuffer<k_MAX_SIZEOF_MWCC_TWOKEYHASHMAP>
+    typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP>
         TwoKeyHashMapBuffer;
 
     /// Cast for bmqimp::Queue to access internal data
@@ -1043,7 +1040,7 @@ class MockSession : public AbstractSession {
     mutable bslmt::Mutex d_mutex;
 
     /// Top level stat context for this mocked Session.
-    mwcst::StatContext d_rootStatContext;
+    bmqst::StatContext d_rootStatContext;
 
     /// Stats for all queues
     StatImplSp d_queuesStats_sp;

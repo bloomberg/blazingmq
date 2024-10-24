@@ -30,7 +30,7 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_resultcode.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <baljsn_decoder.h>
@@ -59,7 +59,7 @@ void printMessage(bsl::ostream& out, int index, const bmqa::Message& message)
     bdlbb::Blob blob;
     message.getData(&blob);
     bdlbb::BlobUtilAsciiDumper dumpy(&blob);
-    mwcu::MemOutStream         ss;
+    bmqu::MemOutStream         ss;
     ss << dumpy;
 
     bslstl::StringRef blobBegin(ss.str().data(),
@@ -247,7 +247,7 @@ void Interactive::processCommand(const OpenQueueCommand& command)
     }
 
     // Parse and validate FLAGS
-    mwcu::MemOutStream  error;
+    bmqu::MemOutStream  error;
     bsls::Types::Uint64 flags = 0;
     rc = bmqt::QueueFlagsUtil::fromString(error, &flags, command.flags());
     if (rc != 0) {
@@ -782,9 +782,9 @@ void Interactive::processCommand(const LoadPostCommand& command)
     }
 
     // Load message content from the file
-    mwcu::MemOutStream payloadStream;
-    mwcu::MemOutStream propertiesStream;
-    mwcu::MemOutStream errorDescription;
+    bmqu::MemOutStream payloadStream;
+    bmqu::MemOutStream propertiesStream;
+    bmqu::MemOutStream errorDescription;
     if (!InputUtil::loadMessageFromFile(&payloadStream,
                                         &propertiesStream,
                                         &errorDescription,

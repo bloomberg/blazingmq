@@ -258,7 +258,7 @@ class RedeliveryList {
         Item();
     };
 
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  Item,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         Map;
@@ -364,8 +364,8 @@ struct QueueEngineUtil_AppState {
     bdlmt::EventSchedulerEventHandle d_throttleEventHandle;
     // EventHandle for poison pill message
     // throttling.
-    mqbu::StorageKey       d_appKey;
-    const bsl::string      d_appId;
+    mqbu::StorageKey  d_appKey;
+    const bsl::string d_appId;
 
     unsigned int d_upstreamSubQueueId;
 

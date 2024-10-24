@@ -24,9 +24,8 @@
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_guidutil.h>
@@ -47,7 +46,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -63,11 +62,11 @@ typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
 #endif
 
 struct Data {
-    bmqt::MessageGUID                    d_guid;
-    int                                  d_qid;
-    bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
+    bmqt::MessageGUID                  d_guid;
+    int                                d_qid;
+    bmqp::Protocol::SubQueueInfosArray d_subQueueInfos;
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    NullableMsgGroupId                   d_msgGroupId;
+    NullableMsgGroupId d_msgGroupId;
 #endif
     bdlbb::Blob                          d_payload;
     int                                  d_flags;
@@ -157,7 +156,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
     // PRECONDITIONS
     BSLS_ASSERT_OPT(msgGroupId);
 
-    mwcu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(s_allocator_p);
     oss << "gid:" << generateRandomInteger(0, 120);
     *msgGroupId = oss.str();
 }
@@ -221,8 +220,8 @@ appendMessage(size_t                    iteration,
     }
 #endif
 
-    bdlbb::Blob                      payload(bufferFactory, allocator);
-    const int                        blobSize = generateRandomInteger(0, 1024);
+    bdlbb::Blob payload(bufferFactory, allocator);
+    const int   blobSize = generateRandomInteger(0, 1024);
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId str(blobSize, 'x', allocator);
     bdlbb::BlobUtil::append(&payload, str.c_str(), blobSize);
@@ -269,7 +268,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
@@ -383,7 +382,7 @@ static void test2_buildEventBackwardsCompatibility()
 //   Backwards compatibility
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BACKWARDS COMPATIBILITY");
+    bmqtst::TestHelper::printTestName("BACKWARDS COMPATIBILITY");
 
     bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
@@ -498,7 +497,7 @@ static void test3_buildEventWithPackedOption()
 //   Packed Option
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PACKED OPTION");
+    bmqtst::TestHelper::printTestName("PACKED OPTION");
 
     bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
@@ -599,7 +598,7 @@ static void test4_buildEventWithMultipleMessages()
 // Build an event with multiple PUSH msgs. Iterate and verify
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BUILD EVENT WITH MULTIPLE MESSAGES");
+    bmqtst::TestHelper::printTestName("BUILD EVENT WITH MULTIPLE MESSAGES");
 
     // Create PushEventBuilder
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -700,7 +699,7 @@ static void test5_buildEventWithPayloadTooBig()
 //   Behavior when trying to add a message with a large payload.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PAYLOAD TOO BIG");
+    bmqtst::TestHelper::printTestName("PAYLOAD TOO BIG");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     const bmqt::MessageGUID        guid;
@@ -886,7 +885,7 @@ static void test7_buildEventOptionTooBig()
 //   Behavior of adding an option that is larger than the max allowed.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("OPTION TOO BIG TEST");
+    bmqtst::TestHelper::printTestName("OPTION TOO BIG TEST");
 
     bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
     int                                numSubQueueInfos;
@@ -1055,7 +1054,7 @@ static void test8_buildEventTooBig()
 //   maximum.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT TOO BIG");
+    bmqtst::TestHelper::printTestName("EVENT TOO BIG");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     const bmqt::MessageGUID        guid;
@@ -1132,7 +1131,7 @@ static void testN1_decodeFromFile()
 //      with expected properties and payload.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DECODE FROM FILE");
+    bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     const char  k_VALID_HEX_REP[] = "ABCDEF0123456789ABCDEF0123456789";
     const char* k_PAYLOAD         = "abcdefghijklmnopqrstuvwxyz";
@@ -1143,7 +1142,7 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    outBlob(&bufferFactory, s_allocator_p);
     bdlbb::Blob                    payloadBlob(&bufferFactory, s_allocator_p);
-    mwcu::MemOutStream             os(s_allocator_p);
+    bmqu::MemOutStream             os(s_allocator_p);
     bmqp::PushMessageIterator      pushIter(&bufferFactory, s_allocator_p);
     bmqt::MessageGUID              messageGUID;
     bdlb::Guid                     guid;
@@ -1220,9 +1219,9 @@ static void testN1_decodeFromFile()
 
     bmqp::MessageProperties prop(s_allocator_p);
     int                     res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          payloadBlob,
-                                         mwcu::BlobPosition(),
+                                         bmqu::BlobPosition(),
                                          k_PAYLOAD,
                                          k_PAYLOAD_LEN);
     ASSERT_EQ(0, res);
@@ -1240,7 +1239,7 @@ static void testN1_decodeFromFile()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD:
@@ -1278,5 +1277,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
