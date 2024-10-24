@@ -93,10 +93,14 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     // PRIVATE CONSTANTS
 
-    // Most likely number of records for each guid (one each of message,
-    // confirm & deletion record).  This number is correct for every queue
-    // except for the fanout one, which has more than 1 confirm records.
-    static const size_t k_MOST_LIKELY_NUM_RECORDS = 3;
+    // The most probable number of records for each guid for priority queue.
+    // Currently, the value is 2: one data record + one deletion record.
+    // With last confirm optimization, we don't write a last confirm, and don't
+    // count it here.
+    // For fanout queues, the expected number of records is more than this:
+    // one data record + (number of appIDs - 1) confirms + one deletion record,
+    // where -1 due to last confirm optimization.
+    static const size_t k_MOST_LIKELY_NUM_RECORDS = 2;
 
     // PRIVATE TYPES
     typedef bmqc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>

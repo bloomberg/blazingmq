@@ -1,4 +1,4 @@
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbs_inmemorystorage.t.cpp                                         -*-C++-*-
-#include <mqbs_inmemorystorage.h>
+// mqbs_filebackedstorage.t.cpp                                       -*-C++-*-
+#include <mqbs_filebackedstorage.h>
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
@@ -67,7 +67,7 @@ using namespace bsl;
 //-----------------------------------------------------------------------------
 // - breathingTest
 // - configure
-// - unsupportedOperations
+// - supportedOperations
 // - put_noVirtualStorage
 // - getMessageSize
 // - get_noVirtualStorages
@@ -87,6 +87,8 @@ using namespace bsl;
 //   capacityMeter_limitBytes
 // - garbageCollect
 // - addQueueOpRecordHandle
+// - doNotRecordLastConfirmInPriorityMode
+// - doNotRecordLastConfirmInFanoutMode
 //-----------------------------------------------------------------------------
 
 // ============================================================================
@@ -109,13 +111,13 @@ const char               k_APP_ID1[]            = "app1";
 const char               k_APP_ID2[]            = "app2";
 const char               k_APP_ID3[]            = "app3";
 
-const mqbu::StorageKey   k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_QUEUE_KEY(mqbu::StorageKey::HexRepresentation(),
                                    k_HEX_QUEUE);
-const mqbu::StorageKey   k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY1(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF1111");
-const mqbu::StorageKey   k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY2(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF2222");
-const mqbu::StorageKey   k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
+const mqbu::StorageKey k_APP_KEY3(mqbu::StorageKey::HexRepresentation(),
                                   "ABCDEF3333");
 
 // ALIASES
@@ -126,7 +128,7 @@ const bsls::Types::Int64 k_INT64_MAX =
 const mqbu::StorageKey k_NULL_KEY = mqbu::StorageKey::k_NULL_KEY;
 
 // FUNCTIONS
-static mqbconfm::Storage inMemoryStorageConfig()
+static mqbconfm::Storage fileBackedStorageConfig()
 {
     mqbconfm::Storage config;
     config.makeInMemory();
@@ -156,6 +158,311 @@ generateUniqueGUID(const bsl::vector<bmqt::MessageGUID>& guids)
 
 // CLASSES
 
+// ===================
+// class MockDataStore
+// ===================
+
+/// Minimal mock implementation of the `mqbs::DataStore` interface
+/// required by `mqbs::FileBackedStorage`.
+
+class MockDataStore : public mqbs::DataStore {
+  private:
+    // PRIVATE TYPES
+
+    typedef mqbs::DataStoreConfig::Records        Records;
+    typedef mqbs::DataStoreConfig::RecordIterator RecordIterator;
+    typedef bsl::pair<RecordIterator, bool>       InsertRc;
+
+  private:
+    // DATA
+    bslma::Allocator* d_allocator_p;
+
+    mqbs::DataStoreConfig      d_config;
+    mqbi::DispatcherClientData d_dispatcherClientData;
+    bsl::string                d_description;
+
+    Records d_records;
+
+    bsl::map<bsls::Types::Uint64, mqbi::StorageMessageAttributes> d_attributes;
+    bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_appData;
+    bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_options;
+
+    bsls::Types::Uint64 d_message_counter;
+    bsls::Types::Uint64 d_confirm_counter;
+    bsls::Types::Uint64 d_deletion_counter;
+
+  public:
+    MockDataStore(bslma::Allocator* allocator, int partitionId)
+    : d_allocator_p(allocator)
+    , d_attributes(allocator)
+    , d_appData(allocator)
+    , d_options(allocator)
+    {
+        d_message_counter  = 0ULL;
+        d_confirm_counter  = 0ULL;
+        d_deletion_counter = 0ULL;
+
+        d_config.setPartitionId(partitionId);
+    }
+
+    bsls::Types::Uint64 getMessageCounter() const { return d_message_counter; }
+
+    bsls::Types::Uint64 getConfirmCounter() const { return d_confirm_counter; }
+
+    bsls::Types::Uint64 getDeletionCounter() const
+    {
+        return d_deletion_counter;
+    }
+
+    int
+    writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
+                       mqbs::DataStoreRecordHandle*    handle,
+                       BSLS_ANNOTATION_UNUSED const bmqt::MessageGUID& guid,
+                       const bsl::shared_ptr<bdlbb::Blob>&             appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&             options,
+                       BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        d_message_counter++;
+
+        bsls::Types::Uint64          id             = d_message_counter;
+        bsls::Types::Uint64          sequenceNum    = id;
+        unsigned int                 primaryLeaseId = 0;
+        const mqbs::RecordType::Enum recType   = mqbs::RecordType::e_MESSAGE;
+        bsls::Types::Uint64          recOffset = id;
+        mqbs::DataStoreConfig::RecordIterator* iter =
+            reinterpret_cast<mqbs::DataStoreConfig::RecordIterator*>(handle);
+
+        InsertRc insertRc = d_records.insert(bsl::make_pair(
+            mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId),
+            mqbs::DataStoreRecord(recType, recOffset)));
+
+        // Needed for FileBackedStorage::gcExpiredMessages
+        insertRc.first->second.d_arrivalTimestamp =
+            attributes->arrivalTimestamp();
+
+        *iter = insertRc.first;
+
+        d_attributes.insert({id, *attributes});
+        d_appData.insert({id, appData});
+        d_options.insert({id, options});
+
+        return 0;
+    }
+
+    int writeConfirmRecord(mqbs::DataStoreRecordHandle*,
+                           const bmqt::MessageGUID&,
+                           const mqbu::StorageKey&,
+                           const mqbu::StorageKey&,
+                           bsls::Types::Uint64,
+                           mqbs::ConfirmReason::Enum) BSLS_KEYWORD_OVERRIDE
+    {
+        d_confirm_counter++;
+        return 0;
+    }
+
+    int writeDeletionRecord(const bmqt::MessageGUID&,
+                            const mqbu::StorageKey&,
+                            mqbs::DeletionRecordFlag::Enum,
+                            bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
+    {
+        d_deletion_counter++;
+        return 0;
+    }
+
+    void loadMessageAttributesRaw(
+        mqbi::StorageMessageAttributes*    buffer,
+        const mqbs::DataStoreRecordHandle& handle) const BSLS_KEYWORD_OVERRIDE
+    {
+        const mqbs::DataStoreConfig::RecordIterator& iter =
+            *reinterpret_cast<const mqbs::DataStoreConfig::RecordIterator*>(
+                &handle);
+        bsls::Types::Uint64 id = iter->second.d_recordOffset;
+
+        *buffer = d_attributes.at(id);
+    }
+
+    void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*      appData,
+                        bsl::shared_ptr<bdlbb::Blob>*      options,
+                        mqbi::StorageMessageAttributes*    attributes,
+                        const mqbs::DataStoreRecordHandle& handle) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        loadMessageAttributesRaw(attributes, handle);
+
+        const mqbs::DataStoreConfig::RecordIterator& iter =
+            *reinterpret_cast<const mqbs::DataStoreConfig::RecordIterator*>(
+                &handle);
+        bsls::Types::Uint64 id = iter->second.d_recordOffset;
+
+        *appData = d_appData.at(id);
+        *options = d_options.at(id);
+    }
+
+    mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE { return nullptr; }
+
+    mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE
+    {
+        return d_dispatcherClientData;
+    }
+
+    void onDispatcherEvent(const mqbi::DispatcherEvent&) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void flush() BSLS_KEYWORD_OVERRIDE {}
+
+    const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE
+    {
+        return nullptr;
+    }
+
+    const mqbi::DispatcherClientData&
+    dispatcherClientData() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_dispatcherClientData;
+    }
+
+    const bsl::string& description() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_description;
+    }
+
+    int open(const QueueKeyInfoMap&) BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void close(bool) BSLS_KEYWORD_OVERRIDE {}
+
+    void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
+                       const bmqt::Uri&,
+                       const mqbu::StorageKey&,
+                       mqbi::Domain*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    int writeQueueCreationRecord(mqbs::DataStoreRecordHandle*,
+                                 const bmqt::Uri&,
+                                 const mqbu::StorageKey&,
+                                 const AppIdKeyPairs&,
+                                 bsls::Types::Uint64,
+                                 bool) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    int writeQueuePurgeRecord(mqbs::DataStoreRecordHandle*,
+                              const mqbu::StorageKey&,
+                              const mqbu::StorageKey&,
+                              bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    int writeQueueDeletionRecord(mqbs::DataStoreRecordHandle*,
+                                 const mqbu::StorageKey&,
+                                 const mqbu::StorageKey&,
+                                 bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint&,
+                             mqbs::SyncPointType::Enum) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    int removeRecord(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    void
+    removeRecordRaw(const mqbs::DataStoreRecordHandle&) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
+                             bool,
+                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>&)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    void processReceiptEvent(unsigned int,
+                             bsls::Types::Uint64,
+                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    int issueSyncPoint() BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void setActivePrimary(mqbnet::ClusterNode*,
+                          unsigned int) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
+
+    void dispatcherFlush(bool, bool) BSLS_KEYWORD_OVERRIDE {}
+
+    bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config;
+    }
+
+    unsigned int clusterSize() const BSLS_KEYWORD_OVERRIDE { return 1U; }
+
+    bsls::Types::Uint64 numRecords() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_attributes.size();
+    }
+
+    void loadMessageRecordRaw(mqbs::MessageRecord*,
+                              const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void loadConfirmRecordRaw(mqbs::ConfirmRecord*,
+                              const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void loadDeletionRecordRaw(mqbs::DeletionRecord*,
+                               const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void loadQueueOpRecordRaw(mqbs::QueueOpRecord*,
+                              const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    unsigned int getMessageLenRaw(const mqbs::DataStoreRecordHandle&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return sizeof(int);
+    }
+
+    unsigned int primaryLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0U; }
+
+    bool
+    hasReceipt(const mqbs::DataStoreRecordHandle&) const BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
+};
+
 // =============
 // struct Tester
 // =============
@@ -177,6 +484,7 @@ struct Tester {
     bslma::ManagedPtr<mqbs::ReplicatedStorage> d_replicatedStorage_mp;
     Records                                    d_records;
     bslma::Allocator*                          d_allocator_p;
+    MockDataStore                              d_dataStore;
 
   public:
     // CREATORS
@@ -193,6 +501,7 @@ struct Tester {
     , d_replicatedStorage_mp()
     , d_records(allocator)
     , d_allocator_p(allocator)
+    , d_dataStore(allocator, partitionId)
     {
         d_mockDomain.capacityMeter()->setLimits(k_INT64_MAX, k_INT64_MAX);
         d_mockQueue._setQueueEngine(&d_mockQueueEngine);
@@ -201,14 +510,15 @@ struct Tester {
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = ttlSeconds;
 
-        d_replicatedStorage_mp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+        d_replicatedStorage_mp.load(
+            new (*d_allocator_p)
+                mqbs::FileBackedStorage(&d_dataStore,
                                         bmqt::Uri(uri, s_allocator_p),
                                         queueKey,
-                                        partitionId,
                                         domainCfg,
                                         d_mockDomain.capacityMeter(),
                                         d_allocator_p),
-                                    d_allocator_p);
+            d_allocator_p);
 
         d_replicatedStorage_mp->setQueue(&d_mockQueue);
         BSLS_ASSERT_OPT(d_replicatedStorage_mp->queue() == &d_mockQueue);
@@ -335,6 +645,8 @@ struct Tester {
         recordItRef = insertRc.first;
     }
 
+    const MockDataStore& dataStore() { return d_dataStore; }
+
   private:
     // NOT IMPLEMENTED
     Tester(const Tester&) BSLS_KEYWORD_DELETED;
@@ -345,8 +657,8 @@ struct Tester {
 // struct Test
 // ===========
 
-/// Fixture instantiating a tester of `mqbs::InMemoryStorage` having already
-/// configured the storage with an InMemoryStorage configuration.
+/// Fixture instantiating a tester of `mqbs::FileBackedStorage` having already
+/// configured the storage with an FileBackedStorage configuration.
 struct Test : bmqtst::Test {
     // PUBLIC DATA
     Tester d_tester;
@@ -391,7 +703,7 @@ TEST(breathingTest)
 //   Probe that functionality to discover basic errors.
 //
 //  Testing:
-//   - Default constructor 'mqbs::InMemoryStorage'
+//   - Default constructor 'mqbs::FileBackedStorage'
 //   - setQueue(...)
 // ------------------------------------------------------------------------
 {
@@ -404,7 +716,7 @@ TEST(breathingTest)
     ASSERT_EQ(storage.queueUri().asString(), k_URI_STR);
     ASSERT_EQ(storage.queueKey(), k_QUEUE_KEY);
     ASSERT_EQ(storage.config(), mqbconfm::Storage());
-    ASSERT_EQ(storage.isPersistent(), false);
+    ASSERT_EQ(storage.isPersistent(), true);
     ASSERT_EQ(storage.numMessages(k_NULL_KEY), k_INT64_ZERO);
     ASSERT_EQ(storage.numBytes(k_NULL_KEY), k_INT64_ZERO);
     ASSERT_EQ(storage.isEmpty(), true);
@@ -423,9 +735,9 @@ TEST(configure)
 // CONFIGURE
 //
 // Concerns:
-//   1. Configuring for the first time using an InMemoryStorage
+//   1. Configuring for the first time using an FileBackedStorage
 //      configuration and limits should succeed.
-//   2. Attempting to configure an already configured InMemoryStorage
+//   2. Attempting to configure an already configured FileBackedStorage
 //      should be allowed.
 //
 //  Testing:
@@ -441,54 +753,82 @@ TEST(configure)
     mqbs::ReplicatedStorage& storage = tester.storage();
 
     ASSERT_EQ(storage.capacityMeter()->byteCapacity(), k_DEFAULT_BYTES);
-    ASSERT_EQ(storage.config(), inMemoryStorageConfig());
+    ASSERT_EQ(storage.config(), fileBackedStorageConfig());
 
     ASSERT_EQ(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES + 5), 0);
     ASSERT_EQ(storage.capacityMeter()->byteCapacity(), k_DEFAULT_BYTES + 5);
-    ASSERT_EQ(storage.config(), inMemoryStorageConfig());
+    ASSERT_EQ(storage.config(), fileBackedStorageConfig());
 }
 
-TEST_F(Test, unsupportedOperations)
+TEST_F(Test, supportedOperations)
 // ------------------------------------------------------------------------
-// UNSUPPORTED OPERATIONS
+// SUPPORTED OPERATIONS
 //
 // Concerns:
-//   A 'mqbs::InMemoryStorage' implements, but does not adhere to, some
-//   operations declared in its interface, in the sense that these methods
-//   fail to execute.
-//     - A noteworthy example is the implementation of the
-//       'mqbs::ReplicatedStorage' protocol - all methods provided in the
-//       protocol are also provided in 'mqbs::InMemoryStorage', but
-//       attempting to perform the corresponding 'store<type>Record' and
-//       'purge' operations fails.
+//   A 'mqbs::FileBackedStorage' implements ReplicatedStorage interface.
 //
 // Testing:
-//   storeMessageRecord(...)
-//   storeConfirmRecord(...)
-//   storeDeletionRecord(...)
+//   processMessageRecord(...)
+//   processConfirmRecord(...)
+//   processDeletionRecord(...)
 //   purge(...)
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("UNSUPPORTED OPRATIONS");
+    bmqtst::TestHelper::printTestName("SUPPORTED OPRATIONS");
 
-    bmqt::MessageGUID guid;
+    bmqt::MessageGUID guid = generateRandomGUID();
     mqbu::StorageKey  appKey;
     unsigned int      msgLen   = 0;
-    unsigned int      refCount = 0;
+    unsigned int      refCount = 1;
+
+    // CONSTANTS
+    const int                 k_PRIMARY_LEASE_ID = 17;
+    const bsls::Types::Uint64 k_RECORD_OFFSET    = 4096;
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
 
-    mqbs::DataStoreRecordHandle handle;
+    {
+        const bsls::Types::Uint64    k_SEQUENCE_NUM = 1024;
+        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        const mqbs::RecordType::Enum k_RECORD_TYPE =
+            mqbs::RecordType::e_MESSAGE;
+        mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
+        mqbs::DataStoreRecordHandle handle;
+        d_tester.insertDataStoreRecord(&handle, key, record);
 
-    ASSERT_OPT_FAIL(
-        storage.processMessageRecord(guid, msgLen, refCount, handle));
-    ASSERT_OPT_FAIL(
-        storage.processConfirmRecord(guid,
-                                     appKey,
-                                     mqbs::ConfirmReason::e_CONFIRMED,
-                                     handle));
-    ASSERT_OPT_FAIL(storage.processDeletionRecord(guid));
-    ASSERT_OPT_FAIL(storage.purge(appKey));
+        ASSERT_OPT_PASS(
+            storage.processMessageRecord(guid, msgLen, refCount, handle));
+    }
+
+    {
+        const bsls::Types::Uint64    k_SEQUENCE_NUM = 1025;
+        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        const mqbs::RecordType::Enum k_RECORD_TYPE =
+            mqbs::RecordType::e_CONFIRM;
+        mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
+        mqbs::DataStoreRecordHandle handle;
+        d_tester.insertDataStoreRecord(&handle, key, record);
+
+        ASSERT_OPT_PASS(
+            storage.processConfirmRecord(guid,
+                                         appKey,
+                                         mqbs::ConfirmReason::e_CONFIRMED,
+                                         handle));
+    }
+
+    {
+        const bsls::Types::Uint64    k_SEQUENCE_NUM = 1026;
+        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        const mqbs::RecordType::Enum k_RECORD_TYPE =
+            mqbs::RecordType::e_DELETION;
+        mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
+        mqbs::DataStoreRecordHandle handle;
+        d_tester.insertDataStoreRecord(&handle, key, record);
+
+        ASSERT_OPT_PASS(storage.processDeletionRecord(guid));
+    }
+
+    ASSERT_OPT_PASS(storage.purge(appKey));
 }
 
 TEST_F(Test, put_noVirtualStorage)
@@ -497,7 +837,7 @@ TEST_F(Test, put_noVirtualStorage)
 //
 // Testing:
 //   Verifies the 'put' operation in absence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PUT - WITH NO VIRTUAL STORAGES");
@@ -572,7 +912,7 @@ TEST_F(Test, get_noVirtualStorages)
 //
 // Testing:
 //   Verifies the 'get' operation in absence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("GET - WITH NO VIRTUAL STORAGES");
@@ -634,7 +974,7 @@ TEST_F(Test, remove_messageNotFound)
 // Remove Messages Test
 //
 // Testing:
-//   Verifies the 'remove' in a 'mqbs::InMemoryStorage'. Check GUIDs that
+//   Verifies the 'remove' in a 'mqbs::FileBackedStorage'. Check GUIDs that
 //   in storage as well as GUID not in storage
 // ------------------------------------------------------------------------
 {
@@ -656,7 +996,7 @@ TEST_F(Test, removeMessage)
 // Remove Messages Test
 //
 // Testing:
-//   Verifies the 'remove' in a 'mqbs::InMemoryStorage'. Check GUIDs that
+//   Verifies the 'remove' in a 'mqbs::FileBackedStorage'. Check GUIDs that
 //   in storage as well as GUID not in storage
 // ------------------------------------------------------------------------
 {
@@ -695,7 +1035,7 @@ TEST_F(Test, addVirtualStorage)
 //
 // Testing:
 //   Verifies the add operation for virtual storage in a
-//   'mqbs::InMemoryStorage'.
+//   'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("ADD VIRTUAL STORAGE");
@@ -760,7 +1100,7 @@ TEST_F(Test, removeVirtualStorage)
 //
 // Testing:
 //   Verifies the remove operation for virtual storage
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("REMOVE VIRTUAL STORAGE");
@@ -793,7 +1133,7 @@ TEST(put_withVirtualStorages)
 //
 // Testing:
 //   Verifies the 'put' operation in presense of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PUT - WITH VIRTUAL STORAGES");
@@ -804,7 +1144,7 @@ TEST(put_withVirtualStorages)
 
     bmqu::MemOutStream errDescription(s_allocator_p);
 
-    Tester tester(s_allocator_p, k_PARTITION_ID);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -861,7 +1201,7 @@ TEST(removeAllMessages_appKeyNotFound)
 //
 // Testing:
 //   Verifies the 'removeAll' in a presence of multiple storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 
 {
@@ -873,7 +1213,7 @@ TEST(removeAllMessages_appKeyNotFound)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(s_allocator_p, k_PARTITION_ID);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -912,7 +1252,7 @@ TEST(removeAllMessages)
 //
 // Testing:
 //   Verifies the 'removeAll' in a presence of multiple storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 
 {
@@ -977,7 +1317,7 @@ TEST(get_withVirtualStorages)
 //
 // Testing:
 //   Verifies the 'get' operation in presence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("Get - with Virtual Storage Test");
@@ -1003,9 +1343,6 @@ TEST(get_withVirtualStorages)
     // Check 'put'- To physical storage (StorageKeys = NULL)
     ASSERT_EQ(tester.addMessages(&guids, 20), mqbi::StorageResult::e_SUCCESS);
 
-    ASSERT_EQ(tester.addMessages(&guids, 20, 0, true),
-              mqbi::StorageResult::e_SUCCESS);
-
     // Verify 'get' operation
     mqbi::StorageMessageAttributes attributes;
     bsl::shared_ptr<bdlbb::Blob>   appData;
@@ -1015,7 +1352,7 @@ TEST(get_withVirtualStorages)
     // verify data
     ASSERT_EQ(storage.get(&attributes, guids[10]),
               mqbi::StorageResult::e_SUCCESS);
-    ASSERT_EQ(attributes.refCount(), 2U);
+    ASSERT_EQ(attributes.refCount(), 1U);
 
     // 'get' overload to grab data
     ASSERT_EQ(storage.get(&appData, &options, &attributes, guids[15]),
@@ -1024,7 +1361,7 @@ TEST(get_withVirtualStorages)
     ASSERT_EQ(attributes.arrivalTimestamp(),
               static_cast<bsls::Types::Uint64>(15));
     ASSERT_EQ(attributes.arrivalTimepoint(), 0LL);
-    ASSERT_EQ(attributes.refCount(), 2U);
+
     ASSERT(attributes.messagePropertiesInfo().isPresent());
     ASSERT_EQ(*(reinterpret_cast<int*>(appData->buffer(0).data())), 15);
 
@@ -1038,7 +1375,7 @@ TEST(confirm)
 //
 // Testing:
 //   Verifies the 'releaseRef' operation in presence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("RELEASE REF");
@@ -1061,17 +1398,22 @@ TEST(confirm)
     // 'get' operation to test references in message attributes.
     // We then use the releaseRef to check the decrease in refCount for the
     // particular message.
-    const int                k_MSG_COUNT    = 20;
+    const int  k_MSG_COUNT     = 20;
+    const int  dataOffset      = 0;
+    const bool useSameGuids    = false;
+    const int  defaultRefCount = 2;
+
     const bsls::Types::Int64 k_BYTE_PER_MSG = static_cast<bsls::Types::Int64>(
         sizeof(int));
 
     bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
 
     // Check 'put': To physical storage (StorageKeys = NULL)
-    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
-              mqbi::StorageResult::e_SUCCESS);
-
-    ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 0, true),
+    ASSERT_EQ(tester.addMessages(&guids,
+                                 k_MSG_COUNT,
+                                 dataOffset,
+                                 useSameGuids,
+                                 defaultRefCount),
               mqbi::StorageResult::e_SUCCESS);
 
     mqbi::StorageMessageAttributes attributes;
@@ -1088,7 +1430,7 @@ TEST(confirm)
 
     BSLS_ASSERT_OPT(storage.get(&attributes, guids[5]) ==
                     mqbi::StorageResult::e_SUCCESS);
-    ASSERT_EQ(attributes.refCount(), 1U);
+
     ASSERT_EQ(storage.numMessages(k_APP_KEY1), 19);
     ASSERT_EQ(storage.numBytes(k_APP_KEY1), 19 * k_BYTE_PER_MSG);
 
@@ -1098,12 +1440,12 @@ TEST(confirm)
 
     BSLS_ASSERT_OPT(storage.get(&attributes, guids[5]) ==
                     mqbi::StorageResult::e_SUCCESS);
-    ASSERT_EQ(attributes.refCount(), 1U);
+
     ASSERT_EQ(storage.numMessages(k_APP_KEY1), 19);
     ASSERT_EQ(storage.numBytes(k_APP_KEY1), 19 * k_BYTE_PER_MSG);
 
     // 'releaseRef' on the physical storage and verify refCount decreased to 0
-    ASSERT_EQ(storage.confirm(guids[5], k_NULL_KEY, 0),
+    ASSERT_EQ(storage.releaseRef(guids[5]),
               mqbi::StorageResult::e_ZERO_REFERENCES);
 
     BSLS_ASSERT_OPT(storage.removeAll(k_NULL_KEY) ==
@@ -1116,7 +1458,7 @@ TEST_F(Test, getIterator_noVirtualStorages)
 //
 // Testing:
 //   Verifies the iterator in absence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("Iterator- No virtual storages Test");
@@ -1187,7 +1529,7 @@ TEST(getIterator_withVirtualStorages)
 //
 // Testing:
 //   Verifies the iterator in presence of virtual storages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("Iterator Test- In presence of Virtual");
@@ -1289,7 +1631,7 @@ TEST_F(Test, capacityMeter_limitMessages)
 //
 // Testing:
 //   Verifies the capacity meter functionality with respect to
-//   limits on messages in a 'mqbs::InMemoryStorage'.
+//   limits on messages in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("Capacity Meter- Limit Messages");
@@ -1331,7 +1673,7 @@ TEST(capacityMeter_limitBytes)
 //
 // Testing:
 //   Verifies the capacity meter functionality with respect to
-//   limits on bytes in a 'mqbs::InMemoryStorage'.
+//   limits on bytes in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("Capacity Meter - Limit Bytes");
@@ -1339,7 +1681,7 @@ TEST(capacityMeter_limitBytes)
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
 
-    Tester tester(s_allocator_p, k_PARTITION_ID);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1372,7 +1714,7 @@ TEST(garbageCollect)
 //
 // Testing:
 //   Verifies the 'gc' functionality with respect to TTL of messages
-//   in a 'mqbs::InMemoryStorage'.
+//   in a 'mqbs::FileBackedStorage'.
 // ------------------------------------------------------------------------
 
 {
@@ -1382,7 +1724,7 @@ TEST(garbageCollect)
     // input
     const int k_TTL = 20;
 
-    Tester tester(s_allocator_p, k_PARTITION_ID);
+    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG,
                                      k_DEFAULT_BYTES,
@@ -1455,6 +1797,99 @@ TEST_F(Test, addQueueOpRecordHandle)
 
     ASSERT(storage.queueOpRecordHandles().size() == 1U);
     ASSERT(storage.queueOpRecordHandles()[0] == handle);
+}
+
+TEST_F(Test, doNotRecordLastConfirmInPriorityMode)
+{
+    bmqtst::TestHelper::printTestName(
+        "Do Not Record Last Confirm In Priority Mode");
+
+    const int                      k_MSG_COUNT = 1;
+    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+
+    const MockDataStore&     data_store = d_tester.dataStore();
+    mqbs::ReplicatedStorage& storage    = d_tester.storage();
+
+    ASSERT_EQ(data_store.getMessageCounter(), 0ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
+              mqbi::StorageResult::e_SUCCESS);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(storage.releaseRef(guids[0]),
+              mqbi::StorageResult::e_ZERO_REFERENCES);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 1ULL);
+}
+
+TEST_F(Test, doNotRecordLastConfirmInFanoutMode)
+{
+    bmqtst::TestHelper::printTestName(
+        "Do Not Record Last Confirm in Fanout Mode");
+    bmqu::MemOutStream errDescription(s_allocator_p);
+
+    const MockDataStore&     data_store = d_tester.dataStore();
+    mqbs::ReplicatedStorage& storage    = d_tester.storage();
+
+    ASSERT_EQ(storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1),
+              0);
+    ASSERT_EQ(storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2),
+              0);
+    ASSERT_EQ(storage.addVirtualStorage(errDescription, k_APP_ID3, k_APP_KEY3),
+              0);
+
+    const int                      k_MSG_COUNT     = 1;
+    const int                      dataOffset      = 0;
+    const bool                     useSameGuids    = false;
+    const int                      defaultRefCount = 3;
+    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 0ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(d_tester.addMessages(&guids,
+                                   k_MSG_COUNT,
+                                   dataOffset,
+                                   useSameGuids,
+                                   defaultRefCount),
+              mqbi::StorageResult::e_SUCCESS);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(storage.confirm(guids[0], k_APP_KEY1, 1),
+              mqbi::StorageResult::e_NON_ZERO_REFERENCES);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 1ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(storage.confirm(guids[0], k_APP_KEY2, 2),
+              mqbi::StorageResult::e_NON_ZERO_REFERENCES);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 2ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 0ULL);
+
+    ASSERT_EQ(storage.confirm(guids[0], k_APP_KEY3, 3),
+              mqbi::StorageResult::e_ZERO_REFERENCES);
+
+    int msgSize;
+    ASSERT_EQ(storage.remove(guids[0], &msgSize),
+              mqbi::StorageResult::e_SUCCESS);
+
+    ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
+    ASSERT_EQ(data_store.getConfirmCounter(), 2ULL);
+    ASSERT_EQ(data_store.getDeletionCounter(), 1ULL);
 }
 
 // ============================================================================
