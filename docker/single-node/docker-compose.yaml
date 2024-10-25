@@ -17,6 +17,9 @@ services:
       context: ../..
       dockerfile: docker/Dockerfile
     hostname: earth
+    depends_on:
+      bmqbrkr:
+        condition: service_started
     # This "service" will exit immediately. It's OK, this is a
     # container sitting on the same network as the single node, to be started
     # in interactive mode with `docker-compose run`
