@@ -2033,10 +2033,8 @@ void ClusterStateManager::processLeaderSyncDataQuery(
         }
 
         // Populate queues info
-        mqbc::ClusterUtil::loadQueuesInfo(
-            &leaderAdvisory.queues(),
-            *d_state_p,
-            d_clusterConfig.clusterAttributes().isCSLModeEnabled());
+        mqbc::ClusterUtil::loadQueuesInfo(&leaderAdvisory.queues(),
+                                          *d_state_p);
     }
     else {
         // Self is not available.

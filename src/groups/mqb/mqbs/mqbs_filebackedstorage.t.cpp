@@ -342,7 +342,7 @@ class MockDataStore : public mqbs::DataStore {
     int writeQueueCreationRecord(mqbs::DataStoreRecordHandle*,
                                  const bmqt::Uri&,
                                  const mqbu::StorageKey&,
-                                 const AppIdKeyPairs&,
+                                 const AppInfos&,
                                  bsls::Types::Uint64,
                                  bool) BSLS_KEYWORD_OVERRIDE
     {

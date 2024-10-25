@@ -1107,8 +1107,8 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                 return;  // RETURN
             }
 
-            bmqu::Printer<AppInfos> stateAppIdInfos(&qs->appInfos());
-            bmqu::Printer<AppInfos> storageAppIdInfos(&appInfos);
+            bmqu::Printer<AppInfos> stateAppInfos(&qs->appInfos());
+            bmqu::Printer<AppInfos> storageAppInfos(&appInfos);
 
             // PartitionId and/or QueueKey and/or AppInfos mismatch.
             if (!forceUpdate) {
@@ -1569,9 +1569,7 @@ void ClusterUtil::sendClusterState(
             &advisory.sequenceNumber());
 
         advisory.partitions() = partitions;
-        loadQueuesInfo(&advisory.queues(),
-                       clusterState,
-                       clusterData->cluster().isCSLModeEnabled());
+        loadQueuesInfo(&advisory.queues(), clusterState);
     }
     else if (sendPartitionPrimaryInfo) {
         bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory =
@@ -1591,9 +1589,7 @@ void ClusterUtil::sendClusterState(
         clusterData->electorInfo().nextLeaderMessageSequence(
             &advisory.sequenceNumber());
 
-        loadQueuesInfo(&advisory.queues(),
-                       clusterState,
-                       clusterData->cluster().isCSLModeEnabled());
+        loadQueuesInfo(&advisory.queues(), clusterState);
     }
 
     if (!clusterData->cluster().isCSLModeEnabled()) {
@@ -2200,8 +2196,7 @@ void ClusterUtil::loadPartitionsInfo(
 }
 
 void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
-                                 const ClusterState&                   state,
-                                 bool includeAppIds)
+                                 const ClusterState&                   state)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -2222,17 +2217,14 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
             BSLS_ASSERT_SAFE(!qCit->second->key().isNull());
             qCit->second->key().loadBinary(&queueInfo.key());
 
-            if (includeAppIds) {
-                for (AppInfosCIter appIdCit =
-                         qCit->second->appInfos().cbegin();
-                     appIdCit != qCit->second->appInfos().cend();
-                     ++appIdCit) {
-                    bmqp_ctrlmsg::AppIdInfo appIdInfo;
-                    appIdInfo.appId() = appIdCit->first;
-                    appIdCit->second.loadBinary(&appIdInfo.appKey());
+            for (AppInfosCIter appIdCit = qCit->second->appInfos().cbegin();
+                 appIdCit != qCit->second->appInfos().cend();
+                 ++appIdCit) {
+                bmqp_ctrlmsg::AppIdInfo appIdInfo;
+                appIdInfo.appId() = appIdCit->first;
+                appIdCit->second.loadBinary(&appIdInfo.appKey());
 
-                    queueInfo.appIds().push_back(appIdInfo);
-                }
+                queueInfo.appIds().push_back(appIdInfo);
             }
 
             out->push_back(queueInfo);

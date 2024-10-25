@@ -198,9 +198,7 @@ void ClusterStateManager::do_applyCSLSelf(const ClusterFSMArgsSp& args)
             return;  // RETURN
         }
 
-        ClusterUtil::loadQueuesInfo(&clusterStateSnapshot.queues(),
-                                    tempState,
-                                    true);  // includeAppIds
+        ClusterUtil::loadQueuesInfo(&clusterStateSnapshot.queues(), tempState);
     }
     else {
         // Verify that elector term in follower snapshot is less than the
@@ -1120,9 +1118,7 @@ int ClusterStateManager::loadClusterStateSnapshot(
     }
 
     mqbc::ClusterUtil::loadPartitionsInfo(&out->partitions(), tempState);
-    mqbc::ClusterUtil::loadQueuesInfo(&out->queues(),
-                                      tempState,
-                                      true);  // includeAppIds
+    mqbc::ClusterUtil::loadQueuesInfo(&out->queues(), tempState);
 
     return 0;
 }

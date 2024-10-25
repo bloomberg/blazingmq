@@ -518,8 +518,7 @@ struct Tester {
             d_cluster_mp->_state());
         mqbc::ClusterUtil::loadQueuesInfo(
             &response.clusterStateSnapshot().queues(),
-            d_cluster_mp->_state(),
-            true);  // includeAppIds
+            d_cluster_mp->_state());
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();

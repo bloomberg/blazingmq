@@ -392,8 +392,7 @@ struct ClusterUtil {
     /// `state`.  If the specified `includeAppIds` is true, then the appId
     /// info for the queues will be loaded as well.
     static void loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
-                               const ClusterState&                   state,
-                               bool includeAppIds);
+                               const ClusterState&                   state);
 
     /// Load into the specified `out` the list of peer nodes using the
     /// specified `clusterData`.
