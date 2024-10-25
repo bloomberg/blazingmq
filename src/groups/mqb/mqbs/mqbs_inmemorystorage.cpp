@@ -60,9 +60,14 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
 , d_uri(uri, allocator)
 , d_partitionId(partitionId)
 , d_config()
-, d_capacityMeter("queue [" + uri.asString() + "]",
-                  parentCapacityMeter,
-                  allocator)
+, d_capacityMeter(
+      "queue [" + uri.asString() + "]",
+      parentCapacityMeter,
+      allocator,
+      bdlf::BindUtil::bind(&InMemoryStorage::logAppsSubscriptionInfoCb,
+                           this,
+                           bdlf::PlaceHolders::_1)  // stream
+      )
 , d_items(bsls::TimeInterval()
               .addMilliseconds(config.deduplicationTimeMs())
               .totalNanoseconds(),
@@ -599,6 +604,25 @@ InMemoryStorage::queueOpRecordHandles() const
 bool InMemoryStorage::isStrongConsistency() const
 {
     return false;
+}
+
+bsl::ostream&
+InMemoryStorage::logAppsSubscriptionInfoCb(bsl::ostream& stream) const
+{
+    if (queue()) {
+        mqbi::Storage::AppIdKeyPairs appIdKeyPairs;
+        loadVirtualStorageDetails(&appIdKeyPairs);
+
+        for (mqbi::Storage::AppIdKeyPairs::const_iterator cit =
+                 appIdKeyPairs.begin();
+             cit != appIdKeyPairs.end();
+             ++cit) {
+            queue()->queueEngine()->logAppSubscriptionInfo(stream,
+                                                           cit->second);
+        }
+    }
+
+    return stream;
 }
 
 }  // close package namespace

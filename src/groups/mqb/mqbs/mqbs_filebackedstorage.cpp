@@ -118,9 +118,14 @@ FileBackedStorage::FileBackedStorage(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(config.messageTtl())
-, d_capacityMeter("queue [" + queueUri.asString() + "]",
-                  parentCapacityMeter,
-                  allocator)
+, d_capacityMeter(
+      "queue [" + queueUri.asString() + "]",
+      parentCapacityMeter,
+      allocator,
+      bdlf::BindUtil::bind(&FileBackedStorage::logAppsSubscriptionInfoCb,
+                           this,
+                           bdlf::PlaceHolders::_1)  // stream
+      )
 , d_handles(bsls::TimeInterval()
                 .addMilliseconds(config.deduplicationTimeMs())
                 .totalNanoseconds(),
@@ -1018,6 +1023,25 @@ void FileBackedStorage::clearSelection()
     d_autoConfirms.clear();
 
     d_currentlyAutoConfirming = bmqt::MessageGUID();
+}
+
+bsl::ostream&
+FileBackedStorage::logAppsSubscriptionInfoCb(bsl::ostream& stream) const
+{
+    if (queue()) {
+        mqbi::Storage::AppIdKeyPairs appIdKeyPairs;
+        loadVirtualStorageDetails(&appIdKeyPairs);
+
+        for (mqbi::Storage::AppIdKeyPairs::const_iterator cit =
+                 appIdKeyPairs.begin();
+             cit != appIdKeyPairs.end();
+             ++cit) {
+            queue()->queueEngine()->logAppSubscriptionInfo(stream,
+                                                           cit->second);
+        }
+    }
+
+    return stream;
 }
 
 }  // close package namespace
