@@ -637,6 +637,17 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 , d_currentMessage(0)
 , d_queue_p(queue)
 , d_timeDelta()
+, d_currentAppView_p(0)
+, d_visitVisitor(
+      bdlf::BindUtil::bindS(allocator,
+                            &QueueEngineUtil_AppsDeliveryContext::visit,
+                            this,
+                            bdlf::PlaceHolders::_1))
+, d_broadcastVisitor(bdlf::BindUtil::bindS(
+      allocator,
+      &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
+      this,
+      bdlf::PlaceHolders::_1))
 {
     BSLS_ASSERT_SAFE(queue);
 }
@@ -670,12 +681,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     if (d_queue_p->isDeliverAll()) {
         // collect all handles
-        app.routing()->iterateConsumers(
-            bdlf::BindUtil::bind(
-                &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
-                this,
-                bdlf::PlaceHolders::_1),
-            d_currentMessage);
+        app.routing()->iterateConsumers(d_broadcastVisitor, d_currentMessage);
 
         d_isReady = true;
 
@@ -708,13 +714,14 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     // mapped file, which can delay the unmapping of files in case this
     // message has a huge TTL and there are no consumers for this message.
 
-    Routers::Result result = app.selectConsumer(
-        bdlf::BindUtil::bind(&QueueEngineUtil_AppsDeliveryContext::visit,
-                             this,
-                             bdlf::PlaceHolders::_1,
-                             appView),
-        d_currentMessage,
-        ordinal);
+    d_currentAppView_p     = &appView;
+    Routers::Result result = app.selectConsumer(d_visitVisitor,
+                                                d_currentMessage,
+                                                ordinal);
+    // We use this pointer only from `d_visitVisitor`, so not cleaning it is
+    // okay, but we clean it to keep contract that `d_currentAppView_p` only
+    // points at the actual AppView.
+    d_currentAppView_p = NULL;
 
     if (result == Routers::e_SUCCESS) {
         // RootQueueEngine makes stat reports
@@ -749,14 +756,16 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
-    const Routers::Subscription* subscription,
-    const mqbi::AppMessage&      appView)
+    const Routers::Subscription* subscription)
 {
     BSLS_ASSERT_SAFE(subscription);
+    BSLS_ASSERT_SAFE(
+        d_currentAppView_p &&
+        "`d_currentAppView_p` must be assigned before calling this function");
 
     d_consumers[subscription->handle()].push_back(
         bmqp::SubQueueInfo(subscription->d_downstreamSubscriptionId,
-                           appView.d_rdaInfo));
+                           d_currentAppView_p->d_rdaInfo));
 
     return true;
 }
