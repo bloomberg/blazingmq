@@ -30,7 +30,7 @@
 #include <bslma_allocator.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -83,7 +83,7 @@ struct IterateAndInvokeHelper {
 
 static void test1_addFindRemove()
 {
-    mwctst::TestHelper::printTestName("ADD FIND REMOVE");
+    bmqtst::TestHelper::printTestName("ADD FIND REMOVE");
 
     bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
 
@@ -138,7 +138,7 @@ static void test1_addFindRemove()
 
 static void test2_iterateAndInvoke()
 {
-    mwctst::TestHelper::printTestName("ITERATE AND INVOKE");
+    bmqtst::TestHelper::printTestName("ITERATE AND INVOKE");
 
     bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
     IterateAndInvokeHelper                helper(s_allocator_p);
@@ -175,7 +175,7 @@ static void test2_iterateAndInvoke()
 
 static void test3_associate()
 {
-    mwctst::TestHelper::printTestName("ASSOCIATE");
+    bmqtst::TestHelper::printTestName("ASSOCIATE");
 
     bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
     IterateAndInvokeHelper                helper(s_allocator_p);
@@ -219,7 +219,7 @@ static void test3_associate()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -232,5 +232,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

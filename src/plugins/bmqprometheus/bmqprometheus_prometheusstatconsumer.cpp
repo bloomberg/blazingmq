@@ -24,12 +24,12 @@
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
-// MWC
-#include <mwcio_statchannelfactory.h>
-#include <mwcsys_statmonitor.h>
-#include <mwcsys_threadutil.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqio_statchannelfactory.h>
+#include <bmqsys_statmonitor.h>
+#include <bmqsys_threadutil.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -264,16 +264,16 @@ void PrometheusStatConsumer::captureQueueStats()
 {
     // Lookup the 'domainQueues' stat context
     // This is guaranteed to work because it was asserted in the ctor.
-    const mwcst::StatContext& domainsStatContext =
+    const bmqst::StatContext& domainsStatContext =
         *d_domainQueuesStatContext_p;
 
     typedef mqbstat::QueueStatsDomain::Stat Stat;  // Shortcut
 
-    for (mwcst::StatContextIterator domainIt =
+    for (bmqst::StatContextIterator domainIt =
              domainsStatContext.subcontextIterator();
          domainIt;
          ++domainIt) {
-        for (mwcst::StatContextIterator queueIt =
+        for (bmqst::StatContextIterator queueIt =
                  domainIt->subcontextIterator();
              queueIt;
              ++queueIt) {
@@ -359,8 +359,8 @@ void PrometheusStatConsumer::captureQueueStats()
                     {"queue_gc_msgs", Stat::e_GC_MSGS_DELTA, true},
                     {"queue_cfg_msgs", Stat::e_CFG_MSGS, false},
                     {"queue_cfg_bytes", Stat::e_CFG_BYTES, false},
-                    {"queue_content_msgs", Stat::e_MESSAGES_MAX, false},
-                    {"queue_content_bytes", Stat::e_BYTES_MAX, false},
+                    {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                    {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
                     {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
                     {"queue_reject_msgs", Stat::e_REJECT_DELTA, true},
@@ -390,35 +390,53 @@ void PrometheusStatConsumer::captureQueueStats()
                 }
             }
 
-            // Add `appId` tag to `queue_confirm_time_max` and
-            // `queue_queue_time_max` metrics.
-            static const DatapointDef confirmTimeDataPoint = {
-                "queue_confirm_time_max",
-                Stat::e_CONFIRM_TIME_MAX,
-                false};
-            static const DatapointDef queueTimeDataPoint = {
-                "queue_queue_time_max",
-                Stat::e_QUEUE_TIME_MAX,
-                false};
-            for (mwcst::StatContextIterator appIdIt =
+            // Add `appId` tag to metrics.
+
+            // These per-appId metrics exist for both primary and replica
+            static const DatapointDef defsCommon[] = {
+                {"queue_confirm_time_max", Stat::e_CONFIRM_TIME_MAX, false},
+            };
+
+            // These per-appId metrics exist only for primary
+            static const DatapointDef defsPrimary[] = {
+                {"queue_queue_time_max", Stat::e_QUEUE_TIME_MAX, false},
+                {"queue_content_msgs_max", Stat::e_MESSAGES_MAX, false},
+                {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
+            };
+            for (bmqst::StatContextIterator appIdIt =
                      queueIt->subcontextIterator();
                  appIdIt;
                  ++appIdIt) {
                 tagger.setAppId(appIdIt->name());
                 const auto labels = tagger.getLabels();
 
-                auto value = mqbstat::QueueStatsDomain::getValue(
-                    *appIdIt,
-                    d_snapshotId,
-                    mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX);
-                updateMetric(&confirmTimeDataPoint, labels, value);
+                for (DatapointDefCIter dpIt =
+                         bdlb::ArrayUtil::begin(defsCommon);
+                     dpIt != bdlb::ArrayUtil::end(defsCommon);
+                     ++dpIt) {
+                    const bsls::Types::Int64 value =
+                        mqbstat::QueueStatsDomain::getValue(
+                            *appIdIt,
+                            d_snapshotId,
+                            static_cast<mqbstat::QueueStatsDomain::Stat::Enum>(
+                                dpIt->d_stat));
+                    updateMetric(dpIt, labels, value);
+                }
 
                 if (role == mqbstat::QueueStatsDomain::Role::e_PRIMARY) {
-                    value = mqbstat::QueueStatsDomain::getValue(
-                        *appIdIt,
-                        d_snapshotId,
-                        mqbstat::QueueStatsDomain::Stat::e_QUEUE_TIME_MAX);
-                    updateMetric(&queueTimeDataPoint, labels, value);
+                    for (DatapointDefCIter dpIt =
+                             bdlb::ArrayUtil::begin(defsPrimary);
+                         dpIt != bdlb::ArrayUtil::end(defsPrimary);
+                         ++dpIt) {
+                        const bsls::Types::Int64 value =
+                            mqbstat::QueueStatsDomain::getValue(
+                                *appIdIt,
+                                d_snapshotId,
+                                static_cast<
+                                    mqbstat::QueueStatsDomain::Stat::Enum>(
+                                    dpIt->d_stat));
+                        updateMetric(dpIt, labels, value);
+                    }
                 }
             }
         }
@@ -435,7 +453,7 @@ void PrometheusStatConsumer::captureSystemStats()
 #define COPY_METRIC(TAIL, ACCESSOR)                                           \
     datapoints.emplace_back(                                                  \
         "brkr_system_" TAIL,                                                  \
-        mwcsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
+        bmqsys::StatMonitorUtil::ACCESSOR(*d_systemStatContext_p,             \
                                           d_snapshotId));
 
     COPY_METRIC("cpu_sys", cpuSystem);
@@ -475,9 +493,9 @@ void PrometheusStatConsumer::captureNetworkStats()
     const int k_NUM_NETWORK_STATS = 4;
     datapoints.reserve(k_NUM_NETWORK_STATS);
 
-    const mwcst::StatContext* localContext =
+    const bmqst::StatContext* localContext =
         d_channelsStatContext_p->getSubcontext("local");
-    const mwcst::StatContext* remoteContext =
+    const bmqst::StatContext* remoteContext =
         d_channelsStatContext_p->getSubcontext("remote");
     // NOTE: Should be StatController::k_CHANNEL_STAT_*, but can't due to
     //       dependency limitations.
@@ -488,10 +506,10 @@ void PrometheusStatConsumer::captureNetworkStats()
 
 #define RETRIEVE_METRIC(TAIL, STAT, CONTEXT)                                  \
     datapoints.emplace_back("brkr_system_net_" TAIL,                          \
-                            mwcio::StatChannelFactoryUtil::getValue(          \
+                            bmqio::StatChannelFactoryUtil::getValue(          \
                                 *CONTEXT,                                     \
                                 d_snapshotId,                                 \
-                                mwcio::StatChannelFactoryUtil::Stat::STAT));
+                                bmqio::StatChannelFactoryUtil::Stat::STAT));
 
     RETRIEVE_METRIC("local_in_bytes", e_BYTES_IN_DELTA, localContext);
     RETRIEVE_METRIC("local_out_bytes", e_BYTES_OUT_DELTA, localContext);
@@ -510,14 +528,14 @@ void PrometheusStatConsumer::captureNetworkStats()
     }
 
     auto reportConnections = [&](const bsl::string&        metricName,
-                                 const mwcst::StatContext* context) {
+                                 const bmqst::StatContext* context) {
         // In order to eliminate possible duplication of port contexts
         // aggregate them before posting
         bsl::unordered_map<bsl::string,
                            bsl::pair<bsls::Types::Int64, bsls::Types::Int64> >
             portMap;
 
-        mwcst::StatContextIterator it = context->subcontextIterator();
+        bmqst::StatContextIterator it = context->subcontextIterator();
         for (; it; ++it) {
             if (it->isDeleted()) {
                 // As we iterate over 'living' sub contexts in the begining and
@@ -530,20 +548,20 @@ void PrometheusStatConsumer::captureNetworkStats()
                 .Register(*d_prometheusRegistry_p)
                 .Add(tagger.getLabels())
                 .Increment(static_cast<double>(
-                    mwcio::StatChannelFactoryUtil::getValue(
+                    bmqio::StatChannelFactoryUtil::getValue(
                         *it,
                         d_snapshotId,
-                        mwcio::StatChannelFactoryUtil::Stat::
+                        bmqio::StatChannelFactoryUtil::Stat::
                             e_CONNECTIONS_DELTA)));
             ::prometheus::BuildGauge()
                 .Name("brkr_system_net_" + metricName)
                 .Register(*d_prometheusRegistry_p)
                 .Add(tagger.getLabels())
                 .Set(static_cast<
-                     double>(mwcio::StatChannelFactoryUtil::getValue(
+                     double>(bmqio::StatChannelFactoryUtil::getValue(
                     *it,
                     d_snapshotId,
-                    mwcio::StatChannelFactoryUtil::Stat::e_CONNECTIONS_ABS)));
+                    bmqio::StatChannelFactoryUtil::Stat::e_CONNECTIONS_ABS)));
         }
     };
 
@@ -580,7 +598,7 @@ void PrometheusStatConsumer::captureBrokerStats()
 
 void PrometheusStatConsumer::collectLeaders(LeaderSet* leaders)
 {
-    for (mwcst::StatContextIterator clusterIt =
+    for (bmqst::StatContextIterator clusterIt =
              d_clustersStatContext_p->subcontextIterator();
          clusterIt;
          ++clusterIt) {
@@ -596,9 +614,9 @@ void PrometheusStatConsumer::collectLeaders(LeaderSet* leaders)
 
 void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 {
-    const mwcst::StatContext& clustersStatContext = *d_clustersStatContext_p;
+    const bmqst::StatContext& clustersStatContext = *d_clustersStatContext_p;
 
-    for (mwcst::StatContextIterator clusterIt =
+    for (bmqst::StatContextIterator clusterIt =
              clustersStatContext.subcontextIterator();
          clusterIt;
          ++clusterIt) {
@@ -678,12 +696,12 @@ void PrometheusStatConsumer::captureClusterStats(const LeaderSet& leaders)
 void PrometheusStatConsumer::captureClusterPartitionsStats()
 {
     // Iterate over each cluster
-    for (mwcst::StatContextIterator clusterIt =
+    for (bmqst::StatContextIterator clusterIt =
              d_clustersStatContext_p->subcontextIterator();
          clusterIt;
          ++clusterIt) {
         // Iterate over each partition
-        for (mwcst::StatContextIterator partitionIt =
+        for (bmqst::StatContextIterator partitionIt =
                  clusterIt->subcontextIterator();
              partitionIt;
              ++partitionIt) {
@@ -742,11 +760,11 @@ void PrometheusStatConsumer::captureClusterPartitionsStats()
 
 void PrometheusStatConsumer::captureDomainStats(const LeaderSet& leaders)
 {
-    const mwcst::StatContext& domainsStatContext = *d_domainsStatContext_p;
+    const bmqst::StatContext& domainsStatContext = *d_domainsStatContext_p;
 
     typedef mqbstat::DomainStats::Stat Stat;  // Shortcut
 
-    for (mwcst::StatContextIterator domainIt =
+    for (bmqst::StatContextIterator domainIt =
              domainsStatContext.subcontextIterator();
          domainIt;
          ++domainIt) {
@@ -826,7 +844,7 @@ void PrometheusStatConsumer::setPublishInterval(
     setActionCounter();
 }
 
-const mwcst::StatContext*
+const bmqst::StatContext*
 PrometheusStatConsumer::getStatContext(const char* name) const
 {
     StatContextsMap::const_iterator cIt = d_contextsMap.find(name);
@@ -937,7 +955,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
     void prometheusPushThread()
     {
         // executed by the dedicated prometheus push thread
-        mwcsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
+        bmqsys::ThreadUtil::setCurrentThreadName(k_THREADNAME);
 
         BALL_LOG_INFO << "Prometheus Push thread has started [id: "
                       << bslmt::ThreadUtil::selfIdAsUint64() << "]";
@@ -995,7 +1013,7 @@ class PrometheusPushStatExporter : public PrometheusStatExporter {
         // create push thread
         int rc = bslmt::ThreadUtil::create(
             &d_prometheusPushThreadHandle,
-            mwcsys::ThreadUtil::defaultAttributes(),
+            bmqsys::ThreadUtil::defaultAttributes(),
             bdlf::BindUtil::bind(
                 &PrometheusPushStatExporter::prometheusPushThread,
                 this));

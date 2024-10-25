@@ -45,9 +45,9 @@
 #include <unistd.h>
 
 // TEST DRIVER
-#include <mwcsys_time.h>
-#include <mwctst_testhelper.h>
-#include <mwcu_tempdirectory.h>
+#include <bmqsys_time.h>
+#include <bmqtst_testhelper.h>
+#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -156,7 +156,7 @@ struct Tester {
     bsl::shared_ptr<mqbsi::LogFactory>     d_logFactory_sp;
     mqbsi::LedgerConfig                    d_config;
     bslma::ManagedPtr<mqbsi::Ledger>       d_ledger_mp;
-    mwcu::TempDirectory                    d_tempDir;
+    bmqu::TempDirectory                    d_tempDir;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
     bdlbb::PooledBlobBufferFactory         d_miniBufferFactory;
     bslma::Allocator*                      d_allocator_p;
@@ -292,7 +292,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     Tester         tester;
     mqbsi::Ledger* ledger = tester.ledger();
@@ -329,7 +329,7 @@ static void test2_openMultipleLogs()
 //   open()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("OPEN MULTIPLE LOGS");
+    bmqtst::TestHelper::printTestName("OPEN MULTIPLE LOGS");
 
     Tester tester;
     tester.generateOldLogs(3);
@@ -368,7 +368,7 @@ static void test3_openMultipleLogsNoKeep()
 //   open()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("OPEN MULTIPLE LOGS NO KEEP");
+    bmqtst::TestHelper::printTestName("OPEN MULTIPLE LOGS NO KEEP");
 
     Tester tester(false);
     tester.generateOldLogs(3);
@@ -442,7 +442,7 @@ static void test4_updateOutstandingNumBytes()
 //   updateOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
+    bmqtst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
 
     Tester tester;
     tester.generateOldLogs(2);
@@ -503,7 +503,7 @@ static void test5_setOutstandingNumBytes()
 //   setOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
+    bmqtst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
 
     Tester tester;
     tester.generateOldLogs(2);
@@ -686,7 +686,7 @@ static void test6_writeRecordRaw()
 //               int             length)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE RECORD RAW");
+    bmqtst::TestHelper::printTestName("WRITE RECORD RAW");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -709,11 +709,11 @@ static void test7_writeRecordBlob()
 // Testing:
 //   writeRecord(LedgerRecordId            *recordId,
 //               const bdlbb::Blob&          record,
-//               const mwcu::BlobPosition&  offset,
+//               const bmqu::BlobPosition&  offset,
 //               int                        length)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE RECORD BLOB");
+    bmqtst::TestHelper::printTestName("WRITE RECORD BLOB");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -742,7 +742,7 @@ static void test7_writeRecordBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
 
-        mwcu::BlobPosition pos(i, 0);
+        bmqu::BlobPosition pos(i, 0);
         ASSERT_EQ(ledger->writeRecord(&recordId, blob, pos, k_ENTRY_LEN),
                   LedgerOpResult::e_SUCCESS);
         ASSERT_EQ(recordId.logId(), oldLogId);
@@ -768,7 +768,7 @@ static void test7_writeRecordBlob()
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob2,
-                                  mwcu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                                  bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
                                   k_LONG_ENTRY_LEN),
               LedgerOpResult::e_SUCCESS);
     ASSERT_EQ(recordId.logId(), oldLogId);
@@ -787,7 +787,7 @@ static void test7_writeRecordBlob()
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob3,
-                                  mwcu::BlobPosition(),
+                                  bmqu::BlobPosition(),
                                   k_EXTRA_ENTRY_LEN),
               LedgerOpResult::e_SUCCESS);
 
@@ -817,7 +817,7 @@ static void test7_writeRecordBlob()
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob4,
-                                  mwcu::BlobPosition(),
+                                  bmqu::BlobPosition(),
                                   k_EXTRA_ENTRY_LEN),
               LedgerOpResult::e_SUCCESS);
     ASSERT_EQ(recordId.logId(), newLogId);
@@ -866,10 +866,10 @@ static void test8_writeRecordBlobSection()
 // Testing:
 //   writeRecord(LedgerRecordId           *recordId,
 //               const bdlbb::Blob&         record,
-//               const mwcu::BlobSection&  section)
+//               const bmqu::BlobSection&  section)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("WRITE RECORD BLOB SECTION");
+    bmqtst::TestHelper::printTestName("WRITE RECORD BLOB SECTION");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -898,9 +898,9 @@ static void test8_writeRecordBlobSection()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
 
-        mwcu::BlobPosition start(i, 0);
-        mwcu::BlobPosition end(i + 1, 0);
-        mwcu::BlobSection  section(start, end);
+        bmqu::BlobPosition start(i, 0);
+        bmqu::BlobPosition end(i + 1, 0);
+        bmqu::BlobSection  section(start, end);
         ASSERT_EQ(ledger->writeRecord(&recordId, blob, section),
                   LedgerOpResult::e_SUCCESS);
         ASSERT_EQ(recordId.logId(), oldLogId);
@@ -925,9 +925,9 @@ static void test8_writeRecordBlobSection()
     bdlbb::Blob blob2(tester.bufferFactory(), s_allocator_p);
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
 
-    mwcu::BlobPosition start2(0, k_LONG_ENTRY_OFFSET);
-    mwcu::BlobPosition end2(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LEN);
-    mwcu::BlobSection  section2(start2, end2);
+    bmqu::BlobPosition start2(0, k_LONG_ENTRY_OFFSET);
+    bmqu::BlobPosition end2(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LEN);
+    bmqu::BlobSection  section2(start2, end2);
     ASSERT_EQ(ledger->writeRecord(&recordId, blob2, section2),
               LedgerOpResult::e_SUCCESS);
     ASSERT_EQ(recordId.logId(), oldLogId);
@@ -945,9 +945,9 @@ static void test8_writeRecordBlobSection()
     bdlbb::Blob blob3(tester.bufferFactory(), s_allocator_p);
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
 
-    mwcu::BlobPosition start3;
-    mwcu::BlobPosition end3(1, 0);
-    mwcu::BlobSection  section3(start3, end3);
+    bmqu::BlobPosition start3;
+    bmqu::BlobPosition end3(1, 0);
+    bmqu::BlobSection  section3(start3, end3);
     ASSERT_EQ(ledger->writeRecord(&recordId, blob3, section3),
               LedgerOpResult::e_SUCCESS);
 
@@ -976,9 +976,9 @@ static void test8_writeRecordBlobSection()
     bdlbb::Blob blob4(tester.bufferFactory(), s_allocator_p);
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
 
-    mwcu::BlobPosition start4;
-    mwcu::BlobPosition end4(1, 0);
-    mwcu::BlobSection  section4(start4, end4);
+    bmqu::BlobPosition start4;
+    bmqu::BlobPosition end4(1, 0);
+    bmqu::BlobSection  section4(start4, end4);
     ASSERT_EQ(ledger->writeRecord(&recordId, blob4, section4),
               LedgerOpResult::e_SUCCESS);
     ASSERT_EQ(recordId.logId(), newLogId);
@@ -1029,7 +1029,7 @@ static void test9_readRecordRaw()
 //              const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("READ RECORD RAW");
+    bmqtst::TestHelper::printTestName("READ RECORD RAW");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -1163,7 +1163,7 @@ static void test10_readRecordBlob()
 //              const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("READ RECORD BLOB");
+    bmqtst::TestHelper::printTestName("READ RECORD BLOB");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -1201,9 +1201,9 @@ static void test10_readRecordBlob()
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     ASSERT_EQ(ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
               0);
@@ -1214,9 +1214,9 @@ static void test10_readRecordBlob()
     // Again, skip the log ID written at the beginning of the log
     ASSERT_EQ(ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
               0);
@@ -1226,9 +1226,9 @@ static void test10_readRecordBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
                   LedgerOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
@@ -1237,9 +1237,9 @@ static void test10_readRecordBlob()
 
     ASSERT_EQ(ledger->readRecord(&blob, k_LONG_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_LONG_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1248,9 +1248,9 @@ static void test10_readRecordBlob()
     recordId.setLogId(logId3).setOffset(0);
     ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
@@ -1258,9 +1258,9 @@ static void test10_readRecordBlob()
 
     ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1286,9 +1286,9 @@ static void test10_readRecordBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
                   LedgerOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
@@ -1297,9 +1297,9 @@ static void test10_readRecordBlob()
 
     ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1338,7 +1338,7 @@ static void test11_aliasRecordRaw()
 //               const LedgerRecordId&   recordId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALIAS RECORD RAW");
+    bmqtst::TestHelper::printTestName("ALIAS RECORD RAW");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -1492,7 +1492,7 @@ static void test12_aliasRecordBlob()
 //               const LedgerRecordId&  recordId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ALIAS RECORD BLOB");
+    bmqtst::TestHelper::printTestName("ALIAS RECORD BLOB");
 
     Tester tester(true,
                   Tester::k_OLD_LOG_LEN + k_ENTRY_LEN * k_NUM_ENTRIES +
@@ -1530,9 +1530,9 @@ static void test12_aliasRecordBlob()
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     ASSERT_EQ(ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
               0);
@@ -1543,9 +1543,9 @@ static void test12_aliasRecordBlob()
     // Again, skip the log ID written at the beginning of the log
     ASSERT_EQ(ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
               0);
@@ -1555,9 +1555,9 @@ static void test12_aliasRecordBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
                   LedgerOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
@@ -1566,9 +1566,9 @@ static void test12_aliasRecordBlob()
 
     ASSERT_EQ(ledger->aliasRecord(&blob, k_LONG_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_LONG_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1577,9 +1577,9 @@ static void test12_aliasRecordBlob()
     recordId.setLogId(logId3).setOffset(0);
     ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
@@ -1587,9 +1587,9 @@ static void test12_aliasRecordBlob()
 
     ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1615,9 +1615,9 @@ static void test12_aliasRecordBlob()
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
                   LedgerOpResult::e_SUCCESS);
-        mwcu::BlobUtil::readNBytes(entry,
+        bmqu::BlobUtil::readNBytes(entry,
                                    blob,
-                                   mwcu::BlobPosition(),
+                                   bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
         ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
@@ -1626,9 +1626,9 @@ static void test12_aliasRecordBlob()
 
     ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
               LedgerOpResult::e_SUCCESS);
-    mwcu::BlobUtil::readNBytes(entry,
+    bmqu::BlobUtil::readNBytes(entry,
                                blob,
-                               mwcu::BlobPosition(),
+                               bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
     blob.removeBuffer(0);
@@ -1660,9 +1660,9 @@ static void test12_aliasRecordBlob()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(s_allocator_p);
 
     {
         switch (_testCase) {
@@ -1686,7 +1686,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

@@ -24,9 +24,8 @@
 #include <bsls_performancehint.h>
 #include <bsls_systemtime.h>
 
-// MWC
-#include <mwcsys_threadutil.h>
-#include <mwcu_printutil.h>
+#include <bmqsys_threadutil.h>
+#include <bmqu_printutil.h>
 
 namespace BloombergLP {
 namespace mqbnet {
@@ -83,7 +82,7 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_name(name, d_allocator_p)
 , d_stats()
 {
-    bslmt::ThreadAttributes attr = mwcsys::ThreadUtil::defaultAttributes();
+    bslmt::ThreadAttributes attr = bmqsys::ThreadUtil::defaultAttributes();
     bsl::string             threadName("bmqNet-");
     attr.setThreadName(threadName + d_name);
     d_buffer.setWatermarks(50000, 100000, 500000);
@@ -116,7 +115,7 @@ void Channel::deleteItem(void* item, void* cookie)
 bmqt::GenericResult::Enum
 Channel::writePut(const bmqp::PutHeader&                    ph,
                   const bsl::shared_ptr<bdlbb::Blob>&       data,
-                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
                   bool                                      keepWeakPtr)
 {
     bslma::ManagedPtr<Item> item(
@@ -135,7 +134,7 @@ Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
                    bmqt::CompressionAlgorithmType::Enum      compressionType,
                    const bmqp::MessagePropertiesInfo&        logic,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-                   const bsl::shared_ptr<mwcu::AtomicState>& state)
+                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
                                      Item(queueId,
@@ -159,7 +158,7 @@ Channel::writePush(int                                       queueId,
                    bmqt::CompressionAlgorithmType::Enum      compressionType,
                    const bmqp::MessagePropertiesInfo&        logic,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-                   const bsl::shared_ptr<mwcu::AtomicState>& state)
+                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
                                      Item(queueId,
@@ -180,7 +179,7 @@ Channel::writeAck(int                                       status,
                   int                                       correlationId,
                   const bmqt::MessageGUID&                  guid,
                   int                                       queueId,
-                  const bsl::shared_ptr<mwcu::AtomicState>& state)
+                  const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(
         new (d_itemPool_p->allocate())
@@ -194,7 +193,7 @@ bmqt::GenericResult::Enum
 Channel::writeConfirm(int                                       queueId,
                       int                                       subQueueId,
                       const bmqt::MessageGUID&                  guid,
-                      const bsl::shared_ptr<mwcu::AtomicState>& state)
+                      const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
                                      Item(queueId,
@@ -212,7 +211,7 @@ bmqt::GenericResult::Enum
 Channel::writeReject(int                                       queueId,
                      int                                       subQueueId,
                      const bmqt::MessageGUID&                  guid,
-                     const bsl::shared_ptr<mwcu::AtomicState>& state)
+                     const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
                                      Item(queueId,
@@ -229,7 +228,7 @@ Channel::writeReject(int                                       queueId,
 bmqt::GenericResult::Enum
 Channel::writeBlob(const bdlbb::Blob&                        data,
                    bmqp::EventType::Enum                     type,
-                   const bsl::shared_ptr<mwcu::AtomicState>& state)
+                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
                                      Item(data, type, state, d_allocator_p),
@@ -264,7 +263,7 @@ void Channel::resetChannel()
 
 void Channel::closeChannel()
 {
-    bsl::shared_ptr<mwcio::Channel> channel;
+    bsl::shared_ptr<bmqio::Channel> channel;
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
         channel = d_channel_wp.lock();
@@ -279,11 +278,11 @@ void Channel::closeChannel()
     }
 }
 
-void Channel::setChannel(const bsl::weak_ptr<mwcio::Channel>& value)
+void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-    bsl::shared_ptr<mwcio::Channel> channelSp = value.lock();
+    bsl::shared_ptr<bmqio::Channel> channelSp = value.lock();
     BSLS_ASSERT(channelSp);
     BSLS_ASSERT(!isAvailable());
 
@@ -317,8 +316,8 @@ void Channel::reset()
     bsls::Types::Int64 count = numItems();
     if (count) {
         BALL_LOG_INFO << "Reset '" << d_description << "', dropping "
-                      << mwcu::PrintUtil::prettyNumber(count) << " items and "
-                      << mwcu::PrintUtil::prettyBytes(numBytes()) << " bytes.";
+                      << bmqu::PrintUtil::prettyNumber(count) << " items and "
+                      << bmqu::PrintUtil::prettyBytes(numBytes()) << " bytes.";
     }
 
     d_secondaryBuffer.reset();
@@ -345,29 +344,29 @@ void Channel::flush()
     d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
 }
 
-void Channel::onWatermark(mwcio::ChannelWatermarkType::Enum type)
+void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     switch (type) {
-    case mwcio::ChannelWatermarkType::e_LOW_WATERMARK:
+    case bmqio::ChannelWatermarkType::e_LOW_WATERMARK:
         BALL_LOG_INFO << "[CHANNEL_LOW_WATERMARK] hit for '" << d_description
                       << "' with "
-                      << mwcu::PrintUtil::prettyNumber(
+                      << bmqu::PrintUtil::prettyNumber(
                              bsls::Types::Int64(d_stats.d_numItemsTotal))
                       << " items and "
-                      << mwcu::PrintUtil::prettyBytes(d_stats.d_numBytes)
+                      << bmqu::PrintUtil::prettyBytes(d_stats.d_numBytes)
                       << " pending bytes.";
         d_state = e_LWM;
         d_stateCondition.signal();
         break;
-    case mwcio::ChannelWatermarkType::e_HIGH_WATERMARK:
+    case bmqio::ChannelWatermarkType::e_HIGH_WATERMARK:
         BALL_LOG_WARN << "[CHANNEL_HIGH_WATERMARK] hit for '" << d_description
                       << "' with "
-                      << mwcu::PrintUtil::prettyNumber(
+                      << bmqu::PrintUtil::prettyNumber(
                              bsls::Types::Int64(d_stats.d_numItemsTotal))
                       << " items and "
-                      << mwcu::PrintUtil::prettyBytes(d_stats.d_numBytes)
+                      << bmqu::PrintUtil::prettyBytes(d_stats.d_numBytes)
                       << " pending bytes.";
         d_state = e_HWM;
         break;
@@ -381,7 +380,7 @@ void Channel::onWatermark(mwcio::ChannelWatermarkType::Enum type)
 
 bmqt::GenericResult::Enum
 Channel::writeBufferedItem(bool*                                  isConsumed,
-                           const bsl::shared_ptr<mwcio::Channel>& channel,
+                           const bsl::shared_ptr<bmqio::Channel>& channel,
                            const bsl::string&                     description,
                            Item&                                  item)
 {
@@ -593,57 +592,57 @@ bmqt::EventBuilderResult::Enum Channel::pack(ControlArgs& builder,
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
 
-mwcio::StatusCategory::Enum
-Channel::flushAll(const bsl::shared_ptr<mwcio::Channel>& channel)
+bmqio::StatusCategory::Enum
+Channel::flushAll(const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    mwcio::StatusCategory::Enum rc;
+    bmqio::StatusCategory::Enum rc;
 
     rc = flushBuilder(d_pushBuilder, channel);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != mwcio::StatusCategory::e_SUCCESS)) {
+            rc != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc;  // RETURN
     }
     rc = flushBuilder(d_confirmBuilder, channel);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != mwcio::StatusCategory::e_SUCCESS)) {
+            rc != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc;  // RETURN
     }
     rc = flushBuilder(d_putBuilder, channel);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != mwcio::StatusCategory::e_SUCCESS)) {
+            rc != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc;  // RETURN
     }
     rc = flushBuilder(d_ackBuilder, channel);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != mwcio::StatusCategory::e_SUCCESS)) {
+            rc != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc;  // RETURN
     }
     rc = flushBuilder(d_rejectBuilder, channel);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            rc != mwcio::StatusCategory::e_SUCCESS)) {
+            rc != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc;  // RETURN
     }
 
-    return mwcio::StatusCategory::e_SUCCESS;
+    return bmqio::StatusCategory::e_SUCCESS;
 }
 
 template <typename Builder, typename Args>
 bmqt::GenericResult::Enum
 Channel::writeImmediate(bool*                                     isConsumed,
-                        const bsl::shared_ptr<mwcio::Channel>&    channel,
+                        const bsl::shared_ptr<bmqio::Channel>&    channel,
                         const bsl::string&                        description,
                         Builder&                                  builder,
                         const Args&                               args,
-                        const bsl::shared_ptr<mwcu::AtomicState>& state)
+                        const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     // executed by the internal thread
     // PRECONDITIONS
@@ -700,19 +699,19 @@ Channel::writeImmediate(bool*                                     isConsumed,
         }
 
         if (doFlush) {
-            mwcio::StatusCategory::Enum writeRc = flushBuilder(builder,
+            bmqio::StatusCategory::Enum writeRc = flushBuilder(builder,
                                                                channel);
             switch (writeRc) {
-            case mwcio::StatusCategory::e_SUCCESS:
+            case bmqio::StatusCategory::e_SUCCESS:
                 rc = bmqt::GenericResult::e_SUCCESS;
                 break;
-            case mwcio::StatusCategory::e_LIMIT:
+            case bmqio::StatusCategory::e_LIMIT:
                 rc = bmqt::GenericResult::e_NOT_READY;
                 break;
-            case mwcio::StatusCategory::e_GENERIC_ERROR:
-            case mwcio::StatusCategory::e_CONNECTION:
-            case mwcio::StatusCategory::e_TIMEOUT:
-            case mwcio::StatusCategory::e_CANCELED:
+            case bmqio::StatusCategory::e_GENERIC_ERROR:
+            case bmqio::StatusCategory::e_CONNECTION:
+            case bmqio::StatusCategory::e_TIMEOUT:
+            case bmqio::StatusCategory::e_CANCELED:
             default:
                 BALL_LOG_ERROR
                     << "#CLUSTER_SEND_FAILURE "
@@ -738,41 +737,41 @@ void Channel::threadFn()
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
     bslma::ManagedPtr<Item>         item;
-    bsl::shared_ptr<mwcio::Channel> channel;
+    bsl::shared_ptr<bmqio::Channel> channel;
     bsl::string                     description;
     int                             mode = e_BLOCK;
 
     BSLS_ASSERT(d_state == e_INITIAL || d_state == e_RESET);
 
     while (!d_doStop) {
-        mwcc::MonitoredQueueState::Enum queueState;
+        bmqc::MonitoredQueueState::Enum queueState;
         while (d_queueStates.tryPopFront(&queueState) == 0) {
             switch (queueState) {
-            case mwcc::MonitoredQueueState::e_NORMAL: {
+            case bmqc::MonitoredQueueState::e_NORMAL: {
                 BALL_LOG_INFO << "Buffer is in normal state ("
                               << d_buffer.lowWatermark() << ") for channel "
                               << description << " with " << numItems()
                               << " items and "
-                              << mwcu::PrintUtil::prettyBytes(numBytes())
+                              << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
             } break;
-            case mwcc::MonitoredQueueState::e_HIGH_WATERMARK_REACHED: {
+            case bmqc::MonitoredQueueState::e_HIGH_WATERMARK_REACHED: {
                 BALL_LOG_WARN << "[CHANNEL_BUFFER_HIGH_WATERMARK] reached ("
                               << d_buffer.highWatermark() << ") for channel "
                               << description << " with " << numItems()
                               << " items and "
-                              << mwcu::PrintUtil::prettyBytes(numBytes())
+                              << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
             } break;
-            case mwcc::MonitoredQueueState::e_HIGH_WATERMARK_2_REACHED: {
+            case bmqc::MonitoredQueueState::e_HIGH_WATERMARK_2_REACHED: {
                 BALL_LOG_ERROR << "[CHANNEL_BUFFER_HIGH_WATERMARK2] reached ("
                                << d_buffer.highWatermark2() << ") for channel "
                                << description << " with " << numItems()
                                << " items and "
-                               << mwcu::PrintUtil::prettyBytes(numBytes())
+                               << bmqu::PrintUtil::prettyBytes(numBytes())
                                << " pending bytes";
             } break;
-            case mwcc::MonitoredQueueState::e_QUEUE_FILLED: {
+            case bmqc::MonitoredQueueState::e_QUEUE_FILLED: {
                 // We're using an unbounded queue so this state is not
                 // expected.
                 BALL_LOG_ERROR << "Unexpected queue state for buffer "
@@ -818,14 +817,14 @@ void Channel::threadFn()
                 d_stateCondition.signal();
                 BALL_LOG_INFO << "Ready to write to " << description
                               << " with " << numItems() << " items and "
-                              << mwcu::PrintUtil::prettyBytes(numBytes())
+                              << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
             }
             else {
                 // wait for 'setChannel' or LWM
                 BALL_LOG_INFO << "Waiting for " << description << " with "
                               << numItems() << " items and "
-                              << mwcu::PrintUtil::prettyBytes(numBytes())
+                              << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
                 d_stateCondition.wait(&d_mutex);
             }
@@ -858,7 +857,7 @@ void Channel::threadFn()
             } break;
             case e_IDLE: {
                 // Idle.  First, flush all builders.
-                if (flushAll(channel) == mwcio::StatusCategory::e_SUCCESS) {
+                if (flushAll(channel) == bmqio::StatusCategory::e_SUCCESS) {
                     // Then, drain the secondary buffer
                     mode = e_SECONDARY;
                 }
@@ -892,7 +891,7 @@ void Channel::threadFn()
                 BALL_LOG_WARN << "Reached a limit while writing event "
                               << item->d_type << " to " << description
                               << " with " << numItems() << " items and "
-                              << mwcu::PrintUtil::prettyBytes(numBytes())
+                              << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
                 // If 'onWatermark' did not happen yet, do go into e_HWM to
                 // avoid calling BTE until LWM
@@ -921,7 +920,7 @@ void Channel::threadFn()
     reset();
 }
 
-void Channel::onBufferStateChange(mwcc::MonitoredQueueState::Enum state)
+void Channel::onBufferStateChange(bmqc::MonitoredQueueState::Enum state)
 {
     // Assuming 'd_buffer' is not empty.  Signal 'd_stateCondition' in case
     // 'threadFn' is waiting (for LWM).  Signal without locking since

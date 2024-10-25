@@ -19,8 +19,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_cstdlib.h>
@@ -29,7 +28,7 @@
 #include <bslh_defaulthashalgorithm.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -60,7 +59,7 @@ int generateRandomInteger(int min, int max)
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         // -----------
@@ -125,7 +124,7 @@ static void test1_breathingTest()
 
 static void test2_print()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     int          id    = 5;
     unsigned int subId = 10;
@@ -133,7 +132,7 @@ static void test2_print()
     bmqp::QueueId obj(id, subId);
 
     // Print
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     out.setstate(bsl::ios_base::badbit);
     obj.print(out, 0, -1);
 
@@ -172,7 +171,7 @@ static void test3_hashAppend()
 //              const bmqp::QueueId& queueId)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HASH APPEND");
+    bmqtst::TestHelper::printTestName("HASH APPEND");
 
     {
         PV("HASH FUNCTION DETERMINISTIC");
@@ -202,7 +201,7 @@ static void test3_hashAppend()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     unsigned int seed = bsl::time(NULL);
     bsl::srand(seed);
@@ -219,5 +218,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

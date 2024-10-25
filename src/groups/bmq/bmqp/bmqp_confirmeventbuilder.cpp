@@ -20,9 +20,8 @@
 // BMQ
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blob.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bsl_cstring.h>
@@ -87,10 +86,10 @@ ConfirmEventBuilder::appendMessage(int                      queueId,
     }
 
     // Resize the blob to have space for an 'ConfirmMessage' at the end ...
-    mwcu::BlobPosition offset;
-    mwcu::BlobUtil::reserve(&offset, &d_blob, sizeof(ConfirmMessage));
+    bmqu::BlobPosition offset;
+    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(ConfirmMessage));
 
-    mwcu::BlobObjectProxy<ConfirmMessage> confirmMessage(&d_blob,
+    bmqu::BlobObjectProxy<ConfirmMessage> confirmMessage(&d_blob,
                                                          offset,
                                                          false,  // no read
                                                          true);  // write mode

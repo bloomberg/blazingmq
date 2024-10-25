@@ -36,12 +36,11 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bdlb_random.h>
@@ -155,7 +154,7 @@ struct Tester {
     bsl::vector<mqbcfg::ClusterNode>       d_clusterNodesCfg;
     mqbcfg::ClusterNode                    d_clusterNodeCfg;
     bslma::ManagedPtr<mqbnet::MockCluster> d_cluster_mp;
-    bsl::shared_ptr<mwcst::StatContext>    d_clusterStatsRootContext_sp;
+    bsl::shared_ptr<bmqst::StatContext>    d_clusterStatsRootContext_sp;
     mqbstat::ClusterStats                  d_clusterStats;
     mqbnet::ClusterNode*                   d_node_p;
     mqbs::DataStoreConfig                  d_dsCfg;
@@ -333,7 +332,7 @@ struct Tester {
                 // Write a queue creation record.
 
                 bsl::string        uri(uriBase, s_allocator_p);
-                mwcu::MemOutStream osstr;
+                bmqu::MemOutStream osstr;
                 osstr << "queue" << i;
                 uri.append(osstr.str().data(), osstr.str().length());
 
@@ -889,7 +888,7 @@ static void test2_printTest()
 //   operator<<(bsl::ostream& stream, const FileStoreIterator& rhs
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT TEST");
+    bmqtst::TestHelper::printTestName("PRINT TEST");
 
     s_ignoreCheckDefAlloc = true;
 
@@ -956,7 +955,7 @@ static void test2_printTest()
     BSLS_ASSERT_OPT(expectedOut.isPrepared());
 
     mqbs::FileStoreIterator fsIt(&fs);
-    mwcu::MemOutStream      stream(s_allocator_p);
+    bmqu::MemOutStream      stream(s_allocator_p);
     while (fsIt.next()) {
         stream << fsIt << "\n";
     }
@@ -981,9 +980,9 @@ static void test2_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    mwcsys::Time::initialize();
+    bmqsys::Time::initialize();
     mqbu::MessageGUIDUtil::initialize();
     bmqp::ProtocolUtil::initialize();
 
@@ -998,7 +997,7 @@ int main(int argc, char* argv[])
     }
 
     bmqp::ProtocolUtil::shutdown();
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }

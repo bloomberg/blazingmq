@@ -44,9 +44,8 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcc_array.h>
-#include <mwcc_orderedhashmapwithhistory.h>
+#include <bmqc_array.h>
+#include <bmqc_orderedhashmapwithhistory.h>
 
 // BDE
 #include <ball_log.h>
@@ -73,7 +72,7 @@ namespace BloombergLP {
 namespace mqbi {
 class Queue;
 }
-namespace mwcma {
+namespace bmqma {
 class CountingAllocatorStore;
 }
 
@@ -94,13 +93,17 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     // PRIVATE CONSTANTS
 
-    // Most likely number of records for each guid (one each of message,
-    // confirm & deletion record).  This number is correct for every queue
-    // except for the fanout one, which has more than 1 confirm records.
-    static const size_t k_MOST_LIKELY_NUM_RECORDS = 3;
+    // The most probable number of records for each guid for priority queue.
+    // Currently, the value is 2: one data record + one deletion record.
+    // With last confirm optimization, we don't write a last confirm, and don't
+    // count it here.
+    // For fanout queues, the expected number of records is more than this:
+    // one data record + (number of appIDs - 1) confirms + one deletion record,
+    // where -1 due to last confirm optimization.
+    static const size_t k_MOST_LIKELY_NUM_RECORDS = 2;
 
     // PRIVATE TYPES
-    typedef mwcc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
+    typedef bmqc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
         RecordHandlesArray;
 
     struct Item {
@@ -139,7 +142,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Must be a container in which iteration order is same as insertion
     /// order.
-    typedef mwcc::OrderedHashMapWithHistory<
+    typedef bmqc::OrderedHashMapWithHistory<
         bmqt::MessageGUID,
         Item,
         bslh::Hash<bmqt::MessageGUIDHashAlgo> >
@@ -175,7 +178,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     RecordHandleMap d_handles;
     // Each value in the map is an
-    // 'mwcc::Array' of type 'RecordHandles'.
+    // 'bmqc::Array' of type 'RecordHandles'.
     // First handle in this vector *always*
     // points to the message record.
 
@@ -238,7 +241,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                       const mqbconfm::Domain&        config,
                       mqbu::CapacityMeter*           parentCapacityMeter,
                       bslma::Allocator*              allocator,
-                      mwcma::CountingAllocatorStore* allocatorStore = 0);
+                      bmqma::CountingAllocatorStore* allocatorStore = 0);
 
     virtual ~FileBackedStorage() BSLS_KEYWORD_OVERRIDE;
 

@@ -19,8 +19,7 @@
 // BMQ
 #include <bmqp_event.h>
 
-// MWC
-#include <mwcu_blob.h>
+#include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -28,7 +27,7 @@
 #include <bdlde_md5.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -111,7 +110,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     const char*                    CHUNK = "abcdefghijklmnopqrstuvwx";
@@ -173,10 +172,10 @@ static void test1_breathingTest()
     ASSERT_EQ((sizeof(bmqp::RecoveryHeader) / bmqp::Protocol::k_WORD_SIZE),
               static_cast<size_t>(recoveryIter.header().headerWords()));
 
-    mwcu::BlobPosition position;
+    bmqu::BlobPosition position;
     ASSERT_EQ(recoveryIter.loadChunkPosition(&position), 0);
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          CHUNK,
@@ -199,7 +198,7 @@ static void test2_multipleMessagesTest()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MULTIPLE MESSAGES TEST");
+    bmqtst::TestHelper::printTestName("MULTIPLE MESSAGES TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
@@ -249,11 +248,11 @@ static void test2_multipleMessagesTest()
                                 iter.header().md5Digest(),
                                 k_MD5_DIGEST_LEN));
 
-        mwcu::BlobPosition chunkPosition;
+        bmqu::BlobPosition chunkPosition;
         ASSERT_EQ_D(dataIndex, 0, iter.loadChunkPosition(&chunkPosition));
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              eventBlob,
                                              chunkPosition,
                                              D.d_chunk.c_str(),
@@ -276,7 +275,7 @@ static void test3_eventTooBigTest()
 //   Test behavior when trying to build *one* big event.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT TOO BIG TEST");
+    bmqtst::TestHelper::printTestName("EVENT TOO BIG TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
@@ -344,10 +343,10 @@ static void test3_eventTooBigTest()
     ASSERT_EQ(bmqp::RecoveryFileChunkType::e_DATA,
               recoveryIter.header().fileChunkType());
 
-    mwcu::BlobPosition position;
+    bmqu::BlobPosition position;
     ASSERT_EQ(recoveryIter.loadChunkPosition(&position), 0);
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          k_SMALL_CHUNK,
@@ -365,7 +364,7 @@ static void test4_emptyPayloadTest()
 //   Trying to build an event where the message has empty payload.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EMPTY PAYLOAD TEST");
+    bmqtst::TestHelper::printTestName("EMPTY PAYLOAD TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
@@ -406,7 +405,7 @@ static void test4_emptyPayloadTest()
     ASSERT_EQ(recoveryIter.header().fileChunkType(),
               bmqp::RecoveryFileChunkType::e_DATA);
 
-    mwcu::BlobPosition position;
+    bmqu::BlobPosition position;
     ASSERT_EQ(recoveryIter.loadChunkPosition(&position), 0);
 
     ASSERT_EQ(recoveryIter.next(), 0);  // we added only 1 msg
@@ -418,7 +417,7 @@ static void test4_emptyPayloadTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -432,5 +431,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

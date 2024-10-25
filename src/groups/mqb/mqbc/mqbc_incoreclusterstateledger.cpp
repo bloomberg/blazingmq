@@ -39,12 +39,11 @@
 // BMQ
 #include <bmqp_protocol.h>
 
-// MWC
-#include <mwcio_status.h>
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_status.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -285,7 +284,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
 
         rc = d_ledger_mp->writeRecord(&(info.d_recordId),
                                       record,
-                                      mwcu::BlobPosition(),
+                                      bmqu::BlobPosition(),
                                       record.length());
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
@@ -357,7 +356,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
 
     rc = d_ledger_mp->writeRecord(&(info.d_recordId),
                                   record,
-                                  mwcu::BlobPosition(),
+                                  bmqu::BlobPosition(),
                                   record.length());
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
@@ -441,7 +440,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
 int IncoreClusterStateLedger::applyRecordInternal(
     const bdlbb::Blob&                         record,
     int                                        recordOffset,
-    const mwcu::BlobPosition&                  recordPosition,
+    const bmqu::BlobPosition&                  recordPosition,
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
@@ -735,9 +734,9 @@ int IncoreClusterStateLedger::applyRecordInternal(
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
-    mwcu::BlobPosition          recordPosition;
+    bmqu::BlobPosition          recordPosition;
     BSLA_MAYBE_UNUSED const int rc =
-        mwcu::BlobUtil::findOffsetSafe(&recordPosition, record, recordOffset);
+        bmqu::BlobUtil::findOffsetSafe(&recordPosition, record, recordOffset);
     BSLS_ASSERT_SAFE(rc == 0);
 
     return applyRecordInternal(record,
@@ -750,13 +749,13 @@ int IncoreClusterStateLedger::applyRecordInternal(
 
 int IncoreClusterStateLedger::applyRecordInternal(
     const bdlbb::Blob&                         record,
-    const mwcu::BlobPosition&                  recordPosition,
+    const bmqu::BlobPosition&                  recordPosition,
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     ClusterStateRecordType::Enum               recordType)
 {
     int                         recordOffset = 0;
-    BSLA_MAYBE_UNUSED const int rc = mwcu::BlobUtil::positionToOffsetSafe(
+    BSLA_MAYBE_UNUSED const int rc = bmqu::BlobUtil::positionToOffsetSafe(
         &recordOffset,
         record,
         recordPosition);
@@ -835,7 +834,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                   << source->nodeDescription() << "'";
 
     // Sanity check on record
-    mwcu::BlobObjectProxy<bmqp::EventHeader> eventHeader(
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eventHeader(
         &event,
         -bmqp::EventHeader::k_MIN_HEADER_SIZE,
         true,    // read
@@ -856,15 +855,15 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(eventHeader->length() == event.length());
     BSLS_ASSERT_SAFE(eventHeader->type() == bmqp::EventType::e_CLUSTER_STATE);
 
-    mwcu::BlobPosition recordHeaderPosition;
-    int rc = mwcu::BlobUtil::findOffsetSafe(&recordHeaderPosition,
+    bmqu::BlobPosition recordHeaderPosition;
+    int rc = bmqu::BlobUtil::findOffsetSafe(&recordHeaderPosition,
                                             event,
                                             eventHeaderSize);
     if (rc != 0) {
         return rc_MISSING_HEADER;  // RETURN
     }
 
-    mwcu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
+    bmqu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
         &event,
         recordHeaderPosition,
         -ClusterStateRecordHeader::k_HEADER_NUM_WORDS,
@@ -992,12 +991,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
             const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
             if (info.partitionId() >=
                 static_cast<int>(d_clusterState_p->partitions().size())) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Invalid partitionId: " << info
                     << " specified in partition-primary advisory. "
                     << "Ignoring this *ENTIRE* advisory message."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return rc_ADVISORY_INVALID;  // RETURN
             }
 
@@ -1005,12 +1004,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 d_clusterData_p->membership().netCluster()->lookupNode(
                     info.primaryNodeId());
             if (proposedPrimaryNode == 0) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Invalid primaryNodeId: " << info
                     << " specified in partition-primary advisory."
                     << " Ignoring this *ENTIRE* advisory."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return rc_ADVISORY_INVALID;  // RETURN
             }
 
@@ -1026,12 +1025,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // other state immediately after leader broadcast the advisory.
                 // Lower layers will take care of that scenario.
 
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": proposed primary specified in partition/primary : "
                     << info << " is self but self is STARTING. "
                     << "Ignoring this *ENTIRE* advisory."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
                 return rc_ADVISORY_INVALID;  // RETURN
             }
 
@@ -1051,7 +1050,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // this scnenario can be witnessed in a bad network where some
                 // nodes cannot see other nodes intermittently.  See
                 // 'onLeaderSyncDataQueryResponseDispatched' for similar check.
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Partition [" << info.partitionId()
                     << "]: self node views self as active/available primary, "
@@ -1059,7 +1058,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                     << "partition/primary mapping: " << info << ". This "
                     << "downgrade from primary to replica is currently not "
                     << "supported, and self node will exit."
-                    << MWCTSK_ALARMLOG_END;
+                    << BMQTSK_ALARMLOG_END;
 
                 mqbu::ExitUtil::terminate(
                     mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
@@ -1083,12 +1082,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // the primary node.
 
                 if (info.primaryLeaseId() < pi.primaryLeaseId()) {
-                    MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER")
                         << d_clusterData_p->identity().description()
                         << ": Stale primaryLeaseId specified in: " << info
                         << ", current primaryLeaseId: " << pi.primaryLeaseId()
                         << ". Ignoring this *ENTIRE* advisory."
-                        << MWCTSK_ALARMLOG_END;
+                        << BMQTSK_ALARMLOG_END;
                     return rc_ADVISORY_INVALID;  // RETURN
                 }
             }
@@ -1115,7 +1114,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                     // from leader even once.
 
                     if (info.primaryLeaseId() < pi.primaryLeaseId()) {
-                        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                        BMQTSK_ALARMLOG_ALARM("CLUSTER")
                             << d_clusterData_p->identity().description()
                             << ": Stale primaryLeaseId specified "
                             << "in: " << info << ", current primaryLeaseId: "
@@ -1127,7 +1126,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                             << ", proposed primary node: "
                             << proposedPrimaryNode->nodeDescription()
                             << ". Ignoring this *ENTIRE* advisory."
-                            << MWCTSK_ALARMLOG_END;
+                            << BMQTSK_ALARMLOG_END;
                         return rc_ADVISORY_INVALID;  // RETURN
                     }
                 }
@@ -1136,13 +1135,13 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                     // must be greater.
 
                     if (info.primaryLeaseId() <= pi.primaryLeaseId()) {
-                        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                        BMQTSK_ALARMLOG_ALARM("CLUSTER")
                             << d_clusterData_p->identity().description()
                             << ": Stale primaryLeaseId specified in: " << info
                             << ", current primaryLeaseId: "
                             << pi.primaryLeaseId()
                             << ". Ignoring this *ENTIRE* advisory."
-                            << MWCTSK_ALARMLOG_END;
+                            << BMQTSK_ALARMLOG_END;
                         return rc_ADVISORY_INVALID;  // RETURN
                     }
                 }
@@ -1200,7 +1199,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     BSLS_ASSERT_SAFE(clusterState);
 
     // Create description
-    mwcu::MemOutStream osstr;
+    bmqu::MemOutStream osstr;
     osstr << "IncoreClusterStateLedger (cluster: "
           << d_clusterData_p->identity().name() << ") : ";
     d_description.assign(osstr.str().data(), osstr.str().length());

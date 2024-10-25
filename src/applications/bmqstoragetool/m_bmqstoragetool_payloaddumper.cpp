@@ -19,8 +19,8 @@
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_memoutstream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -63,9 +63,9 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
         }
     }
 
-    mwcu::MemOutStream dataHeaderOsstr(d_allocator_p);
-    mwcu::MemOutStream optionsOsstr(d_allocator_p);
-    mwcu::MemOutStream propsOsstr(d_allocator_p);
+    bmqu::MemOutStream dataHeaderOsstr(d_allocator_p);
+    bmqu::MemOutStream optionsOsstr(d_allocator_p);
+    bmqu::MemOutStream propsOsstr(d_allocator_p);
 
     dataHeaderOsstr << it->dataHeader();
 
@@ -100,7 +100,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     }
 
     // Payload
-    mwcu::MemOutStream payloadOsstr(d_allocator_p);
+    bmqu::MemOutStream payloadOsstr(d_allocator_p);
     unsigned int minLen = d_dumpLimit > 0 ? bsl::min(appDataLen, d_dumpLimit)
                                           : appDataLen;
     payloadOsstr << "First " << minLen << " bytes of payload:" << '\n';

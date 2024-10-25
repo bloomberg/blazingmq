@@ -27,9 +27,8 @@
 #include <bmqp_puttester.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_guid.h>
@@ -52,7 +51,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -99,7 +98,7 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 #ifdef BMQ_ENABLE_MSG_GROUPID
 void setMsgGroupId(bmqp::PutEventBuilder* peb, const size_t iteration)
 {
-    mwcu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(s_allocator_p);
     oss << "gid:" << iteration;
     peb->setMsgGroupId(oss.str());
 }
@@ -110,7 +109,7 @@ void validateGroupId(const size_t                    iteration,
     ASSERT(putIter.hasMsgGroupId());
     bmqp::Protocol::MsgGroupId msgGroupId;
     ASSERT(putIter.extractMsgGroupId(&msgGroupId));
-    mwcu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(s_allocator_p);
     oss << "gid:" << iteration;
     ASSERT_EQ(oss.str(), msgGroupId);
 }
@@ -167,7 +166,7 @@ unsigned int findExpectedCrc32(
         // New format.
     }
 
-    mwcu::MemOutStream error(allocator);
+    bmqu::MemOutStream error(allocator);
     int                rc = bmqp::Compression::compress(&applicationData,
                                          bufferFactory,
                                          compressionAlgorithmType,
@@ -212,19 +211,19 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
 #endif
-    const int                        k_PROPERTY_VAL_ENCODING = 3;
-    const bsl::string                k_PROPERTY_VAL_ID       = "myCoolId";
-    const unsigned int               k_CRC32                 = 123;
-    const bsls::Types::Int64         k_TIME_STAMP            = 1234567890LL;
-    const int                        k_NUM_PROPERTIES        = 3;
-    const char*                      k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
-    const int                        k_PAYLOAD_BIGGER_LEN =
+    const int                k_PROPERTY_VAL_ENCODING = 3;
+    const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
+    const unsigned int       k_CRC32                 = 123;
+    const bsls::Types::Int64 k_TIME_STAMP            = 1234567890LL;
+    const int                k_NUM_PROPERTIES        = 3;
+    const char*              k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    const int                k_PAYLOAD_BIGGER_LEN =
         bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE + 400;
 
     char        k_PAYLOAD_BIGGER[k_PAYLOAD_BIGGER_LEN];
@@ -365,9 +364,9 @@ static void test1_breathingTest()
                             k_PAYLOAD_BIGGER_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD_BIGGER,
                                                  k_PAYLOAD_BIGGER_LEN);
 
@@ -448,9 +447,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(0, res);
@@ -589,9 +588,9 @@ static void test1_breathingTest()
                             k_PAYLOAD_BIGGER_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD_BIGGER,
                                                  k_PAYLOAD_BIGGER_LEN);
 
@@ -678,9 +677,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(0, res);
@@ -833,9 +832,9 @@ static void test1_breathingTest()
                             k_PAYLOAD_BIGGER_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD_BIGGER,
                                                  k_PAYLOAD_BIGGER_LEN);
 
@@ -922,9 +921,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(0, res);
@@ -1071,9 +1070,9 @@ static void test1_breathingTest()
             BSLS_ASSERT_OPT(putIter.messagePayloadSize() == k_PAYLOAD_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD,
                                                  k_PAYLOAD_LEN);
 
@@ -1155,9 +1154,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD,
                                              k_PAYLOAD_LEN);
         ASSERT_EQ(0, res);
@@ -1297,9 +1296,9 @@ static void test1_breathingTest()
                             k_PAYLOAD_BIGGER_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD_BIGGER,
                                                  k_PAYLOAD_BIGGER_LEN);
 
@@ -1381,9 +1380,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(0, res);
@@ -1402,7 +1401,7 @@ static void test1_breathingTest()
         // Create PutEventBuilder
         bmqp::PutEventBuilder obj(&bufferFactory, s_allocator_p);
         ASSERT_EQ(obj.crc32c(), 0U);
-        mwcu::MemOutStream error(s_allocator_p);
+        bmqu::MemOutStream error(s_allocator_p);
 
         obj.startMessage();
 
@@ -1501,9 +1500,9 @@ static void test1_breathingTest()
                             k_PAYLOAD_BIGGER_LEN);
 
             int res, compareResult;
-            res = mwcu::BlobUtil::compareSection(&compareResult,
+            res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  payloadBlob,
-                                                 mwcu::BlobPosition(),
+                                                 bmqu::BlobPosition(),
                                                  k_PAYLOAD_BIGGER,
                                                  k_PAYLOAD_BIGGER_LEN);
 
@@ -1566,9 +1565,9 @@ static void test1_breathingTest()
 
         bmqp::MessageProperties prop(s_allocator_p);
         int                     res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(0, res);
@@ -1600,7 +1599,7 @@ static void test2_manipulators_one()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MANIPULATORS - ONE");
+    bmqtst::TestHelper::printTestName("MANIPULATORS - ONE");
 
     struct TestData {
         int          d_line;
@@ -1740,9 +1739,9 @@ static void test2_manipulators_one()
                     putIter.messagePayloadSize());
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              data.d_payload,
                                              data.d_payloadLen);
 
@@ -1789,15 +1788,15 @@ static void test3_eventTooBig()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT TOO BIG");
+    bmqtst::TestHelper::printTestName("EVENT TOO BIG");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                bigMsgPayload(&bufferFactory, s_allocator_p);
+    bdlbb::Blob bigMsgPayload(&bufferFactory, s_allocator_p);
 #ifdef BMQ_ENABLE_MSG_GROUPID
     bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
 #endif
-    const int                  k_QID = 4321;
-    bmqt::MessageGUID          guid  = bmqp::MessageGUIDGenerator::testGUID();
+    const int         k_QID = 4321;
+    bmqt::MessageGUID guid  = bmqp::MessageGUIDGenerator::testGUID();
 
     bmqp::PutTester::populateBlob(&bigMsgPayload,
                                   bmqp::PutHeader::k_MAX_PAYLOAD_SIZE_SOFT +
@@ -1857,9 +1856,9 @@ static void test3_eventTooBig()
     ASSERT_EQ(putIter.messagePayloadSize(), k_PAYLOAD_LEN);
 
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          payloadBlob,
-                                         mwcu::BlobPosition(),
+                                         bmqu::BlobPosition(),
                                          k_PAYLOAD,
                                          k_PAYLOAD_LEN);
 
@@ -1892,7 +1891,7 @@ static void test4_manipulators_two()
 //      setMessagePayload(const char* data, int size)    variant.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MANIPULATORS - TWO");
+    bmqtst::TestHelper::printTestName("MANIPULATORS - TWO");
 
     // Create PutEventBuilder
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -1968,7 +1967,7 @@ static void test5_putEventWithZeroLengthMessage()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PUT EVENT WITH ZERO LEGNTH MESSAGE");
+    bmqtst::TestHelper::printTestName("PUT EVENT WITH ZERO LEGNTH MESSAGE");
 
     // Create PutEventBuilder
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
@@ -2016,11 +2015,11 @@ static void test6_emptyBuilder()
 //   bmqp::PutEventBuilder setters and getters
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EMPTY BUILDER");
+    bmqtst::TestHelper::printTestName("EMPTY BUILDER");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    bmqp::Protocol::MsgGroupId     k_MSG_GROUP_ID("gid:0", s_allocator_p);
+    bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
 #endif
 
     unsigned char zeroGuidBuf[bmqt::MessageGUID::e_SIZE_BINARY];
@@ -2101,19 +2100,19 @@ static void test7_multiplePackMessage()
 //   multiple calls to bmqp::PutEventBuilder::packMessage()
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("TEST MULTIPLE CALLS TO PACK MESSAGE");
+    bmqtst::TestHelper::printTestName("TEST MULTIPLE CALLS TO PACK MESSAGE");
 
-    bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
 #endif
-    const int                        k_PROPERTY_VAL_ENCODING = 3;
-    const bsl::string                k_PROPERTY_VAL_ID       = "myCoolId";
-    const unsigned int               k_CRC32                 = 123;
-    const bsls::Types::Int64         k_TIME_STAMP            = 1234567890LL;
-    const int                        k_NUM_PROPERTIES        = 3;
-    const char*                      k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
-    const int                        k_PAYLOAD_BIGGER_LEN =
+    const int                k_PROPERTY_VAL_ENCODING = 3;
+    const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
+    const unsigned int       k_CRC32                 = 123;
+    const bsls::Types::Int64 k_TIME_STAMP            = 1234567890LL;
+    const int                k_NUM_PROPERTIES        = 3;
+    const char*              k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    const int                k_PAYLOAD_BIGGER_LEN =
         bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE + 400;
     char        k_PAYLOAD_BIGGER[k_PAYLOAD_BIGGER_LEN];
     const char* k_HEX_GUIDS[] = {"40000000000000000000000000000001",
@@ -2227,9 +2226,9 @@ static void test7_multiplePackMessage()
         ASSERT_EQ(putIter.messagePayloadSize(), k_PAYLOAD_BIGGER_LEN);
 
         int res, compareResult;
-        res = mwcu::BlobUtil::compareSection(&compareResult,
+        res = bmqu::BlobUtil::compareSection(&compareResult,
                                              payloadBlob,
-                                             mwcu::BlobPosition(),
+                                             bmqu::BlobPosition(),
                                              k_PAYLOAD_BIGGER,
                                              k_PAYLOAD_BIGGER_LEN);
 
@@ -2305,9 +2304,9 @@ static void test7_multiplePackMessage()
 
     bmqp::MessageProperties prop(s_allocator_p);
     int                     res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          payloadBlob,
-                                         mwcu::BlobPosition(),
+                                         bmqu::BlobPosition(),
                                          k_PAYLOAD_BIGGER,
                                          k_PAYLOAD_BIGGER_LEN);
     ASSERT_EQ(0, res);
@@ -2338,12 +2337,12 @@ static void testN1_decodeFromFile()
 //      with expected properties and payload.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DECODE FROM FILE");
+    bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                    outBlob(&bufferFactory, s_allocator_p);
     bdlbb::Blob                    payloadBlob(s_allocator_p);
-    mwcu::MemOutStream             os(s_allocator_p);
+    bmqu::MemOutStream             os(s_allocator_p);
     bmqp::PutMessageIterator       putIter(&bufferFactory, s_allocator_p);
     bdlb::Guid                     guid = bdlb::GuidUtil::generate();
 
@@ -2461,9 +2460,9 @@ static void testN1_decodeFromFile()
     ASSERT_EQ(putIter.messagePayloadSize(), k_PAYLOAD_LEN);
 
     int res, compareResult;
-    res = mwcu::BlobUtil::compareSection(&compareResult,
+    res = bmqu::BlobUtil::compareSection(&compareResult,
                                          payloadBlob,
-                                         mwcu::BlobPosition(),
+                                         bmqu::BlobPosition(),
                                          k_PAYLOAD,
                                          k_PAYLOAD_LEN);
 
@@ -2498,7 +2497,7 @@ int main(int argc, char* argv[])
     // case where the associated logging infrastructure triggers a default
     // allocation violation for no apparent reason.
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD: figure
@@ -2534,5 +2533,5 @@ int main(int argc, char* argv[])
 
     bmqp::ProtocolUtil::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

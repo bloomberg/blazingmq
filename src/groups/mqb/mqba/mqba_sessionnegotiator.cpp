@@ -80,13 +80,12 @@
 #include <bmqp_schemaeventbuilder.h>
 #include <bmqscm_version.h>
 
-// MWC
-#include <mwcio_channelutil.h>
-#include <mwcio_tcpendpoint.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
+#include <bmqio_channelutil.h>
+#include <bmqio_tcpendpoint.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -221,9 +220,9 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 ///                not.
 void loadSessionDescription(bsl::string*                        out,
                             const bmqp_ctrlmsg::ClientIdentity& identity,
-                            const mwcio::Channel&               peerChannel)
+                            const bmqio::Channel&               peerChannel)
 {
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
 
     // Task Name
     bsl::string baseName;
@@ -251,7 +250,7 @@ void loadSessionDescription(bsl::string*                        out,
 
     ntsa::Ipv4Address ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
     ntsa::IpAddress   ipAddress(ipv4Address);
-    if (!mwcio::ChannelUtil::isLocalHost(ipAddress)) {
+    if (!bmqio::ChannelUtil::isLocalHost(ipAddress)) {
         os << "@" << identity.hostName();
     }
 
@@ -263,7 +262,7 @@ void loadSessionDescription(bsl::string*                        out,
 // class SessionNegotiator
 // -----------------------
 
-void SessionNegotiator::readCallback(const mwcio::Status&        status,
+void SessionNegotiator::readCallback(const bmqio::Status&        status,
                                      int*                        numNeeded,
                                      bdlbb::Blob*                blob,
                                      const NegotiationContextSp& context)
@@ -285,7 +284,7 @@ void SessionNegotiator::readCallback(const mwcio::Status&        status,
                    << context->d_channelSp->peerUri() << "']";
 
     bsl::shared_ptr<mqbnet::Session> session;
-    mwcu::MemOutStream               errStream;
+    bmqu::MemOutStream               errStream;
 
     if (!status) {
         errStream << "Read error: " << status;
@@ -297,11 +296,11 @@ void SessionNegotiator::readCallback(const mwcio::Status&        status,
     }
 
     bdlbb::Blob inBlob;
-    int         rc = mwcio::ChannelUtil::handleRead(&inBlob, numNeeded, blob);
+    int         rc = bmqio::ChannelUtil::handleRead(&inBlob, numNeeded, blob);
     if (rc != 0) {
         // This indicates a non recoverable error...
         errStream << "Unrecoverable read error:\n"
-                  << mwcu::BlobStartHexDumper(blob);
+                  << bmqu::BlobStartHexDumper(blob);
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_negotiationCb((rc * 10) + rc_UNRECOVERABLE_READ_ERROR,
                                  error,
@@ -388,7 +387,7 @@ void SessionNegotiator::readCallback(const mwcio::Status&        status,
 
         initiateOutboundNegotiation(context);
         return;  // RETURN
-    }            // break;
+    }  // break;
     default: {
         errStream << "Invalid negotiation message received (unknown type): "
                   << context->d_negotiationMessage;
@@ -426,14 +425,14 @@ int SessionNegotiator::decodeNegotiationMessage(
     if (!event.isValid()) {
         errorDescription << "Invalid negotiation message received "
                          << "(packet is not a valid BlazingMQ event):\n"
-                         << mwcu::BlobStartHexDumper(&blob);
+                         << bmqu::BlobStartHexDumper(&blob);
         return rc_INVALID_MESSAGE;  // RETURN
     }
 
     if (!event.isControlEvent()) {
         errorDescription << "Invalid negotiation message received "
                          << "(packet is not a ControlEvent):\n"
-                         << mwcu::BlobStartHexDumper(&blob);
+                         << bmqu::BlobStartHexDumper(&blob);
         return rc_NOT_CONTROL_EVENT;  // RETURN
     }
 
@@ -442,7 +441,7 @@ int SessionNegotiator::decodeNegotiationMessage(
     if (rc != 0) {
         errorDescription << "Invalid negotiation message received (failed "
                          << "decoding ControlEvent): [rc: " << rc << "]:\n"
-                         << mwcu::BlobStartHexDumper(&blob);
+                         << bmqu::BlobStartHexDumper(&blob);
         return rc_INVALID_CONTROL_EVENT;  // RETURN
     }
 
@@ -503,7 +502,7 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
         const int minVersion = mqbu::SDKVersionUtil::minSdkVersionSupported(
             sdkLanguage);
 
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "Client is using an unsupported version of libbmq "
            << "(minimum supported version: " << minVersion
            << ", client version: " << clientVersion << ").";
@@ -632,7 +631,7 @@ SessionNegotiator::onBrokerResponseMessage(bsl::ostream& errorDescription,
     }
 
     // Resolve 'hostName' of the brokerIdentity
-    mwcio::TCPEndpoint endpoint(context->d_channelSp->peerUri());
+    bmqio::TCPEndpoint endpoint(context->d_channelSp->peerUri());
     brokerResponse.brokerIdentity().hostName() = endpoint.host();
 
     bsl::string description;
@@ -699,7 +698,7 @@ int SessionNegotiator::sendNegotiationMessage(
     }
 
     // Send response event
-    mwcio::Status status;
+    bmqio::Status status;
     context->d_channelSp->write(&status, builder.blob());
     if (!status) {
         errorDescription << "Failed sending NegotiationMessage "
@@ -746,9 +745,9 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
     }
     else if (context->d_connectionType == ConnectionType::e_CLIENT) {
         // Create a dedicated stats subcontext for this client
-        mwcst::StatContextConfiguration statContextCfg(description);
+        bmqst::StatContextConfiguration statContextCfg(description);
         statContextCfg.storeExpiredSubcontextValues(true);
-        bslma::ManagedPtr<mwcst::StatContext> statContext =
+        bslma::ManagedPtr<bmqst::StatContext> statContext =
             d_statContext_p->addSubcontext(statContextCfg);
 
         mqba::ClientSession* session = new (*d_allocator_p)
@@ -888,7 +887,7 @@ bool SessionNegotiator::checkIsUnsupportedSdkVersion(
 // CREATORS
 SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                                      mqbi::Dispatcher*         dispatcher,
-                                     mwcst::StatContext*       statContext,
+                                     bmqst::StatContext*       statContext,
                                      BlobSpPool*               blobSpPool,
                                      bdlmt::EventScheduler*    scheduler,
                                      bslma::Allocator*         allocator)
@@ -912,7 +911,7 @@ SessionNegotiator::~SessionNegotiator()
 void SessionNegotiator::scheduleRead(const NegotiationContextSp& context)
 {
     // Schedule a TimedRead
-    mwcio::Status status;
+    bmqio::Status status;
     context->d_channelSp->read(
         &status,
         bmqp::Protocol::k_PACKET_MIN_SIZE,
@@ -927,7 +926,7 @@ void SessionNegotiator::scheduleRead(const NegotiationContextSp& context)
     //       replace it by the channel shared_ptr (inside the context)
 
     if (!status) {
-        mwcu::MemOutStream errStream;
+        bmqu::MemOutStream errStream;
         errStream << "Read failed while negotiating: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
         context->d_negotiationCb(-1,
@@ -954,7 +953,7 @@ void SessionNegotiator::initiateOutboundNegotiation(
                        context->d_clusterName,
                        nodeId);
 
-    mwcu::MemOutStream errStream;
+    bmqu::MemOutStream errStream;
 
     int rc = sendNegotiationMessage(errStream, negotiationMessage, context);
     if (rc != 0) {
@@ -971,7 +970,7 @@ void SessionNegotiator::initiateOutboundNegotiation(
 
 void SessionNegotiator::negotiate(
     mqbnet::NegotiatorContext*               context,
-    const bsl::shared_ptr<mwcio::Channel>&   channel,
+    const bsl::shared_ptr<bmqio::Channel>&   channel,
     const mqbnet::Negotiator::NegotiationCb& negotiationCb)
 {
     // Create a NegotiationContext for that connection
@@ -1032,7 +1031,7 @@ void SessionNegotiator::negotiate(
             negotiationContext->d_isReversed     = true;
             negotiationContext->d_connectionType = ConnectionType::e_CLIENT;
 
-            mwcu::MemOutStream errStream;
+            bmqu::MemOutStream errStream;
             int                rc = sendNegotiationMessage(errStream,
                                             negotiationMessage,
                                             negotiationContext);

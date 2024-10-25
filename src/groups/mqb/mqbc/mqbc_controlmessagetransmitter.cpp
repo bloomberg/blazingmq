@@ -22,8 +22,7 @@
 #include <mqbnet_cluster.h>
 #include <mqbnet_session.h>
 
-// MWC
-#include <mwcio_status.h>
+#include <bmqio_status.h>
 
 // BDE
 #include <bsls_assert.h>
@@ -114,9 +113,9 @@ void ControlMessageTransmitter::broadcastMessageHelper(
                 bmqp::HighAvailabilityFeatures::k_FIELD_NAME,
                 bmqp::HighAvailabilityFeatures::k_BROADCAST_TO_PROXIES,
                 negoMsg.clientIdentity().features())) {
-            mwcio::Status status;
+            bmqio::Status status;
             sessionSp->channel()->write(&status, schemaBuilder->blob());
-            if (status.category() == mwcio::StatusCategory::e_SUCCESS) {
+            if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
                 BALL_LOG_INFO << "Sent message '" << message << "' to proxy "
                               << sessionSp->description();
             }
@@ -169,7 +168,7 @@ void ControlMessageTransmitter::sendMessage(
 
 void ControlMessageTransmitter::sendMessage(
     const bmqp_ctrlmsg::ControlMessage&    message,
-    const bsl::shared_ptr<mwcio::Channel>& channel,
+    const bsl::shared_ptr<bmqio::Channel>& channel,
     const bsl::string&                     description)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -189,9 +188,9 @@ void ControlMessageTransmitter::sendMessage(
         return;  // RETURN
     }
 
-    mwcio::Status status;
+    bmqio::Status status;
     channel->write(&status, d_schemaBuilder.blob());
-    if (status.category() != mwcio::StatusCategory::e_SUCCESS) {
+    if (status.category() != bmqio::StatusCategory::e_SUCCESS) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                        << "Failed to write schema message: " << message
                        << " to session " << description

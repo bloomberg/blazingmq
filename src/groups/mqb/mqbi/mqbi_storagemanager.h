@@ -256,11 +256,11 @@ class StorageManager : public mqbi::AppKeyGenerator {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    virtual int updateQueue(const bmqt::Uri&        uri,
-                            const mqbu::StorageKey& queueKey,
-                            int                     partitionId,
-                            const AppIdKeyPairs&    addedIdKeyPairs,
-                            const AppIdKeyPairs&    removedIdKeyPairs) = 0;
+    virtual int updateQueuePrimary(const bmqt::Uri&        uri,
+                                   const mqbu::StorageKey& queueKey,
+                                   int                     partitionId,
+                                   const AppIdKeyPairs&    addedIdKeyPairs,
+                                   const AppIdKeyPairs& removedIdKeyPairs) = 0;
 
     virtual void registerQueueReplica(int                     partitionId,
                                       const bmqt::Uri&        uri,

@@ -24,10 +24,9 @@
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statutil.h>
-#include <mwcst_statvalue.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
+#include <bmqst_statvalue.h>
 
 // BDE
 #include <bdld_datummapbuilder.h>
@@ -59,24 +58,24 @@ struct DomainStatsIndex {
 // class DomainStats
 // ------------------
 
-bsls::Types::Int64 DomainStats::getValue(const mwcst::StatContext& context,
+bsls::Types::Int64 DomainStats::getValue(const bmqst::StatContext& context,
                                          int                       snapshotId,
                                          const Stat::Enum&         stat)
 
 {
     // invoked from the SNAPSHOT thread
 
-    const mwcst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const mwcst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+    const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
 #define STAT_RANGE(OPERATION, STAT)                                           \
-    mwcst::StatUtil::OPERATION(                                               \
-        context.value(mwcst::StatContext::e_DIRECT_VALUE, STAT),              \
+    bmqst::StatUtil::OPERATION(                                               \
+        context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot,                                                       \
         oldestSnapshot)
 
@@ -108,7 +107,7 @@ DomainStats::DomainStats()
 }
 
 void DomainStats::initialize(mqbi::Domain*       domain,
-                             mwcst::StatContext* domainStatContext,
+                             bmqst::StatContext* domainStatContext,
                              bslma::Allocator*   allocator)
 {
     // PRECONDITIONS
@@ -116,7 +115,7 @@ void DomainStats::initialize(mqbi::Domain*       domain,
 
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
     d_statContext_mp = domainStatContext->addSubcontext(
-        mwcst::StatContextConfiguration(domain->name(), &localAllocator));
+        bmqst::StatContextConfiguration(domain->name(), &localAllocator));
 
     // Build a dummy queue URI so we can use 'bmqt::Uri' to extract the
     // qualified domain without resorting on implementation details.
@@ -136,7 +135,10 @@ void DomainStats::initialize(mqbi::Domain*       domain,
                      bdld::Datum::copyString(domain->cluster()->name(),
                                              alloc));
     builder.pushBack("domain", bdld::Datum::copyString(uri.domain(), alloc));
-    builder.pushBack("tier", bdld::Datum::copyString(uri.tier(), alloc));
+    builder.pushBack("tier",
+                     bdld::Datum::copyString(uri.tier().isEmpty() ? ""
+                                                                  : uri.tier(),
+                                             alloc));
 
     datum->adopt(builder.commit());
 }
@@ -166,13 +168,13 @@ void DomainStats::onEvent(EventType::Enum type, bsls::Types::Int64 value)
 // class DomainStatsUtil
 // ---------------------
 
-bsl::shared_ptr<mwcst::StatContext>
+bsl::shared_ptr<bmqst::StatContext>
 DomainStatsUtil::initializeStatContext(int               historySize,
                                        bslma::Allocator* allocator)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
-    mwcst::StatContextConfiguration config(k_DOMAIN_STAT_NAME,
+    bmqst::StatContextConfiguration config(k_DOMAIN_STAT_NAME,
                                            &localAllocator);
     config.isTable(true)
         .defaultHistorySize(historySize)
@@ -182,8 +184,8 @@ DomainStatsUtil::initializeStatContext(int               historySize,
         .value("cfg_bytes")
         .value("queue_count");
 
-    return bsl::shared_ptr<mwcst::StatContext>(
-        new (*allocator) mwcst::StatContext(config, allocator),
+    return bsl::shared_ptr<bmqst::StatContext>(
+        new (*allocator) bmqst::StatContext(config, allocator),
         allocator);
 }
 

@@ -17,8 +17,8 @@
 #include <mqbc_clusternodesession.h>
 
 #include <mqbscm_version.h>
-// MWC
-#include <mwcio_status.h>
+
+#include <bmqio_status.h>
 
 // BDE
 #include <bsl_algorithm.h>
@@ -42,7 +42,7 @@ ClusterNodeSession::ClusterNodeSession(
 , d_clusterNode_p(netNode)
 , d_peerInstanceId(0)  // There is no invalid value for this field
 , d_queueHandleRequesterContext_sp(
-      new (*allocator) mqbi::QueueHandleRequesterContext(allocator),
+      new(*allocator) mqbi::QueueHandleRequesterContext(allocator),
       allocator)
 , d_nodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE)  // See note in ctor
 , d_statContext_sp()

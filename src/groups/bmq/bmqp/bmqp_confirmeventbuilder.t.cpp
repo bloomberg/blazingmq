@@ -22,8 +22,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_guid.h>
@@ -36,7 +35,7 @@
 #include <bsl_vector.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -133,7 +132,7 @@ static void verifyContent(const bmqp::ConfirmEventBuilder& builder,
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
     bmqp::ConfirmEventBuilder      obj(&bufferFactory, s_allocator_p);
@@ -154,7 +153,7 @@ static void test1_breathingTest()
 
 static void test2_multiMessage()
 {
-    mwctst::TestHelper::printTestName("MULTI MESSAGE");
+    bmqtst::TestHelper::printTestName("MULTI MESSAGE");
     // Create a ConfirmEvent with multiple messages.  Iterate and verify.
 
     const int k_NUM_MSGS = 1000;
@@ -172,7 +171,7 @@ static void test2_multiMessage()
 
 static void test3_reset()
 {
-    mwctst::TestHelper::printTestName("RESET");
+    bmqtst::TestHelper::printTestName("RESET");
     // Verifying reset: add two messages, reset, and add another message.
 
     bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
@@ -200,7 +199,7 @@ static void test3_reset()
 
 static void test4_capacity()
 {
-    mwctst::TestHelper::printTestName("CAPACITY");
+    bmqtst::TestHelper::printTestName("CAPACITY");
     // Verify that once the event is full, AppendMessage returns error.
 
     int                            rc;
@@ -255,13 +254,13 @@ static void testN1_decodeFromFile()
 //      with expected properties.
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("DECODE FROM FILE");
+    bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
     bmqp::ConfirmEventBuilder      obj(&bufferFactory, s_allocator_p);
     bsl::vector<Data>              messages(s_allocator_p);
     bdlbb::Blob                    outBlob(&bufferFactory, s_allocator_p);
-    mwcu::MemOutStream             os(s_allocator_p);
+    bmqu::MemOutStream             os(s_allocator_p);
     bdlb::Guid                     guid       = bdlb::GuidUtil::generate();
     const int                      k_NUM_MSGS = 10;
 
@@ -350,7 +349,7 @@ static void testN1_decodeFromFile()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -365,5 +364,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -132,7 +132,7 @@ int RecoveryMessageIterator::reset(const bdlbb::Blob* blob,
                                      // are no messages in it
     };
 
-    d_blobIter.reset(blob, mwcu::BlobPosition(), blob->length(), true);
+    d_blobIter.reset(blob, bmqu::BlobPosition(), blob->length(), true);
 
     bool rc = d_blobIter.advance(eventHeader.headerWords() *
                                  Protocol::k_WORD_SIZE);
@@ -172,7 +172,7 @@ void RecoveryMessageIterator::dumpBlob(bsl::ostream& stream) const
     // For now, print only the beginning of the blob.. we may later on print
     // also the bytes around the current position
     if (d_blobIter.blob()) {
-        stream << mwcu::BlobStartHexDumper(d_blobIter.blob(),
+        stream << bmqu::BlobStartHexDumper(d_blobIter.blob(),
                                            k_MAX_BYTES_DUMP);
     }
     else {

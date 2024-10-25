@@ -17,9 +17,9 @@
 #include <bmqp_messageguidgenerator.h>
 
 #include <bmqscm_version.h>
-// MWC
-#include <mwcio_resolveutil.h>
-#include <mwcu_memoutstream.h>
+
+#include <bmqio_resolveutil.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
@@ -85,7 +85,7 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
 
     // Get hostname
     bsl::string hostname;
-    ntsa::Error error = mwcio::ResolveUtil::getHostname(&hostname);
+    ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
 
     if (error.code() != ntsa::Error::e_OK) {
         BALL_LOG_ERROR << "Failed to get local hostname, error: " << error;
@@ -98,7 +98,7 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
     bool              useIP = doIpResolving;
 
     if (doIpResolving) {
-        error = mwcio::ResolveUtil::getIpAddress(&defaultIP, hostname);
+        error = bmqio::ResolveUtil::getIpAddress(&defaultIP, hostname);
 
         if (error.code() != ntsa::Error::e_OK) {
             // IP address retrieval can fail in case process is running in a
@@ -148,7 +148,7 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
     // NOTE: since we know the size, the `defaultAllocator` will never be
     //       used here
     bdlma::LocalSequentialAllocator<k_CLIENT_ID_LEN_HEX> localAllocator(0);
-    mwcu::MemOutStream                                   os(&localAllocator);
+    bmqu::MemOutStream                                   os(&localAllocator);
     bdlb::Print::singleLineHexDump(os, d_clientId, k_CLIENT_ID_LEN_BINARY);
     bsl::memcpy(d_clientIdHex, os.str().data(), os.str().length());
 
@@ -253,7 +253,7 @@ int MessageGUIDGenerator::extractFields(int*                     version,
 
     // ClientId
     bdlma::LocalSequentialAllocator<k_CLIENT_ID_LEN_HEX> localAlloc(0);
-    mwcu::MemOutStream                                   os(&localAlloc);
+    bmqu::MemOutStream                                   os(&localAlloc);
     bdlb::Print::singleLineHexDump(os, buffer, k_CLIENT_ID_LEN_BINARY);
     clientId->assign(os.str());
 

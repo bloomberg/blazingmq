@@ -1,0 +1,9 @@
+/**
+@dir bmqu
+
+@brief The `BMQU` (BlazingMQ Utility) package provides
+value-semantic vocabulary types.
+
+The ‘bmqu‘ package provides miscellaneous utility components to be
+reused through various applications.
+*/

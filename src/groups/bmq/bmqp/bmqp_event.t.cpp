@@ -21,8 +21,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_schemaeventbuilder.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -33,7 +32,7 @@
 #include <bsls_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -45,7 +44,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlbb::Blob blob(s_allocator_p);
 
@@ -133,7 +132,7 @@ static void test1_breathingTest()
 
 static void test2_isValid()
 {
-    mwctst::TestHelper::printTestName("IS VALID");
+    bmqtst::TestHelper::printTestName("IS VALID");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -202,7 +201,7 @@ static void test3_eventTypes()
 //   bmqp::Event::isHeartbeatRspEvent()
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT TYPES");
+    bmqtst::TestHelper::printTestName("EVENT TYPES");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -507,7 +506,7 @@ static void test4_eventLoading()
 //       int bmqp::Event::loadElectorEvent(TYPE *message) const
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT LOADING");
+    bmqtst::TestHelper::printTestName("EVENT LOADING");
     // Disable check that no memory was allocated from the default allocator
     s_ignoreCheckDefAlloc = true;
     // baljsn::Encoder constructor does not pass the allocator to the
@@ -643,7 +642,7 @@ static void test5_iteratorLoading()
 //                                 RecoveryMessageIterator *iterator) const
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ITERATOR LOADING");
+    bmqtst::TestHelper::printTestName("ITERATOR LOADING");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
 
@@ -762,7 +761,7 @@ static void test6_printing()
 //                    const bmqp::Event& rhs)
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     BSLMF_ASSERT(bmqp::EventType::e_CONTROL ==
                  bmqp::EventType::k_LOWEST_SUPPORTED_EVENT_TYPE);
@@ -797,8 +796,8 @@ static void test6_printing()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
         bmqp::EventHeader  eh(static_cast<bmqp::EventType::Enum>(test.d_type));
         bdlbb::Blob        blob(&bufferFactory, s_allocator_p);
 
@@ -838,7 +837,7 @@ static void test6_printing()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -854,5 +853,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

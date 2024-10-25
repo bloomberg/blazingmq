@@ -22,11 +22,10 @@
 #include <bmqp_queueid.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcc_array.h>
-#include <mwcu_blobiterator.h>
-#include <mwcu_blobobjectproxy.h>
-#include <mwcu_memoutstream.h>
+#include <bmqc_array.h>
+#include <bmqu_blobiterator.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_stringrefutil.h>
@@ -462,13 +461,13 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
     // MessagePropertyHeader followed by one or more (name, value) pairs, and
     // end with padding for word alignment.
 
-    mwcu::BlobIterator blobIter(src,
-                                mwcu::BlobPosition(),
+    bmqu::BlobIterator blobIter(src,
+                                bmqu::BlobPosition(),
                                 src->length(),
                                 true);
 
     // Read 'MessagePropertiesHeader'.
-    mwcu::BlobObjectProxy<MessagePropertiesHeader> srcHeader(
+    bmqu::BlobObjectProxy<MessagePropertiesHeader> srcHeader(
         src,
         -MessagePropertiesHeader::k_MIN_HEADER_SIZE,
         true,    // read flag
@@ -509,7 +508,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
         bdlbb::BlobUtil::copy(dst, 0, *src, 0, dataOffset);
 
         blobIter =
-            mwcu::BlobIterator(dst, mwcu::BlobPosition(), dataOffset, true);
+            bmqu::BlobIterator(dst, bmqu::BlobPosition(), dataOffset, true);
     }
 
     // Iterate over all 'MessagePropertyHeader' fields and keep track of
@@ -519,7 +518,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
     int       previous    = 0;
 
     // need to keep two instances, current and previous
-    mwcu::BlobObjectProxy<MessagePropertyHeader> mph[2];
+    bmqu::BlobObjectProxy<MessagePropertyHeader> mph[2];
 
     while (numProps--) {
         // Move the blob position to the beginning of
@@ -617,7 +616,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
 
         bdlbb::BlobUtil::append(&compressed, *src, mpsSize);
 
-        mwcu::MemOutStream error(allocator);
+        bmqu::MemOutStream error(allocator);
         rc = bmqp::Compression::decompress(dst,
                                            factory,
                                            cat,
@@ -631,7 +630,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
 
 int ProtocolUtil::readPropertiesSize(int*                      size,
                                      const bdlbb::Blob&        blob,
-                                     const mwcu::BlobPosition& position)
+                                     const bmqu::BlobPosition& position)
 {
     enum RcEnum {
         // Return codes
@@ -639,7 +638,7 @@ int ProtocolUtil::readPropertiesSize(int*                      size,
         rc_INCOMPLETE_MSG_PROPERTIES_HEADER = -1,
         rc_CORRUPT_MESSAGE                  = -2
     };
-    mwcu::BlobObjectProxy<MessagePropertiesHeader> mpsHeader(
+    bmqu::BlobObjectProxy<MessagePropertiesHeader> mpsHeader(
         &blob,
         position,
         -MessagePropertiesHeader::k_MIN_HEADER_SIZE,
@@ -678,7 +677,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                         const bdlbb::Blob&        input,
                         int                       length,
                         bool                      decompressFlag,
-                        const mwcu::BlobPosition& position,
+                        const bmqu::BlobPosition& position,
                         bool                      haveMessageProperties,
                         bool                      haveNewMessageProperties,
                         bmqt::CompressionAlgorithmType::Enum cat,
@@ -712,7 +711,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
     }
 
     int offset;
-    int rc = mwcu::BlobUtil::positionToOffsetSafe(&offset, input, position);
+    int rc = bmqu::BlobUtil::positionToOffsetSafe(&offset, input, position);
     int copyFrom = offset;
     int copyLen  = length;
 
@@ -741,7 +740,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                 copyFrom += *messagePropertiesSize;
                 copyLen -= *messagePropertiesSize;
             }  // else don't rush appending to 'dataOutput'.
-        }      // else MPs are compressed
+        }  // else MPs are compressed
     }
 
     if (cat == bmqt::CompressionAlgorithmType::e_NONE) {
@@ -756,7 +755,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
 
     // De-compress, if requested
     bdlbb::Blob        bufferCompressed(blobBufferFactory, allocator);
-    mwcu::MemOutStream error(allocator);
+    bmqu::MemOutStream error(allocator);
     bdlbb::Blob        bufferDecompressed(blobBufferFactory, allocator);
     bdlbb::Blob*       decompressedBlob;
 
@@ -798,7 +797,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
         // Now read de-compressed MPs
         rc = bmqp::ProtocolUtil::readPropertiesSize(messagePropertiesSize,
                                                     *decompressedBlob,
-                                                    mwcu::BlobPosition());
+                                                    bmqu::BlobPosition());
         if (rc < 0) {
             return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
         }

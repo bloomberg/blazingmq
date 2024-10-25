@@ -35,14 +35,14 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_sessioneventtype.h>
 
-// MWC
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+// BMQ
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
-// MWC
-#include <mwcst_statutil.h>
+// BMQ
+#include <bmqst_statutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -140,7 +140,7 @@ void Application::tearDownLog()
     ball::LoggerManager::shutDownSingleton();
 }
 
-bsl::shared_ptr<mwcst::StatContext>
+bsl::shared_ptr<bmqst::StatContext>
 Application::createStatContext(int historySize, bslma::Allocator* allocator)
 {
     // message: value is data bytes; increments is number of messages
@@ -148,12 +148,12 @@ Application::createStatContext(int historySize, bslma::Allocator* allocator)
     //          events
     // latency: discrete value with nanoseconds of latency reported for each
     //          message (only used in consumer mode)
-    mwcst::StatContextConfiguration config("bmqtool", allocator);
+    bmqst::StatContextConfiguration config("bmqtool", allocator);
     config.isTable(true);
     config.value("message", historySize)
         .value("event", historySize)
-        .value("latency", mwcst::StatValue::e_DISCRETE, historySize);
-    return bsl::make_shared<mwcst::StatContext>(config, allocator);
+        .value("latency", bmqst::StatValue::e_DISCRETE, historySize);
+    return bsl::make_shared<bmqst::StatContext>(config, allocator);
 }
 
 void Application::snapshotStats()
@@ -219,28 +219,28 @@ void Application::printStats(int interval) const
     printStatHeader();
 
     // Gather metrics
-    const mwcst::StatValue& msg = d_statContext_sp->value(
-        mwcst::StatContext::e_DIRECT_VALUE,
+    const bmqst::StatValue& msg = d_statContext_sp->value(
+        bmqst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext_sp->value(
-        mwcst::StatContext::e_DIRECT_VALUE,
+    const bmqst::StatValue& evt = d_statContext_sp->value(
+        bmqst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
-    mwcst::StatValue::SnapshotLocation t0(0, 0);
-    mwcst::StatValue::SnapshotLocation t1(0, interval);
+    bmqst::StatValue::SnapshotLocation t0(0, 0);
+    bmqst::StatValue::SnapshotLocation t1(0, interval);
 
-    double msgBytesRate = mwcst::StatUtil::ratePerSecond(msg, t0, t1);
-    double msgRate      = mwcst::StatUtil::incrementsPerSecond(msg, t0, t1);
-    bsls::Types::Int64 msgDelta = mwcst::StatUtil::incrementsDifference(msg,
+    double msgBytesRate = bmqst::StatUtil::ratePerSecond(msg, t0, t1);
+    double msgRate      = bmqst::StatUtil::incrementsPerSecond(msg, t0, t1);
+    bsls::Types::Int64 msgDelta = bmqst::StatUtil::incrementsDifference(msg,
                                                                         t0,
                                                                         t1);
-    double evtBytesRate         = mwcst::StatUtil::ratePerSecond(evt, t0, t1);
-    double evtRate = mwcst::StatUtil::incrementsPerSecond(evt, t0, t1);
-    bsls::Types::Int64 evtDelta = mwcst::StatUtil::incrementsDifference(evt,
+    double evtBytesRate         = bmqst::StatUtil::ratePerSecond(evt, t0, t1);
+    double evtRate = bmqst::StatUtil::incrementsPerSecond(evt, t0, t1);
+    bsls::Types::Int64 evtDelta = bmqst::StatUtil::incrementsDifference(evt,
                                                                         t0,
                                                                         t1);
 
-    mwcu::MemOutStream ss;
+    bmqu::MemOutStream ss;
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags())) {
         ss << "consumed ";
     }
@@ -253,48 +253,48 @@ void Application::printStats(int interval) const
 
     // Msg
     {
-        mwcu::OutStreamFormatSaver streamFmtSaver(ss);
+        bmqu::OutStreamFormatSaver streamFmtSaver(ss);
         ss << "|" << bsl::setw(14)
-           << mwcu::PrintUtil::prettyNumber(
+           << bmqu::PrintUtil::prettyNumber(
                   static_cast<bsls::Types::Int64>(msgRate))
-           << " |" << bsl::setw(14) << mwcu::PrintUtil::prettyNumber(msgDelta)
+           << " |" << bsl::setw(14) << bmqu::PrintUtil::prettyNumber(msgDelta)
            << " |" << bsl::setw(14)
-           << mwcu::PrintUtil::prettyBytes(
+           << bmqu::PrintUtil::prettyBytes(
                   static_cast<bsls::Types::Int64>(msgBytesRate));
     }
 
     // Event
     {
-        mwcu::OutStreamFormatSaver streamFmtSaver(ss);
+        bmqu::OutStreamFormatSaver streamFmtSaver(ss);
         ss << " ||" << bsl::setw(14)
-           << mwcu::PrintUtil::prettyNumber(
+           << bmqu::PrintUtil::prettyNumber(
                   static_cast<bsls::Types::Int64>(evtRate))
-           << " |" << bsl::setw(14) << mwcu::PrintUtil::prettyNumber(evtDelta)
+           << " |" << bsl::setw(14) << bmqu::PrintUtil::prettyNumber(evtDelta)
            << " |" << bsl::setw(14)
-           << mwcu::PrintUtil::prettyBytes(
+           << bmqu::PrintUtil::prettyBytes(
                   static_cast<bsls::Types::Int64>(evtBytesRate));
     }
 
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext_sp->value(
-            mwcst::StatContext::e_DIRECT_VALUE,
+        const bmqst::StatValue& latency = d_statContext_sp->value(
+            bmqst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
-        bsls::Types::Int64 latencyMin = mwcst::StatUtil::rangeMin(latency,
+        bsls::Types::Int64 latencyMin = bmqst::StatUtil::rangeMin(latency,
                                                                   t0,
                                                                   t1);
         bsls::Types::Int64 latencyAvg = static_cast<bsls::Types::Int64>(
-            mwcst::StatUtil::averagePerEvent(latency, t0, t1));
-        bsls::Types::Int64 latencyMax = mwcst::StatUtil::rangeMax(latency,
+            bmqst::StatUtil::averagePerEvent(latency, t0, t1));
+        bsls::Types::Int64 latencyMax = bmqst::StatUtil::rangeMax(latency,
                                                                   t0,
                                                                   t1);
-        mwcu::OutStreamFormatSaver streamFmtSaver(ss);
+        bmqu::OutStreamFormatSaver streamFmtSaver(ss);
         ss << " ||" << bsl::setw(14)
-           << mwcu::PrintUtil::prettyTimeInterval(latencyMin) << " < "
-           << bsl::setw(14) << mwcu::PrintUtil::prettyTimeInterval(latencyAvg)
+           << bmqu::PrintUtil::prettyTimeInterval(latencyMin) << " < "
+           << bsl::setw(14) << bmqu::PrintUtil::prettyTimeInterval(latencyAvg)
            << " < " << bsl::setw(14)
-           << mwcu::PrintUtil::prettyTimeInterval(latencyMax);
+           << bmqu::PrintUtil::prettyTimeInterval(latencyMax);
     }
 
     bsl::cout << ss.str() << bsl::endl;
@@ -304,21 +304,21 @@ void Application::printFinalStats()
 {
     d_statContext_sp->snapshot();
 
-    mwcst::StatValue::SnapshotLocation loc(0, 0);
+    bmqst::StatValue::SnapshotLocation loc(0, 0);
 
-    const mwcst::StatValue& msg = d_statContext_sp->value(
-        mwcst::StatContext::e_DIRECT_VALUE,
+    const bmqst::StatValue& msg = d_statContext_sp->value(
+        bmqst::StatContext::e_DIRECT_VALUE,
         k_STAT_MSG);
-    const mwcst::StatValue& evt = d_statContext_sp->value(
-        mwcst::StatContext::e_DIRECT_VALUE,
+    const bmqst::StatValue& evt = d_statContext_sp->value(
+        bmqst::StatContext::e_DIRECT_VALUE,
         k_STAT_EVT);
 
-    bsls::Types::Int64 nbMsg    = mwcst::StatUtil::increments(msg, loc);
-    bsls::Types::Int64 msgBytes = mwcst::StatUtil::value(msg, loc);
-    bsls::Types::Int64 nbEvt    = mwcst::StatUtil::increments(evt, loc);
-    bsls::Types::Int64 evtBytes = mwcst::StatUtil::value(evt, loc);
+    bsls::Types::Int64 nbMsg    = bmqst::StatUtil::increments(msg, loc);
+    bsls::Types::Int64 msgBytes = bmqst::StatUtil::value(msg, loc);
+    bsls::Types::Int64 nbEvt    = bmqst::StatUtil::increments(evt, loc);
+    bsls::Types::Int64 evtBytes = bmqst::StatUtil::value(evt, loc);
 
-    mwcu::MemOutStream ss;
+    bmqu::MemOutStream ss;
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags())) {
         ss << "consumed ";
     }
@@ -329,10 +329,10 @@ void Application::printFinalStats()
         BSLS_ASSERT_OPT(false && "Neither writer nor reader flags are set");
     }
 
-    ss << mwcu::PrintUtil::prettyNumber(nbMsg) << " messages ["
-       << mwcu::PrintUtil::prettyBytes(msgBytes) << "] in "
-       << mwcu::PrintUtil::prettyNumber(nbEvt) << " events ["
-       << mwcu::PrintUtil::prettyBytes(evtBytes) << "]";
+    ss << bmqu::PrintUtil::prettyNumber(nbMsg) << " messages ["
+       << bmqu::PrintUtil::prettyBytes(msgBytes) << "] in "
+       << bmqu::PrintUtil::prettyNumber(nbEvt) << " events ["
+       << bmqu::PrintUtil::prettyBytes(evtBytes) << "]";
 
     if (msgBytes != 0) {
         double protocol = (evtBytes - msgBytes) * 100.0 / evtBytes;
@@ -342,15 +342,15 @@ void Application::printFinalStats()
     // Latency
     if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
         d_parameters_p->latency() != ParametersLatency::e_NONE) {
-        const mwcst::StatValue& latency = d_statContext_sp->value(
-            mwcst::StatContext::e_DIRECT_VALUE,
+        const bmqst::StatValue& latency = d_statContext_sp->value(
+            bmqst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
 
-        bsls::Types::Int64 latencyMin = mwcst::StatUtil::absoluteMin(latency);
-        bsls::Types::Int64 latencyMax = mwcst::StatUtil::absoluteMax(latency);
+        bsls::Types::Int64 latencyMin = bmqst::StatUtil::absoluteMin(latency);
+        bsls::Types::Int64 latencyMax = bmqst::StatUtil::absoluteMax(latency);
         ss << " ~ latency { "
-           << mwcu::PrintUtil::prettyTimeInterval(latencyMin) << " < "
-           << mwcu::PrintUtil::prettyTimeInterval(latencyMax) << " }";
+           << bmqu::PrintUtil::prettyTimeInterval(latencyMin) << " < "
+           << bmqu::PrintUtil::prettyTimeInterval(latencyMax) << " }";
     }
 
     bsl::cout << "\n"
@@ -430,23 +430,23 @@ void Application::generateLatencyReport()
     // 4. Print summary stats to stdout
     bsl::cout
         << "  Population size.: " << dataSet.size() << "\n"
-        << "  min.............: " << mwcu::PrintUtil::prettyTimeInterval(min)
+        << "  min.............: " << bmqu::PrintUtil::prettyTimeInterval(min)
         << "\n"
-        << "  avg.............: " << mwcu::PrintUtil::prettyTimeInterval(avg)
+        << "  avg.............: " << bmqu::PrintUtil::prettyTimeInterval(avg)
         << "\n"
-        << "  max.............: " << mwcu::PrintUtil::prettyTimeInterval(max)
+        << "  max.............: " << bmqu::PrintUtil::prettyTimeInterval(max)
         << "\n"
         << "  median..........: "
-        << mwcu::PrintUtil::prettyTimeInterval(median) << "\n"
-        << "  95Percentile....: " << mwcu::PrintUtil::prettyTimeInterval(p95)
+        << bmqu::PrintUtil::prettyTimeInterval(median) << "\n"
+        << "  95Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p95)
         << "\n"
-        << "  96Percentile....: " << mwcu::PrintUtil::prettyTimeInterval(p96)
+        << "  96Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p96)
         << "\n"
-        << "  97Percentile....: " << mwcu::PrintUtil::prettyTimeInterval(p97)
+        << "  97Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p97)
         << "\n"
-        << "  98Percentile....: " << mwcu::PrintUtil::prettyTimeInterval(p98)
+        << "  98Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p98)
         << "\n"
-        << "  99Percentile....: " << mwcu::PrintUtil::prettyTimeInterval(p99)
+        << "  99Percentile....: " << bmqu::PrintUtil::prettyTimeInterval(p99)
         << "\n"
         << bsl::endl;
 
@@ -704,10 +704,10 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
                 bdlb::BigEndianInt64 time;
 
-                int rc = mwcu::BlobUtil::readNBytes(
+                int rc = bmqu::BlobUtil::readNBytes(
                     reinterpret_cast<char*>(&time),
                     blob,
-                    mwcu::BlobPosition(0, 0),
+                    bmqu::BlobPosition(0, 0),
                     sizeof(bdlb::BigEndianInt64));
                 BSLS_ASSERT_SAFE(rc == 0);
                 (void)rc;

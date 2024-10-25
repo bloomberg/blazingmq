@@ -258,7 +258,7 @@ class RedeliveryList {
         Item();
     };
 
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  Item,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         Map;
@@ -364,8 +364,8 @@ struct QueueEngineUtil_AppState {
     bdlmt::EventSchedulerEventHandle d_throttleEventHandle;
     // EventHandle for poison pill message
     // throttling.
-    mqbu::StorageKey       d_appKey;
-    const bsl::string      d_appId;
+    mqbu::StorageKey  d_appKey;
+    const bsl::string d_appId;
 
     unsigned int d_upstreamSubQueueId;
 
@@ -549,6 +549,10 @@ struct QueueEngineUtil_AppState {
     /// Return `true` if this App does not have any never delivered data before
     /// the queue iterator: empty PutAside List and no resume point.
     bool isAtEndOfStorage() const;
+
+    size_t putAsideListSize() const;
+
+    size_t redeliveryListSize() const;
 
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);
 
@@ -782,6 +786,16 @@ inline void
 QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
 {
     d_redeliveryList.add(guid);
+}
+
+inline size_t QueueEngineUtil_AppState::putAsideListSize() const
+{
+    return d_putAsideList.size();
+}
+
+inline size_t QueueEngineUtil_AppState::redeliveryListSize() const
+{
+    return d_redeliveryList.size();
 }
 
 inline Routers::Consumer*

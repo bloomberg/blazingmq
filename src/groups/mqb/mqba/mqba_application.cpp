@@ -43,12 +43,11 @@
 #include <bmqp_crc32c.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcscm_version.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_operationchain.h>
+#include <bmqscm_version.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_operationchain.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -76,8 +75,8 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
-const int k_BLOBBUFFER_SIZE           = 4 * 1024;
-const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
+const int                k_BLOBBUFFER_SIZE           = 4 * 1024;
+const int                k_BLOB_POOL_GROWTH_STRATEGY = 1024;
 const bsls::Types::Int64 k_STOP_REQUEST_TIMEOUT_MS   = 5000;
 
 /// Create a new blob at the specified `arena` address, using the specified
@@ -101,7 +100,7 @@ void Application::oneTimeInit()
     BSLMT_ONCE_DO
     {
         // Initialize Time with platform-specific clocks/timers
-        mwcsys::Time::initialize();
+        bmqsys::Time::initialize();
 
         // Initialize pseudo-random number generator.  We add some
         // machine-specific (high resolution timer) and task-specific (pid)
@@ -110,7 +109,7 @@ void Application::oneTimeInit()
         unsigned int seed =
             bsl::time(NULL) +
             static_cast<unsigned int>(bdls::ProcessUtil::getProcessId()) +
-            static_cast<unsigned int>(mwcsys::Time::highResolutionTimer() &
+            static_cast<unsigned int>(bmqsys::Time::highResolutionTimer() &
                                       0xFFFFFFFF);
 
         bsl::srand(seed);
@@ -130,22 +129,22 @@ void Application::oneTimeShutdown()
     {
         bmqp::ProtocolUtil::shutdown();
         bmqt::UriParser::shutdown();
-        mwcsys::Time::shutdown();
+        bmqsys::Time::shutdown();
     }
 }
 
 // CREATORS
 Application::Application(bdlmt::EventScheduler* scheduler,
-                         mwcst::StatContext*    allocatorsStatContext,
+                         bmqst::StatContext*    allocatorsStatContext,
                          bslma::Allocator*      allocator)
 : d_allocators(allocator)
 , d_scheduler_p(scheduler)
-, d_adminExecutionPool(mwcsys::ThreadUtil::defaultAttributes(),
+, d_adminExecutionPool(bmqsys::ThreadUtil::defaultAttributes(),
                        0,
                        1,
                        bsls::TimeInterval(120).totalMilliseconds(),
                        allocator)
-, d_adminRerouteExecutionPool(mwcsys::ThreadUtil::defaultAttributes(),
+, d_adminRerouteExecutionPool(bmqsys::ThreadUtil::defaultAttributes(),
                               0,
                               1,
                               bsls::TimeInterval(120).totalMilliseconds(),
@@ -200,19 +199,17 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 
     // Print banner
     BALL_LOG_INFO
-        << "Starting"
-        << "\n   ____  __  __  ___  _               _"
+        << "Starting" << "\n   ____  __  __  ___  _               _"
         << "\n  | __ )|  \\/  |/ _ \\| |__  _ __ ___ | | _____ _ __"
         << "\n  |  _ \\| |\\/| | | | | '_ \\| '__/ _ \\| |/ / _ \\ '__|"
         << "\n  | |_) | |  | | |_| | |_) | | | (_) |   <  __/ |"
-        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|"
-        << "\n"
+        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|" << "\n"
         << "\n    Instance..............: " << brkrCfg.brokerInstanceName()
         << "\n    Version...............: " << brkrCfg.brokerVersion()
         << "\n    Build Type............: " << MQBA_STRINGIFY(BMQ_BUILD_TYPE)
         << "\n    Assert Level..........: " << assertLevel
         << "\n    Config version........: " << brkrCfg.configVersion()
-        << "\n    MWC version...........: " << mwcscm::Version::version()
+        << "\n    BMQ version...........: " << bmqscm::Version::version()
         << "\n    OS name...............: " << osName
         << "\n    OS version............: " << osVersion
         << "\n    OS patch..............: " << osPatch
@@ -230,7 +227,7 @@ Application::~Application()
 }
 
 void Application::loadStatContexts(
-    bsl::unordered_map<bsl::string, mwcst::StatContext*>* contexts) const
+    bsl::unordered_map<bsl::string, bmqst::StatContext*>* contexts) const
 {
     if (!d_statController_mp) {
         return;  // RETURN
@@ -357,7 +354,7 @@ int Application::start(bsl::ostream& errorDescription)
     //      sessionNegotiator and cluster catalog, creation and start order is
     //      less than ideal
 
-    bsl::unordered_map<bsl::string, mwcst::StatContext*> statContextsMap(
+    bsl::unordered_map<bsl::string, bmqst::StatContext*> statContextsMap(
         d_allocator_p);
     d_statController_mp->loadStatContexts(&statContextsMap);
 
@@ -785,7 +782,7 @@ int Application::executeCommand(const mqbcmd::Command&  command,
             options.setInitialIndentLevel(1);
             options.setSpacesPerLevel(4);
 
-            mwcu::MemOutStream brokerConfigOs;
+            bmqu::MemOutStream brokerConfigOs;
             rc = encoder.encode(brokerConfigOs,
                                 mqbcfg::BrokerConfig::get(),
                                 options);
@@ -799,7 +796,7 @@ int Application::executeCommand(const mqbcmd::Command&  command,
         }
     }
     else {
-        mwcu::MemOutStream errorOs;
+        bmqu::MemOutStream errorOs;
         errorOs << "Unknown command '" << commandChoice << "'";
         cmdResult->makeError().message() = errorOs.str();
     }
@@ -854,7 +851,7 @@ int Application::processCommand(const bslstl::StringRef& source,
     bsl::string selfName;
 
     if (routeCommandManager.isRoutingNeeded()) {
-        mwcu::MemOutStream errorDescription;
+        bmqu::MemOutStream errorDescription;
 
         mqbi::Cluster* cluster = getRelevantCluster(errorDescription, command);
         if (cluster == NULL) {  // Error occurred getting cluster
@@ -894,7 +891,7 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     if (shouldSelfExecute) {
         // Add self response (executed earlier)
-        mwcu::MemOutStream cmdOs;
+        bmqu::MemOutStream cmdOs;
         mqbcmd::Util::printCommandResult(cmdResult, command.encoding(), cmdOs);
         mqbcmd::RouteResponse routeResponse;
         routeResponse.response()              = cmdOs.str();
@@ -913,7 +910,7 @@ int Application::processCommandCb(
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)
 {
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     int                rc = processCommand(source, cmd, os, fromReroute);
 
     onProcessedCb(rc, os.str());

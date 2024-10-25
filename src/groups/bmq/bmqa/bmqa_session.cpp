@@ -36,8 +36,7 @@
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -207,7 +206,7 @@ struct SessionUtil {
         const CALLBACK&                       callback);
 
     static bmqt::OpenQueueResult::Enum
-    validateAndSetOpenQueueParameters(mwcu::MemOutStream* errorDescription,
+    validateAndSetOpenQueueParameters(bmqu::MemOutStream* errorDescription,
                                       QueueId*            queueId,
                                       SessionImpl*        sessionImpl,
                                       const bmqt::Uri&    uri,
@@ -217,14 +216,14 @@ struct SessionUtil {
 
     static bmqt::ConfigureQueueResult::Enum
     validateAndSetConfigureQueueParameters(
-        mwcu::MemOutStream*       errorDescription,
+        bmqu::MemOutStream*       errorDescription,
         const QueueId*            queueId,
         const SessionImpl*        sessionImpl,
         const bmqt::QueueOptions& options,
         const bsls::TimeInterval& timeout);
 
     static bmqt::CloseQueueResult::Enum
-    validateAndSetCloseQueueParameters(mwcu::MemOutStream* errorDescription,
+    validateAndSetCloseQueueParameters(bmqu::MemOutStream* errorDescription,
                                        const QueueId*      queueId,
                                        const SessionImpl*  sessionImpl,
                                        const bsls::TimeInterval& timeout);
@@ -447,7 +446,7 @@ void SessionUtil::operationResultCallbackWrapper(
 }
 
 bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
-    mwcu::MemOutStream*       errorDescription,
+    bmqu::MemOutStream*       errorDescription,
     QueueId*                  queueId,
     SessionImpl*              sessionImpl,
     const bmqt::Uri&          uri,
@@ -499,7 +498,7 @@ bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
     // Validate the queue flags
     bdlma::LocalSequentialAllocator<1024> localAllocator(
         sessionImpl->d_allocator_p);
-    mwcu::MemOutStream error(&localAllocator);
+    bmqu::MemOutStream error(&localAllocator);
     if (!bmqt::QueueFlagsUtil::isValid(error, flags)) {
         (*errorDescription)
             << "Invalid openQueue flags: '" << error.str() << "'";
@@ -527,7 +526,7 @@ bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
     bmqt::QueueOptions optionsCopy(options, sessionImpl->d_allocator_p);
     if (isReader) {
         // Validate Queue Options
-        mwcu::MemOutStream errorDesc(sessionImpl->d_allocator_p);
+        bmqu::MemOutStream errorDesc(sessionImpl->d_allocator_p);
         int                rc = validateQueueOptions(errorDesc, optionsCopy);
         if (rc) {
             (*errorDescription) << "Invalid argument - " << errorDesc.str();
@@ -550,7 +549,7 @@ bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
 
 bmqt::ConfigureQueueResult::Enum
 SessionUtil::validateAndSetConfigureQueueParameters(
-    mwcu::MemOutStream*       errorDescription,
+    bmqu::MemOutStream*       errorDescription,
     const QueueId*            queueId,
     const SessionImpl*        sessionImpl,
     const bmqt::QueueOptions& options,
@@ -586,7 +585,7 @@ SessionUtil::validateAndSetConfigureQueueParameters(
     }
 
     // Validate Options
-    mwcu::MemOutStream errorDesc(sessionImpl->d_allocator_p);
+    bmqu::MemOutStream errorDesc(sessionImpl->d_allocator_p);
     int                rc = validateQueueOptions(errorDesc, options);
     if (rc) {
         (*errorDescription) << "Invalid argument - " << errorDesc.str();
@@ -597,7 +596,7 @@ SessionUtil::validateAndSetConfigureQueueParameters(
 }
 
 bmqt::CloseQueueResult::Enum SessionUtil::validateAndSetCloseQueueParameters(
-    mwcu::MemOutStream*       errorDescription,
+    bmqu::MemOutStream*       errorDescription,
     const QueueId*            queueId,
     const SessionImpl*        sessionImpl,
     const bsls::TimeInterval& timeout)
@@ -910,7 +909,7 @@ int Session::openQueue(QueueId*                  queueId,
                        const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream          error;
+    bmqu::MemOutStream          error;
     bmqt::OpenQueueResult::Enum validationRc =
         SessionUtil::validateAndSetOpenQueueParameters(&error,
                                                        queueId,
@@ -951,7 +950,7 @@ OpenQueueStatus Session::openQueueSync(QueueId*                  queueId,
                                        const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream          error;
+    bmqu::MemOutStream          error;
     bmqt::OpenQueueResult::Enum validationRc =
         SessionUtil::validateAndSetOpenQueueParameters(&error,
                                                        queueId,
@@ -1012,7 +1011,7 @@ int Session::openQueueAsync(QueueId*                  queueId,
                             const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream          error;
+    bmqu::MemOutStream          error;
     bmqt::OpenQueueResult::Enum validationRc =
         SessionUtil::validateAndSetOpenQueueParameters(&error,
                                                        queueId,
@@ -1067,7 +1066,7 @@ void Session::openQueueAsync(bmqa::QueueId*            queueId,
                              callback);
 
     // Validate parameters
-    mwcu::MemOutStream          error;
+    bmqu::MemOutStream          error;
     bmqt::OpenQueueResult::Enum validationRc =
         SessionUtil::validateAndSetOpenQueueParameters(&error,
                                                        queueId,
@@ -1110,7 +1109,7 @@ int Session::configureQueue(QueueId*                  queueId,
                             const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream               error;
+    bmqu::MemOutStream               error;
     bmqt::ConfigureQueueResult::Enum validationRc =
         SessionUtil::validateAndSetConfigureQueueParameters(&error,
                                                             queueId,
@@ -1151,7 +1150,7 @@ Session::configureQueueSync(QueueId*                  queueId,
                             const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream               error;
+    bmqu::MemOutStream               error;
     bmqt::ConfigureQueueResult::Enum validationRc =
         SessionUtil::validateAndSetConfigureQueueParameters(&error,
                                                             queueId,
@@ -1202,7 +1201,7 @@ int Session::configureQueueAsync(QueueId*                  queueId,
                                  const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream               error;
+    bmqu::MemOutStream               error;
     bmqt::ConfigureQueueResult::Enum validationRc =
         SessionUtil::validateAndSetConfigureQueueParameters(&error,
                                                             queueId,
@@ -1256,7 +1255,7 @@ void Session::configureQueueAsync(QueueId*                      queueId,
                              callback);
 
     // Validate parameters
-    mwcu::MemOutStream               error;
+    bmqu::MemOutStream               error;
     bmqt::ConfigureQueueResult::Enum validationRc =
         SessionUtil::validateAndSetConfigureQueueParameters(&error,
                                                             queueId,
@@ -1295,7 +1294,7 @@ void Session::configureQueueAsync(QueueId*                      queueId,
 int Session::closeQueue(QueueId* queueId, const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream           error;
+    bmqu::MemOutStream           error;
     bmqt::CloseQueueResult::Enum validationRc =
         SessionUtil::validateAndSetCloseQueueParameters(&error,
                                                         queueId,
@@ -1329,7 +1328,7 @@ CloseQueueStatus Session::closeQueueSync(QueueId*                  queueId,
                                          const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream           error;
+    bmqu::MemOutStream           error;
     bmqt::CloseQueueResult::Enum validationRc =
         SessionUtil::validateAndSetCloseQueueParameters(&error,
                                                         queueId,
@@ -1382,7 +1381,7 @@ int Session::closeQueueAsync(QueueId*                  queueId,
                              const bsls::TimeInterval& timeout)
 {
     // Validate parameters
-    mwcu::MemOutStream           error;
+    bmqu::MemOutStream           error;
     bmqt::CloseQueueResult::Enum validationRc =
         SessionUtil::validateAndSetCloseQueueParameters(&error,
                                                         queueId,
@@ -1430,7 +1429,7 @@ void Session::closeQueueAsync(QueueId*                  queueId,
                              callback);
 
     // Validate parameters
-    mwcu::MemOutStream           error;
+    bmqu::MemOutStream           error;
     bmqt::CloseQueueResult::Enum validationRc =
         SessionUtil::validateAndSetCloseQueueParameters(&error,
                                                         queueId,

@@ -53,13 +53,12 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcio_channel.h>
-#include <mwcma_countingallocatorstore.h>
-#include <mwcst_statcontextuserdata.h>
-#include <mwcsys_statmonitorsnapshotrecorder.h>
-#include <mwcu_operationchain.h>
-#include <mwcu_throttledaction.h>
+#include <bmqio_channel.h>
+#include <bmqma_countingallocatorstore.h>
+#include <bmqst_statcontextuserdata.h>
+#include <bmqsys_statmonitorsnapshotrecorder.h>
+#include <bmqu_operationchain.h>
+#include <bmqu_throttledaction.h>
 
 // BDE
 #include <ball_log.h>
@@ -172,9 +171,9 @@ class Cluster : public mqbi::Cluster,
 
     typedef bdlmt::EventScheduler::EventHandle SchedulerEventHandle;
 
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
-    typedef bsl::shared_ptr<mwcst::StatContext> StatContextSp;
+    typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
 
     typedef mqbc::ClusterData::RequestManagerType RequestManagerType;
 
@@ -200,7 +199,7 @@ class Cluster : public mqbi::Cluster,
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
     /// Map of stat context names to StatContext pointers
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
     /// Type of the MultiRequestManager used by the cluster to send
@@ -257,7 +256,7 @@ class Cluster : public mqbi::Cluster,
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
-    mwcma::CountingAllocatorStore d_allocators;
+    bmqma::CountingAllocatorStore d_allocators;
     // Allocator store to spawn new
     // allocators for sub-components
 
@@ -286,43 +285,43 @@ class Cluster : public mqbi::Cluster,
     ClusterStateMonitor d_clusterMonitor;
     // Cluster state monitor
 
-    mwcu::ThrottledActionParams d_throttledFailedPutMessages;
+    bmqu::ThrottledActionParams d_throttledFailedPutMessages;
     // Throttling parameters for failed PUT
     // messages.
 
-    mwcu::ThrottledActionParams d_throttledSkippedPutMessages;
+    bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
     // Throttling parameters for dropped
     // PUT messages.
 
-    mwcu::ThrottledActionParams d_throttledFailedAckMessages;
+    bmqu::ThrottledActionParams d_throttledFailedAckMessages;
     // Throttling parameters for failed ACK
     // messages.
 
-    mwcu::ThrottledActionParams d_throttledDroppedAckMessages;
+    bmqu::ThrottledActionParams d_throttledDroppedAckMessages;
     // Throttling parameters for dropped
     // ACK messages.
 
-    mwcu::ThrottledActionParams d_throttledFailedConfirmMessages;
+    bmqu::ThrottledActionParams d_throttledFailedConfirmMessages;
     // Throttling parameters for failed
     // CONFIRM messages.
 
-    mwcu::ThrottledActionParams d_throttledFailedRejectMessages;
+    bmqu::ThrottledActionParams d_throttledFailedRejectMessages;
     // Throttling parameters for failed
     // REJECT messages.
 
-    mwcu::ThrottledActionParams d_throttledDroppedConfirmMessages;
+    bmqu::ThrottledActionParams d_throttledDroppedConfirmMessages;
     // Throttling parameters for dropped
     // CONFIRM messages.
 
-    mwcu::ThrottledActionParams d_throttledDroppedRejectMessages;
+    bmqu::ThrottledActionParams d_throttledDroppedRejectMessages;
     // Throttling parameters for dropped
     // REJECT messages.
 
-    mwcu::ThrottledActionParams d_throttledFailedPushMessages;
+    bmqu::ThrottledActionParams d_throttledFailedPushMessages;
     // Throttling parameters for failed
     // PUSH messages.
 
-    mwcu::ThrottledActionParams d_throttledDroppedPushMessages;
+    bmqu::ThrottledActionParams d_throttledDroppedPushMessages;
     // Throttling parameters for dropped
     // PUSH messages.
 
@@ -336,7 +335,7 @@ class Cluster : public mqbi::Cluster,
 
     StopRequestManagerType* d_stopRequestsManager_p;
 
-    mwcu::OperationChain d_shutdownChain;
+    bmqu::OperationChain d_shutdownChain;
     // Mechanism used for the Cluster
     // graceful shutdown to serialize
     // execution of the shutdown callbacks
@@ -443,25 +442,25 @@ class Cluster : public mqbi::Cluster,
     void processClusterSyncRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                    mqbnet::ClusterNode* requester);
 
-    void onPutEvent(const mqbi::DispatcherEvent& event);
+    void onPutEvent(const mqbi::DispatcherPutEvent& event);
 
     void onRelayPutEvent(const mqbi::DispatcherEvent& event);
 
-    void onAckEvent(const mqbi::DispatcherEvent& event);
+    void onAckEvent(const mqbi::DispatcherAckEvent& event);
 
-    void onRelayAckEvent(const mqbi::DispatcherEvent& event);
+    void onRelayAckEvent(const mqbi::DispatcherAckEvent& event);
 
-    void onConfirmEvent(const mqbi::DispatcherEvent& event);
+    void onConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
-    void onRelayConfirmEvent(const mqbi::DispatcherEvent& event);
+    void onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event);
 
-    void onRejectEvent(const mqbi::DispatcherEvent& event);
+    void onRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
-    void onRelayRejectEvent(const mqbi::DispatcherEvent& event);
+    void onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event);
 
-    void onPushEvent(const mqbi::DispatcherEvent& event);
+    void onPushEvent(const mqbi::DispatcherPushEvent& event);
 
-    void onRelayPushEvent(const mqbi::DispatcherEvent& event);
+    void onRelayPushEvent(const mqbi::DispatcherPushEvent& event);
 
     ValidationResult::Enum validateMessage(mqbi::QueueHandle**  queueHandle,
                                            const bmqp::QueueId& queueId,
@@ -483,13 +482,13 @@ class Cluster : public mqbi::Cluster,
     void
     onRecoveryStatus(int                              status,
                      const bsl::vector<unsigned int>& primaryLeaseIds,
-                     const mwcsys::StatMonitorSnapshotRecorder& statRecorder);
+                     const bmqsys::StatMonitorSnapshotRecorder& statRecorder);
 
     /// Executes in cluster's dispatcher thread.
     void onRecoveryStatusDispatched(
         int                                        status,
         const bsl::vector<unsigned int>&           primaryLeaseIds,
-        const mwcsys::StatMonitorSnapshotRecorder& statRecorder);
+        const bmqsys::StatMonitorSnapshotRecorder& statRecorder);
 
     /// Executes in the scheduler thread.
     void gcExpiredQueues();
@@ -503,7 +502,7 @@ class Cluster : public mqbi::Cluster,
     /// specified `channel` and using the specified `description` if the
     /// specified `identity` supports broadcastring advisories to proxies.
     void onProxyConnectionUpDispatched(
-        const bsl::shared_ptr<mwcio::Channel>& channel,
+        const bsl::shared_ptr<bmqio::Channel>& channel,
         const bmqp_ctrlmsg::ClientIdentity&    identity,
         const bsl::string&                     description);
 
@@ -723,7 +722,7 @@ class Cluster : public mqbi::Cluster,
     /// specified `channel` and using the specified `description` if the
     /// specified `identity` supports broadcastring advisories to proxies.
     void
-    onProxyConnectionUp(const bsl::shared_ptr<mwcio::Channel>& channel,
+    onProxyConnectionUp(const bsl::shared_ptr<bmqio::Channel>& channel,
                         const bmqp_ctrlmsg::ClientIdentity&    identity,
                         const bsl::string& description) BSLS_KEYWORD_OVERRIDE;
 

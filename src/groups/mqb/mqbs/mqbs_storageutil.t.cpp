@@ -19,8 +19,7 @@
 // MQB
 #include <mqbi_storage.h>
 
-// MWC
-#include <mwcsys_time.h>
+#include <bmqsys_time.h>
 
 // BDE
 #include <bdlt_currenttime.h>
@@ -32,7 +31,7 @@
 #include <bsls_types.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -96,7 +95,7 @@ static void test1_queueMessagesCountComparator()
 //   queueMessagesCountComparator(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("QUEUE MESSAGES COMPARATOR");
+    bmqtst::TestHelper::printTestName("QUEUE MESSAGES COMPARATOR");
 
     Tester tester;
 
@@ -124,7 +123,7 @@ static void test2_mergeQueueMessagesCountMap()
 //   mergeQueueMessagesCountMap(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MERGE QUEUE MESSAGES");
+    bmqtst::TestHelper::printTestName("MERGE QUEUE MESSAGES");
 
     Tester tester;
 
@@ -158,7 +157,7 @@ static void test3_mergeDomainQueueMessagesCountMap()
 //   mergeDomainQueueMessagesCountMap(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("MERGE DOMAIN QUEUE MESSAGES MAP");
+    bmqtst::TestHelper::printTestName("MERGE DOMAIN QUEUE MESSAGES MAP");
 
     Tester tester;
 
@@ -227,12 +226,12 @@ static void test4_loadArrivalTime()
 //   loadArrivalTime(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOAD ARRIVAL TIME");
+    bmqtst::TestHelper::printTestName("LOAD ARRIVAL TIME");
 
     // Use timepoint if set
     {
         const bsls::Types::Int64 arrivalTimepointNs =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         mqbi::StorageMessageAttributes attributes;
         attributes
@@ -248,7 +247,7 @@ static void test4_loadArrivalTime()
         const bsls::Types::Int64 expectedArrivalTimeNs =
             bdlt::EpochUtil::convertToTimeInterval(bdlt::CurrentTime::utc())
                 .totalNanoseconds() -
-            (mwcsys::Time::highResolutionTimer() - arrivalTimepointNs);
+            (bmqsys::Time::highResolutionTimer() - arrivalTimepointNs);
         ASSERT_LE(expectedArrivalTimeNs - arrivalTimeNs,
                   1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
 
@@ -308,12 +307,12 @@ static void test5_loadArrivalTimeDelta()
 //   loadArrivalTimeDelta(...)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOAD ARRIVAL TIME DELTA");
+    bmqtst::TestHelper::printTestName("LOAD ARRIVAL TIME DELTA");
 
     // Use timepoint if set
     {
         const bsls::Types::Int64 arrivalTimepointNs =
-            mwcsys::Time::highResolutionTimer();
+            bmqsys::Time::highResolutionTimer();
 
         mqbi::StorageMessageAttributes attributes;
         attributes
@@ -328,7 +327,7 @@ static void test5_loadArrivalTimeDelta()
         // calculation of 'arrivalTimeDeltaNs' and
         // 'expectedArrivalTimeDeltaNs'.
         const bsls::Types::Int64 expectedArrivalTimeDeltaNs =
-            mwcsys::Time::highResolutionTimer() - arrivalTimepointNs;
+            bmqsys::Time::highResolutionTimer() - arrivalTimepointNs;
         ASSERT_LE(expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
                   1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
     }
@@ -363,10 +362,10 @@ static void test5_loadArrivalTimeDelta()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
-    mwcsys::Time::initialize();
+    bmqsys::Time::initialize();
 
     switch (_testCase) {
     case 0:
@@ -381,8 +380,8 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    mwcsys::Time::shutdown();
+    bmqsys::Time::shutdown();
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

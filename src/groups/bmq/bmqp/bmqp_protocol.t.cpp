@@ -23,11 +23,10 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_queueoptions.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -77,7 +76,7 @@ static void test1_breathingTest()
     // Testing:
     //   Basic functionality
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     {
         // -----------
@@ -778,7 +777,7 @@ static void test2_bitManipulation()
     // Concerns:
     //   Test manipulators
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("BIT MANIPULATION ROUTINE TEST");
+    bmqtst::TestHelper::printTestName("BIT MANIPULATION ROUTINE TEST");
 
     {
         // combine
@@ -1083,7 +1082,7 @@ static void test3_flagUtils()
     //   StorageHeaderFlagUtil::isSet
     //   StorageHeaderFlagUtil::isValid
     // --------------------------------------------------------------------
-    mwctst::TestHelper::printTestName("FLAG UTILS");
+    bmqtst::TestHelper::printTestName("FLAG UTILS");
 
     {
         // --------------------------------
@@ -1116,7 +1115,7 @@ static void test3_flagUtils()
             bmqp::PutHeaderFlagUtil::setFlag(&flags, test.d_value);
             ASSERT(bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
 
-            mwcu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(s_allocator_p);
             bmqp::PutHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
             for (int currFlagVal = 1;
@@ -1139,7 +1138,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
-            mwcu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(s_allocator_p);
             ASSERT_EQ(bmqp::PutHeaderFlagUtil::isValid(errDesc, flags),
                       test.d_isValid);
 
@@ -1181,7 +1180,7 @@ static void test3_flagUtils()
             bmqp::PushHeaderFlagUtil::setFlag(&flags, test.d_value);
             ASSERT(bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
 
-            mwcu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(s_allocator_p);
             bmqp::PushHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
             for (int currFlagVal = 1;
@@ -1204,7 +1203,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
-            mwcu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(s_allocator_p);
             ASSERT_EQ(bmqp::PushHeaderFlagUtil::isValid(errDesc, flags),
                       test.d_isValid);
 
@@ -1251,7 +1250,7 @@ static void test3_flagUtils()
                 static_cast<unsigned char>(flags),
                 test.d_value));
 
-            mwcu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(s_allocator_p);
             bmqp::StorageHeaderFlagUtil::prettyPrint(
                 out,
                 static_cast<unsigned char>(flags));
@@ -1278,7 +1277,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             //    identified as 'isValid' or not 'isValid'.
-            mwcu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(s_allocator_p);
             ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(
                           errDesc,
                           static_cast<unsigned char>(flags)),
@@ -1301,8 +1300,8 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         typedef typename ENUM_TYPE::Enum T;
 
@@ -1362,7 +1361,7 @@ static void test4_enumPrint()
     //   operator<<(bsl::ostream&, RecoveryFileChunkType::Enum)
     // --------------------------------------------------------------------
 
-    mwctst::TestHelper::printTestName("ENUM LAYOUT");
+    bmqtst::TestHelper::printTestName("ENUM LAYOUT");
 
     PV("Test bmqp::EventType printing");
     {
@@ -1575,7 +1574,7 @@ static void test5_enumIsomorphism()
         PV("Check isomorphism for " #ENUM_VAL " value of " #ENUM_TYPE         \
            " enum");                                                          \
         typedef bmqp::ENUM_TYPE T;                                            \
-        mwcu::MemOutStream      stream(s_allocator_p);                        \
+        bmqu::MemOutStream      stream(s_allocator_p);                        \
                                                                               \
         T::Enum     obj;                                                      \
         const char* str;                                                      \
@@ -1589,7 +1588,7 @@ static void test5_enumIsomorphism()
         ASSERT_EQ(bsl::strncmp(str, #ENUM_VAL, sizeof(#ENUM_VAL)), 0);        \
     }
 
-    mwctst::TestHelper::printTestName("ENUM ISOMORPHISM");
+    bmqtst::TestHelper::printTestName("ENUM ISOMORPHISM");
 
     // Enum PutHeaderFlags
     TEST_ISOMORPHISM(PutHeaderFlags, ACK_REQUESTED)
@@ -1618,7 +1617,7 @@ static void enumFromStringHelper(FLAG_TYPE          expectedFlags,
                                  const bsl::string& incorrStr,
                                  const bsl::string& errOutput)
 {
-    mwcu::MemOutStream errStream(s_allocator_p);
+    bmqu::MemOutStream errStream(s_allocator_p);
     FLAG_TYPE          outFlags;
     int                rc;
     rc = ENUM_UTIL_TYPE::fromString(errStream, &outFlags, corrStr);
@@ -1652,7 +1651,7 @@ static void test6_enumFromString()
     //   StorageHeaderFlagUtil::fromString
     // --------------------------------------------------------------------
 
-    mwctst::TestHelper::printTestName("ENUM UTIL toString");
+    bmqtst::TestHelper::printTestName("ENUM UTIL toString");
 
     // Util PushHeaderFlagUtil
     PV("Testing PushHeaderFlagUtil toString method");
@@ -1720,7 +1719,7 @@ static void test7_eventHeaderUtil()
 //   EventHeaderUtil::controlEventEncodingType
 // --------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("EVENT HEADER UTIL");
+    bmqtst::TestHelper::printTestName("EVENT HEADER UTIL");
 
     PV("Test bmqp::EventHeaderUtil setControlEventEncodingType");
     {
@@ -1760,7 +1759,7 @@ static void test7_eventHeaderUtil()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -1777,5 +1776,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

@@ -49,8 +49,7 @@
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcma_countingallocatorstore.h>
+#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -212,34 +211,34 @@ struct StorageUtil {
                             const AppIdKeyPairs& appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    static void
-    updateQueueDispatched(const mqbi::Dispatcher::ProcessorHandle& processor,
-                          mqbs::ReplicatedStorage*                 storage,
-                          bslmt::Mutex*        storagesLock,
-                          mqbs::FileStore*     fs,
-                          AppKeys*             appKeys,
-                          bslmt::Mutex*        appKeysLock,
-                          const bsl::string&   clusterDescription,
-                          int                  partitionId,
-                          const AppIdKeyPairs& addedIdKeyPairs,
-                          const AppIdKeyPairs& removedIdKeyPairs,
-                          bool                 isFanout,
-                          bool                 isCSLMode);
+    static void updateQueuePrimaryDispatched(
+        const mqbi::Dispatcher::ProcessorHandle& processor,
+        mqbs::ReplicatedStorage*                 storage,
+        bslmt::Mutex*                            storagesLock,
+        mqbs::FileStore*                         fs,
+        AppKeys*                                 appKeys,
+        bslmt::Mutex*                            appKeysLock,
+        const bsl::string&                       clusterDescription,
+        int                                      partitionId,
+        const AppIdKeyPairs&                     addedIdKeyPairs,
+        const AppIdKeyPairs&                     removedIdKeyPairs,
+        bool                                     isFanout,
+        bool                                     isCSLMode);
 
     /// StorageManager's storages lock must be locked before calling this
     /// method.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int updateQueueRaw(mqbs::ReplicatedStorage* storage,
-                              mqbs::FileStore*         fs,
-                              AppKeys*                 appKeys,
-                              bslmt::Mutex*            appKeysLock,
-                              const bsl::string&       clusterDescription,
-                              int                      partitionId,
-                              const AppIdKeyPairs&     addedIdKeyPairs,
-                              const AppIdKeyPairs&     removedIdKeyPairs,
-                              bool                     isFanout,
-                              bool                     isCSLMode);
+    static int updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
+                                     mqbs::FileStore*         fs,
+                                     AppKeys*                 appKeys,
+                                     bslmt::Mutex*            appKeysLock,
+                                     const bsl::string&   clusterDescription,
+                                     int                  partitionId,
+                                     const AppIdKeyPairs& addedIdKeyPairs,
+                                     const AppIdKeyPairs& removedIdKeyPairs,
+                                     bool                 isFanout,
+                                     bool                 isCSLMode);
 
     static int
     addVirtualStoragesInternal(mqbs::ReplicatedStorage* storage,
@@ -503,7 +502,7 @@ struct StorageUtil {
         const mqbcfg::PartitionConfig&              config,
         FileStores*                                 fileStores,
         BlobSpPool*                                 blobSpPool,
-        mwcma::CountingAllocatorStore*              allocators,
+        bmqma::CountingAllocatorStore*              allocators,
         bsl::ostream&                               errorDescription,
         int                                         replicationFactor,
         const RecoveredQueuesCb&                    recoveredQueuesCb,
@@ -634,7 +633,7 @@ struct StorageUtil {
                   mqbs::FileStore*                         fs,
                   AppKeys*                                 appKeys,
                   bslmt::Mutex*                            appKeysLock,
-                  mwcma::CountingAllocatorStore*           allocators,
+                  bmqma::CountingAllocatorStore*           allocators,
                   const mqbi::Dispatcher::ProcessorHandle& processor,
                   const bmqt::Uri&                         uri,
                   const mqbu::StorageKey&                  queueKey,
@@ -663,18 +662,18 @@ struct StorageUtil {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int updateQueue(StorageSpMap*           storageMap,
-                           bslmt::Mutex*           storagesLock,
-                           mqbs::FileStore*        fs,
-                           AppKeys*                appKeys,
-                           bslmt::Mutex*           appKeysLock,
-                           const bsl::string&      clusterDescription,
-                           const bmqt::Uri&        uri,
-                           const mqbu::StorageKey& queueKey,
-                           int                     partitionId,
-                           const AppIdKeyPairs&    addedIdKeyPairs,
-                           const AppIdKeyPairs&    removedIdKeyPairs,
-                           bool                    isCSLMode);
+    static int updateQueuePrimary(StorageSpMap*           storageMap,
+                                  bslmt::Mutex*           storagesLock,
+                                  mqbs::FileStore*        fs,
+                                  AppKeys*                appKeys,
+                                  bslmt::Mutex*           appKeysLock,
+                                  const bsl::string&      clusterDescription,
+                                  const bmqt::Uri&        uri,
+                                  const mqbu::StorageKey& queueKey,
+                                  int                     partitionId,
+                                  const AppIdKeyPairs&    addedIdKeyPairs,
+                                  const AppIdKeyPairs&    removedIdKeyPairs,
+                                  bool                    isCSLMode);
 
     static void
     registerQueueReplicaDispatched(int*                 status,
@@ -682,7 +681,7 @@ struct StorageUtil {
                                    bslmt::Mutex*        storagesLock,
                                    mqbs::FileStore*     fs,
                                    mqbi::DomainFactory* domainFactory,
-                                   mwcma::CountingAllocatorStore* allocators,
+                                   bmqma::CountingAllocatorStore* allocators,
                                    const bsl::string&      clusterDescription,
                                    int                     partitionId,
                                    const bmqt::Uri&        uri,

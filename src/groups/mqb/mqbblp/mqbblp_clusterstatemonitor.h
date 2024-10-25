@@ -32,7 +32,7 @@
 //: o primary: each partition must have an active primary
 //: o node:   each node must either be disconnected, or in available status
 //
-// Note that 'mwcsys::TimeUtil::initialize()' must have been called prior to
+// Note that 'bmqsys::TimeUtil::initialize()' must have been called prior to
 // the start of this component
 
 // MQB

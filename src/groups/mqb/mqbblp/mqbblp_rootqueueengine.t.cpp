@@ -46,12 +46,11 @@
 #include <bslmt_semaphore.h>
 #include <bsls_timeinterval.h>
 
-// MWC
-#include <mwctst_scopedlogobserver.h>
-#include <mwcu_memoutstream.h>
+#include <bmqtst_scopedlogobserver.h>
+#include <bmqu_memoutstream.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -189,7 +188,7 @@ MaybeError checkInvariants(const Invariants&                invariants,
          ++i) {
         const MaybeError rv = i->d_clause(model, tester);
         if (!rv.isNull()) {
-            mwcu::MemOutStream out;
+            bmqu::MemOutStream out;
             out << "invariant \"" << i->d_name
                 << "\" failed after operation \"" << op << "\", "
                 << rv.value();
@@ -293,14 +292,14 @@ struct Subscribe : public ClientOperation {
         // Applies the actual operation using the specified 'model' and
         // 'tester'.
         {
-            mwcu::MemOutStream out;
+            bmqu::MemOutStream out;
             out << d_client << " readCount=" << d_readCount;
             ConsumerStatus& status = (*model)[d_client];
             status.handle          = tester->getHandle(out.str());
             status.priority        = d_consumerPriority;
         }
         {
-            mwcu::MemOutStream out;
+            bmqu::MemOutStream out;
             out << d_client << " consumerPriority=" << d_consumerPriority
                 << " consumerPriorityCount=" << d_consumerPriorityCount;
             tester->configureHandle(out.str());
@@ -436,7 +435,7 @@ struct Post : public Operation {
         // 'tester'.
 
         // Does post and wait.
-        mwcu::MemOutStream out;
+        bmqu::MemOutStream out;
         out << d_value;
         tester->post(out.str());
         tester->afterNewMessage(1);
@@ -491,7 +490,7 @@ MaybeError checkReceivedForConsumers(
         mqbmock::QueueHandle* handle = status.handle;
         ASSERT(handle);
         if (handle->_numMessages() != status.expectedCount) {
-            mwcu::MemOutStream out;
+            bmqu::MemOutStream out;
             out << "actual messages (" << handle->_numMessages()
                 << ") != expected messages(" << status.expectedCount << ")"
                 << " for client \"" << iter->first << "\"";
@@ -563,7 +562,7 @@ void regress(Operations*       operations,
         // information.
         if (!rv.isNull()) {
             PVV(L_ << ": Failed on sequence: "
-                   << mwcu::PrintUtil::printer(*operations) << " "
+                   << bmqu::PrintUtil::printer(*operations) << " "
                    << rv.value());
             ASSERT(false);
             return;  // RETURN
@@ -656,7 +655,7 @@ static void test1_broadcastBreathingTest()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -721,7 +720,7 @@ static void test2_broadcastConfirmAssertFails()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CONFIRM ASSERT FAILS TEST");
+    bmqtst::TestHelper::printTestName("CONFIRM ASSERT FAILS TEST");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -776,7 +775,7 @@ static void test3_broadcastCannotDeliver()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CANNOT CONSUMERS");
+    bmqtst::TestHelper::printTestName("CANNOT CONSUMERS");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -885,7 +884,7 @@ static void test4_broadcastPostAfterResubscribe()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("POST AFTER RESUBSCRIBE");
+    bmqtst::TestHelper::printTestName("POST AFTER RESUBSCRIBE");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -954,7 +953,7 @@ static void test5_broadcastReleaseHandle_isDeletedFlag()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
 
@@ -1021,7 +1020,7 @@ static void test6_broadcastDynamicPriorities()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("DYNAMIC PRIORITIES");
+    bmqtst::TestHelper::printTestName("DYNAMIC PRIORITIES");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -1122,7 +1121,7 @@ static void test7_broadcastPriorityFailover()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("PRIORITY FAILOVER");
+    bmqtst::TestHelper::printTestName("PRIORITY FAILOVER");
 
     mqbblp::QueueEngineTester tester(broadcastConfig(),
                                      false,  // start scheduler
@@ -1212,7 +1211,7 @@ static void testN1_broadcastExhaustiveSubscriptions()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("EXHAUSTIVE SUBSCRIPTIONS TEST");
+    bmqtst::TestHelper::printTestName("EXHAUSTIVE SUBSCRIPTIONS TEST");
 
     Operations operations;
 
@@ -1254,7 +1253,7 @@ static void testN2_broadcastExhaustiveCanDeliver()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("EXHAUSTIVE CAN DELIVER TEST");
+    bmqtst::TestHelper::printTestName("EXHAUSTIVE CAN DELIVER TEST");
 
     Operations operations;
 
@@ -1301,7 +1300,7 @@ static void testN3_broadcastExhaustiveConsumerPriority()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("EXHAUSTIVE CONSUMER PRIORITY TEST");
+    bmqtst::TestHelper::printTestName("EXHAUSTIVE CONSUMER PRIORITY TEST");
 
     Operations operations;
 
@@ -1353,7 +1352,7 @@ static void test8_priorityBreathingTest()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -1423,7 +1422,7 @@ static void test9_priorityCreateAndConfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CREATE AND CONFIGURE");
+    bmqtst::TestHelper::printTestName("CREATE AND CONFIGURE");
 
     class PriorityQueueEngineTester : public mqbblp::QueueEngineTester {
       public:
@@ -1462,7 +1461,7 @@ static void test9_priorityCreateAndConfigure()
 
     // 2. Verify that the created PriorityQueueEngine is functional by
     //    configuring it successfully
-    mwcu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(s_allocator_p);
     errorDescription.reset();
 
     int rc = queueEngineMp->configure(errorDescription);
@@ -1503,7 +1502,7 @@ static void test10_priorityAggregateDownstream()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("AGGREGATE DOWNSTREAM");
+    bmqtst::TestHelper::printTestName("AGGREGATE DOWNSTREAM");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -1671,7 +1670,7 @@ static void test11_priorityReconfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks
     // from 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RECONFIGURE");
+    bmqtst::TestHelper::printTestName("RECONFIGURE");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -1807,7 +1806,7 @@ static void test12_priorityCannotDeliver()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CANNOT CONSUMERS");
+    bmqtst::TestHelper::printTestName("CANNOT CONSUMERS");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -1921,7 +1920,7 @@ static void test13_priorityRedeliverToFirstConsumerUp()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY TO FIRST CONSUMER UP");
+    bmqtst::TestHelper::printTestName("REDELIVERY TO FIRST CONSUMER UP");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -1987,7 +1986,7 @@ static void test14_priorityRedeliverToOtherConsumers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY TO OTHER CONSUMERS");
+    bmqtst::TestHelper::printTestName("REDELIVERY TO OTHER CONSUMERS");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -2067,10 +2066,10 @@ static void test15_priorityReleaseActiveConsumerWithoutNullReconfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE ACTIVE CONSUMER WITHOUT NULL"
+    bmqtst::TestHelper::printTestName("RELEASE ACTIVE CONSUMER WITHOUT NULL"
                                       " RECONFIGURE");
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
                                           s_allocator_p);
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -2165,10 +2164,10 @@ static void test16_priorityReleaseDormantConsumerWithoutNullReconfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE DORMANT CONSUMER WITHOUT NULL"
+    bmqtst::TestHelper::printTestName("RELEASE DORMANT CONSUMER WITHOUT NULL"
                                       " RECONFIGURE");
 
-    mwctst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
                                           s_allocator_p);
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -2265,7 +2264,7 @@ static void test17_priorityBeforeMessageRemoved_garbageCollection()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
                                       "COLLECTION");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
@@ -2333,7 +2332,7 @@ static void test18_priorityAfterQueuePurged_queueStreamResets()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("AFTER QUEUE PURGED - QUEUE STREAM"
+    bmqtst::TestHelper::printTestName("AFTER QUEUE PURGED - QUEUE STREAM"
                                       " RESETS");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
@@ -2442,7 +2441,7 @@ static void test19_priorityReleaseHandle_isDeletedFlag()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
     mqbconfm::Domain domainConfig(s_allocator_p);
 
@@ -2510,7 +2509,7 @@ static void test20_priorityRedeliverAfterGc()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY AFTER GC");
+    bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
     mqbblp::QueueEngineTester tester(priorityDomainConfig(),
                                      false,  // start scheduler
@@ -2584,7 +2583,7 @@ static void test21_breathingTest()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -2742,7 +2741,7 @@ static void test22_createAndConfigure()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CREATE AND CONFIGURE");
+    bmqtst::TestHelper::printTestName("CREATE AND CONFIGURE");
 
     class FanoutQueueEngineTester : public mqbblp::QueueEngineTester {
       public:
@@ -2778,7 +2777,7 @@ static void test22_createAndConfigure()
 
     // 2. Verify that the created FanoutQueueEngine is functional by
     //    configuring it successfully
-    mwcu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(s_allocator_p);
     errorDescription.reset();
     int rc = queueEngineMp->configure(errorDescription);
 
@@ -2806,7 +2805,7 @@ static void test23_loadRoutingConfiguration()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("ROUTING CONFIGURATION");
+    bmqtst::TestHelper::printTestName("ROUTING CONFIGURATION");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a"),
                                      false,  // start scheduler
@@ -2868,7 +2867,7 @@ static void test24_getHandleDuplicateAppId()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("GET HANDLE - DUPLICATE APP ID");
+    bmqtst::TestHelper::printTestName("GET HANDLE - DUPLICATE APP ID");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a"),
                                      false,  // start scheduler
@@ -2914,7 +2913,7 @@ static void test25_getHandleSameHandleMultipleAppIds()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("GET HANDLE - MULTIPLE APP IDS");
+    bmqtst::TestHelper::printTestName("GET HANDLE - MULTIPLE APP IDS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -2959,7 +2958,7 @@ static void test26_getHandleUnauthorizedAppId()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("GET HANDLE - UNAUTHORIZED APP ID");
+    bmqtst::TestHelper::printTestName("GET HANDLE - UNAUTHORIZED APP ID");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -3009,7 +3008,7 @@ static void test27_configureHandleMultipleAppIds()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CONFIGURE HANDLE - MULTIPLE APP IDS");
+    bmqtst::TestHelper::printTestName("CONFIGURE HANDLE - MULTIPLE APP IDS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -3103,7 +3102,7 @@ static void test28_releaseHandle()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -3188,7 +3187,7 @@ static void test29_releaseHandleMultipleProducers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE - MULTIPLE PRODUCERS");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE - MULTIPLE PRODUCERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
                                      false,  // start scheduler
@@ -3257,7 +3256,7 @@ static void test30_releaseHandle_isDeletedFlag()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
+    bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c,d"),
                                      false,  // start scheduler
@@ -3359,7 +3358,7 @@ static void test31_afterNewMessageDeliverToAllActiveConsumers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "AFTER NEW MESSAGE - DELIVER TO ALL ACTIVE CONSUMERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c,d,e"),
@@ -3505,7 +3504,7 @@ static void test32_afterNewMessageRespectsFlowControl()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "AFTER NEW MESSAGE - RESPECT FLOW CONTROL");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c,d,e"),
@@ -3805,7 +3804,7 @@ static void test33_consumerUpAfterMessagePosted()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName(
+    bmqtst::TestHelper::printTestName(
         "HANDLE CONSUMER SUBSCRIPTION AFTER POST");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c,d,e"),
@@ -3945,7 +3944,7 @@ static void test34_beforeMessageRemoved_deadConsumers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - DEAD"
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - DEAD"
                                       " CONSUMERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
@@ -4030,7 +4029,7 @@ static void test35_beforeMessageRemoved_withActiveConsumers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
                                       " CONSUMERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
@@ -4120,7 +4119,7 @@ static void test36_afterQueuePurged_queueStreamResets()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
                                       " CONSUMERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
@@ -4285,7 +4284,7 @@ static void test37_afterQueuePurged_specificSubStreamResets()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
+    bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - WITH ALIVE"
                                       " CONSUMERS");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c"),
@@ -4436,7 +4435,7 @@ static void test38_unauthorizedAppIds()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("UNAUTHORIZED APP IDS - DELIVER ONLY TO "
+    bmqtst::TestHelper::printTestName("UNAUTHORIZED APP IDS - DELIVER ONLY TO "
                                       "CONSUMERS USING AUTHORIZED APPID");
 
     mqbblp::QueueEngineTester tester(fanoutConfig("a"),
@@ -4515,7 +4514,7 @@ static void test39_maxConsumersProducers()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("CONSUMERS/PRODUCERS LIMITS PER APP");
+    bmqtst::TestHelper::printTestName("CONSUMERS/PRODUCERS LIMITS PER APP");
 
     // 1. Set maxConsumers and maxProducers limits to the value (2) less than
     //    number of applications (3).
@@ -4578,7 +4577,7 @@ static void test40_roundRobinAndRedelivery()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
+    bmqtst::TestHelper::printTestName("ROUND-ROBIN AND REDELIVERY");
 
     mqbconfm::Domain config = fanoutConfig("a,b,c");
 
@@ -4679,7 +4678,7 @@ static void test41_redeliverAfterGc()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("REDELIVERY AFTER GC");
+    bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
     mqbconfm::Domain config = fanoutConfig("a");
 
@@ -4758,7 +4757,7 @@ static void test42_throttleRedeliveryPriority()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY PRIORITY");
 
     mqbconfm::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
@@ -4850,7 +4849,7 @@ static void test43_throttleRedeliveryFanout()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY FANOUT");
 
     mqbconfm::Domain config      = fanoutConfig("a,b,c");
     config.maxDeliveryAttempts() = 5;
@@ -4987,7 +4986,7 @@ static void test44_throttleRedeliveryCancelledDelay()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY CANCELLED DELAY");
 
     mqbconfm::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
@@ -5078,7 +5077,7 @@ static void test45_throttleRedeliveryNewHandle()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NEW HANDLE");
 
     mqbconfm::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
@@ -5139,7 +5138,7 @@ static void test46_throttleRedeliveryNoMoreHandles()
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
-    mwctst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
+    bmqtst::TestHelper::printTestName("THROTTLED REDELIVERY NO MORE HANDLES");
 
     mqbconfm::Domain config      = priorityDomainConfig();
     config.maxDeliveryAttempts() = 5;
@@ -5208,7 +5207,7 @@ static void test46_throttleRedeliveryNoMoreHandles()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
     bmqp::ProtocolUtil::initialize(s_allocator_p);
@@ -5217,7 +5216,7 @@ int main(int argc, char* argv[])
     mqbcfg::BrokerConfig::set(brokerConfig);
 
     {
-        bsl::shared_ptr<mwcst::StatContext> statContext =
+        bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
 
         switch (_testCase) {
@@ -5287,5 +5286,5 @@ int main(int argc, char* argv[])
     bmqp::ProtocolUtil::shutdown();
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

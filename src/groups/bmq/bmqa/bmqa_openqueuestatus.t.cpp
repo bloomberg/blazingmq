@@ -23,15 +23,14 @@
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_memory.h>
 #include <bsl_string.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -53,7 +52,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("BREATHING TEST");
+    bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     PV("Default Constructor");
     {
@@ -153,7 +152,7 @@ static void test2_comparison()
 //                   const bmqa::OpenQueueStatus& rhs);
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMPARISON");
+    bmqtst::TestHelper::printTestName("COMPARISON");
 
     PV("Equality");
     {
@@ -222,7 +221,7 @@ static void test3_print()
     // Can't check the default allocator: 'bmqa::OpenQueueStatus::print' and
     // operator '<<' temporarily allocate a string using the default allocator.
 
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     const bmqt::CorrelationId correlationId(2);
     bmqa::QueueId queueId = bmqa::QueueId(correlationId, s_allocator_p);
@@ -246,7 +245,7 @@ static void test3_print()
                            " result = \"SUCCESS (0)\""
                            " errorDescription = \"ERROR\" ]";
 
-    mwcu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(s_allocator_p);
     // operator<<
     out << obj;
 
@@ -265,7 +264,7 @@ static void test3_print()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -282,5 +281,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

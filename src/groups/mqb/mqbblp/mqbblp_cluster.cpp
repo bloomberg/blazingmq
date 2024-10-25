@@ -46,15 +46,14 @@
 #include <bmqt_queueflags.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcex_systemexecutor.h>
-#include <mwcst_statcontext.h>
-#include <mwcsys_time.h>
-#include <mwctsk_alarmlog.h>
-#include <mwcu_blob.h>
-#include <mwcu_memoutstream.h>
-#include <mwcu_outstreamformatsaver.h>
-#include <mwcu_printutil.h>
+#include <bmqex_systemexecutor.h>
+#include <bmqst_statcontext.h>
+#include <bmqsys_time.h>
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blob.h>
+#include <bmqu_memoutstream.h>
+#include <bmqu_outstreamformatsaver.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -100,7 +99,7 @@ Cluster::ValidationResult::print(bsl::ostream&                   stream,
                                  int                             level,
                                  int spacesPerLevel)
 {
-    stream << mwcu::PrintUtil::indent(level, spacesPerLevel)
+    stream << bmqu::PrintUtil::indent(level, spacesPerLevel)
            << Cluster::ValidationResult::toAscii(value);
 
     if (spacesPerLevel >= 0) {
@@ -168,12 +167,16 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
     // Start a StatMonitorSnapshotRecorder to track system stats during
     // recovery
-    mwcsys::StatMonitorSnapshotRecorder statRecorder(description() + ": ",
+    bmqsys::StatMonitorSnapshotRecorder statRecorder(description() + ": ",
                                                      d_allocator_p);
 
-    // Get named allocator from associated mwcma::CountingAllocatorStore
+    // Get named allocator from associated bmqma::CountingAllocatorStore
     bslma::Allocator* storageManagerAllocator = d_allocators.get(
         "StorageManager");
+
+    // Make a temporal pointer to the dispatcher to avoid a false-positive
+    // "uninitialized variable" warning
+    mqbi::Dispatcher* clusterDispatcher = dispatcher();
 
     // Start the StorageManager
     d_storageManager_mp.load(
@@ -185,7 +188,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                       &d_clusterData,
                       d_state,
                       d_clusterData.domainFactory(),
-                      dispatcher(),
+                      clusterDispatcher,
                       k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION,
                       bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
                                            this,
@@ -218,7 +221,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
                           bdlf::PlaceHolders::_2,   // status
                           bdlf::PlaceHolders::_3),  // primary leaseId
                       d_clusterData.domainFactory(),
-                      dispatcher(),
+                      clusterDispatcher,
                       &d_clusterData.miscWorkThreadPool(),
                       storageManagerAllocator)),
         storageManagerAllocator);
@@ -421,7 +424,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             }
         }
         else if (!isSelfGenerated) {
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedAckMessages,
                 BALL_LOG_WARN
                     << description()
@@ -434,16 +437,14 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
         // Throttle error log if this is a 'failed Ack': note that we log at
         // INFO level in order not to overwhelm the dashboard, if a queue is
         // full, every post will nack, which could be a lot.
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedAckMessages,
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'"
-                          << ", correlationId: " << correlationId
+                          << "'" << ", correlationId: " << correlationId
                           << ", GUID: " << messageGUID << ", queue: '"
                           << (found ? uri : "** null **") << "' "
-                          << "(id: " << queueId << ")] "
-                          << "to node "
+                          << "(id: " << queueId << ")] " << "to node "
                           << nodeSession->clusterNode()->nodeDescription(););
     }
 
@@ -487,12 +488,11 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
 
         // This is non-recoverable, so we drop the ACK msg and log it.
 
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledDroppedAckMessages,
             BALL_LOG_ERROR << description() << ": dropping ACK message "
                            << "[status: " << status << ", source: '" << source
-                           << "'"
-                           << ", correlationId: " << correlationId
+                           << "'" << ", correlationId: " << correlationId
                            << ", GUID: " << messageGUID
                            << ", queueId: " << queueId << "] to node "
                            << nodeSession->clusterNode()->nodeDescription()
@@ -550,16 +550,16 @@ void Cluster::generateNack(bmqt::AckResult::Enum               status,
     // Report locally generated NACK
     queue->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK, 1);
 
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
     os << description() << ": Failed to relay PUT message "
        << "[queueId: " << putHeader.queueId()
        << ", GUID: " << putHeader.messageGUID() << "]. "
        << "Reason: " << nackReason;
-    MWCU_THROTTLEDACTION_THROTTLE(
+    BMQU_THROTTLEDACTION_THROTTLE(
         d_throttledFailedPutMessages,
         if (raiseAlarm) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
-                << os.str() << MWCTSK_ALARMLOG_END;
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                << os.str() << BMQTSK_ALARMLOG_END;
         } else { BALL_LOG_WARN << os.str(); });
 }
 
@@ -616,7 +616,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
     }
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                   os(&localAllocator);
+    bmqu::MemOutStream                   os(&localAllocator);
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
 }
@@ -664,7 +664,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
         //
         // Call 'initiateShutdown' for all client sessions.
 
-        mwcu::OperationChainLink link(d_shutdownChain.allocator());
+        bmqu::OperationChainLink link(d_shutdownChain.allocator());
         bsls::TimeInterval       shutdownTimeout;
         shutdownTimeout.addMilliseconds(d_clusterData.clusterConfig()
                                             .queueOperations()
@@ -736,7 +736,7 @@ void Cluster::initiateShutdownDispatched(const VoidFunctor& callback,
     d_shutdownChain.appendInplace(
         bdlf::BindUtil::bind(&Cluster::continueShutdown,
                              this,
-                             mwcsys::Time::highResolutionTimer(),  // startTime
+                             bmqsys::Time::highResolutionTimer(),  // startTime
                              bdlf::PlaceHolders::_1),  // completionCb
         callback);
 
@@ -799,11 +799,11 @@ void Cluster::continueShutdownDispatched(
 
     BALL_LOG_INFO_BLOCK
     {
-        bsls::Types::Int64 now = mwcsys::Time::highResolutionTimer();
+        bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
         BALL_LOG_OUTPUT_STREAM
             << "Continuing shutting down Cluster: [name: '" << name()
             << "', elapsed time: "
-            << mwcu::PrintUtil::prettyTimeInterval(now - startTimeNs) << " ("
+            << bmqu::PrintUtil::prettyTimeInterval(now - startTimeNs) << " ("
             << (now - startTimeNs) << " nanoseconds)]";
     }
 
@@ -870,7 +870,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
     BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUT == event.type());
-    BSLS_ASSERT_SAFE(event.asPutEvent()->isRelay() == true);
+    BSLS_ASSERT_SAFE(event.asPutEvent()->isRelay());
 
     const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
 
@@ -888,7 +888,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
     bsls::Types::Uint64    leaseId  = d_state.partition(pid).primaryLeaseId();
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(genCount != leaseId)) {
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledSkippedPutMessages,
             BALL_LOG_WARN << description()
                           << ": skipping relay-PUT message [ queueId: "
@@ -907,7 +907,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Inform event's source of relay-PUT failure
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "invalid partition [" << pid << "]";
         generateNack(bmqt::AckResult::e_INVALID_ARGUMENT,
                      os.str(),
@@ -933,7 +933,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Inform event's source of relay-PUT failure
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "self (replica node) not available. Self status: " << selfStatus;
         generateNack(bmqt::AckResult::e_NOT_READY,
                      os.str(),
@@ -955,7 +955,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
             bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE != pinfo.primaryStatus())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "no or non-active primary for partition [" << pid << "]";
         generateNack(bmqt::AckResult::e_NOT_READY,
                      os.str(),
@@ -975,7 +975,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // This should not occur
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "self is primary for partition [" << pid << "]";
         generateNack(bmqt::AckResult::e_UNKNOWN,
                      os.str(),
@@ -1000,7 +1000,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
             bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != primaryStatus)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "primary not available. Primary status: " << primaryStatus;
         generateNack(bmqt::AckResult::e_NOT_READY,
                      os.str(),
@@ -1024,7 +1024,7 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
 
         // This is non-recoverable, so we drop the PUT msg and log it.
 
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledSkippedPutMessages,
             BALL_LOG_ERROR << description() << ": skipping relay-PUT message ["
                            << "queueId: " << ph.queueId() << ", GUID: "
@@ -1034,28 +1034,25 @@ void Cluster::onRelayPutEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUT == event.type());
-    BSLS_ASSERT_SAFE(event.asPutEvent()->isRelay() == false);
+    BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This PUT event arrives from a replica node to this (primary) node, and
     // it needs to be forwarded to the queue after appropriate checks.  The
     // replica source node is event.clusterNode().  This routine is similar to
     // that of ClientSession.
 
-    const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
-
-    mqbnet::ClusterNode*      source = realEvent->clusterNode();
+    mqbnet::ClusterNode*      source = event.clusterNode();
     mqbc::ClusterNodeSession* ns =
         d_clusterData.membership().getClusterNodeSession(source);
     BSLS_ASSERT_SAFE(ns);
 
-    bmqp::Event              rawEvent(realEvent->blob().get(), d_allocator_p);
+    bmqp::Event              rawEvent(event.blob().get(), d_allocator_p);
     bmqp::PutMessageIterator putIt(&d_clusterData.bufferFactory(),
                                    d_allocator_p);
 
@@ -1065,11 +1062,11 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!putIt.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        mwcu::MemOutStream out;
+        bmqu::MemOutStream out;
         out << description() << ": received an invalid PUT event from node "
             << source->nodeDescription() << "\n";
         putIt.dumpBlob(out);
-        MWCTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << MWCTSK_ALARMLOG_END;
+        BMQTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << BMQTSK_ALARMLOG_END;
         BSLS_ASSERT_SAFE(false && "Invalid putMessage");
         return;  // RETURN
     }
@@ -1108,7 +1105,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
                                                   ns->queueHandles().end())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPutMessages,
                 BALL_LOG_ERROR << description()
                                << ": PUT message for queue with unknown"
@@ -1138,7 +1135,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
                     queueState.d_handle_p->handleParameters().flags()))) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPutMessages,
                 BALL_LOG_WARN << description() << ": PUT message for queue ["
                               << queueState.d_handle_p->queue()->uri()
@@ -1160,7 +1157,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
                 queueState.d_isFinalCloseQueueReceived)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPutMessages,
                 BALL_LOG_WARN << description()
                               << ": rejecting PUT message for queue ["
@@ -1185,14 +1182,14 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPutMessages,
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << description() << ": Failed to load PUT message payload"
                     << " [queue: " << queueState.d_handle_p->queue()->uri()
                     << ", guid: " << putIt.header().messageGUID()
                     << ", from node " << source->nodeDescription()
-                    << ", rc: " << rc << "]" << MWCTSK_ALARMLOG_END;);
+                    << ", rc: " << rc << "]" << BMQTSK_ALARMLOG_END;);
 
             sendAck(bmqt::AckResult::e_INVALID_ARGUMENT,
                     bmqp::AckMessage::k_NULL_CORRELATION_ID,
@@ -1223,7 +1220,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
                        << ", GUID: " << putIt.header().messageGUID()
                        << ", message size: " << putIt.applicationDataSize()
                        << "]:\n"
-                       << mwcu::BlobStartHexDumper(appDataSp.get(), 64);
+                       << bmqu::BlobStartHexDumper(appDataSp.get(), 64);
 
         // If at-most-once queue and ack is requested, send an ack
         // immediately regardless of whether this is first hop or not.
@@ -1262,7 +1259,7 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPutMessages,
             BALL_LOG_ERROR_BLOCK {
                 BALL_LOG_OUTPUT_STREAM << description()
@@ -1274,23 +1271,20 @@ void Cluster::onPutEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-void Cluster::onAckEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onAckEvent(const mqbi::DispatcherAckEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_ACK == event.type());
-    BSLS_ASSERT_SAFE(event.asAckEvent()->isRelay() == false);
-
-    const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
+    BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This ACK message is enqueued by mqbblp::Queue on this node, and needs to
     // be forwarded to 'event.clusterNode()' (the replica node).
 
     // NOTE: we do not log anything here, all logging is done in 'sendAck'.
 
-    const bmqp::AckMessage&         ackMessage = realEvent->ackMessage();
+    const bmqp::AckMessage&         ackMessage = event.ackMessage();
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData.membership().selfNodeStatus();
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -1298,22 +1292,21 @@ void Cluster::onAckEvent(const mqbi::DispatcherEvent& event)
             bmqp_ctrlmsg::NodeStatus::E_STOPPING != selfStatus)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // Drop ACK coz self is unavailable
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedAckMessages,
             BALL_LOG_WARN << "Dropping an ACK for queue [queueId: "
                           << ackMessage.queueId()
                           << ", guid: " << ackMessage.messageGUID()
                           << ", status: " << ackMessage.status()
                           << "] for node "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: self (primary node) not available. "
                           << "Node status: " << selfStatus;);
         return;  // RETURN
     }
 
     mqbc::ClusterNodeSession* ns =
-        d_clusterData.membership().getClusterNodeSession(
-            realEvent->clusterNode());
+        d_clusterData.membership().getClusterNodeSession(event.clusterNode());
     BSLS_ASSERT_SAFE(ns);
 
     bmqp_ctrlmsg::NodeStatus::Value downstreamStatus = ns->nodeStatus();
@@ -1324,14 +1317,14 @@ void Cluster::onAckEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         // Drop the ACK because downstream node is either starting, in the
         // maintenance mode, or shut down.
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedAckMessages,
             BALL_LOG_WARN << "Dropping an ACK for queue [queueId: "
                           << ackMessage.queueId()
                           << ", guid: " << ackMessage.messageGUID()
                           << ", status: " << ackMessage.status()
                           << "] for node "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: target node not available. "
                           << "Node status: " << downstreamStatus;);
         return;  // RETURN
@@ -1342,24 +1335,21 @@ void Cluster::onAckEvent(const mqbi::DispatcherEvent& event)
             ackMessage.messageGUID(),
             ackMessage.queueId(),
             "onAckEvent",
-            realEvent->clusterNode(),
+            event.clusterNode(),
             false);  // isSelfGenerated
 }
 
-void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onRelayAckEvent(const mqbi::DispatcherAckEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_ACK == event.type());
-    BSLS_ASSERT_SAFE(event.asAckEvent()->isRelay() == true);
+    BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-ACK event is sent by primary (event.clusterNode()) to replica
     // (this) node.  Iterate over each message in the event and forward it to
     // appropriate remote queue.
-
-    const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
 
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData.membership().selfNodeStatus();
@@ -1369,16 +1359,16 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Drop ACK messages coz self is down
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedAckMessages,
             BALL_LOG_WARN << "Dropping relay ACK messages from node "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: self (replica node) not available."
                           << " Self node status: " << selfStatus;);
         return;  // RETURN
     }
 
-    bmqp::Event rawEvent(realEvent->blob().get(), d_allocator_p);
+    bmqp::Event rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isAckEvent());
 
     bmqp::AckMessageIterator ackIt;
@@ -1395,7 +1385,7 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
             // TBD: Logging at INFO level at the moment, until queue close
             //      sequence is properly handled, this is a (non-fatal)
             //      situation which can happen.
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedAckMessages,
                 BALL_LOG_INFO << "[CLUSTER] " << description()
                               << ": Received an ACK for unknown queue "
@@ -1403,7 +1393,7 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
                               << ", guid: " << ackMessage.messageGUID()
                               << ", status: " << ackMessage.status()
                               << "] from node "
-                              << realEvent->clusterNode()->nodeDescription(););
+                              << event.clusterNode()->nodeDescription(););
 
             continue;  // CONTINUE
         }
@@ -1412,33 +1402,35 @@ void Cluster::onRelayAckEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
 {
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_CONFIRM == event.type());
-    BSLS_ASSERT_SAFE(false == event.asConfirmEvent()->isRelay());
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This CONFIRM event arrives from a replica node (event.clusterNode()) to
     // this (primary) node, and it needs to be forwarded to the queue after
     // appropriate checks.  Iterate over each CONFIRM message in the event and
     // forward it to the queue handle.
-    const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
 
-    mqbnet::ClusterNode*      source = realEvent->clusterNode();
+    mqbnet::ClusterNode*      source = event.clusterNode();
     mqbc::ClusterNodeSession* ns =
         d_clusterData.membership().getClusterNodeSession(source);
     BSLS_ASSERT_SAFE(ns);
 
-    bmqp::Event rawEvent(realEvent->blob().get(), d_allocator_p);
+    bmqp::Event                  rawEvent(event.blob().get(), d_allocator_p);
     bmqp::ConfirmMessageIterator confIt;
 
     BSLS_ASSERT_SAFE(rawEvent.isConfirmEvent());
     rawEvent.loadConfirmMessageIterator(&confIt);
     if (!confIt.isValid()) {
-        mwcu::MemOutStream out;
+        bmqu::MemOutStream out;
         out << description() << ": received invalid CONFIRM event from node "
             << source->nodeDescription() << "\n";
         confIt.dumpBlob(out);
-        MWCTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << MWCTSK_ALARMLOG_END;
+        BMQTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
     bmqp_ctrlmsg::NodeStatus::Value status =
@@ -1446,7 +1438,7 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != status &&
         bmqp_ctrlmsg::NodeStatus::E_STOPPING != status) {
         // This node is going down.
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedConfirmMessages,
             BALL_LOG_WARN << "Failed to apply CONFIRM event to queue from "
                           << source->nodeDescription()
@@ -1484,16 +1476,16 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
                                         queueId.subId());
         }
         else {
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedRejectMessages,
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << ": CONFIRM " << ValidationResult::toAscii(result)
                     << " [queue: '"
                     << (queueHandle ? queueHandle->queue()->uri()
                                     : "<UNKNOWN>")
                     << "', queueId: " << queueId << ", GUID: "
                     << confIt.message().messageGUID() << "] from "
-                    << source->nodeDescription() << MWCTSK_ALARMLOG_END;);
+                    << source->nodeDescription() << BMQTSK_ALARMLOG_END;);
         }
     }
 
@@ -1509,34 +1501,35 @@ void Cluster::onConfirmEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onRejectEvent(const mqbi::DispatcherRejectEvent& event)
 {
+    // executed by the *DISPATCHER* thread
+
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_REJECT == event.type());
-    BSLS_ASSERT_SAFE(false == event.asRejectEvent()->isRelay());
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This REJECT event arrives from a replica node (event.clusterNode()) to
     // this (primary) node, and it needs to be forwarded to the queue after
     // appropriate checks.  Iterate over each REJECT message in the event and
     // forward it to the queue handle.
-    const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
 
-    mqbnet::ClusterNode*      source = realEvent->clusterNode();
+    mqbnet::ClusterNode*      source = event.clusterNode();
     mqbc::ClusterNodeSession* ns =
         d_clusterData.membership().getClusterNodeSession(source);
     BSLS_ASSERT_SAFE(ns);
 
-    bmqp::Event rawEvent(realEvent->blob().get(), d_allocator_p);
+    bmqp::Event                 rawEvent(event.blob().get(), d_allocator_p);
     bmqp::RejectMessageIterator rejectIt;
     BSLS_ASSERT_SAFE(rawEvent.isRejectEvent());
     rawEvent.loadRejectMessageIterator(&rejectIt);
 
     if (!rejectIt.isValid()) {
-        mwcu::MemOutStream out;
+        bmqu::MemOutStream out;
         out << description() << ": received invalid REJECT event from node "
             << source->nodeDescription() << "\n";
         rejectIt.dumpBlob(out);
-        MWCTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << MWCTSK_ALARMLOG_END;
+        BMQTSK_ALARMLOG_ALARM("CLUSTER") << out.str() << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
     bmqp_ctrlmsg::NodeStatus::Value status =
@@ -1544,7 +1537,7 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != status &&
         bmqp_ctrlmsg::NodeStatus::E_STOPPING != status) {
         // This node is going down.
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedRejectMessages,
             BALL_LOG_WARN << "Failed to apply REJECT event to queue from "
                           << source->nodeDescription()
@@ -1582,16 +1575,16 @@ void Cluster::onRejectEvent(const mqbi::DispatcherEvent& event)
                                        queueId.subId());
         }
         else {
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedRejectMessages,
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << ": REJECT " << ValidationResult::toAscii(result)
                     << " [queue: '"
                     << (queueHandle ? queueHandle->queue()->uri()
                                     : "<UNKNOWN>")
                     << "', queueId: " << queueId << ", GUID: "
                     << rejectIt.message().messageGUID() << "] from "
-                    << source->nodeDescription() << MWCTSK_ALARMLOG_END;);
+                    << source->nodeDescription() << BMQTSK_ALARMLOG_END;);
         }
     }
 
@@ -1659,21 +1652,21 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
     return ValidationResult::k_SUCCESS;
 }
 
-void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onRelayRejectEvent(const mqbi::DispatcherRejectEvent& event)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_REJECT == event.type());
-    BSLS_ASSERT_SAFE(true == event.asRejectEvent()->isRelay());
+    // executed by the *DISPATCHER* thread
 
-    const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-REJECT message is enqueued by the RemoteQueue on either
     // cluster (in case of replica) or clusterProxy (in case of proxy).  This
     // is a replica so this node just needs to forward the message to queue's
     // partition's primary node (after appropriate checks).
 
-    const bmqp::RejectMessage& rejectMessage = realEvent->rejectMessage();
-    const int                  pid           = realEvent->partitionId();
+    const bmqp::RejectMessage& rejectMessage = event.rejectMessage();
+    const int                  pid           = event.partitionId();
 
     const int          id    = rejectMessage.queueId();
     const unsigned int subId = static_cast<unsigned int>(
@@ -1682,7 +1675,7 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
     mqbc::ClusterNodeSession* ns = 0;
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                   errorStream(&localAllocator);
+    bmqu::MemOutStream                   errorStream(&localAllocator);
 
     bool isValid = validateRelayMessage(&ns, &errorStream, pid);
     if (isValid) {
@@ -1696,7 +1689,7 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // This is non-recoverable, so we drop the REJECT msg and log it.
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledDroppedRejectMessages,
                 BALL_LOG_ERROR << description() << ": dropping REJECT message "
                                << "[queueId: " << queueId.id()
@@ -1708,7 +1701,7 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
         }
     }
     else {
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedRejectMessages,
             BALL_LOG_WARN << "Failed to relay REJECT message "
                           << "[queueId: " << queueId.id()
@@ -1718,21 +1711,21 @@ void Cluster::onRelayRejectEvent(const mqbi::DispatcherEvent& event)
     }
 }
 
-void Cluster::onRelayConfirmEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onRelayConfirmEvent(const mqbi::DispatcherConfirmEvent& event)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_CONFIRM == event.type());
-    BSLS_ASSERT_SAFE(true == event.asConfirmEvent()->isRelay());
+    // executed by the *DISPATCHER* thread
 
-    const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+    BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-CONFIRM message is enqueued by the RemoteQueue on either
     // cluster (in case of replica) or clusterProxy (in case of proxy).  This
     // is a replica so this node just needs to forward the message to queue's
     // partition's primary node (after appropriate checks).
 
-    const bmqp::ConfirmMessage& confirmMsg = realEvent->confirmMessage();
-    const int                   pid        = realEvent->partitionId();
+    const bmqp::ConfirmMessage& confirmMsg = event.confirmMessage();
+    const int                   pid        = event.partitionId();
 
     const int          id    = confirmMsg.queueId();
     const unsigned int subId = static_cast<unsigned int>(
@@ -1741,7 +1734,7 @@ void Cluster::onRelayConfirmEvent(const mqbi::DispatcherEvent& event)
     mqbc::ClusterNodeSession* ns = 0;
 
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                   errorStream(&localAllocator);
+    bmqu::MemOutStream                   errorStream(&localAllocator);
 
     bool isValid = validateRelayMessage(&ns, &errorStream, pid);
     if (isValid) {
@@ -1755,7 +1748,7 @@ void Cluster::onRelayConfirmEvent(const mqbi::DispatcherEvent& event)
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // This is non-recoverable, so we drop the CONFIRM msg and log it.
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledDroppedConfirmMessages,
                 BALL_LOG_ERROR << description() << ": dropping CONFIRM message"
                                << " [queueId: " << queueId.id()
@@ -1767,7 +1760,7 @@ void Cluster::onRelayConfirmEvent(const mqbi::DispatcherEvent& event)
         }
     }
     else {
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedRejectMessages,
             BALL_LOG_WARN << "Failed to relay CONFIRM message "
                           << "[queueId: " << queueId.id()
@@ -1838,16 +1831,13 @@ bool Cluster::validateRelayMessage(mqbc::ClusterNodeSession** ns,
     return true;
 }
 
-void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onPushEvent(const mqbi::DispatcherPushEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUSH == event.type());
-    BSLS_ASSERT_SAFE(event.asPushEvent()->isRelay() == false);
-
-    const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
+    BSLS_ASSERT_SAFE(!event.isRelay());
 
     // This PUSH message is enqueued by mqbblp::Queue/QueueHandle on this node,
     // and needs to be forwarded to 'event.clusterNode()' (the replica node,
@@ -1862,20 +1852,19 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Drop PUSH coz self is going down
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPushMessages,
             BALL_LOG_WARN << "Dropping a PUSH for queue [queueId: "
-                          << realEvent->queueId()
-                          << ", guid: " << realEvent->guid() << "] for node "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.queueId() << ", guid: " << event.guid()
+                          << "] for node "
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: self (primary node) not available."
                           << " Node status: " << selfStatus;);
         return;  // RETURN
     }
 
     mqbc::ClusterNodeSession* ns =
-        d_clusterData.membership().getClusterNodeSession(
-            realEvent->clusterNode());
+        d_clusterData.membership().getClusterNodeSession(event.clusterNode());
     BSLS_ASSERT_SAFE(ns);
 
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != ns->nodeStatus()) {
@@ -1883,13 +1872,13 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
         // Note that this PUSH msg was dispatched by the queue handle
         // representing the target node, and will be in its 'pending list'.
 
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPushMessages,
             BALL_LOG_WARN << description()
                           << ": Failed to send PUSH message [queueId: "
-                          << realEvent->queueId() << ", GUID: "
-                          << realEvent->guid() << "] to target node: "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.queueId() << ", GUID: " << event.guid()
+                          << "] to target node: "
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: node not available. "
                           << "Target node status: " << ns->nodeStatus(););
 
@@ -1897,15 +1886,15 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
     }
 
     QueueHandleMap&    queueHandles = ns->queueHandles();
-    QueueHandleMapIter queueIt      = queueHandles.find(realEvent->queueId());
+    QueueHandleMapIter queueIt      = queueHandles.find(event.queueId());
     if (queueIt == queueHandles.end()) {
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPushMessages,
             BALL_LOG_WARN << description()
                           << ": PUSH message for queue with unknown queueId ["
-                          << realEvent->queueId() << ", guid: "
-                          << realEvent->guid() << "] to target node: "
-                          << realEvent->clusterNode()->nodeDescription(););
+                          << event.queueId() << ", guid: " << event.guid()
+                          << "] to target node: "
+                          << event.clusterNode()->nodeDescription(););
 
         return;  // RETURN
     }
@@ -1917,15 +1906,15 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
     // TODO: Extract this and the version from 'mqba::ClientSession' to a
     //       function
     for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
-         i < realEvent->subQueueInfos().size();
+         i < event.subQueueInfos().size();
          ++i) {
         StreamsMap::const_iterator subQueueCiter =
             queueState.d_subQueueInfosMap.findBySubscriptionId(
-                realEvent->subQueueInfos()[i].id());
+                event.subQueueInfos()[i].id());
 
         subQueueCiter->value().d_clientStats->onEvent(
             mqbstat::ClusterNodeStats::EventType::e_PUSH,
-            realEvent->blob() ? realEvent->blob()->length() : 0);
+            event.blob() ? event.blob()->length() : 0);
     }
 
     bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
@@ -1936,32 +1925,32 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
         // If it's at most once, then we explicitly send the payload since it's
         // in-mem mode and there's been no replication (i.e. no preceding
         // STORAGE message).
-        BSLS_ASSERT_SAFE(realEvent->blob());
+        BSLS_ASSERT_SAFE(event.blob());
         rc = ns->clusterNode()->channel().writePush(
-            realEvent->blob(),
-            realEvent->queueId(),
-            realEvent->guid(),
+            event.blob(),
+            event.queueId(),
+            event.guid(),
             0,
-            realEvent->compressionAlgorithmType(),
-            realEvent->messagePropertiesInfo(),
-            realEvent->subQueueInfos());
+            event.compressionAlgorithmType(),
+            event.messagePropertiesInfo(),
+            event.subQueueInfos());
     }
     else {
         int flags = 0;
 
-        if (realEvent->isOutOfOrderPush()) {
+        if (event.isOutOfOrderPush()) {
             bmqp::PushHeaderFlagUtil::setFlag(
                 &flags,
                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER);
         }
 
         rc = ns->clusterNode()->channel().writePush(
-            realEvent->queueId(),
-            realEvent->guid(),
+            event.queueId(),
+            event.guid(),
             flags,
-            realEvent->compressionAlgorithmType(),
-            realEvent->messagePropertiesInfo(),
-            realEvent->subQueueInfos());
+            event.compressionAlgorithmType(),
+            event.messagePropertiesInfo(),
+            event.subQueueInfos());
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -1970,31 +1959,28 @@ void Cluster::onPushEvent(const mqbi::DispatcherEvent& event)
 
         // This is non-recoverable, so we drop the PUSH msg and log it.
 
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledDroppedPushMessages,
             BALL_LOG_ERROR << description() << ": dropping PUSH message "
-                           << "[queueId: " << realEvent->queueId()
-                           << ", guid: " << realEvent->guid()
-                           << "] to target node: "
-                           << realEvent->clusterNode()->nodeDescription()
+                           << "[queueId: " << event.queueId() << ", guid: "
+                           << event.guid() << "] to target node: "
+                           << event.clusterNode()->nodeDescription()
                            << ", PushBuilder rc: " << rc << ".";);
     }
 }
 
-void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
+void Cluster::onRelayPushEvent(const mqbi::DispatcherPushEvent& event)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
-    BSLS_ASSERT_SAFE(mqbi::DispatcherEventType::e_PUSH == event.type());
-    BSLS_ASSERT_SAFE(event.asPushEvent()->isRelay() == true);
+    BSLS_ASSERT_SAFE(event.isRelay());
 
     // This relay-PUSH event is sent by primary (event.clusterNode()) to
     // replica (this) node.  Iterate over each message in the event and forward
     // it to appropriate remote queue.  Note that these PUSH msgs won't have
     // payloads.
-    const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
 
     bmqp_ctrlmsg::NodeStatus::Value selfStatus =
         d_clusterData.membership().selfNodeStatus();
@@ -2003,16 +1989,16 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Drop relay-PUSH messages coz self is going down
-        MWCU_THROTTLEDACTION_THROTTLE(
+        BMQU_THROTTLEDACTION_THROTTLE(
             d_throttledFailedPushMessages,
             BALL_LOG_WARN << "Dropping relay PUSH messages from node "
-                          << realEvent->clusterNode()->nodeDescription()
+                          << event.clusterNode()->nodeDescription()
                           << ". Reason: self (replica node) not available."
                           << " Self node status: " << selfStatus;);
         return;  // RETURN
     }
 
-    bmqp::Event rawEvent(realEvent->blob().get(), d_allocator_p);
+    bmqp::Event rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isPushEvent());
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
     bmqp::PushMessageIterator pushIt(&d_clusterData.bufferFactory(), &lsa);
@@ -2028,15 +2014,15 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queue == 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPushMessages,
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << description() << ": Received a relay-PUSH for unknown "
                     << "queue [queueId: " << pushHeader.queueId()
                     << ", guid: " << pushHeader.messageGUID()
                     << ", flags: " << pushHeader.flags() << "] from node "
-                    << realEvent->clusterNode()->nodeDescription()
-                    << MWCTSK_ALARMLOG_END;);
+                    << event.clusterNode()->nodeDescription()
+                    << BMQTSK_ALARMLOG_END;);
 
             continue;  // CONTINUE
         }
@@ -2052,9 +2038,9 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
                                                   atMostOnce)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            MWCU_THROTTLEDACTION_THROTTLE(
+            BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPushMessages,
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << description()
                     << ": Received relay-PUSH with unexpected flag: "
                     << bsl::boolalpha << implicitPayload
@@ -2062,8 +2048,8 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
                     << " for [queueId: " << pushHeader.queueId()
                     << ", guid: " << pushHeader.messageGUID()
                     << ", flags: " << pushHeader.flags() << "] from node "
-                    << realEvent->clusterNode()->nodeDescription()
-                    << MWCTSK_ALARMLOG_END;);
+                    << event.clusterNode()->nodeDescription()
+                    << BMQTSK_ALARMLOG_END;);
 
             continue;  // CONTINUE
         }
@@ -2103,7 +2089,7 @@ void Cluster::onRelayPushEvent(const mqbi::DispatcherEvent& event)
 void Cluster::onRecoveryStatus(
     int                                        status,
     const bsl::vector<unsigned int>&           primaryLeaseIds,
-    const mwcsys::StatMonitorSnapshotRecorder& statRecorder)
+    const bmqsys::StatMonitorSnapshotRecorder& statRecorder)
 
 {
     // exected by *ANY* thread
@@ -2120,7 +2106,7 @@ void Cluster::onRecoveryStatus(
 void Cluster::onRecoveryStatusDispatched(
     int                                        status,
     const bsl::vector<unsigned int>&           primaryLeaseIds,
-    const mwcsys::StatMonitorSnapshotRecorder& statRecorder)
+    const bmqsys::StatMonitorSnapshotRecorder& statRecorder)
 {
     // executed by the *DISPATCHER* thread
 
@@ -2131,7 +2117,7 @@ void Cluster::onRecoveryStatusDispatched(
         BALL_LOG_ERROR << description() << ": Stopping cluster as recovery "
                        << "failed with status: " << status;
 
-        mwcex::SystemExecutor().post(
+        bmqex::SystemExecutor().post(
             bdlf::BindUtil::bind(&Cluster::terminate,
                                  this,
                                  mqbu::ExitCode::e_RECOVERY_FAILURE));
@@ -2183,16 +2169,16 @@ void Cluster::onRecoveryStatusDispatched(
             }
             else if (d_state.partition(pid).primaryLeaseId() <
                      primaryLeaseIds[pid]) {
-                MWCTSK_ALARMLOG_ALARM("CLUSTER")
+                BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << description() << " Partition [" << pid
                     << "]: self has higher retrieved leaseId ("
                     << primaryLeaseIds[pid]
                     << ") than the one notified by leader ("
                     << d_state.partition(pid).primaryLeaseId()
                     << "). Stopping the node as this node seems  to have more "
-                    << "advanced view of the storage." << MWCTSK_ALARMLOG_END;
+                    << "advanced view of the storage." << BMQTSK_ALARMLOG_END;
 
-                mwcex::SystemExecutor().post(bdlf::BindUtil::bind(
+                bmqex::SystemExecutor().post(bdlf::BindUtil::bind(
                     &Cluster::terminate,
                     this,
                     mqbu::ExitCode::e_STORAGE_OUT_OF_SYNC));
@@ -2307,7 +2293,7 @@ void Cluster::logSummaryStateDispatched() const
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    mwcu::MemOutStream                    os(&localAllocator);
+    bmqu::MemOutStream                    os(&localAllocator);
 
     // Cluster Name
     os << description() << " summary: ";
@@ -2357,7 +2343,7 @@ void Cluster::logSummaryStateDispatched() const
 }
 
 void Cluster::onProxyConnectionUpDispatched(
-    const bsl::shared_ptr<mwcio::Channel>& channel,
+    const bsl::shared_ptr<bmqio::Channel>& channel,
     const bmqp_ctrlmsg::ClientIdentity&    identity,
     const bsl::string&                     description)
 {
@@ -2474,7 +2460,7 @@ void Cluster::loadElectorInfo(mqbcmd::ElectorInfo* out) const
     BSLS_ASSERT_SAFE(!rc && "Unsupported elector state");
 
     if (0 == d_clusterData.electorInfo().leaderNode()) {
-        mwcu::MemOutStream os;
+        bmqu::MemOutStream os;
         os << "[ ** NA **, " << mqbnet::Cluster::k_INVALID_NODE_ID << "]";
         out->leaderNode() = os.str();
     }
@@ -2609,7 +2595,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
         nodeSessionSp->setNodeStatus(bmqp_ctrlmsg::NodeStatus::E_UNKNOWN);
 
         // Create stat context for each cluster node
-        mwcst::StatContextConfiguration config((*nodeIter)->hostName());
+        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
 
         StatContextMp statContextMp =
             d_clusterData.clusterNodesStatContext()->addSubcontext(config);
@@ -2973,9 +2959,9 @@ void Cluster::processControlMessage(
     } break;
     case MsgChoice::SELECTION_ID_DISCONNECT:
     case MsgChoice::SELECTION_ID_DISCONNECT_RESPONSE: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << description() << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND: {
         // Assume this is a rerouted command, so just execute it on the
@@ -2998,9 +2984,9 @@ void Cluster::processControlMessage(
     } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << description() << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         BSLS_ASSERT_SAFE(message.choice().selectionId() !=
                          MsgChoice::SELECTION_ID_UNDEFINED);
         // We should never receive an 'UNDEFINED' message, but while
@@ -3242,9 +3228,9 @@ void Cluster::processClusterControlMessage(
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << description() << ": unexpected clusterMessage:" << message
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
     } break;  // BREAK
     }
 }
@@ -3280,10 +3266,10 @@ void Cluster::processEvent(const bmqp::Event&   event,
         if (isLocal()) {
             // We shouldn't be getting any intra-cluster messages if its a
             // local cluster.
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << description() << ": received a 'CONTROL' event from node "
                 << source->nodeDescription() << " in local cluster setup."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -3292,12 +3278,12 @@ void Cluster::processEvent(const bmqp::Event&   event,
 
         int rc = event.loadControlEvent(&message);
         if (rc != 0) {
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << description() << ": failed to decode 'CLUSTER' message from"
                 << " node " << source->nodeDescription() << ", rc: " << rc
                 << "\n"
-                << mwcu::BlobStartHexDumper(event.blob())
-                << MWCTSK_ALARMLOG_END;
+                << bmqu::BlobStartHexDumper(event.blob())
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -3354,11 +3340,11 @@ void Cluster::processEvent(const bmqp::Event&   event,
         if (isLocal()) {
             // We shouldn't be getting any intra-cluster messages if its a
             // local cluster.
-            MWCTSK_ALARMLOG_ALARM("CLUSTER")
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
                 << description()
                 << ": received a 'CLUSTER_STATE' event from node "
                 << source->nodeDescription() << " in local cluster setup."
-                << MWCTSK_ALARMLOG_END;
+                << BMQTSK_ALARMLOG_END;
             return;  // RETURN
         }
 
@@ -3390,10 +3376,10 @@ void Cluster::processEvent(const bmqp::Event&   event,
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
-        MWCTSK_ALARMLOG_ALARM("CLUSTER")
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << description() << ": Received bmqp event of type '"
             << event.type() << "' which is currently not handled."
-            << MWCTSK_ALARMLOG_END;
+            << BMQTSK_ALARMLOG_END;
         BSLS_ASSERT_SAFE(event.type() != bmqp::EventType::e_UNDEFINED);
         // We should never receive an 'UNDEFINED' event, but while
         // introducing new features, we may receive unknown event types.
@@ -3415,69 +3401,72 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     switch (event.type()) {
     case mqbi::DispatcherEventType::e_CALLBACK: {
-        const mqbi::DispatcherCallbackEvent* realEvent =
-            event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        const mqbi::DispatcherCallbackEvent& realEvent =
+            *event.asCallbackEvent();
+        BSLS_ASSERT_SAFE(realEvent.callback());
+        realEvent.callback()(dispatcherClientData().processorHandle());
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUT: {
-        const mqbi::DispatcherPutEvent* realEvent = event.asPutEvent();
-        if (realEvent->isRelay()) {
+        const mqbi::DispatcherPutEvent& realEvent = *event.asPutEvent();
+        if (realEvent.isRelay()) {
+            // We pass a parent object event here because the implementation
+            // uses `source()` field from this parent object
             onRelayPutEvent(event);
         }
         else {
-            onPutEvent(event);
+            onPutEvent(realEvent);
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
-        const mqbi::DispatcherAckEvent* realEvent = event.asAckEvent();
-        if (realEvent->isRelay()) {
-            onRelayAckEvent(event);
+        const mqbi::DispatcherAckEvent& realEvent = *event.asAckEvent();
+        if (realEvent.isRelay()) {
+            onRelayAckEvent(realEvent);
         }
         else {
-            onAckEvent(event);
+            onAckEvent(realEvent);
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_CONFIRM: {
-        const mqbi::DispatcherConfirmEvent* realEvent = event.asConfirmEvent();
-        if (realEvent->isRelay()) {
-            onRelayConfirmEvent(event);
+        const mqbi::DispatcherConfirmEvent& realEvent =
+            *event.asConfirmEvent();
+        if (realEvent.isRelay()) {
+            onRelayConfirmEvent(realEvent);
         }
         else {
-            onConfirmEvent(event);
+            onConfirmEvent(realEvent);
         }
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
-        const mqbi::DispatcherRejectEvent* realEvent = event.asRejectEvent();
-        if (realEvent->isRelay()) {
-            onRelayRejectEvent(event);
+        const mqbi::DispatcherRejectEvent& realEvent = *event.asRejectEvent();
+        if (realEvent.isRelay()) {
+            onRelayRejectEvent(realEvent);
         }
         else {
-            onRejectEvent(event);
+            onRejectEvent(realEvent);
         }
     } break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
-        const mqbi::DispatcherClusterStateEvent* clusterStateEvt =
-            event.asClusterStateEvent();
-        d_clusterOrchestrator.processClusterStateEvent(*clusterStateEvt);
+        const mqbi::DispatcherClusterStateEvent& clusterStateEvt =
+            *event.asClusterStateEvent();
+        d_clusterOrchestrator.processClusterStateEvent(clusterStateEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_STORAGE: {
-        const mqbi::DispatcherStorageEvent* storageEvt =
-            event.asStorageEvent();
-        d_storageManager_mp->processStorageEvent(*storageEvt);
+        const mqbi::DispatcherStorageEvent& storageEvt =
+            *event.asStorageEvent();
+        d_storageManager_mp->processStorageEvent(storageEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_RECOVERY: {
-        const mqbi::DispatcherRecoveryEvent* recoveryEvt =
-            event.asRecoveryEvent();
-        d_storageManager_mp->processRecoveryEvent(*recoveryEvt);
+        const mqbi::DispatcherRecoveryEvent& recoveryEvt =
+            *event.asRecoveryEvent();
+        d_storageManager_mp->processRecoveryEvent(recoveryEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUSH: {
-        const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();
-        if (realEvent->isRelay()) {
-            onRelayPushEvent(event);
+        const mqbi::DispatcherPushEvent& realEvent = *event.asPushEvent();
+        if (realEvent.isRelay()) {
+            onRelayPushEvent(realEvent);
         }
         else {
-            onPushEvent(event);
+            onPushEvent(realEvent);
         }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT:
@@ -3511,7 +3500,7 @@ void Cluster::onNodeStateChange(mqbnet::ClusterNode* node, bool isAvailable)
 }
 
 void Cluster::onProxyConnectionUp(
-    const bsl::shared_ptr<mwcio::Channel>& channel,
+    const bsl::shared_ptr<bmqio::Channel>& channel,
     const bmqp_ctrlmsg::ClientIdentity&    identity,
     const bsl::string&                     description)
 {
@@ -3538,9 +3527,9 @@ void Cluster::onNodeHighWatermark(mqbnet::ClusterNode* node)
     // that we don't use a 'channel buffer queue' in this component, unlike
     // mqba::ClientSession).
 
-    MWCTSK_ALARMLOG_ALARM("CLUSTER")
+    BMQTSK_ALARMLOG_ALARM("CLUSTER")
         << description() << ": Channel HighWatermark hit for node "
-        << node->nodeDescription() << MWCTSK_ALARMLOG_END;
+        << node->nodeDescription() << BMQTSK_ALARMLOG_END;
 }
 
 void Cluster::onNodeLowWatermark(
@@ -3606,12 +3595,12 @@ void Cluster::onFailoverThreshold()
 {
     const mqbcfg::ClusterMonitorConfig& monitorConfig =
         d_clusterData.clusterConfig().clusterMonitorConfig();
-    mwcu::MemOutStream os;
+    bmqu::MemOutStream os;
 
     os << "'" << d_clusterData.identity().name()
        << "' has not completed the failover process above the threshold "
        << "amount of "
-       << mwcu::PrintUtil::prettyTimeInterval(
+       << bmqu::PrintUtil::prettyTimeInterval(
               monitorConfig.thresholdFailover() *
               bdlt::TimeUnitRatio::k_NS_PER_S)
        << ". There are "
@@ -3619,7 +3608,7 @@ void Cluster::onFailoverThreshold()
        << " pending reopen-queue requests.\n";
     // Log only a summary in the alarm
     printClusterStateSummary(os, 0, 4);
-    MWCTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << MWCTSK_ALARMLOG_END;
+    BMQTSK_ALARMLOG_PANIC("CLUSTER") << os.str() << BMQTSK_ALARMLOG_END;
 }
 
 void Cluster::onProcessedAdminCommand(
@@ -3853,7 +3842,8 @@ void Cluster::getPartitionPrimaryNode(int*                  rc,
         d_state.partitions();
 
     // Check boundary conditions for partitionId
-    if (partitionId < 0 || partitionId >= partitions.size()) {
+    if (partitionId < 0 ||
+        static_cast<int>(partitions.size()) <= partitionId) {
         errorDescription << "Invalid partition id: " << partitionId;
         *rc = rc_ERROR;
         return;  // RETURN

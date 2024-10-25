@@ -16,8 +16,7 @@
 // bmqp_protocolutil.t.cpp                                            -*-C++-*-
 #include <bmqp_protocolutil.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BMQ
 #include <bmqp_crc32c.h>
@@ -39,7 +38,7 @@
 #include <bsl_vector.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -76,7 +75,7 @@ static void test1_initializeShutdown()
 //   shutdown
 //   ----------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
+    bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
 
     // 1. Calling 'shutdown' without a call to 'initialize' should assert.
     ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
@@ -122,7 +121,7 @@ static void test2_hexBinaryConversions()
 //   - void binaryToHex(char *buffer, char *binary, int binaryBufferLength)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HEX/BINARY CONVERSIONS");
+    bmqtst::TestHelper::printTestName("HEX/BINARY CONVERSIONS");
 
     PV("hexToBinary");
     {
@@ -232,7 +231,7 @@ static void test3_calcNumWordsAndPadding()
 //   - int calcNumDwordsAndPAdding(int *padding, int length)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CALC NUM WORDS AND PADDING");
+    bmqtst::TestHelper::printTestName("CALC NUM WORDS AND PADDING");
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -298,7 +297,7 @@ static void test4_paddingChar()
 //   - void appendPaddingDwordRaw(char *destination, int numPaddingBytes)
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPEND PADDING (char)");
+    bmqtst::TestHelper::printTestName("APPEND PADDING (char)");
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -385,7 +384,7 @@ static void test5_paddingBlob()
 //       but is being called for coverage purposes.
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("APPEND PADDING (blob)");
+    bmqtst::TestHelper::printTestName("APPEND PADDING (blob)");
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -486,7 +485,7 @@ static void test6_heartbeatAndEmptyBlobs()
 //
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("HEARTBEAT BLOBS");
+    bmqtst::TestHelper::printTestName("HEARTBEAT BLOBS");
 
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
@@ -543,7 +542,7 @@ static void test7_ackResultToCode()
 //   ackResultToCode
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ACK RESULT TO CODE");
+    bmqtst::TestHelper::printTestName("ACK RESULT TO CODE");
 
     struct Test {
         int                   d_line;
@@ -591,7 +590,7 @@ static void test8_ackResultFromCode()
 //   ackResultFromCode
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("ACK RESULT FROM CODE");
+    bmqtst::TestHelper::printTestName("ACK RESULT FROM CODE");
 
     struct Test {
         int                   d_line;
@@ -638,7 +637,7 @@ static void test9_loadFieldValues()
 //   loadFieldValues
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("LOAD FIELD VALUES");
+    bmqtst::TestHelper::printTestName("LOAD FIELD VALUES");
     // Disable check that no memory was allocated from the default allocator
     s_ignoreCheckDefAlloc = true;
 
@@ -714,7 +713,7 @@ static void test9_loadFieldValues()
 template <typename E>
 static void encodeDecodeHelper(E encodingType)
 {
-    mwcu::MemOutStream                 ms;
+    bmqu::MemOutStream                 ms;
     bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
     bdlbb::Blob                        blob(&bufferFactory, s_allocator_p);
     bmqp_ctrlmsg::ClusterMessage       clusterMessage;
@@ -780,7 +779,7 @@ static void test10_encodeDecodeMessage()
     // 'loggedMessages' methods of Encoder returns a memory-aware object
     // without utilizing the parameter allocator.
 
-    mwctst::TestHelper::printTestName("ENCODE DECODE MESSAGE");
+    bmqtst::TestHelper::printTestName("ENCODE DECODE MESSAGE");
 
     PV("Test using JSON encoding");
     {
@@ -837,7 +836,7 @@ static void test11_parseMessageProperties()
 {
     bmqp::ProtocolUtil::initialize(s_allocator_p);
 
-    mwctst::TestHelper::printTestName("TEST PARSING");
+    bmqtst::TestHelper::printTestName("TEST PARSING");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
     bmqp::MessageProperties        in(s_allocator_p);
@@ -879,7 +878,7 @@ static void test11_parseMessageProperties()
                                        payloadIn,
                                        payloadIn.length(),
                                        true,  // decompress
-                                       mwcu::BlobPosition(),
+                                       bmqu::BlobPosition(),
                                        true,  // MPs
                                        true,  // new style
                                        peb.compressionAlgorithmType(),
@@ -904,7 +903,7 @@ int main(int argc, char* argv[])
 {
     bmqp::Crc32c::initialize();
 
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -925,5 +924,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

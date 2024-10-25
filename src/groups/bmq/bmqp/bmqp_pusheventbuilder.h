@@ -63,8 +63,7 @@
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 
-// MWC
-#include <mwcu_blobobjectproxy.h>
+#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -105,7 +104,7 @@ class PushEventBuilder {
     // associated with the options of the
     // current (to-be-packed) message.
 
-    mwcu::BlobObjectProxy<PushHeader> d_currPushHeader;
+    bmqu::BlobObjectProxy<PushHeader> d_currPushHeader;
     // Push Header associated with the
     // current (to-be-packed) message.
 

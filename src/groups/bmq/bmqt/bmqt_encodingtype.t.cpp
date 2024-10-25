@@ -16,8 +16,7 @@
 // bmqt_encodingtype.t.cpp                                            -*-C++-*-
 #include <bmqt_encodingtype.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsl_ios.h>
@@ -25,7 +24,7 @@
 #include <bslmf_assert.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -37,7 +36,7 @@ using namespace bsl;
 
 static void test1_toAscii()
 {
-    mwctst::TestHelper::printTestName("TO ASCII");
+    bmqtst::TestHelper::printTestName("TO ASCII");
 
     struct Test {
         int         d_line;
@@ -66,7 +65,7 @@ static void test1_toAscii()
 
 static void test2_fromAscii()
 {
-    mwctst::TestHelper::printTestName("FROM ASCII");
+    bmqtst::TestHelper::printTestName("FROM ASCII");
 
     struct Test {
         int         d_line;
@@ -89,7 +88,7 @@ static void test2_fromAscii()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        mwcu::MemOutStream errorDescription(s_allocator_p);
+        bmqu::MemOutStream errorDescription(s_allocator_p);
 
         bsl::string str(test.d_input, s_allocator_p);
         bool isValid = bmqt::EncodingType::isValid(&str, errorDescription);
@@ -106,7 +105,7 @@ static void test2_fromAscii()
 
 static void test3_isomorphism()
 {
-    mwctst::TestHelper::printTestName("ISOMORPHISM");
+    bmqtst::TestHelper::printTestName("ISOMORPHISM");
 
     bmqt::EncodingType::Enum obj;
     bsl::string              str(s_allocator_p);
@@ -128,7 +127,7 @@ static void test3_isomorphism()
 
 static void test4_printTest()
 {
-    mwctst::TestHelper::printTestName("PRINT");
+    bmqtst::TestHelper::printTestName("PRINT");
 
     PV("Testing print");
 
@@ -156,8 +155,8 @@ static void test4_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        mwcu::MemOutStream out(s_allocator_p);
-        mwcu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream expected(s_allocator_p);
 
         expected << test.d_expected;
 
@@ -184,7 +183,7 @@ static void test4_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -198,5 +197,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

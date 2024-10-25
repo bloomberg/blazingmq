@@ -54,8 +54,7 @@
 // BMQ
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_orderedhashmap.h>
+#include <bmqc_orderedhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -110,6 +109,11 @@ struct PushStream {
 
         /// Return the first Element in the list
         Element*     front() const;
+
+        /// Return the last Element in the list
+        Element* back() const;
+
+        /// Return number of Elements in the list
         unsigned int numElements() const;
     };
 
@@ -120,9 +124,10 @@ struct PushStream {
         App(const bsl::shared_ptr<RelayQueueEngine_AppState>& app);
         void add(Element* element);
         void remove(Element* element);
+        const Element* last() const;
     };
 
-    typedef mwcc::OrderedHashMap<bmqt::MessageGUID,
+    typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
                                  Elements,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
                                                   Stream;
@@ -160,7 +165,7 @@ struct PushStream {
 
         /// Return true if this Element is associated with the specified
         /// `iterator` position in the PushStream.
-        bool isInStream(const PushStream::Stream::iterator& iterator) const;
+        bool equal(const PushStream::Stream::iterator& iterator) const;
 
         /// Return pointer to the next Element associated with the same GUID
         /// or `0` if this is the last Element.
@@ -466,10 +471,10 @@ inline PushStream::App& PushStream::Element::app() const
     return d_iteratorApp->second;
 }
 
-inline bool PushStream::Element::isInStream(
-    const PushStream::Stream::iterator& iterator) const
+inline bool
+PushStream::Element::equal(const PushStream::Stream::iterator& iterator) const
 {
-    return d_iteratorGuid != iterator;
+    return d_iteratorGuid == iterator;
 }
 
 inline PushStream::Element* PushStream::Element::next() const
@@ -579,6 +584,11 @@ inline PushStream::Element* PushStream::Elements::front() const
     return d_first_p;
 }
 
+inline PushStream::Element* PushStream::Elements::back() const
+{
+    return d_last_p;
+}
+
 inline unsigned int PushStream::Elements::numElements() const
 {
     return d_numElements;
@@ -598,6 +608,11 @@ inline void PushStream::App::add(Element* element)
 inline void PushStream::App::remove(Element* element)
 {
     d_elements.remove(element, e_APP);
+}
+
+inline const PushStream::Element* PushStream::App::last() const
+{
+    return d_elements.back();
 }
 
 // ------------------
@@ -639,7 +654,7 @@ inline void PushStream::add(Element* element)
 {
     // Add to the GUID
     BSLS_ASSERT_SAFE(element);
-    BSLS_ASSERT_SAFE(element->isInStream(d_stream.end()));
+    BSLS_ASSERT_SAFE(!element->equal(d_stream.end()));
 
     element->guid().add(element, e_GUID);
 
@@ -650,7 +665,7 @@ inline void PushStream::add(Element* element)
 inline unsigned int PushStream::remove(Element* element)
 {
     BSLS_ASSERT_SAFE(element);
-    BSLS_ASSERT_SAFE(element->isInStream(d_stream.end()));
+    BSLS_ASSERT_SAFE(!element->equal(d_stream.end()));
 
     // remove from the App
     element->app().remove(element);

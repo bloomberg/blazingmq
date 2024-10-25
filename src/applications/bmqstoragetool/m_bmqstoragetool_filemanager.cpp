@@ -26,8 +26,8 @@
 #include <mqbsl_ledger.h>
 #include <mqbsl_memorymappedondisklog.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdls_filesystemutil.h>
@@ -80,7 +80,7 @@ FileManagerImpl::FileManagerImpl(const bsl::string& journalFile,
 : d_journalFile(journalFile, allocator)
 , d_dataFile(dataFile, allocator)
 {
-    mwcu::MemOutStream ss(allocator);
+    bmqu::MemOutStream ss(allocator);
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
         (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());  // THROW
@@ -129,8 +129,10 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
         cslFile.c_str());
     bsl::string pattern(alloc);
     bsl::string location(alloc);
-    BSLS_ASSERT(bdls::PathUtil::getBasename(&pattern, cslFile) == 0);
-    BSLS_ASSERT(bdls::PathUtil::getDirname(&location, cslFile) == 0);
+    int         rc = bdls::PathUtil::getBasename(&pattern, cslFile);
+    BSLS_ASSERT(rc == 0);
+    rc = bdls::PathUtil::getDirname(&location, cslFile);
+    BSLS_ASSERT(rc == 0);
     ledgerConfig.setLocation(location)
         .setPattern(pattern)
         .setMaxLogSize(fileSize)
@@ -145,7 +147,10 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
 
     // Create and open the ledger
     mqbsl::Ledger ledger(ledgerConfig, alloc);
-    BSLS_ASSERT(ledger.open(mqbsi::Ledger::e_READ_ONLY) == 0);
+    rc = ledger.open(mqbsi::Ledger::e_READ_ONLY);
+    BSLS_ASSERT(rc == 0);
+    (void)rc;  // Compiler happiness
+
     // Set guard to close the ledger
     bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));
 
@@ -237,7 +242,7 @@ bool FileManagerImpl::FileHandler<ITER>::resetIterator(
     bsl::ostream& errorDescription)
 {
     // 1) Open
-    mwcu::MemOutStream errorDesc;
+    bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileSystemUtil::open(
         &d_mfd,
         d_path.c_str(),

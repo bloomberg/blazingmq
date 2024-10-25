@@ -41,8 +41,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
-// MWC
-#include <mwcc_twokeyhashmap.h>
+#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -96,8 +95,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     typedef bsl::pair<mqbu::StorageKey, unsigned int> AppKeyCount;
 
     /// (appId, appKeyCount) -> AppStateSp
-    typedef mwcc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
-    typedef bslma::ManagedPtr<mqbi::StorageIterator> StorageIteratorMp;
+    typedef bmqc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
 
   private:
     // DATA
@@ -118,7 +116,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // resulting in multiple instances of
     // nullKeys.  We need to differentiate
     // them to use them as keys in
-    // mwcc::TwoKeyHashMap.
+    // bmqc::TwoKeyHashMap.
 
     bool d_hasAutoSubscriptions;
     // Does this queue engine have any auto subscriptions configured
@@ -206,6 +204,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bool validate(unsigned int upstreamSubQueueId) const;
 
     const AppStateSp& subQueue(unsigned int upstreamSubQueueId) const;
+
+    /// Callback called by `d_consumptionMonitor` when alarm condition is met.
+    /// If there are un-delivered messages for the specified `appKey` and
+    /// `enableLog` is `true` it logs alarm data. Return `true` if there are
+    /// un-delivered messages and `false` otherwise.
+    bool logAlarmCb(const mqbu::StorageKey& appKey, bool enableLog) const;
 
   public:
     // TRAITS

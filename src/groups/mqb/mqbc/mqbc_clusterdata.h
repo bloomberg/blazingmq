@@ -45,10 +45,9 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcu_atomicstate.h>
-#include <mwcu_memoutstream.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_atomicstate.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -126,9 +125,9 @@ class ClusterData {
         BlobSpPool;
 
     typedef bdlcc::SharedObjectPool<
-        mwcu::AtomicState,
+        bmqu::AtomicState,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::Reset<mwcu::AtomicState> >
+        bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
         StateSpPool;
 
     /// Type of the RequestManager used by the cluster.
@@ -141,10 +140,10 @@ class ClusterData {
                                         bmqp_ctrlmsg::ControlMessage>
         MultiRequestManagerType;
 
-    typedef bslma::ManagedPtr<mwcst::StatContext> StatContextMp;
+    typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 
     /// Map of stat context names to StatContext pointers
-    typedef bsl::unordered_map<bsl::string, mwcst::StatContext*>
+    typedef bsl::unordered_map<bsl::string, bmqst::StatContext*>
         StatContextsMap;
 
   private:
@@ -229,7 +228,7 @@ class ClusterData {
                 mqbi::Cluster*                        cluster,
                 mqbi::DomainFactory*                  domainFactory,
                 mqbnet::TransportManager*             transportManager,
-                mwcst::StatContext*                   clustersStatContext,
+                bmqst::StatContext*                   clustersStatContext,
                 const StatContextsMap&                statContexts,
                 bslma::Allocator*                     allocator);
 

@@ -19,8 +19,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -32,7 +31,7 @@
 #include <bsls_protocoltest.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -171,7 +170,7 @@ static void test1_clusterStateLedger_protocol()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE LEDGER - PROTOCOL TEST");
+    bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER - PROTOCOL TEST");
 
     PV("Creating a test object");
     bsls::ProtocolTest<ClusterStateLedgerTestImp> testObj(s_verbosityLevel >
@@ -235,7 +234,7 @@ static void test2_commitStatus_fromAscii()
 //   'ClusterStateLedgerCommitStatus::fromAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMMIT STATUS - FROM ASCII");
+    bmqtst::TestHelper::printTestName("COMMIT STATUS - FROM ASCII");
 
     struct Test {
         int         d_line;
@@ -285,7 +284,7 @@ static void test3_commitStatus_toAscii()
 //   'ClusterStateLedgerCommitStatus::toAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMMIT STATUS - TO ASCII");
+    bmqtst::TestHelper::printTestName("COMMIT STATUS - TO ASCII");
 
     struct Test {
         int         d_line;
@@ -333,7 +332,7 @@ static void test4_commitStatus_print()
 //   'ClusterStateLedgerCommitStatus::print'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("COMMIT STATUS - PRINT");
+    bmqtst::TestHelper::printTestName("COMMIT STATUS - PRINT");
 
     // 1.
     struct Test {
@@ -354,7 +353,7 @@ static void test4_commitStatus_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        mwcu::MemOutStream                         out(s_allocator_p);
+        bmqu::MemOutStream                         out(s_allocator_p);
         mqbc::ClusterStateLedgerCommitStatus::Enum obj(
             static_cast<mqbc::ClusterStateLedgerCommitStatus::Enum>(
                 test.d_value));
@@ -400,7 +399,7 @@ static void test5_clusterStateLedgerConsistency_fromAscii()
 //   'ClusterStateLedgerConsistency::fromAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
+    bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " FROM ASCII");
 
     struct Test {
@@ -453,7 +452,7 @@ static void test6_clusterStateLedgerConsistency_toAscii()
 //   'ClusterStateLedgerConsistency::toAscii'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
+    bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " TO ASCII");
 
     struct Test {
@@ -502,7 +501,7 @@ static void test7_clusterStateLedgerConsistency_print()
 //   'ClusterStateLedgerConsistency::print'
 // ------------------------------------------------------------------------
 {
-    mwctst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
+    bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " PRINT");
 
     // 1.
@@ -524,7 +523,7 @@ static void test7_clusterStateLedgerConsistency_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        mwcu::MemOutStream                        out(s_allocator_p);
+        bmqu::MemOutStream                        out(s_allocator_p);
         mqbc::ClusterStateLedgerConsistency::Enum obj(
             static_cast<mqbc::ClusterStateLedgerConsistency::Enum>(
                 test.d_value));
@@ -560,7 +559,7 @@ static void test7_clusterStateLedgerConsistency_print()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
     case 0:
@@ -577,5 +576,5 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(mwctst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

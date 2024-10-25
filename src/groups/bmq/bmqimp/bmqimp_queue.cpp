@@ -21,12 +21,11 @@
 #include <bmqimp_stat.h>
 #include <bmqp_protocol.h>
 #include <bmqt_queueflags.h>
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
-// MWC
-#include <mwcst_statcontext.h>
-#include <mwcst_statutil.h>
-#include <mwcst_table.h>
+#include <bmqst_statcontext.h>
+#include <bmqst_statutil.h>
+#include <bmqst_table.h>
 
 // BDE
 #include <bdlb_print.h>
@@ -63,34 +62,34 @@ enum {
 };
 
 double
-calculateCompressionRatio(const mwcst::StatValue&                   value,
-                          const mwcst::StatValue::SnapshotLocation& start)
+calculateCompressionRatio(const bmqst::StatValue&                   value,
+                          const bmqst::StatValue::SnapshotLocation& start)
 {
-    const bsls::Types::Int64 messageCount = mwcst::StatUtil::increments(value,
+    const bsls::Types::Int64 messageCount = bmqst::StatUtil::increments(value,
                                                                         start);
     if (messageCount == 0) {
         return 0.0;  // RETURN
     }
 
-    const bsls::Types::Int64 ratioSum = mwcst::StatUtil::value(value, start);
+    const bsls::Types::Int64 ratioSum = bmqst::StatUtil::value(value, start);
 
     return (static_cast<double>(ratioSum) / messageCount) /
            k_COMPRESSION_RATIO_PRECISION_FACTOR;
 }
 
 double
-calculateCompressionRatio(const mwcst::StatValue&                   value,
-                          const mwcst::StatValue::SnapshotLocation& start,
-                          const mwcst::StatValue::SnapshotLocation& endPlus)
+calculateCompressionRatio(const bmqst::StatValue&                   value,
+                          const bmqst::StatValue::SnapshotLocation& start,
+                          const bmqst::StatValue::SnapshotLocation& endPlus)
 {
     const bsls::Types::Int64 messageCount =
-        mwcst::StatUtil::incrementsDifference(value, start, endPlus);
+        bmqst::StatUtil::incrementsDifference(value, start, endPlus);
     if (messageCount == 0) {
         return 0.0;  // RETURN
     }
 
     const bsls::Types::Int64 ratioSum =
-        mwcst::StatUtil::valueDifference(value, start, endPlus);
+        bmqst::StatUtil::valueDifference(value, start, endPlus);
 
     return (static_cast<double>(ratioSum) / messageCount) /
            k_COMPRESSION_RATIO_PRECISION_FACTOR;
@@ -151,54 +150,54 @@ const char* QueueState::toAscii(QueueState::Enum value)
 
 void QueueStatsUtil::initializeStats(
     Stat*                                     stat,
-    mwcst::StatContext*                       rootStatContext,
-    const mwcst::StatValue::SnapshotLocation& start,
-    const mwcst::StatValue::SnapshotLocation& end,
+    bmqst::StatContext*                       rootStatContext,
+    const bmqst::StatValue::SnapshotLocation& start,
+    const bmqst::StatValue::SnapshotLocation& end,
     bslma::Allocator*                         allocator)
 {
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     // Create the queues stat context
     // ------------------------------
-    mwcst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
+    bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
     config.isTable(true);
     config.value("in").value("out").value("compression_ratio");
     stat->d_statContext_mp = rootStatContext->addSubcontext(config);
 
     // Create table (with Delta stats)
     // -------------------------------
-    mwcst::TableSchema& schema = stat->d_table.schema();
+    bmqst::TableSchema& schema = stat->d_table.schema();
     schema.addDefaultIdColumn("id");
 
-    schema.addColumn("in_bytes", k_STAT_IN, mwcst::StatUtil::value, start);
+    schema.addColumn("in_bytes", k_STAT_IN, bmqst::StatUtil::value, start);
     schema.addColumn("in_messages",
                      k_STAT_IN,
-                     mwcst::StatUtil::increments,
+                     bmqst::StatUtil::increments,
                      start);
     schema.addColumn("in_bytes_delta",
                      k_STAT_IN,
-                     mwcst::StatUtil::valueDifference,
+                     bmqst::StatUtil::valueDifference,
                      start,
                      end);
     schema.addColumn("in_messages_delta",
                      k_STAT_IN,
-                     mwcst::StatUtil::incrementsDifference,
+                     bmqst::StatUtil::incrementsDifference,
                      start,
                      end);
 
-    schema.addColumn("out_bytes", k_STAT_OUT, mwcst::StatUtil::value, start);
+    schema.addColumn("out_bytes", k_STAT_OUT, bmqst::StatUtil::value, start);
     schema.addColumn("out_messages",
                      k_STAT_OUT,
-                     mwcst::StatUtil::increments,
+                     bmqst::StatUtil::increments,
                      start);
     schema.addColumn("out_bytes_delta",
                      k_STAT_OUT,
-                     mwcst::StatUtil::valueDifference,
+                     bmqst::StatUtil::valueDifference,
                      start,
                      end);
     schema.addColumn("out_messages_delta",
                      k_STAT_OUT,
-                     mwcst::StatUtil::incrementsDifference,
+                     bmqst::StatUtil::incrementsDifference,
                      start,
                      end);
     schema.addColumn("out_compression_ratio",
@@ -212,7 +211,7 @@ void QueueStatsUtil::initializeStats(
                      end);
 
     // Configure records
-    mwcst::TableRecords& records = stat->d_table.records();
+    bmqst::TableRecords& records = stat->d_table.records();
     records.setContext(stat->d_statContext_mp.get());
     records.setFilter(&StatUtil::filterDirect);
 
@@ -250,34 +249,34 @@ void QueueStatsUtil::initializeStats(
     // Create the table (without Delta stats)
     // --------------------------------------
     // We always use current snapshot for this
-    mwcst::StatValue::SnapshotLocation loc(0, 0);
+    bmqst::StatValue::SnapshotLocation loc(0, 0);
 
-    mwcst::TableSchema& schemaNoDelta = stat->d_tableNoDelta.schema();
+    bmqst::TableSchema& schemaNoDelta = stat->d_tableNoDelta.schema();
     schemaNoDelta.addDefaultIdColumn("id");
 
     schemaNoDelta.addColumn("in_bytes",
                             k_STAT_IN,
-                            mwcst::StatUtil::value,
+                            bmqst::StatUtil::value,
                             loc);
     schemaNoDelta.addColumn("in_messages",
                             k_STAT_IN,
-                            mwcst::StatUtil::increments,
+                            bmqst::StatUtil::increments,
                             loc);
 
     schemaNoDelta.addColumn("out_bytes",
                             k_STAT_OUT,
-                            mwcst::StatUtil::value,
+                            bmqst::StatUtil::value,
                             loc);
     schemaNoDelta.addColumn("out_messages",
                             k_STAT_OUT,
-                            mwcst::StatUtil::increments,
+                            bmqst::StatUtil::increments,
                             loc);
     schemaNoDelta.addColumn("out_compression_ratio",
                             k_STAT_COMPRESSION_RATIO,
                             calculateCompressionRatio,
                             loc);
     // Configure records
-    mwcst::TableRecords& recordsNoDelta = stat->d_tableNoDelta.records();
+    bmqst::TableRecords& recordsNoDelta = stat->d_tableNoDelta.records();
     recordsNoDelta.setContext(stat->d_statContext_mp.get());
     recordsNoDelta.setFilter(&StatUtil::filterDirect);
 
@@ -339,7 +338,7 @@ Queue::Queue(bslma::Allocator* allocator)
         .setConsumerPriority(bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
 }
 
-void Queue::registerStatContext(mwcst::StatContext* parentStatContext)
+void Queue::registerStatContext(bmqst::StatContext* parentStatContext)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
@@ -354,7 +353,7 @@ void Queue::registerStatContext(mwcst::StatContext* parentStatContext)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     d_stats_mp = parentStatContext->addSubcontext(
-        mwcst::StatContextConfiguration(d_uri.asString(), &localAllocator));
+        bmqst::StatContextConfiguration(d_uri.asString(), &localAllocator));
 }
 
 void Queue::statUpdateOnMessage(int size, bool isOut)
@@ -390,7 +389,7 @@ Queue::print(bsl::ostream& stream, int level, int spacesPerLevel) const
         return stream;  // RETURN
     }
 
-    mwcu::MemOutStream queueFlags(d_allocator_p);
+    bmqu::MemOutStream queueFlags(d_allocator_p);
     bmqt::QueueFlagsUtil::prettyPrint(queueFlags, d_handleParameters.flags());
 
     bslim::Printer printer(&stream, level, spacesPerLevel);

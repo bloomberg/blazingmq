@@ -26,8 +26,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_queueoptions.h>
 
-// MWC
-#include <mwcu_memoutstream.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlb_variant.h>
@@ -40,11 +39,10 @@
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
 
-// MWC
-#include <mwcsys_time.h>
+#include <bmqsys_time.h>
 
 // TEST DRIVER
-#include <mwctst_testhelper.h>
+#include <bmqtst_testhelper.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -68,8 +66,7 @@ using namespace bsl;
 
 /// Mapping class.  Will be partially specialized below.
 template <typename T>
-struct ResultRegistry {
-};
+struct ResultRegistry {};
 
 /// Partial specialization for mapping to `bmqa::OpenQueueStatus`.
 template <>
@@ -151,8 +148,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
         // opted to just compare the streams of the two messageEvents which is
         // markedly a weak test, but serves us well enough for basic testing.
 
-        mwcu::MemOutStream lstr(s_allocator_p);
-        mwcu::MemOutStream rstr(s_allocator_p);
+        bmqu::MemOutStream lstr(s_allocator_p);
+        bmqu::MemOutStream rstr(s_allocator_p);
 
         lhs.print(lstr);
         rhs.print(rstr);
@@ -267,7 +264,7 @@ static void test1_staticMethods()
 {
     bmqp::ProtocolUtil::initialize();
 
-    mwctst::TestHelper::printTestName("STATIC METHODS");
+    bmqtst::TestHelper::printTestName("STATIC METHODS");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
 
@@ -398,7 +395,7 @@ static void test1_staticMethods()
 
 static void test2_call()
 {
-    mwctst::TestHelper::printTestName("CALL");
+    bmqtst::TestHelper::printTestName("CALL");
 
     bsl::shared_ptr<bmqa::MockSession> mockSession_sp;
 
@@ -456,7 +453,7 @@ static void test2_call()
 
 static void test3_queueManagement()
 {
-    mwctst::TestHelper::printTestName("QUEUE MANAGEMENT");
+    bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT");
 
     EventHandler eventHandler(s_allocator_p);
 
@@ -700,7 +697,7 @@ static void test3_queueManagement()
 
 static void test4_queueManagementSync()
 {
-    mwctst::TestHelper::printTestName("QUEUE MANAGEMENT SYNC MODE");
+    bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT SYNC MODE");
 
     bmqa::MockSession mockSession(bmqt::SessionOptions(s_allocator_p),
                                   s_allocator_p);
@@ -790,7 +787,7 @@ static void test4_queueManagementSync()
 
 static void test5_confirmingMessages()
 {
-    mwctst::TestHelper::printTestName("CONSUME AND CONFIRM");
+    bmqtst::TestHelper::printTestName("CONSUME AND CONFIRM");
 
     EventHandler eventHandler(s_allocator_p);
 
@@ -961,7 +958,7 @@ static void test5_confirmingMessages()
 
 static void test6_runThrough()
 {
-    mwctst::TestHelper::printTestName("RUN THROUGH");
+    bmqtst::TestHelper::printTestName("RUN THROUGH");
 
     EventHandler eventHandler(s_allocator_p);
 
@@ -1216,7 +1213,7 @@ static void test6_runThrough()
 
 static void test7_postAndAccess()
 {
-    mwctst::TestHelper::printTestName("POST AND ACCESS");
+    bmqtst::TestHelper::printTestName("POST AND ACCESS");
 
     EventHandler eventHandler(s_allocator_p);
 
@@ -1336,7 +1333,7 @@ static void test7_postAndAccess()
 
 static void test8_postBlockedToSuspendedQueue()
 {
-    mwctst::TestHelper::printTestName("POST BLOCKED TO SUSPENDED QUEUE");
+    bmqtst::TestHelper::printTestName("POST BLOCKED TO SUSPENDED QUEUE");
 
     EventHandler eventHandler(s_allocator_p);
 
@@ -1393,7 +1390,7 @@ static void test8_postBlockedToSuspendedQueue()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqt::UriParser::initialize(s_allocator_p);
 
@@ -1415,5 +1412,5 @@ int main(int argc, char* argv[])
 
     bmqt::UriParser::shutdown();
 
-    TEST_EPILOG(mwctst::TestHelper::e_DEFAULT);
+    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }
