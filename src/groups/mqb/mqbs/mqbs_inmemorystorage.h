@@ -229,6 +229,12 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Not implemented
     InMemoryStorage& operator=(const InMemoryStorage&) BSLS_KEYWORD_DELETED;
 
+    // PRIVATE ACCESSORS
+
+    /// Callback function called by `d_capacityMeter` to log appllications
+    /// subscription info into the specified `stream`.
+    bsl::ostream& logAppsSubscriptionInfoCb(bsl::ostream& stream) const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(InMemoryStorage, bslma::UsesBslmaAllocator)

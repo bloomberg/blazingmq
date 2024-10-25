@@ -115,3 +115,48 @@ def test_alarms_subscription_mismatch(cluster: Cluster):
     assert leader.capture(r"x == 1")
     assert leader.capture(r"Oldest message in the 'Put aside' list:")
     assert leader.capture(r"Message Properties: \[ x \(INT32\) = 0 \]")
+
+
+@tweak.domain.storage.queue_limits.messages(2)
+def test_capacity_alarm_subscription_mismatch(cluster: Cluster):
+    """
+    Test broker capacity meter ALARM log content for producer/consumer subscription expression mismatch (put aside list is not empty).
+    """
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(
+        tc.URI_PRIORITY,
+        flags=["read"],
+        succeed=True,
+        subscriptions=[{"expression": "x == 1"}],
+    )
+
+    producer.post(
+        tc.URI_PRIORITY,
+        ["msg"],
+        succeed=True,
+        wait_ack=True,
+        messageProperties=[{"name": "x", "value": "0", "type": "E_INT"}],
+    )
+
+    producer.post(
+        tc.URI_PRIORITY,
+        ["msg"],
+        succeed=True,
+        wait_ack=True,
+        messageProperties=[{"name": "y", "value": "0", "type": "E_INT"}],
+    )
+
+    assert leader.alarms("CAPACITY_STATE_FULL", 1)
+    assert leader.capture(r"Put aside list size: 1")
+    assert leader.capture(r"Redelivery list size: 0")
+    assert leader.capture(r"Consumer subscription expressions:")
+    assert leader.capture(r"x == 1")
+    assert leader.capture(r"Oldest message in the 'Put aside' list:")
+    assert leader.capture(r"Message Properties: \[ x \(INT32\) = 0 \]")

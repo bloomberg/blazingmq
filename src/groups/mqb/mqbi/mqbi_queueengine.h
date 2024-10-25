@@ -246,6 +246,14 @@ class QueueEngine {
     /// Load into the specified `out` object the internal information about
     /// this queue engine and associated queue handles.
     virtual void loadInternals(mqbcmd::QueueEngine* out) const = 0;
+
+    /// Log appllication subscription info for the specified `appKey` into the
+    /// specified `stream`.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual bsl::ostream&
+    logAppSubscriptionInfo(bsl::ostream&           stream,
+                           const mqbu::StorageKey& appKey) const;
 };
 
 }  // close package namespace

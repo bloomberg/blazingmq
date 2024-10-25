@@ -211,6 +211,11 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// un-delivered messages and `false` otherwise.
     bool logAlarmCb(const mqbu::StorageKey& appKey, bool enableLog) const;
 
+    /// Log appllication subscription info for the specified `appKey` into the
+    /// specified `stream`.
+    bsl::ostream& logAppSubscriptionInfo(bsl::ostream&     stream,
+                                         const AppStateSp& appState) const;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RootQueueEngine, bslma::UsesBslmaAllocator)
@@ -458,6 +463,15 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
     loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Log appllication subscription info for the specified `appKey` into the
+    /// specified `stream`.
+    ///
+    /// THREAD: This method is called from the Queue's
+    /// dispatcher thread.
+    virtual bsl::ostream& logAppSubscriptionInfo(
+        bsl::ostream&           stream,
+        const mqbu::StorageKey& appKey) const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace
