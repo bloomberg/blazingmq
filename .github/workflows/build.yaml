@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - "**"
+      - main
   pull_request:
     branches:
       - main
@@ -220,16 +220,9 @@ jobs:
             --tb long                           \
             --reruns=3                          \
             -n 4 -v
-      - name: List folder contents
-        run: |
-          ls -lah
-      - name: List folder contents
-        run: |
-          ls -lah ${{ github.workspace }}/src/integration-tests/
-          echo "test" > ${{ github.workspace }}/src/integration-tests/failure-logs/test.log
-          ls -lah ${{ github.workspace }}/src/integration-tests/
+
       - name: Upload failure-logs as artifacts
-        # if: failure()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}
