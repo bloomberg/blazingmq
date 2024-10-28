@@ -453,6 +453,7 @@ RemoteQueue::RemoteQueue(QueueState*       state,
 , d_pendingMessagesTimerEventHandle()
 , d_ackWindowSize(ackWindowSize)
 , d_unackedPutCounter(0)
+, d_expiredPutNum(0)
 , d_subStreams(allocator)
 , d_statePool_p(statePool)
 , d_producerState()
@@ -473,6 +474,9 @@ RemoteQueue::RemoteQueue(QueueState*       state,
         1,
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     d_throttledFailedConfirmMessages.initialize(
+        1,
+        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
+    d_throttledCachedPutMessages.initialize(
         1,
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // 1 log per 5s interval
@@ -1176,12 +1180,17 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
     if (d_state_p->isAtMostOnce()) {
         // Consider this a "non-soft" ACK for all previous broadcasted PUTs.
         size_t numErased = 1 + erasePendingMessages(it);
+        d_expiredPutNum += numErased;
 
         erasePendingMessage(it);
 
-        BALL_LOG_INFO << d_state_p->uri() << ": erased window of " << numErased
-                      << " cached broadcasted PUTs upon "
-                      << bmqt::AckResult::toAscii(ackResult);
+        if (d_throttledCachedPutMessages.requestPermission()) {
+            BALL_LOG_INFO << d_state_p->uri() << ": erased window of "
+                          << numErased << " (" << d_expiredPutNum
+                          << " from the last log) cached broadcasted PUTs on "
+                          << bmqt::AckResult::toAscii(ackResult);
+            d_expiredPutNum = 0;
+        }
 
         return;  // RETURN
     }
@@ -1340,9 +1349,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
     }
     else {
         d_pendingMessagesTimerEventHandle.release();
-        BALL_LOG_INFO << d_state_p->uri() << ": "
-                      << "no more timer scheduled to check expiration of "
-                      << "pending PUSH messages";
+        BALL_LOG_DEBUG << d_state_p->uri() << ": "
+                       << "no more timer scheduled to check expiration of "
+                       << "pending PUSH messages";
     }
 }
 

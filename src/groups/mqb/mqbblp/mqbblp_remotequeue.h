@@ -219,6 +219,9 @@ class RemoteQueue {
     // ThrottledAction parameters for
     // failed confirms
 
+    // ThrottledAction parameters for expired puts logging
+    bdlmt::Throttle d_throttledCachedPutMessages;
+
     bsls::Types::Int64 d_pendingPutsTimeoutNs;
     // Configured timeout in ns upon
     // which retransmission attempts
@@ -242,6 +245,9 @@ class RemoteQueue {
     int d_unackedPutCounter;
     // Counter of unacked broadcast
     // PUTs in the current window.
+
+    /// Counter of expired put messages since the last throttled logging
+    size_t d_expiredPutNum;
 
     SubQueueIds d_subStreams;
     // SubStream states.
