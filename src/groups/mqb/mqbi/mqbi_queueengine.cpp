@@ -36,13 +36,13 @@ QueueEngine::~QueueEngine()
 }
 
 void QueueEngine::afterAppIdRegistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfo& appIdKeyPair)
 {
     // NOTHING
 }
 
 void QueueEngine::afterAppIdUnregistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfo& appIdKeyPair)
 {
     // NOTHING
 }

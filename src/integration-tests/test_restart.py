@@ -141,6 +141,18 @@ def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
 
     ensureMessageAtStorageLayer(cluster)
 
+    # Consumer for fanout queue
+    consumer_foo = next(proxies).create_client("consumer_foo")
+    consumer_foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_foo.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_foo.list(tc.URI_FANOUT_FOO, block=True)) == 1, 2
+    )
+
+    # Save one confirm to the storage
+    consumer_foo.confirm(tc.URI_FANOUT_FOO, "+1", succeed=True)
+    consumer_foo.close(tc.URI_FANOUT_FOO, succeed=True)
+
     cluster.stop_nodes()
 
     # Reconfigure the cluster from non-FSM to FSM mode
@@ -166,10 +178,17 @@ def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
     consumer.wait_push_event()
     assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
 
-    # Consumer for fanout queue
-    consumer_fanout = next(proxies).create_client("consumer_fanout")
-    consumer_fanout.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
-    consumer_fanout.wait_push_event()
+    # Consumers for fanout queue
+    consumer_bar = next(proxies).create_client("consumer_bar")
+    consumer_bar.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    consumer_bar.wait_push_event()
     assert wait_until(
-        lambda: len(consumer_fanout.list(tc.URI_FANOUT_FOO, block=True)) == 2, 2
+        lambda: len(consumer_bar.list(tc.URI_FANOUT_BAR, block=True)) == 2, 2
+    )
+
+    # make sure the previously saved confirm is not lost
+    consumer_foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_foo.wait_push_event()
+    assert wait_until(
+        lambda: len(consumer_foo.list(tc.URI_FANOUT_FOO, block=True)) == 1, 2
     )

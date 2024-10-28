@@ -2209,27 +2209,16 @@ void Cluster::onRecoveryStatusDispatched(
                 const bmqt::Uri uri(itMp->uri().canonical());
                 BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
                                  static_cast<int>(pid));
-                if (isCSLModeEnabled()) {
-                    AppIdKeyPairs appIdKeyPairs;
-                    itMp->storage()->loadVirtualStorageDetails(&appIdKeyPairs);
-                    AppIdInfos appIdInfos(appIdKeyPairs.cbegin(),
-                                          appIdKeyPairs.cend());
 
-                    d_clusterOrchestrator.registerQueueInfo(
-                        uri,
-                        pid,
-                        itMp->storage()->queueKey(),
-                        appIdInfos,
-                        false);  // Force-update?
-                }
-                else {
-                    d_clusterOrchestrator.registerQueueInfo(
-                        uri,
-                        pid,
-                        itMp->storage()->queueKey(),
-                        AppIdInfos(),
-                        false);  // Force-update?
-                }
+                AppInfos appIdInfos;
+                itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
+
+                d_clusterOrchestrator.registerQueueInfo(
+                    uri,
+                    pid,
+                    itMp->storage()->queueKey(),
+                    appIdInfos,
+                    false);  // Force-update?
 
                 ++(*itMp);
             }
@@ -2844,18 +2833,22 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
     }
 
     // Compute list of added and removed App IDs.
-    bsl::vector<bsl::string> oldCfgAppIds(oldDefn.mode().fanout().appIDs(),
-                                          d_allocator_p);
-    bsl::vector<bsl::string> newCfgAppIds(newDefn.mode().fanout().appIDs(),
-                                          d_allocator_p);
+    bsl::unordered_set<bsl::string> oldCfgAppIds(
+        oldDefn.mode().fanout().appIDs().cbegin(),
+        oldDefn.mode().fanout().appIDs().cend(),
+        d_allocator_p);
+    bsl::unordered_set<bsl::string> newCfgAppIds(
+        newDefn.mode().fanout().appIDs().cbegin(),
+        newDefn.mode().fanout().appIDs().cend(),
+        d_allocator_p);
 
-    bsl::vector<bsl::string> addedIds, removedIds;
+    bsl::unordered_set<bsl::string> addedIds, removedIds;
     mqbc::StorageUtil::loadAddedAndRemovedEntries(&addedIds,
                                                   &removedIds,
                                                   oldCfgAppIds,
                                                   newCfgAppIds);
 
-    bsl::vector<bsl::string>::const_iterator it = addedIds.begin();
+    bsl::unordered_set<bsl::string>::const_iterator it = addedIds.cbegin();
     for (; it != addedIds.cend(); ++it) {
         dispatcher()->execute(
             bdlf::BindUtil::bind(&ClusterOrchestrator::registerAppId,

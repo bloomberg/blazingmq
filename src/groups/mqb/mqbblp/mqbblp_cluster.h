@@ -137,11 +137,9 @@ class Cluster : public mqbi::Cluster,
 
   private:
     // PRIVATE TYPES
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
-
     typedef mqbc::ClusterStatePartitionInfo ClusterStatePartitionInfo;
 
-    typedef mqbc::ClusterStateQueueInfo::AppIdInfos AppIdInfos;
+    typedef mqbc::ClusterStateQueueInfo::AppInfos AppInfos;
 
     typedef mqbc::ClusterMembership::ClusterNodeSessionSp ClusterNodeSessionSp;
 

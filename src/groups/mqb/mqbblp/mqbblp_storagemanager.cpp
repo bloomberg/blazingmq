@@ -367,7 +367,7 @@ void StorageManager::queueCreationCb(int*                    status,
                                      int                     partitionId,
                                      const bmqt::Uri&        uri,
                                      const mqbu::StorageKey& queueKey,
-                                     const AppIdKeyPairs&    appIdKeyPairs,
+                                     const AppInfos&         appIdKeyPairs,
                                      bool                    isNewQueue)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
@@ -1049,7 +1049,7 @@ StorageManager::~StorageManager()
 void StorageManager::registerQueue(const bmqt::Uri&        uri,
                                    const mqbu::StorageKey& queueKey,
                                    int                     partitionId,
-                                   const AppIdKeyPairs&    appIdKeyPairs,
+                                   const AppInfos&         appIdKeyPairs,
                                    mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
@@ -1060,9 +1060,6 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(domain);
-    if (!d_cluster_p->isCSLModeEnabled()) {
-        BSLS_ASSERT_SAFE(appIdKeyPairs.empty());
-    }
 
     mqbc::StorageUtil::registerQueue(d_cluster_p,
                                      d_dispatcher_p,
@@ -1112,8 +1109,8 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
                                        const mqbu::StorageKey& queueKey,
                                        int                     partitionId,
-                                       const AppIdKeyPairs&    addedIdKeyPairs,
-                                       const AppIdKeyPairs& removedIdKeyPairs)
+                                       const AppInfos&         addedIdKeyPairs,
+                                       const AppInfos& removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -1229,7 +1226,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 void StorageManager::updateQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,
                                         const mqbu::StorageKey& queueKey,
-                                        const AppIdKeyPairs&    appIdKeyPairs,
+                                        const AppInfos&         appIdKeyPairs,
                                         mqbi::Domain*           domain,
                                         bool                    allowDuplicate)
 {
@@ -1410,7 +1407,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
                              bdlf::PlaceHolders::_2,   // partitionId
                              bdlf::PlaceHolders::_3,   // QueueUri
                              bdlf::PlaceHolders::_4,   // QueueKey
-                             bdlf::PlaceHolders::_5,   // AppIdKeyPairs
+                             bdlf::PlaceHolders::_5,   // AppInfos
                              bdlf::PlaceHolders::_6),  // IsNewQueue)
         bdlf::BindUtil::bind(&StorageManager::queueDeletionCb,
                              this,

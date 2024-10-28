@@ -88,9 +88,9 @@ struct ClusterUtil {
 
   public:
     // TYPES
-    typedef ClusterStateQueueInfo::AppIdInfo       AppIdInfo;
-    typedef ClusterStateQueueInfo::AppIdInfos      AppIdInfos;
-    typedef ClusterStateQueueInfo::AppIdInfosCIter AppIdInfosCIter;
+    typedef ClusterStateQueueInfo::AppInfo       AppInfo;
+    typedef ClusterStateQueueInfo::AppInfos      AppInfos;
+    typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
 
     typedef mqbc::ClusterState::QueueInfoSp      QueueInfoSp;
     typedef ClusterState::UriToQueueInfoMap      UriToQueueInfoMap;
@@ -270,17 +270,17 @@ struct ClusterUtil {
                                   const bmqt::Uri&        uri,
                                   int                     partitionId,
                                   const mqbu::StorageKey& queueKey,
-                                  const AppIdInfos&       appIdInfos,
+                                  const AppInfos&         appIdInfos,
                                   const QueueAssigningCb& queueAssigningCb,
                                   bool                    forceUpdate);
 
     /// Generate appKeys based on the appIds in the specified `domainConfig`
     /// and populate them into the specified `appIdInfos`.
-    static void populateAppIdInfos(AppIdInfos*                appIdInfos,
-                                   const mqbconfm::QueueMode& domainConfig);
+    static void populateAppInfos(AppInfos*                  appIdInfos,
+                                 const mqbconfm::QueueMode& domainConfig);
     static void
-    populateAppIdInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
-                       const mqbconfm::QueueMode&            domainConfig);
+    populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
+                     const mqbconfm::QueueMode&            domainConfig);
 
     /// Register the specified `appId` for all queues in the specified
     /// `domain`, using the specified `clusterData` and `clusterState`.
@@ -392,8 +392,7 @@ struct ClusterUtil {
     /// `state`.  If the specified `includeAppIds` is true, then the appId
     /// info for the queues will be loaded as well.
     static void loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
-                               const ClusterState&                   state,
-                               bool includeAppIds);
+                               const ClusterState&                   state);
 
     /// Load into the specified `out` the list of peer nodes using the
     /// specified `clusterData`.
@@ -411,6 +410,12 @@ struct ClusterUtil {
     static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                const ClusterStateLedger&            ledger,
                                const ClusterData& clusterData);
+
+    /// Load into the specified `out` all `AppInfo` data from the specified
+    /// `queueInfo` using the specified `allocator`.
+    static void parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
+                               const bmqp_ctrlmsg::QueueInfo&       queueInfo,
+                               bslma::Allocator*                    allocator);
 };
 
 // ============================================================================

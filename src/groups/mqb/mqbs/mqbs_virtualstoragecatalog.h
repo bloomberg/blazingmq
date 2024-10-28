@@ -75,9 +75,9 @@ class VirtualStorageCatalog {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef unsigned int Ordinal;
 
@@ -277,7 +277,7 @@ class VirtualStorageCatalog {
 
     /// Load into the specified 'buffer' the list of pairs of appId and
     /// appKey for all the virtual storages registered with this instance.
-    void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const;
+    void loadVirtualStorageDetails(AppInfos* buffer) const;
 
     /// Return the number of messages in the virtual storage associated with
     /// the specified 'appKey'.  Behavior is undefined unless a virtual

@@ -174,11 +174,11 @@ void StoragePrintUtil::printRecoveredStorages(
             out << " [";
         }
 
-        AppIdKeyPairs appIdKeyPairs;
+        AppInfos appIdKeyPairs;
         rs->loadVirtualStorageDetails(&appIdKeyPairs);
         BSLS_ASSERT_SAFE(numVS == appIdKeyPairs.size());
 
-        for (AppIdKeyPairsCIter vit = appIdKeyPairs.begin();
+        for (AppInfosCIter vit = appIdKeyPairs.begin();
              vit != appIdKeyPairs.end();
              ++vit) {
             BSLS_ASSERT_SAFE(rs->hasVirtualStorage(vit->second));

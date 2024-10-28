@@ -1821,7 +1821,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 }
 
 void RootQueueEngine::afterAppIdRegistered(
-    const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+    const mqbi::Storage::AppInfo& appIdKeyPair)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1915,17 +1915,18 @@ void RootQueueEngine::afterAppIdRegistered(
 
     BSLS_ASSERT_SAFE(!key.isNull());
 
+    mqbi::Storage::AppInfos one(1, d_allocator_p);
+    one.emplace(mqbi::Storage::AppInfo(appId, key));
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
-        mqbi::Storage::AppIdKeyPairs(1,
-                                     mqbi::Storage::AppIdKeyPair(appId, key)),
-        mqbi::Storage::AppIdKeyPairs());
+        one,
+        mqbi::Storage::AppInfos());
 }
 
 void RootQueueEngine::afterAppIdUnregistered(
-    const mqbi::Storage::AppIdKeyPair& appIdKeyPair)
+    const mqbi::Storage::AppInfo& appIdKeyPair)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1967,15 +1968,15 @@ void RootQueueEngine::afterAppIdUnregistered(
                           << "]";
         }
     }
+    mqbi::Storage::AppInfos one(1, d_allocator_p);
+    one.emplace(mqbi::Storage::AppInfo(appId, appKey));
 
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
-        mqbi::Storage::AppIdKeyPairs(),
-        mqbi::Storage::AppIdKeyPairs(1,
-                                     mqbi::Storage::AppIdKeyPair(appId,
-                                                                 appKey)));
+        mqbi::Storage::AppInfos(),
+        one);
     // No need to log in case of failure because 'updateQueuePrimary' does it
     // (even in case of success FTM).
 

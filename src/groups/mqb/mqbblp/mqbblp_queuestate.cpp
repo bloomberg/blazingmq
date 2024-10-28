@@ -224,7 +224,7 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
         queueStorage.numBytes() = d_storage_mp->numBytes(
             mqbu::StorageKey::k_NULL_KEY);
         if (d_storage_mp->numVirtualStorages()) {
-            mqbi::Storage::AppIdKeyPairs appIdKeyPairs;
+            mqbi::Storage::AppInfos appIdKeyPairs;
             d_storage_mp->loadVirtualStorageDetails(&appIdKeyPairs);
             BSLS_ASSERT_SAFE(
                 appIdKeyPairs.size() ==
@@ -233,8 +233,13 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
             bsl::vector<mqbcmd::VirtualStorage>& virtualStorages =
                 queueStorage.virtualStorages();
             virtualStorages.resize(appIdKeyPairs.size());
-            for (size_t i = 0; i < appIdKeyPairs.size(); ++i) {
-                const mqbi::Storage::AppIdKeyPair& p = appIdKeyPairs[i];
+
+            size_t i = 0;
+            for (mqbi::Storage::AppInfos::const_iterator cit =
+                     appIdKeyPairs.cbegin();
+                 cit != appIdKeyPairs.cend();
+                 ++cit, ++i) {
+                const mqbi::Storage::AppInfo& p      = *cit;
                 virtualStorages[i].appId()           = p.first;
                 os.reset();
                 os << p.second;

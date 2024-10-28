@@ -565,8 +565,7 @@ bool VirtualStorageCatalog::hasVirtualStorage(const bsl::string& appId,
     return hasVs;
 }
 
-void VirtualStorageCatalog::loadVirtualStorageDetails(
-    AppIdKeyPairs* buffer) const
+void VirtualStorageCatalog::loadVirtualStorageDetails(AppInfos* buffer) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(buffer);
@@ -575,7 +574,7 @@ void VirtualStorageCatalog::loadVirtualStorageDetails(
          cit != d_virtualStorages.end();
          ++cit) {
         BSLS_ASSERT_SAFE(cit->key2() == cit->value()->appKey());
-        buffer->push_back(bsl::make_pair(cit->key1(), cit->key2()));
+        buffer->emplace(bsl::make_pair(cit->key1(), cit->key2()));
     }
 }
 

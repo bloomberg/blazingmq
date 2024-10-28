@@ -3643,10 +3643,10 @@ void StorageManager::initializeQueueKeyInfoMap(
             mqbs::DataStoreConfigQueueInfo qinfo;
             qinfo.setCanonicalQueueUri(csQinfo.uri().asString());
             qinfo.setPartitionId(csQinfo.partitionId());
-            for (AppIdInfosCIter appIdCit = csQinfo.appIdInfos().cbegin();
-                 appIdCit != csQinfo.appIdInfos().cend();
+            for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
+                 appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppIdKeyPair(*appIdCit);
+                qinfo.addAppInfo(*appIdCit);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
@@ -3657,11 +3657,12 @@ void StorageManager::initializeQueueKeyInfoMap(
     d_isQueueKeyInfoMapVecInitialized = true;
 }
 
-void StorageManager::registerQueue(const bmqt::Uri&        uri,
-                                   const mqbu::StorageKey& queueKey,
-                                   int                     partitionId,
-                                   const AppIdKeyPairs&    appIdKeyPairs,
-                                   mqbi::Domain*           domain)
+void StorageManager::registerQueue(
+    const bmqt::Uri&                   uri,
+    const mqbu::StorageKey&            queueKey,
+    int                                partitionId,
+    const bsl::unordered_set<AppInfo>& appIdKeyPairs,
+    mqbi::Domain*                      domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3720,8 +3721,8 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
 int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
                                        const mqbu::StorageKey& queueKey,
                                        int                     partitionId,
-                                       const AppIdKeyPairs&    addedIdKeyPairs,
-                                       const AppIdKeyPairs& removedIdKeyPairs)
+                                       const AppInfos&         addedIdKeyPairs,
+                                       const AppInfos& removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -3819,7 +3820,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
 void StorageManager::updateQueueReplica(int                     partitionId,
                                         const bmqt::Uri&        uri,
                                         const mqbu::StorageKey& queueKey,
-                                        const AppIdKeyPairs&    appIdKeyPairs,
+                                        const AppInfos&         appIdKeyPairs,
                                         mqbi::Domain*           domain,
                                         bool                    allowDuplicate)
 {

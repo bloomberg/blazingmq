@@ -330,10 +330,11 @@ int FileStoreProtocolUtil::calculateMd5Digest(
     return 0;
 }
 
-void FileStoreProtocolUtil::loadAppIdKeyPairs(
-    bsl::vector<bsl::pair<bsl::string, mqbu::StorageKey> >* appIdKeyPairs,
-    const MemoryBlock&                                      appIdsBlock,
-    unsigned int                                            numAppIds)
+void FileStoreProtocolUtil::loadAppInfos(
+    bsl::unordered_set<bsl::pair<bsl::string, mqbu::StorageKey> >*
+                       appIdKeyPairs,
+    const MemoryBlock& appIdsBlock,
+    unsigned int       numAppIds)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appIdKeyPairs);
@@ -351,7 +352,7 @@ void FileStoreProtocolUtil::loadAppIdKeyPairs(
         const char* appIdBegin = appIdsBlock.base() + offset +
                                  sizeof(AppIdHeader);
 
-        appIdKeyPairs->emplace_back(
+        appIdKeyPairs->emplace(
             bsl::string(appIdBegin,
                         paddedLen - appIdBegin[paddedLen - 1],
                         appIdKeyPairs->get_allocator()),

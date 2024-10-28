@@ -77,7 +77,7 @@ void afterAppIdRegisteredDispatched(mqbi::Queue*       queue,
     BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
 
     queue->queueEngine()->afterAppIdRegistered(
-        mqbi::Storage::AppIdKeyPair(appId, mqbu::StorageKey()));
+        mqbi::Storage::AppInfo(appId, mqbu::StorageKey()));
 }
 
 void afterAppIdUnregisteredDispatched(mqbi::Queue*       queue,
@@ -91,7 +91,7 @@ void afterAppIdUnregisteredDispatched(mqbi::Queue*       queue,
     // Note: Inputing nullKey here is okay since this routine will be removed
     //       when we switch to CSL workflow.
     queue->queueEngine()->afterAppIdUnregistered(
-        mqbi::Storage::AppIdKeyPair(appId, mqbu::StorageKey()));
+        mqbi::Storage::AppInfo(appId, mqbu::StorageKey()));
 }
 
 /// Validates an application subscription.
@@ -289,8 +289,8 @@ void Domain::onOpenQueueResponse(
                                           confirmationCookie));
 }
 
-void Domain::updateAuthorizedAppIds(const AppIdInfos& addedAppIds,
-                                    const AppIdInfos& removedAppIds)
+void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
+                                    const AppInfos& removedAppIds)
 {
     mqbconfm::QueueMode& queueMode = d_config.value().mode();
     if (!queueMode.isFanoutValue()) {
@@ -298,10 +298,7 @@ void Domain::updateAuthorizedAppIds(const AppIdInfos& addedAppIds,
     }
     bsl::vector<bsl::string>& authorizedAppIds = queueMode.fanout().appIDs();
 
-    const AppIdKeyPairs addedIdKeyPairs(addedAppIds.cbegin(),
-                                        addedAppIds.cend());
-    for (AppIdKeyPairsCIter cit = addedIdKeyPairs.cbegin();
-         cit != addedIdKeyPairs.cend();
+    for (AppInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
          ++cit) {
         if (bsl::find(authorizedAppIds.begin(),
                       authorizedAppIds.end(),
@@ -315,10 +312,8 @@ void Domain::updateAuthorizedAppIds(const AppIdInfos& addedAppIds,
         authorizedAppIds.push_back(cit->first);
     }
 
-    const AppIdKeyPairs removedIdKeyPairs(removedAppIds.cbegin(),
-                                          removedAppIds.cend());
-    for (AppIdKeyPairsCIter cit = removedIdKeyPairs.cbegin();
-         cit != removedIdKeyPairs.cend();
+    for (AppInfosCIter cit = removedAppIds.cbegin();
+         cit != removedAppIds.cend();
          ++cit) {
         const bsl::vector<bsl::string>::const_iterator it = bsl::find(
             authorizedAppIds.begin(),
@@ -360,13 +355,13 @@ void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         return;  // RETURN
     }
 
-    updateAuthorizedAppIds(info.appIdInfos());
+    updateAuthorizedAppIds(info.appInfos());
 }
 
 void Domain::onQueueUpdated(const bmqt::Uri&   uri,
                             const bsl::string& domain,
-                            const AppIdInfos&  addedAppIds,
-                            const AppIdInfos&  removedAppIds)
+                            const AppInfos&    addedAppIds,
+                            const AppInfos&    removedAppIds)
 {
     // executed by the associated CLUSTER's DISPATCHER thread
 
@@ -500,14 +495,16 @@ int Domain::configure(bsl::ostream&           errorDescription,
         if (!d_cluster_sp->isCSLModeEnabled() &&
             d_config.value().mode().isFanoutValue()) {
             // Compute list of added and removed App IDs.
-            bsl::vector<bsl::string> oldCfgAppIds(
-                oldConfig.value().mode().fanout().appIDs(),
+            bsl::unordered_set<bsl::string> oldCfgAppIds(
+                oldConfig.value().mode().fanout().appIDs().cbegin(),
+                oldConfig.value().mode().fanout().appIDs().cend(),
                 d_allocator_p);
-            bsl::vector<bsl::string> newCfgAppIds(
-                d_config.value().mode().fanout().appIDs(),
+            bsl::unordered_set<bsl::string> newCfgAppIds(
+                d_config.value().mode().fanout().appIDs().cbegin(),
+                d_config.value().mode().fanout().appIDs().cend(),
                 d_allocator_p);
 
-            bsl::vector<bsl::string> addedIds, removedIds;
+            bsl::unordered_set<bsl::string> addedIds, removedIds;
             mqbc::StorageUtil::loadAddedAndRemovedEntries(&addedIds,
                                                           &removedIds,
                                                           oldCfgAppIds,
@@ -516,7 +513,8 @@ int Domain::configure(bsl::ostream&           errorDescription,
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
             // Invoke callbacks for each added and removed ID on each queue.
-            bsl::vector<bsl::string>::const_iterator it = addedIds.cbegin();
+            bsl::unordered_set<bsl::string>::const_iterator it =
+                addedIds.cbegin();
             QueueMap::const_iterator                 qIt;
             for (; it != addedIds.cend(); it++) {
                 for (qIt = d_queues.cbegin(); qIt != d_queues.cend(); ++qIt) {

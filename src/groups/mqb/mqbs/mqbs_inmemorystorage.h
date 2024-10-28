@@ -167,9 +167,9 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppIdKeyPair AppIdKeyPair;
+    typedef mqbi::Storage::AppInfo AppInfo;
 
-    typedef mqbi::Storage::AppIdKeyPairs AppIdKeyPairs;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef ReplicatedStorage::RecordHandles RecordHandles;
 
@@ -515,8 +515,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Load into the specified 'buffer' the list of pairs of appId and
     /// appKey for all the virtual storages registered with this instance.
-    virtual void loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
-        BSLS_KEYWORD_OVERRIDE;
+    virtual void
+    loadVirtualStorageDetails(AppInfos* buffer) const BSLS_KEYWORD_OVERRIDE;
 
     virtual unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
 
@@ -766,8 +766,7 @@ inline bool InMemoryStorage::hasReceipt(const bmqt::MessageGUID&) const
     return true;
 }
 
-inline void
-InMemoryStorage::loadVirtualStorageDetails(AppIdKeyPairs* buffer) const
+inline void InMemoryStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 
 {
     return d_virtualStorageCatalog.loadVirtualStorageDetails(buffer);

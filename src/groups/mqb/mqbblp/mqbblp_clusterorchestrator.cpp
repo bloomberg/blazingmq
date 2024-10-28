@@ -286,7 +286,7 @@ void ClusterOrchestrator::processBufferedQueueAdvisories()
 void ClusterOrchestrator::registerQueueInfo(const bmqt::Uri& uri,
                                             int              partitionId,
                                             const mqbu::StorageKey& queueKey,
-                                            const AppIdInfos&       appIdInfos,
+                                            const AppInfos&         appIdInfos,
                                             bool forceUpdate)
 {
     // executed by the *DISPATCHER* thread
