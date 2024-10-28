@@ -61,7 +61,6 @@
 //
 
 // BMQ
-
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
 #include <bmqt_compressionalgorithmtype.h>
@@ -92,6 +91,18 @@ class PutEventBuilder {
     typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
 
   private:
+    // TYPES
+    /// Mechanism to automatically reset PutEventBuilder on a built message
+    struct ResetGuard {
+        // DATA
+        PutEventBuilder& d_putEventBuilder;
+
+        // CREATORS
+        explicit ResetGuard(PutEventBuilder& putEventBuilder);
+
+        ~ResetGuard();
+    };
+
     // DATA
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
 
@@ -169,13 +180,10 @@ class PutEventBuilder {
     PutEventBuilder& operator=(const PutEventBuilder&) BSLS_CPP11_DELETED;
 
   private:
-    // CLASS LEVEL METHODS
-
-    /// Reset flags and message guid of PutEventBuilder instance pointed by
-    /// the specified `ptr`.
-    static void resetFields(void* ptr);
-
     // PRIVATE MANIPULATORS
+    /// Reset flags and message guid of this object.
+    void resetFields();
+
     bmqt::EventBuilderResult::Enum
     packMessageInternal(const bdlbb::Blob& appData, int queueId);
 
