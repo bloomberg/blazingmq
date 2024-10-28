@@ -199,8 +199,8 @@ bool Routers::Expression::evaluate()
 bool Routers::PriorityGroup::evaluate(
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& data)
 {
-    const Expressions::SharedItem it         = d_itId->value().d_itExpression;
-    Expression&                   expression = it->value();
+    const Expressions::SharedItem& it         = d_itId->value().d_itExpression;
+    Expression&                    expression = it->value();
 
     return expression.evaluate();
 }
