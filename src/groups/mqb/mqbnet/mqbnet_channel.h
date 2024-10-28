@@ -348,8 +348,6 @@ class Channel {
 
   public:
     // PUBLIC TYPES
-
-    typedef bdlma::ConcurrentPool ItemPool;
     typedef bmqc::MonitoredQueue<
         bdlcc::SingleConsumerQueue<bslma::ManagedPtr<Item> > >
         ItemQueue;
@@ -366,18 +364,15 @@ class Channel {
         e_HWM = 5  // HWM
     };
 
-  public:
-    // CONSTANTS
-    static const int k_ITEM_SIZE = sizeof(Item);  // for ItemPool
-
   private:
     // CONSTANTS
     static const int k_NAGLE_PACKET_SIZE = 1024 * 1024;  // 1MB;
 
     // DATA
+    /// Allocator store to spawn new allocators for sub-components
     bmqma::CountingAllocatorStore d_allocators;
-    // Counting allocator
 
+    /// Counting allocator
     bslma::Allocator* d_allocator_p;
 
     bmqp::PutEventBuilder d_putBuilder;
@@ -390,7 +385,7 @@ class Channel {
 
     bmqp::RejectEventBuilder d_rejectBuilder;
 
-    ItemPool* d_itemPool_p;
+    bdlma::ConcurrentPool d_itemPool;
     // Pool of 'Item' objects.
 
     ItemQueue d_buffer;
@@ -513,7 +508,6 @@ class Channel {
 
     /// Create a new object using the specified `allocator`.
     Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
-            ItemPool*                 itemPool,
             const bsl::string&        name,
             bslma::Allocator*         allocator);
 

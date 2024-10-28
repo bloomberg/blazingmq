@@ -100,7 +100,6 @@ class MockClusterNode : public ClusterNode {
     MockClusterNode(MockCluster*               cluster,
                     const mqbcfg::ClusterNode& config,
                     bdlbb::BlobBufferFactory*  blobBufferFactory,
-                    Channel::ItemPool*         itemPool,
                     bslma::Allocator*          allocator);
 
     /// Destructor.
@@ -251,7 +250,6 @@ class MockCluster : public Cluster {
     /// `allocator`.
     MockCluster(const mqbcfg::ClusterDefinition& config,
                 bdlbb::BlobBufferFactory*        blobBufferFactory,
-                Channel::ItemPool*               itemPool,
                 bslma::Allocator*                allocator);
 
     /// Destructor

@@ -181,8 +181,8 @@ class TransportManager {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
+    /// Allocator store to spawn new allocators for sub-components
+    bmqma::CountingAllocatorStore d_allocators;
 
     bsls::AtomicInt d_state;
     // enum State.  Always changed on
@@ -194,8 +194,6 @@ class TransportManager {
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
     // BlobBufferFactory to use by the
     // sessions
-
-    Channel::ItemPool d_itemPool;
 
     bslma::ManagedPtr<Negotiator> d_negotiator_mp;
     // Negotiation to use

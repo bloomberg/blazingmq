@@ -63,17 +63,18 @@ void Channel::Stats::reset()
 // -------------
 
 Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
-                 ItemPool*                 itemPool,
                  const bsl::string&        name,
                  bslma::Allocator*         allocator)
 : d_allocators(allocator)
-, d_allocator_p(d_allocators.get(bsl::string("Channel-") + name))
+, d_allocator_p(d_allocators.get("Channel"))
 , d_putBuilder(blobBufferFactory, d_allocator_p)
 , d_pushBuilder(blobBufferFactory, d_allocator_p)
 , d_ackBuilder(blobBufferFactory, d_allocator_p)
 , d_confirmBuilder(blobBufferFactory, d_allocator_p)
 , d_rejectBuilder(blobBufferFactory, d_allocator_p)
-, d_itemPool_p(itemPool)
+, d_itemPool(sizeof(Item),
+             bsls::BlockGrowth::BSLS_CONSTANT,
+             d_allocators.get(bsl::string("ItemPool")))
 , d_buffer(1024, allocator)
 , d_secondaryBuffer(1024, allocator)
 , d_doStop(false)
@@ -108,7 +109,7 @@ Channel::~Channel()
 
 void Channel::deleteItem(void* item, void* cookie)
 {
-    static_cast<Channel*>(cookie)->d_itemPool_p->deleteObject(
+    static_cast<Channel*>(cookie)->d_itemPool.deleteObject(
         static_cast<Item*>(item));
 }
 
@@ -119,7 +120,7 @@ Channel::writePut(const bmqp::PutHeader&                    ph,
                   bool                                      keepWeakPtr)
 {
     bslma::ManagedPtr<Item> item(
-        new (d_itemPool_p->allocate())
+        new (d_itemPool.allocate())
             Item(ph, data, keepWeakPtr, state, d_allocator_p),
         this,
         deleteItem);
@@ -136,7 +137,7 @@ Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(queueId,
                                           msgId,
                                           flags,
@@ -160,7 +161,7 @@ Channel::writePush(int                                       queueId,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(queueId,
                                           msgId,
                                           flags,
@@ -182,7 +183,7 @@ Channel::writeAck(int                                       status,
                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(
-        new (d_itemPool_p->allocate())
+        new (d_itemPool.allocate())
             Item(status, correlationId, guid, queueId, state, d_allocator_p),
         this,
         deleteItem);
@@ -195,7 +196,7 @@ Channel::writeConfirm(int                                       queueId,
                       const bmqt::MessageGUID&                  guid,
                       const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(queueId,
                                           subQueueId,
                                           guid,
@@ -213,7 +214,7 @@ Channel::writeReject(int                                       queueId,
                      const bmqt::MessageGUID&                  guid,
                      const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(queueId,
                                           subQueueId,
                                           guid,
@@ -230,7 +231,7 @@ Channel::writeBlob(const bdlbb::Blob&                        data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(data, type, state, d_allocator_p),
                                  this,
                                  deleteItem);
@@ -253,7 +254,7 @@ void Channel::resetChannel()
         d_stateCondition.signal();
     }
     // Wake up the writing thread in case it is blocked by 'popFront'
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
                                  deleteItem);
@@ -336,7 +337,7 @@ void Channel::flush()
         return;  // RETURN
     }
 
-    bslma::ManagedPtr<Item> item(new (d_itemPool_p->allocate())
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
                                  deleteItem);

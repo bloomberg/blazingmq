@@ -178,9 +178,6 @@ class Cluster : public mqbi::Cluster {
     mqbcfg::ClusterDefinition d_clusterDefinition;
     // Cluster definition
 
-    mqbnet::Channel::ItemPool d_itemPool;
-    // Item pool
-
     TestChannelMap d_channels;
     // Test channels
 
@@ -429,9 +426,6 @@ class Cluster : public mqbi::Cluster {
     /// Get a modifiable reference to this object's time source.
     bdlmt::EventSchedulerTestTimeSource& _timeSource();
 
-    /// Get a modifiable reference to this object's item pool.
-    mqbnet::Channel::ItemPool& _itemPool();
-
     /// Get a modifiable reference to this object's cluster data.
     mqbc::ClusterData* _clusterData();
 
@@ -583,11 +577,6 @@ inline bdlmt::EventScheduler& Cluster::_scheduler()
 inline bdlmt::EventSchedulerTestTimeSource& Cluster::_timeSource()
 {
     return d_timeSource;
-}
-
-inline mqbnet::Channel::ItemPool& Cluster::_itemPool()
-{
-    return d_itemPool;
 }
 
 inline mqbc::ClusterData* Cluster::_clusterData()

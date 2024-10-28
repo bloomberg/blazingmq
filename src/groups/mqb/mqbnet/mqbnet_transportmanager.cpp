@@ -103,7 +103,7 @@ void TransportManager::onClusterReleased(void* object, void* transportManager)
     cluster->closeChannels();
 
     // And delete the cluster
-    self->d_allocator_p->deleteObject(cluster);
+    self->d_allocators.get(cluster->name())->deleteObject(cluster);
 }
 
 int TransportManager::createAndStartTcpInterface(
@@ -112,14 +112,16 @@ int TransportManager::createAndStartTcpInterface(
 {
     // executed by the *MAIN* thread
 
-    d_tcpSessionFactory_mp.load(new (*d_allocator_p)
+    bslma::Allocator* alloc = d_allocators.get("Interface" +
+                                               bsl::to_string(config.port()));
+    d_tcpSessionFactory_mp.load(new (*alloc)
                                     TCPSessionFactory(config,
                                                       d_scheduler_p,
                                                       d_blobBufferFactory_p,
                                                       d_negotiator_mp.get(),
                                                       d_statController_p,
-                                                      d_allocator_p),
-                                d_allocator_p);
+                                                      alloc),
+                                alloc);
 
     return d_tcpSessionFactory_mp->start(errorDescription);
 }
@@ -348,11 +350,10 @@ TransportManager::TransportManager(bdlmt::EventScheduler*    scheduler,
                                    bslma::ManagedPtr<Negotiator>& negotiator,
                                    mqbstat::StatController* statController,
                                    bslma::Allocator*        allocator)
-: d_allocator_p(allocator)
+: d_allocators(allocator)
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
-, d_itemPool(Channel::k_ITEM_SIZE, bsls::BlockGrowth::BSLS_CONSTANT, allocator)
 , d_negotiator_mp(negotiator)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
@@ -520,14 +521,11 @@ int TransportManager::createCluster(
         userDataSp = *userData;
     }
 
-    bslma::ManagedPtr<Cluster> cluster(new (*d_allocator_p)
-                                           ClusterImp(name,
-                                                      nodes,
-                                                      myNodeId,
-                                                      d_blobBufferFactory_p,
-                                                      &d_itemPool,
-                                                      d_allocator_p),
-                                       d_allocator_p);
+    bslma::Allocator*          alloc = d_allocators.get(name);
+    bslma::ManagedPtr<Cluster> cluster(
+        new (*alloc)
+            ClusterImp(name, nodes, myNodeId, d_blobBufferFactory_p, alloc),
+        alloc);
 
     // At the moment, only TCP is supported, validate that
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
@@ -558,7 +556,7 @@ int TransportManager::createCluster(
                                 // config, the node must exist
 
         bsl::shared_ptr<ConnectionState> connectionState;
-        connectionState.createInplace(d_allocator_p);
+        connectionState.createInplace(d_allocators.get("ConnectionStates"));
 
         connectionState->d_endpoint            = tcpConfig.endpoint();
         connectionState->d_isClusterConnection = true;
@@ -636,7 +634,7 @@ int TransportManager::connectOut(bsl::ostream&            errorDescription,
     }
 
     bsl::shared_ptr<ConnectionState> state;
-    state.createInplace(d_allocator_p);
+    state.createInplace(d_allocators.get("ConnectionStates"));
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK

@@ -725,9 +725,7 @@ static void test1_write()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
@@ -793,9 +791,7 @@ static void test2_highWatermark()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
@@ -885,9 +881,7 @@ static void test3_highWatermarkInWriteCb()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
@@ -977,9 +971,7 @@ static void test4_controlBlob()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
@@ -1048,9 +1040,7 @@ static void test5_reconnect()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)
@@ -1129,9 +1119,7 @@ static void test6_weakData()
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, &itemPool, "test", s_allocator_p);
+    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
         new (*s_allocator_p)

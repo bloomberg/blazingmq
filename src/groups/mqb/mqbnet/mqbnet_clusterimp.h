@@ -75,6 +75,9 @@ class ClusterNodeImp : public ClusterNode {
 
   private:
     // DATA
+    /// Allocator store to spawn new allocators for sub-components
+    bmqma::CountingAllocatorStore d_allocators;
+
     ClusterImp* d_cluster_p;
     // Cluster this node belongs to
 
@@ -113,7 +116,6 @@ class ClusterNodeImp : public ClusterNode {
     ClusterNodeImp(ClusterImp*                cluster,
                    const mqbcfg::ClusterNode& config,
                    bdlbb::BlobBufferFactory*  blobBufferFactory,
-                   Channel::ItemPool*         itemPool,
                    bslma::Allocator*          allocator);
 
     /// Destructor.
@@ -196,9 +198,6 @@ class ClusterImp : public Cluster {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
-
     bsl::string d_name;
     // Name of this Cluster
 
@@ -277,7 +276,6 @@ class ClusterImp : public Cluster {
                const bsl::vector<mqbcfg::ClusterNode>& nodesConfig,
                int                                     selfNodeId,
                bdlbb::BlobBufferFactory*               blobBufferFactory,
-               Channel::ItemPool*                      itemPool,
                bslma::Allocator*                       allocator);
 
     /// Destructor
