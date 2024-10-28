@@ -85,7 +85,7 @@
 ///     // Session start up logic omitted for brevity.
 ///
 /// // Obtain a valid instance of message properties.
-/// bmqt::MessageProperties properties;
+/// bmqa::MessageProperties properties;
 /// session.loadMessageProperties(&properties);
 ///
 /// // Set common properties that will be applicable to all messages sent by
@@ -160,7 +160,7 @@
 /// // Session start up logic omitted for brevity.
 ///
 /// // Obtain a valid instance of message properties.
-/// bmqt::MessageProperties properties;
+/// bmqa::MessageProperties properties;
 /// session.loadMessageProperties(&properties);
 ///
 /// // Set common properties that will be applicable to all messages sent by
