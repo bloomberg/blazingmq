@@ -603,10 +603,26 @@ struct QueueEngineUtil_AppsDeliveryContext {
     mqbi::StorageIterator*            d_currentMessage;
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
+
+    /// Mutable additional argument used in `visit()`, when it is called from
+    /// `d_visitVisitor` functor.
+    const mqbi::AppMessage* d_currentAppView_p;
+
+    /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visit`
+    const Routers::Visitor d_visitVisitor;
+
+    /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visitBroadcast`
+    const Routers::Visitor d_broadcastVisitor;
+
     // Avoid reading the attributes if not necessary.  Get timeDelta on demand.
     // See comment in `QueueEngineUtil_AppsDeliveryContext::processApp`.
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(QueueEngineUtil_AppsDeliveryContext,
+                                   bslma::UsesBslmaAllocator)
+
+    // CREATORS
     QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
                                         bslma::Allocator* allocator);
 
@@ -637,8 +653,7 @@ struct QueueEngineUtil_AppsDeliveryContext {
     bool processApp(QueueEngineUtil_AppState& app, unsigned int ordina);
 
     /// Collect and prepare data for the subsequent `deliverMessage` call.
-    bool visit(const Routers::Subscription* subscription,
-               const mqbi::AppMessage&      appView);
+    bool visit(const Routers::Subscription* subscription);
     bool visitBroadcast(const Routers::Subscription* subscription);
 
     /// Deliver message to the previously processed handles.
