@@ -406,7 +406,6 @@ NtcRead::~NtcRead()
     BSLS_ASSERT_OPT(d_numNeeded == 0);
     BSLS_ASSERT_OPT(d_complete);
     BSLS_ASSERT_OPT(!d_timer_sp);
-    BSLS_ASSERT_OPT(!d_callback);
 }
 
 // MANIPULATORS
@@ -447,8 +446,6 @@ void NtcRead::clear()
 
     d_numNeeded = 0;
     d_complete  = true;
-
-    d_callback = bmqio::Channel::ReadCallback();
 }
 
 // ACCESSORS
@@ -758,10 +755,18 @@ void NtcChannel::processReadQueueLowWatermark(
 
             int numNeeded = 0;
             {
-                bmqio::Channel::ReadCallback readCallback = read->callback();
+                const bmqio::Channel::ReadCallback& readCallback =
+                    read->callback();
 
                 bslmt::UnLockGuard<bslmt::Mutex> unlock(&d_mutex);
                 readCallback(bmqio::Status(), &numNeeded, &d_readCache);
+            }
+            if (read->isComplete()) {
+                // It's possible that we encountered canceled or timeout event
+                // when we unlocked `d_mutex`, so the `read` pointer that we
+                // hold now might be pointing to NtcRead already removed from
+                // `d_readQueue`.  There is nothing we can do.
+                continue;
             }
 
             BMQIO_NTCCHANNEL_LOG_READ_CACHE_DRAINED(this,
@@ -1307,6 +1312,8 @@ void NtcChannel::cancelRead()
 
 void NtcChannel::close(const Status& status)
 {
+    // Executed from *ANY* thread
+
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
     bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
@@ -1319,6 +1326,10 @@ void NtcChannel::close(const Status& status)
         bsl::shared_ptr<bmqio::NtcRead> read;
         d_readQueue.pop(&read);
 
+        // This code assumes thread-safety of `ntci::Timer::close` because we
+        // are not in IO thread.
+        // `read->d_callback` can still be executed concurrently from IO
+        // thread.
         read->setComplete();
         read->clear();
     }
