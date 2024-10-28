@@ -45,12 +45,12 @@ namespace mqbnet {
 ClusterNodeImp::ClusterNodeImp(ClusterImp*                cluster,
                                const mqbcfg::ClusterNode& config,
                                bdlbb::BlobBufferFactory*  blobBufferFactory,
-                               Channel::ItemPool*         itemPool,
                                bslma::Allocator*          allocator)
-: d_cluster_p(cluster)
+: d_allocators(allocator)
+, d_cluster_p(cluster)
 , d_config(config, allocator)
 , d_description(allocator)
-, d_channel(blobBufferFactory, itemPool, config.name(), allocator)
+, d_channel(blobBufferFactory, config.name(), d_allocators.get(config.name()))
 , d_identity(allocator)
 , d_isReading(false)
 {
@@ -181,10 +181,8 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
                        const bsl::vector<mqbcfg::ClusterNode>& nodesConfig,
                        int                                     selfNodeId,
                        bdlbb::BlobBufferFactory* blobBufferFactory,
-                       Channel::ItemPool*        itemPool,
                        bslma::Allocator*         allocator)
-: d_allocator_p(allocator)
-, d_name(name, allocator)
+: d_name(name, allocator)
 , d_nodesConfig(nodesConfig, allocator)
 , d_selfNodeId(selfNodeId)
 , d_selfNode(0)  // set below
@@ -199,7 +197,7 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
     for (nodeIt = d_nodesConfig.begin(); nodeIt != d_nodesConfig.end();
          ++nodeIt) {
-        d_nodes.emplace_back(this, *nodeIt, blobBufferFactory, itemPool);
+        d_nodes.emplace_back(this, *nodeIt, blobBufferFactory);
         d_nodesList.emplace_back(&d_nodes.back());
         if (nodeIt->id() == selfNodeId) {
             d_selfNode = d_nodesList.back();

@@ -136,7 +136,6 @@ void Cluster::_initializeNetcluster()
     d_netCluster_mp.load(new (*d_allocator_p)
                              mqbnet::MockCluster(d_clusterDefinition,
                                                  d_bufferFactory_p,
-                                                 &d_itemPool,
                                                  d_allocator_p),
                          d_allocator_p);
 
@@ -221,7 +220,6 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_timeSource(&d_scheduler)
 , d_isStarted(false)
 , d_clusterDefinition(allocator)
-, d_itemPool(mqbnet::Channel::k_ITEM_SIZE, allocator)
 , d_channels(allocator)
 , d_negotiator_mp()
 , d_transportManager(&d_scheduler,

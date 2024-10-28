@@ -145,7 +145,6 @@ struct Tester {
     // DATA
     bdlmt::EventScheduler                  d_scheduler;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
-    mqbnet::Channel::ItemPool              d_itemPool;
     bsl::string                            d_clusterLocation;
     bsl::string                            d_clusterArchiveLocation;
     BlobSpPool                             d_blobSpPool;
@@ -170,7 +169,6 @@ struct Tester {
     Tester(const char* location)
     : d_scheduler(bsls::SystemClockType::e_MONOTONIC, s_allocator_p)
     , d_bufferFactory(1024, s_allocator_p)
-    , d_itemPool(mqbnet::Channel::k_ITEM_SIZE, s_allocator_p)
     , d_clusterLocation(location, s_allocator_p)
     , d_clusterArchiveLocation(location, s_allocator_p)
     , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
@@ -225,7 +223,6 @@ struct Tester {
         d_cluster_mp.load(new (*s_allocator_p)
                               mqbnet::MockCluster(d_clusterCfg,
                                                   &d_bufferFactory,
-                                                  &d_itemPool,
                                                   s_allocator_p),
                           s_allocator_p);
         d_node_p = d_cluster_mp->lookupNode(k_NODE_ID);

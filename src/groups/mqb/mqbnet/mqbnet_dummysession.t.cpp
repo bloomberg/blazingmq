@@ -52,18 +52,14 @@ static void test1_BreathingTest()
 
     mqbcfg::ClusterDefinition      clusterConfig(s_allocator_p);
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbnet::Channel::ItemPool      itemPool(mqbnet::Channel::k_ITEM_SIZE,
-                                       s_allocator_p);
     mqbnet::MockCluster            mockCluster(clusterConfig,
                                     &bufferFactory,
-                                    &itemPool,
                                     s_allocator_p);
 
     mqbcfg::ClusterNode     clusterNodeConfig(s_allocator_p);
     mqbnet::MockClusterNode mockClusterNode(&mockCluster,
                                             clusterNodeConfig,
                                             &bufferFactory,
-                                            &itemPool,
                                             s_allocator_p);
 
     bsl::shared_ptr<bmqio::TestChannel> testChannel;

@@ -41,12 +41,11 @@ namespace mqbnet {
 MockClusterNode::MockClusterNode(MockCluster*               cluster,
                                  const mqbcfg::ClusterNode& config,
                                  bdlbb::BlobBufferFactory*  blobBufferFactory,
-                                 Channel::ItemPool*         itemPool,
                                  bslma::Allocator*          allocator)
 : d_cluster_p(cluster)
 , d_config(config, allocator)
 , d_description(allocator)
-, d_channel(blobBufferFactory, itemPool, config.name(), allocator)
+, d_channel(blobBufferFactory, config.name(), allocator)
 , d_identity(allocator)
 , d_isReading(false)
 {
@@ -156,7 +155,6 @@ void MockCluster::notifyObserversOfNodeStateChange(ClusterNode* node,
 
 MockCluster::MockCluster(const mqbcfg::ClusterDefinition& config,
                          bdlbb::BlobBufferFactory*        blobBufferFactory,
-                         Channel::ItemPool*               itemPool,
                          bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
 , d_config(config, allocator)
@@ -171,7 +169,7 @@ MockCluster::MockCluster(const mqbcfg::ClusterDefinition& config,
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
     for (nodeIt = d_config.nodes().begin(); nodeIt != d_config.nodes().end();
          ++nodeIt) {
-        d_nodes.emplace_back(this, *nodeIt, blobBufferFactory, itemPool);
+        d_nodes.emplace_back(this, *nodeIt, blobBufferFactory);
         d_nodesList.emplace_back(&d_nodes.back());
     }
 }
