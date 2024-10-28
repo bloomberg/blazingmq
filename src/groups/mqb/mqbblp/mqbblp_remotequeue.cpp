@@ -1179,9 +1179,9 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
 
         erasePendingMessage(it);
 
-        BALL_LOG_INFO << d_state_p->uri() << ": erased window of " << numErased
-                      << " cached broadcasted PUTs upon "
-                      << bmqt::AckResult::toAscii(ackResult);
+        BALL_LOG_DEBUG << d_state_p->uri() << ": erased window of "
+                       << numErased << " cached broadcasted PUTs upon "
+                       << bmqt::AckResult::toAscii(ackResult);
 
         return;  // RETURN
     }
@@ -1340,9 +1340,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
     }
     else {
         d_pendingMessagesTimerEventHandle.release();
-        BALL_LOG_INFO << d_state_p->uri() << ": "
-                      << "no more timer scheduled to check expiration of "
-                      << "pending PUSH messages";
+        BALL_LOG_DEBUG << d_state_p->uri() << ": "
+                       << "no more timer scheduled to check expiration of "
+                       << "pending PUSH messages";
     }
 }
 
