@@ -49,16 +49,31 @@ bool isWordAligned(const bdlbb::Blob& blob)
 #endif
 }  // close unnamed namespace
 
+// ---------------------------------
+// class PutEventBuilder::ResetGuard
+// ---------------------------------
+
+inline PutEventBuilder::ResetGuard::ResetGuard(
+    PutEventBuilder& putEventBuilder)
+: d_putEventBuilder(putEventBuilder)
+{
+    // NOTHING
+}
+
+inline PutEventBuilder::ResetGuard::~ResetGuard()
+{
+    d_putEventBuilder.resetFields();
+}
+
 // ---------------------
 // class PutEventBuilder
 // ---------------------
 
-void PutEventBuilder::resetFields(void* ptr)
+void PutEventBuilder::resetFields()
 {
-    PutEventBuilder* builder = static_cast<PutEventBuilder*>(ptr);
-    builder->d_flags         = 0;
-    builder->d_messageGUID   = bmqt::MessageGUID();
-    builder->d_crc32c        = 0;
+    d_flags       = 0;
+    d_messageGUID = bmqt::MessageGUID();
+    d_crc32c      = 0;
 }
 
 bmqt::EventBuilderResult::Enum
@@ -219,9 +234,7 @@ PutEventBuilder::packMessageInOldStyle(int queueId)
 
     // Guid and flags need to be reset after this method (irrespective of its
     // success or failure).  Create a proctor to auto reset them.
-    const bsl::function<void()> f =
-        bdlf::BindUtil::bind(&PutEventBuilder::resetFields, this);
-    bdlb::ScopeExitAny resetter(f);
+    const ResetGuard guard(*this);
 
     // Calculate length of entire application data (includes payload, message
     // properties and padding, if any).
@@ -304,12 +317,9 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessage(int queueId)
 
     typedef bmqt::EventBuilderResult Result;
 
-    // CorrelationId, guid and flags need to be reset after this method
-    // (irrespective of its success or failure).  Create a proctor to auto
-    // reset them.
-    const bsl::function<void()> f =
-        bdlf::BindUtil::bind(&PutEventBuilder::resetFields, this);
-    bdlb::ScopeExitAny resetter(f);
+    // Guid and flags need to be reset after this method (irrespective of its
+    // success or failure).  Create a proctor to auto reset them.
+    const ResetGuard guard(*this);
 
     // Calculate length of entire application data (includes payload, message
     // properties and padding, if any).
@@ -398,9 +408,7 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessageRaw(int queueId)
 
     // Guid and flags need to be reset after this method (irrespective of its
     // success or failure).  Create a proctor to auto reset them.
-    const bsl::function<void()> f =
-        bdlf::BindUtil::bind(&PutEventBuilder::resetFields, this);
-    bdlb::ScopeExitAny resetter(f);
+    const ResetGuard guard(*this);
 
     // Note that the 'd_blobPayload_p' has the entire application data.
     return packMessageInternal(*d_blobPayload_p, queueId);

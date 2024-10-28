@@ -27,6 +27,9 @@ settings.json
 .cache/
 .venv/
 
+# fuzz-test output folder
+**/boofuzz-results
+
 # Symlink from 'src/applications/bmqbrkr/run'
 src/applications/bmqbrkr/etc/etc
 
