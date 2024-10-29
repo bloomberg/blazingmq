@@ -206,6 +206,8 @@ void AdminSession::finalizeAdminCommand(
 
     response.choice().adminCommandResponse().text() = commandExecResults;
 
+    BALL_LOG_INFO << description() << ": Send response message: " << response;
+
     int rc = d_state.d_schemaEventBuilder.setMessage(
         response,
         bmqp::EventType::e_CONTROL);
