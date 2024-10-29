@@ -36,6 +36,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_pusheventbuilder.h>
+#include <bmqst_statcontext.h>
 #include <bmqsys_time.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
@@ -742,7 +743,7 @@ void MockSession::initializeStats()
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
     bmqimp::QueueStatsUtil::initializeStats(d_queuesStats_sp.get(),
-                                            &d_rootStatContext,
+                                            d_rootStatContext_mp.get(),
                                             start,
                                             end,
                                             d_allocator_p);
@@ -961,8 +962,9 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
-, d_rootStatContext(bmqst::StatContextConfiguration("MockSession", allocator),
-                    allocator)
+, d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
+      bmqst::StatContextConfiguration("MockSession", allocator),
+      allocator))
 , d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
@@ -1004,8 +1006,9 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
 , d_postedEvents(bslma::Default::allocator(allocator))
-, d_rootStatContext(bmqst::StatContextConfiguration("MockSession", allocator),
-                    allocator)
+, d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
+      bmqst::StatContextConfiguration("MockSession", allocator),
+      allocator))
 , d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))

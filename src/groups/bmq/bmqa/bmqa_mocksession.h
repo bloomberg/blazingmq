@@ -548,7 +548,6 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>  // for 'bmqa::SessionEventHandler'
-#include <bmqst_statcontext.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_sessionoptions.h>
 
@@ -585,6 +584,9 @@ class MessageCorrelationIdContainer;
 }
 namespace bmqimp {
 struct Stat;
+}
+namespace bmqst {
+class StatContext;
 }
 
 namespace bmqa {
@@ -1040,7 +1042,7 @@ class MockSession : public AbstractSession {
     mutable bslmt::Mutex d_mutex;
 
     /// Top level stat context for this mocked Session.
-    bmqst::StatContext d_rootStatContext;
+    bslma::ManagedPtr<bmqst::StatContext> d_rootStatContext_mp;
 
     /// Stats for all queues
     StatImplSp d_queuesStats_sp;
