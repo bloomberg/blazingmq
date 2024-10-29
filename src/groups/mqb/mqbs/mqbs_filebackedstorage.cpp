@@ -1029,7 +1029,7 @@ bsl::ostream&
 FileBackedStorage::logAppsSubscriptionInfoCb(bsl::ostream& stream) const
 {
     if (queue()) {
-        mqbi::Storage::AppInfos appInfos;
+        mqbi::Storage::AppInfos appInfos(d_allocator_p);
         loadVirtualStorageDetails(&appInfos);
 
         for (mqbi::Storage::AppInfos::const_iterator cit = appInfos.begin();
