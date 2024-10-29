@@ -49,10 +49,10 @@ set(BMQ_PRIVATE_PACKAGES
   bmqst
   bmqstm
   bmqsys
-  bmqt
   bmqtsk
   bmqtst
   bmqu
+  bmqvt
 )
 target_bmq_style_uor( bmq PRIVATE_PACKAGES ${BMQ_PRIVATE_PACKAGES} )
 
