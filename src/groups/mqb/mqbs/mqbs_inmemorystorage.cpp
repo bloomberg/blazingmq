@@ -610,12 +610,11 @@ bsl::ostream&
 InMemoryStorage::logAppsSubscriptionInfoCb(bsl::ostream& stream) const
 {
     if (queue()) {
-        mqbi::Storage::AppIdKeyPairs appIdKeyPairs;
-        loadVirtualStorageDetails(&appIdKeyPairs);
+        mqbi::Storage::AppInfos appInfos;
+        loadVirtualStorageDetails(&appInfos);
 
-        for (mqbi::Storage::AppIdKeyPairs::const_iterator cit =
-                 appIdKeyPairs.begin();
-             cit != appIdKeyPairs.end();
+        for (mqbi::Storage::AppInfos::const_iterator cit = appInfos.begin();
+             cit != appInfos.end();
              ++cit) {
             queue()->queueEngine()->logAppSubscriptionInfo(stream,
                                                            cit->second);
