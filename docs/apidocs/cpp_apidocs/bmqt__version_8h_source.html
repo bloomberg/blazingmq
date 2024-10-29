@@ -1,0 +1,234 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqt_version.h                                                     -*-C++-*-
+#ifndef INCLUDED_BMQT_VERSION
+#define INCLUDED_BMQT_VERSION
+
+//@PURPOSE: Provide a value-semantic type representing a version (major minor).
+//
+//@CLASSES:
+//  bmqt::Version: version with major and minor parts.
+//
+//@DESCRIPTION: This component implements a simple value-semantic type,
+// &#39;bmqt::Version&#39; representing the version of an object.  It is used in
+// particular to attach a version attribute to a &#39;bmqa::Message&#39;, so that a
+// consuming application receiving a message knows the version of the schema
+// that was used for publishing.
+//
+// A version is represented by two numbers: a major and a minor version.  Both
+// are positive integers within the range [0-255].
+//
+///Usage Example
+///-------------
+//..
+//  bmqt::Version version(1, 3);
+//  BSLS_ASSERT(version.major() == 1);
+//  BSLS_ASSERT(version.minor() == 3);
+//  version.setMajor(2).setMinor(4);
+//  BSLS_ASSERT(version.major() == 2);
+//  BSLS_ASSERT(version.minor() == 4);
+//..
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+
+// BDE
+#include &lt;bsl_iosfwd.h&gt;
+
+namespace BloombergLP {
+namespace bmqt {
+
+                               // =============
+                               // class Version
+                               // =============
+
+class Version {
+    // A version consisting of a major and minor version number.
+
+  private:
+    // DATA
+    unsigned char d_major; // Major part of the version
+    unsigned char d_minor; // Minor part of the version
+
+  public:
+    // CREATORS
+    Version();
+        // Create an object of type &#39;Version&#39; having the default value.  Note
+        // that major is set to zero and minor is set to zero.
+
+    Version(unsigned char major, unsigned char minor);
+        // Create an object of type &#39;Version&#39; initialized with the specified
+        // &#39;major&#39; and &#39;minor&#39; versions.
+
+    // MANIPULATORS
+    Version&amp; setMajor(unsigned char value);
+        // Set the major part of the version to the specified &#39;value&#39; and
+        // return a reference to this object.
+
+    Version&amp; setMinor(unsigned char value);
+        // Set the minor part of the version to the specified &#39;value&#39; and
+        // return a reference to this object.
+
+    // ACCESSORS
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the
+        // optionally specified indentation &#39;level&#39; and return a reference to
+        // the modifiable &#39;stream&#39;.  If &#39;level&#39; is specified, optionally
+        // specify &#39;spacesPerLevel&#39;, the number of spaces per indentation level
+        // for this and all of its nested objects.  Each line is indented by
+        // the absolute value of &#39;level * spacesPerLevel&#39;.  If &#39;level&#39; is
+        // negative, suppress indentation of the first line.  If
+        // &#39;spacesPerLevel&#39; is negative, suppress line breaks and format the
+        // entire output on one line.  If &#39;stream&#39; is initially invalid, this
+        // operation has no effect.  Note that a trailing newline is provided
+        // in multiline mode only.
+
+    unsigned char major() const;
+        // Return the major part of the version.
+
+    unsigned char minor() const;
+        // Return the minor part of the version.
+};
+
+// FREE OPERATORS
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const Version&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return
+    // a reference to the modifiable &#39;stream&#39;.
+
+bool operator==(const Version&amp; lhs, const Version&amp; rhs);
+    // Return &#39;true&#39; if the object in the specified &#39;lhs&#39; represents the same
+    // version as the the one in the specified &#39;rhs&#39;, return false otherwise.
+
+bool operator!=(const Version&amp; lhs, const Version&amp; rhs);
+    // Return &#39;true&#39; if the object in the specified &#39;lhs&#39; represents a
+    // different version than the the one in the specified &#39;rhs&#39;, return false
+    // otherwise.
+
+bool operator&lt;(const Version&amp; lhs, const Version&amp; rhs);
+    // Return &#39;true&#39; if the version represented by the specified &#39;lhs&#39; is less
+    // than the version represented by the specified &#39;rhs&#39;.
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+                               // -------------
+                               // class Version
+                               // -------------
+
+// CREATORS
+inline
+Version::Version()
+: d_major(0)
+, d_minor(0)
+{
+    // NOTHING
+}
+
+inline
+Version::Version(unsigned char major,
+                 unsigned char minor)
+: d_major(major)
+, d_minor(minor)
+{
+    // NOTHING
+}
+
+// MANIPULATORS
+inline
+Version&amp;
+Version::setMajor(unsigned char value)
+{
+    d_major = value;
+    return *this;
+}
+
+inline
+Version&amp;
+Version::setMinor(unsigned char value)
+{
+    d_minor = value;
+    return *this;
+}
+
+// ACCESSORS
+inline
+unsigned char
+Version::major() const
+{
+    return d_major;
+}
+
+inline
+unsigned char
+Version::minor() const
+{
+    return d_minor;
+}
+
+}  // close package namespace
+
+
+// FREE OPERATORS
+inline
+bsl::ostream&amp;
+bmqt::operator&lt;&lt;(bsl::ostream&amp;        stream,
+                 const bmqt::Version&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+inline
+bool
+bmqt::operator==(const bmqt::Version&amp; lhs,
+                 const bmqt::Version&amp; rhs)
+{
+    return    lhs.major() == rhs.major()
+           &amp;&amp; lhs.minor() == rhs.minor();
+}
+
+inline
+bool
+bmqt::operator!=(const bmqt::Version&amp; lhs,
+                 const bmqt::Version&amp; rhs)
+{
+    return    lhs.major() != rhs.major()
+           || lhs.minor() != rhs.minor();
+}
+
+inline
+bool
+bmqt::operator&lt;(const bmqt::Version&amp; lhs,
+                const bmqt::Version&amp; rhs)
+{
+    return    lhs.major() &lt; rhs.major()
+           || (lhs.major() == rhs.major() &amp;&amp; lhs.minor() &lt; rhs.minor());
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

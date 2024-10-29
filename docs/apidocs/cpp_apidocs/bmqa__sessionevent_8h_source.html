@@ -1,0 +1,176 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqa_sessionevent.h                                                -*-C++-*-
+#ifndef INCLUDED_BMQA_SESSIONEVENT
+#define INCLUDED_BMQA_SESSIONEVENT
+
+//@PURPOSE: Provide value-semantic type for system event session notifications.
+//
+//@CLASSES:
+//  bmqa::SessionEvent: type for notification events related to the &#39;Session&#39;.
+//
+//@SEE_ALSO:
+// bmqt::SessionEventType: Enum of the various type of notifications
+//
+//@DESCRIPTION: This component provides a generic &#39;bmqa::SessionEvent&#39;
+// notification object used by the &#39;bmqa::Session&#39; to provide BlazingMQ
+// applications with information regarding changes in the session status or the
+// result of operations with the message queue broker.
+//
+// A &#39;SessionEvent&#39; is composed of 4 attributes:
+//: o !type!:             indicate the type of the notification
+//: o !statusCode!:       indicate the status of the operation (success,
+//:                       failure)
+//: o !correlationId!:    optional correlationId used during async response
+//: o !queueId!:          optional queueId associated with the event, of type
+//:                       &#39;OPEN&#39;, &#39;CONFIGURE&#39;, &#39;CLOSE&#39;, &#39;REOPEN&#39;
+//: o !errorDescription!: optional string with a human readable description of
+//:                       the error, if any
+//
+// Note that &#39;SessionEvent&#39; is implemented using the pimpl idiom, so copying a
+// &#39;SessionEvent&#39; is very cheap (a pointer copy).  All copies of this
+// &#39;SessionEvent&#39; will share the same underlying implementation.
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+#include &lt;bmqa_queueid.h&gt;
+#include &lt;bmqt_correlationid.h&gt;
+#include &lt;bmqt_sessioneventtype.h&gt;
+
+// BDE
+#include &lt;bsl_memory.h&gt;
+#include &lt;bsl_string.h&gt;
+
+namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqimp { class Event; }
+
+namespace bmqa {
+
+                             // ==================
+                             // class SessionEvent
+                             // ==================
+
+class SessionEvent {
+    // An event related to the operation of a &#39;Session&#39;.
+
+  private:
+    // FRIENDS
+    friend bool operator==(const SessionEvent&amp; lhs, const SessionEvent&amp; rhs);
+    friend bool operator!=(const SessionEvent&amp; lhs, const SessionEvent&amp; rhs);
+
+  private:
+    // DATA
+    bsl::shared_ptr&lt;bmqimp::Event&gt; d_impl_sp; // pimpl
+
+  public:
+    // CREATORS
+    explicit SessionEvent();
+        // Default constructor
+
+    SessionEvent(const SessionEvent&amp; other);
+        // Create a new &#39;SessionEvent&#39; having the same values (pointing to the
+        // same pimpl) as the specified &#39;other&#39;.
+
+    // MANIPULATORS
+    SessionEvent&amp; operator=(const SessionEvent&amp; rhs);
+        // Assign to this &#39;SessionEvent&#39; the same values as the one from the
+        // specified &#39;rhs&#39; (i.e., reference the same pimpl).
+
+    // ACCESSORS
+    bmqt::SessionEventType::Enum type() const;
+        // Return the session event type.
+
+    const bmqt::CorrelationId&amp; correlationId() const;
+        // Return the correlationId associated to this event, if any.
+
+    QueueId queueId() const;
+        // Return the queueId associated to this event, if any.  The behavior
+        // is undefined unless this event corresponds to a queue related event
+        // (i.e. &#39;OPEN&#39;, &#39;CONFIGURE&#39;, &#39;CLOSE&#39;, &#39;REOPEN&#39;).
+
+    int statusCode() const;
+        // Return the status code that indicates success or the cause of a
+        // failure.
+
+    const bsl::string&amp; errorDescription() const;
+        // Return a printable description of the error, if &#39;statusCode&#39; returns
+        // non-zero.  Return an empty string otherwise.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Format this object to the specified output &#39;stream&#39; at the (absolute
+        // value of) the optionally specified indentation &#39;level&#39; and return a
+        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
+        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
+        // this and all of its nested objects.  If &#39;level&#39; is negative,
+        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
+        // negative format the entire output on one line, suppressing all but
+        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
+        // not valid on entry, this operation has no effect.
+};
+
+// FREE OPERATORS
+bool operator==(const SessionEvent&amp; lhs,
+                const SessionEvent&amp; rhs);
+    // Return &#39;true&#39; if the specified &#39;rhs&#39; object contains the value of the
+    // same type as contained in the specified &#39;lhs&#39; object and the value
+    // itself is the same in both objects, return false otherwise.
+
+bool operator!=(const SessionEvent&amp; lhs,
+                const SessionEvent&amp; rhs);
+    // Return &#39;false&#39; if the specified &#39;rhs&#39; object contains the value of the
+    // same type as contained in the specified &#39;lhs&#39; object and the value
+    // itself is the same in both objects, return &#39;true&#39; otherwise.
+
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;       stream,
+                         const SessionEvent&amp; rhs);
+    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
+    // reference to the modifiable &#39;stream&#39;.
+
+}  // close package namespace
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+                            // ------------------
+                            // class SessionEvent
+                            // ------------------
+
+inline
+bsl::ostream&amp;
+bmqa::operator&lt;&lt;(bsl::ostream&amp;             stream,
+                 const bmqa::SessionEvent&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
+<html>
+<title>Bloomberg Development Environment</title>
+<html>
+<pre>
+// Copyright 2014-2023 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bmqt_messageguid.h                                                 -*-C++-*-
+#ifndef INCLUDED_BMQT_MESSAGEGUID
+#define INCLUDED_BMQT_MESSAGEGUID
+
+//@PURPOSE: Provide a value-semantic global unique identifier for BlazingMQ
+//messages.
+//
+//@CLASSES:
+//  bmqt::MessageGUID         : Value-semantic global unique ID for BlazingMQ
+//                              message
+//  bmqt::MessageGUIDLess     : Binary function for comparing GUIDs.
+//  bmqt::MessageGUIDHashAlgo : Provide a hashing algorithm for Message GUID.
+//
+//@DESCRIPTION: &#39;bmqt::MessageGUID&#39; provides a value-semantic global unique
+// identifier for BlazingMQ messages.  Each bmqa::Message delivered to
+// BlazingMQ client from BlazingMQ broker contains a unique MessageGUID.  The
+// binary function &#39;bmqt::MessageGUIDLess&#39; can be used for comparing GUIDs, and
+// an optimized custom hash function is provided with
+// &#39;bmqt::MessageGUIDHashAlgo&#39;.
+//
+//
+///Externalization
+///---------------
+// For convenience, this class provides &#39;toHex&#39; method that can be used to
+// externalize a &#39;bmqt::MessageGUID&#39; instance.  Applications can persist the
+// resultant buffer (on filesystem, in database) to keep track of last
+// processed message ID across task instantiations.  &#39;fromHex&#39; method can be
+// used to convert a valid externalized buffer back to a message ID.
+//
+///Efficient comparison and hash function
+///--------------------------------------
+// This component also provides efficient comparison and hash functions for
+// convenience, and thus, applications can use this component as a key in
+// associative containers.
+//
+//
+///Example 1: Externalizing
+/// - - - - - - - - - - - -
+//..
+//  // Below, &#39;msg&#39; is a valid instance of &#39;bmqa::Message&#39; obtained from an
+//  // instance of &#39;bmqa::Session&#39;:
+//
+//  bmqt::MessageGUID g1 = msg.messageId();
+//
+//  char buffer[bmqt::MessageGUID::e_SIZE_HEX];
+//  g1.toHex(buffer);
+//
+//  BSLS_ASSERT(true == bmqt::MessageGUID::isValidHexRepresentation(buffer));
+//
+//  bmqt::MessageGUID g2;
+//  g2.fromHex(buffer);
+//
+//  BSLS_ASSERT(g1 == g2);
+//..
+//
+
+
+// BMQ
+#include &lt;bmqscm_version.h&gt;
+
+// BDE
+#include &lt;bsl_cstring.h&gt;      // for bsl::memset, bsl::memcmp
+
+#include &lt;bsl_cstddef.h&gt;
+
+#include &lt;bsl_iosfwd.h&gt;
+#include &lt;bslh_hash.h&gt;
+#include &lt;bslmf_isbitwiseequalitycomparable.h&gt;
+#include &lt;bslmf_istriviallycopyable.h&gt;
+#include &lt;bslmf_nestedtraitdeclaration.h&gt;
+#include &lt;bsls_annotation.h&gt;
+#include &lt;bsls_types.h&gt;
+
+namespace BloombergLP {
+namespace bmqt {
+
+
+                             // =================
+                             // class MessageGUID
+                             // =================
+
+class MessageGUID {
+    // This class provides a value-semantic type to represent a global unique
+    // ID for BlazingMQ messages.
+
+    // FRIENDS
+    friend bool operator==(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs);
+    friend bool operator!=(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs);
+    friend struct MessageGUIDLess;
+    template &lt;class HASH_ALGORITHM&gt;
+    friend void hashAppend(HASH_ALGORITHM&amp; hashAlgo, const MessageGUID&amp; guid);
+
+  public:
+    // TYPES
+    enum Enum {
+        // Enum representing the size of a buffer needed to represent a GUID
+        e_SIZE_BINARY = 16 // Binary format of the GUID
+
+      , e_SIZE_HEX    = 2 * e_SIZE_BINARY
+                           // Hexadecimal string representation of the GUID
+    };
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(MessageGUID,
+                                   bslmf::IsBitwiseEqualityComparable)
+    BSLMF_NESTED_TRAIT_DECLARATION(MessageGUID, bsl::is_trivially_copyable)
+
+  private:
+    // PRIVATE CONSTANTS
+    static const char k_UNSET_GUID[e_SIZE_BINARY];
+                                //  Constant representing an unset GUID
+
+  private:
+    // IMPLEMENTATION NOTE: Some structs in bmqp::Protocol.h blindly
+    //                      reinterpret_cast a char[e_SIZE_BINARY] to a
+    //                      MessageGUID (instead of using &#39;fromBinary()&#39;) so
+    //                      that they can return a const MessageGUID&amp;.
+    // IMPLEMENTATION NOTE: See mqbu_messageguidutil.cpp for internal layout of
+    //                      MessageGUID
+
+    // DATA
+    char d_buffer[e_SIZE_BINARY];
+
+  public:
+    // CLASS METHODS
+    static bool isValidHexRepresentation(const char *buffer);
+        // Return true if the specified &#39;buffer&#39; is a valid hex representation
+        // of a MessageGUID.  The behavior is undefined unless &#39;buffer&#39; is
+        // non-null and length of the &#39;buffer&#39; is equal to &#39;e_SIZE_HEX&#39;.
+
+    // CREATORS
+    MessageGUID();
+        // Create an un-initialized MessageGUID.  Note that &#39;isUnset()&#39; would
+        // return true.
+
+    ~MessageGUID();
+        // Destructor.
+
+    // MANIPULATORS
+    MessageGUID&amp; fromBinary(const unsigned char *buffer);
+        // Initialize this MessageGUID with the binary representation from the
+        // specified &#39;buffer&#39;, in binary format.  Behavior is undefined unless
+        // &#39;buffer&#39; is non-null and of length &#39;e_SIZE_BINARY&#39;.  Return a
+        // reference offering modifiable access to this object.
+
+    MessageGUID&amp; fromHex(const char* buffer);
+        // Initialize this MessageGUID with the hexadecimal representation from
+        // the specified &#39;buffer&#39;.  Behavior is undefined unless
+        // &#39;isValidHexRepresentation()&#39; returns true for the provided
+        // &#39;buffer&#39;.  Return a reference offering modifiable access to this
+        // object.
+
+    // ACCESSORS
+    bool isUnset() const;
+        // Return &#39;true&#39; if the value of this object is not set.
+
+    void toBinary(unsigned char *destination) const;
+        // Write the binary representation of this object to the specified
+        // &#39;destination&#39;.  Behavior is undefined unless &#39;destination&#39; is of
+        // length &#39;e_SIZE_BINARY&#39;.  Note that &#39;destination&#39; can later be used
+        // to populate a MessageGUID object using &#39;fromBinary&#39; method.
+
+    void toHex(char *destination) const;
+        // Write the hex representation of this object to the specified
+        // &#39;destination&#39;.  Behavior is undefined unless &#39;destination&#39; is of
+        // length &#39;e_SIZE_HEX&#39;.  Note that &#39;destination&#39; can later be used to
+        // populate a MessageGUID object using &#39;fromHex&#39; method.
+
+    bsl::ostream&amp; print(bsl::ostream&amp; stream,
+                        int           level          = 0,
+                        int           spacesPerLevel = 4) const;
+        // Write the value of this object to the specified output &#39;stream&#39; in a
+        // human-readable format, and return a reference to &#39;stream&#39;.
+        // Optionally specify an initial indentation &#39;level&#39;.  If &#39;level&#39; is
+        // specified, optionally specify &#39;spacesPerLevel&#39;, whose absolute value
+        // indicates the number of spaces per indentation level for this
+        // object.  If &#39;level&#39; is negative, suppress indentation of the first
+        // line.  If &#39;spacesPerLevel&#39; is negative, format the entire output on
+        // one line, suppressing all but the initial indentation (as governed
+        // by &#39;level&#39;).  If &#39;stream&#39; is not valid on entry, this operation has
+        // no effect.  Note that this human-readable format is not fully
+        // specified, and can change without notice.  Applications relying on a
+        // fixed length format must use &#39;toHex&#39; method.
+};
+
+// FREE OPERATORS
+
+                             // -----------------
+                             // class MessageGUID
+                             // -----------------
+
+bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const MessageGUID&amp; rhs);
+    // Write the value of the specified &#39;rhs&#39; object to the specified output
+    // &#39;stream&#39; in a human-readable format, and return a reference to &#39;stream&#39;.
+    // Note that this human-readable format is not fully specified, and can
+    // change without notice.  Applications relying on a fixed length format
+    // must use &#39;toHex&#39; method.
+
+bool operator==(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs);
+    // Return &#39;true&#39; if &#39;rhs&#39; object contains the value of the same type as
+    // contained in &#39;lhs&#39; object and the value itself is the same in both
+    // objects, return false otherwise.
+
+bool operator!=(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs);
+    // Return &#39;false&#39; if &#39;rhs&#39; object contains the value of the same type as
+    // contained in &#39;lhs&#39; object and the value itself is the same in both
+    // objects, return &#39;true&#39; otherwise.
+
+bool operator&lt;(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs);
+    // Return true if the specified &#39;lhs&#39; instance is smaller than the
+    // specified &#39;rhs&#39; instance, false otherwise.  Note that criteria for
+    // comparison is implementation defined, and result of this routine *does*
+    // *not* in any way signify the order of creation/arrival/delivery of
+    // messages to which &#39;lhs&#39; and &#39;rhs&#39; instances belong.  Note that this
+    // operator is provided so that MessageGUID can be used as a key in
+    // associative containers (map, set, etc).
+
+
+                           // =====================
+                           // class MessageGUIDLess
+                           // =====================
+
+struct MessageGUIDLess
+{
+    // This struct provides a binary function for comparing 2 GUIDs.
+
+    // ACCESSORS
+    bool operator()(const MessageGUID&amp; lhs, const MessageGUID&amp; rhs) const;
+        // Return &#39;true&#39; if the specified &#39;lhs&#39; should be considered as having
+        // a value less than the specified &#39;rhs&#39;.
+};
+
+
+                         // =========================
+                         // class MessageGUIDHashAlgo
+                         // =========================
+
+class MessageGUIDHashAlgo {
+    // This class provides a hashing algorithm for &#39;bmqt::MessageGUID&#39;.  At the
+    // time of writing, this algorithm was found to be approximately 4x faster
+    // than the default hashing algorithm that comes with &#39;bslh&#39; package.
+    // Performance-critical applications may want to use this hashing algorithm
+    // instead of the default one.
+
+  private:
+    // DATA
+    bsls::Types::Uint64  d_result;
+
+  public:
+    // TYPES
+    typedef bsls::Types::Uint64 result_type;
+
+    // CREATORS
+    MessageGUIDHashAlgo();
+        // Constructor
+
+    // MANIPULATORS
+    void operator()(const void *data, size_t numBytes);
+
+    result_type computeHash();
+        // Compute and return the hash for the GUID.
+};
+
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+
+                             // -----------------
+                             // class MessageGUID
+                             // -----------------
+
+// CREATORS
+inline
+MessageGUID::MessageGUID()
+{
+    bsl::memcpy(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
+}
+
+inline
+MessageGUID::~MessageGUID() {
+#ifdef BSLS_ASSERT_SAFE_IS_ACTIVE
+    bsl::memcpy(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
+#endif
+}
+
+// ACCESSORS
+inline
+bool
+MessageGUID::isUnset() const
+{
+    return 0 == bsl::memcmp(d_buffer, k_UNSET_GUID, e_SIZE_BINARY);
+}
+
+// FREE FUNCTIONS
+template &lt;class HASH_ALGORITHM&gt;
+void
+hashAppend(HASH_ALGORITHM&amp;    hashAlgo,
+           const MessageGUID&amp; guid)
+{
+    using bslh::hashAppend;  // for ADL
+    hashAppend(hashAlgo, guid.d_buffer);  // hashes entire buffer array
+}
+
+
+                           // ----------------------
+                           // struct MessageGUIDLess
+                           // ----------------------
+
+inline
+bool
+MessageGUIDLess::operator()(const MessageGUID&amp; lhs,
+                            const MessageGUID&amp; rhs) const
+{
+    return 0 &gt; bsl::memcmp(lhs.d_buffer,
+                           rhs.d_buffer,
+                           MessageGUID::e_SIZE_BINARY);
+}
+
+
+                         // -------------------------
+                         // class MessageGUIDHashAlgo
+                         // -------------------------
+
+// CREATORS
+inline
+MessageGUIDHashAlgo::MessageGUIDHashAlgo()
+: d_result(0)
+{
+}
+
+// MANIPULATORS
+inline
+void
+MessageGUIDHashAlgo::operator()(const void                    *data,
+                                BSLS_ANNOTATION_UNUSED size_t  numBytes)
+{
+    // Implementation note: we implement the &#39;djb2&#39; hash algorithm (more
+    // details at http://www.cse.yorku.ca/~oz/hash.html).
+
+    // At the time of writing, this algorithm came out to be about 400% faster
+    // than &#39;bslh::SpookyHashAlgorithm&#39;, which is the default hashing algorithm
+    // in &#39;bslh&#39; hashing framework.  Note that while
+    // &#39;bslh::SpookyHashAlgorithm&#39; is slower, it may have a better uniform
+    // distribution than this algorithm (although some literature claims djb2
+    // to have a very good distribution as well).  Both algorithms were found
+    // to be collision free in testing (see mqbu_messageguidtutil.t).
+
+    // We have slightly modified the djb2 algorithm by unrolling djb2 &#39;while&#39;
+    // loop, by using our knowledge that &#39;numBytes&#39; is always 16 for
+    // &#39;bmqt::MessageGUID&#39;.  For reference, the unmodified djb2 algorithm has
+    // been specified at the end of this method.  Our unrolled version comes
+    // out to be about 25% faster than the looped version.  The unrolled
+    // version has data dependency, so its not the ILP but probably the absence
+    // of branching which makes it faster than the looped version.
+
+    d_result = 5381ULL;
+
+    const char *start = reinterpret_cast&lt;const char*&gt;(data);
+    d_result = (d_result &lt;&lt; 5) + d_result + start[0];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[1];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[2];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[3];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[4];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[5];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[6];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[7];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[8];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[9];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[10];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[11];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[12];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[13];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[14];
+    d_result = (d_result &lt;&lt; 5) + d_result + start[15];
+
+    // For reference, &#39;loop&#39; version of djb2 algorithm:
+    //..
+    //  size_t index = 0;
+    //  while (index++ &lt; numBytes) {
+    //      d_result = (d_result &lt;&lt; 5) + d_result +  // same as &#39;d_result * 33&#39;
+    //                 (reinterpret_cast&lt;const char*&gt;(data))[index];
+    //  }
+    //..
+}
+
+inline
+MessageGUIDHashAlgo::result_type
+MessageGUIDHashAlgo::computeHash()
+{
+    return d_result;
+}
+
+}  // close package namespace
+
+
+                             // -----------------
+                             // class MessageGUID
+                             // -----------------
+
+// FREE OPERATORS
+inline
+bool
+bmqt::operator==(const bmqt::MessageGUID&amp; lhs,
+                 const bmqt::MessageGUID&amp; rhs)
+{
+    return 0 == bsl::memcmp(lhs.d_buffer,
+                            rhs.d_buffer,
+                            MessageGUID::e_SIZE_BINARY);
+}
+
+inline
+bool
+bmqt::operator!=(const bmqt::MessageGUID&amp; lhs,
+                 const bmqt::MessageGUID&amp; rhs)
+{
+    return !(lhs == rhs);
+}
+
+inline
+bool
+bmqt::operator&lt;(const bmqt::MessageGUID&amp; lhs,
+                const bmqt::MessageGUID&amp; rhs)
+{
+    MessageGUIDLess less;
+    return less(lhs, rhs);
+}
+
+inline
+bsl::ostream&amp;
+bmqt::operator&lt;&lt;(bsl::ostream&amp;            stream,
+                 const bmqt::MessageGUID&amp; rhs)
+{
+    return rhs.print(stream, 0, -1);
+}
+
+}  // close enterprise namespace
+
+#endif
+</pre>
+</body>
+</html>

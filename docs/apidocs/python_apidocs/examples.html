@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Examples &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6efca38a"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Acknowledgments" href="acknowledgments.html" />
+    <link rel="prev" title="User Guide" href="user_guide.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#producer">Producer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#consumer-with-threading-event">Consumer with <code class="xref py py-obj docutils literal notranslate"><span class="pre">threading.Event</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#consumer-with-queue-queue">Consumer with <code class="xref py py-obj docutils literal notranslate"><span class="pre">queue.Queue</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Examples</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/examples.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="examples">
+<h1>Examples<a class="headerlink" href="#examples" title="Link to this heading"></a></h1>
+<section id="producer">
+<h2>Producer<a class="headerlink" href="#producer" title="Link to this heading"></a></h2>
+<p>A complete example of a program that posts a message and waits for it to be acknowledged
+by the broker.</p>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> is an optional argument. However, receiving acknowledgment is the only
+way to guarantee that your message was received by the broker. In this example, messages are sent
+in a fully synchronous fashion - the program waits for an acknowledgement before terminating.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="n">QUEUE_URI</span> <span class="o">=</span> <span class="s2">&quot;bmq://bmq.test.mmap.priority/blazingmq-examples&quot;</span>
+
+
+<span class="k">def</span> <span class="nf">on_ack</span><span class="p">(</span><span class="n">event</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span> <span class="n">ack</span><span class="p">:</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Ack</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">ack</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">AckStatus</span><span class="o">.</span><span class="n">SUCCESS</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Received NAck: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ack</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Received Ack: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ack</span><span class="p">)</span>
+    <span class="n">event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connected to BlazingMQ broker&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">QUEUE_URI</span><span class="p">,</span> <span class="n">write</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">event</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="n">on_ack_with_event</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">on_ack</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Posting message&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">QUEUE_URI</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;</span><span class="se">\xde\xad\x00\x00\xbe\xef</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">on_ack</span><span class="o">=</span><span class="n">on_ack_with_event</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting for acknowledgement&quot;</span><span class="p">)</span>
+        <span class="n">event</span><span class="o">.</span><span class="n">wait</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="consumer-with-threading-event">
+<h2>Consumer with <a class="reference external" href="https://docs.python.org/3/library/threading.html#threading.Event" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">threading.Event</span></code></a><a class="headerlink" href="#consumer-with-threading-event" title="Link to this heading"></a></h2>
+<p>A complete example of a program that consumes messages from a BlazingMQ
+queue. The main thread is blocked waiting for <a class="reference external" href="https://docs.python.org/3/library/threading.html#threading.Event" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">threading.Event</span></code></a> to be set upon
+receiving <code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code>, while incoming messages are processed in the callback on
+the BlazingMQ event handler thread.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="n">QUEUE_URI</span> <span class="o">=</span> <span class="s2">&quot;bmq://bmq.test.mmap.priority/blazingmq-examples&quot;</span>
+<span class="n">EXITING</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">on_message</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Message</span><span class="p">,</span> <span class="n">msg_handle</span><span class="p">:</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">MessageHandle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Confirming: &quot;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+    <span class="n">msg_handle</span><span class="o">.</span><span class="n">confirm</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+        <span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">,</span>
+        <span class="n">on_message</span><span class="o">=</span><span class="n">on_message</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connected to BlazingMQ broker&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send SIGTERM to exit&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">QUEUE_URI</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">EXITING</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to process all outstanding messages&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">configure_queue</span><span class="p">(</span><span class="n">QUEUE_URI</span><span class="p">,</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">QueueOptions</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Session stopped.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">on_signal</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">_frame</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received signal: </span><span class="si">{</span><span class="n">signum</span><span class="si">}</span><span class="s2">. Exiting...&quot;</span><span class="p">)</span>
+    <span class="n">EXITING</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">on_signal</span><span class="p">)</span>  <span class="c1"># handle CTRL-C</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">on_signal</span><span class="p">)</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="consumer-with-queue-queue">
+<h2>Consumer with <a class="reference external" href="https://docs.python.org/3/library/queue.html#queue.Queue" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">queue.Queue</span></code></a><a class="headerlink" href="#consumer-with-queue-queue" title="Link to this heading"></a></h2>
+<p>Correct synchronization may be difficult to implement. It sometimes helps to use the
+Python standard library <a class="reference external" href="https://docs.python.org/3/library/queue.html#queue.Queue" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">queue.Queue</span></code></a>. The following example consumes messages from
+a BlazingMQ queue and uses <a class="reference external" href="https://docs.python.org/3/library/queue.html#queue.Queue" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">queue.Queue</span></code></a> for synchronization.</p>
+<p>The main thread is blocked in a <a class="reference external" href="https://docs.python.org/3/library/queue.html#queue.Queue.get" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Queue.get</span></code></a> while all new messages are immediately
+added to the in-process queue. There will be no more than <code class="docutils literal notranslate"><span class="pre">max_unconfirmed_messages</span></code>
+in the in-process queue at any given time (unless more than <code class="docutils literal notranslate"><span class="pre">max_unconfirmed_bytes</span></code>
+was received first) because the broker will pause delivery once
+this value has been reached. Once <code class="docutils literal notranslate"><span class="pre">SIGTERM</span></code> is received, a sentinel object is added to
+the in-process queue; all BlazingMQ messages received after the signal will be ignored.</p>
+<p>Also note that, in this example, we provide <code class="docutils literal notranslate"><span class="pre">suspends_on_bad_host_health=True</span></code>
+when we open the queue. This stops the queue from receiving messages if the
+machine is marked unhealthy, so that we don’t unintentionally process a message
+on an unhealthy machine.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Copyright 2019-2023 Bloomberg Finance L.P.</span>
+<span class="c1"># SPDX-License-Identifier: Apache-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">queue</span>
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="n">QUEUE_URI</span> <span class="o">=</span> <span class="s2">&quot;bmq://bmq.test.mmap.priority/blazingmq-examples&quot;</span>
+
+<span class="n">MESSAGES</span><span class="p">:</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">Message</span><span class="p">]]</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">on_message</span><span class="p">(</span><span class="n">msg</span><span class="p">:</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Message</span><span class="p">,</span> <span class="n">_msg_handle</span><span class="p">:</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">MessageHandle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">MESSAGES</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Starting consumer2&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Send SIGTERM to exit.&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+        <span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">,</span>
+        <span class="n">on_message</span><span class="o">=</span><span class="n">on_message</span><span class="p">,</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Connected to BlazingMQ broker&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span>
+            <span class="n">QUEUE_URI</span><span class="p">,</span>
+            <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">QueueOptions</span><span class="p">(</span>
+                <span class="n">max_unconfirmed_messages</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                <span class="n">suspends_on_bad_host_health</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="n">MESSAGES</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">msg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Confirming: &quot;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">confirm</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Waiting to receive all outstanding messages&quot;</span><span class="p">)</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">configure_queue</span><span class="p">(</span><span class="n">QUEUE_URI</span><span class="p">,</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">QueueOptions</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Session stopped.&quot;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">on_signal</span><span class="p">(</span><span class="n">signum</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">_frame</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received signal: </span><span class="si">{</span><span class="n">signum</span><span class="si">}</span><span class="s2">. Exiting...&quot;</span><span class="p">)</span>
+    <span class="n">MESSAGES</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">on_signal</span><span class="p">)</span>  <span class="c1"># handle CTRL-C</span>
+    <span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">on_signal</span><span class="p">)</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="user_guide.html" class="btn btn-neutral float-left" title="User Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="acknowledgments.html" class="btn btn-neutral float-right" title="Acknowledgments" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

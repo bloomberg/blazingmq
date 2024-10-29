@@ -1,0 +1,22 @@
+<nav aria-label="Auxiliary" class="aux-nav">
+  <ul class="aux-nav-list">
+    {% for link in site.aux_links %}
+    <li class="aux-nav-list-item">
+      <a
+        href="{{ link.last }}"
+        class="site-button aux-button"
+        {%
+        if
+        site.aux_links_new_tab
+        %}
+        target="_blank"
+        rel="noopener noreferrer"
+        {%
+        endif
+        %}
+        ><img class="github-logo" src="{{ '/assets/images/github-mark.svg' | relative_url }}" alt="github logo" />
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</nav>

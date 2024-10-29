@@ -1,0 +1,140 @@
+@import "./custom/custom";
+
+body {
+    height: 100%;
+}
+
+.custom-footer {
+  display: block;
+
+  @include mq(md) {
+    display: none;
+  }
+}
+
+.intro-text-container,
+.release-container {
+  font-family: $body-font-family;
+}
+
+.description-text-wrapper,
+.section,
+p,
+.main-content {
+  font-family: $text-font-family;
+}
+
+.site-logo {
+    max-width: 32px;
+    margin-right: 12px;
+    margin-left: 12px;
+}
+
+.site-title {
+    padding: 0.5rem
+}
+
+.animation-content {
+  padding: 2rem 1.5rem 0.5rem 1.5rem;
+}
+
+.animation-title {
+  margin-bottom: 2rem;
+  @include mq(md) {
+    padding-left: 1rem;
+  }
+}
+
+.logo-header img {
+  height: 40px;
+  margin: 10px;
+  margin-left: 15px;
+}
+
+.main-banner img {
+  height: 6rem;
+}
+
+.row-container {
+  border-bottom: 1px solid black;
+}
+
+.main-banner {
+  padding: 7.5rem 0 0 2rem;
+  height: 23rem;
+}
+
+.banner-line-1,
+.banner-line-2 {
+  float: left;
+  width: 100%;
+  text-transform: uppercase;
+  color: white;
+}
+
+.banner-line-1 {
+  font-size: 15pt;
+}
+
+.banner-line-2 {
+  font-size: 25pt;
+}
+
+.row-hero-banner {
+  background-image: linear-gradient(to right, $blazing-red, yellow);
+}
+
+.section-intro-release {
+  height: 10rem;
+}
+
+.section-intro,
+.section-latest-release {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+}
+
+.section-intro {
+  text-transform: uppercase;
+  padding: 1.5rem;
+  float: left;
+  font-size: inherit;
+  text-align: left;
+  font-weight: 500;
+  @include mq(sm) {
+    padding: 1.5rem;
+    font-size: 15pt;
+  }
+  @include mq(md) {
+    padding: 1.5rem;
+    font-size: 15pt;
+  }
+  @include mq(lg) {
+    padding: 2rem;
+  }
+}
+
+.description-text-wrapper {
+  padding: 0.5rem 1.5rem;
+}
+
+.iframe-wrapper {
+  overflow: hidden;
+  padding-top: 44%;
+  position: relative;
+}
+
+.iframe-animation {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.content-wrapper {
+  padding: 1rem 1.5rem;
+}

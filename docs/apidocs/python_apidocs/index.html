@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>blazingmq &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6efca38a"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="User Guide" href="user_guide.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">blazingmq</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="blazingmq">
+<h1>blazingmq<a class="headerlink" href="#blazingmq" title="Link to this heading"></a></h1>
+<p><strong>blazingmq</strong> is the official way to interact with the BlazingMQ framework from Python.</p>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#simple-producer">Simple Producer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#simple-consumer">Simple Consumer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="user_guide.html#host-health-monitoring">Host Health Monitoring</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#producer">Producer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#consumer-with-threading-event">Consumer with <code class="xref py py-obj docutils literal notranslate"><span class="pre">threading.Event</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples.html#consumer-with-queue-queue">Consumer with <code class="xref py py-obj docutils literal notranslate"><span class="pre">queue.Queue</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_properties.html">Message Properties</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="message_properties.html#posting">Posting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="message_properties.html#message-with-properties">Message With Properties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="message_properties.html#properties-with-overrides">Properties With Overrides</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="message_properties.html#consuming">Consuming</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="queue_options_and_configuration.html">Queue Options and Configuration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="queue_options_and_configuration.html#setting-queue-options">Setting Queue Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="queue_options_and_configuration.html#common-scenarios">Common Scenarios</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="queue_options_and_configuration.html#pausing-consumption-on-demand">Pausing consumption on demand</a></li>
+<li class="toctree-l3"><a class="reference internal" href="queue_options_and_configuration.html#delivering-all-messages-to-one-consumer">Delivering all messages to one consumer</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#session">Session</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.Session"><code class="docutils literal notranslate"><span class="pre">Session</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.close_queue"><code class="docutils literal notranslate"><span class="pre">Session.close_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.configure_queue"><code class="docutils literal notranslate"><span class="pre">Session.configure_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.confirm"><code class="docutils literal notranslate"><span class="pre">Session.confirm()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.get_queue_options"><code class="docutils literal notranslate"><span class="pre">Session.get_queue_options()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.open_queue"><code class="docutils literal notranslate"><span class="pre">Session.open_queue()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.post"><code class="docutils literal notranslate"><span class="pre">Session.post()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.stop"><code class="docutils literal notranslate"><span class="pre">Session.stop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Session.with_options"><code class="docutils literal notranslate"><span class="pre">Session.with_options()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.Timeouts"><code class="docutils literal notranslate"><span class="pre">Timeouts</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.SessionOptions"><code class="docutils literal notranslate"><span class="pre">SessionOptions</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.QueueOptions"><code class="docutils literal notranslate"><span class="pre">QueueOptions</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_MESSAGES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_MAX_UNCONFIRMED_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.QueueOptions.DEFAULT_CONSUMER_PRIORITY"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_CONSUMER_PRIORITY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH"><code class="docutils literal notranslate"><span class="pre">QueueOptions.DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#message-classes">Message Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.Message"><code class="docutils literal notranslate"><span class="pre">Message</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Message.data"><code class="docutils literal notranslate"><span class="pre">Message.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Message.guid"><code class="docutils literal notranslate"><span class="pre">Message.guid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Message.queue_uri"><code class="docutils literal notranslate"><span class="pre">Message.queue_uri</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Message.properties"><code class="docutils literal notranslate"><span class="pre">Message.properties</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Message.property_types"><code class="docutils literal notranslate"><span class="pre">Message.property_types</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.MessageHandle"><code class="docutils literal notranslate"><span class="pre">MessageHandle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.MessageHandle.confirm"><code class="docutils literal notranslate"><span class="pre">MessageHandle.confirm()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.Ack"><code class="docutils literal notranslate"><span class="pre">Ack</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Ack.guid"><code class="docutils literal notranslate"><span class="pre">Ack.guid</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Ack.queue_uri"><code class="docutils literal notranslate"><span class="pre">Ack.queue_uri</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.Ack.status"><code class="docutils literal notranslate"><span class="pre">Ack.status</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#health-monitoring">Health Monitoring</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor.set_healthy"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor.set_healthy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor.set_unhealthy"><code class="docutils literal notranslate"><span class="pre">BasicHealthMonitor.set_unhealthy()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#enumerations">Enumerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus"><code class="docutils literal notranslate"><span class="pre">AckStatus</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.SUCCESS"><code class="docutils literal notranslate"><span class="pre">AckStatus.SUCCESS</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.CANCELED"><code class="docutils literal notranslate"><span class="pre">AckStatus.CANCELED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.INVALID_ARGUMENT"><code class="docutils literal notranslate"><span class="pre">AckStatus.INVALID_ARGUMENT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.LIMIT_BYTES"><code class="docutils literal notranslate"><span class="pre">AckStatus.LIMIT_BYTES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.LIMIT_MESSAGES"><code class="docutils literal notranslate"><span class="pre">AckStatus.LIMIT_MESSAGES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.NOT_CONNECTED"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_CONNECTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.NOT_READY"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_READY</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.NOT_SUPPORTED"><code class="docutils literal notranslate"><span class="pre">AckStatus.NOT_SUPPORTED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.REFUSED"><code class="docutils literal notranslate"><span class="pre">AckStatus.REFUSED</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.TIMEOUT"><code class="docutils literal notranslate"><span class="pre">AckStatus.TIMEOUT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">AckStatus.UNKNOWN</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.AckStatus.UNRECOGNIZED"><code class="docutils literal notranslate"><span class="pre">AckStatus.UNRECOGNIZED</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.CompressionAlgorithmType"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.CompressionAlgorithmType.NONE"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType.NONE</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.CompressionAlgorithmType.ZLIB"><code class="docutils literal notranslate"><span class="pre">CompressionAlgorithmType.ZLIB</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType"><code class="docutils literal notranslate"><span class="pre">PropertyType</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.BOOL"><code class="docutils literal notranslate"><span class="pre">PropertyType.BOOL</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.CHAR"><code class="docutils literal notranslate"><span class="pre">PropertyType.CHAR</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.SHORT"><code class="docutils literal notranslate"><span class="pre">PropertyType.SHORT</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.INT32"><code class="docutils literal notranslate"><span class="pre">PropertyType.INT32</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.INT64"><code class="docutils literal notranslate"><span class="pre">PropertyType.INT64</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.STRING"><code class="docutils literal notranslate"><span class="pre">PropertyType.STRING</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.PropertyType.BINARY"><code class="docutils literal notranslate"><span class="pre">PropertyType.BINARY</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#exceptions">Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.exceptions.BrokerTimeoutError"><code class="docutils literal notranslate"><span class="pre">BrokerTimeoutError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#session-events">Session Events</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.SessionEvent"><code class="docutils literal notranslate"><span class="pre">SessionEvent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueEvent"><code class="docutils literal notranslate"><span class="pre">QueueEvent</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueEvent.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueEvent.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.Connected"><code class="docutils literal notranslate"><span class="pre">Connected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.Disconnected"><code class="docutils literal notranslate"><span class="pre">Disconnected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.ConnectionLost"><code class="docutils literal notranslate"><span class="pre">ConnectionLost</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.Reconnected"><code class="docutils literal notranslate"><span class="pre">Reconnected</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.StateRestored"><code class="docutils literal notranslate"><span class="pre">StateRestored</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.ConnectionTimeout"><code class="docutils literal notranslate"><span class="pre">ConnectionTimeout</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.HostUnhealthy"><code class="docutils literal notranslate"><span class="pre">HostUnhealthy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.HostHealthRestored"><code class="docutils literal notranslate"><span class="pre">HostHealthRestored</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueSuspended"><code class="docutils literal notranslate"><span class="pre">QueueSuspended</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueSuspended.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueSuspended.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueSuspendFailed"><code class="docutils literal notranslate"><span class="pre">QueueSuspendFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueSuspendFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueSuspendFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueResumed"><code class="docutils literal notranslate"><span class="pre">QueueResumed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueResumed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueResumed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueResumeFailed"><code class="docutils literal notranslate"><span class="pre">QueueResumeFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueResumeFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueResumeFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueReopened"><code class="docutils literal notranslate"><span class="pre">QueueReopened</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueReopened.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueReopened.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueReopenFailed"><code class="docutils literal notranslate"><span class="pre">QueueReopenFailed</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="api_reference.html#blazingmq.session_events.QueueReopenFailed.queue_uri"><code class="docutils literal notranslate"><span class="pre">QueueReopenFailed.queue_uri</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.SlowConsumerNormal"><code class="docutils literal notranslate"><span class="pre">SlowConsumerNormal</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.SlowConsumerHighWaterMark"><code class="docutils literal notranslate"><span class="pre">SlowConsumerHighWaterMark</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.Error"><code class="docutils literal notranslate"><span class="pre">Error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.InterfaceError"><code class="docutils literal notranslate"><span class="pre">InterfaceError</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#helper-functions">Helper Functions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.session_events.log_session_event"><code class="docutils literal notranslate"><span class="pre">log_session_event()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#module-blazingmq.testing">Testing Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.testing.HostHealth"><code class="docutils literal notranslate"><span class="pre">HostHealth</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#helper-types">Helper Types</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.PropertyTypeDict"><code class="docutils literal notranslate"><span class="pre">PropertyTypeDict</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="api_reference.html#blazingmq.PropertyValueDict"><code class="docutils literal notranslate"><span class="pre">PropertyValueDict</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BUILD.html">Build instructions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="BUILD.html#using-make-vs-tox">Using <code class="docutils literal notranslate"><span class="pre">make</span></code> vs. <code class="docutils literal notranslate"><span class="pre">tox</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="BUILD.html#local-development">Local Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BUILD.html#working-with-make-targets">Working with Make Targets</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="user_guide.html" class="btn btn-neutral float-right" title="User Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

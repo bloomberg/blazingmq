@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Guide &mdash; blazingmq 1.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=6efca38a"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="blazingmq" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            blazingmq
+          </a>
+              <div class="version">
+                1.2.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">User Guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#simple-producer">Simple Producer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#simple-consumer">Simple Consumer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#host-health-monitoring">Host Health Monitoring</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acknowledgments.html">Acknowledgments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message_properties.html">Message Properties</a></li>
+<li class="toctree-l1"><a class="reference internal" href="queue_options_and_configuration.html">Queue Options and Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="CHANGELOG.html">Changelog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="BUILD.html">Build instructions</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">blazingmq</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">User Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/user_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="user-guide">
+<h1>User Guide<a class="headerlink" href="#user-guide" title="Link to this heading"></a></h1>
+<p>The guide will walk you through building a simple producer and consumer using the
+<a class="reference internal" href="api_reference.html#module-blazingmq" title="blazingmq"><code class="xref py py-obj docutils literal notranslate"><span class="pre">blazingmq</span></code></a> package. This guide however does not cover some of the more complex
+concepts including message properties, queue options, queue configuration and the
+<a class="reference internal" href="api_reference.html#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> object. For reference documentation see the <a class="reference internal" href="api_reference.html#api-reference"><span class="std std-ref">API Reference</span></a>.</p>
+<section id="simple-producer">
+<h2>Simple Producer<a class="headerlink" href="#simple-producer" title="Link to this heading"></a></h2>
+<p>This is the basic example for a BlazingMQ producer posting a single message:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="n">queue_uri</span> <span class="o">=</span> <span class="s2">&quot;bmq://bmq.tutorial.workqueue/example_queue&quot;</span>
+<span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">write</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;Some message here&quot;</span><span class="p">)</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">close_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>First, you need create an instance of the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object.
+The only required positional argument is a callback that takes a single argument of
+type <a class="reference internal" href="api_reference.html#blazingmq.session_events.SessionEvent" title="blazingmq.session_events.SessionEvent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SessionEvent</span></code></a>. For example, the <code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> callback <em>could</em> look like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">on_session_event</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the following example however, we use the library function
+<a class="reference internal" href="api_reference.html#blazingmq.session_events.log_session_event" title="blazingmq.session_events.log_session_event"><code class="xref py py-obj docutils literal notranslate"><span class="pre">session_events.log_session_event</span></code></a> which provides some default configured logging for
+incoming session events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="c1"># session can be used inside this block</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There should be <strong>only one</strong> <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object per process since it is very
+heavyweight, holds a lot of state, and consumes both broker and operating system
+resources.</p>
+</div>
+<p>The session is the object responsible for network connections, thread pools, internal
+memory and storage. The context manager will make sure that its resources are
+correctly managed even if an exception is raised in the block. On enter, the context
+manager will ensure that the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> is started and valid and on exit, it will
+ensure that the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> is stopped and cleaned up.</p>
+<p>Using the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>, you can open a queue in write mode. Using <code class="docutils literal notranslate"><span class="pre">write=True</span></code> enables
+our queue for posting messages:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">write</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Once opened, you can use the queue URI to post a message on the session like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;Some message here&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="api_reference.html#blazingmq.Session.post" title="blazingmq.Session.post"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.post</span></code></a> optionally also takes an <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback if the user wants to
+receive an acknowledgment for the message being posted. This <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> callback will
+be invoked with the result of the post.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">blazingmq</span>
+
+<span class="k">def</span> <span class="nf">on_ack_callback</span><span class="p">(</span><span class="n">ack</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ack</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">AckStatus</span><span class="o">.</span><span class="n">SUCCESS</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Post failed&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Post success&quot;</span><span class="p">)</span>
+
+<span class="n">session</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="sa">b</span><span class="s2">&quot;Some message here&quot;</span><span class="p">,</span> <span class="n">on_ack</span><span class="o">=</span><span class="n">on_ack_callback</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is the only way for a producer to ensure that a message was received by the
+BlazingMQ framework via the BlazingMQ broker.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Invoking any queue related method on the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object that invoked
+the <code class="docutils literal notranslate"><span class="pre">on_ack</span></code> or <code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> callback will lead to a deadlock. That
+means invoking <a class="reference internal" href="api_reference.html#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.open_queue</span></code></a>, <a class="reference internal" href="api_reference.html#blazingmq.Session.configure_queue" title="blazingmq.Session.configure_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.configure_queue</span></code></a>, or
+<a class="reference internal" href="api_reference.html#blazingmq.Session.close_queue" title="blazingmq.Session.close_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.close_queue</span></code></a> in the callback will deadlock. Additionally, invoking
+<a class="reference internal" href="api_reference.html#blazingmq.Session.stop" title="blazingmq.Session.stop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.stop</span></code></a> will also deadlock. This implies that the only acceptable <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>
+method to be called from the callback is is <a class="reference internal" href="api_reference.html#blazingmq.Session.confirm" title="blazingmq.Session.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.confirm</span></code></a>, and consequently
+<a class="reference internal" href="api_reference.html#blazingmq.MessageHandle.confirm" title="blazingmq.MessageHandle.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MessageHandle.confirm</span></code></a>.</p>
+</div>
+<p>You can use this callback to implement a few useful patterns that are documented in
+the <a class="reference external" href="acknowledgments.html">Acknowledgments</a> section.</p>
+<p>Additionally, you can associate message properties with messages being posted. This
+is documented in <a class="reference external" href="message_properties.html">Message Properties</a></p>
+<p>Finally, you need to close the queue when you have finished using it.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">close_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Any acknowledgments that are still outstanding will be negatively acknowledged
+before <a class="reference internal" href="api_reference.html#blazingmq.Session.close_queue" title="blazingmq.Session.close_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.close_queue</span></code></a> returns.</p>
+</div>
+</section>
+<section id="simple-consumer">
+<span id="simple-consumer-label"></span><h2>Simple Consumer<a class="headerlink" href="#simple-consumer" title="Link to this heading"></a></h2>
+<p>This is a basic example for a BlazingMQ consumer, printing and confirming all
+incoming messages:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">blazingmq</span>
+
+<span class="kn">import</span> <span class="nn">signal</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="k">def</span> <span class="nf">on_message_callback</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">message_handle</span><span class="p">):</span>
+   <span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+   <span class="n">message_handle</span><span class="o">.</span><span class="n">confirm</span><span class="p">()</span>
+
+<span class="n">event</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Goodbye!&quot;</span><span class="p">)</span>
+    <span class="n">event</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">handler</span><span class="p">)</span>
+
+<span class="n">queue_uri</span> <span class="o">=</span> <span class="s2">&quot;bmq://bmq.tutorial.workqueue/example_queue&quot;</span>
+<span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">,</span>
+                       <span class="n">on_message</span><span class="o">=</span><span class="n">on_message_callback</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">event</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">configure_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">QueueOptions</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">session</span><span class="o">.</span><span class="n">close_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The first thing you need to do for any BlazingMQ application is to create the
+<a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>. Since we intend to consume messages from a queue opened in read
+mode, we also want to specify the optional <code class="docutils literal notranslate"><span class="pre">on_message</span></code> callback in addition
+to the required <code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> callback:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">blazingmq</span><span class="o">.</span><span class="n">session_events</span><span class="o">.</span><span class="n">log_session_event</span><span class="p">,</span>
+                       <span class="n">on_message</span><span class="o">=</span><span class="n">on_message_callback</span><span class="p">)</span> <span class="k">as</span> <span class="n">session</span><span class="p">:</span>
+    <span class="c1"># session can be used inside this block</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>There should be <strong>only one</strong> <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object per process since it is very
+heavyweight, holds a lot of state, and consumes both broker and operating system
+resources.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">on_message</span></code> callback will receive messages for <strong>all</strong> queues in read mode. If
+the program is reading from multiple queues, <a class="reference internal" href="api_reference.html#blazingmq.Message.queue_uri" title="blazingmq.Message.queue_uri"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message.queue_uri</span></code></a> will indicate which
+queue this message is associated with.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Invoking any queue related method on the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> object that invoked
+the <code class="docutils literal notranslate"><span class="pre">on_message</span></code> or <code class="docutils literal notranslate"><span class="pre">on_session_event</span></code> callback will lead to a deadlock. That
+means invoking <a class="reference internal" href="api_reference.html#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.open_queue</span></code></a>, <a class="reference internal" href="api_reference.html#blazingmq.Session.configure_queue" title="blazingmq.Session.configure_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.configure_queue</span></code></a>, or
+<a class="reference internal" href="api_reference.html#blazingmq.Session.close_queue" title="blazingmq.Session.close_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.close_queue</span></code></a> in the callback will deadlock. Additionally, invoking
+<a class="reference internal" href="api_reference.html#blazingmq.Session.stop" title="blazingmq.Session.stop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.stop</span></code></a> will also deadlock. This implies that the only acceptable <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a>
+method to be called from the callback is <a class="reference internal" href="api_reference.html#blazingmq.Session.confirm" title="blazingmq.Session.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.confirm</span></code></a>, and consequently
+<a class="reference internal" href="api_reference.html#blazingmq.MessageHandle.confirm" title="blazingmq.MessageHandle.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MessageHandle.confirm</span></code></a>.</p>
+</div>
+<p>You can then use the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> to open a queue. When you are opening a queue in read
+mode, you <em>must</em> specify an <code class="docutils literal notranslate"><span class="pre">on_message</span></code> callback to process incoming messages as
+documented above:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">open_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You can create a queue that is both a producer and a consumer,
+by passing in both <code class="docutils literal notranslate"><span class="pre">read=True</span></code> and <code class="docutils literal notranslate"><span class="pre">write=True</span></code>.</p>
+</div>
+<p>To open the queue you need to provide the URI that uniquely identifies the
+queue within the BlazingMQ framework
+(<code class="docutils literal notranslate"><span class="pre">bmq://bmq.tutorial.workqueue/example_queue</span></code>). To open it in read mode,
+<code class="docutils literal notranslate"><span class="pre">read=True</span></code> is used.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The <a class="reference internal" href="api_reference.html#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a> parameter has been elided, and
+the default is being used.</p>
+</div>
+<p>When <a class="reference internal" href="api_reference.html#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.open_queue</span></code></a> method returns, messages directed towards the specified
+queue will start being received in the <code class="docutils literal notranslate"><span class="pre">on_message_callback</span></code>.</p>
+<p>Once you get a <a class="reference internal" href="api_reference.html#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> object in the callback, you can inspect the data inside
+the message:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">message</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The data contained inside will be of type <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#bytes" title="(in Python v3.12)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bytes</span></code></a>. To correctly decode the data
+inside the <a class="reference internal" href="api_reference.html#blazingmq.Message" title="blazingmq.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a> object you need to know the encoding that the producer
+used when it placed the message in the queue. This could be JSON, XML, BER or
+any other type of encoding. From the perspective of BlazingMQ, the encoding
+does not matter since only bytes are transmitted.</p>
+<p>Assuming at this point the processing of the message was successful and you do
+not want to receive it again, you can call <a class="reference internal" href="api_reference.html#blazingmq.Session.confirm" title="blazingmq.Session.confirm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.confirm</span></code></a> with this message
+passed as an argument. This will notify the BlazingMQ broker that the message
+should not be re-delivered to another consumer.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">confirm</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Alternatively, an instance of <a class="reference internal" href="api_reference.html#blazingmq.MessageHandle" title="blazingmq.MessageHandle"><code class="xref py py-obj docutils literal notranslate"><span class="pre">blazingmq.MessageHandle</span></code></a> is received along with every message.
+It can be used to confirm the message with which it was received. Notice that you don’t
+need to pass the message as an argument.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">message_handle</span><span class="o">.</span><span class="n">confirm</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>At the end, when the queue has served its purpose, you want to first pause incoming
+messages and ensure in-flight callbacks to finish processing by calling
+<a class="reference internal" href="api_reference.html#blazingmq.Session.configure_queue" title="blazingmq.Session.configure_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.configure_queue</span></code></a> with zero-ed queue options:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">configure_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">,</span> <span class="n">blazingmq</span><span class="o">.</span><span class="n">QueueOptions</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>For more about <a class="reference internal" href="api_reference.html#blazingmq.QueueOptions" title="blazingmq.QueueOptions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">QueueOptions</span></code></a> and <a class="reference internal" href="api_reference.html#blazingmq.Session.configure_queue" title="blazingmq.Session.configure_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.configure_queue</span></code></a>, please refer to
+the <a class="reference external" href="queue_options_and_configuration.html">Queue Options</a> section.</p>
+<p>Finally, once this returns successfully, you can safely close it by calling
+<a class="reference internal" href="api_reference.html#blazingmq.Session.close_queue" title="blazingmq.Session.close_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.close_queue</span></code></a> with the appropriate queue URI:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">session</span><span class="o">.</span><span class="n">close_queue</span><span class="p">(</span><span class="n">queue_uri</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Once this method returns, you will no longer receive messages for the queue and the
+queue URI can no longer be used for any operations, other than <a class="reference internal" href="api_reference.html#blazingmq.Session.open_queue" title="blazingmq.Session.open_queue"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session.open_queue</span></code></a>.</p>
+</section>
+<section id="host-health-monitoring">
+<h2>Host Health Monitoring<a class="headerlink" href="#host-health-monitoring" title="Link to this heading"></a></h2>
+<p>You can pass <code class="docutils literal notranslate"><span class="pre">host_health_monitor=None</span></code> to the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> constructor if you
+don’t want any host health monitoring, in which case you won’t be able to use
+the <em>suspends_on_bad_host_health</em> queue option, and you will never get any host
+health related session events.</p>
+<p>For testing purposes, you can pass an instance of <a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor" title="blazingmq.BasicHealthMonitor"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BasicHealthMonitor</span></code></a> as the
+<em>host_health_monitor</em> argument for the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> constructor, and your tests
+can control whether the <a class="reference internal" href="api_reference.html#blazingmq.Session" title="blazingmq.Session"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Session</span></code></a> believes the host is healthy or not by
+calling the <a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor.set_healthy" title="blazingmq.BasicHealthMonitor.set_healthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_healthy</span></code></a> and <a class="reference internal" href="api_reference.html#blazingmq.BasicHealthMonitor.set_unhealthy" title="blazingmq.BasicHealthMonitor.set_unhealthy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_unhealthy</span></code></a> methods of that instance.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 0.7.0: </span>Host health monitoring and queue suspension</p>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="blazingmq" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2023, Bloomberg Finance L.P..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
