@@ -30,5 +30,5 @@ this page][edit-this-page] and then [send us a PR][contributing-guidelines]!
 [andy-pearce-clustering-message-flow]: https://www.andy-pearce.com/blog/posts/2024/Jul/blazingmq-clustering-and-message-flow/
 [andy-pearce-introduction]: https://www.andy-pearce.com/blog/posts/2024/Jun/blazingmq-introduction/
 [contributing-guidelines]: https://github.com/bloomberg/.github/blob/main/CONTRIBUTING.md
-[edit-this-page]: https://github.com/bloomberg/blazingmq/edit/main/docs/docs/community/index.md
+[edit-this-page]: https://github.com/bloomberg/blazingmq/edit/gh-pages/docs/community/index.md
 [get-in-touch]: https://github.com/bloomberg/blazingmq/discussions
