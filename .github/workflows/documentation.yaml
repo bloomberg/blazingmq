@@ -1,0 +1,51 @@
+name: Generate documentation
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  documentation-main:
+    name: Build Doxygen documentation on `main`
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      # Let the default GITHUB_TOKEN commit and push.
+      contents: write
+
+    steps:
+      - name: Checkout `main`
+        uses: actions/checkout@v4
+
+      - name: Clear out `docs/` subdirectory
+        run: rm -rf docs
+
+      - name: Checkout `gh-pages` into `docs/`
+        uses: actions/checkout@v4
+        with:
+          path: docs
+          ref: gh-pages
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy doxygen
+
+      - name: Build documentation
+        # Best way to pass Doxygen config overrides on the command line is
+        # using stdin.
+        run: |
+          ( cat Doxyfile ; echo "PROJECT_NUMBER=${{ github.sha }}" ) | doxygen -
+
+      - name: Commit new API documentation to `gh-pages`
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Update docs for `main`@${{ github.sha }}
+          repository: docs
