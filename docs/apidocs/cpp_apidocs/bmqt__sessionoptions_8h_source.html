@@ -1,714 +1,612 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2014-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqt_sessionoptions.h                                              -*-C++-*-
-#ifndef INCLUDED_BMQT_SESSIONOPTIONS
-#define INCLUDED_BMQT_SESSIONOPTIONS
-
-//@PURPOSE: Provide a value-semantic type to configure session with the broker.
-//
-//@CLASSES: bmqt::SessionOptions: options to configure a session with a
-//  BlazingMQ broker.
-//
-//@DESCRIPTION: &#39;bmqt::SessionOptions&#39; provides a value-semantic type,
-// &#39;SessionOptions&#39;, which is used to specify session-level configuration
-// parameters.
-//
-// Most applications should not need to change the parameters for creating a
-// &#39;Session&#39;; the default parameters are fine.
-//
-// The following parameters are supported:
-//: o !brokerUri!:
-//:      Address of the broker to connect to. Default is to connect to the
-//:      broker on the local host on the default port (30114).  The format is
-//:      &#39;tcp://&lt;host&gt;:port&#39;.  Host can be:
-//:      o an explicit hostname or &#39;localhost&#39;
-//:      o an ip, example 10.11.12.13
-//:      o a DNS entry.  In this case, the client will resolve the list of
-//:        addresses from that entry, and try to connect to one of them.
-//:        When the connection with the host goes down, it will automatically
-//:        immediately failover and reconnects to another entry from the
-//:        address list.
-//:      If the environment variable &#39;BMQ_BROKER_URI&#39; is set, then instances of
-//:      &#39;bmqa::Session&#39; will ignore the &#39;brokerUri&#39; field from the provided
-//:      &#39;SessionOptions&#39; and use the value from this environment variable
-//:      instead.
-//:
-//: o !processNameOverride!:
-//:      If not empty, use this value for the processName in the identity
-//:      message (useful for scripted language bindings).  This field is used
-//:      in the broker&#39;s logs to more easily identify the client&#39;s process.
-//:
-//: o !numProcessingThreads!:
-//:      Number of threads to use for processing events. Default is 1. Note
-//:      that this setting has an effect only if providing a
-//:      &#39;SessionEventHandler&#39; to the session.
-//:
-//: o !blobBufferSize!:
-//:      Size (in bytes) of the blob buffers to use. Default value is 4k.
-//:
-//: o !channelHighWatermark!:
-//:      Size (in bytes) to use for write cache high watermark on the
-//:      channel. Default value is 128MB. This value is set on the
-//:      &#39;writeCacheHiWatermark&#39; of the &#39;btemt_ChannelPoolConfiguration&#39; object
-//:      used by the session with the broker. Note that BlazingMQ reserves 4MB
-//:      of this value for control message, so the actual watermark for data
-//:      published is &#39;channelHighWatermark - 4MB&#39;.
-//:
-//: o !statsDumpInterval!:
-//:      Interval (in seconds) at which to dump stats in the logs. Set to 0 to
-//:      disable recurring dump of stats (final stats are always dumped at end
-//:      of session). Default is 5min. The value must be a multiple of 30s, in
-//:      the range [0s - 60min].
-//:
-//: o !connectTimeout!,
-//: o !disconnetTimeout!,
-//: o !openQueueTimeout!,
-//: o !configureQueueTimeout!,
-//: o !closeQueueTimeout!,
-//:      Default timeout to use for various operations.
-//:
-//: o !eventQueueLowWatermark!,
-//: o !eventQueueHighWatermark!,
-//:      Parameters to configure the EventQueue notification watermarks
-//:      thresholds. The EventQueue is the buffer of all incoming events from
-//:      the broker (PUSH and ACK messages as well as session and queue
-//:      operations result) pending being processed by the application code.  A
-//:      warning (&#39;bmqt::SessionEventType::e_SLOWCONSUMER_HIGHWATERMARK&#39;) is
-//:      emitted when the buffer reaches the &#39;highWatermark&#39; value, and a
-//:      notification (&#39;bmqt::SessionEventType::e_SLOWCONSUMER_NORMAL&#39;) is
-//:      sent when the buffer is back to the &#39;lowWatermark&#39;. The
-//:      &#39;highWatermark&#39; typically would be reached in case of either a very
-//:      slow consumer, causing events to accumulate in the buffer, or a huge
-//:      burst of data. Setting the &#39;highWatermark&#39; to a high value should be
-//:      done cautiously because it will potentially hide slowness of the
-//:      consumer because of the enqueuing of PUSH events for a consumer, ACK
-//:      events for a producer as well as all system events to the buffer
-//:      (meaning that the messages may have a huge latency). Note, it is also
-//:      recommended to have a reasonable distance between &#39;highWatermark&#39; and
-//:      &#39;lowWatermark&#39; values to avoid a constant back and forth toggling of
-//:      state resulting from push pop of events.
-//:
-//: o !hostHealthMonitor!:
-//:      Optional instance of a class derived from &#39;bmqpi::HostHealthMonitor&#39;,
-//:      responsible for notifying the &#39;Session&#39; when the health of the host
-//:      machine has changed. A &#39;hostHealthMonitor&#39; must be specified, in order
-//:      for queues opened through the session to suspend on unhealthy hosts.
-//:
-//: o !traceOptions!:
-//:      Provides the `bmqpi::DTContext` and `bmqpi::DTTracer` objects required
-//:      for integration with a Distributed Trace framework. If these objects
-//:      are provided, then the session will use them to create &quot;spans&quot; to
-//:      represent requests made to the BlazingMQ broker on behalf of
-//:      operations initiated by the client. This includes session-level
-//:      operations (e.g., Session-Start, Session-Stop) as well as queue-level
-//:      operations (e.g., Queue-Open, Queue-Configure, Queue-Close).
-//
-
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-
-// BDE
-#include &lt;bdlt_timeunitratio.h&gt;
-#include &lt;bsl_iosfwd.h&gt;
-#include &lt;bsl_memory.h&gt;
-#include &lt;bsl_string.h&gt;
-#include &lt;bslma_allocator.h&gt;
-#include &lt;bslma_usesbslmaallocator.h&gt;
-#include &lt;bslmf_nestedtraitdeclaration.h&gt;
-#include &lt;bsls_annotation.h&gt;
-#include &lt;bsls_assert.h&gt;
-#include &lt;bsls_timeinterval.h&gt;
-#include &lt;bsls_types.h&gt;
-
-namespace BloombergLP {
-
-// FORWARD DECLARATIONS
-namespace bmqpi { class DTContext; }
-namespace bmqpi { class DTTracer; }
-namespace bmqpi { class HostHealthMonitor; }
-
-namespace bmqt {
-
-
-                            // ====================
-                            // class SessionOptions
-                            // ====================
-
-class SessionOptions {
-    // value-semantic type for options to configure a session with a BlazingMQ
-    // broker
-
-  public:
-    // CONSTANTS
-    static const char k_BROKER_DEFAULT_URI[];
-                      // Default URI of the &#39;bmqbrkr&#39; to connect to.
-
-    static const int  k_BROKER_DEFAULT_PORT = 30114;
-                      // Default port the &#39;bmqbrkr&#39; is listening to for client
-                      // to connect.
-
-    static const int  k_QUEUE_OPERATION_DEFAULT_TIMEOUT =
-                                 5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;
-                      // The default, and minimum recommended, value for queue
-                      // operations (open, configure, close).
-
-  private:
-    // DATA
-    bsl::string                               d_brokerUri;
-                                        // URI of the broker to connect to (ex:
-                                        // &#39;tcp://localhost:30114&#39;).  Default
-                                        // is to connect to the local broker.
-
-    bsl::string                               d_processNameOverride;
-                                        // If not empty, use this value for the
-                                        // processName in the identity message
-                                        // (useful for scripted language
-                                        // bindings).
-
-    int                                       d_numProcessingThreads;
-                                        // Number of processing threads.
-                                        // Default is 1 thread.
-
-    int                                       d_blobBufferSize;
-                                        // Size of the blobs buffer.
-
-    bsls::Types::Int64                        d_channelHighWatermark;
-                                        // Write cache high watermark to use on
-                                        // the channel
-
-    bsls::TimeInterval                        d_statsDumpInterval;
-                                        // Interval at which to dump stats to
-                                        // log file (0 to disable dump)
-
-    bsls::TimeInterval                        d_connectTimeout;
-
-    bsls::TimeInterval                        d_disconnectTimeout;
-
-    bsls::TimeInterval                        d_openQueueTimeout;
-
-    bsls::TimeInterval                        d_configureQueueTimeout;
-
-    bsls::TimeInterval                        d_closeQueueTimeout;
-                                        // Timeout for operations of the
-                                        // corresponding type.
-
-    int                                       d_eventQueueLowWatermark;
-
-    int                                       d_eventQueueHighWatermark;
-                                        // Parameters to configure the
-                                        // EventQueue.
-
-    int                                       d_eventQueueSize;
-                                        // DEPRECATED: This parameter is no
-                                        // longer relevant and will be removed
-                                        // in future release of libbmq.
-
-    bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt; d_hostHealthMonitor_sp;
-
-    bsl::shared_ptr&lt;bmqpi::DTContext&gt;         d_dtContext_sp;
-    bsl::shared_ptr&lt;bmqpi::DTTracer&gt;          d_dtTracer_sp;
-
-  public:
-     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(SessionOptions, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit SessionOptions(bslma::Allocator *allocator = 0);
-        // Create a new SessionOptions using the optionally specified
-        // &#39;allocator&#39;.
-
-    SessionOptions(const SessionOptions&amp;  other,
-                   bslma::Allocator      *allocator = 0);
-        // Create a new SessionOptions by copying values from the specified
-        // &#39;other&#39;, using the optionally specified &#39;allocator&#39;.
-
-    // MANIPULATORS
-    SessionOptions&amp; setBrokerUri(const bslstl::StringRef&amp; value);
-        // Set the broker URI to the specified &#39;value&#39;.
-
-    SessionOptions&amp;
-    setProcessNameOverride(const bslstl::StringRef&amp; value);
-        // Set an override of the proces name to the specified &#39;value&#39;.
-
-    SessionOptions&amp; setNumProcessingThreads(int value);
-        // Set the number of processing threads to the specified &#39;value&#39;.
-
-    SessionOptions&amp; setBlobBufferSize(int value);
-        // Set the specified &#39;value&#39; for the size of blobs buffers.
-
-    SessionOptions&amp; setChannelHighWatermark(bsls::Types::Int64 value);
-        // Set the specified &#39;value&#39; (in bytes) for the channel high
-        // watermark.  The behavior is undefined unless
-        // &#39;8 * 1024 * 1024 &lt; value&#39;.
-
-    SessionOptions&amp; setStatsDumpInterval(const bsls::TimeInterval&amp; value);
-        // Set the statsDumpInterval to the specified &#39;value&#39;. The behavior is
-        // undefined unless &#39;value&#39; is a multiple of 30s and less than 60
-        // minutes.
-
-    SessionOptions&amp; setConnectTimeout(const bsls::TimeInterval&amp; value);
-    SessionOptions&amp; setDisconnectTimeout(const bsls::TimeInterval&amp; value);
-    SessionOptions&amp; setOpenQueueTimeout(const bsls::TimeInterval&amp; value);
-    SessionOptions&amp; setConfigureQueueTimeout(const bsls::TimeInterval&amp; value);
-    SessionOptions&amp; setCloseQueueTimeout(const bsls::TimeInterval&amp; value);
-        // Set the timeout for operations of the corresponding type to the
-        // specified &#39;value&#39;.
-
-    SessionOptions&amp;
-    setHostHealthMonitor(
-                     const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; monitor);
-        // Set a &#39;HostHealthMonitor&#39; object that will notify the session when
-        // the health of the host has changed.
-
-    SessionOptions&amp;
-    setTraceOptions(const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; dtContext,
-                    const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp;  dtTracer);
-        // Set the &#39;DTContext&#39; and &#39;DTTracer&#39; objects needed to integrate with
-        // Distributed Trace frameworks. Either both arguments must point to
-        // valid instances, or both must be empty shared_ptr&#39;s; if either is an
-        // empty shared_ptr and the other is not, then behavior is undefined.
-
-    SessionOptions&amp; configureEventQueue(int queueSize,
-                                        int lowWatermark,
-                                        int highWatermark);
-        // DEPRECATED: Use &#39;configureEventQueue(int lowWatermark,
-        //                                      int highWatermark)&#39;
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    SessionOptions&amp; configureEventQueue(int lowWatermark, int highWatermark);
-        // Configure the EventQueue notification watermarks thresholds with the
-        // specified &#39;lowWatermark&#39; and &#39;highWatermark&#39; value.  Refer to the
-        // component level documentation for explanation of those watermarks.
-        // The behavior is undefined unless &#39;lowWatermark &lt; highWatermark&#39;.
-
-    // ACCESSORS
-    const bsl::string&amp; brokerUri() const;
-        // Get the broker URI.
-
-    const bsl::string&amp; processNameOverride() const;
-        // Return the process name override.
-
-    int numProcessingThreads() const;
-        // Get the number of processing threads.
-
-    int blobBufferSize() const;
-        // Get the size of the blobs buffer.
-
-    bsls::Types::Int64 channelHighWatermark() const;
-        // Get the channel high watermark.
-
-    const bsls::TimeInterval&amp; statsDumpInterval() const;
-        // Get the stats dump interval.
-
-    const bsls::TimeInterval&amp; connectTimeout() const;
-    const bsls::TimeInterval&amp; disconnectTimeout() const;
-    const bsls::TimeInterval&amp; openQueueTimeout() const;
-    const bsls::TimeInterval&amp; configureQueueTimeout() const;
-    const bsls::TimeInterval&amp; closeQueueTimeout() const;
-        // Get the timeout for the operations of the corresponding type.
-
-    const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; hostHealthMonitor() const;
-
-    const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; traceContext() const;
-        // Get the Distributed Trace context object.
-
-    const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp; tracer() const;
-        // Get the Distributed Trace tracer object.
-
-    int eventQueueLowWatermark() const;
-    int eventQueueHighWatermark() const;
-
-    int eventQueueSize() const;
-        // DEPRECATED: This parameter is no longer relevant and will be removed
-        // in future release of libbmq.
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-};
-
-// FREE OPERATORS
-bool operator==(const SessionOptions&amp; lhs, const SessionOptions&amp; rhs);
-    // Return &#39;true&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return false otherwise.
-
-bool operator!=(const SessionOptions&amp; lhs, const SessionOptions&amp; rhs);
-    // Return &#39;false&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return &#39;true&#39; otherwise.
-
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const SessionOptions&amp; rhs);
-    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
-    // reference to the modifiable &#39;stream&#39;.
-
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-
-                            // --------------------
-                            // class SessionOptions
-                            // --------------------
-
-// MANIPULATORS
-inline
-SessionOptions&amp;
-SessionOptions::setBrokerUri(const bslstl::StringRef&amp; value)
-{
-    d_brokerUri.assign(value.data(), value.length());
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setProcessNameOverride(const bslstl::StringRef&amp; value)
-{
-    d_processNameOverride.assign(value.data(), value.length());
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setNumProcessingThreads(int value)
-{
-    d_numProcessingThreads = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setBlobBufferSize(int value)
-{
-    d_blobBufferSize = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setChannelHighWatermark(bsls::Types::Int64 value)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(8 * 1024 * 1024 &lt; value);
-        // We reserve 4MB for control message (see
-        // &#39;bmqimp::BrokerSession::k_CONTROL_DATA_WATERMARK_EXTRA&#39;) so make
-        // sure the provided value is greater than it.
-
-    d_channelHighWatermark = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setStatsDumpInterval(const bsls::TimeInterval&amp; value)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(    value.seconds() % 30 == 0
-                    &amp;&amp; &quot;value must be a multiple of 30s&quot;);
-    BSLS_ASSERT_OPT(     value.seconds()
-                       &lt; bdlt::TimeUnitRatio::k_SECONDS_PER_HOUR
-                    &amp;&amp; &quot;value must be &lt; 10 min&quot;);
-
-    d_statsDumpInterval = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setConnectTimeout(const bsls::TimeInterval&amp; value)
-{
-    d_connectTimeout = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setDisconnectTimeout(const bsls::TimeInterval&amp; value)
-{
-    d_disconnectTimeout = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setOpenQueueTimeout(const bsls::TimeInterval&amp; value)
-{
-    d_openQueueTimeout = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setConfigureQueueTimeout(const bsls::TimeInterval&amp; value)
-{
-    d_configureQueueTimeout = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setCloseQueueTimeout(const bsls::TimeInterval&amp; value)
-{
-    d_closeQueueTimeout = value;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setHostHealthMonitor(
-                      const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; monitor)
-{
-    d_hostHealthMonitor_sp = monitor;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::setTraceOptions(
-                              const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; context,
-                              const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp;  tracer)
-{
-    BSLS_ASSERT_OPT((context &amp;&amp; tracer) || (!context &amp;&amp; !tracer));
-
-    d_dtContext_sp = context;
-    d_dtTracer_sp  = tracer;
-    return *this;
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::configureEventQueue(int queueSize,
-                                    int lowWatermark,
-                                    int highWatermark)
-{
-    d_eventQueueSize = queueSize;
-    return configureEventQueue(lowWatermark, highWatermark);
-}
-
-inline
-SessionOptions&amp;
-SessionOptions::configureEventQueue(int lowWatermark,
-                                    int highWatermark)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_OPT(lowWatermark &lt; highWatermark);
-
-    d_eventQueueLowWatermark  = lowWatermark;
-    d_eventQueueHighWatermark = highWatermark;
-
-    return *this;
-}
-
-// ACCESSORS
-inline
-const bsl::string&amp;
-SessionOptions::brokerUri() const
-{
-    return d_brokerUri;
-}
-
-inline
-const bsl::string&amp;
-SessionOptions::processNameOverride() const
-{
-    return d_processNameOverride;
-}
-
-inline
-int
-SessionOptions::numProcessingThreads() const
-{
-    return d_numProcessingThreads;
-}
-
-inline
-int
-SessionOptions::blobBufferSize() const
-{
-    return d_blobBufferSize;
-}
-
-inline
-bsls::Types::Int64
-SessionOptions::channelHighWatermark() const
-{
-    return d_channelHighWatermark;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::statsDumpInterval() const
-{
-    return d_statsDumpInterval;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::connectTimeout() const
-{
-    return d_connectTimeout;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::disconnectTimeout() const
-{
-    return d_disconnectTimeout;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::openQueueTimeout() const
-{
-    return d_openQueueTimeout;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::configureQueueTimeout() const
-{
-    return d_configureQueueTimeout;
-}
-
-inline
-const bsls::TimeInterval&amp;
-SessionOptions::closeQueueTimeout() const
-{
-    return d_closeQueueTimeout;
-}
-
-inline
-const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp;
-SessionOptions::hostHealthMonitor() const
-{
-    return d_hostHealthMonitor_sp;
-}
-
-inline
-const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp;
-SessionOptions::traceContext() const
-{
-    return d_dtContext_sp;
-}
-
-inline
-const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp;
-SessionOptions::tracer() const
-{
-    return d_dtTracer_sp;
-}
-
-inline
-int
-SessionOptions::eventQueueLowWatermark() const
-{
-    return d_eventQueueLowWatermark;
-}
-
-inline
-int
-SessionOptions::eventQueueHighWatermark() const
-{
-    return d_eventQueueHighWatermark;
-}
-
-inline
-int
-SessionOptions::eventQueueSize() const
-{
-    return d_eventQueueSize;
-}
-
-}  // close package namespace
-
-                            // --------------------
-                            // class SessionOptions
-                            // --------------------
-
-inline
-bool
-bmqt::operator==(const bmqt::SessionOptions&amp; lhs,
-                 const bmqt::SessionOptions&amp; rhs)
-{
-    return    lhs.brokerUri()               == rhs.brokerUri()
-           &amp;&amp; lhs.numProcessingThreads()    == rhs.numProcessingThreads()
-           &amp;&amp; lhs.blobBufferSize()          == rhs.blobBufferSize()
-           &amp;&amp; lhs.channelHighWatermark()    == rhs.channelHighWatermark()
-           &amp;&amp; lhs.statsDumpInterval()       == rhs.statsDumpInterval()
-           &amp;&amp; lhs.connectTimeout()          == rhs.connectTimeout()
-           &amp;&amp; lhs.openQueueTimeout()        == rhs.openQueueTimeout()
-           &amp;&amp; lhs.configureQueueTimeout()   == rhs.configureQueueTimeout()
-           &amp;&amp; lhs.closeQueueTimeout()       == rhs.closeQueueTimeout()
-           &amp;&amp; lhs.eventQueueLowWatermark()  == rhs.eventQueueLowWatermark()
-           &amp;&amp; lhs.eventQueueHighWatermark() == rhs.eventQueueHighWatermark()
-           &amp;&amp; lhs.hostHealthMonitor()       == rhs.hostHealthMonitor()
-           &amp;&amp; lhs.traceContext()            == rhs.traceContext()
-           &amp;&amp; lhs.tracer()                  == rhs.tracer();
-}
-
-inline
-bool
-bmqt::operator!=(const bmqt::SessionOptions&amp; lhs,
-                 const bmqt::SessionOptions&amp; rhs)
-{
-    return    lhs.brokerUri()               != rhs.brokerUri()
-           || lhs.numProcessingThreads()    != rhs.numProcessingThreads()
-           || lhs.blobBufferSize()          != rhs.blobBufferSize()
-           || lhs.channelHighWatermark()    != rhs.channelHighWatermark()
-           || lhs.statsDumpInterval()       != rhs.statsDumpInterval()
-           || lhs.connectTimeout()          != rhs.connectTimeout()
-           || lhs.openQueueTimeout()        != rhs.openQueueTimeout()
-           || lhs.configureQueueTimeout()   != rhs.configureQueueTimeout()
-           || lhs.closeQueueTimeout()       != rhs.closeQueueTimeout()
-           || lhs.eventQueueLowWatermark()  != rhs.eventQueueLowWatermark()
-           || lhs.eventQueueHighWatermark() != rhs.eventQueueHighWatermark()
-           || lhs.hostHealthMonitor()       != rhs.hostHealthMonitor()
-           || lhs.traceContext()            != rhs.traceContext()
-           || lhs.tracer()                  != rhs.tracer();
-}
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;               stream,
-                 const bmqt::SessionOptions&amp; rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqt/bmqt_sessionoptions.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqt__sessionoptions_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqt_sessionoptions.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqt__sessionoptions_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2014-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqt_sessionoptions.h                                              -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQT_SESSIONOPTIONS</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQT_SESSIONOPTIONS</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160; </div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
+<div class="line"><a name="l00127"></a><span class="lineno">  127</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;<span class="preprocessor">#include &lt;bdlt_timeunitratio.h&gt;</span></div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;<span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="preprocessor">#include &lt;bsl_memory.h&gt;</span></div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;<span class="preprocessor">#include &lt;bslma_usesbslmaallocator.h&gt;</span></div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;<span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="preprocessor">#include &lt;bsls_annotation.h&gt;</span></div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="preprocessor">#include &lt;bsls_assert.h&gt;</span></div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;<span class="preprocessor">#include &lt;bsls_timeinterval.h&gt;</span></div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;<span class="preprocessor">#include &lt;bsls_types.h&gt;</span></div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;<span class="comment">// FORWARD DECLARATIONS</span></div>
+<div class="line"><a name="l00143"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqpi.html">  143</a></span>&#160;<span class="keyword">namespace </span>bmqpi {</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqpi_1_1DTContext.html">DTContext</a>;</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;}</div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;<span class="keyword">namespace </span>bmqpi {</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;<span class="keyword">class </span>DTTracer;</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;}</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;<span class="keyword">namespace </span>bmqpi {</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;<span class="keyword">class </span>HostHealthMonitor;</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;}</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160; </div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160;<span class="comment">// ====================</span></div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;<span class="comment">// class SessionOptions</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno">  157</span>&#160;<span class="comment">// ====================</span></div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160; </div>
+<div class="line"><a name="l00161"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">  161</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a> {</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160;    <span class="comment">// CONSTANTS</span></div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
+<div class="line"><a name="l00166"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4bd9231e3a225dfb568b15be6f11359b">  166</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4bd9231e3a225dfb568b15be6f11359b">k_BROKER_DEFAULT_URI</a>[];</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00169"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab58cccb280d4c12151bdc1dfbc8a8559">  169</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab58cccb280d4c12151bdc1dfbc8a8559">k_BROKER_DEFAULT_PORT</a> = 30114;</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160; </div>
+<div class="line"><a name="l00173"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a8cc1f347fab4f8fce9b4405c84ccb9d7">  173</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a8cc1f347fab4f8fce9b4405c84ccb9d7">k_QUEUE_OPERATION_DEFAULT_TIMEOUT</a> =</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160;        5 * bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE;</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160; </div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160;    <span class="comment">// DATA</span></div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;    bsl::string d_brokerUri;</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    bsl::string d_processNameOverride;</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160; </div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    <span class="keywordtype">int</span> d_numProcessingThreads;</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;    <span class="keywordtype">int</span> d_blobBufferSize;</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;    bsls::Types::Int64 d_channelHighWatermark;</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;    bsls::TimeInterval d_statsDumpInterval;</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;    bsls::TimeInterval d_connectTimeout;</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160; </div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    bsls::TimeInterval d_disconnectTimeout;</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;    bsls::TimeInterval d_openQueueTimeout;</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160; </div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160;    bsls::TimeInterval d_configureQueueTimeout;</div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160; </div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    bsls::TimeInterval d_closeQueueTimeout;</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;    <span class="keywordtype">int</span> d_eventQueueLowWatermark;</div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;    <span class="keywordtype">int</span> d_eventQueueHighWatermark;</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160; </div>
+<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;    <span class="keywordtype">int</span> d_eventQueueSize;</div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;    bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt; d_hostHealthMonitor_sp;</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160; </div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160;    bsl::shared_ptr&lt;bmqpi::DTContext&gt; d_dtContext_sp;</div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;    bsl::shared_ptr&lt;bmqpi::DTTracer&gt;  d_dtTracer_sp;</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160; </div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160; </div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160; </div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;    </div>
+<div class="line"><a name="l00232"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a255bd2874882db309fc98bdfcfa898a7">  232</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>(bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
+<div class="line"><a name="l00236"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ae9934f5717db17ab6faa6b4a292cb318">  236</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>(const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; other,</div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160;                   bslma::Allocator*     allocator = 0);</div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160; </div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160; </div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6d66d9b77fd96366f363c688766f6601">setBrokerUri</a>(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160; </div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4773df83f2d86ee9d6261cb69a998d26">setProcessNameOverride</a>(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160; </div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aec1cd229bdfe8c073ca14795a83dd506">setNumProcessingThreads</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#affa6f60eeaf0f873ad29fa6e3561e67a">setBlobBufferSize</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160; </div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a0ee20788e9cd4b2df5daa0f723376b22">setChannelHighWatermark</a>(bsls::Types::Int64 value);</div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aca25329ebb998ba34ec0fefe253621a2">setStatsDumpInterval</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab93d971ed89dbfe106f892062f4c0158">setConnectTimeout</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#afc5169e076cc49ee5cae3486a3e51b6f">setDisconnectTimeout</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160; </div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a5b9bf86e49c8ed6ae8b454281f23d443">setOpenQueueTimeout</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160; </div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a406d1f9a2e777d52715e2ebd1079e41f">setConfigureQueueTimeout</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160; </div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1fa26f48d062e50b6bc35f2e70ba61ad">setCloseQueueTimeout</a>(const bsls::TimeInterval&amp; value);</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160; </div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a79a67fc682dfab108308f4dca40cc06c">setHostHealthMonitor</a>(</div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;        const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; monitor);</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6ee3200d8232342d13a55cf50ad3e34d">setTraceOptions</a>(const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; dtContext,</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;                    const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp;  dtTracer);</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160; </div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">configureEventQueue</a>(<span class="keywordtype">int</span> queueSize, <span class="keywordtype">int</span> lowWatermark, <span class="keywordtype">int</span> highWatermark);</div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160; </div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">configureEventQueue</a>(<span class="keywordtype">int</span> lowWatermark, <span class="keywordtype">int</span> highWatermark);</div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160; </div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;    const bsl::<span class="keywordtype">string</span>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">brokerUri</a>() const;</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160; </div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;    const bsl::<span class="keywordtype">string</span>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a74bf5a00824996edb4ababbebda3fe35">processNameOverride</a>() const;</div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160; </div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">numProcessingThreads</a>() const;</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160; </div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">blobBufferSize</a>() const;</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160; </div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;    bsls::Types::Int64 <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">channelHighWatermark</a>() const;</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">statsDumpInterval</a>() const;</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">connectTimeout</a>() const;</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160; </div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a48c24d531d28483e7e5022e6ea7483ef">disconnectTimeout</a>() const;</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160; </div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">openQueueTimeout</a>() const;</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160; </div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">configureQueueTimeout</a>() const;</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;    const bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">closeQueueTimeout</a>() const;</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160; </div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;    const bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">hostHealthMonitor</a>() const;</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160; </div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;    const bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">traceContext</a>() const;</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160; </div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;    const bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>() const;</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160; </div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">eventQueueLowWatermark</a>() const;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">eventQueueHighWatermark</a>() const;</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a2955049bad74660af651fc4c84377cba">eventQueueSize</a>() const;</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160; </div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00367"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a704f34f5c5b5c5f06f44a3fc975305a7">  367</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a704f34f5c5b5c5f06f44a3fc975305a7">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) const;</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;};</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160; </div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
+<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160;<span class="keywordtype">bool</span> operator==(const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160; </div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;<span class="keywordtype">bool</span> operator!=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160; </div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160; </div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160; </div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;<span class="comment">// class SessionOptions</span></div>
+<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160; </div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;<span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160;inline <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00396"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6d66d9b77fd96366f363c688766f6601">  396</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>::<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6d66d9b77fd96366f363c688766f6601">setBrokerUri</a>(const bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00397"></a><span class="lineno">  397</span>&#160;{</div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;    d_brokerUri.assign(value.data(), value.length());</div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;}</div>
+<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160; </div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00403"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4773df83f2d86ee9d6261cb69a998d26">  403</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4773df83f2d86ee9d6261cb69a998d26">SessionOptions::setProcessNameOverride</a>(<span class="keyword">const</span> bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;{</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    d_processNameOverride.assign(value.data(), value.length());</div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;}</div>
+<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
+<div class="line"><a name="l00409"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aec1cd229bdfe8c073ca14795a83dd506">  409</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aec1cd229bdfe8c073ca14795a83dd506">SessionOptions::setNumProcessingThreads</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;{</div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;    d_numProcessingThreads = value;</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;}</div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160; </div>
+<div class="line"><a name="l00415"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#affa6f60eeaf0f873ad29fa6e3561e67a">  415</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#affa6f60eeaf0f873ad29fa6e3561e67a">SessionOptions::setBlobBufferSize</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;{</div>
+<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160;    d_blobBufferSize = value;</div>
+<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;}</div>
+<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160; </div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00422"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a0ee20788e9cd4b2df5daa0f723376b22">  422</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a0ee20788e9cd4b2df5daa0f723376b22">SessionOptions::setChannelHighWatermark</a>(bsls::Types::Int64 value)</div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160;{</div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;    <span class="comment">// PRECONDITIONS</span></div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;    BSLS_ASSERT_OPT(8 * 1024 * 1024 &lt; value);</div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;    <span class="comment">// We reserve 4MB for control message (see</span></div>
+<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;    <span class="comment">// &#39;bmqimp::BrokerSession::k_CONTROL_DATA_WATERMARK_EXTRA&#39;) so make</span></div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;    <span class="comment">// sure the provided value is greater than it.</span></div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160; </div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;    d_channelHighWatermark = value;</div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;}</div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160; </div>
+<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00435"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aca25329ebb998ba34ec0fefe253621a2">  435</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aca25329ebb998ba34ec0fefe253621a2">SessionOptions::setStatsDumpInterval</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;{</div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;    <span class="comment">// PRECONDITIONS</span></div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;    BSLS_ASSERT_OPT(value.seconds() % 30 == 0 &amp;&amp;</div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;                    <span class="stringliteral">&quot;value must be a multiple of 30s&quot;</span>);</div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;    BSLS_ASSERT_OPT(value.seconds() &lt;</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;                        bdlt::TimeUnitRatio::k_SECONDS_PER_HOUR &amp;&amp;</div>
+<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;                    <span class="stringliteral">&quot;value must be &lt; 10 min&quot;</span>);</div>
+<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160; </div>
+<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;    d_statsDumpInterval = value;</div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;}</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160; </div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00449"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab93d971ed89dbfe106f892062f4c0158">  449</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab93d971ed89dbfe106f892062f4c0158">SessionOptions::setConnectTimeout</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;{</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;    d_connectTimeout = value;</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160;}</div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160; </div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00456"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#afc5169e076cc49ee5cae3486a3e51b6f">  456</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#afc5169e076cc49ee5cae3486a3e51b6f">SessionOptions::setDisconnectTimeout</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;{</div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;    d_disconnectTimeout = value;</div>
+<div class="line"><a name="l00459"></a><span class="lineno">  459</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;}</div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160; </div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00463"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a5b9bf86e49c8ed6ae8b454281f23d443">  463</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a5b9bf86e49c8ed6ae8b454281f23d443">SessionOptions::setOpenQueueTimeout</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;{</div>
+<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;    d_openQueueTimeout = value;</div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;}</div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
+<div class="line"><a name="l00469"></a><span class="lineno">  469</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00470"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a406d1f9a2e777d52715e2ebd1079e41f">  470</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a406d1f9a2e777d52715e2ebd1079e41f">SessionOptions::setConfigureQueueTimeout</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;{</div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;    d_configureQueueTimeout = value;</div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160;}</div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160; </div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp;</div>
+<div class="line"><a name="l00477"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1fa26f48d062e50b6bc35f2e70ba61ad">  477</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1fa26f48d062e50b6bc35f2e70ba61ad">SessionOptions::setCloseQueueTimeout</a>(<span class="keyword">const</span> bsls::TimeInterval&amp; value)</div>
+<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160;{</div>
+<div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;    d_closeQueueTimeout = value;</div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;}</div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160; </div>
+<div class="line"><a name="l00483"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a79a67fc682dfab108308f4dca40cc06c">  483</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a79a67fc682dfab108308f4dca40cc06c">SessionOptions::setHostHealthMonitor</a>(</div>
+<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;    <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp; monitor)</div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;{</div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;    d_hostHealthMonitor_sp = monitor;</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;}</div>
+<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160; </div>
+<div class="line"><a name="l00490"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6ee3200d8232342d13a55cf50ad3e34d">  490</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6ee3200d8232342d13a55cf50ad3e34d">SessionOptions::setTraceOptions</a>(</div>
+<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;    <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp; context,</div>
+<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160;    <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp;  <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>)</div>
+<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160;{</div>
+<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160;    BSLS_ASSERT_OPT((context &amp;&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>) || (!context &amp;&amp; !<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>));</div>
+<div class="line"><a name="l00495"></a><span class="lineno">  495</span>&#160; </div>
+<div class="line"><a name="l00496"></a><span class="lineno">  496</span>&#160;    d_dtContext_sp = context;</div>
+<div class="line"><a name="l00497"></a><span class="lineno">  497</span>&#160;    d_dtTracer_sp  = <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>;</div>
+<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;}</div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160; </div>
+<div class="line"><a name="l00501"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">  501</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">SessionOptions::configureEventQueue</a>(<span class="keywordtype">int</span> queueSize,</div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;                                                           <span class="keywordtype">int</span> lowWatermark,</div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;                                                           <span class="keywordtype">int</span> highWatermark)</div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;{</div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;    d_eventQueueSize = queueSize;</div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">configureEventQueue</a>(lowWatermark, highWatermark);</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;}</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160; </div>
+<div class="line"><a name="l00509"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a5079adfe01673608087500302d85d701">  509</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">SessionOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">SessionOptions::configureEventQueue</a>(<span class="keywordtype">int</span> lowWatermark,</div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;                                                           <span class="keywordtype">int</span> highWatermark)</div>
+<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160;{</div>
+<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160;    <span class="comment">// PRECONDITIONS</span></div>
+<div class="line"><a name="l00513"></a><span class="lineno">  513</span>&#160;    BSLS_ASSERT_OPT(lowWatermark &lt; highWatermark);</div>
+<div class="line"><a name="l00514"></a><span class="lineno">  514</span>&#160; </div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;    d_eventQueueLowWatermark  = lowWatermark;</div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;    d_eventQueueHighWatermark = highWatermark;</div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160; </div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;}</div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160; </div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;<span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00522"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">  522</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::string&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">SessionOptions::brokerUri</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00524"></a><span class="lineno">  524</span>&#160;    <span class="keywordflow">return</span> d_brokerUri;</div>
+<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;}</div>
+<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160; </div>
+<div class="line"><a name="l00527"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a74bf5a00824996edb4ababbebda3fe35">  527</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::string&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a74bf5a00824996edb4ababbebda3fe35">SessionOptions::processNameOverride</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160;    <span class="keywordflow">return</span> d_processNameOverride;</div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;}</div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160; </div>
+<div class="line"><a name="l00532"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">  532</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">SessionOptions::numProcessingThreads</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;    <span class="keywordflow">return</span> d_numProcessingThreads;</div>
+<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;}</div>
+<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160; </div>
+<div class="line"><a name="l00537"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">  537</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">SessionOptions::blobBufferSize</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;    <span class="keywordflow">return</span> d_blobBufferSize;</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;}</div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160; </div>
+<div class="line"><a name="l00542"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">  542</a></span>&#160;<span class="keyword">inline</span> bsls::Types::Int64 <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">SessionOptions::channelHighWatermark</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00544"></a><span class="lineno">  544</span>&#160;    <span class="keywordflow">return</span> d_channelHighWatermark;</div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;}</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160; </div>
+<div class="line"><a name="l00547"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">  547</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">SessionOptions::statsDumpInterval</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00549"></a><span class="lineno">  549</span>&#160;    <span class="keywordflow">return</span> d_statsDumpInterval;</div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;}</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160; </div>
+<div class="line"><a name="l00552"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">  552</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">SessionOptions::connectTimeout</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;    <span class="keywordflow">return</span> d_connectTimeout;</div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;}</div>
+<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160; </div>
+<div class="line"><a name="l00557"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a48c24d531d28483e7e5022e6ea7483ef">  557</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a48c24d531d28483e7e5022e6ea7483ef">SessionOptions::disconnectTimeout</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;    <span class="keywordflow">return</span> d_disconnectTimeout;</div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;}</div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160; </div>
+<div class="line"><a name="l00562"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">  562</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">SessionOptions::openQueueTimeout</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;    <span class="keywordflow">return</span> d_openQueueTimeout;</div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160;}</div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160; </div>
+<div class="line"><a name="l00567"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">  567</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">SessionOptions::configureQueueTimeout</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;    <span class="keywordflow">return</span> d_configureQueueTimeout;</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;}</div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160; </div>
+<div class="line"><a name="l00572"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">  572</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsls::TimeInterval&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">SessionOptions::closeQueueTimeout</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;    <span class="keywordflow">return</span> d_closeQueueTimeout;</div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;}</div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160; </div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::HostHealthMonitor&gt;&amp;</div>
+<div class="line"><a name="l00578"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">  578</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">SessionOptions::hostHealthMonitor</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;    <span class="keywordflow">return</span> d_hostHealthMonitor_sp;</div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;}</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160; </div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::DTContext&gt;&amp;</div>
+<div class="line"><a name="l00584"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">  584</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">SessionOptions::traceContext</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;    <span class="keywordflow">return</span> d_dtContext_sp;</div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;}</div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160; </div>
+<div class="line"><a name="l00589"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">  589</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::shared_ptr&lt;bmqpi::DTTracer&gt;&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">SessionOptions::tracer</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;    <span class="keywordflow">return</span> d_dtTracer_sp;</div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;}</div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160; </div>
+<div class="line"><a name="l00594"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">  594</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">SessionOptions::eventQueueLowWatermark</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;    <span class="keywordflow">return</span> d_eventQueueLowWatermark;</div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;}</div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160; </div>
+<div class="line"><a name="l00599"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">  599</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">SessionOptions::eventQueueHighWatermark</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;    <span class="keywordflow">return</span> d_eventQueueHighWatermark;</div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;}</div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160; </div>
+<div class="line"><a name="l00604"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a2955049bad74660af651fc4c84377cba">  604</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a2955049bad74660af651fc4c84377cba">SessionOptions::eventQueueSize</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;    <span class="keywordflow">return</span> d_eventQueueSize;</div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;}</div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160; </div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160; </div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;<span class="comment">// class SessionOptions</span></div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160; </div>
+<div class="line"><a name="l00615"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a3cd71fd8e31a80980d1a2c73a2ee29ba">  615</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">bmqt::operator==</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp; lhs,</div>
+<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160;                             <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;{</div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;    <span class="keywordflow">return</span> lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">brokerUri</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">brokerUri</a>() &amp;&amp;</div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">numProcessingThreads</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">numProcessingThreads</a>() &amp;&amp;</div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">blobBufferSize</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">blobBufferSize</a>() &amp;&amp;</div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">channelHighWatermark</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">channelHighWatermark</a>() &amp;&amp;</div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">statsDumpInterval</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">statsDumpInterval</a>() &amp;&amp;</div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">connectTimeout</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">connectTimeout</a>() &amp;&amp;</div>
+<div class="line"><a name="l00624"></a><span class="lineno">  624</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">openQueueTimeout</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">openQueueTimeout</a>() &amp;&amp;</div>
+<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">configureQueueTimeout</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">configureQueueTimeout</a>() &amp;&amp;</div>
+<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">closeQueueTimeout</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">closeQueueTimeout</a>() &amp;&amp;</div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">eventQueueLowWatermark</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">eventQueueLowWatermark</a>() &amp;&amp;</div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">eventQueueHighWatermark</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">eventQueueHighWatermark</a>() &amp;&amp;</div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">hostHealthMonitor</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">hostHealthMonitor</a>() &amp;&amp;</div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">traceContext</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">traceContext</a>() &amp;&amp;</div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>();</div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;}</div>
+<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160; </div>
+<div class="line"><a name="l00634"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a0e670a924ff24ea37e1e6041f15e1b7f">  634</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">bmqt::operator!=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp; lhs,</div>
+<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160;                             <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;{</div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;    <span class="keywordflow">return</span> lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">brokerUri</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">brokerUri</a>() ||</div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">numProcessingThreads</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">numProcessingThreads</a>() ||</div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">blobBufferSize</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">blobBufferSize</a>() ||</div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">channelHighWatermark</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">channelHighWatermark</a>() ||</div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">statsDumpInterval</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">statsDumpInterval</a>() ||</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">connectTimeout</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">connectTimeout</a>() ||</div>
+<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">openQueueTimeout</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">openQueueTimeout</a>() ||</div>
+<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">configureQueueTimeout</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">configureQueueTimeout</a>() ||</div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">closeQueueTimeout</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">closeQueueTimeout</a>() ||</div>
+<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">eventQueueLowWatermark</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">eventQueueLowWatermark</a>() ||</div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">eventQueueHighWatermark</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">eventQueueHighWatermark</a>() ||</div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">hostHealthMonitor</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">hostHealthMonitor</a>() ||</div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">traceContext</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">traceContext</a>() ||</div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">tracer</a>();</div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;}</div>
+<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160; </div>
+<div class="line"><a name="l00653"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#adffaa6132c4c9280745d270776f4339c">  653</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;               stream,</div>
+<div class="line"><a name="l00654"></a><span class="lineno">  654</span>&#160;                                      <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160;{</div>
+<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;    <span class="keywordflow">return</span> rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a704f34f5c5b5c5f06f44a3fc975305a7">print</a>(stream, 0, -1);</div>
+<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;}</div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160; </div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160; </div>
+<div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqpi_1_1DTContext_html"><div class="ttname"><a href="classBloombergLP_1_1bmqpi_1_1DTContext.html">BloombergLP::bmqpi::DTContext</a></div><div class="ttdoc">A pure interface for a context with a notion of a current span.</div><div class="ttdef"><b>Definition:</b> bmqpi_dtcontext.h:55</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">BloombergLP::bmqt::SessionOptions</a></div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:161</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a0ee20788e9cd4b2df5daa0f723376b22"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a0ee20788e9cd4b2df5daa0f723376b22">BloombergLP::bmqt::SessionOptions::setChannelHighWatermark</a></div><div class="ttdeci">SessionOptions &amp; setChannelHighWatermark(bsls::Types::Int64 value)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:422</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a1a302481fe86dfacd1a3b851c9c5edfc"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1a302481fe86dfacd1a3b851c9c5edfc">BloombergLP::bmqt::SessionOptions::channelHighWatermark</a></div><div class="ttdeci">bsls::Types::Int64 channelHighWatermark() const</div><div class="ttdoc">Get the channel high watermark.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:542</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a1fa26f48d062e50b6bc35f2e70ba61ad"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a1fa26f48d062e50b6bc35f2e70ba61ad">BloombergLP::bmqt::SessionOptions::setCloseQueueTimeout</a></div><div class="ttdeci">SessionOptions &amp; setCloseQueueTimeout(const bsls::TimeInterval &amp;value)</div><div class="ttdoc">Set the timeout for closing a queue to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:477</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a2955049bad74660af651fc4c84377cba"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a2955049bad74660af651fc4c84377cba">BloombergLP::bmqt::SessionOptions::eventQueueSize</a></div><div class="ttdeci">int eventQueueSize() const</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:604</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a3cc5629d0f961d16743ccb02303ffec3"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a3cc5629d0f961d16743ccb02303ffec3">BloombergLP::bmqt::SessionOptions::closeQueueTimeout</a></div><div class="ttdeci">const bsls::TimeInterval &amp; closeQueueTimeout() const</div><div class="ttdoc">Get the timeout for closing a queue.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:572</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a406d1f9a2e777d52715e2ebd1079e41f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a406d1f9a2e777d52715e2ebd1079e41f">BloombergLP::bmqt::SessionOptions::setConfigureQueueTimeout</a></div><div class="ttdeci">SessionOptions &amp; setConfigureQueueTimeout(const bsls::TimeInterval &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:470</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a4286f0d9df8bc0ffa3232c15f75e19ce"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4286f0d9df8bc0ffa3232c15f75e19ce">BloombergLP::bmqt::SessionOptions::eventQueueHighWatermark</a></div><div class="ttdeci">int eventQueueHighWatermark() const</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:599</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a475508e5b46d2a1b3bd0db6abd54211b"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a475508e5b46d2a1b3bd0db6abd54211b">BloombergLP::bmqt::SessionOptions::numProcessingThreads</a></div><div class="ttdeci">int numProcessingThreads() const</div><div class="ttdoc">Get the number of processing threads.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:532</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a4773df83f2d86ee9d6261cb69a998d26"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4773df83f2d86ee9d6261cb69a998d26">BloombergLP::bmqt::SessionOptions::setProcessNameOverride</a></div><div class="ttdeci">SessionOptions &amp; setProcessNameOverride(const bslstl::StringRef &amp;value)</div><div class="ttdoc">Set an override of the proces name to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:403</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a48c24d531d28483e7e5022e6ea7483ef"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a48c24d531d28483e7e5022e6ea7483ef">BloombergLP::bmqt::SessionOptions::disconnectTimeout</a></div><div class="ttdeci">const bsls::TimeInterval &amp; disconnectTimeout() const</div><div class="ttdoc">Get the timeout for disconnecting from the broker.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:557</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a4bd9231e3a225dfb568b15be6f11359b"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a4bd9231e3a225dfb568b15be6f11359b">BloombergLP::bmqt::SessionOptions::k_BROKER_DEFAULT_URI</a></div><div class="ttdeci">static const char k_BROKER_DEFAULT_URI[]</div><div class="ttdoc">Default URI of the bmqbrkr to connect to.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:166</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a59ab634cadc75387952ccf432e2b9042"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a59ab634cadc75387952ccf432e2b9042">BloombergLP::bmqt::SessionOptions::blobBufferSize</a></div><div class="ttdeci">int blobBufferSize() const</div><div class="ttdoc">Get the size of the blobs buffer.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:537</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a5b9bf86e49c8ed6ae8b454281f23d443"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a5b9bf86e49c8ed6ae8b454281f23d443">BloombergLP::bmqt::SessionOptions::setOpenQueueTimeout</a></div><div class="ttdeci">SessionOptions &amp; setOpenQueueTimeout(const bsls::TimeInterval &amp;value)</div><div class="ttdoc">Set the timeout for opening a queue to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:463</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a6d66d9b77fd96366f363c688766f6601"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6d66d9b77fd96366f363c688766f6601">BloombergLP::bmqt::SessionOptions::setBrokerUri</a></div><div class="ttdeci">SessionOptions &amp; setBrokerUri(const bslstl::StringRef &amp;value)</div><div class="ttdoc">Set the broker URI to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:396</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a6ee3200d8232342d13a55cf50ad3e34d"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a6ee3200d8232342d13a55cf50ad3e34d">BloombergLP::bmqt::SessionOptions::setTraceOptions</a></div><div class="ttdeci">SessionOptions &amp; setTraceOptions(const bsl::shared_ptr&lt; bmqpi::DTContext &gt; &amp;dtContext, const bsl::shared_ptr&lt; bmqpi::DTTracer &gt; &amp;dtTracer)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:490</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a704f34f5c5b5c5f06f44a3fc975305a7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a704f34f5c5b5c5f06f44a3fc975305a7">BloombergLP::bmqt::SessionOptions::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a74bf5a00824996edb4ababbebda3fe35"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a74bf5a00824996edb4ababbebda3fe35">BloombergLP::bmqt::SessionOptions::processNameOverride</a></div><div class="ttdeci">const bsl::string &amp; processNameOverride() const</div><div class="ttdoc">Return the process name override.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:527</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a79a67fc682dfab108308f4dca40cc06c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a79a67fc682dfab108308f4dca40cc06c">BloombergLP::bmqt::SessionOptions::setHostHealthMonitor</a></div><div class="ttdeci">SessionOptions &amp; setHostHealthMonitor(const bsl::shared_ptr&lt; bmqpi::HostHealthMonitor &gt; &amp;monitor)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:483</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a7dae3ea3f872a4051832f5c9895f80d5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a7dae3ea3f872a4051832f5c9895f80d5">BloombergLP::bmqt::SessionOptions::hostHealthMonitor</a></div><div class="ttdeci">const bsl::shared_ptr&lt; bmqpi::HostHealthMonitor &gt; &amp; hostHealthMonitor() const</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:578</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a8cc1f347fab4f8fce9b4405c84ccb9d7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a8cc1f347fab4f8fce9b4405c84ccb9d7">BloombergLP::bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT</a></div><div class="ttdeci">static const int k_QUEUE_OPERATION_DEFAULT_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:173</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_a930ce7dc9cc2e0833d8dff527b3112fa"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#a930ce7dc9cc2e0833d8dff527b3112fa">BloombergLP::bmqt::SessionOptions::configureEventQueue</a></div><div class="ttdeci">SessionOptions &amp; configureEventQueue(int queueSize, int lowWatermark, int highWatermark)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:501</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_aa4a40638a35d82b9001d93d2dd33cbde"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aa4a40638a35d82b9001d93d2dd33cbde">BloombergLP::bmqt::SessionOptions::statsDumpInterval</a></div><div class="ttdeci">const bsls::TimeInterval &amp; statsDumpInterval() const</div><div class="ttdoc">Get the stats dump interval.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:547</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_aae8b59b49a9f6caa2851e59f47b28445"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aae8b59b49a9f6caa2851e59f47b28445">BloombergLP::bmqt::SessionOptions::configureQueueTimeout</a></div><div class="ttdeci">const bsls::TimeInterval &amp; configureQueueTimeout() const</div><div class="ttdoc">Get the timeout for configuring or disconfiguring a queue.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:567</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_aafdced0acc315ea53c517ac036dfdeb2"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aafdced0acc315ea53c517ac036dfdeb2">BloombergLP::bmqt::SessionOptions::brokerUri</a></div><div class="ttdeci">const bsl::string &amp; brokerUri() const</div><div class="ttdoc">Get the broker URI.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:522</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ab58cccb280d4c12151bdc1dfbc8a8559"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab58cccb280d4c12151bdc1dfbc8a8559">BloombergLP::bmqt::SessionOptions::k_BROKER_DEFAULT_PORT</a></div><div class="ttdeci">static const int k_BROKER_DEFAULT_PORT</div><div class="ttdoc">Default port the bmqbrkr is listening to for client to connect.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:169</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ab93d971ed89dbfe106f892062f4c0158"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab93d971ed89dbfe106f892062f4c0158">BloombergLP::bmqt::SessionOptions::setConnectTimeout</a></div><div class="ttdeci">SessionOptions &amp; setConnectTimeout(const bsls::TimeInterval &amp;value)</div><div class="ttdoc">Set the timeout for connecting to the broker to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:449</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ab993eccd221e00062e1571a3ae78f904"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ab993eccd221e00062e1571a3ae78f904">BloombergLP::bmqt::SessionOptions::tracer</a></div><div class="ttdeci">const bsl::shared_ptr&lt; bmqpi::DTTracer &gt; &amp; tracer() const</div><div class="ttdoc">Get the Distributed Trace tracer object.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:589</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ac35d56be5e2c239065055a961c35f55a"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ac35d56be5e2c239065055a961c35f55a">BloombergLP::bmqt::SessionOptions::openQueueTimeout</a></div><div class="ttdeci">const bsls::TimeInterval &amp; openQueueTimeout() const</div><div class="ttdoc">Get the timeout for opening a queue.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:562</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_aca25329ebb998ba34ec0fefe253621a2"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aca25329ebb998ba34ec0fefe253621a2">BloombergLP::bmqt::SessionOptions::setStatsDumpInterval</a></div><div class="ttdeci">SessionOptions &amp; setStatsDumpInterval(const bsls::TimeInterval &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:435</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ad8539ecc76aa1f44d7e1ac4384bf7ff3"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8539ecc76aa1f44d7e1ac4384bf7ff3">BloombergLP::bmqt::SessionOptions::traceContext</a></div><div class="ttdeci">const bsl::shared_ptr&lt; bmqpi::DTContext &gt; &amp; traceContext() const</div><div class="ttdoc">Get the Distributed Trace context object.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:584</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_ad8a7443384de987d02c4e3512c5a8ea3"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#ad8a7443384de987d02c4e3512c5a8ea3">BloombergLP::bmqt::SessionOptions::eventQueueLowWatermark</a></div><div class="ttdeci">int eventQueueLowWatermark() const</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:594</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_aec1cd229bdfe8c073ca14795a83dd506"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#aec1cd229bdfe8c073ca14795a83dd506">BloombergLP::bmqt::SessionOptions::setNumProcessingThreads</a></div><div class="ttdeci">SessionOptions &amp; setNumProcessingThreads(int value)</div><div class="ttdoc">Set the number of processing threads to the specified value.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:409</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_af5e76aae8114b4d0ebe90eaabce78675"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#af5e76aae8114b4d0ebe90eaabce78675">BloombergLP::bmqt::SessionOptions::connectTimeout</a></div><div class="ttdeci">const bsls::TimeInterval &amp; connectTimeout() const</div><div class="ttdoc">Get the timeout for connecting to the broker.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:552</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_afc5169e076cc49ee5cae3486a3e51b6f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#afc5169e076cc49ee5cae3486a3e51b6f">BloombergLP::bmqt::SessionOptions::setDisconnectTimeout</a></div><div class="ttdeci">SessionOptions &amp; setDisconnectTimeout(const bsls::TimeInterval &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:456</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html_affa6f60eeaf0f873ad29fa6e3561e67a"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html#affa6f60eeaf0f873ad29fa6e3561e67a">BloombergLP::bmqt::SessionOptions::setBlobBufferSize</a></div><div class="ttdeci">SessionOptions &amp; setBlobBufferSize(int value)</div><div class="ttdoc">Set the specified value for the size of blobs buffers.</div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:415</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a834a83fe28fd4313012e27be2f7bf732"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">BloombergLP::bmqt::operator&lt;&lt;</a></div><div class="ttdeci">bsl::ostream &amp; operator&lt;&lt;(bsl::ostream &amp;stream, CompressionAlgorithmType::Enum value)</div><div class="ttdef"><b>Definition:</b> bmqt_compressionalgorithmtype.h:141</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_aa6566ff0a88bbcebb2d322152cd3472b"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">BloombergLP::bmqt::operator!=</a></div><div class="ttdeci">bool operator!=(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:582</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ab916ce4498d29d2e31d35c6f5277fdc6"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">BloombergLP::bmqt::operator==</a></div><div class="ttdeci">bool operator==(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:576</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_8e091ab1c7d4f7f0c38972fd2ce6f060.html">bmqt</a></li><li class="navelem"><a class="el" href="bmqt__sessionoptions_8h.html">bmqt_sessionoptions.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>

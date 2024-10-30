@@ -1,604 +1,490 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2014-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqt_uri.h                                                         -*-C++-*-
-#ifndef INCLUDED_BMQT_URI
-#define INCLUDED_BMQT_URI
-
-//@PURPOSE: Provide value-semantic type and utilities for a BlazingMQ queue
-//URI.
-//
-//@CLASSES:
-//  bmqt::Uri        : value-semantic type representing a URI
-//  bmqt::UriParser  : utility to parse a string into a URI
-//  bmqt::UriBuilder : builder mechanism to create a URI
-//
-//@DESCRIPTION: This component provides a value-semantic type, &#39;bmqt::Uri&#39;
-// representing a URI for a BlazingMQ queue.  A &#39;bmqt:Uri&#39; can be built by
-// parsing from a string representation, using the &#39;bmqt::UriParser&#39;, or built
-// using the &#39;bmqt::UriBuilder&#39;.
-//
-//@SEE_ALSO:
-//----------
-// https://tools.ietf.org/html/rfc3986
-//
-///URI format
-///----------
-// In a nutshell, a URI representing an application queue managed by a
-// BlazingMQ broker on a given machine looks like one of the following:
-//..
-//  bmq://ts.trades.myapp/my.queue
-//  bmq://ts.trades.myapp.~bt/my.queue
-//  bmq://ts.trades.myapp/my.queue?id=foo
-//..
-// where:
-//
-//: o The URI scheme is always &quot;bmq&quot;.
-//
-//: o The URI authority is the name of BlazingMQ domain (such as
-//    &quot;ts.trades.myapp&quot;)
-//:   as registered with the BlazingMQ infrastructure.  The domain name may
-//:   contain alphanumeric characters, dots and dashes (it has to match the
-//:   following regular expression: &#39;[-a-zA-Z0-9\\._]+&#39;).  The domain may be
-//:   followed by an optional tier, introduced by the &quot;.~&quot; sequence and
-//:   consisting of alphanumeric characters and dashes.  The &quot;.~&quot; sequence is
-//:   not part of the tier.
-//
-//: o The URI path is the name of the queue (&quot;my.queue&quot; above) and may contain
-//:   alphanumeric characters, dashes, underscores and tild (it has to match
-//:   the following regular expression: &#39;[-a-zA-Z0-9_~\\.]+&#39;).  The queue name
-//:   must be less than &#39;bmqt::Uri::k_QUEUENAME_MAX_LENGTH&#39; characters long.
-//
-//: o The name of the queue (&quot;my.queue&quot; above) may contain alphanumeric
-//:   characters and dots.
-//
-//: o The URI may contain an optional query with a key-value pair.  Currently
-//:   supported keys are:
-//:   o !id!: the corresponding value represents a name that will be used by
-//:     BlazingMQ broker to uniquely identify the client.
-//
-//: o The URI fragment part is currently unused.
-//
-///Usage Example 1
-///---------------
-// First, call the &#39;initialize&#39; method of the &#39;UriParser&#39;.  This call is only
-// needed one time; you can call it when your task starts.
-//
-// Note that the &#39;bmq&#39; library takes care of that, so users of &#39;bmq&#39; don&#39;t
-// have to explicitly do it themselves.
-//..
-//  bmqt::UriParser::initialize();
-//..
-// Then, parse a URI string created on the stack to populate a &#39;Uri&#39; object.
-// The parse function takes an optional error string which is populated with a
-// short error message if the URI is not formatted correctly.
-//..
-//   bsl::string input = &quot;bmq://my.domain/queue&quot;;
-//   bmqt::Uri   uri(allocator);
-//   bsl::string errorDescription;
-//
-//   int         rc = bmqt::UriParser::parse(&amp;uri, &amp;errorDescription, input);
-//   if (rc != 0) {
-//      BALL_LOG_ERROR &lt;&lt; &quot;Invalid URI [error: &quot; &lt;&lt; errorDescription &lt;&lt; &quot;]&quot;;
-//   }
-//   assert(rc == 0);
-//   assert(error == &quot;&quot;);
-//   assert(uri.scheme()    == &quot;bmq&quot;);
-//   assert(uri.domain()    == &quot;my.domain&quot;);
-//   assert(uri.queue()     == &quot;queue&quot;);
-//..
-//
-/// Usage Example 2
-///----------------
-// Instantiate a &#39;Uri&#39; object with a string representation of the URI and an
-// allocator.
-//..
-//  bmqt::Uri uri(&quot;bmq://my.domain/queue&quot;, allocator);
-//  assert(uri.scheme() == &quot;bmq&quot;);
-//  assert(uri.domain() == &quot;my.domain&quot;);
-//  assert(uri.queue()  == &quot;queue&quot;);
-//..
-
-///Thread Safety
-///-------------
-//: o &#39;bmqt::UriBuilder&#39; is NOT thread safe
-//: o &#39;bmqt::UriParser&#39; should be thread safe: the component depends on
-//:   &#39;bdepcre_regex&#39; that is a wrapper around &quot;pcre.h&quot;.  See
-//:    http://www.pcre.org/pcre.txt.
-
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-
-// BDE
-#include &lt;ball_log.h&gt;
-#include &lt;bsl_cstddef.h&gt;
-#include &lt;bsl_iosfwd.h&gt;
-#include &lt;bsl_string.h&gt;
-#include &lt;bslh_hash.h&gt;
-#include &lt;bslma_usesbslmaallocator.h&gt;
-#include &lt;bslmf_nestedtraitdeclaration.h&gt;
-
-
-namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bmqt { class UriBuilder; }
-namespace bmqt { struct UriParser; }
-
-namespace bmqt {
-
-
-                                 // =========
-                                 // class Uri
-                                 // =========
-
-class Uri {
-    // Value semantic type representing a URI
-
-  public:
-    // PUBLIC CONSTANTS
-    static const int k_QUEUENAME_MAX_LENGTH = 64;
-        // The maximum authorized length for the queue name part of the URI.
-
-  private:
-    // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY(&quot;BMQT.URI&quot;);
-
-  private:
-    // FRIENDS
-    friend struct UriParser;
-    friend class UriBuilder;
-    template &lt;class HASH_ALGORITHM&gt;
-    friend void hashAppend(HASH_ALGORITHM&amp; hashAlgo, const Uri&amp; uri);
-
-  private:
-    // DATA
-    bsl::string       d_uri;            // The full URI
-
-    bslstl::StringRef d_scheme;         // URI scheme (must be &quot;bmq&quot;).
-
-    bslstl::StringRef d_authority;      // URI authority (domain + optional
-                                        // tier)
-
-    bslstl::StringRef d_domain;         // URI domain
-
-    bslstl::StringRef d_tier;           // URI tier
-
-    bslstl::StringRef d_path;           // URI path (i.e queue name).
-
-    bslstl::StringRef d_query_id;       // Optional application id, part of the
-                                        // URI query if present.
-
-    bool              d_wasParserInitialized;
-                                        // Flag indicating whether the URI
-                                        // parser was initialized (and whether
-                                        // shutdown should be called on it at
-                                        // destruction)
-
-  private:
-    // PRIVATE MANIPULATORS
-    void reset();
-        // Reset this object to the default value.
-
-    void copyImpl(const Uri&amp; src);
-        // Implementation of the copy of the specified &#39;src&#39; URI into this
-        // object.
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Uri, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit Uri(bslma::Allocator *allocator = 0);
-        // Constructor of an invalid Uri with all fields empty, using the
-        // optionally specified &#39;allocator&#39;.
-
-    Uri(const Uri&amp;        original,
-        bslma::Allocator *allocator = 0); // IMPLICIT
-        // Copy constructor, create a new Uri having the same values as the
-        // specified &#39;original&#39;, and using the optionally specified
-        // &#39;allocator&#39;.
-
-    Uri(const bsl::string&amp;  uri,
-        bslma::Allocator   *allocator = 0);                         // IMPLICIT
-    Uri(const bslstl::StringRef&amp;  uri,
-        bslma::Allocator         *allocator = 0);                   // IMPLICIT
-    Uri(const char       *uri,
-        bslma::Allocator *allocator = 0);                           // IMPLICIT
-        // Implicit constructor of this object from the specified &#39;uri&#39; string
-        // using the optionally specified &#39;allocator&#39;.  If the &#39;uri&#39; input
-        // string doesn&#39;t not represent a valid URI, this object is left in an
-        // invalid state (isValid() will return false).
-
-    ~Uri();
-        // Destructor.
-
-    // MANIPULATORS
-    Uri&amp; operator=(const Uri&amp; rhs);
-        // Set the value of this object to the specified &#39;rhs&#39;.
-
-    // ACCESSORS
-    const bsl::string&amp; asString() const;
-        // Return the string representation of this URI.
-
-    bool isValid() const;
-        // Return true if this object represents a valid URI.
-
-    bool isCanonical() const;
-        // Return true if this object represents a canonical URI.
-
-    const bslstl::StringRef&amp; scheme() const;
-    const bslstl::StringRef&amp; authority() const;
-    const bslstl::StringRef&amp; path() const;
-        // Return the corresponding (raw) part of the URI, matching to the URI
-        // RFC terminology.
-
-    const bslstl::StringRef&amp; qualifiedDomain() const;
-    const bslstl::StringRef&amp; domain() const;
-    const bslstl::StringRef&amp; tier() const;
-    const bslstl::StringRef&amp; queue() const;
-    const bslstl::StringRef&amp; id() const;
-        // Return the corresponding (extracted) part of the URI, provided as
-        // convenient accessors using the BlazingMQ terminology.
-
-    bslstl::StringRef canonical() const;
-        // Return the canonical form of the URI. Note that canonical form
-        // includes everything except the query part of the URI.
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-};
-
-// FREE OPERATORS
-bool operator==(const Uri&amp; lhs,
-                const Uri&amp; rhs);
-    // Return &#39;true&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return false otherwise.
-
-bool operator!=(const Uri&amp; lhs,
-                const Uri&amp; rhs);
-    // Return &#39;false&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return &#39;true&#39; otherwise.
-
-bool operator&lt;(const Uri&amp; lhs,
-               const Uri&amp; rhs);
-    // Return &#39;true&#39; if the specified &#39;lhs&#39; object compares less than the
-    // specified &#39;rhs&#39; object.
-
-
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream,
-                         const Uri&amp;    rhs);
-    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                              // ================
-                              // struct UriParser
-                              // ================
-
-struct UriParser {
-    // Utility namespace of methods for parsing URI strings into &#39;Uri&#39; objects.
-
-    // CLASS METHODS
-    static void initialize(bslma::Allocator *allocator = 0);
-        // Initialize the &#39;UriParser&#39;.  Note that this will compile the regular
-        // expression used by &#39;parseUri&#39;.  This method only needs to be called
-        // once before any other method, but can be called multiple times
-        // provided that for each call to &#39;initialize&#39; there is a corresponding
-        // call to &#39;shutdown&#39;.  Use the optionally specified &#39;allocator&#39; for
-        // any memory allocation, or the &#39;global&#39; allocator if none is
-        // provided.  Note that specifying the allocator is provided for test
-        // drivers only, and therefore users should let it default to the
-        // global allocator.
-
-    static void shutdown();
-        // Pendant operation of the &#39;initialize&#39; one.  Note that behaviour
-        // after calling the &#39;.parse()&#39; method of the &#39;UriParser&#39; after
-        // &#39;shutdown&#39; has been called is undefined.  The number of calls to
-        // &#39;shutdown&#39; must equal the number of calls to &#39;initialize&#39;, without
-        // corresponding &#39;shutdown&#39; calls, to fully destroy the parser.  It is
-        // safe to call &#39;initialize&#39; after calling &#39;shutdown&#39;.  Behaviour is
-        // undefined if &#39;shutdown&#39; is called without &#39;initialize&#39; first being
-        // called.
-
-    static int parse(Uri                      *result,
-                     bsl::string              *errorDescription,
-                     const bslstl::StringRef&amp;  uriString);
-        // Parse the specified &#39;uriString&#39; into the specified &#39;result&#39; object
-        // if &#39;uriString&#39; is a valid URI, otherwise load the specified
-        // &#39;errorDescription&#39; with a description of the syntax error present in
-        // &#39;uriString&#39;.  Return 0 on success and non-zero if &#39;uriString&#39; does
-        // not have a valid syntax.  Note that &#39;errorDescription&#39; may be null
-        // if the caller does not care about getting error messages.  The
-        // behavior is undefined unless &#39;initialize&#39; has been called
-        // previously.
-
-  private:
-    // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY(&quot;BMQT.URI&quot;);
-};
-
-
-                              // ================
-                              // class UriBuilder
-                              // ================
-
-class UriBuilder {
-    // This component implements a mechanism, &#39;bmqt::UriBuilder&#39;, that can be
-    // used for creating queue URI for BMQ.
-
-  private:
-    // DATA
-    Uri d_uri; // Placeholder object for URI object being built.
-
-  private:
-    // NOT IMPLEMENTED
-    UriBuilder(const UriBuilder&amp;);
-    UriBuilder&amp; operator=(const UriBuilder&amp;);
-        // Copy constructor and assignment operator not implemented.
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(UriBuilder, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit UriBuilder(bslma::Allocator *allocator = 0);
-        // Create a new UriBuilder using the optionally specified &#39;allocator&#39;.
-
-    explicit UriBuilder(const bmqt::Uri&amp;  uri,
-                        bslma::Allocator *allocator = 0);
-        // Create a new UriBuilder initialized with the specified &#39;uri&#39; and
-        // using the optionally specified &#39;allocator&#39;.
-
-    // MANIPULATORS
-    UriBuilder&amp; setDomain(const bslstl::StringRef&amp; value);
-    UriBuilder&amp; setTier(const bslstl::StringRef&amp; value);
-    UriBuilder&amp; setQualifiedDomain(const bslstl::StringRef&amp; value);
-    UriBuilder&amp; setQueue(const bslstl::StringRef&amp; value);
-    UriBuilder&amp; setId(const bslstl::StringRef&amp; value);
-        // Set the corresponding field of the URI to the specified &#39;value&#39;.
-        // The behavior is undefined unless &#39;value&#39; remains valid until URI has
-        // been built by invoking &#39;uri()&#39;.  &#39;setDomain()&#39; and &#39;setTier()&#39;
-        // should be preferred over &#39;setQualifiedDomain()&#39; whenever possible.
-
-    void reset();
-        // Reset all fields of this builder.
-
-    // ACCESSORS
-    int uri(Uri         *result,
-            bsl::string *errorDescription = 0) const;
-        // Build and populate the specified &#39;result&#39; with the built URI,
-        // returning 0 on success, or return non-zero on error, populating the
-        // optionally specified &#39;errorDescription&#39; if provided.
-};
-
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-
-                                 // ---------
-                                 // class Uri
-                                 // ---------
-
-inline
-Uri&amp;
-Uri::operator=(const Uri&amp; rhs)
-{
-    copyImpl(rhs);
-
-    return *this;
-}
-
-inline
-const bsl::string&amp;
-Uri::asString() const
-{
-    return d_uri;
-}
-
-inline
-bool
-Uri::isValid() const
-{
-    // URI can only be set using either &#39;UriBuilder&#39; or &#39;UriParser&#39;, which are
-    // resetting the d_uri on failure.
-    return !d_uri.empty();
-}
-
-inline
-bool
-Uri::isCanonical() const
-{
-    return d_query_id.isEmpty();
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::scheme() const
-{
-    return d_scheme;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::authority() const
-{
-    return d_authority;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::path() const
-{
-    return d_path;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::domain() const
-{
-    return d_domain;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::qualifiedDomain() const
-{
-    return d_authority;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::tier() const
-{
-    return d_tier;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::queue() const
-{
-    return d_path;
-}
-
-inline
-const bslstl::StringRef&amp;
-Uri::id() const
-{
-    return d_query_id;
-}
-
-inline
-bslstl::StringRef
-Uri::canonical() const
-{
-    size_t queryBeginPos = d_uri.find_first_of(&#39;?&#39;);
-    if (bsl::string::npos == queryBeginPos) {
-        return d_uri;                                                 // RETURN
-    }
-
-    return bslstl::StringRef(d_uri.c_str(), queryBeginPos);
-}
-
-// FREE FUNCTIONS
-template &lt;class HASH_ALGORITHM&gt;
-void
-hashAppend(HASH_ALGORITHM&amp; hashAlgo,
-           const Uri&amp;      uri)
-{
-    using bslh::hashAppend;  // for ADL
-    hashAppend(hashAlgo, uri.d_uri);  // hashes full uri string
-}
-
-
-                              // ----------------
-                              // class UriBuilder
-                              // ----------------
-
-inline
-UriBuilder&amp;
-UriBuilder::setDomain(const bslstl::StringRef&amp; value)
-{
-    d_uri.d_domain = value;
-    return *this;
-}
-
-inline
-UriBuilder&amp;
-UriBuilder::setTier(const bslstl::StringRef&amp; value)
-{
-    d_uri.d_tier = value;
-    return *this;
-}
-
-inline
-UriBuilder&amp;
-UriBuilder::setQueue(const bslstl::StringRef&amp; value)
-{
-    d_uri.d_path = value;
-    return *this;
-}
-
-inline
-UriBuilder&amp;
-UriBuilder::setId(const bslstl::StringRef&amp; value)
-{
-    d_uri.d_query_id = value;
-    return *this;
-}
-
-
-}  // close package namespace
-
-// FREE OPERATORS
-
-inline
-bool
-bmqt::operator==(const bmqt::Uri&amp; lhs,
-                 const bmqt::Uri&amp; rhs)
-{
-    return (lhs.asString() == rhs.asString());
-}
-
-inline
-bool
-bmqt::operator!=(const bmqt::Uri&amp; lhs,
-                 const bmqt::Uri&amp; rhs)
-{
-    return (lhs.asString() != rhs.asString());
-}
-
-inline
-bool
-bmqt::operator&lt;(const bmqt::Uri&amp; lhs,
-                const bmqt::Uri&amp; rhs)
-{
-    return (lhs.asString() &lt; rhs.asString());
-}
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;    stream,
-                 const bmqt::Uri&amp; rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqt/bmqt_uri.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqt__uri_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqt_uri.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqt__uri_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2014-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqt_uri.h                                                         -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQT_URI</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQT_URI</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160; </div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160; </div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="preprocessor">#include &lt;ball_log.h&gt;</span></div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160;<span class="preprocessor">#include &lt;bsl_cstddef.h&gt;</span></div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;<span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
+<div class="line"><a name="l00135"></a><span class="lineno">  135</span>&#160;<span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;<span class="preprocessor">#include &lt;bslh_hash.h&gt;</span></div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;<span class="preprocessor">#include &lt;bslma_usesbslmaallocator.h&gt;</span></div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;<span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160;<span class="comment">// FORWARD DECLARATION</span></div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;<span class="keyword">class </span>UriBuilder;</div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;}</div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;<span class="keyword">struct </span>UriParser;</div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;}</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160; </div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160; </div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;<span class="comment">// =========</span></div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;<span class="comment">// class Uri</span></div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;<span class="comment">// =========</span></div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00157"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html">  157</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a> {</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00159"></a><span class="lineno">  159</span>&#160;    <span class="comment">// PUBLIC CONSTANTS</span></div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160; </div>
+<div class="line"><a name="l00162"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a6983f1d469602e6c19668797e44eb9dc">  162</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a6983f1d469602e6c19668797e44eb9dc">k_QUEUENAME_MAX_LENGTH</a> = 64;</div>
+<div class="line"><a name="l00163"></a><span class="lineno">  163</span>&#160; </div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    <span class="comment">// CLASS-SCOPE CATEGORY</span></div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;    BALL_LOG_SET_CLASS_CATEGORY(<span class="stringliteral">&quot;BMQT.URI&quot;</span>);</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00168"></a><span class="lineno">  168</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00169"></a><span class="lineno">  169</span>&#160;    <span class="comment">// FRIENDS</span></div>
+<div class="line"><a name="l00170"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a2bc3e5af8959ebdfb7261eb16f15de61">  170</a></span>&#160;    <span class="keyword">friend</span> <span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1UriParser.html">UriParser</a>;</div>
+<div class="line"><a name="l00171"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a9590d690826deb1739f696cd13d35e2f">  171</a></span>&#160;    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>;</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> HASH_ALGORITHM&gt;</div>
+<div class="line"><a name="l00173"></a><span class="lineno">  173</span>&#160;    <span class="keyword">friend</span> <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#adec9ab42f3886b8f3909044341c43991">hashAppend</a>(HASH_ALGORITHM&amp; hashAlgo, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; uri);</div>
+<div class="line"><a name="l00174"></a><span class="lineno">  174</span>&#160; </div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00176"></a><span class="lineno">  176</span>&#160;    <span class="comment">// DATA</span></div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160; </div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160;    bsl::string d_uri;</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160; </div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;    bslstl::StringRef d_scheme;</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160;    bslstl::StringRef d_authority;</div>
+<div class="line"><a name="l00186"></a><span class="lineno">  186</span>&#160; </div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    bslstl::StringRef d_domain;</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160;    bslstl::StringRef d_tier;</div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160; </div>
+<div class="line"><a name="l00194"></a><span class="lineno">  194</span>&#160;    bslstl::StringRef d_path;</div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160; </div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;    bslstl::StringRef d_query_id;</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160;    <span class="keywordtype">bool</span> d_wasParserInitialized;</div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160;    <span class="comment">// PRIVATE MANIPULATORS</span></div>
+<div class="line"><a name="l00205"></a><span class="lineno">  205</span>&#160; </div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160;    <span class="keywordtype">void</span> reset();</div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160; </div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    <span class="keywordtype">void</span> copyImpl(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; src);</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160; </div>
+<div class="line"><a name="l00213"></a><span class="lineno">  213</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160; </div>
+<div class="line"><a name="l00217"></a><span class="lineno">  217</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00218"></a><span class="lineno">  218</span>&#160; </div>
+<div class="line"><a name="l00219"></a><span class="lineno">  219</span>&#160;    </div>
+<div class="line"><a name="l00221"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#ae8dbe5ebf83487ff01d97ec492e41064">  221</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>(bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160; </div>
+<div class="line"><a name="l00226"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a06cc2ea6588ba2d2e4f119c772672c1d">  226</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp;        original,</div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;        bslma::Allocator* allocator = 0);  <span class="comment">// IMPLICIT</span></div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160; </div>
+<div class="line"><a name="l00233"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a1b4ef3ca3cb6f1cacbee6f8c8100d350">  233</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>(const bsl::<span class="keywordtype">string</span>&amp; uri,</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;        bslma::Allocator*  allocator = 0);  <span class="comment">// IMPLICIT</span></div>
+<div class="line"><a name="l00235"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a3ae69e4159257363175eefe00d40f8f1">  235</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>(const bslstl::StringRef&amp; uri,</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;        bslma::Allocator*        allocator = 0);  <span class="comment">// IMPLICIT</span></div>
+<div class="line"><a name="l00237"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a5e0c74aeb214d956d850d97e1084a667">  237</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>(const <span class="keywordtype">char</span>*       uri,</div>
+<div class="line"><a name="l00238"></a><span class="lineno">  238</span>&#160;        bslma::Allocator* allocator = 0);  <span class="comment">// IMPLICIT</span></div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160; </div>
+<div class="line"><a name="l00241"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a926490071ff0f7bf136ba0cbb2de7b3b">  241</a></span>&#160;    ~<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>();</div>
+<div class="line"><a name="l00242"></a><span class="lineno">  242</span>&#160; </div>
+<div class="line"><a name="l00243"></a><span class="lineno">  243</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160; </div>
+<div class="line"><a name="l00246"></a><span class="lineno">  246</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; operator=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs);</div>
+<div class="line"><a name="l00247"></a><span class="lineno">  247</span>&#160; </div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;    const bsl::<span class="keywordtype">string</span>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>() const;</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160; </div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a47b6bdf451370e10d6261f3341db1f3d">isValid</a>() const;</div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160; </div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a9bfe2fb1c5a480b5d6e75e5e60b5c682">isCanonical</a>() const;</div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160; </div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#ab0fc3ab05049fb31a6d4ab57119da0c5">scheme</a>() const;</div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a43f4b1fee985849840c60f01667c3136">authority</a>() const;</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160; </div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a33dd824f7010d3dac8090f44cb9bce0f">path</a>() const;</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160; </div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a3eeb7b714cb6932b6a044367eb8be67b">qualifiedDomain</a>() const;</div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a037103d48f451e1b5389d6e6c5cba046">domain</a>() const;</div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a5408921c267fb88eb7a8cc36d0af6430">tier</a>() const;</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160;    const bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a0c37dde58c1e43d7519703cd3e5a3e80">queue</a>() const;</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160; </div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;    const bslstl::StringRef&amp; <span class="keywordtype">id</span>() const;</div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;    bslstl::StringRef <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#ad7d76347aed12969f08ab60169f5a3c1">canonical</a>() const;</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160; </div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00289"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a41cd3a83d75bbfc7ac63759979c05f8f">  289</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a41cd3a83d75bbfc7ac63759979c05f8f">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) const;</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;};</div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160; </div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160; </div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;<span class="keywordtype">bool</span> operator==(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs);</div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160; </div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;<span class="keywordtype">bool</span> operator!=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs);</div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160; </div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;<span class="keywordtype">bool</span> operator&lt;(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs);</div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160; </div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs);</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160; </div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;<span class="comment">// struct UriParser</span></div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160; </div>
+<div class="line"><a name="l00317"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1UriParser.html">  317</a></span>&#160;struct <a class="code" href="structBloombergLP_1_1bmqt_1_1UriParser.html">UriParser</a> {</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160; </div>
+<div class="line"><a name="l00329"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a59d72951a47f4eb568c348b0780688eb">  329</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a59d72951a47f4eb568c348b0780688eb">initialize</a>(bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160; </div>
+<div class="line"><a name="l00339"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a61e13f1d3893f08fd3930f32c99f904d">  339</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">void</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a61e13f1d3893f08fd3930f32c99f904d">shutdown</a>();</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
+<div class="line"><a name="l00349"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a95624d126d7142ba29758925092bde78">  349</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">int</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1UriParser.html#a95624d126d7142ba29758925092bde78">parse</a>(<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>*                     result,</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;                     bsl::string*             errorDescription,</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;                     <span class="keyword">const</span> bslstl::StringRef&amp; uriString);</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;    <span class="comment">// CLASS-SCOPE CATEGORY</span></div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;    BALL_LOG_SET_CLASS_CATEGORY(<span class="stringliteral">&quot;BMQT.URI&quot;</span>);</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;};</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160; </div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;<span class="comment">// class UriBuilder</span></div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160; </div>
+<div class="line"><a name="l00364"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">  364</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a> {</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;    <span class="comment">// DATA</span></div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a> d_uri;  <span class="comment">// Placeholder object for URI object being built.</span></div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160; </div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;    <span class="comment">// NOT IMPLEMENTED</span></div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a9590d690826deb1739f696cd13d35e2f">UriBuilder</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp;);</div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a571f78a79022f6bf0ed177fa687d6dfc">operator=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp;);</div>
+<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160; </div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(<a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160; </div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160; </div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;    </div>
+<div class="line"><a name="l00383"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a594c4e161c910401666cf254bc7e8b2f">  383</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>(bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160; </div>
+<div class="line"><a name="l00387"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#ad54c138d4abb9ec955859dcf93347b38">  387</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>(const bmqt::<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; uri, bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160; </div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; setDomain(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; setTier(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00392"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a361e99062c4984d0c41fef01ac134041">  392</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; setQualifiedDomain(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; setQueue(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160; </div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; setId(const bslstl::StringRef&amp; value);</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160; </div>
+<div class="line"><a name="l00402"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#adee4648c1ca1e3f0be637f84630b5252">  402</a></span>&#160;    <span class="keywordtype">void</span> reset();</div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160; </div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160; </div>
+<div class="line"><a name="l00409"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#ae37f5850fb2779bc5e593a3c79385459">  409</a></span>&#160;    <span class="keywordtype">int</span> uri(<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>* result, bsl::<span class="keywordtype">string</span>* errorDescription = 0) const;</div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160;};</div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160; </div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160; </div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;<span class="comment">// ---------</span></div>
+<div class="line"><a name="l00417"></a><span class="lineno">  417</span>&#160;<span class="comment">// class Uri</span></div>
+<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;<span class="comment">// ---------</span></div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160; </div>
+<div class="line"><a name="l00420"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a571f78a79022f6bf0ed177fa687d6dfc">  420</a></span>&#160;inline <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>::operator=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; rhs)</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;{</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;    copyImpl(rhs);</div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160; </div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;}</div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160; </div>
+<div class="line"><a name="l00427"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">  427</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::string&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">Uri::asString</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160;    <span class="keywordflow">return</span> d_uri;</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;}</div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160; </div>
+<div class="line"><a name="l00432"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a47b6bdf451370e10d6261f3341db1f3d">  432</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a47b6bdf451370e10d6261f3341db1f3d">Uri::isValid</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160;    <span class="comment">// URI can only be set using either &#39;UriBuilder&#39; or &#39;UriParser&#39;, which are</span></div>
+<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;    <span class="comment">// resetting the d_uri on failure.</span></div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;    <span class="keywordflow">return</span> !d_uri.empty();</div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;}</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160; </div>
+<div class="line"><a name="l00439"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a9bfe2fb1c5a480b5d6e75e5e60b5c682">  439</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a9bfe2fb1c5a480b5d6e75e5e60b5c682">Uri::isCanonical</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160;    <span class="keywordflow">return</span> d_query_id.isEmpty();</div>
+<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;}</div>
+<div class="line"><a name="l00443"></a><span class="lineno">  443</span>&#160; </div>
+<div class="line"><a name="l00444"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#ab0fc3ab05049fb31a6d4ab57119da0c5">  444</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#ab0fc3ab05049fb31a6d4ab57119da0c5">Uri::scheme</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;    <span class="keywordflow">return</span> d_scheme;</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;}</div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160; </div>
+<div class="line"><a name="l00449"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a43f4b1fee985849840c60f01667c3136">  449</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a43f4b1fee985849840c60f01667c3136">Uri::authority</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;    <span class="keywordflow">return</span> d_authority;</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;}</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160; </div>
+<div class="line"><a name="l00454"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a33dd824f7010d3dac8090f44cb9bce0f">  454</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a33dd824f7010d3dac8090f44cb9bce0f">Uri::path</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;    <span class="keywordflow">return</span> d_path;</div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;}</div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160; </div>
+<div class="line"><a name="l00459"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a037103d48f451e1b5389d6e6c5cba046">  459</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a037103d48f451e1b5389d6e6c5cba046">Uri::domain</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;    <span class="keywordflow">return</span> d_domain;</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;}</div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160; </div>
+<div class="line"><a name="l00464"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a3eeb7b714cb6932b6a044367eb8be67b">  464</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a3eeb7b714cb6932b6a044367eb8be67b">Uri::qualifiedDomain</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;    <span class="keywordflow">return</span> d_authority;</div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;}</div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
+<div class="line"><a name="l00469"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a5408921c267fb88eb7a8cc36d0af6430">  469</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a5408921c267fb88eb7a8cc36d0af6430">Uri::tier</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;    <span class="keywordflow">return</span> d_tier;</div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;}</div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160; </div>
+<div class="line"><a name="l00474"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#a0c37dde58c1e43d7519703cd3e5a3e80">  474</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a0c37dde58c1e43d7519703cd3e5a3e80">Uri::queue</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;    <span class="keywordflow">return</span> d_path;</div>
+<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;}</div>
+<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160; </div>
+<div class="line"><a name="l00479"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#aab4bda679018608e51342242523ac99d">  479</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bslstl::StringRef&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aab4bda679018608e51342242523ac99d">Uri::id</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00481"></a><span class="lineno">  481</span>&#160;    <span class="keywordflow">return</span> d_query_id;</div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;}</div>
+<div class="line"><a name="l00483"></a><span class="lineno">  483</span>&#160; </div>
+<div class="line"><a name="l00484"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#ad7d76347aed12969f08ab60169f5a3c1">  484</a></span>&#160;<span class="keyword">inline</span> bslstl::StringRef <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#ad7d76347aed12969f08ab60169f5a3c1">Uri::canonical</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;    <span class="keywordtype">size_t</span> queryBeginPos = d_uri.find_first_of(<span class="charliteral">&#39;?&#39;</span>);</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;    <span class="keywordflow">if</span> (bsl::string::npos == queryBeginPos) {</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;        <span class="keywordflow">return</span> d_uri;  <span class="comment">// RETURN</span></div>
+<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160;    }</div>
+<div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160; </div>
+<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;    <span class="keywordflow">return</span> bslstl::StringRef(d_uri.c_str(), queryBeginPos);</div>
+<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160;}</div>
+<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160; </div>
+<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160;<span class="comment">// FREE FUNCTIONS</span></div>
+<div class="line"><a name="l00495"></a><span class="lineno">  495</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> HASH_ALGORITHM&gt;</div>
+<div class="line"><a name="l00496"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Uri.html#adec9ab42f3886b8f3909044341c43991">  496</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#adec9ab42f3886b8f3909044341c43991">hashAppend</a>(HASH_ALGORITHM&amp; hashAlgo, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">Uri</a>&amp; uri)</div>
+<div class="line"><a name="l00497"></a><span class="lineno">  497</span>&#160;{</div>
+<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;    <span class="keyword">using</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a6c527cc9c3ecaf34c1fcc1618818f4b9">bslh::hashAppend</a>;           <span class="comment">// for ADL</span></div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#adec9ab42f3886b8f3909044341c43991">hashAppend</a>(hashAlgo, uri.d_uri);  <span class="comment">// hashes full uri string</span></div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160;}</div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160; </div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;<span class="comment">// ----------------</span></div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;<span class="comment">// class UriBuilder</span></div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;<span class="comment">// ----------------</span></div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160; </div>
+<div class="line"><a name="l00506"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#acd1e20afac8d30a5f535ac1877b7a9c1">  506</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#acd1e20afac8d30a5f535ac1877b7a9c1">UriBuilder::setDomain</a>(<span class="keyword">const</span> bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;{</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;    d_uri.d_domain = value;</div>
+<div class="line"><a name="l00509"></a><span class="lineno">  509</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;}</div>
+<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160; </div>
+<div class="line"><a name="l00512"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a11aa17d29bcd591394445f1cfb88c902">  512</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a11aa17d29bcd591394445f1cfb88c902">UriBuilder::setTier</a>(<span class="keyword">const</span> bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00513"></a><span class="lineno">  513</span>&#160;{</div>
+<div class="line"><a name="l00514"></a><span class="lineno">  514</span>&#160;    d_uri.d_tier = value;</div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;}</div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160; </div>
+<div class="line"><a name="l00518"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#adef38fd4613be09c438a045fa8258fb7">  518</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#adef38fd4613be09c438a045fa8258fb7">UriBuilder::setQueue</a>(<span class="keyword">const</span> bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160;{</div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;    d_uri.d_path = value;</div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;}</div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160; </div>
+<div class="line"><a name="l00524"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a8d1dc46b84ffb25722aed4ffc370fb5e">  524</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">UriBuilder</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a8d1dc46b84ffb25722aed4ffc370fb5e">UriBuilder::setId</a>(<span class="keyword">const</span> bslstl::StringRef&amp; value)</div>
+<div class="line"><a name="l00525"></a><span class="lineno">  525</span>&#160;{</div>
+<div class="line"><a name="l00526"></a><span class="lineno">  526</span>&#160;    d_uri.d_query_id = value;</div>
+<div class="line"><a name="l00527"></a><span class="lineno">  527</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00528"></a><span class="lineno">  528</span>&#160;}</div>
+<div class="line"><a name="l00529"></a><span class="lineno">  529</span>&#160; </div>
+<div class="line"><a name="l00530"></a><span class="lineno">  530</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l00531"></a><span class="lineno">  531</span>&#160; </div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160; </div>
+<div class="line"><a name="l00534"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#ac48cbe60996c895ee24d14d2cc8bff01">  534</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">bmqt::operator==</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; lhs, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; rhs)</div>
+<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;{</div>
+<div class="line"><a name="l00536"></a><span class="lineno">  536</span>&#160;    <span class="keywordflow">return</span> (lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>());</div>
+<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;}</div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160; </div>
+<div class="line"><a name="l00539"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#add32cc6a88489f15691c3d7f0958c3ab">  539</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">bmqt::operator!=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; lhs, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; rhs)</div>
+<div class="line"><a name="l00540"></a><span class="lineno">  540</span>&#160;{</div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160;    <span class="keywordflow">return</span> (lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>());</div>
+<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;}</div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160; </div>
+<div class="line"><a name="l00544"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#acf92ec381d2db68f75a6e955968d9be3">  544</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">bmqt::operator&lt;</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; lhs, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; rhs)</div>
+<div class="line"><a name="l00545"></a><span class="lineno">  545</span>&#160;{</div>
+<div class="line"><a name="l00546"></a><span class="lineno">  546</span>&#160;    <span class="keywordflow">return</span> (lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>() &lt; rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">asString</a>());</div>
+<div class="line"><a name="l00547"></a><span class="lineno">  547</span>&#160;}</div>
+<div class="line"><a name="l00548"></a><span class="lineno">  548</span>&#160; </div>
+<div class="line"><a name="l00549"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#aa55fa376a6ddfcb542481ebc997640ec">  549</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;    stream,</div>
+<div class="line"><a name="l00550"></a><span class="lineno">  550</span>&#160;                                      <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html">bmqt::Uri</a>&amp; rhs)</div>
+<div class="line"><a name="l00551"></a><span class="lineno">  551</span>&#160;{</div>
+<div class="line"><a name="l00552"></a><span class="lineno">  552</span>&#160;    <span class="keywordflow">return</span> rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Uri.html#a41cd3a83d75bbfc7ac63759979c05f8f">print</a>(stream, 0, -1);</div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160;}</div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160; </div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160; </div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1UriBuilder_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1UriBuilder.html">BloombergLP::bmqt::UriBuilder</a></div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:364</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1UriBuilder_html_a11aa17d29bcd591394445f1cfb88c902"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a11aa17d29bcd591394445f1cfb88c902">BloombergLP::bmqt::UriBuilder::setTier</a></div><div class="ttdeci">UriBuilder &amp; setTier(const bslstl::StringRef &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:512</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1UriBuilder_html_a8d1dc46b84ffb25722aed4ffc370fb5e"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#a8d1dc46b84ffb25722aed4ffc370fb5e">BloombergLP::bmqt::UriBuilder::setId</a></div><div class="ttdeci">UriBuilder &amp; setId(const bslstl::StringRef &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:524</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1UriBuilder_html_acd1e20afac8d30a5f535ac1877b7a9c1"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#acd1e20afac8d30a5f535ac1877b7a9c1">BloombergLP::bmqt::UriBuilder::setDomain</a></div><div class="ttdeci">UriBuilder &amp; setDomain(const bslstl::StringRef &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:506</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1UriBuilder_html_adef38fd4613be09c438a045fa8258fb7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1UriBuilder.html#adef38fd4613be09c438a045fa8258fb7">BloombergLP::bmqt::UriBuilder::setQueue</a></div><div class="ttdeci">UriBuilder &amp; setQueue(const bslstl::StringRef &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:518</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html">BloombergLP::bmqt::Uri</a></div><div class="ttdoc">Value semantic type representing a URI.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:157</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a037103d48f451e1b5389d6e6c5cba046"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a037103d48f451e1b5389d6e6c5cba046">BloombergLP::bmqt::Uri::domain</a></div><div class="ttdeci">const bslstl::StringRef &amp; domain() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:459</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a0c37dde58c1e43d7519703cd3e5a3e80"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a0c37dde58c1e43d7519703cd3e5a3e80">BloombergLP::bmqt::Uri::queue</a></div><div class="ttdeci">const bslstl::StringRef &amp; queue() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:474</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a33dd824f7010d3dac8090f44cb9bce0f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a33dd824f7010d3dac8090f44cb9bce0f">BloombergLP::bmqt::Uri::path</a></div><div class="ttdeci">const bslstl::StringRef &amp; path() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:454</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a3eeb7b714cb6932b6a044367eb8be67b"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a3eeb7b714cb6932b6a044367eb8be67b">BloombergLP::bmqt::Uri::qualifiedDomain</a></div><div class="ttdeci">const bslstl::StringRef &amp; qualifiedDomain() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:464</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a41cd3a83d75bbfc7ac63759979c05f8f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a41cd3a83d75bbfc7ac63759979c05f8f">BloombergLP::bmqt::Uri::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a43f4b1fee985849840c60f01667c3136"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a43f4b1fee985849840c60f01667c3136">BloombergLP::bmqt::Uri::authority</a></div><div class="ttdeci">const bslstl::StringRef &amp; authority() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:449</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a47b6bdf451370e10d6261f3341db1f3d"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a47b6bdf451370e10d6261f3341db1f3d">BloombergLP::bmqt::Uri::isValid</a></div><div class="ttdeci">bool isValid() const</div><div class="ttdoc">Return true if this object represents a valid URI.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:432</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a5408921c267fb88eb7a8cc36d0af6430"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a5408921c267fb88eb7a8cc36d0af6430">BloombergLP::bmqt::Uri::tier</a></div><div class="ttdeci">const bslstl::StringRef &amp; tier() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:469</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a571f78a79022f6bf0ed177fa687d6dfc"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a571f78a79022f6bf0ed177fa687d6dfc">BloombergLP::bmqt::Uri::operator=</a></div><div class="ttdeci">Uri &amp; operator=(const Uri &amp;rhs)</div><div class="ttdoc">Set the value of this object to the specified rhs.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:420</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a6983f1d469602e6c19668797e44eb9dc"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a6983f1d469602e6c19668797e44eb9dc">BloombergLP::bmqt::Uri::k_QUEUENAME_MAX_LENGTH</a></div><div class="ttdeci">static const int k_QUEUENAME_MAX_LENGTH</div><div class="ttdoc">The maximum authorized length for the queue name part of the URI.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:162</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a9590d690826deb1739f696cd13d35e2f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a9590d690826deb1739f696cd13d35e2f">BloombergLP::bmqt::Uri::UriBuilder</a></div><div class="ttdeci">friend class UriBuilder</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:171</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_a9bfe2fb1c5a480b5d6e75e5e60b5c682"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#a9bfe2fb1c5a480b5d6e75e5e60b5c682">BloombergLP::bmqt::Uri::isCanonical</a></div><div class="ttdeci">bool isCanonical() const</div><div class="ttdoc">Return true if this object represents a canonical URI.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:439</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_aa1fe316a09d0ac948ba02ce89ec1a4ce"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#aa1fe316a09d0ac948ba02ce89ec1a4ce">BloombergLP::bmqt::Uri::asString</a></div><div class="ttdeci">const bsl::string &amp; asString() const</div><div class="ttdoc">Return the string representation of this URI.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:427</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_aab4bda679018608e51342242523ac99d"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#aab4bda679018608e51342242523ac99d">BloombergLP::bmqt::Uri::id</a></div><div class="ttdeci">const bslstl::StringRef &amp; id() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:479</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_ab0fc3ab05049fb31a6d4ab57119da0c5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#ab0fc3ab05049fb31a6d4ab57119da0c5">BloombergLP::bmqt::Uri::scheme</a></div><div class="ttdeci">const bslstl::StringRef &amp; scheme() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:444</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_ad7d76347aed12969f08ab60169f5a3c1"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#ad7d76347aed12969f08ab60169f5a3c1">BloombergLP::bmqt::Uri::canonical</a></div><div class="ttdeci">bslstl::StringRef canonical() const</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:484</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Uri_html_adec9ab42f3886b8f3909044341c43991"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Uri.html#adec9ab42f3886b8f3909044341c43991">BloombergLP::bmqt::Uri::hashAppend</a></div><div class="ttdeci">friend void hashAppend(HASH_ALGORITHM &amp;hashAlgo, const Uri &amp;uri)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:496</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a6c527cc9c3ecaf34c1fcc1618818f4b9"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a6c527cc9c3ecaf34c1fcc1618818f4b9">BloombergLP::bmqt::hashAppend</a></div><div class="ttdeci">void hashAppend(HASH_ALGORITHM &amp;hashAlgo, const Uri &amp;uri)</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:496</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a834a83fe28fd4313012e27be2f7bf732"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">BloombergLP::bmqt::operator&lt;&lt;</a></div><div class="ttdeci">bsl::ostream &amp; operator&lt;&lt;(bsl::ostream &amp;stream, CompressionAlgorithmType::Enum value)</div><div class="ttdef"><b>Definition:</b> bmqt_compressionalgorithmtype.h:141</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_aa6566ff0a88bbcebb2d322152cd3472b"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">BloombergLP::bmqt::operator!=</a></div><div class="ttdeci">bool operator!=(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:582</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ab916ce4498d29d2e31d35c6f5277fdc6"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">BloombergLP::bmqt::operator==</a></div><div class="ttdeci">bool operator==(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:576</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ad02821c241b0c68b972bb61dbf4ee260"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">BloombergLP::bmqt::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:588</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1UriParser_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1UriParser.html">BloombergLP::bmqt::UriParser</a></div><div class="ttdoc">Utility namespace of methods for parsing URI strings into Uri objects.</div><div class="ttdef"><b>Definition:</b> bmqt_uri.h:317</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1UriParser_html_a59d72951a47f4eb568c348b0780688eb"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1UriParser.html#a59d72951a47f4eb568c348b0780688eb">BloombergLP::bmqt::UriParser::initialize</a></div><div class="ttdeci">static void initialize(bslma::Allocator *allocator=0)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1UriParser_html_a61e13f1d3893f08fd3930f32c99f904d"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1UriParser.html#a61e13f1d3893f08fd3930f32c99f904d">BloombergLP::bmqt::UriParser::shutdown</a></div><div class="ttdeci">static void shutdown()</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1UriParser_html_a95624d126d7142ba29758925092bde78"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1UriParser.html#a95624d126d7142ba29758925092bde78">BloombergLP::bmqt::UriParser::parse</a></div><div class="ttdeci">static int parse(Uri *result, bsl::string *errorDescription, const bslstl::StringRef &amp;uriString)</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_8e091ab1c7d4f7f0c38972fd2ce6f060.html">bmqt</a></li><li class="navelem"><a class="el" href="bmqt__uri_8h.html">bmqt_uri.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>

@@ -1,1159 +1,490 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2014-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqa_session.h                                                     -*-C++-*-
-#ifndef INCLUDED_BMQA_SESSION
-#define INCLUDED_BMQA_SESSION
-
-//@PURPOSE: Provide access to the BlazingMQ broker.
-//
-//@CLASSES:
-//  bmqa::SessionEventHandler: interface for receiving events asynchronously.
-//  bmqa::Session            : mechanism for access to the BlazingMQ broker.
-//
-//@DESCRIPTION: This component provides a mechanism, &#39;bmqa::Session&#39;, that
-// provides access to a message queue broker and an interface,
-// &#39;bmqa::SessionEventHandler&#39; for asynchronous notification of events.  The
-// broker manages named, persistent queues of messages.  This broker allows a
-// client to open queues, post messages to them, or retrieve messages from
-// them.  All of these operations take place within the context of the session
-// opened by the client application.
-//
-// Messages received from a broker are communicated to the application by the
-// session associated with that broker in the form of events (see
-// &#39;bmqa_event&#39;).  Events can be of two different types: (1) Messages and
-// message status events (&#39;bmqa::MessageEvent&#39;), or (2) Session or queue
-// status events (&#39;bmqa::SessionEvent&#39;).
-//
-// A &#39;Session&#39; can dispatch events to the application in either a synchronous
-// or asynchronous mode.  In synchronous mode, the application must call the
-// &#39;nextEvent&#39; method in order to obtain events from the &#39;Session&#39;.  In
-// asynchronous mode, the application must supply a concrete
-// &#39;SessionEventHandler&#39; object at construction time.  The concrete
-// &#39;SessionEventHandler&#39; provided by the application must implement the
-// &#39;onSessionEvent&#39; and &#39;onMessageEvent&#39; methods, which will be called by the
-// &#39;Session&#39; every time a session event or a message event is received.  Note
-// that by default, a session created in asynchronous mode creates only one
-// internal thread to dispatch events, but a different value for number of
-// threads can be specified in &#39;bmqt::SessionOptions&#39;.
-//
-// A &#39;Session&#39; is created either in synchronous or in asynchronous mode, and it
-// will remain in that mode until destruction.  Allowing a mix between
-// synchronous or asynchronous would make the SDK complicated.  The only
-// exceptions are the &quot;start&quot; and &quot;open&quot; operations that must be available in
-// synchronous or asynchronous version for the convenience of the programmer.
-//
-// By default a &#39;Session&#39; connects to the local broker, which in turn may
-// connect to a remote cluster based on configuration.
-//
-// After a &#39;bmqa::Session&#39; is started, the application has to open one or
-// several queues in read and/or write mode.
-//
-///Disclaimer
-///----------
-// A &#39;Session&#39; object is a heavy object representing the negotiated TCP session
-// with the broker, and the entire associated state (opened queues, statistics,
-// ...).  Therefore, sessions should be always reused if possible, preferably
-// with only *one* session per lifetime of a component/library/task.
-// Note that at the time of this writing multiplexing of different logical
-// sessions over the same physical connection is not supported, so in certain
-// circumstances reuse of the same session across the whole of a single
-// application will not be possible. For example, if an application uses two
-// unrelated libraries both of which use BlazingMQ under the hood, they won&#39;t
-// be able to share a session as it stands.
-// An example of an extreme inefficiency and an abuse of resources is to
-// create a session ad-hoc every time a message needs to be posted by the same
-// component.
-//
-///Thread-safety
-///-------------
-// This session object is *thread* *enabled*, meaning that two threads can
-// safely call any methods on the *same* *instance* without external
-// synchronization.
-//
-///Connecting to the Broker
-///------------------------
-// A &#39;Session&#39; establishes a communication with a broker service using TCP/IP.
-// Each &#39;Session&#39; object must be constructed with a &#39;bmqa::SessionOptions&#39;
-// object, which provides the necessary information to connect to the broker.
-// In particular, the &#39;SessionOptions&#39; object must specify the IP address and
-// port needed to connect to the broker.  The &#39;SessionOptions&#39; object may also
-// provide extra parameters for tuning the TCP connection behavior (see
-// &#39;bmqa_sessionoptions&#39; for details).
-//
-// Note that in most cases the user does not need to explicitly construct a
-// &#39;SessionOptions&#39; object: the default constructor for &#39;SessionOptions&#39;
-// creates an instance that will connect to the broker service on the local
-// machine using the standard port.
-//
-// Some options can also be provided using environment variables.
-//: o !BMQ_BROKER_URI!: Corresponds to &#39;SessionOptions::brokerUri&#39;.
-//:   If this environment variable is set, its value will override the one
-//:   specified in the &#39;SessionOptions&#39;.
-//
-// A &#39;Session&#39; object is created in an unconnected state.  The &#39;start&#39; or
-// &#39;startAsync&#39; method must be called to connect to the broker.  Note that
-// &#39;start&#39; method is blocking, and returns either after connection to broker
-// has been established (success), or after specified timeout (failure).
-// &#39;startAsync&#39; method, as the name suggests, connects to the broker
-// asynchronously (i.e., it returns immediately), and the result of the
-// operation is notified via &#39;bmqt::SessionEventType::CONNECTED&#39; session event.
-//
-// When the &#39;Session&#39; is no longer needed, the application should call the
-// &#39;stop&#39; (blocking) or &#39;stopAsync&#39; (non-blocking) method to shut down the
-// &#39;Session&#39; and disconnect from the broker.  Note that destroying a Session
-// automatically stops it.  The session can be restarted with a call to &#39;start&#39;
-// or &#39;startAsync&#39; once it has been fully stopped.
-//
-///Connection loss and reconnection
-///--------------------------------
-// If the connection between the application and the broker is lost, the
-// &#39;Session&#39; will automatically try to reconnect periodically.  The &#39;Session&#39;
-// will also notify the application of the event of losing the connection via
-// &#39;bmqt::SessionEventType::CONNECTION_LOST&#39; session event.
-//
-// Once the connection has been re-established with the broker (as a result of
-// one of the periodic reconnection attempts), the &#39;Session&#39; will notify the
-// application via &#39;bmqt::SessionEventType::RECONNECTED&#39; session event.  After
-// the connection re-establishment, the &#39;Session&#39; will attempt to reopen the
-// queues that were in &#39;OPEN&#39; state prior to connection loss.  The &#39;Session&#39;
-// will notify the application of the result of reopen operation via
-// &#39;bmqt::SessionEventType::QUEUE_REOPEN_RESULT&#39; for each queue.  Note that a
-// reopen operation on a queue may fail (due to broker issue, machine issue,
-// etc), so the application must keep track on these session events, and stop
-// posting on a queue that failed to reopen.
-//
-// After all reopen operations are complete and application has been notified
-// with all &#39;bmqt::SessionEventType::QUEUE_REOPEN_RESULT&#39; events, the &#39;Session&#39;
-// delivers a &#39;bmqt::SessionEventType::STATE_RESTORED&#39; session event to the
-// application.
-//
-///Example 1
-///- - - - -
-// The following example illustrates how to create a &#39;Session&#39; in synchronous
-// mode, start it, and stop it.
-//..
-//  void runSession()
-//  {
-//      bmqt::SessionOptions options;
-//      options.setBrokerUri(&quot;tcp://localhost:30114&quot;);
-//
-//      bmqa::Session session(options);
-//      int res = session.start();
-//      if (0 != res) {
-//          bsl::cout &lt;&lt; &quot;Failed to start session (&quot; &lt;&lt; res &lt;&lt; &quot;)&quot;
-//                    &lt;&lt; bsl::endl;
-//          return;
-//      }
-//      bsl::cout &lt;&lt; &quot;Session started.&quot; &lt;&lt; bsl::endl;
-//
-//      // Open queue in READ or WRITE or READ/WRITE mode, and receive or
-//      // post messages, etc.
-//      // ...
-//
-//      session.stop();
-//  }
-//..
-// This example can be simplified because the constructor for &#39;Session&#39; uses a
-// default &#39;SessionOptions&#39; object that will connect to the local broker
-// service.  The example may be rewritten as follow:
-//..
-//  void runSession()
-//  {
-//      bmqa::Session session;     // using default &#39;SessionOptions&#39;
-//      int res = session.start();
-//      if (0 != res) {
-//          bsl::cout &lt;&lt; &quot;Failed to start session (&quot; &lt;&lt; res &lt;&lt; &quot;)&quot;
-//                    &lt;&lt; bsl::endl;
-//          return;
-//      }
-//      bsl::cout &lt;&lt; &quot;Session started.&quot; &lt;&lt; bsl::endl;
-//
-//      // Open queue in READ or WRITE or READ/WRITE mode, and receive or
-//      // post messages, etc.
-//      // ...
-//
-//      session.stop();
-//  }
-//..
-//
-///Processing session events - synchronous mode
-///--------------------------------------------
-// If the &#39;Session&#39; is created in synchronous mode, the application needs to
-// call the &#39;nextEvent&#39; method on a regular basis in order to receive events.
-// This method takes an optional wait timeout as a parameter, and it will
-// return the next available &#39;Event&#39; from the session&#39;s internal event queue or
-// it will block the calling thread execution until new &#39;Event&#39; arrives or
-// until the specified timeout expires.  It is safe to call the &#39;nextEvent&#39;
-// method from different threads simultaneously: the &#39;Session&#39; class provides
-// proper synchronization logic to protect the internal event queue from
-// corruption in this scenario.
-//
-///Example 2
-///- - - - -
-// The following example demonstrates how to write a function that queries and
-// processes events synchronously.  In this example the switch form checks the
-// type of the &#39;Event&#39; and performs the necessary actions.
-//
-// We first define two functions to process &#39;SessionEvent&#39; and &#39;MessageEvent&#39;.
-// These functions return &#39;true&#39; if we should keep processing events and
-// &#39;false&#39; otherwise (i.e., no more events are expected from the &#39;Session&#39;).
-//..
-//  bool processSessionEvent(const bmqa::SessionEvent&amp; event)
-//  {
-//      bool result = true;
-//      switch (event.type()) {
-//
-//        case bmqt::SessionEventType::e_CONNECTED:
-//          // The connection to the broker is established (as a result
-//          // of a call to the &#39;start&#39; method).
-//          openQueues();
-//          startPostingToQueues();
-//          break;
-//
-//        case bmqt::SessionEventType::e_DISCONNECTED:
-//          // The connection to the broker is terminated (as a result
-//          // of a call to the &#39;stop&#39; method).
-//          result = false;
-//          break;
-//
-//        case bmqt::SessionEventType::e_CONNECTION_LOST:
-//          // The connection to the broker dropped. Stop posting to the queue.
-//          stopPostingToQueues();
-//          break;
-//
-//        case bmqt::SessionEventType::e_STATE_RESTORED:
-//          // The connection to the broker has been restored (i.e., all queues
-//          // have been re-opened. Resume posting to the queue.
-//          resumePostingToQueues();
-//          break;
-//
-//        case bmqt::SessionEventType::e_CONNECTION_TIMEOUT:
-//          // The connection to the broker has timed out.
-//          result = false;
-//          break;
-//
-//        case bmqt::SessionEventType::e_ERROR:
-//          // Internal error
-//          bsl::cout &lt;&lt; &quot;Unexpected session error: &quot;
-//                    &lt;&lt; event.errorDescription() &lt;&lt; bsl::endl;
-//          break;
-//
-//      } // end switch
-//
-//      return result;
-//  }
-//
-//  bool processMessageEvent(const bmqa::MessageEvent&amp; event)
-//  {
-//      bool result = true;
-//      switch (event.type()) {
-//
-//        case bmqt::MessageEventType::e_PUSH: {
-//          // Received a &#39;PUSH&#39; event from the broker.
-//          bmqa::MessageIterator msgIter = event.messageIterator();
-//          while (msgIter.nextMessage()) {
-//              const bmqa::Message&amp; msg = msgIter.message();
-//              // Process &#39;PUSH&#39; msg here (omitted for brevity)
-//              // ...
-//          }
-//      } break;
-//
-//        case bmqt::MessageEventType::e_ACK: {
-//          // Received an &#39;ACK&#39; event from the broker.
-//          bmqa::MessageIterator msgIter = event.messageIterator();
-//          while (msgIter.nextMessage()) {
-//              const bmqa::Message&amp; msg = msgIter.message();
-//              // Process &#39;ACK&#39; msg here (omitted for brevity)
-//              // ...
-//          }
-//      } break;
-//
-//      } // end switch
-//
-//      return result;
-//  }
-//..
-//
-// Next, we define a function that handles events synchronously using the
-// &#39;processSessionEvent&#39; and &#39;processMessageEvent&#39; functions.
-//..
-//  void handleEventsSynchronously(bmqa::Session *startedSession)
-//  {
-//      bool more = true;
-//      while (more) {
-//          bmqa::Event event =
-//                  startedSession-&gt;nextEvent(bsls::TimeInterval(2.0));
-//          if (event.isSessionEvent()) {
-//              more = processSessionEvent(event.sessionEvent());
-//          }
-//          else {
-//              more = processMessageEvent(event.messageEvent());
-//          }
-//      }
-//  }
-//..
-//
-///Processing session events - asynchronous mode
-///---------------------------------------------
-// If application wishes to use &#39;Session&#39; in asynchronous mode, it must pass a
-// managed pointer to an event handler implementing the &#39;SessionEventHandler&#39;.
-// In this case, when &#39;Session&#39; is started, a thread pool owned by the
-// &#39;Session&#39; is also started for processing events asynchronously.  The
-// &#39;Session&#39; will call event handler&#39;s &#39;onSessionEvent&#39; or &#39;onMessageEvent&#39;
-// method every time a session event or a message event is available.
-//
-// Note that after the &#39;Session&#39; is associated with some event handler, this
-// association cannot be changed or canceled.  The event handler will be used
-// for processing events until the &#39;Session&#39; object is destroyed.
-//
-///Example 3
-///- - - - -
-// The following example demonstrates how to implement an event handler and how
-// to make the &#39;Session&#39; use an instance of this event handler for processing
-// events.
-//
-// First, we define a concrete implementation of &#39;SessionEventHandler&#39;.
-//
-//..
-//  class MyHandler: public bmqa::SessionEventHandler {
-//  public:
-//      MyHandler() { }
-//      virtual ~MyHandler() { }
-//      virtual void onSessionEvent(const bmqa::SessionEvent&amp; event);
-//      virtual void onMessageEvent(const bmqa::MessageEvent&amp; event);
-//  };
-//
-//  void MyHandler::onSessionEvent(const bmqa::SessionEvent&amp; event)
-//  {
-//      // The implementation is similar to our &#39;processSessionEvent&#39; function
-//      // defined in the previous example.
-//      processSessionEvent(event);
-//  }
-//
-//  void MyHandler::onMessageEvent(const bmqa::MessageEvent&amp; event)
-//  {
-//      // The implementation is similar to our &#39;processMessageEvent&#39; function
-//      // defined in the previous example.
-//      processMessageEvent(event);
-//  }
-//..
-// Next, we define a function that creates a &#39;Session&#39; using our implementation
-// of &#39;SessionEventHandler&#39;.
-//..
-//  void runAsyncSession()
-//  {
-//      bslma::ManagedPtr&lt;SessionEventHandler&gt; handlerMp(new MyHandler());
-//
-//      bmqa::Session session(handlerMp);   // using default &#39;SessionOptions&#39;
-//      int res = session.start();
-//      if (0 != res) {
-//          bsl::cout &lt;&lt; &quot;Failed to start session (&quot; &lt;&lt; res &lt;&lt; &quot;)&quot;
-//                    &lt;&lt; bsl::endl;
-//          return;
-//      }
-//
-//      // ...
-//
-//      session.stop();
-//  }
-//..
-//
-///Opening queues
-///--------------
-// Once the &#39;Session&#39; has been created and started, the application can use it
-// to open queues for producing and/or consuming messages.  A queue is
-// associated with a domain.  Domain metadata must be deployed in the BlazingMQ
-// infrastructure prior to opening queues under that domain, because opening a
-// queue actually loads the metadata deployed for the associated domain.
-//
-// The metadata associated with a domain defines various parameters like
-// maximum queue size and capacity, persistent policy, routing policy, etc.
-//
-// Queue are identified by URIs (Unified Resource Identifiers) that must
-// follow the BlazingMQsyntax, manipulated as &#39;bmqt::Uri&#39; objects.  A queue URI
-// is typically formatted as follows:
-//..
-//  bmq://my.domain/my.queue
-//..
-// Note that domain names are unique in BlazingMQ infrastructure, which makes a
-// fully qualified queue URI unique too.
-//
-// Queues in BlazingMQ infrastructure are created by applications on demand.
-// Broke creates a queue when it receives an open-queue request from an
-// application for a queue that does not exist currently.
-//
-// Application can open a queue by calling &#39;openQueue&#39; or &#39;openQueueAsync&#39;
-// method on a started session.  Application must pass appropriate flags to
-// indicate if it wants to post messages to queue, consume messages from the
-// queue, or both.
-//
-// Note that &#39;openQueue&#39; is a blocking method, and returns after specified
-// queue has been successfully opened (success) or after specified timeout has
-// expired (failure).  &#39;openQueueAsync&#39; method, as the name suggests, is non
-// blocking, and the result of the operation is notified via
-// &#39;bmqt::SessionEventType::QUEUE_OPEN_RESULT&#39; session event.
-//
-///Example 4
-///- - - - -
-// The following example demonstrates how to open a queue for posting messages.
-// The code first opens the queue with appropriate flags, and then uses
-// &#39;bmqa::MessageEventBuilder&#39; to build a message event and post to the queue.
-//..
-//  // Session creation and startup logic elided for brevity
-//  const char *queueUri = &quot;bmq://my.domain/my.queue&quot;;
-//  bmqa::QueueId myQueueId(1);       // ID for the queue
-//  int rc = session.openQueue(
-//                      &amp;myQueueId,
-//                      queueUri,
-//                      bmqt::QueueFlags::e_WRITE | bmqt::QueueFlags::e_ACK,
-//                      bsls::TimeInterval(30, 0));
-//
-//  if (rc != 0) {
-//      bsl::cerr &lt;&lt; &quot;Failed to open queue, rc: &quot;
-//                &lt;&lt; bmqt::OpenQueueResult::Enum(rc)
-//                &lt;&lt; bsl::endl;
-//      return;
-//  }
-//..
-// Note that apart from &#39;WRITE&#39; flag, &#39;ACK&#39; flag has been passed to
-// &#39;openQueue&#39; method above.  This indicates that application is interested in
-// receiving &#39;ACK&#39; notification for each message it posts to the queue,
-// irrespective of whether or not the message was successfully received by the
-// broker and posted to the queue.
-//
-// Once the queue has been successfully opened for writing, messages can be
-// posted to the queue for consumption by interested applications.  We will use
-// &#39;bmqa::MessageEventBuilder&#39; to build a message event.
-//..
-//  // Create a message event builder
-//  bmqa::MessageEventBuilder builder;
-//  session.loadMessageEventBuilder(&amp;builder);
-//
-//  // Create and post a message event containing 1 message
-//  bmqa::Message&amp; msg = builder.startMessage();
-//
-//  msg.setCorrelationId(myCorrelationId);
-//  msg.setDataRef(&amp;myPayload);  // where &#39;myPayload&#39; is of type &#39;bdlbb::Blob&#39;
-//  rc = builder.packMessage(myQueueId);
-//  if (rc != 0) {
-//      bsl::cerr &lt;&lt; &quot;Failed to pack message, rc: &quot;
-//                &lt;&lt; bmqt::EventBuilderResult::Enum(rc)
-//                &lt;&lt; bsl::endl;
-//      return;
-//  }
-//
-//  // Post message event
-//  rc = session.post(builder.messageEvent());
-//  if (rc != 0) {
-//      bsl::cerr &lt;&lt; &quot;Failed to post message event to the queue, rc: &quot;
-//                &lt;&lt; bmqt::PostResult::Enum(rc)
-//                &lt;&lt; bsl::endl;
-//      return;
-//  }
-//
-//  // ... post more messages
-//..
-//
-///Closing queues
-///--------------
-// After an application no longer needs to produce or consume messages from a
-// queue, it can be closed by &#39;closeQueue&#39; or &#39;closeQueueAsync&#39; method.  Note
-// that closing a queue closes an application&#39;s &quot;view&quot; on the queue, and may
-// not lead to queue deletion in the broker.  A &#39;Session&#39; does not expose any
-// method to explicitly delete a queue.
-//
-// Note that &#39;closeQueue&#39; is a blocking method and returns after the specified
-// queue has been successfully closed (success) or after specified timeout has
-// expired (failure).  &#39;closeQueueAsync&#39;, as the name suggests, is a
-// non-blocking method, and result of the operation is notified via
-// &#39;bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT&#39; session event.
-//
-// There are 3 flavors which behave differently with regard to thread blocking
-// and callback execution:
-///----------------------------------------------------------------------------
-//           |  openQueue        |  openQueueSync       |  openQueueAsync
-//           |  configureQueue   |  configureQueueSync  |  configureQueueAsync
-//           |  closeQueue       |  closeQueueSync      |  closeQueueAsync
-//           | (deprecated Sync) | (Synchronous)        | (Asynchronous)
-//-----------|-------------------|----------------------|----------------------
-//   event   | unblocks in       | unblocks in event    | executes callback in
-//  handler  | internal thread   | handler thread  (*)  | event handler thread
-//           |                   |                      |
-// nextEvent | unblocks in       | unblocks in          | executes callback
-//           | internal thread   | internal thread      | in nextEvent thread
-//-----------------------------------------------------------------------------
-//
-// (*) - guarantees unblocking after all previously enqueued events have been
-// emitted to the eventHandler, allowing the user to have proper serialization
-// of events for the given queue (for example no more PUSH messages will be
-// delivered through the eventHandler for the queue after
-// configureQueueSync(maxUnconfirmed = 0) returns).
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-#include &lt;bmqa_abstractsession.h&gt;
-#include &lt;bmqa_closequeuestatus.h&gt;
-#include &lt;bmqa_configurequeuestatus.h&gt;
-#include &lt;bmqa_confirmeventbuilder.h&gt;
-#include &lt;bmqa_messageeventbuilder.h&gt;
-#include &lt;bmqa_openqueuestatus.h&gt;
-#include &lt;bmqt_queueoptions.h&gt;
-#include &lt;bmqt_sessionoptions.h&gt;
-#include &lt;bmqt_uri.h&gt;
-
-// BDE
-#include &lt;ball_log.h&gt;
-#include &lt;bsl_memory.h&gt;
-#include &lt;bsl_string.h&gt;
-#include &lt;bslma_allocator.h&gt;
-#include &lt;bslma_managedptr.h&gt;
-#include &lt;bslma_usesbslmaallocator.h&gt;
-#include &lt;bslmf_nestedtraitdeclaration.h&gt;
-#include &lt;bsls_keyword.h&gt;
-#include &lt;bsls_timeinterval.h&gt;
-#include &lt;bsls_types.h&gt;
-
-
-namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bmqimp { class Application; }
-namespace bmqimp { class Event; }
-namespace bmqp   { class MessageGUIDGenerator; }
-namespace bslmt  { class Semaphore; }
-
-namespace bmqa {
-
-// FORWARD DECLARATION
-class Event;
-class Message;
-class MessageEvent;
-class MessageProperties;
-class QueueId;
-class SessionEvent;
-
-
-                         // =========================
-                         // class SessionEventHandler
-                         // =========================
-
-class SessionEventHandler {
-    // Pure protocol for an asynchronous event handler.  The implementation
-    // must be thread safe if the &#39;Session&#39; is configured to use multiple
-    // threads.
-
-  public:
-    // CREATORS
-    virtual
-    ~SessionEventHandler();
-        // Destroy this object.
-
-    // MANIPULATORS
-    virtual
-    void onSessionEvent(const SessionEvent&amp; event) = 0;
-        // Process the specified session &#39;event&#39; (connected, disconnected,
-        // queue opened, queue closed, etc.).
-
-    virtual
-    void onMessageEvent(const MessageEvent&amp; event) = 0;
-        // Process the specified message &#39;event&#39; containing one or more
-        // messages.
-};
-
-
-                             // ==================
-                             // struct SessionImpl
-                             // ==================
-
-struct SessionImpl {
-    // Impl structure for the session data members, so that special task such
-    // as &#39;bmqadm&#39; can access them by reinterpret casting a &#39;Session&#39; object.
-    // Care should be taken though since &#39;Session&#39; is a polymorphic class.
-
-    // PUBLIC DATA
-    bslma::Allocator                       *d_allocator_p;
-                                             // The allocator to use
-
-    bmqt::SessionOptions                    d_sessionOptions;
-                                             // Session options as provided by
-                                             // the application.
-
-    bslma::ManagedPtr&lt;SessionEventHandler&gt;  d_eventHandler_mp;
-                                             // Event handler, if any, to use
-                                             // for notifying application of
-                                             // events.
-
-    bsl::shared_ptr&lt;bmqp::MessageGUIDGenerator&gt;
-                                            d_guidGenerator_sp;
-                                             // GUID generator object.
-
-    bslma::ManagedPtr&lt;bmqimp::Application&gt;  d_application_mp;
-                                             // The application object.
-
-  private:
-    // NOT IMPLEMENTED
-    SessionImpl(const SessionImpl&amp;)            BSLS_KEYWORD_DELETED;
-    SessionImpl&amp; operator=(const SessionImpl&amp;) BSLS_KEYWORD_DELETED;
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(SessionImpl, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    SessionImpl(const bmqt::SessionOptions&amp;             options,
-                bslma::ManagedPtr&lt;SessionEventHandler&gt;  eventHandler,
-                bslma::Allocator                       *allocator = 0);
-        // Create a new object having the specified &#39;options&#39; and
-        // &#39;eventHandler&#39; and using the optionally specified &#39;allocator&#39;.
-};
-
-
-                               // =============
-                               // class Session
-                               // =============
-
-class Session: public AbstractSession {
-    // A session with a BlazingMQ broker.
-
-  public:
-    // TYPES
-    typedef AbstractSession::OpenQueueCallback      OpenQueueCallback;
-        // Invoked as a response to an asynchronous open queue operation,
-        // &#39;OpenQueueCallback&#39; is an alias for a callback function object
-        // (functor) that takes as an argument the specified &#39;result&#39;,
-        // providing the result and context of the requested operation.
-
-    typedef AbstractSession::ConfigureQueueCallback ConfigureQueueCallback;
-        // Invoked as a response to an asynchronous configure queue operation,
-        // &#39;ConfigureQueueCallback&#39; is an alias for a callback function object
-        // (functor) that takes as an argument the specified &#39;result&#39;,
-        // providing the result and context of the requested operation.
-
-    typedef AbstractSession::CloseQueueCallback     CloseQueueCallback;
-        // Invoked as a response to an asynchronous close queue operation,
-        // &#39;CloseQueueCallback&#39; is an alias for a callback function object
-        // (functor) that takes as an argument the specified &#39;result&#39;,
-        // providing the result and context of the requested operation.
-
-  private:
-    // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY(&quot;BMQA.SESSION&quot;);
-
-  private:
-    // DATA
-    SessionImpl d_impl; // Sole data member of this object.
-
-  private:
-    // NOT IMPLEMENTED
-    Session(const Session&amp;)            BSLS_KEYWORD_DELETED;
-    Session&amp; operator=(const Session&amp;) BSLS_KEYWORD_DELETED;
-        // Copy constructor and assignment operator are not implemented
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(Session, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit
-    Session(const bmqt::SessionOptions&amp;  options   = bmqt::SessionOptions(),
-            bslma::Allocator            *allocator = 0);
-        // Create a new &#39;Session&#39; in *synchronous* mode using the optionally
-        // specified &#39;options&#39;.  In such mode, events have to be fetched by the
-        // application using the &#39;nextEvent()&#39; method.  Optionally specify an
-        // &#39;allocator&#39; used to supply memory.  If &#39;allocator&#39; is 0, the
-        // currently installed default allocator is used.
-
-    explicit
-    Session(bslma::ManagedPtr&lt;SessionEventHandler&gt;  eventHandler,
-            const bmqt::SessionOptions&amp;             options   =
-                                                        bmqt::SessionOptions(),
-            bslma::Allocator                       *allocator = 0);
-        // Create a &#39;Session&#39; in *asynchronous* mode using the specified
-        // &#39;eventHandler&#39; as callback for event processing and the optionally
-        // specified &#39;options&#39;.  Optionally specify an &#39;allocator&#39; used to
-        // supply memory.  If the optionally specified &#39;allocator&#39; is 0, the
-        // currently installed default allocator is used.
-
-    ~Session() BSLS_KEYWORD_OVERRIDE;
-        // Stop the &#39;Session&#39; and destroy this object.
-
-    // MANIPULATORS
-    //   (virtual bmqa::AbstractSession)
-
-    ///Session management
-    ///------------------
-    int start(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Connect to the BlazingMQ broker and start the message processing for
-        // this &#39;Session&#39;.  This method blocks until either the &#39;Session&#39; is
-        // connected to the broker, fails to connect, or the operation times
-        // out.  If the optionally specified &#39;timeout&#39; is not populated, use
-        // the one defined in the session options.  Return 0 on success, or a
-        // non-zero value corresponding to the &#39;bmqt::GenericResult::Enum&#39; enum
-        // values otherwise.  The behavior is undefined if this method is
-        // called on an already started &#39;Session&#39;.
-
-    int startAsync(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Connect to the BlazingMQ broker and start the message processing for
-        // this &#39;Session&#39;.  This method returns without blocking.  The result
-        // of the operation is communicated with a session event.  If the
-        // optionally specified &#39;timeout&#39; is not populated, use the one defined
-        // in the session options.  Return 0 on success (this doesn&#39;t imply the
-        // session is connected !), or a non-zero value corresponding to the
-        // &#39;bmqt::GenericResult::Enum&#39; enum values otherwise.  The behavior is
-        // undefined if this method is called on an already started &#39;Session&#39;.
-
-    void stop() BSLS_KEYWORD_OVERRIDE;
-        // Gracefully disconnect from the BlazingMQ broker and stop the
-        // operation of this &#39;Session&#39;.  This method blocks waiting for all
-        // already invoked event handlers to exit and all session-related
-        // operations to be finished.  No other method but &#39;start()&#39; may be
-        // used after this method returns.  This method must *NOT* be called if
-        // the session is in synchronous mode (i.e., not using the
-        // EventHandler), &#39;stopAsync()&#39; should be called in this case.
-
-    void stopAsync() BSLS_KEYWORD_OVERRIDE;
-        // Disconnect from the BlazingMQ broker and stop the operation of this
-        // &#39;Session&#39;.  This method returns without blocking and neither enforce
-        // nor waits for any already started session-related operation to be
-        // finished.  No method may be used after this method returns.
-
-    void finalizeStop() BSLS_KEYWORD_OVERRIDE;
-        // **DEPRECATED**
-        //
-        // This method is only to be used if the session is in synchronous mode
-        // (i.e., not using the EventHandler): it must be called once all
-        // threads getting events with &#39;nextEvent()&#39; have been joined.
-
-    virtual
-    MessageEventBuilder createMessageEventBuilder();
-        // Return a MessageEventBuilder that can be used to build message event
-        // for posting on this session.  The behavior is undefined unless the
-        // session has been successfully started.  Note that lifetime of the
-        // returned object is bound by the lifetime of this session instance
-        // (i.e., returned instance cannot outlive this session instance).
-        // Also note that the &#39;MessageEventBuilder&#39; objects are pooled, so this
-        // operation is cheap, and &#39;MessageEventBuilder&#39; can be obtained on
-        // demand and kept on the stack.
-        //
-        // DEPRECATED: Use the &#39;loadMessageEventBuilder instead.  This
-        //             method will be marked as &#39;BSLS_ANNOTATION_DEPRECATED&#39; in
-        //             future release of libbmq.
-
-    void loadMessageEventBuilder(MessageEventBuilder *builder)
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Load into the specified &#39;builder&#39; an instance of
-        // &#39;bmqa::MessageEventBuilder&#39; that can be used to build message event
-        // for posting on this session.  The behavior is undefined unless the
-        // session has been successfully started and &#39;builder&#39; is non-null.
-        // Note that lifetime of the loaded object is bound by the lifetime of
-        // this session instance (i.e., loaded instance cannot outlive this
-        // session instance).  Also note that the &#39;MessageEventBuilder&#39; objects
-        // are pooled, so this operation is cheap, and &#39;MessageEventBuilder&#39;
-        // can be obtained on demand and kept on the stack.
-
-    void loadConfirmEventBuilder(ConfirmEventBuilder *builder)
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Load into the specified &#39;builder&#39; an instance of
-        // &#39;bmqa::ConfirmEventBuilder&#39; that can be used to build a batch of
-        // CONFIRM messages for sending to the broker.  The behavior is
-        // undefined unless the session has been successfully started and
-        // &#39;builder&#39; is non-null.  Note that the lifetime of the loaded object
-        // is bound by the lifetime of this session instance (i.e., loaded
-        // instance cannot outlive this session instance).
-
-    void loadMessageProperties(MessageProperties *buffer)
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Load into the specified &#39;buffer&#39; an instance of &#39;MessageProperties&#39;
-        // that can be used to specify and associate properties while building
-        // a &#39;bmqa::Message&#39;.  The behavior is undefined unless the session has
-        // been successfully started and &#39;buffer&#39; is non-null.  Note that
-        // lifetime of the loaded object is bound by the lifetime of this
-        // session instance (i.e., loaded instance cannot outlive this session
-        // instance).
-
-    ///Queue management
-    ///----------------
-    int getQueueId(QueueId          *queueId,
-                   const bmqt::Uri&amp;  uri) const BSLS_KEYWORD_OVERRIDE;
-        // Load in the specified &#39;queueId&#39; the queue corresponding to the
-        // specified &#39;uri&#39; and return 0 if such a queue was found, or leave
-        // &#39;queueId&#39; untouched and return a non-zero value if no queue
-        // corresponding to &#39;uri&#39; is currently open.
-
-    int getQueueId(QueueId                    *queueId,
-                   const bmqt::CorrelationId&amp;  correlationId) const
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Load in the specified &#39;queueId&#39; the queue corresponding to the
-        // specified &#39;correlationId&#39; and return 0 if such a queue was found, or
-        // leave &#39;queueId&#39; untouched and return a non-zero value if no queue
-        // corresponding to &#39;correlationId&#39; is currently open.
-
-    int openQueue(QueueId                   *queueId,
-                  const bmqt::Uri&amp;           uri,
-                  bsls::Types::Uint64        flags,
-                  const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
-                  const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;openQueueSync(QueueId *queueId...)&#39; instead.
-        //             This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    OpenQueueStatus
-    openQueueSync(QueueId                   *queueId,
-                  const bmqt::Uri&amp;           uri,
-                  bsls::Types::Uint64        flags,
-                  const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
-                  const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Open the queue having the specified &#39;uri&#39; with the specified &#39;flags&#39;
-        // (a combination of the values defined in &#39;bmqt::QueueFlags::Enum&#39;),
-        // using the specified &#39;queueId&#39; to correlate events related to that
-        // queue.  The object &#39;queueId&#39; referring to is modified, so the
-        // &#39;queueId&#39; represents the actual queue uri, flags and options.
-        // Return a result providing the status and context of the operation.
-        // Use the optionally specified &#39;options&#39; to configure some advanced
-        // settings.  Note that this operation fails if &#39;queueId&#39; is
-        // non-unique.  If the optionally specified &#39;timeout&#39; is not populated,
-        // use the one defined in the session options.  This operation will
-        // block until either success, failure, or timing out happens.
-        //
-        // THREAD: Note that calling this method from the event processing
-        //         thread(s) (i.e., from the EventHandler callback, if
-        //         provided) *WILL* lead to a *DEADLOCK*.
-
-    virtual
-    int openQueue(const QueueId&amp;            queueId,
-                  const bmqt::Uri&amp;          uri,
-                  bsls::Types::Uint64       flags,
-                  const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),
-                  const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
-        // DEPRECATED: Use the &#39;openQueue(QueueId *queueId...)&#39; instead.  This
-        //             method will be marked as &#39;BSLS_ANNOTATION_DEPRECATED&#39; in
-        //             future release of libbmq.
-
-    int
-    openQueueAsync(QueueId                   *queueId,
-                   const bmqt::Uri&amp;           uri,
-                   bsls::Types::Uint64        flags,
-                   const bmqt::QueueOptions&amp;  options = bmqt::QueueOptions(),
-                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;openQueueAsync(...)&#39; with callback flavor
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    void
-    openQueueAsync(QueueId                   *queueId,
-                   const bmqt::Uri&amp;           uri,
-                   bsls::Types::Uint64        flags,
-                   const OpenQueueCallback&amp;   callback,
-                   const bmqt::QueueOptions&amp;  options  = bmqt::QueueOptions(),
-                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously open the queue having the specified &#39;uri&#39; with the
-        // specified &#39;flags&#39; (a combination of the values defined in
-        // &#39;bmqt::QueueFlags::Enum&#39;), using the specified &#39;queueId&#39; to
-        // correlate events related to that queue and the optionally specified
-        // &#39;options&#39; to configure some advanced settings.  The object &#39;queueId&#39;
-        // referring to is modified, so the &#39;queueId&#39; represents the actual
-        // queue uri, flags and options.  The result of the operation is
-        // communicated to the specified &#39;callback&#39; via a
-        // &#39;bmqa::OpenQueueStatus&#39;, providing the status and context of the
-        // requested operation.  Note that this operation fails if &#39;queueId&#39; is
-        // non-unique.  If the optionally specified &#39;timeout&#39; is not populated,
-        // use the one defined in the session options.
-        //
-        // THREAD: The &#39;callback&#39; will *ALWAYS* be invoked from the
-        //         EventHandler thread(s) (or if a SessionEventHandler was not
-        //         specified, from the thread invoking &#39;nextEvent&#39;).
-
-    int
-    configureQueue(QueueId                   *queueId,
-                   const bmqt::QueueOptions&amp;  options,
-                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;configureQueueSync(QueueId *queueId...)
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    ConfigureQueueStatus
-    configureQueueSync(
-                    const QueueId             *queueId,
-                    const bmqt::QueueOptions&amp;  options,
-                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Configure the queue identified by the specified &#39;queueId&#39; using the
-        // specified &#39;options&#39; and return a result providing the status and
-        // context of the operation.  If the optionally specified &#39;timeout&#39; is
-        // not populated, use the one defined in the session options.  This
-        // operation returns error if there is a pending configure for the same
-        // queue.  This operation will block until either success, failure, or
-        // timing out happens.
-        //
-        // Note that the following &#39;bmqt::QueueOptions&#39; fields cannot be
-        // reconfigured after the queue has been opened:
-        //   - suspendsOnBadHostHealth
-        // Attempts to reconfigure these fields will yield an &#39;e_NOT_SUPPORTED&#39;
-        // error code.
-        //
-        // THREAD: Note that calling this method from the event processing
-        //         thread(s) (i.e., from the EventHandler callback, if
-        //         provided) *WILL* lead to a *DEADLOCK*.
-
-    int configureQueueAsync(
-                    QueueId                   *queueId,
-                    const bmqt::QueueOptions&amp;  options,
-                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;configureQueueAsync(...)&#39; with callback flavor
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    void configureQueueAsync(
-               const QueueId                 *queueId,
-               const bmqt::QueueOptions&amp;      options,
-               const ConfigureQueueCallback&amp;  callback,
-               const bsls::TimeInterval&amp;      timeout  = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously configure the queue identified by the specified
-        // &#39;queueId&#39; using the specified &#39;options&#39; to configure some advanced
-        // settings.  The result of the operation is communicated to the
-        // specified &#39;callback&#39; via a &#39;bmqa::ConfigureQueueStatus&#39;, providing
-        // the status and context of the requested operation.  If the
-        // optionally specified &#39;timeout&#39; is not populated, use the one defined
-        // in the session options.
-        //
-        // Note that the following &#39;bmqt::QueueOptions&#39; fields cannot be
-        // reconfigured after the queue has been opened:
-        //   - suspendsOnBadHostHealth
-        // Attempts to reconfigure these fields will yield an &#39;e_NOT_SUPPORTED&#39;
-        // error code.
-        //
-        // THREAD: The &#39;callback&#39; will *ALWAYS* be invoked from the
-        //         EventHandler thread(s) (or if a SessionEventHandler was not
-        //         specified, from the thread invoking &#39;nextEvent&#39;).
-
-    int closeQueue(QueueId                   *queueId,
-                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;closeQueueSync(QueueId *queueId...) instead.
-        //             This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    CloseQueueStatus
-    closeQueueSync(const QueueId             *queueId,
-                   const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Close the queue identified by the specified &#39;queueId&#39; and return a
-        // result providing the status and context of the operation.  If the
-        // optionally specified &#39;timeout&#39; is not populated, use the one defined
-        // in the session options.  Any outstanding configureQueue request for
-        // this &#39;queueId&#39; will be canceled.  This operation will block until
-        // either success, failure, or timing out happens.  Once this method
-        // returns, there is guarantee that no more messages and events for
-        // this &#39;queueId&#39; will be received.  Note that successful processing of
-        // this request in the broker closes this session&#39;s view of the queue;
-        // the underlying queue may not be deleted in the broker.  When this
-        // method returns, the correlationId associated to the queue is
-        // cleared.
-        //
-        // THREAD: Note that calling this method from the event processing
-        //         thread(s) (i.e., from the EventHandler callback, if
-        //         provided) *WILL* lead to a *DEADLOCK*.
-
-    virtual
-    int closeQueue(const QueueId&amp;            queueId,
-                   const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
-        // DEPRECATED: Use the &#39;closeQueue(QueueId *queueId...) instead.  This
-        //             method will be marked as &#39;BSLS_ANNOTATION_DEPRECATED&#39; in
-        //             future release of libbmq.
-
-    int
-    closeQueueAsync(QueueId                   *queueId,
-                    const bsls::TimeInterval&amp;  timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // DEPRECATED: Use the &#39;closeQueueAsync(...)&#39; with callback flavor
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    void closeQueueAsync(
-                   const QueueId             *queueId,
-                   const CloseQueueCallback&amp;  callback,
-                   const bsls::TimeInterval&amp;  timeout  = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously close the queue identified by the specified
-        // &#39;queueId&#39;.  Any outstanding configureQueue requests will be
-        // canceled.  The result of the operation is communicated to the
-        // specified &#39;callback&#39; via a &#39;bmqa::CloseQueueStatus&#39;, providing the
-        // status and context of the operation.  If the optionally specified
-        // &#39;timeout&#39; is not populated, use the one defined in the session
-        // options.  Note that successful processing of this request in the
-        // broker closes this session&#39;s view of the queue; the underlying queue
-        // may not be deleted in the broker.  The correlationId associated to
-        // the queue remains valid until the &#39;bmqa::CloseQueueStatus&#39; result
-        // has been received and processed by the &#39;callback&#39;, after which it
-        // will be cleared and no more messages and events for this &#39;queueId&#39;
-        // will be received.
-        //
-        // THREAD: The &#39;callback&#39; will *ALWAYS* be invoked from the
-        //         EventHandler thread(s) (or if a SessionEventHandler was not
-        //         specified, from the thread invoking &#39;nextEvent&#39;).
-
-    virtual
-    int
-    closeQueueAsync(const QueueId&amp;            queueId,
-                    const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());
-        // DEPRECATED: Use the &#39;closeQueueAsync(...)&#39; with callback flavor
-        //             instead.  This method will be marked as
-        //             &#39;BSLS_ANNOTATION_DEPRECATED&#39; in future release of
-        //             libbmq.
-
-    ///Queue manipulation
-    ///------------------
-    Event nextEvent(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Return the next available event received for this session.  If there
-        // is no event available, this method blocks for up to the optionally
-        // specified &#39;timeout&#39; time interval for an event to arrive.  An empty
-        // time interval for &#39;timeout&#39; (the default) indicates that the method
-        // should not timeout (the method will not return until the next event
-        // is available).  Return a &#39;bmqa::SessionEvent&#39; of type
-        // &#39;bmqt::SessionEventType::e_TIMEOUT&#39; if a timeout was specified and
-        // that timeout expired before any event was received.  Note that this
-        // method can only be used if the session is in synchronous mode (ie
-        // not using the EventHandler).  The behavior is undefined unless the
-        // session was started.
-
-    int post(const MessageEvent&amp; event) BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously post the specified &#39;event&#39; that must contain one or
-        // more &#39;Messages&#39;.  The return value is one of the values defined in
-        // the &#39;bmqt::PostResult::Enum&#39; enum.  Return zero on success and a
-        // non-zero value otherwise.  Note that success implies that SDK has
-        // accepted the &#39;event&#39; and will eventually deliver it to the broker.
-        // The behavior is undefined unless the session was started.
-
-    int confirmMessage(const Message&amp; message) BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously confirm the receipt of the specified &#39;message&#39;.  This
-        // indicates that the application is done processing the message and
-        // that the broker can safely discard it from the queue according to
-        // the retention policy set up for that queue.  Return 0 on success,
-        // and a non-zero value otherwise.  Note that success implies that SDK
-        // has accepted the &#39;message&#39; and will eventually send confirmation
-        // notification to the broker.
-
-    int confirmMessage(const MessageConfirmationCookie&amp; cookie)
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously confirm the receipt of the message with which the
-        // specified &#39;cookie&#39; is associated.  This indicates that the
-        // application is done processing the message and that the broker can
-        // safely discard it from the queue according to the retention policy
-        // set up for that queue.  Return 0 on success, and a non-zero value
-        // otherwise.  Note that success implies that SDK has accepted the
-        // &#39;message&#39; and will eventually send confirmation notification to the
-        // broker.
-
-    int confirmMessages(ConfirmEventBuilder *builder) BSLS_KEYWORD_OVERRIDE;
-        // Asynchronously confirm the receipt of the batch of CONFIRM messages
-        // contained in the specified &#39;builder&#39;.  This indicates that the
-        // application is done processing all of the messages and that the
-        // broker can safely discard them from the queue according to the
-        // retention policy set up for that queue.  The return value is one of
-        // the values defined in the &#39;bmqt::GenericResult::Enum&#39; enum.  Note
-        // that in case of success, the instance pointed by the &#39;builder&#39; will
-        // be reset.  Also note that success implies that SDK has accepted all
-        // of the messages in &#39;builder&#39; and will eventually send confirmation
-        // notification to the broker, whereas failure implies that none of the
-        // messages in &#39;builder&#39; were accepted.  Behavior is undefined unless
-        // &#39;builder&#39; is non-null.
-
-    ///Debugging related
-    ///-----------------
-    int configureMessageDumping(const bslstl::StringRef&amp; command)
-                                                         BSLS_KEYWORD_OVERRIDE;
-        // Configure this session instance to dump messages to the installed
-        // logger at &#39;ball::Severity::INFO&#39; level according to the specified
-        // &#39;command&#39; that should adhere to the following pattern:
-        //..
-        //   IN|OUT|PUSH|ACK|PUT|CONFIRM ON|OFF|100|10s
-        //..
-        // where each token has a specific meaning:
-        //: o !IN!      : incoming (&#39;PUSH&#39; and &#39;ACK&#39;) events
-        //: o !OUT!     : outgoing (&#39;PUT&#39; and &#39;CONFIRM&#39;) events
-        //: o !PUSH!    : incoming &#39;PUSH&#39; events
-        //: o !ACK!     : incoming &#39;ACK&#39; events
-        //: o !PUT!     : outgoing &#39;PUT&#39; events
-        //: o !CONFIRM! : outgoing &#39;CONFIRM&#39; events
-        //: o !ON!      : turn on message dumping until explicitly turned off
-        //: o !OFF!     : turn off message dumping
-        //: o !100!     : turn on message dumping for the next 100 messages
-        //: o !10s!     : turn on message dumping for the next 10 seconds
-        // Above, the numerical values &#39;100&#39; and &#39;10&#39; are just for illustration
-        // purposes, and application can choose an appropriate positive numeric
-        // value for them.  Also, pattern is case-insensitive.  Return zero if
-        // &#39;command&#39; is valid and message dumping has been configured, non-zero
-        // value otherwise.  The behavior is undefined unless the session has
-        // been started.
-
-    ///Internal
-    ///--------
-    void *impl();
-        // Do *NOT* use.  Internal function, reserved for BlazingMQ internal
-        // usage.
-};
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-                               // -------------
-                               // class Session
-                               // -------------
-
-inline
-int
-Session::confirmMessage(const Message&amp; message)
-{
-    return confirmMessage(message.confirmationCookie());
-}
-
-inline
-void*
-Session::impl()
-{
-    return &amp;d_impl;
-}
-
-
-}  // close package namespace
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqa/bmqa_session.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqa__session_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqa_session.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqa__session_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2014-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqa_session.h                                                     -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQA_SESSION</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQA_SESSION</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00553"></a><span class="lineno">  553</span>&#160; </div>
+<div class="line"><a name="l00554"></a><span class="lineno">  554</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00555"></a><span class="lineno">  555</span>&#160; </div>
+<div class="line"><a name="l00556"></a><span class="lineno">  556</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__abstractsession_8h.html">bmqa_abstractsession.h</a>&gt;</span></div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__closequeuestatus_8h.html">bmqa_closequeuestatus.h</a>&gt;</span></div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__configurequeuestatus_8h.html">bmqa_configurequeuestatus.h</a>&gt;</span></div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__confirmeventbuilder_8h.html">bmqa_confirmeventbuilder.h</a>&gt;</span></div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__messageeventbuilder_8h.html">bmqa_messageeventbuilder.h</a>&gt;</span></div>
+<div class="line"><a name="l00561"></a><span class="lineno">  561</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqa__openqueuestatus_8h.html">bmqa_openqueuestatus.h</a>&gt;</span></div>
+<div class="line"><a name="l00562"></a><span class="lineno">  562</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqt__queueoptions_8h.html">bmqt_queueoptions.h</a>&gt;</span></div>
+<div class="line"><a name="l00563"></a><span class="lineno">  563</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqt__sessionoptions_8h.html">bmqt_sessionoptions.h</a>&gt;</span></div>
+<div class="line"><a name="l00564"></a><span class="lineno">  564</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqt__uri_8h.html">bmqt_uri.h</a>&gt;</span></div>
+<div class="line"><a name="l00565"></a><span class="lineno">  565</span>&#160; </div>
+<div class="line"><a name="l00566"></a><span class="lineno">  566</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00567"></a><span class="lineno">  567</span>&#160;<span class="preprocessor">#include &lt;ball_log.h&gt;</span></div>
+<div class="line"><a name="l00568"></a><span class="lineno">  568</span>&#160;<span class="preprocessor">#include &lt;bsl_memory.h&gt;</span></div>
+<div class="line"><a name="l00569"></a><span class="lineno">  569</span>&#160;<span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160;<span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
+<div class="line"><a name="l00571"></a><span class="lineno">  571</span>&#160;<span class="preprocessor">#include &lt;bslma_managedptr.h&gt;</span></div>
+<div class="line"><a name="l00572"></a><span class="lineno">  572</span>&#160;<span class="preprocessor">#include &lt;bslma_usesbslmaallocator.h&gt;</span></div>
+<div class="line"><a name="l00573"></a><span class="lineno">  573</span>&#160;<span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
+<div class="line"><a name="l00574"></a><span class="lineno">  574</span>&#160;<span class="preprocessor">#include &lt;bsls_keyword.h&gt;</span></div>
+<div class="line"><a name="l00575"></a><span class="lineno">  575</span>&#160;<span class="preprocessor">#include &lt;bsls_timeinterval.h&gt;</span></div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;<span class="preprocessor">#include &lt;bsls_types.h&gt;</span></div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160; </div>
+<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160; </div>
+<div class="line"><a name="l00580"></a><span class="lineno">  580</span>&#160;<span class="comment">// FORWARD DECLARATION</span></div>
+<div class="line"><a name="l00581"></a><span class="lineno">  581</span>&#160;<span class="keyword">namespace </span>bmqimp {</div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;<span class="keyword">class </span>Application;</div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160;}</div>
+<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;<span class="keyword">namespace </span>bmqimp {</div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160;<span class="keyword">class </span>Event;</div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;}</div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;<span class="keyword">namespace </span>bmqp {</div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;<span class="keyword">class </span>MessageGUIDGenerator;</div>
+<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160;}</div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;<span class="keyword">namespace </span>bslmt {</div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;<span class="keyword">class </span>Semaphore;</div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;}</div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160; </div>
+<div class="line"><a name="l00594"></a><span class="lineno">  594</span>&#160;<span class="keyword">namespace </span>bmqa {</div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160; </div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;<span class="comment">// FORWARD DECLARATION</span></div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;<span class="keyword">class </span>Event;</div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;<span class="keyword">class </span>Message;</div>
+<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160;<span class="keyword">class </span>MessageEvent;</div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;<span class="keyword">class </span>MessageProperties;</div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;<span class="keyword">class </span>QueueId;</div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;<span class="keyword">class </span>SessionEvent;</div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160; </div>
+<div class="line"><a name="l00604"></a><span class="lineno">  604</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;<span class="comment">// class SessionEventHandler</span></div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160; </div>
+<div class="line"><a name="l00611"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html">  611</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html">SessionEventHandler</a> {</div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00614"></a><span class="lineno">  614</span>&#160; </div>
+<div class="line"><a name="l00616"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0c6072d3ebaed27f98ba76eca2caa000">  616</a></span>&#160;    <span class="keyword">virtual</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0c6072d3ebaed27f98ba76eca2caa000">~SessionEventHandler</a>();</div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160; </div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160; </div>
+<div class="line"><a name="l00622"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0f566c4a99183df6e86810ff49033dfc">  622</a></span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0f566c4a99183df6e86810ff49033dfc">onSessionEvent</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">SessionEvent</a>&amp; event) = 0;</div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160; </div>
+<div class="line"><a name="l00626"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#ae9a167596473f0f10e786ba5a1150510">  626</a></span>&#160;    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#ae9a167596473f0f10e786ba5a1150510">onMessageEvent</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1MessageEvent.html">MessageEvent</a>&amp; event) = 0;</div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;};</div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160; </div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160;<span class="comment">// ==================</span></div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;<span class="comment">// struct SessionImpl</span></div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;<span class="comment">// ==================</span></div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160; </div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;<span class="keyword">struct </span>SessionImpl {</div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;    <span class="comment">// PUBLIC DATA</span></div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160; </div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;    bslma::Allocator* d_allocator_p;</div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160; </div>
+<div class="line"><a name="l00644"></a><span class="lineno">  644</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a> d_sessionOptions;</div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160; </div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160;    bslma::ManagedPtr&lt;SessionEventHandler&gt; d_eventHandler_mp;</div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160; </div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;    bsl::shared_ptr&lt;bmqp::MessageGUIDGenerator&gt; d_guidGenerator_sp;</div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160; </div>
+<div class="line"><a name="l00653"></a><span class="lineno">  653</span>&#160;    bslma::ManagedPtr&lt;bmqimp::Application&gt; d_application_mp;</div>
+<div class="line"><a name="l00654"></a><span class="lineno">  654</span>&#160; </div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;    <span class="comment">// NOT IMPLEMENTED</span></div>
+<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;    SessionImpl(<span class="keyword">const</span> SessionImpl&amp;) BSLS_KEYWORD_DELETED;</div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;    SessionImpl&amp; operator=(<span class="keyword">const</span> SessionImpl&amp;) BSLS_KEYWORD_DELETED;</div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160; </div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00662"></a><span class="lineno">  662</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(SessionImpl, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00663"></a><span class="lineno">  663</span>&#160; </div>
+<div class="line"><a name="l00664"></a><span class="lineno">  664</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00665"></a><span class="lineno">  665</span>&#160; </div>
+<div class="line"><a name="l00666"></a><span class="lineno">  666</span>&#160;    </div>
+<div class="line"><a name="l00668"></a><span class="lineno">  668</span>&#160;    SessionImpl(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">bmqt::SessionOptions</a>&amp;            options,</div>
+<div class="line"><a name="l00669"></a><span class="lineno">  669</span>&#160;                bslma::ManagedPtr&lt;SessionEventHandler&gt; eventHandler,</div>
+<div class="line"><a name="l00670"></a><span class="lineno">  670</span>&#160;                bslma::Allocator*                      allocator = 0);</div>
+<div class="line"><a name="l00671"></a><span class="lineno">  671</span>&#160;};</div>
+<div class="line"><a name="l00672"></a><span class="lineno">  672</span>&#160; </div>
+<div class="line"><a name="l00673"></a><span class="lineno">  673</span>&#160;<span class="comment">// =============</span></div>
+<div class="line"><a name="l00674"></a><span class="lineno">  674</span>&#160;<span class="comment">// class Session</span></div>
+<div class="line"><a name="l00675"></a><span class="lineno">  675</span>&#160;<span class="comment">// =============</span></div>
+<div class="line"><a name="l00676"></a><span class="lineno">  676</span>&#160; </div>
+<div class="line"><a name="l00678"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html">  678</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a> : <span class="keyword">public</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html">AbstractSession</a> {</div>
+<div class="line"><a name="l00679"></a><span class="lineno">  679</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00680"></a><span class="lineno">  680</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00681"></a><span class="lineno">  681</span>&#160; </div>
+<div class="line"><a name="l00686"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aa164afa788667102fa9b38604c7b21b5">  686</a></span>&#160;    <span class="keyword">typedef</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a99a6e9341854a2e9cffefda0802ef923">AbstractSession::OpenQueueCallback</a> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#aa164afa788667102fa9b38604c7b21b5">OpenQueueCallback</a>;</div>
+<div class="line"><a name="l00687"></a><span class="lineno">  687</span>&#160; </div>
+<div class="line"><a name="l00692"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ad3df8c0c095c07aabbc9cea2badba647">  692</a></span>&#160;    <span class="keyword">typedef</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a8329289413d261dc945ac2a245b39565">AbstractSession::ConfigureQueueCallback</a> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ad3df8c0c095c07aabbc9cea2badba647">ConfigureQueueCallback</a>;</div>
+<div class="line"><a name="l00693"></a><span class="lineno">  693</span>&#160; </div>
+<div class="line"><a name="l00698"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a75dd59b97f87ae7c18ed33ee066b177e">  698</a></span>&#160;    <span class="keyword">typedef</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a65a8064a51ce4e1bf8f4f0e8d58bd7a9">AbstractSession::CloseQueueCallback</a> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a75dd59b97f87ae7c18ed33ee066b177e">CloseQueueCallback</a>;</div>
+<div class="line"><a name="l00699"></a><span class="lineno">  699</span>&#160; </div>
+<div class="line"><a name="l00700"></a><span class="lineno">  700</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00701"></a><span class="lineno">  701</span>&#160;    <span class="comment">// CLASS-SCOPE CATEGORY</span></div>
+<div class="line"><a name="l00702"></a><span class="lineno">  702</span>&#160;    BALL_LOG_SET_CLASS_CATEGORY(<span class="stringliteral">&quot;BMQA.SESSION&quot;</span>);</div>
+<div class="line"><a name="l00703"></a><span class="lineno">  703</span>&#160; </div>
+<div class="line"><a name="l00704"></a><span class="lineno">  704</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00705"></a><span class="lineno">  705</span>&#160;    <span class="comment">// DATA</span></div>
+<div class="line"><a name="l00706"></a><span class="lineno">  706</span>&#160;    SessionImpl d_impl;  <span class="comment">// Sole data member of this object.</span></div>
+<div class="line"><a name="l00707"></a><span class="lineno">  707</span>&#160; </div>
+<div class="line"><a name="l00708"></a><span class="lineno">  708</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00709"></a><span class="lineno">  709</span>&#160;    <span class="comment">// NOT IMPLEMENTED</span></div>
+<div class="line"><a name="l00710"></a><span class="lineno">  710</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>&amp;) BSLS_KEYWORD_DELETED;</div>
+<div class="line"><a name="l00711"></a><span class="lineno">  711</span>&#160; </div>
+<div class="line"><a name="l00713"></a><span class="lineno">  713</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>&amp; operator=(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>&amp;) BSLS_KEYWORD_DELETED;</div>
+<div class="line"><a name="l00714"></a><span class="lineno">  714</span>&#160; </div>
+<div class="line"><a name="l00715"></a><span class="lineno">  715</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00716"></a><span class="lineno">  716</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00717"></a><span class="lineno">  717</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(<a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00718"></a><span class="lineno">  718</span>&#160; </div>
+<div class="line"><a name="l00719"></a><span class="lineno">  719</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00720"></a><span class="lineno">  720</span>&#160; </div>
+<div class="line"><a name="l00721"></a><span class="lineno">  721</span>&#160;    </div>
+<div class="line"><a name="l00726"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aa72b711bf5ecd56f20906caa212b6e10">  726</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>(</div>
+<div class="line"><a name="l00727"></a><span class="lineno">  727</span>&#160;        const bmqt::SessionOptions&amp; options   = bmqt::SessionOptions(),</div>
+<div class="line"><a name="l00728"></a><span class="lineno">  728</span>&#160;        bslma::Allocator*           allocator = 0);</div>
+<div class="line"><a name="l00729"></a><span class="lineno">  729</span>&#160; </div>
+<div class="line"><a name="l00735"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#af5ace68360b46d7c36a845de74f9aa93">  735</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>(</div>
+<div class="line"><a name="l00736"></a><span class="lineno">  736</span>&#160;        bslma::ManagedPtr&lt;<a class="code" href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html">SessionEventHandler</a>&gt; eventHandler,</div>
+<div class="line"><a name="l00737"></a><span class="lineno">  737</span>&#160;        const bmqt::SessionOptions&amp; options   = bmqt::SessionOptions(),</div>
+<div class="line"><a name="l00738"></a><span class="lineno">  738</span>&#160;        bslma::Allocator*           allocator = 0);</div>
+<div class="line"><a name="l00739"></a><span class="lineno">  739</span>&#160; </div>
+<div class="line"><a name="l00741"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#afd65e60aebe6c194f524f0595c45b10d">  741</a></span>&#160;    ~<a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>() BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00742"></a><span class="lineno">  742</span>&#160; </div>
+<div class="line"><a name="l00743"></a><span class="lineno">  743</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00744"></a><span class="lineno">  744</span>&#160;    <span class="comment">//   (virtual bmqa::AbstractSession)</span></div>
+<div class="line"><a name="l00745"></a><span class="lineno">  745</span>&#160; </div>
+<div class="line"><a name="l00748"></a><span class="lineno">  748</span>&#160; </div>
+<div class="line"><a name="l00757"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a111aaba18c1133160d8e7a711e77110c">  757</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a111aaba18c1133160d8e7a711e77110c">start</a>(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00758"></a><span class="lineno">  758</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00759"></a><span class="lineno">  759</span>&#160; </div>
+<div class="line"><a name="l00768"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aabf1b6fd159bca91168943c5ab539d04">  768</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#aabf1b6fd159bca91168943c5ab539d04">startAsync</a>(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00769"></a><span class="lineno">  769</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00770"></a><span class="lineno">  770</span>&#160; </div>
+<div class="line"><a name="l00778"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a88d5207c1ed26de56dfc2194621f0009">  778</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a88d5207c1ed26de56dfc2194621f0009">stop</a>() BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00779"></a><span class="lineno">  779</span>&#160; </div>
+<div class="line"><a name="l00784"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a16e01c7d635bc5760d78733a49feab77">  784</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a16e01c7d635bc5760d78733a49feab77">stopAsync</a>() BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00785"></a><span class="lineno">  785</span>&#160; </div>
+<div class="line"><a name="l00791"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a830fbd5786f3dcbaaa7579aef554ade1">  791</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a830fbd5786f3dcbaaa7579aef554ade1">finalizeStop</a>() BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00792"></a><span class="lineno">  792</span>&#160; </div>
+<div class="line"><a name="l00805"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ac9f1af67aa57f23b38d395b2a3a7e6b8">  805</a></span>&#160;    virtual <a class="code" href="classBloombergLP_1_1bmqa_1_1MessageEventBuilder.html">MessageEventBuilder</a> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ac9f1af67aa57f23b38d395b2a3a7e6b8">createMessageEventBuilder</a>();</div>
+<div class="line"><a name="l00806"></a><span class="lineno">  806</span>&#160; </div>
+<div class="line"><a name="l00816"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#acbb3ff4925157b559fe6ec59bda12e6e">  816</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#acbb3ff4925157b559fe6ec59bda12e6e">loadMessageEventBuilder</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1MessageEventBuilder.html">MessageEventBuilder</a>* builder)</div>
+<div class="line"><a name="l00817"></a><span class="lineno">  817</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00818"></a><span class="lineno">  818</span>&#160; </div>
+<div class="line"><a name="l00826"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#abca93f6985e118cdb84d192f03fd563b">  826</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#abca93f6985e118cdb84d192f03fd563b">loadConfirmEventBuilder</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html">ConfirmEventBuilder</a>* builder)</div>
+<div class="line"><a name="l00827"></a><span class="lineno">  827</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00828"></a><span class="lineno">  828</span>&#160; </div>
+<div class="line"><a name="l00836"></a><span class="lineno">  836</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00837"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#abe3bb05e02ac61cb1f2e31ba4428de24">  837</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#abe3bb05e02ac61cb1f2e31ba4428de24">loadMessageProperties</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">MessageProperties</a>* buffer) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00838"></a><span class="lineno">  838</span>&#160; </div>
+<div class="line"><a name="l00841"></a><span class="lineno">  841</span>&#160; </div>
+<div class="line"><a name="l00846"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a8662052b8a94514edd2644de1d561ca9">  846</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a8662052b8a94514edd2644de1d561ca9">getQueueId</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*         queueId,</div>
+<div class="line"><a name="l00847"></a><span class="lineno">  847</span>&#160;                   const bmqt::Uri&amp; uri) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00848"></a><span class="lineno">  848</span>&#160; </div>
+<div class="line"><a name="l00853"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a96a16b86b1fef08fd19bab5b9a653b37">  853</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a8662052b8a94514edd2644de1d561ca9">getQueueId</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>* queueId, const bmqt::CorrelationId&amp; correlationId)</div>
+<div class="line"><a name="l00854"></a><span class="lineno">  854</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00855"></a><span class="lineno">  855</span>&#160; </div>
+<div class="line"><a name="l00860"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#abf2d7c3f31f2ae3d181fd450b5a0a678">  860</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#abf2d7c3f31f2ae3d181fd450b5a0a678">openQueue</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00861"></a><span class="lineno">  861</span>&#160;                  const bmqt::Uri&amp;          uri,</div>
+<div class="line"><a name="l00862"></a><span class="lineno">  862</span>&#160;                  bsls::Types::Uint64       flags,</div>
+<div class="line"><a name="l00863"></a><span class="lineno">  863</span>&#160;                  const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),</div>
+<div class="line"><a name="l00864"></a><span class="lineno">  864</span>&#160;                  const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00865"></a><span class="lineno">  865</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00866"></a><span class="lineno">  866</span>&#160; </div>
+<div class="line"><a name="l00882"></a><span class="lineno">  882</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1OpenQueueStatus.html">OpenQueueStatus</a></div>
+<div class="line"><a name="l00883"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a1139c27d71b32e622e5fd10c42c24b39">  883</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a1139c27d71b32e622e5fd10c42c24b39">openQueueSync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00884"></a><span class="lineno">  884</span>&#160;                  const bmqt::Uri&amp;          uri,</div>
+<div class="line"><a name="l00885"></a><span class="lineno">  885</span>&#160;                  bsls::Types::Uint64       flags,</div>
+<div class="line"><a name="l00886"></a><span class="lineno">  886</span>&#160;                  const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),</div>
+<div class="line"><a name="l00887"></a><span class="lineno">  887</span>&#160;                  const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00888"></a><span class="lineno">  888</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00889"></a><span class="lineno">  889</span>&#160; </div>
+<div class="line"><a name="l00893"></a><span class="lineno">  893</span>&#160;    virtual <span class="keywordtype">int</span></div>
+<div class="line"><a name="l00894"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a3303273ef6c85aa09c8b37b4cd847075">  894</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#abf2d7c3f31f2ae3d181fd450b5a0a678">openQueue</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>&amp;            queueId,</div>
+<div class="line"><a name="l00895"></a><span class="lineno">  895</span>&#160;              const bmqt::Uri&amp;          uri,</div>
+<div class="line"><a name="l00896"></a><span class="lineno">  896</span>&#160;              bsls::Types::Uint64       flags,</div>
+<div class="line"><a name="l00897"></a><span class="lineno">  897</span>&#160;              const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),</div>
+<div class="line"><a name="l00898"></a><span class="lineno">  898</span>&#160;              const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());</div>
+<div class="line"><a name="l00899"></a><span class="lineno">  899</span>&#160; </div>
+<div class="line"><a name="l00904"></a><span class="lineno">  904</span>&#160;    <span class="keywordtype">int</span></div>
+<div class="line"><a name="l00905"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a8e7cf94b89b87e576ac55a6636801560">  905</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a8e7cf94b89b87e576ac55a6636801560">openQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00906"></a><span class="lineno">  906</span>&#160;                   const bmqt::Uri&amp;          uri,</div>
+<div class="line"><a name="l00907"></a><span class="lineno">  907</span>&#160;                   bsls::Types::Uint64       flags,</div>
+<div class="line"><a name="l00908"></a><span class="lineno">  908</span>&#160;                   const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),</div>
+<div class="line"><a name="l00909"></a><span class="lineno">  909</span>&#160;                   const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00910"></a><span class="lineno">  910</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00911"></a><span class="lineno">  911</span>&#160; </div>
+<div class="line"><a name="l00928"></a><span class="lineno">  928</span>&#160;    <span class="keywordtype">void</span></div>
+<div class="line"><a name="l00929"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ab4395893b4f86f17695e3cc605adf076">  929</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a8e7cf94b89b87e576ac55a6636801560">openQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00930"></a><span class="lineno">  930</span>&#160;                   const bmqt::Uri&amp;          uri,</div>
+<div class="line"><a name="l00931"></a><span class="lineno">  931</span>&#160;                   bsls::Types::Uint64       flags,</div>
+<div class="line"><a name="l00932"></a><span class="lineno">  932</span>&#160;                   const <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a99a6e9341854a2e9cffefda0802ef923">OpenQueueCallback</a>&amp;  callback,</div>
+<div class="line"><a name="l00933"></a><span class="lineno">  933</span>&#160;                   const bmqt::QueueOptions&amp; options = bmqt::QueueOptions(),</div>
+<div class="line"><a name="l00934"></a><span class="lineno">  934</span>&#160;                   const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l00935"></a><span class="lineno">  935</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00936"></a><span class="lineno">  936</span>&#160; </div>
+<div class="line"><a name="l00941"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ab0934adf4846d5b8ee82ef9251c0d95f">  941</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ab0934adf4846d5b8ee82ef9251c0d95f">configureQueue</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00942"></a><span class="lineno">  942</span>&#160;                       const bmqt::QueueOptions&amp; options,</div>
+<div class="line"><a name="l00943"></a><span class="lineno">  943</span>&#160;                       const bsls::TimeInterval&amp; timeout =</div>
+<div class="line"><a name="l00944"></a><span class="lineno">  944</span>&#160;                           bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00945"></a><span class="lineno">  945</span>&#160; </div>
+<div class="line"><a name="l00963"></a><span class="lineno">  963</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1ConfigureQueueStatus.html">ConfigureQueueStatus</a></div>
+<div class="line"><a name="l00964"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a4791cd81b196479ee9b964bdca28ed1e">  964</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a4791cd81b196479ee9b964bdca28ed1e">configureQueueSync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00965"></a><span class="lineno">  965</span>&#160;                       const bmqt::QueueOptions&amp; options,</div>
+<div class="line"><a name="l00966"></a><span class="lineno">  966</span>&#160;                       const bsls::TimeInterval&amp; timeout =</div>
+<div class="line"><a name="l00967"></a><span class="lineno">  967</span>&#160;                           bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00968"></a><span class="lineno">  968</span>&#160; </div>
+<div class="line"><a name="l00973"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#addaf9e399de74e305f75aa6e05323bdb">  973</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#addaf9e399de74e305f75aa6e05323bdb">configureQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l00974"></a><span class="lineno">  974</span>&#160;                            const bmqt::QueueOptions&amp; options,</div>
+<div class="line"><a name="l00975"></a><span class="lineno">  975</span>&#160;                            const bsls::TimeInterval&amp; timeout =</div>
+<div class="line"><a name="l00976"></a><span class="lineno">  976</span>&#160;                                bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l00977"></a><span class="lineno">  977</span>&#160; </div>
+<div class="line"><a name="l00995"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a6bce464b8488b1656a3d334137228745">  995</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#addaf9e399de74e305f75aa6e05323bdb">configureQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                      queueId,</div>
+<div class="line"><a name="l00996"></a><span class="lineno">  996</span>&#160;                             const bmqt::QueueOptions&amp;     options,</div>
+<div class="line"><a name="l00997"></a><span class="lineno">  997</span>&#160;                             const <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a8329289413d261dc945ac2a245b39565">ConfigureQueueCallback</a>&amp; callback,</div>
+<div class="line"><a name="l00998"></a><span class="lineno">  998</span>&#160;                             const bsls::TimeInterval&amp;     timeout =</div>
+<div class="line"><a name="l00999"></a><span class="lineno">  999</span>&#160;                                 bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01000"></a><span class="lineno"> 1000</span>&#160; </div>
+<div class="line"><a name="l01005"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a0d1d0e25c4488deefcfd63781550980b"> 1005</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a0d1d0e25c4488deefcfd63781550980b">closeQueue</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l01006"></a><span class="lineno"> 1006</span>&#160;                   const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l01007"></a><span class="lineno"> 1007</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01008"></a><span class="lineno"> 1008</span>&#160; </div>
+<div class="line"><a name="l01025"></a><span class="lineno"> 1025</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1CloseQueueStatus.html">CloseQueueStatus</a></div>
+<div class="line"><a name="l01026"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a9035dfd07c1bc130b1843b09e27fd45a"> 1026</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a9035dfd07c1bc130b1843b09e27fd45a">closeQueueSync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l01027"></a><span class="lineno"> 1027</span>&#160;                   const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l01028"></a><span class="lineno"> 1028</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01029"></a><span class="lineno"> 1029</span>&#160; </div>
+<div class="line"><a name="l01033"></a><span class="lineno"> 1033</span>&#160;    virtual <span class="keywordtype">int</span></div>
+<div class="line"><a name="l01034"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aaf1ac4ba79df4c0647f2a10ea703beb8"> 1034</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a0d1d0e25c4488deefcfd63781550980b">closeQueue</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>&amp;            queueId,</div>
+<div class="line"><a name="l01035"></a><span class="lineno"> 1035</span>&#160;               const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());</div>
+<div class="line"><a name="l01036"></a><span class="lineno"> 1036</span>&#160; </div>
+<div class="line"><a name="l01041"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ad2dae75494ab86a65cbbff1ef694c1de"> 1041</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ad2dae75494ab86a65cbbff1ef694c1de">closeQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l01042"></a><span class="lineno"> 1042</span>&#160;                        const bsls::TimeInterval&amp; timeout =</div>
+<div class="line"><a name="l01043"></a><span class="lineno"> 1043</span>&#160;                            bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01044"></a><span class="lineno"> 1044</span>&#160; </div>
+<div class="line"><a name="l01062"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ab8ff24a10cf84ab8a9ebf440acb3d9a1"> 1062</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ad2dae75494ab86a65cbbff1ef694c1de">closeQueueAsync</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>*                  queueId,</div>
+<div class="line"><a name="l01063"></a><span class="lineno"> 1063</span>&#160;                         const <a class="code" href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a65a8064a51ce4e1bf8f4f0e8d58bd7a9">CloseQueueCallback</a>&amp; callback,</div>
+<div class="line"><a name="l01064"></a><span class="lineno"> 1064</span>&#160;                         const bsls::TimeInterval&amp; timeout =</div>
+<div class="line"><a name="l01065"></a><span class="lineno"> 1065</span>&#160;                             bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01066"></a><span class="lineno"> 1066</span>&#160; </div>
+<div class="line"><a name="l01071"></a><span class="lineno"> 1071</span>&#160;    virtual <span class="keywordtype">int</span></div>
+<div class="line"><a name="l01072"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aadc31de7fee985f0e3206bc6fe83c0f9"> 1072</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ad2dae75494ab86a65cbbff1ef694c1de">closeQueueAsync</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1QueueId.html">QueueId</a>&amp;            queueId,</div>
+<div class="line"><a name="l01073"></a><span class="lineno"> 1073</span>&#160;                    const bsls::TimeInterval&amp; timeout = bsls::TimeInterval());</div>
+<div class="line"><a name="l01074"></a><span class="lineno"> 1074</span>&#160; </div>
+<div class="line"><a name="l01077"></a><span class="lineno"> 1077</span>&#160; </div>
+<div class="line"><a name="l01089"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#aab606eb1dbfd6a19644faf3f1f881c97"> 1089</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqa_1_1Event.html">Event</a> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#aab606eb1dbfd6a19644faf3f1f881c97">nextEvent</a>(const bsls::TimeInterval&amp; timeout = bsls::TimeInterval())</div>
+<div class="line"><a name="l01090"></a><span class="lineno"> 1090</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01091"></a><span class="lineno"> 1091</span>&#160; </div>
+<div class="line"><a name="l01098"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#ab855187af26fee87c38167470095a21a"> 1098</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#ab855187af26fee87c38167470095a21a">post</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1MessageEvent.html">MessageEvent</a>&amp; event) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01099"></a><span class="lineno"> 1099</span>&#160; </div>
+<div class="line"><a name="l01107"></a><span class="lineno"> 1107</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b">confirmMessage</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; message) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01108"></a><span class="lineno"> 1108</span>&#160; </div>
+<div class="line"><a name="l01117"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a649fd19cc63291837cff806792fd5a59"> 1117</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b">confirmMessage</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html">MessageConfirmationCookie</a>&amp; cookie)</div>
+<div class="line"><a name="l01118"></a><span class="lineno"> 1118</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01119"></a><span class="lineno"> 1119</span>&#160; </div>
+<div class="line"><a name="l01132"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a52826f1bfc28aef7276bb884c02e6e1e"> 1132</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a52826f1bfc28aef7276bb884c02e6e1e">confirmMessages</a>(<a class="code" href="classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html">ConfirmEventBuilder</a>* builder) BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01133"></a><span class="lineno"> 1133</span>&#160; </div>
+<div class="line"><a name="l01136"></a><span class="lineno"> 1136</span>&#160; </div>
+<div class="line"><a name="l01160"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87"> 1160</a></span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87">configureMessageDumping</a>(const bslstl::StringRef&amp; command)</div>
+<div class="line"><a name="l01161"></a><span class="lineno"> 1161</span>&#160;        BSLS_KEYWORD_OVERRIDE;</div>
+<div class="line"><a name="l01162"></a><span class="lineno"> 1162</span>&#160; </div>
+<div class="line"><a name="l01165"></a><span class="lineno"> 1165</span>&#160; </div>
+<div class="line"><a name="l01168"></a><span class="lineno"> 1168</span>&#160;    <span class="keywordtype">void</span>* <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7">impl</a>();</div>
+<div class="line"><a name="l01169"></a><span class="lineno"> 1169</span>&#160;};</div>
+<div class="line"><a name="l01170"></a><span class="lineno"> 1170</span>&#160; </div>
+<div class="line"><a name="l01171"></a><span class="lineno"> 1171</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l01172"></a><span class="lineno"> 1172</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l01173"></a><span class="lineno"> 1173</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l01174"></a><span class="lineno"> 1174</span>&#160; </div>
+<div class="line"><a name="l01175"></a><span class="lineno"> 1175</span>&#160;<span class="comment">// -------------</span></div>
+<div class="line"><a name="l01176"></a><span class="lineno"> 1176</span>&#160;<span class="comment">// class Session</span></div>
+<div class="line"><a name="l01177"></a><span class="lineno"> 1177</span>&#160;<span class="comment">// -------------</span></div>
+<div class="line"><a name="l01178"></a><span class="lineno"> 1178</span>&#160; </div>
+<div class="line"><a name="l01179"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b"> 1179</a></span>&#160;inline <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html">Session</a>::<a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b">confirmMessage</a>(const <a class="code" href="classBloombergLP_1_1bmqa_1_1Message.html">Message</a>&amp; message)</div>
+<div class="line"><a name="l01180"></a><span class="lineno"> 1180</span>&#160;{</div>
+<div class="line"><a name="l01181"></a><span class="lineno"> 1181</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b">confirmMessage</a>(message.confirmationCookie());</div>
+<div class="line"><a name="l01182"></a><span class="lineno"> 1182</span>&#160;}</div>
+<div class="line"><a name="l01183"></a><span class="lineno"> 1183</span>&#160; </div>
+<div class="line"><a name="l01184"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7"> 1184</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">void</span>* <a class="code" href="classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7">Session::impl</a>()</div>
+<div class="line"><a name="l01185"></a><span class="lineno"> 1185</span>&#160;{</div>
+<div class="line"><a name="l01186"></a><span class="lineno"> 1186</span>&#160;    <span class="keywordflow">return</span> &amp;d_impl;</div>
+<div class="line"><a name="l01187"></a><span class="lineno"> 1187</span>&#160;}</div>
+<div class="line"><a name="l01188"></a><span class="lineno"> 1188</span>&#160; </div>
+<div class="line"><a name="l01189"></a><span class="lineno"> 1189</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l01190"></a><span class="lineno"> 1190</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l01191"></a><span class="lineno"> 1191</span>&#160; </div>
+<div class="line"><a name="l01192"></a><span class="lineno"> 1192</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="abmqa__abstractsession_8h_html"><div class="ttname"><a href="bmqa__abstractsession_8h.html">bmqa_abstractsession.h</a></div><div class="ttdoc">Provide a pure protocol for a BlazingMQ session.</div></div>
+<div class="ttc" id="abmqa__closequeuestatus_8h_html"><div class="ttname"><a href="bmqa__closequeuestatus_8h.html">bmqa_closequeuestatus.h</a></div><div class="ttdoc">Provide Value-Semantic Type for a close queue operation status.</div></div>
+<div class="ttc" id="abmqa__configurequeuestatus_8h_html"><div class="ttname"><a href="bmqa__configurequeuestatus_8h.html">bmqa_configurequeuestatus.h</a></div><div class="ttdoc">Provide Value-Semantic Type for a configure queue operation status.</div></div>
+<div class="ttc" id="abmqa__confirmeventbuilder_8h_html"><div class="ttname"><a href="bmqa__confirmeventbuilder_8h.html">bmqa_confirmeventbuilder.h</a></div><div class="ttdoc">Provide a builder for batching confirmation messages.</div></div>
+<div class="ttc" id="abmqa__messageeventbuilder_8h_html"><div class="ttname"><a href="bmqa__messageeventbuilder_8h.html">bmqa_messageeventbuilder.h</a></div><div class="ttdoc">Provide a builder for bmqa::MessageEvent objects.</div></div>
+<div class="ttc" id="abmqa__openqueuestatus_8h_html"><div class="ttname"><a href="bmqa__openqueuestatus_8h.html">bmqa_openqueuestatus.h</a></div><div class="ttdoc">Provide Value-Semantic Type for an open queue operation status.</div></div>
+<div class="ttc" id="abmqt__queueoptions_8h_html"><div class="ttname"><a href="bmqt__queueoptions_8h.html">bmqt_queueoptions.h</a></div><div class="ttdoc">Provide a value-semantic type for options related to a queue.</div></div>
+<div class="ttc" id="abmqt__sessionoptions_8h_html"><div class="ttname"><a href="bmqt__sessionoptions_8h.html">bmqt_sessionoptions.h</a></div><div class="ttdoc">Provide a value-semantic type to configure session with the broker.</div></div>
+<div class="ttc" id="abmqt__uri_8h_html"><div class="ttname"><a href="bmqt__uri_8h.html">bmqt_uri.h</a></div><div class="ttdoc">Provide value-semantic type and utilities for a BlazingMQ queue URI.</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1AbstractSession_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1AbstractSession.html">BloombergLP::bmqa::AbstractSession</a></div><div class="ttdoc">A pure protocol for a session.</div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:50</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1AbstractSession_html_a65a8064a51ce4e1bf8f4f0e8d58bd7a9"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a65a8064a51ce4e1bf8f4f0e8d58bd7a9">BloombergLP::bmqa::AbstractSession::CloseQueueCallback</a></div><div class="ttdeci">bsl::function&lt; void(const bmqa::CloseQueueStatus &amp;result)&gt; CloseQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:73</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1AbstractSession_html_a8329289413d261dc945ac2a245b39565"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a8329289413d261dc945ac2a245b39565">BloombergLP::bmqa::AbstractSession::ConfigureQueueCallback</a></div><div class="ttdeci">bsl::function&lt; void(const bmqa::ConfigureQueueStatus &amp;result)&gt; ConfigureQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:66</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1AbstractSession_html_a99a6e9341854a2e9cffefda0802ef923"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1AbstractSession.html#a99a6e9341854a2e9cffefda0802ef923">BloombergLP::bmqa::AbstractSession::OpenQueueCallback</a></div><div class="ttdeci">bsl::function&lt; void(const bmqa::OpenQueueStatus &amp;result)&gt; OpenQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:59</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1CloseQueueStatus_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1CloseQueueStatus.html">BloombergLP::bmqa::CloseQueueStatus</a></div><div class="ttdef"><b>Definition:</b> bmqa_closequeuestatus.h:62</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1ConfigureQueueStatus_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1ConfigureQueueStatus.html">BloombergLP::bmqa::ConfigureQueueStatus</a></div><div class="ttdef"><b>Definition:</b> bmqa_configurequeuestatus.h:61</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1ConfirmEventBuilder_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html">BloombergLP::bmqa::ConfirmEventBuilder</a></div><div class="ttdoc">Mechanism to build a batch of CONFIRM messages.</div><div class="ttdef"><b>Definition:</b> bmqa_confirmeventbuilder.h:157</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Event_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Event.html">BloombergLP::bmqa::Event</a></div><div class="ttdoc">A variant type encompassing all types of events.</div><div class="ttdef"><b>Definition:</b> bmqa_event.h:69</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageConfirmationCookie_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageConfirmationCookie.html">BloombergLP::bmqa::MessageConfirmationCookie</a></div><div class="ttdoc">Cookie for async message confirmation.</div><div class="ttdef"><b>Definition:</b> bmqa_message.h:131</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageEventBuilder_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageEventBuilder.html">BloombergLP::bmqa::MessageEventBuilder</a></div><div class="ttdoc">A builder for MessageEvent objects.</div><div class="ttdef"><b>Definition:</b> bmqa_messageeventbuilder.h:319</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageEvent_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageEvent.html">BloombergLP::bmqa::MessageEvent</a></div><div class="ttdef"><b>Definition:</b> bmqa_messageevent.h:64</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageProperties_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageProperties.html">BloombergLP::bmqa::MessageProperties</a></div><div class="ttdoc">Provide a VST representing message properties.</div><div class="ttdef"><b>Definition:</b> bmqa_messageproperties.h:92</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Message_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Message.html">BloombergLP::bmqa::Message</a></div><div class="ttdoc">A message sent/received to/from the BlazingMQ broker.</div><div class="ttdef"><b>Definition:</b> bmqa_message.h:170</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1OpenQueueStatus_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1OpenQueueStatus.html">BloombergLP::bmqa::OpenQueueStatus</a></div><div class="ttdef"><b>Definition:</b> bmqa_openqueuestatus.h:62</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1QueueId_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1QueueId.html">BloombergLP::bmqa::QueueId</a></div><div class="ttdoc">Value-semantic efficient identifier for a queue.</div><div class="ttdef"><b>Definition:</b> bmqa_queueid.h:59</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEventHandler_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html">BloombergLP::bmqa::SessionEventHandler</a></div><div class="ttdef"><b>Definition:</b> bmqa_session.h:611</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEventHandler_html_a0c6072d3ebaed27f98ba76eca2caa000"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0c6072d3ebaed27f98ba76eca2caa000">BloombergLP::bmqa::SessionEventHandler::~SessionEventHandler</a></div><div class="ttdeci">virtual ~SessionEventHandler()</div><div class="ttdoc">Destroy this object.</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEventHandler_html_a0f566c4a99183df6e86810ff49033dfc"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#a0f566c4a99183df6e86810ff49033dfc">BloombergLP::bmqa::SessionEventHandler::onSessionEvent</a></div><div class="ttdeci">virtual void onSessionEvent(const SessionEvent &amp;event)=0</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEventHandler_html_ae9a167596473f0f10e786ba5a1150510"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEventHandler.html#ae9a167596473f0f10e786ba5a1150510">BloombergLP::bmqa::SessionEventHandler::onMessageEvent</a></div><div class="ttdeci">virtual void onMessageEvent(const MessageEvent &amp;event)=0</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1SessionEvent_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1SessionEvent.html">BloombergLP::bmqa::SessionEvent</a></div><div class="ttdoc">An event related to the operation of a Session.</div><div class="ttdef"><b>Definition:</b> bmqa_sessionevent.h:75</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html">BloombergLP::bmqa::Session</a></div><div class="ttdoc">A session with a BlazingMQ broker.</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:678</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a0d1d0e25c4488deefcfd63781550980b"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a0d1d0e25c4488deefcfd63781550980b">BloombergLP::bmqa::Session::closeQueue</a></div><div class="ttdeci">int closeQueue(QueueId *queueId, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a111aaba18c1133160d8e7a711e77110c"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a111aaba18c1133160d8e7a711e77110c">BloombergLP::bmqa::Session::start</a></div><div class="ttdeci">int start(const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a1139c27d71b32e622e5fd10c42c24b39"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a1139c27d71b32e622e5fd10c42c24b39">BloombergLP::bmqa::Session::openQueueSync</a></div><div class="ttdeci">OpenQueueStatus openQueueSync(QueueId *queueId, const bmqt::Uri &amp;uri, bsls::Types::Uint64 flags, const bmqt::QueueOptions &amp;options=bmqt::QueueOptions(), const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a16e01c7d635bc5760d78733a49feab77"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a16e01c7d635bc5760d78733a49feab77">BloombergLP::bmqa::Session::stopAsync</a></div><div class="ttdeci">void stopAsync() BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a43319196f64699cc03ee669de05fa05b"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b">BloombergLP::bmqa::Session::confirmMessage</a></div><div class="ttdeci">int confirmMessage(const Message &amp;message) BSLS_KEYWORD_OVERRIDE</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:1179</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a4791cd81b196479ee9b964bdca28ed1e"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a4791cd81b196479ee9b964bdca28ed1e">BloombergLP::bmqa::Session::configureQueueSync</a></div><div class="ttdeci">ConfigureQueueStatus configureQueueSync(QueueId *queueId, const bmqt::QueueOptions &amp;options, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a48f7efe5794608507003ea55aa1754a7"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7">BloombergLP::bmqa::Session::impl</a></div><div class="ttdeci">void * impl()</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:1184</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a52826f1bfc28aef7276bb884c02e6e1e"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a52826f1bfc28aef7276bb884c02e6e1e">BloombergLP::bmqa::Session::confirmMessages</a></div><div class="ttdeci">int confirmMessages(ConfirmEventBuilder *builder) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a5de8e6b8e3af91c946c2caaf38760f87"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87">BloombergLP::bmqa::Session::configureMessageDumping</a></div><div class="ttdeci">int configureMessageDumping(const bslstl::StringRef &amp;command) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a75dd59b97f87ae7c18ed33ee066b177e"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a75dd59b97f87ae7c18ed33ee066b177e">BloombergLP::bmqa::Session::CloseQueueCallback</a></div><div class="ttdeci">AbstractSession::CloseQueueCallback CloseQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:698</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a830fbd5786f3dcbaaa7579aef554ade1"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a830fbd5786f3dcbaaa7579aef554ade1">BloombergLP::bmqa::Session::finalizeStop</a></div><div class="ttdeci">void finalizeStop() BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a8662052b8a94514edd2644de1d561ca9"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a8662052b8a94514edd2644de1d561ca9">BloombergLP::bmqa::Session::getQueueId</a></div><div class="ttdeci">int getQueueId(QueueId *queueId, const bmqt::Uri &amp;uri) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a88d5207c1ed26de56dfc2194621f0009"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a88d5207c1ed26de56dfc2194621f0009">BloombergLP::bmqa::Session::stop</a></div><div class="ttdeci">void stop() BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a8e7cf94b89b87e576ac55a6636801560"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a8e7cf94b89b87e576ac55a6636801560">BloombergLP::bmqa::Session::openQueueAsync</a></div><div class="ttdeci">int openQueueAsync(QueueId *queueId, const bmqt::Uri &amp;uri, bsls::Types::Uint64 flags, const bmqt::QueueOptions &amp;options=bmqt::QueueOptions(), const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_a9035dfd07c1bc130b1843b09e27fd45a"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#a9035dfd07c1bc130b1843b09e27fd45a">BloombergLP::bmqa::Session::closeQueueSync</a></div><div class="ttdeci">CloseQueueStatus closeQueueSync(QueueId *queueId, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_aa164afa788667102fa9b38604c7b21b5"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#aa164afa788667102fa9b38604c7b21b5">BloombergLP::bmqa::Session::OpenQueueCallback</a></div><div class="ttdeci">AbstractSession::OpenQueueCallback OpenQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:686</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_aab606eb1dbfd6a19644faf3f1f881c97"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#aab606eb1dbfd6a19644faf3f1f881c97">BloombergLP::bmqa::Session::nextEvent</a></div><div class="ttdeci">Event nextEvent(const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_aabf1b6fd159bca91168943c5ab539d04"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#aabf1b6fd159bca91168943c5ab539d04">BloombergLP::bmqa::Session::startAsync</a></div><div class="ttdeci">int startAsync(const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_ab0934adf4846d5b8ee82ef9251c0d95f"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#ab0934adf4846d5b8ee82ef9251c0d95f">BloombergLP::bmqa::Session::configureQueue</a></div><div class="ttdeci">int configureQueue(QueueId *queueId, const bmqt::QueueOptions &amp;options, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_ab855187af26fee87c38167470095a21a"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#ab855187af26fee87c38167470095a21a">BloombergLP::bmqa::Session::post</a></div><div class="ttdeci">int post(const MessageEvent &amp;event) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_abca93f6985e118cdb84d192f03fd563b"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#abca93f6985e118cdb84d192f03fd563b">BloombergLP::bmqa::Session::loadConfirmEventBuilder</a></div><div class="ttdeci">void loadConfirmEventBuilder(ConfirmEventBuilder *builder) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_abe3bb05e02ac61cb1f2e31ba4428de24"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#abe3bb05e02ac61cb1f2e31ba4428de24">BloombergLP::bmqa::Session::loadMessageProperties</a></div><div class="ttdeci">void loadMessageProperties(MessageProperties *buffer) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_abf2d7c3f31f2ae3d181fd450b5a0a678"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#abf2d7c3f31f2ae3d181fd450b5a0a678">BloombergLP::bmqa::Session::openQueue</a></div><div class="ttdeci">int openQueue(QueueId *queueId, const bmqt::Uri &amp;uri, bsls::Types::Uint64 flags, const bmqt::QueueOptions &amp;options=bmqt::QueueOptions(), const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_ac9f1af67aa57f23b38d395b2a3a7e6b8"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#ac9f1af67aa57f23b38d395b2a3a7e6b8">BloombergLP::bmqa::Session::createMessageEventBuilder</a></div><div class="ttdeci">virtual MessageEventBuilder createMessageEventBuilder()</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_acbb3ff4925157b559fe6ec59bda12e6e"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#acbb3ff4925157b559fe6ec59bda12e6e">BloombergLP::bmqa::Session::loadMessageEventBuilder</a></div><div class="ttdeci">void loadMessageEventBuilder(MessageEventBuilder *builder) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_ad2dae75494ab86a65cbbff1ef694c1de"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#ad2dae75494ab86a65cbbff1ef694c1de">BloombergLP::bmqa::Session::closeQueueAsync</a></div><div class="ttdeci">int closeQueueAsync(QueueId *queueId, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_ad3df8c0c095c07aabbc9cea2badba647"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#ad3df8c0c095c07aabbc9cea2badba647">BloombergLP::bmqa::Session::ConfigureQueueCallback</a></div><div class="ttdeci">AbstractSession::ConfigureQueueCallback ConfigureQueueCallback</div><div class="ttdef"><b>Definition:</b> bmqa_session.h:692</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1Session_html_addaf9e399de74e305f75aa6e05323bdb"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1Session.html#addaf9e399de74e305f75aa6e05323bdb">BloombergLP::bmqa::Session::configureQueueAsync</a></div><div class="ttdeci">int configureQueueAsync(QueueId *queueId, const bmqt::QueueOptions &amp;options, const bsls::TimeInterval &amp;timeout=bsls::TimeInterval()) BSLS_KEYWORD_OVERRIDE</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SessionOptions_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SessionOptions.html">BloombergLP::bmqt::SessionOptions</a></div><div class="ttdef"><b>Definition:</b> bmqt_sessionoptions.h:161</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_e8cd90b45eb8e499a7a689fb69672d2e.html">bmqa</a></li><li class="navelem"><a class="el" href="bmqa__session_8h.html">bmqa_session.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>

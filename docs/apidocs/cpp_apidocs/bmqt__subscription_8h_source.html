@@ -1,565 +1,591 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2022-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqt_subscription.h                                                -*-C++-*-
-#ifndef INCLUDED_BMQT_SUBSCRIPTION
-#define INCLUDED_BMQT_SUBSCRIPTION
-
-//@PURPOSE: Provide a value-semantic types for subscription related API.
-//
-//@CLASSES:
-//  bmqt::Subscription_Handle:      uniquely identifies Subscription
-//  bmqt::Subscription_Expression:  Subscription criteria
-//  bmqt::Subscription:             Subscription parameters
-//
-//@DESCRIPTION: &#39;bmqt::Subscription&#39; provides a value-semantic type carried
-// by &#39;bmqt::QueueOptions&#39;, when opening and configuring a queue.
-//
-//@NOTE: Experimental.  Do not use until this feature is announced.
-//
-
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-#include &lt;bmqt_correlationid.h&gt;
-
-//BDE
-#include &lt;bsl_optional.h&gt;
-#include &lt;bsl_ostream.h&gt;
-#include &lt;bsl_string.h&gt;
-#include &lt;bslim_printer.h&gt;
-#include &lt;bslma_allocator.h&gt;
-#include &lt;bsls_types.h&gt;
-
-
-namespace BloombergLP {
-
-namespace bmqt {
-
-class QueueOptions;
-                            // =========================
-                            // class Subscription_Handle
-                            // =========================
-
-class SubscriptionHandle {
-    // Value-semantic type for unique Subscription id.
-  private:
-    // PRIVATE DATA
-    unsigned int                d_id;
-                                    // Internal, unique key
-
-    const bmqt::CorrelationId   d_correlationId;
-                                    // User-specified, not required to be
-                                    // unique
-  private:
-    // PRIVATE CLASS METHODS
-    static unsigned int nextId();
-
-  public:
-    // CREATORS
-    SubscriptionHandle(const bmqt::CorrelationId&amp; cid);
-    SubscriptionHandle(const SubscriptionHandle&amp; other);
-
-    // ACCESSORS
-    const bmqt::CorrelationId&amp; correlationId() const;
-
-    unsigned int id() const;
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-
-    // FRIENDS
-    friend bool operator&lt;(const SubscriptionHandle&amp; lhs,
-                          const SubscriptionHandle&amp; rhs);
-    friend bool operator==(const SubscriptionHandle&amp; lhs,
-                           const SubscriptionHandle&amp; rhs);
-    friend bool operator!=(const SubscriptionHandle&amp; lhs,
-                           const SubscriptionHandle&amp; rhs);
-
-    template &lt;class HASH_ALGORITHM&gt;
-    friend void hashAppend(HASH_ALGORITHM&amp;            hashAlgo,
-                           const SubscriptionHandle&amp; id);
-
-        // Will only consider &#39;d_id&#39; field when comparing &#39;lhs&#39; and &#39;rhs&#39;
-};
-
-class SubscriptionExpression {
-    // Value-semantic type to carry Subscription criteria.
-
- public:
-    // TYPES
-    enum Enum {
-        // Enum representing criteria format
-          e_NONE        = 0     // EMPTY
-        , e_VERSION_1   = 1     // Simple Evaluator
-    };
-
- private:
-    bsl::string     d_expression;   // e.g., &quot;firmId == foo&quot;
-
-    Enum            d_version;      // Required to support newer style
-                                    // of expressions in future
-
-  public:
-    // CREATORS
-    SubscriptionExpression();
-    SubscriptionExpression(const bsl::string&amp;  expression, Enum version);
-
-    // ACCESSORS
-    const bsl::string&amp; text() const;
-
-    Enum version() const;
-
-    bool isValid() const;
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-};
-
-class Subscription {
-    // Value-semantic type to carry Subscription parameters.
-
-  public:
-    // PUBLIC CONSTANTS
-    static const int k_CONSUMER_PRIORITY_MIN;
-                                        // Constant representing the minimum
-                                        // valid consumer priority
-
-    static const int k_CONSUMER_PRIORITY_MAX;
-                                        // Constant representing the maximum
-                                        // valid consumer priority
-
-    static const int  k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
-    static const int  k_DEFAULT_MAX_UNCONFIRMED_BYTES;
-    static const int  k_DEFAULT_CONSUMER_PRIORITY;
-
-  private:
-    // PRIVATE DATA
-    bsl::optional&lt;int&gt;      d_maxUnconfirmedMessages;
-                                        // Maximum number of outstanding
-                                        // messages that can be sent by the
-                                        // broker without being confirmed.
-
-    bsl::optional&lt;int&gt;      d_maxUnconfirmedBytes;
-                                        // Maximum accumulated bytes of all
-                                        // outstanding messages that can be
-                                        // sent by the broker without being
-                                        // confirmed.
-
-    bsl::optional&lt;int&gt;      d_consumerPriority;
-                                        // Priority of a consumer with respect
-                                        // to delivery of messages
-
-    SubscriptionExpression  d_expression;
-
-  public:
-    // CREATORS
-    Subscription();
-
-        // Create a new Subscription
-    Subscription(const Subscription&amp;  other);
-        // Create a new Subscription by copying values from the specified
-        // &#39;other&#39;.
-
-    // MANIPULATORS
-    Subscription&amp; setMaxUnconfirmedMessages(int value);
-        // Set the maxUnconfirmedMessages to the specified &#39;value&#39;.  The
-        // behavior is undefined unless &#39;value &gt;= 0&#39;. If the specified &#39;value&#39;
-        // is set to 0, it means that the consumer does not receive any
-        // messages.  This might be useful when the consumer is shutting down
-        // and wants to process only pending messages, or when it is unable to
-        // process new messages because of transient issues.
-
-    Subscription&amp; setMaxUnconfirmedBytes(int value);
-        // Set the maxUnconfirmedBytes to the specified &#39;value&#39;.  The behavior
-        // is undefined unless &#39;value &gt;= 0&#39;.
-
-    Subscription&amp; setConsumerPriority(int value);
-        // Set the consumerPriority to the specified &#39;value&#39;.  The behavior is
-        // undefined unless &#39;k_CONSUMER_PRIORITY_MIN &lt;= value &lt;=
-        // k_CONSUMER_PRIORITY_MAX&#39;
-
-    Subscription&amp; setExpression(const SubscriptionExpression&amp; value);
-
-    // ACCESSORS
-    int maxUnconfirmedMessages() const;
-        // Get the number for the maxUnconfirmedMessages parameter.
-
-    int maxUnconfirmedBytes() const;
-        // Get the number for the maxUnconfirmedBytes parameter.
-
-    int consumerPriority() const;
-        // Get the number for the consumerPriority parameter.
-
-    const SubscriptionExpression&amp; expression() const;
-
-    bool hasMaxUnconfirmedMessages() const;
-        // Returns whether &#39;maxUnconfirmedMessages&#39; has been set for this
-        // object, or whether it implicitly holds
-        // &#39;k_DEFAULT_MAX_UNCONFIRMED_MESSAGES&#39;.
-
-    bool hasMaxUnconfirmedBytes() const;
-        // Returns whether &#39;maxUnconfirmedBytes&#39; has been set for this object,
-        // or whether it implicitly holds &#39;k_DEFAULT_MAX_UNCONFIRMED_BYTES&#39;.
-
-    bool hasConsumerPriority() const;
-        // Returns whether &#39;consumerPriority&#39; has been set for this object, or
-        // whether it implicitly holds &#39;k_DEFAULT_CONSUMER_PRIORITY&#39;.
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const Subscription&amp; rhs);
-    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
-    // reference to the modifiable &#39;stream&#39;.
-
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-                             // ----------------------
-                             // class Subscription_Handle
-                             // ----------------------
-
-inline
-SubscriptionHandle::SubscriptionHandle(const bmqt::CorrelationId&amp; cid)
-: d_id(nextId())
-, d_correlationId(cid)
-{
-    // NOTHING
-}
-
-inline
-SubscriptionHandle::SubscriptionHandle(const SubscriptionHandle&amp; other)
-: d_id(other.d_id)
-, d_correlationId(other.d_correlationId)
-{
-    // NOTHING
-}
-
-// ACCESSORS
-inline
-const bmqt::CorrelationId&amp;
-SubscriptionHandle::correlationId() const
-{
-    return d_correlationId;
-}
-
-inline
-unsigned int
-SubscriptionHandle::id() const
-{
-    return d_id;
-}
-
-inline
-bsl::ostream&amp;
-SubscriptionHandle::print(bsl::ostream&amp; stream,
-                          int           level,
-                          int           spacesPerLevel) const
-{
-    if (stream.bad()) {
-        return stream;                                                // RETURN
-    }
-
-    bslim::Printer printer(&amp;stream, level, spacesPerLevel);
-    printer.start();
-
-    printer.printAttribute(&quot;id&quot;, d_id);
-    printer.printAttribute(&quot;CorrelationId&quot;, d_correlationId);
-
-    printer.end();
-
-    return stream;
-}
-                             // ----------------------------
-                             // class SubscriptionExpression
-                             // ----------------------------
-inline
-SubscriptionExpression::SubscriptionExpression()
-: d_expression()
-, d_version(e_NONE)
-{
-    // NOTHING
-}
-
-inline
-SubscriptionExpression::SubscriptionExpression(const bsl::string&amp;  expression,
-                                               Enum                version)
-: d_expression(expression)
-, d_version(version)
-{
-    // NOTHING
-}
-
-inline
-const bsl::string&amp;
-SubscriptionExpression::text() const
-{
-    return d_expression;
-}
-
-inline
-SubscriptionExpression::Enum
-SubscriptionExpression::version() const
-{
-    return d_version;
-}
-
-inline
-bool
-SubscriptionExpression::isValid() const
-{
-    return
-        d_expression.length() == 0 ? d_version == e_NONE : d_version &gt; e_NONE;
-}
-
-inline
-bsl::ostream&amp;
-SubscriptionExpression::print(bsl::ostream&amp; stream,
-                              int           level,
-                              int           spacesPerLevel) const
-{
-    if (stream.bad()) {
-        return stream;                                                // RETURN
-    }
-
-    bslim::Printer printer(&amp;stream, level, spacesPerLevel);
-    printer.start();
-
-    printer.printAttribute(&quot;Expression&quot;, d_expression);
-    printer.printAttribute(&quot;Version&quot;, d_version);
-
-    printer.end();
-
-    return stream;
-}
-
-                             // ----------------------
-                             // class Subscription
-                             // ----------------------
-
-inline
-Subscription::Subscription()
-: d_maxUnconfirmedMessages()
-, d_maxUnconfirmedBytes()
-, d_consumerPriority()
-, d_expression()
-{
-    // NOTHING
-}
-
-inline
-Subscription::Subscription(const Subscription&amp; other)
-: d_maxUnconfirmedMessages(other.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(other.d_maxUnconfirmedBytes)
-, d_consumerPriority(other.d_consumerPriority)
-, d_expression(other.d_expression)
-{
-    // NOTHING
-}
-
-inline
-bsl::ostream&amp;
-Subscription::print(bsl::ostream&amp; stream,
-                        int           level,
-                        int           spacesPerLevel) const
-{
-    if (stream.bad()) {
-        return stream;                                                // RETURN
-    }
-
-    bslim::Printer printer(&amp;stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute(&quot;maxUnconfirmedMessages&quot;, maxUnconfirmedMessages());
-    printer.printAttribute(&quot;maxUnconfirmedBytes&quot;,    maxUnconfirmedBytes());
-    printer.printAttribute(&quot;consumerPriority&quot;,       consumerPriority());
-
-    d_expression.print(stream, level, spacesPerLevel);
-
-    printer.end();
-
-    return stream;
-}
-
-// MANIPULATORS
-inline
-Subscription&amp;
-Subscription::setMaxUnconfirmedMessages(int value)
-{
-    d_maxUnconfirmedMessages.emplace(value);
-    return *this;
-}
-
-inline
-Subscription&amp;
-Subscription::setMaxUnconfirmedBytes(int value)
-{
-    d_maxUnconfirmedBytes.emplace(value);
-    return *this;
-}
-
-inline
-Subscription&amp;
-Subscription::setConsumerPriority(int value)
-{
-    d_consumerPriority.emplace(value);
-    return *this;
-}
-
-inline
-Subscription&amp;
-Subscription::setExpression(const SubscriptionExpression&amp; value)
-{
-    d_expression = value;
-    return *this;
-}
-
-// ACCESSORS
-inline
-int
-Subscription::maxUnconfirmedMessages() const
-{
-    return d_maxUnconfirmedMessages.value_or(
-                                           k_DEFAULT_MAX_UNCONFIRMED_MESSAGES);
-}
-
-inline
-int
-Subscription::maxUnconfirmedBytes() const
-{
-    return d_maxUnconfirmedBytes.value_or(k_DEFAULT_MAX_UNCONFIRMED_BYTES);
-}
-
-inline
-int
-Subscription::consumerPriority() const
-{
-    return d_consumerPriority.value_or(k_DEFAULT_CONSUMER_PRIORITY);
-}
-
-inline
-const SubscriptionExpression&amp;
-Subscription::expression() const
-{
-    return d_expression;
-}
-
-inline
-bool
-Subscription::hasMaxUnconfirmedMessages() const
-{
-    return d_maxUnconfirmedMessages.has_value();
-}
-
-inline
-bool
-Subscription::hasMaxUnconfirmedBytes() const
-{
-    return d_maxUnconfirmedBytes.has_value();
-}
-
-inline
-bool
-Subscription::hasConsumerPriority() const
-{
-    return d_consumerPriority.has_value();
-}
-
-// FREE FUNCTIONS
-template &lt;class HASH_ALGORITHM&gt;
-void
-hashAppend(HASH_ALGORITHM&amp; hashAlgo, const SubscriptionHandle&amp; id)
-    // Apply the specified &#39;hashAlgo&#39; to the specified &#39;id&#39;.
-{
-    using bslh::hashAppend; // for ADL
-    hashAppend(hashAlgo, id.d_id);
-}
-
-inline
-bool
-operator&lt;(const SubscriptionHandle&amp; lhs, const SubscriptionHandle&amp; rhs)
-{
-    return lhs.d_id &lt; rhs.d_id;
-}
-
-inline
-bool
-operator==(const SubscriptionHandle&amp; lhs, const SubscriptionHandle&amp; rhs)
-{
-    return lhs.d_id == rhs.d_id;
-}
-
-inline
-bool
-operator!=(const SubscriptionHandle&amp; lhs, const SubscriptionHandle&amp; rhs)
-{
-    return lhs.d_id != rhs.d_id;
-}
-
-inline
-bsl::ostream&amp;
-operator&lt;&lt;(bsl::ostream&amp;stream, const Subscription&amp; rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-
-}  // close package namespace
-
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqt/bmqt_subscription.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqt__subscription_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqt_subscription.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqt__subscription_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2022-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqt_subscription.h                                                -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQT_SUBSCRIPTION</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQT_SUBSCRIPTION</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160; </div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqt__correlationid_8h.html">bmqt_correlationid.h</a>&gt;</span></div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160; </div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="preprocessor">#include &lt;bsl_optional.h&gt;</span></div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="preprocessor">#include &lt;bsl_ostream.h&gt;</span></div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="preprocessor">#include &lt;bslim_printer.h&gt;</span></div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="preprocessor">#include &lt;bsls_types.h&gt;</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160; </div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160; </div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment">// FORWARD DECLARATION</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="keyword">namespace </span>bmqa {</div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="keyword">struct </span>MessageImpl;</div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;}</div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="keyword">namespace </span>bmqa {</div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="keyword">class </span>MessageIterator;</div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;}</div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160; </div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160; </div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="keyword">class </span>QueueOptions;</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="comment">// class Subscription_Handle</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">   59</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a> {</div>
+<div class="line"><a name="l00060"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a35903e95a6b38083d3fa3165012dc740">   60</a></span>&#160;    <span class="keyword">friend</span> <span class="keyword">struct </span><a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a35903e95a6b38083d3fa3165012dc740">bmqa::MessageImpl</a>;</div>
+<div class="line"><a name="l00061"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a99a8aa87aa8a981315e369140e743dea">   61</a></span>&#160;    <span class="keyword">friend</span> <span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqa_1_1MessageIterator.html">bmqa::MessageIterator</a>;</div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160; </div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00065"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ab4e59a288424a6903bc4e070d3af6663">   65</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ab4e59a288424a6903bc4e070d3af6663">k_INVALID_HANDLE_ID</a> = 0;</div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160; </div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    <span class="comment">// PRIVATE DATA</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;    <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> d_id;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a> d_correlationId;</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;    <span class="comment">// PRIVATE CLASS METHODS</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;    <span class="keyword">static</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> nextId();</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160; </div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    <span class="comment">// PRIVATE CREATORS</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>();</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>(<span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <span class="keywordtype">id</span>, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; cid);</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; cid);</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160; </div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;    <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a37430e3f38e92721714ce1f1a2951f81">correlationId</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7b4bd8e74e64a31d65875f795097942e">id</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a168d5092e70fbc111c4dbf09013aa6df">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00106"></a><span class="lineno">  106</span>&#160; </div>
+<div class="line"><a name="l00107"></a><span class="lineno">  107</span>&#160;    <span class="comment">// FRIENDS</span></div>
+<div class="line"><a name="l00108"></a><span class="lineno">  108</span>&#160;    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7d6365f28b304ffa017f5c4d545c82d4">operator&lt;</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00109"></a><span class="lineno">  109</span>&#160;                          <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs);</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160;    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ac900d002b92d295aa5450a5fd3bd8fc5">operator==</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;                           <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs);</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a6d5ad0f061f7d1fd804cb9abffa21f08">operator!=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;                           <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs);</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    <span class="keyword">template</span> &lt;<span class="keyword">class</span> HASH_ALGORITHM&gt;</div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160;    <span class="keyword">friend</span> <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#af7497df32503127609c24ed52c32334b">hashAppend</a>(HASH_ALGORITHM&amp;           hashAlgo,</div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;                           <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; <span class="keywordtype">id</span>);</div>
+<div class="line"><a name="l00118"></a><span class="lineno">  118</span>&#160; </div>
+<div class="line"><a name="l00119"></a><span class="lineno">  119</span>&#160;    <span class="comment">// Will only consider &#39;d_id&#39; field when comparing &#39;lhs&#39; and &#39;rhs&#39;</span></div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160;};</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160; </div>
+<div class="line"><a name="l00123"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">  123</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a> {</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">  128</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">Enum</a> {</div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;        <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d">e_NONE</a> = 0</div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160; </div>
+<div class="line"><a name="l00132"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d">  132</a></span>&#160;        ,</div>
+<div class="line"><a name="l00134"></a><span class="lineno">  134</span>&#160;        <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a6375883ffda4a02f56abec6a0810ceed">e_VERSION_1</a> = 1</div>
+<div class="line"><a name="l00135"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a6375883ffda4a02f56abec6a0810ceed">  135</a></span>&#160;    };</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160; </div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;    bsl::string d_expression;  <span class="comment">// e.g., &quot;firmId == foo&quot;</span></div>
+<div class="line"><a name="l00139"></a><span class="lineno">  139</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;    <span class="comment">// Required to support newer style of expressions in future</span></div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">Enum</a> d_version;</div>
+<div class="line"><a name="l00142"></a><span class="lineno">  142</span>&#160; </div>
+<div class="line"><a name="l00143"></a><span class="lineno">  143</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00144"></a><span class="lineno">  144</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">SubscriptionExpression</a>();</div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">SubscriptionExpression</a>(<span class="keyword">const</span> bsl::string&amp; expression, <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">Enum</a> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#af80610ccda8375c50ec77dc9373deb72">version</a>);</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160; </div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;    <span class="keyword">const</span> bsl::string&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a678d50fb92efd264a858d5a5abe1cec1">text</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160; </div>
+<div class="line"><a name="l00151"></a><span class="lineno">  151</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">Enum</a> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#af80610ccda8375c50ec77dc9373deb72">version</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160; </div>
+<div class="line"><a name="l00153"></a><span class="lineno">  153</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#afed3ca0e618b3af721f7a731e6d417ce">isValid</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160; </div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a6cecf77326a290ea5f59cae795d96eb1">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;};</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00169"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html">  169</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a> {</div>
+<div class="line"><a name="l00170"></a><span class="lineno">  170</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00171"></a><span class="lineno">  171</span>&#160;    <span class="comment">// PUBLIC CONSTANTS</span></div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160; </div>
+<div class="line"><a name="l00174"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5a0e8d670974a8e2fa236e57a0c3d95f">  174</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5a0e8d670974a8e2fa236e57a0c3d95f">k_CONSUMER_PRIORITY_MIN</a>;</div>
+<div class="line"><a name="l00175"></a><span class="lineno">  175</span>&#160; </div>
+<div class="line"><a name="l00177"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aabbc0784467546a6fe24b838e7044edd">  177</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aabbc0784467546a6fe24b838e7044edd">k_CONSUMER_PRIORITY_MAX</a>;</div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160; </div>
+<div class="line"><a name="l00179"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1cf0b3c571d0232a38872c47e8bdfa7e">  179</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1cf0b3c571d0232a38872c47e8bdfa7e">k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</a>;</div>
+<div class="line"><a name="l00180"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a7c1620e09acedc61a49257e57a5a33f7">  180</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a7c1620e09acedc61a49257e57a5a33f7">k_DEFAULT_MAX_UNCONFIRMED_BYTES</a>;</div>
+<div class="line"><a name="l00181"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a3c00b18833181116034f13ec46a81046">  181</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a3c00b18833181116034f13ec46a81046">k_DEFAULT_CONSUMER_PRIORITY</a>;</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;    <span class="comment">// PRIVATE DATA</span></div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160; </div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160;    bsl::optional&lt;int&gt; d_maxUnconfirmedMessages;</div>
+<div class="line"><a name="l00189"></a><span class="lineno">  189</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno">  192</span>&#160;    bsl::optional&lt;int&gt; d_maxUnconfirmedBytes;</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160; </div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    bsl::optional&lt;int&gt; d_consumerPriority;</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160; </div>
+<div class="line"><a name="l00197"></a><span class="lineno">  197</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a> d_expression;</div>
+<div class="line"><a name="l00198"></a><span class="lineno">  198</span>&#160; </div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a49480f1911207c1757d60021b1d3acf6">Subscription</a>();</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160; </div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">setMaxUnconfirmedMessages</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00212"></a><span class="lineno">  212</span>&#160; </div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">setMaxUnconfirmedBytes</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160; </div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">setConsumerPriority</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00221"></a><span class="lineno">  221</span>&#160; </div>
+<div class="line"><a name="l00222"></a><span class="lineno">  222</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aa55c43d89f207e7464a11324044106e5">setExpression</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a>&amp; value);</div>
+<div class="line"><a name="l00223"></a><span class="lineno">  223</span>&#160; </div>
+<div class="line"><a name="l00224"></a><span class="lineno">  224</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">maxUnconfirmedMessages</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00228"></a><span class="lineno">  228</span>&#160; </div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">maxUnconfirmedBytes</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160; </div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">consumerPriority</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160; </div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160;    <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a817745888a5a2a8a17c276856eae4330">expression</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160; </div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">hasMaxUnconfirmedMessages</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00241"></a><span class="lineno">  241</span>&#160; </div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">hasMaxUnconfirmedBytes</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160; </div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">hasConsumerPriority</a>() <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00260"></a><span class="lineno">  260</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ab7431c4766dd8f70a4b522c72e60bc3c">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) <span class="keyword">const</span>;</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;};</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160; </div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160; </div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs);</div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; rhs);</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160; </div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160; </div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;<span class="comment">// -------------------------</span></div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;<span class="comment">// class Subscription_Handle</span></div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;<span class="comment">// -------------------------</span></div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160; </div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;<span class="keyword">inline</span> SubscriptionHandle::SubscriptionHandle()</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160;: d_id(k_INVALID_HANDLE_ID)</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;, d_correlationId()</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;{</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;}</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
+<div class="line"><a name="l00285"></a><span class="lineno">  285</span>&#160;<span class="keyword">inline</span> SubscriptionHandle::SubscriptionHandle(<span class="keywordtype">unsigned</span> <span class="keywordtype">int</span>               <span class="keywordtype">id</span>,</div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;                                              <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; cid)</div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;: d_id(id)</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;, d_correlationId(cid)</div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;{</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00291"></a><span class="lineno">  291</span>&#160;}</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160; </div>
+<div class="line"><a name="l00293"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ac5b4372ec1484f8eb36d2f7da4c0d14c">  293</a></span>&#160;<span class="keyword">inline</span> SubscriptionHandle::SubscriptionHandle(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; cid)</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;: d_id(nextId())</div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;, d_correlationId(cid)</div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160;{</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160;}</div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160; </div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;<span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00301"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a37430e3f38e92721714ce1f1a2951f81">  301</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">bmqt::CorrelationId</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a37430e3f38e92721714ce1f1a2951f81">SubscriptionHandle::correlationId</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00303"></a><span class="lineno">  303</span>&#160;    <span class="keywordflow">return</span> d_correlationId;</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;}</div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160; </div>
+<div class="line"><a name="l00306"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7b4bd8e74e64a31d65875f795097942e">  306</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7b4bd8e74e64a31d65875f795097942e">SubscriptionHandle::id</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;    <span class="keywordflow">return</span> d_id;</div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;}</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160; </div>
+<div class="line"><a name="l00311"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a168d5092e70fbc111c4dbf09013aa6df">  311</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a168d5092e70fbc111c4dbf09013aa6df">SubscriptionHandle::print</a>(bsl::ostream&amp; stream,</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160;                                               <span class="keywordtype">int</span>           level,</div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;                                               <span class="keywordtype">int</span> spacesPerLevel)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;    <span class="keywordflow">if</span> (stream.bad()) {</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;        <span class="keywordflow">return</span> stream;  <span class="comment">// RETURN</span></div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;    }</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
+<div class="line"><a name="l00319"></a><span class="lineno">  319</span>&#160;    bslim::Printer printer(&amp;stream, level, spacesPerLevel);</div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;    printer.start();</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160; </div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;id&quot;</span>, d_id);</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;CorrelationId&quot;</span>, d_correlationId);</div>
+<div class="line"><a name="l00324"></a><span class="lineno">  324</span>&#160; </div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;    printer.end();</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160; </div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;    <span class="keywordflow">return</span> stream;</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;}</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;<span class="comment">// ----------------------------</span></div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;<span class="comment">// class SubscriptionExpression</span></div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;<span class="comment">// ----------------------------</span></div>
+<div class="line"><a name="l00332"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">  332</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">SubscriptionExpression::SubscriptionExpression</a>()</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160;: d_expression()</div>
+<div class="line"><a name="l00334"></a><span class="lineno">  334</span>&#160;, d_version(e_NONE)</div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;{</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;}</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
+<div class="line"><a name="l00339"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#adb233dbc56b72b25d573bec4cdf48aa7">  339</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">SubscriptionExpression::SubscriptionExpression</a>(</div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160;    <span class="keyword">const</span> bsl::string&amp; expression,</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">Enum</a>               version)</div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;: d_expression(expression)</div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;, d_version(version)</div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160;{</div>
+<div class="line"><a name="l00345"></a><span class="lineno">  345</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;}</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160; </div>
+<div class="line"><a name="l00348"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a678d50fb92efd264a858d5a5abe1cec1">  348</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> bsl::string&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a678d50fb92efd264a858d5a5abe1cec1">SubscriptionExpression::text</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;    <span class="keywordflow">return</span> d_expression;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;}</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160; </div>
+<div class="line"><a name="l00353"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#af80610ccda8375c50ec77dc9373deb72">  353</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">SubscriptionExpression::Enum</a> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#af80610ccda8375c50ec77dc9373deb72">SubscriptionExpression::version</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;    <span class="keywordflow">return</span> d_version;</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;}</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160; </div>
+<div class="line"><a name="l00358"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#afed3ca0e618b3af721f7a731e6d417ce">  358</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#afed3ca0e618b3af721f7a731e6d417ce">SubscriptionExpression::isValid</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;    <span class="keywordflow">return</span> d_expression.length() == 0 ? d_version == <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d">e_NONE</a></div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;                                      : d_version &gt; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d">e_NONE</a>;</div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160;}</div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160; </div>
+<div class="line"><a name="l00364"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a6cecf77326a290ea5f59cae795d96eb1">  364</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a6cecf77326a290ea5f59cae795d96eb1">SubscriptionExpression::print</a>(bsl::ostream&amp; stream,</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;                                                   <span class="keywordtype">int</span>           level,</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;                                                   <span class="keywordtype">int</span> spacesPerLevel)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160;    <span class="keywordflow">if</span> (stream.bad()) {</div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;        <span class="keywordflow">return</span> stream;  <span class="comment">// RETURN</span></div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;    }</div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160; </div>
+<div class="line"><a name="l00372"></a><span class="lineno">  372</span>&#160;    bslim::Printer printer(&amp;stream, level, spacesPerLevel);</div>
+<div class="line"><a name="l00373"></a><span class="lineno">  373</span>&#160;    printer.start();</div>
+<div class="line"><a name="l00374"></a><span class="lineno">  374</span>&#160; </div>
+<div class="line"><a name="l00375"></a><span class="lineno">  375</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;Expression&quot;</span>, d_expression);</div>
+<div class="line"><a name="l00376"></a><span class="lineno">  376</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;Version&quot;</span>, d_version);</div>
+<div class="line"><a name="l00377"></a><span class="lineno">  377</span>&#160; </div>
+<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;    printer.end();</div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160; </div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;    <span class="keywordflow">return</span> stream;</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;}</div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160; </div>
+<div class="line"><a name="l00383"></a><span class="lineno">  383</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;<span class="comment">// class Subscription</span></div>
+<div class="line"><a name="l00385"></a><span class="lineno">  385</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160; </div>
+<div class="line"><a name="l00387"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a49480f1911207c1757d60021b1d3acf6">  387</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a49480f1911207c1757d60021b1d3acf6">Subscription::Subscription</a>()</div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160;: d_maxUnconfirmedMessages()</div>
+<div class="line"><a name="l00389"></a><span class="lineno">  389</span>&#160;, d_maxUnconfirmedBytes()</div>
+<div class="line"><a name="l00390"></a><span class="lineno">  390</span>&#160;, d_consumerPriority()</div>
+<div class="line"><a name="l00391"></a><span class="lineno">  391</span>&#160;, d_expression()</div>
+<div class="line"><a name="l00392"></a><span class="lineno">  392</span>&#160;{</div>
+<div class="line"><a name="l00393"></a><span class="lineno">  393</span>&#160;    <span class="comment">// NOTHING</span></div>
+<div class="line"><a name="l00394"></a><span class="lineno">  394</span>&#160;}</div>
+<div class="line"><a name="l00395"></a><span class="lineno">  395</span>&#160; </div>
+<div class="line"><a name="l00396"></a><span class="lineno">  396</span>&#160;<span class="keyword">inline</span> bsl::ostream&amp;</div>
+<div class="line"><a name="l00397"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ab7431c4766dd8f70a4b522c72e60bc3c">  397</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ab7431c4766dd8f70a4b522c72e60bc3c">Subscription::print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level, <span class="keywordtype">int</span> spacesPerLevel)<span class="keyword"> const</span></div>
+<div class="line"><a name="l00398"></a><span class="lineno">  398</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00399"></a><span class="lineno">  399</span>&#160;    <span class="keywordflow">if</span> (stream.bad()) {</div>
+<div class="line"><a name="l00400"></a><span class="lineno">  400</span>&#160;        <span class="keywordflow">return</span> stream;  <span class="comment">// RETURN</span></div>
+<div class="line"><a name="l00401"></a><span class="lineno">  401</span>&#160;    }</div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160; </div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;    bslim::Printer printer(&amp;stream, level, spacesPerLevel);</div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;    printer.start();</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;maxUnconfirmedMessages&quot;</span>, <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">maxUnconfirmedMessages</a>());</div>
+<div class="line"><a name="l00406"></a><span class="lineno">  406</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;maxUnconfirmedBytes&quot;</span>, <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">maxUnconfirmedBytes</a>());</div>
+<div class="line"><a name="l00407"></a><span class="lineno">  407</span>&#160;    printer.printAttribute(<span class="stringliteral">&quot;consumerPriority&quot;</span>, <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">consumerPriority</a>());</div>
+<div class="line"><a name="l00408"></a><span class="lineno">  408</span>&#160; </div>
+<div class="line"><a name="l00409"></a><span class="lineno">  409</span>&#160;    d_expression.<a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a6cecf77326a290ea5f59cae795d96eb1">print</a>(stream, level, spacesPerLevel);</div>
+<div class="line"><a name="l00410"></a><span class="lineno">  410</span>&#160; </div>
+<div class="line"><a name="l00411"></a><span class="lineno">  411</span>&#160;    printer.end();</div>
+<div class="line"><a name="l00412"></a><span class="lineno">  412</span>&#160; </div>
+<div class="line"><a name="l00413"></a><span class="lineno">  413</span>&#160;    <span class="keywordflow">return</span> stream;</div>
+<div class="line"><a name="l00414"></a><span class="lineno">  414</span>&#160;}</div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160; </div>
+<div class="line"><a name="l00416"></a><span class="lineno">  416</span>&#160;<span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00417"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">  417</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">Subscription::setMaxUnconfirmedMessages</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00418"></a><span class="lineno">  418</span>&#160;{</div>
+<div class="line"><a name="l00419"></a><span class="lineno">  419</span>&#160;    d_maxUnconfirmedMessages.emplace(value);</div>
+<div class="line"><a name="l00420"></a><span class="lineno">  420</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;}</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160; </div>
+<div class="line"><a name="l00423"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">  423</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">Subscription::setMaxUnconfirmedBytes</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;{</div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160;    d_maxUnconfirmedBytes.emplace(value);</div>
+<div class="line"><a name="l00426"></a><span class="lineno">  426</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00427"></a><span class="lineno">  427</span>&#160;}</div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160; </div>
+<div class="line"><a name="l00429"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">  429</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">Subscription::setConsumerPriority</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;{</div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;    d_consumerPriority.emplace(value);</div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160;}</div>
+<div class="line"><a name="l00434"></a><span class="lineno">  434</span>&#160; </div>
+<div class="line"><a name="l00435"></a><span class="lineno">  435</span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp;</div>
+<div class="line"><a name="l00436"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aa55c43d89f207e7464a11324044106e5">  436</a></span>&#160;<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aa55c43d89f207e7464a11324044106e5">Subscription::setExpression</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a>&amp; value)</div>
+<div class="line"><a name="l00437"></a><span class="lineno">  437</span>&#160;{</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;    d_expression = value;</div>
+<div class="line"><a name="l00439"></a><span class="lineno">  439</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00440"></a><span class="lineno">  440</span>&#160;}</div>
+<div class="line"><a name="l00441"></a><span class="lineno">  441</span>&#160; </div>
+<div class="line"><a name="l00442"></a><span class="lineno">  442</span>&#160;<span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00443"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">  443</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">Subscription::maxUnconfirmedMessages</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00444"></a><span class="lineno">  444</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00445"></a><span class="lineno">  445</span>&#160;    <span class="keywordflow">return</span> d_maxUnconfirmedMessages.value_or(</div>
+<div class="line"><a name="l00446"></a><span class="lineno">  446</span>&#160;        <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1cf0b3c571d0232a38872c47e8bdfa7e">k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</a>);</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;}</div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160; </div>
+<div class="line"><a name="l00449"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">  449</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">Subscription::maxUnconfirmedBytes</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00451"></a><span class="lineno">  451</span>&#160;    <span class="keywordflow">return</span> d_maxUnconfirmedBytes.value_or(<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a7c1620e09acedc61a49257e57a5a33f7">k_DEFAULT_MAX_UNCONFIRMED_BYTES</a>);</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;}</div>
+<div class="line"><a name="l00453"></a><span class="lineno">  453</span>&#160; </div>
+<div class="line"><a name="l00454"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">  454</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">Subscription::consumerPriority</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;    <span class="keywordflow">return</span> d_consumerPriority.value_or(<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a3c00b18833181116034f13ec46a81046">k_DEFAULT_CONSUMER_PRIORITY</a>);</div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;}</div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160; </div>
+<div class="line"><a name="l00459"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a817745888a5a2a8a17c276856eae4330">  459</a></span>&#160;<span class="keyword">inline</span> <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">SubscriptionExpression</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a817745888a5a2a8a17c276856eae4330">Subscription::expression</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00461"></a><span class="lineno">  461</span>&#160;    <span class="keywordflow">return</span> d_expression;</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;}</div>
+<div class="line"><a name="l00463"></a><span class="lineno">  463</span>&#160; </div>
+<div class="line"><a name="l00464"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">  464</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">Subscription::hasMaxUnconfirmedMessages</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00465"></a><span class="lineno">  465</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;    <span class="keywordflow">return</span> d_maxUnconfirmedMessages.has_value();</div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;}</div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160; </div>
+<div class="line"><a name="l00469"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">  469</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">Subscription::hasMaxUnconfirmedBytes</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00471"></a><span class="lineno">  471</span>&#160;    <span class="keywordflow">return</span> d_maxUnconfirmedBytes.has_value();</div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160;}</div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160; </div>
+<div class="line"><a name="l00474"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">  474</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">Subscription::hasConsumerPriority</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00475"></a><span class="lineno">  475</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00476"></a><span class="lineno">  476</span>&#160;    <span class="keywordflow">return</span> d_consumerPriority.has_value();</div>
+<div class="line"><a name="l00477"></a><span class="lineno">  477</span>&#160;}</div>
+<div class="line"><a name="l00478"></a><span class="lineno">  478</span>&#160; </div>
+<div class="line"><a name="l00479"></a><span class="lineno">  479</span>&#160;<span class="comment">// FREE FUNCTIONS</span></div>
+<div class="line"><a name="l00480"></a><span class="lineno">  480</span>&#160; </div>
+<div class="line"><a name="l00482"></a><span class="lineno">  482</span>&#160;<span class="keyword">template</span> &lt;<span class="keyword">class</span> HASH_ALGORITHM&gt;</div>
+<div class="line"><a name="l00483"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#af7497df32503127609c24ed52c32334b">  483</a></span>&#160;<span class="keywordtype">void</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a78af12b27805da6dcc10bc68d76a2496">hashAppend</a>(HASH_ALGORITHM&amp; hashAlgo, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; <span class="keywordtype">id</span>)</div>
+<div class="line"><a name="l00484"></a><span class="lineno">  484</span>&#160;{</div>
+<div class="line"><a name="l00485"></a><span class="lineno">  485</span>&#160;    <span class="keyword">using</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a4db3576d5d4033e0d77543de7b00d078">bslh::hashAppend</a>;  <span class="comment">// for ADL</span></div>
+<div class="line"><a name="l00486"></a><span class="lineno">  486</span>&#160;    <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a78af12b27805da6dcc10bc68d76a2496">hashAppend</a>(hashAlgo, <span class="keywordtype">id</span>.d_id);</div>
+<div class="line"><a name="l00487"></a><span class="lineno">  487</span>&#160;}</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160; </div>
+<div class="line"><a name="l00489"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7d6365f28b304ffa017f5c4d545c82d4">  489</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">operator&lt;</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160;                      <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs)</div>
+<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160;{</div>
+<div class="line"><a name="l00492"></a><span class="lineno">  492</span>&#160;    <span class="keywordflow">return</span> lhs.d_id &lt; rhs.d_id;</div>
+<div class="line"><a name="l00493"></a><span class="lineno">  493</span>&#160;}</div>
+<div class="line"><a name="l00494"></a><span class="lineno">  494</span>&#160; </div>
+<div class="line"><a name="l00495"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ac900d002b92d295aa5450a5fd3bd8fc5">  495</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">operator==</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00496"></a><span class="lineno">  496</span>&#160;                       <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs)</div>
+<div class="line"><a name="l00497"></a><span class="lineno">  497</span>&#160;{</div>
+<div class="line"><a name="l00498"></a><span class="lineno">  498</span>&#160;    <span class="keywordflow">return</span> lhs.d_id == rhs.d_id;</div>
+<div class="line"><a name="l00499"></a><span class="lineno">  499</span>&#160;}</div>
+<div class="line"><a name="l00500"></a><span class="lineno">  500</span>&#160; </div>
+<div class="line"><a name="l00501"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a6d5ad0f061f7d1fd804cb9abffa21f08">  501</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">operator!=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; lhs,</div>
+<div class="line"><a name="l00502"></a><span class="lineno">  502</span>&#160;                       <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs)</div>
+<div class="line"><a name="l00503"></a><span class="lineno">  503</span>&#160;{</div>
+<div class="line"><a name="l00504"></a><span class="lineno">  504</span>&#160;    <span class="keywordflow">return</span> lhs.d_id != rhs.d_id;</div>
+<div class="line"><a name="l00505"></a><span class="lineno">  505</span>&#160;}</div>
+<div class="line"><a name="l00506"></a><span class="lineno">  506</span>&#160; </div>
+<div class="line"><a name="l00507"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a2d9c5ea93df456b6c4bca1d1b70edd56">  507</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp;             stream,</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160;                                <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; rhs)</div>
+<div class="line"><a name="l00509"></a><span class="lineno">  509</span>&#160;{</div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160;    <span class="keywordflow">return</span> rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a168d5092e70fbc111c4dbf09013aa6df">print</a>(stream, 0, -1);</div>
+<div class="line"><a name="l00511"></a><span class="lineno">  511</span>&#160;}</div>
+<div class="line"><a name="l00512"></a><span class="lineno">  512</span>&#160; </div>
+<div class="line"><a name="l00513"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a7e0f107db4b59c525bd2073c4fd97ca9">  513</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp; rhs)</div>
+<div class="line"><a name="l00514"></a><span class="lineno">  514</span>&#160;{</div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;    <span class="keywordflow">return</span> rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ab7431c4766dd8f70a4b522c72e60bc3c">print</a>(stream, 0, -1);</div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;}</div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160; </div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l00519"></a><span class="lineno">  519</span>&#160; </div>
+<div class="line"><a name="l00520"></a><span class="lineno">  520</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160; </div>
+<div class="line"><a name="l00522"></a><span class="lineno">  522</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="abmqt__correlationid_8h_html"><div class="ttname"><a href="bmqt__correlationid_8h.html">bmqt_correlationid.h</a></div><div class="ttdoc">Provide a value-semantic type usable as an efficient identifier.</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqa_1_1MessageIterator_html"><div class="ttname"><a href="classBloombergLP_1_1bmqa_1_1MessageIterator.html">BloombergLP::bmqa::MessageIterator</a></div><div class="ttdef"><b>Definition:</b> bmqa_messageiterator.h:87</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1CorrelationId_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1CorrelationId.html">BloombergLP::bmqt::CorrelationId</a></div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:193</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html">BloombergLP::bmqt::SubscriptionExpression</a></div><div class="ttdoc">Value-semantic type to carry Subscription criteria.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:123</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a678d50fb92efd264a858d5a5abe1cec1"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a678d50fb92efd264a858d5a5abe1cec1">BloombergLP::bmqt::SubscriptionExpression::text</a></div><div class="ttdeci">const bsl::string &amp; text() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:348</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a69d885729e987c8555ea8e7ef70a7eaf"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a69d885729e987c8555ea8e7ef70a7eaf">BloombergLP::bmqt::SubscriptionExpression::SubscriptionExpression</a></div><div class="ttdeci">SubscriptionExpression()</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:332</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a6cecf77326a290ea5f59cae795d96eb1"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a6cecf77326a290ea5f59cae795d96eb1">BloombergLP::bmqt::SubscriptionExpression::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:364</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a82503284acb8fece8a4b4ba349ad6392"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392">BloombergLP::bmqt::SubscriptionExpression::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdoc">Enum representing criteria format.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:128</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a1d267ba1a1d1118a17b2e4d597bfef3d">BloombergLP::bmqt::SubscriptionExpression::e_NONE</a></div><div class="ttdeci">@ e_NONE</div><div class="ttdoc">EMPTY.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:130</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_a82503284acb8fece8a4b4ba349ad6392a6375883ffda4a02f56abec6a0810ceed"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#a82503284acb8fece8a4b4ba349ad6392a6375883ffda4a02f56abec6a0810ceed">BloombergLP::bmqt::SubscriptionExpression::e_VERSION_1</a></div><div class="ttdeci">@ e_VERSION_1</div><div class="ttdoc">Simple Evaluator.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:134</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_af80610ccda8375c50ec77dc9373deb72"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#af80610ccda8375c50ec77dc9373deb72">BloombergLP::bmqt::SubscriptionExpression::version</a></div><div class="ttdeci">Enum version() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:353</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionExpression_html_afed3ca0e618b3af721f7a731e6d417ce"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionExpression.html#afed3ca0e618b3af721f7a731e6d417ce">BloombergLP::bmqt::SubscriptionExpression::isValid</a></div><div class="ttdeci">bool isValid() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:358</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">BloombergLP::bmqt::SubscriptionHandle</a></div><div class="ttdoc">Value-semantic type for unique Subscription id.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:59</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a168d5092e70fbc111c4dbf09013aa6df"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a168d5092e70fbc111c4dbf09013aa6df">BloombergLP::bmqt::SubscriptionHandle::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:311</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a35903e95a6b38083d3fa3165012dc740"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a35903e95a6b38083d3fa3165012dc740">BloombergLP::bmqt::SubscriptionHandle::MessageImpl</a></div><div class="ttdeci">friend struct bmqa::MessageImpl</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:60</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a37430e3f38e92721714ce1f1a2951f81"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a37430e3f38e92721714ce1f1a2951f81">BloombergLP::bmqt::SubscriptionHandle::correlationId</a></div><div class="ttdeci">const bmqt::CorrelationId &amp; correlationId() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:301</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a6d5ad0f061f7d1fd804cb9abffa21f08"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a6d5ad0f061f7d1fd804cb9abffa21f08">BloombergLP::bmqt::SubscriptionHandle::operator!=</a></div><div class="ttdeci">friend bool operator!=(const SubscriptionHandle &amp;lhs, const SubscriptionHandle &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:501</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a7b4bd8e74e64a31d65875f795097942e"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7b4bd8e74e64a31d65875f795097942e">BloombergLP::bmqt::SubscriptionHandle::id</a></div><div class="ttdeci">unsigned int id() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:306</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_a7d6365f28b304ffa017f5c4d545c82d4"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#a7d6365f28b304ffa017f5c4d545c82d4">BloombergLP::bmqt::SubscriptionHandle::operator&lt;</a></div><div class="ttdeci">friend bool operator&lt;(const SubscriptionHandle &amp;lhs, const SubscriptionHandle &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:489</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_ab4e59a288424a6903bc4e070d3af6663"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ab4e59a288424a6903bc4e070d3af6663">BloombergLP::bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID</a></div><div class="ttdeci">static const unsigned int k_INVALID_HANDLE_ID</div><div class="ttdoc">Initial (invalid) value for bmqt::SubscriptionHandle::d_id</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:65</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_ac900d002b92d295aa5450a5fd3bd8fc5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#ac900d002b92d295aa5450a5fd3bd8fc5">BloombergLP::bmqt::SubscriptionHandle::operator==</a></div><div class="ttdeci">friend bool operator==(const SubscriptionHandle &amp;lhs, const SubscriptionHandle &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:495</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html_af7497df32503127609c24ed52c32334b"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html#af7497df32503127609c24ed52c32334b">BloombergLP::bmqt::SubscriptionHandle::hashAppend</a></div><div class="ttdeci">friend void hashAppend(HASH_ALGORITHM &amp;hashAlgo, const SubscriptionHandle &amp;id)</div><div class="ttdoc">Apply the specified hashAlgo to the specified id.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:483</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html">BloombergLP::bmqt::Subscription</a></div><div class="ttdoc">Value-semantic type to carry Subscription parameters.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:169</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a02015f3582dc12432d4a18919b603cf7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">BloombergLP::bmqt::Subscription::hasMaxUnconfirmedBytes</a></div><div class="ttdeci">bool hasMaxUnconfirmedBytes() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:469</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a14736aced9a7f6e60cae94e6140179f7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">BloombergLP::bmqt::Subscription::hasMaxUnconfirmedMessages</a></div><div class="ttdeci">bool hasMaxUnconfirmedMessages() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:464</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a1c9c8bf4229429bb88c6eb49ac2ab277"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">BloombergLP::bmqt::Subscription::setConsumerPriority</a></div><div class="ttdeci">Subscription &amp; setConsumerPriority(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:429</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a1cf0b3c571d0232a38872c47e8bdfa7e"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1cf0b3c571d0232a38872c47e8bdfa7e">BloombergLP::bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</a></div><div class="ttdeci">static const int k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:179</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a2b6e5f5b0a496d4ecc739bbde4f635b0"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">BloombergLP::bmqt::Subscription::consumerPriority</a></div><div class="ttdeci">int consumerPriority() const</div><div class="ttdoc">Get the number for the consumerPriority parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:454</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a3c00b18833181116034f13ec46a81046"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a3c00b18833181116034f13ec46a81046">BloombergLP::bmqt::Subscription::k_DEFAULT_CONSUMER_PRIORITY</a></div><div class="ttdeci">static const int k_DEFAULT_CONSUMER_PRIORITY</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:181</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a49480f1911207c1757d60021b1d3acf6"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a49480f1911207c1757d60021b1d3acf6">BloombergLP::bmqt::Subscription::Subscription</a></div><div class="ttdeci">Subscription()</div><div class="ttdoc">Create a new Subscription.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:387</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a5791ae5d583f7fdd552d24fbfca46c33"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">BloombergLP::bmqt::Subscription::setMaxUnconfirmedBytes</a></div><div class="ttdeci">Subscription &amp; setMaxUnconfirmedBytes(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:423</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a5a0e8d670974a8e2fa236e57a0c3d95f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5a0e8d670974a8e2fa236e57a0c3d95f">BloombergLP::bmqt::Subscription::k_CONSUMER_PRIORITY_MIN</a></div><div class="ttdeci">static const int k_CONSUMER_PRIORITY_MIN</div><div class="ttdoc">Constant representing the minimum valid consumer priority.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:174</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a5d6e383b8e750ceed26186b29009ef93"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">BloombergLP::bmqt::Subscription::setMaxUnconfirmedMessages</a></div><div class="ttdeci">Subscription &amp; setMaxUnconfirmedMessages(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:417</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a7c1620e09acedc61a49257e57a5a33f7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a7c1620e09acedc61a49257e57a5a33f7">BloombergLP::bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_BYTES</a></div><div class="ttdeci">static const int k_DEFAULT_MAX_UNCONFIRMED_BYTES</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:180</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a817745888a5a2a8a17c276856eae4330"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a817745888a5a2a8a17c276856eae4330">BloombergLP::bmqt::Subscription::expression</a></div><div class="ttdeci">const SubscriptionExpression &amp; expression() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:459</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a8daee807dc4bb4e3e851796d806e0cac"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">BloombergLP::bmqt::Subscription::maxUnconfirmedMessages</a></div><div class="ttdeci">int maxUnconfirmedMessages() const</div><div class="ttdoc">Get the number for the maxUnconfirmedMessages parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:443</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_aa55c43d89f207e7464a11324044106e5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#aa55c43d89f207e7464a11324044106e5">BloombergLP::bmqt::Subscription::setExpression</a></div><div class="ttdeci">Subscription &amp; setExpression(const SubscriptionExpression &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:436</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_aabbc0784467546a6fe24b838e7044edd"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#aabbc0784467546a6fe24b838e7044edd">BloombergLP::bmqt::Subscription::k_CONSUMER_PRIORITY_MAX</a></div><div class="ttdeci">static const int k_CONSUMER_PRIORITY_MAX</div><div class="ttdoc">Constant representing the maximum valid consumer priority.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:177</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_aae832ab67a37d6c75d8320cf29ea5df5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">BloombergLP::bmqt::Subscription::maxUnconfirmedBytes</a></div><div class="ttdeci">int maxUnconfirmedBytes() const</div><div class="ttdoc">Get the number for the maxUnconfirmedBytes parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:449</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_ab7431c4766dd8f70a4b522c72e60bc3c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#ab7431c4766dd8f70a4b522c72e60bc3c">BloombergLP::bmqt::Subscription::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:397</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_ae639ccbcc9e9a5cd1d36481b813d72a7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">BloombergLP::bmqt::Subscription::hasConsumerPriority</a></div><div class="ttdeci">bool hasConsumerPriority() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:474</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a4db3576d5d4033e0d77543de7b00d078"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a4db3576d5d4033e0d77543de7b00d078">BloombergLP::bmqt::hashAppend</a></div><div class="ttdeci">void hashAppend(HASH_ALGORITHM &amp;hashAlgo, const SubscriptionHandle &amp;id)</div><div class="ttdoc">Apply the specified hashAlgo to the specified id.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:483</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a78af12b27805da6dcc10bc68d76a2496"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a78af12b27805da6dcc10bc68d76a2496">BloombergLP::bmqt::hashAppend</a></div><div class="ttdeci">void hashAppend(HASH_ALGORITHM &amp;hashAlgo, const CorrelationId &amp;value)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:504</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a834a83fe28fd4313012e27be2f7bf732"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">BloombergLP::bmqt::operator&lt;&lt;</a></div><div class="ttdeci">bsl::ostream &amp; operator&lt;&lt;(bsl::ostream &amp;stream, CompressionAlgorithmType::Enum value)</div><div class="ttdef"><b>Definition:</b> bmqt_compressionalgorithmtype.h:141</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_aa6566ff0a88bbcebb2d322152cd3472b"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">BloombergLP::bmqt::operator!=</a></div><div class="ttdeci">bool operator!=(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:582</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ab916ce4498d29d2e31d35c6f5277fdc6"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">BloombergLP::bmqt::operator==</a></div><div class="ttdeci">bool operator==(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:576</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ad02821c241b0c68b972bb61dbf4ee260"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ad02821c241b0c68b972bb61dbf4ee260">BloombergLP::bmqt::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:588</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_8e091ab1c7d4f7f0c38972fd2ce6f060.html">bmqt</a></li><li class="navelem"><a class="el" href="bmqt__subscription_8h.html">bmqt_subscription.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>

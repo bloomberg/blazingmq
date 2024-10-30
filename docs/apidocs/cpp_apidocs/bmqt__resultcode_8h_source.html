@@ -1,670 +1,667 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2014-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqt_resultcode.h                                                  -*-C++-*-
-#ifndef INCLUDED_BMQT_RESULTCODE
-#define INCLUDED_BMQT_RESULTCODE
-
-//@PURPOSE: Provide enums for various publicly exposed result code.
-//
-//@CLASSES:
-//  bmqt::GenericResult:        generic common result values
-//  bmqt::AckResult:            result code status of an ack message
-//  bmqt::CloseQueueResult:     result of a close queue operation
-//  bmqt::EventBuilderResult:   result of eventBuilder pack operation
-//  bmqt::OpenQueueResult:      result of an open queue operation
-//  bmqt::ConfigureQueueResult: result of a configure queue operation
-//  bmqt::PostResult:           result of a post operation
-//
-//@DESCRIPTION: This file contains a list of Enums (&#39;bmqt::GenericResult&#39;,
-// &#39;bmqt::AckResult&#39;, &#39;bmqt::CloseQueueResult&#39;, &#39;bmqt::EventBuilderResult&#39;,
-// &#39;bmqt::OpenQueueResult&#39;, &#39;bmqt::ConfigureQueueResult&#39;, and
-// &#39;bmqt::PostResult&#39;) that are publicly exposed to Application (via bmqa), but
-// whose value comes from the internal implementation (bmqimp).  Having them
-// defined in bmqt allows bmqa to return the enum returned by bmqimp with no
-// transformation.
-//
-// All enums are using the convention that &lt; 0 values are errors, while &gt; 0 are
-// warnings.
-//
-// The &#39;GenericStatus&#39; enum contains values that are common for most or all of
-// the other status enums, such as &#39;success&#39;, &#39;timeout&#39;, ...  The values of its
-// members can range from -99 to 99.
-//
-// Each other enum should duplicate any values from the &#39;GenericStatus&#39; one
-// that it intends to be able to represent (aliasing the values to the ones
-// from the &#39;GenericStatus&#39; enum) and extend with specialized values in the
-// &#39;]..., -99[&#39; or &#39;]99, ...[&#39; ranges.
-//
-
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-
-// BDE
-#include &lt;bsl_iosfwd.h&gt;
-#include &lt;bsl_string.h&gt;
-
-namespace BloombergLP {
-namespace bmqt {
-
-                            // ====================
-                            // struct GenericResult
-                            // ====================
-
-struct GenericResult {
-    // This enum represents generic common status
-
-    // TYPES
-    enum Enum {
-        e_SUCCESS          =  0 // Operation was success
-      , e_UNKNOWN          = -1 // Operation failed for unknown reason
-      , e_TIMEOUT          = -2 // Operation timedout
-      , e_NOT_CONNECTED    = -3 // Cant process, not connected to the broker
-      , e_CANCELED         = -4 // Operation was canceled
-      , e_NOT_SUPPORTED    = -5 // Operation is not supported
-      , e_REFUSED          = -6 // Operation was refused
-      , e_INVALID_ARGUMENT = -7 // An invalid argument was provided
-      , e_NOT_READY        = -8 // Not ready to process the request
-      , e_LAST             = e_NOT_READY
-                                // Used in test driver only, to validate
-                                // consistency between this enum and the
-                                // &#39;bmqp_ctrlmsg.xsd::StatusCategory&#39; one
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;       stream,
-                               GenericResult::Enum value,
-                               int                 level = 0,
-                               int                 spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;GenericResult::Enum&#39; value.
-
-    static const char *toAscii(GenericResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(GenericResult::Enum      *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;       stream,
-                         GenericResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                           // ======================
-                           // struct OpenQueueResult
-                           // ======================
-
-struct OpenQueueResult {
-    // This enum represents the result of an openQueue operation
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS          = GenericResult::e_SUCCESS
-      , e_UNKNOWN          = GenericResult::e_UNKNOWN
-      , e_TIMEOUT          = GenericResult::e_TIMEOUT
-      , e_NOT_CONNECTED    = GenericResult::e_NOT_CONNECTED
-      , e_CANCELED         = GenericResult::e_CANCELED
-      , e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED
-      , e_REFUSED          = GenericResult::e_REFUSED
-      , e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT
-      , e_NOT_READY        = GenericResult::e_NOT_READY
-
-      // SPECIALIZED
-      // WARNINGS
-      , e_ALREADY_OPENED      = 100 // The queue is already opened
-      , e_ALREADY_IN_PROGRESS = 101 // The queue is already being opened
-
-      // ERRORS
-      , e_INVALID_URI              = -100 // The queue uri is invalid
-      , e_INVALID_FLAGS            = -101 // The flags provided are invalid
-      , e_CORRELATIONID_NOT_UNIQUE = -102 // The correlationdId is not unique
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;         stream,
-                               OpenQueueResult::Enum value,
-                               int                   level          = 0,
-                               int                   spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;OpenQueueResult::Enum&#39; value.
-
-    static const char *toAscii(OpenQueueResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(OpenQueueResult::Enum    *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;         stream,
-                         OpenQueueResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                        // ===========================
-                        // struct ConfigureQueueResult
-                        // ===========================
-
-struct ConfigureQueueResult {
-    // This enum represents the result of a configureQueue operation
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS          = GenericResult::e_SUCCESS
-      , e_UNKNOWN          = GenericResult::e_UNKNOWN
-      , e_TIMEOUT          = GenericResult::e_TIMEOUT
-      , e_NOT_CONNECTED    = GenericResult::e_NOT_CONNECTED
-      , e_CANCELED         = GenericResult::e_CANCELED
-      , e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED
-      , e_REFUSED          = GenericResult::e_REFUSED
-      , e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT
-      , e_NOT_READY        = GenericResult::e_NOT_READY
-
-      // SPECIALIZED WARNINGS
-      , e_ALREADY_IN_PROGRESS = 100 // The queue is already being configured
-
-      // ERRORS
-      , e_INVALID_QUEUE = -101
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;              stream,
-                               ConfigureQueueResult::Enum value,
-                               int                        level = 0,
-                               int                        spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;ConfigureQueueResult::Enum&#39; value.
-
-    static const char *toAscii(ConfigureQueueResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(ConfigureQueueResult::Enum *out,
-                          const bslstl::StringRef&amp;    str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;              stream,
-                         ConfigureQueueResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                          // =======================
-                          // struct CloseQueueResult
-                          // =======================
-
-struct CloseQueueResult {
-    // This enum represents the result of a closeQueue operation
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS          = GenericResult::e_SUCCESS
-      , e_UNKNOWN          = GenericResult::e_UNKNOWN
-      , e_TIMEOUT          = GenericResult::e_TIMEOUT
-      , e_NOT_CONNECTED    = GenericResult::e_NOT_CONNECTED
-      , e_CANCELED         = GenericResult::e_CANCELED
-      , e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED
-      , e_REFUSED          = GenericResult::e_REFUSED
-      , e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT
-      , e_NOT_READY        = GenericResult::e_NOT_READY
-
-      // SPECIALIZED
-      // WARNINGS
-      , e_ALREADY_CLOSED      = 100 // The queue is already closed
-      , e_ALREADY_IN_PROGRESS = 101 // The queue is already being closed
-
-      // ERRORS
-      , e_UNKNOWN_QUEUE = -100 // The queue doesn&#39;t exist
-      , e_INVALID_QUEUE = -101 // The queue provided is invalid
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;          stream,
-                               CloseQueueResult::Enum value,
-                               int                    level          = 0,
-                               int                    spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;PublishResult::Enum&#39; value.
-
-    static const char *toAscii(CloseQueueResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(CloseQueueResult::Enum   *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;          stream,
-                         CloseQueueResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                         // =========================
-                         // struct EventBuilderResult
-                         // =========================
-
-struct EventBuilderResult {
-    // This enum represents the result of an EventBuilder&#39;s packMessage()
-    // operation
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS = GenericResult::e_SUCCESS
-      , e_UNKNOWN = GenericResult::e_UNKNOWN
-
-      // SPECIALIZED
-      // ERRORS
-      , e_QUEUE_INVALID          = -100
-      , e_QUEUE_READONLY         = -101
-      , e_MISSING_CORRELATION_ID = -102
-      , e_EVENT_TOO_BIG          = -103
-      , e_PAYLOAD_TOO_BIG        = -104
-      , e_PAYLOAD_EMPTY          = -105
-      , e_OPTION_TOO_BIG         = -106
-#ifdef BMQ_ENABLE_MSG_GROUPID
-      , e_INVALID_MSG_GROUP_ID   = -107
-#endif
-      , e_QUEUE_SUSPENDED        = -108
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;            stream,
-                               EventBuilderResult::Enum value,
-                               int                      level          = 0,
-                               int                      spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;EventBuilderResult::Enum&#39; value.
-
-    static const char *toAscii(EventBuilderResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(EventBuilderResult::Enum *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;            stream,
-                         EventBuilderResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                              // ================
-                              // struct AckResult
-                              // ================
-
-struct AckResult {
-    // This enum represents the result code status of an ack message
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS          = GenericResult::e_SUCCESS
-      , e_UNKNOWN          = GenericResult::e_UNKNOWN
-      , e_TIMEOUT          = GenericResult::e_TIMEOUT
-      , e_NOT_CONNECTED    = GenericResult::e_NOT_CONNECTED
-      , e_CANCELED         = GenericResult::e_CANCELED
-      , e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED
-      , e_REFUSED          = GenericResult::e_REFUSED
-      , e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT
-      , e_NOT_READY        = GenericResult::e_NOT_READY
-
-      // SPECIALIZED
-      // ERRORS
-      , e_LIMIT_MESSAGES        = -100 // Messages limit reached
-      , e_LIMIT_BYTES           = -101 // Bytes limit reached
-
-      // TBD:DEPRECATED &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; &gt;libbmq-1.3.5
-      // The below 4 values are deprecated in favor of the above two ones
-      , e_LIMIT_DOMAIN_MESSAGES = -100 // The domain is full (messages)
-      , e_LIMIT_DOMAIN_BYTES    = -101 // The domain is full (bytes)
-      , e_LIMIT_QUEUE_MESSAGES  = -102 // The queue is full (messages)
-      , e_LIMIT_QUEUE_BYTES     = -103 // The queue is full (bytes)
-      // TBD:DEPRECATED &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt; &gt;libbmq-1.3.5
-      , e_STORAGE_FAILURE       = -104 // The storage (on disk) is full
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;   stream,
-                               AckResult::Enum value,
-                               int             level          = 0,
-                               int             spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;PublishResult::Enum&#39; value.
-
-    static const char *toAscii(AckResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(AckResult::Enum          *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;   stream,
-                         AckResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-
-                             // =================
-                             // struct PostResult
-                             // =================
-
-struct PostResult {
-    // This enum represents the result code status of a post message
-
-    // TYPES
-    enum Enum {
-      // GENERIC
-        e_SUCCESS          = GenericResult::e_SUCCESS
-      , e_UNKNOWN          = GenericResult::e_UNKNOWN
-      , e_TIMEOUT          = GenericResult::e_TIMEOUT
-      , e_NOT_CONNECTED    = GenericResult::e_NOT_CONNECTED
-      , e_CANCELED         = GenericResult::e_CANCELED
-      , e_NOT_SUPPORTED    = GenericResult::e_NOT_SUPPORTED
-      , e_REFUSED          = GenericResult::e_REFUSED
-      , e_INVALID_ARGUMENT = GenericResult::e_INVALID_ARGUMENT
-      , e_NOT_READY        = GenericResult::e_NOT_READY
-
-      // SPECIALIZED
-      // WARNINGS
-      , e_BW_LIMIT         = 100 // The application has been posting too much
-                                 // data, and the IO or broker are temporarily
-                                 // rejecting new messages.
-    };
-
-    // CLASS METHODS
-    static bsl::ostream&amp; print(bsl::ostream&amp;    stream,
-                               PostResult::Enum value,
-                               int              level = 0,
-                               int              spacesPerLevel = 4);
-        // Write the string representation of the specified enumeration &#39;value&#39;
-        // to the specified output &#39;stream&#39;, and return a reference to
-        // &#39;stream&#39;.  Optionally specify an initial indentation &#39;level&#39;, whose
-        // absolute value is incremented recursively for nested objects.  If
-        // &#39;level&#39; is specified, optionally specify &#39;spacesPerLevel&#39;, whose
-        // absolute value indicates the number of spaces per indentation level
-        // for this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative, format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  See &#39;toAscii&#39; for
-        // what constitutes the string representation of a
-        // &#39;PublishResult::Enum&#39; value.
-
-    static const char *toAscii(PostResult::Enum value);
-        // Return the non-modifiable string representation corresponding to the
-        // specified enumeration &#39;value&#39;, if it exists, and a unique (error)
-        // string otherwise.  The string representation of &#39;value&#39; matches its
-        // corresponding enumerator name with the &#39;e_&#39; prefix elided.  Note
-        // that specifying a &#39;value&#39; that does not match any of the enumerators
-        // will result in a string representation that is distinct from any of
-        // those corresponding to the enumerators, but is otherwise
-        // unspecified.
-
-    static bool fromAscii(PostResult::Enum         *out,
-                          const bslstl::StringRef&amp;  str);
-        // Return true and fills the specified &#39;out&#39; with the enum value
-        // corresponding to the specified &#39;str&#39;, if valid, or return false and
-        // leave &#39;out&#39; untouched if &#39;str&#39; doesn&#39;t correspond to any value of
-        // the enum.
-};
-
-// FREE OPERATORS
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp;    stream,
-                         PostResult::Enum value);
-    // Format the specified &#39;value&#39; to the specified output &#39;stream&#39; and return
-    // a reference to the modifiable &#39;stream&#39;.
-
-}  // close package namespace
-
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-
-                            // --------------------
-                            // struct GenericResult
-                            // --------------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;             stream,
-                 bmqt::GenericResult::Enum value)
-{
-    return bmqt::GenericResult::print(stream, value, 0 , -1);
-}
-
-
-                           // ----------------------
-                           // struct OpenQueueResult
-                           // ----------------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;               stream,
-                 bmqt::OpenQueueResult::Enum value)
-{
-    return bmqt::OpenQueueResult::print(stream, value, 0 , -1);
-}
-
-                        // ---------------------------
-                        // struct ConfigureQueueResult
-                        // ---------------------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;                    stream,
-                 bmqt::ConfigureQueueResult::Enum value)
-{
-    return bmqt::ConfigureQueueResult::print(stream, value, 0 , -1);
-}
-
-                          // -----------------------
-                          // struct CloseQueueResult
-                          // -----------------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;                stream,
-                 bmqt::CloseQueueResult::Enum value)
-{
-    return bmqt::CloseQueueResult::print(stream, value, 0 , -1);
-}
-
-                         // -------------------------
-                         // struct EventBuilderResult
-                         // -------------------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;                  stream,
-                 bmqt::EventBuilderResult::Enum value)
-{
-    return bmqt::EventBuilderResult::print(stream, value, 0 , -1);
-}
-
-                              // ----------------
-                              // struct AckResult
-                              // ----------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;         stream,
-                 bmqt::AckResult::Enum value)
-{
-    return bmqt::AckResult::print(stream, value, 0 , -1);
-}
-
-
-                             // -----------------
-                             // struct PostResult
-                             // -----------------
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;          stream,
-                 bmqt::PostResult::Enum value)
-{
-    return bmqt::PostResult::print(stream, value, 0 , -1);
-}
-
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqt/bmqt_resultcode.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqt__resultcode_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqt_resultcode.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqt__resultcode_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2014-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqt_resultcode.h                                                  -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQT_RESULTCODE</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQT_RESULTCODE</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="preprocessor">#include &lt;bsl_string.h&gt;</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160; </div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160; </div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="comment">// ====================</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160;<span class="comment">// struct GenericResult</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="comment">// ====================</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00060"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html">   60</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html">GenericResult</a> {</div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">   62</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">Enum</a> {</div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">e_SUCCESS</a> = 0  <span class="comment">// Operation was success</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">   64</a></span>&#160;        ,</div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">e_UNKNOWN</a> = -1  <span class="comment">// Operation failed for unknown reason</span></div>
+<div class="line"><a name="l00066"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">   66</a></span>&#160;        ,</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">e_TIMEOUT</a> = -2  <span class="comment">// Operation timedout</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">   68</a></span>&#160;        ,</div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">e_NOT_CONNECTED</a> = -3  <span class="comment">// Cant process, not connected to the broker</span></div>
+<div class="line"><a name="l00070"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">   70</a></span>&#160;        ,</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">e_CANCELED</a> = -4  <span class="comment">// Operation was canceled</span></div>
+<div class="line"><a name="l00072"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">   72</a></span>&#160;        ,</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">e_NOT_SUPPORTED</a> = -5  <span class="comment">// Operation is not supported</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">   74</a></span>&#160;        ,</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">e_REFUSED</a> = -6  <span class="comment">// Operation was refused</span></div>
+<div class="line"><a name="l00076"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">   76</a></span>&#160;        ,</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">e_INVALID_ARGUMENT</a> = -7  <span class="comment">// An invalid argument was provided</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">   78</a></span>&#160;        ,</div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">e_NOT_READY</a> = -8  <span class="comment">// Not ready to process the request</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">   80</a></span>&#160;        ,</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa155a34a1a4eaf90aacb67087ad931c3">e_LAST</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">e_NOT_READY</a></div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;        <span class="comment">// Used in test driver only, to validate</span></div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;        <span class="comment">// consistency between this enum and the</span></div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;        <span class="comment">// &#39;bmqp_ctrlmsg.xsd::StatusCategory&#39; one</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa155a34a1a4eaf90aacb67087ad931c3">   85</a></span>&#160;    };</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160; </div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
+<div class="line"><a name="l00101"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#acc016fdeb4298c78af908ba2d4a577fa">  101</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#acc016fdeb4298c78af908ba2d4a577fa">print</a>(bsl::ostream&amp;       stream,</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">GenericResult::Enum</a> value,</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;                               <span class="keywordtype">int</span>                 level          = 0,</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;                               <span class="keywordtype">int</span>                 spacesPerLevel = 4);</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
+<div class="line"><a name="l00114"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#afa92c21a5a075a8edfd90efaceeb0932">  114</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#afa92c21a5a075a8edfd90efaceeb0932">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">GenericResult::Enum</a> value);</div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160; </div>
+<div class="line"><a name="l00120"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a8573da9608080051ef896b52dc93fcd5">  120</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a8573da9608080051ef896b52dc93fcd5">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">GenericResult::Enum</a>*     out,</div>
+<div class="line"><a name="l00121"></a><span class="lineno">  121</span>&#160;                          <span class="keyword">const</span> bslstl::StringRef&amp; str);</div>
+<div class="line"><a name="l00122"></a><span class="lineno">  122</span>&#160;};</div>
+<div class="line"><a name="l00123"></a><span class="lineno">  123</span>&#160; </div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">GenericResult::Enum</a> value);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; </div>
+<div class="line"><a name="l00130"></a><span class="lineno">  130</span>&#160;<span class="comment">// ======================</span></div>
+<div class="line"><a name="l00131"></a><span class="lineno">  131</span>&#160;<span class="comment">// struct OpenQueueResult</span></div>
+<div class="line"><a name="l00132"></a><span class="lineno">  132</span>&#160;<span class="comment">// ======================</span></div>
+<div class="line"><a name="l00133"></a><span class="lineno">  133</span>&#160; </div>
+<div class="line"><a name="l00135"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html">  135</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html">OpenQueueResult</a> {</div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00137"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">  137</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">Enum</a> {</div>
+<div class="line"><a name="l00138"></a><span class="lineno">  138</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00139"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a38b050bd3f8d0e1b605b20f4801555cb">  139</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a38b050bd3f8d0e1b605b20f4801555cb">e_SUCCESS</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00140"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a813fabbe61b5a0d0be9549323992c873">  140</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a813fabbe61b5a0d0be9549323992c873">e_UNKNOWN</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a>,</div>
+<div class="line"><a name="l00141"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286abd82c96921203e54c04a4da9a380f38f">  141</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286abd82c96921203e54c04a4da9a380f38f">e_TIMEOUT</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">GenericResult::e_TIMEOUT</a>,</div>
+<div class="line"><a name="l00142"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a610c03211e611bc841b045945c366404">  142</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a610c03211e611bc841b045945c366404">e_NOT_CONNECTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">GenericResult::e_NOT_CONNECTED</a>,</div>
+<div class="line"><a name="l00143"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a25a7c4f94c68f16a7c1ee6e8a0972d2b">  143</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a25a7c4f94c68f16a7c1ee6e8a0972d2b">e_CANCELED</a>         = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">GenericResult::e_CANCELED</a>,</div>
+<div class="line"><a name="l00144"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a8563f964aba63ae6b3c737e42bd7069b">  144</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a8563f964aba63ae6b3c737e42bd7069b">e_NOT_SUPPORTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">GenericResult::e_NOT_SUPPORTED</a>,</div>
+<div class="line"><a name="l00145"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab7a5e1ff9ad37d65515ee8a0fafe3180">  145</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab7a5e1ff9ad37d65515ee8a0fafe3180">e_REFUSED</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">GenericResult::e_REFUSED</a>,</div>
+<div class="line"><a name="l00146"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab9d9a16a4a23c73e370a6fe73a1b0dec">  146</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab9d9a16a4a23c73e370a6fe73a1b0dec">e_INVALID_ARGUMENT</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">GenericResult::e_INVALID_ARGUMENT</a>,</div>
+<div class="line"><a name="l00147"></a><span class="lineno">  147</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab1252144eb62c7fb5d878dc505b9f1c9">e_NOT_READY</a>        = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">GenericResult::e_NOT_READY</a></div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160; </div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160;        <span class="comment">// SPECIALIZED</span></div>
+<div class="line"><a name="l00150"></a><span class="lineno">  150</span>&#160;        <span class="comment">// WARNINGS</span></div>
+<div class="line"><a name="l00151"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab1252144eb62c7fb5d878dc505b9f1c9">  151</a></span>&#160;        ,</div>
+<div class="line"><a name="l00152"></a><span class="lineno">  152</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ac1c0f37ccbf5e89dce8f67da6d13426f">e_ALREADY_OPENED</a> = 100  <span class="comment">// The queue is already opened</span></div>
+<div class="line"><a name="l00153"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ac1c0f37ccbf5e89dce8f67da6d13426f">  153</a></span>&#160;        ,</div>
+<div class="line"><a name="l00154"></a><span class="lineno">  154</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6">e_ALREADY_IN_PROGRESS</a> = 101  <span class="comment">// The queue is already being opened</span></div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00156"></a><span class="lineno">  156</span>&#160;        <span class="comment">// ERRORS</span></div>
+<div class="line"><a name="l00157"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6">  157</a></span>&#160;        ,</div>
+<div class="line"><a name="l00158"></a><span class="lineno">  158</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a930490a34bf8e087c209b69a4093658e">e_INVALID_URI</a> = -100  <span class="comment">// The queue uri is invalid</span></div>
+<div class="line"><a name="l00159"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a930490a34bf8e087c209b69a4093658e">  159</a></span>&#160;        ,</div>
+<div class="line"><a name="l00160"></a><span class="lineno">  160</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286aa6f6d12adda15ef89d876258a5e11ad6">e_INVALID_FLAGS</a> = -101  <span class="comment">// The flags provided are invalid</span></div>
+<div class="line"><a name="l00161"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286aa6f6d12adda15ef89d876258a5e11ad6">  161</a></span>&#160;        ,</div>
+<div class="line"><a name="l00162"></a><span class="lineno">  162</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6">e_CORRELATIONID_NOT_UNIQUE</a> = -102  <span class="comment">// The correlationdId is not unique</span></div>
+<div class="line"><a name="l00163"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6">  163</a></span>&#160;    };</div>
+<div class="line"><a name="l00164"></a><span class="lineno">  164</span>&#160; </div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160; </div>
+<div class="line"><a name="l00179"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#aa6dbf12740d4a447d78d367c214fb8d1">  179</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#aa6dbf12740d4a447d78d367c214fb8d1">print</a>(bsl::ostream&amp;         stream,</div>
+<div class="line"><a name="l00180"></a><span class="lineno">  180</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">OpenQueueResult::Enum</a> value,</div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;                               <span class="keywordtype">int</span>                   level          = 0,</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160;                               <span class="keywordtype">int</span>                   spacesPerLevel = 4);</div>
+<div class="line"><a name="l00183"></a><span class="lineno">  183</span>&#160; </div>
+<div class="line"><a name="l00192"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a0fe0bbab6dadb2bbaa4fbf84350ddaf8">  192</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a0fe0bbab6dadb2bbaa4fbf84350ddaf8">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">OpenQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00193"></a><span class="lineno">  193</span>&#160; </div>
+<div class="line"><a name="l00198"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5">  198</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">OpenQueueResult::Enum</a>*   out,</div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;                          <span class="keyword">const</span> bslstl::StringRef&amp; str);</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160;};</div>
+<div class="line"><a name="l00201"></a><span class="lineno">  201</span>&#160; </div>
+<div class="line"><a name="l00202"></a><span class="lineno">  202</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160; </div>
+<div class="line"><a name="l00206"></a><span class="lineno">  206</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">OpenQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00207"></a><span class="lineno">  207</span>&#160; </div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;<span class="comment">// ===========================</span></div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160;<span class="comment">// struct ConfigureQueueResult</span></div>
+<div class="line"><a name="l00210"></a><span class="lineno">  210</span>&#160;<span class="comment">// ===========================</span></div>
+<div class="line"><a name="l00211"></a><span class="lineno">  211</span>&#160; </div>
+<div class="line"><a name="l00213"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html">  213</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html">ConfigureQueueResult</a> {</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00215"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">  215</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">Enum</a> {</div>
+<div class="line"><a name="l00216"></a><span class="lineno">  216</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00217"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a6323fd808fd0ced5227d0b3c063efdf1">  217</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a6323fd808fd0ced5227d0b3c063efdf1">e_SUCCESS</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00218"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ad002d7ad1cc366a84bd70b8b1811ed0e">  218</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ad002d7ad1cc366a84bd70b8b1811ed0e">e_UNKNOWN</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a>,</div>
+<div class="line"><a name="l00219"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a724b8669d53842e7dba679df15a2f2e7">  219</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a724b8669d53842e7dba679df15a2f2e7">e_TIMEOUT</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">GenericResult::e_TIMEOUT</a>,</div>
+<div class="line"><a name="l00220"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a02dc9d4539b7d090bd30828f3454cb72">  220</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a02dc9d4539b7d090bd30828f3454cb72">e_NOT_CONNECTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">GenericResult::e_NOT_CONNECTED</a>,</div>
+<div class="line"><a name="l00221"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a150390dc676f99cb2180116b3d27133a">  221</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a150390dc676f99cb2180116b3d27133a">e_CANCELED</a>         = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">GenericResult::e_CANCELED</a>,</div>
+<div class="line"><a name="l00222"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ae7ee5d13517a2a3df4acb277b1bf26c5">  222</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ae7ee5d13517a2a3df4acb277b1bf26c5">e_NOT_SUPPORTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">GenericResult::e_NOT_SUPPORTED</a>,</div>
+<div class="line"><a name="l00223"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540aeaebfcd8d03c2083ae571d4e50d9236b">  223</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540aeaebfcd8d03c2083ae571d4e50d9236b">e_REFUSED</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">GenericResult::e_REFUSED</a>,</div>
+<div class="line"><a name="l00224"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540abe0fd3fe035a5ab414fa02eafe80abf3">  224</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540abe0fd3fe035a5ab414fa02eafe80abf3">e_INVALID_ARGUMENT</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">GenericResult::e_INVALID_ARGUMENT</a>,</div>
+<div class="line"><a name="l00225"></a><span class="lineno">  225</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a959b7785ab192e8211793a80f6ab8972">e_NOT_READY</a>        = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">GenericResult::e_NOT_READY</a></div>
+<div class="line"><a name="l00226"></a><span class="lineno">  226</span>&#160; </div>
+<div class="line"><a name="l00227"></a><span class="lineno">  227</span>&#160;        <span class="comment">// SPECIALIZED WARNINGS</span></div>
+<div class="line"><a name="l00228"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a959b7785ab192e8211793a80f6ab8972">  228</a></span>&#160;        ,</div>
+<div class="line"><a name="l00229"></a><span class="lineno">  229</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540af76efb3006318a428d0b29bd461ca9b2">e_ALREADY_IN_PROGRESS</a> = 100  <span class="comment">// The queue is already being configured</span></div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160; </div>
+<div class="line"><a name="l00231"></a><span class="lineno">  231</span>&#160;        <span class="comment">// ERRORS</span></div>
+<div class="line"><a name="l00232"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540af76efb3006318a428d0b29bd461ca9b2">  232</a></span>&#160;        ,</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a33552b0a5836045de7b3d5aed3c056e5">e_INVALID_QUEUE</a> = -101</div>
+<div class="line"><a name="l00234"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a33552b0a5836045de7b3d5aed3c056e5">  234</a></span>&#160;    };</div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160; </div>
+<div class="line"><a name="l00236"></a><span class="lineno">  236</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00237"></a><span class="lineno">  237</span>&#160; </div>
+<div class="line"><a name="l00250"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acb7981a7bf08627ad2dcf226ed277a6a">  250</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acb7981a7bf08627ad2dcf226ed277a6a">print</a>(bsl::ostream&amp;              stream,</div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">ConfigureQueueResult::Enum</a> value,</div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;                               <span class="keywordtype">int</span>                        level          = 0,</div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160;                               <span class="keywordtype">int</span>                        spacesPerLevel = 4);</div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160; </div>
+<div class="line"><a name="l00263"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acc8d5c55d835dc60b714f51841098bd4">  263</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acc8d5c55d835dc60b714f51841098bd4">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">ConfigureQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160; </div>
+<div class="line"><a name="l00269"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#aadce93dd381669008c6a68c769d1aacf">  269</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#aadce93dd381669008c6a68c769d1aacf">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">ConfigureQueueResult::Enum</a>* out,</div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;                          <span class="keyword">const</span> bslstl::StringRef&amp;    str);</div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;};</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160; </div>
+<div class="line"><a name="l00273"></a><span class="lineno">  273</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160; </div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp;              stream,</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160;                         <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">ConfigureQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00279"></a><span class="lineno">  279</span>&#160; </div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;<span class="comment">// =======================</span></div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;<span class="comment">// struct CloseQueueResult</span></div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;<span class="comment">// =======================</span></div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160; </div>
+<div class="line"><a name="l00285"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html">  285</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html">CloseQueueResult</a> {</div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00287"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">  287</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">Enum</a> {</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00289"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6af0f142ee41ebaa05cc7725e0702777">  289</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6af0f142ee41ebaa05cc7725e0702777">e_SUCCESS</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00290"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a51862542162a31bb4bb22ede6808a955">  290</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a51862542162a31bb4bb22ede6808a955">e_UNKNOWN</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a>,</div>
+<div class="line"><a name="l00291"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6929476b5d623c7f8dad4bccf146f5cc">  291</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6929476b5d623c7f8dad4bccf146f5cc">e_TIMEOUT</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">GenericResult::e_TIMEOUT</a>,</div>
+<div class="line"><a name="l00292"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a4e851f13638d5be7f1ac58bd648c644d">  292</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a4e851f13638d5be7f1ac58bd648c644d">e_NOT_CONNECTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">GenericResult::e_NOT_CONNECTED</a>,</div>
+<div class="line"><a name="l00293"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a906f5ec4caf549050b172bfcf1d6a02a">  293</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a906f5ec4caf549050b172bfcf1d6a02a">e_CANCELED</a>         = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">GenericResult::e_CANCELED</a>,</div>
+<div class="line"><a name="l00294"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a2994272f1406016cee114ed482fdbd7d">  294</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a2994272f1406016cee114ed482fdbd7d">e_NOT_SUPPORTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">GenericResult::e_NOT_SUPPORTED</a>,</div>
+<div class="line"><a name="l00295"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a0039c90b272fad9daf39790b836acf6c">  295</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a0039c90b272fad9daf39790b836acf6c">e_REFUSED</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">GenericResult::e_REFUSED</a>,</div>
+<div class="line"><a name="l00296"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620acb991e2d63db47d03b728d2307997615">  296</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620acb991e2d63db47d03b728d2307997615">e_INVALID_ARGUMENT</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">GenericResult::e_INVALID_ARGUMENT</a>,</div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a123d82131de4533fdb04c44b70ae68df">e_NOT_READY</a>        = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">GenericResult::e_NOT_READY</a></div>
+<div class="line"><a name="l00298"></a><span class="lineno">  298</span>&#160; </div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;        <span class="comment">// SPECIALIZED</span></div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;        <span class="comment">// WARNINGS</span></div>
+<div class="line"><a name="l00301"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a123d82131de4533fdb04c44b70ae68df">  301</a></span>&#160;        ,</div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620aabf6cbb9cc668176931dfe7b4757b63f">e_ALREADY_CLOSED</a> = 100  <span class="comment">// The queue is already closed</span></div>
+<div class="line"><a name="l00303"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620aabf6cbb9cc668176931dfe7b4757b63f">  303</a></span>&#160;        ,</div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a601c58213f8943fe34d9cd06f89c604b">e_ALREADY_IN_PROGRESS</a> = 101  <span class="comment">// The queue is already being closed</span></div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160; </div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;        <span class="comment">// ERRORS</span></div>
+<div class="line"><a name="l00307"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a601c58213f8943fe34d9cd06f89c604b">  307</a></span>&#160;        ,</div>
+<div class="line"><a name="l00308"></a><span class="lineno">  308</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a265767eefdcd2ab16d6fa1ea2c6b2e55">e_UNKNOWN_QUEUE</a> = -100  <span class="comment">// The queue doesn&#39;t exist</span></div>
+<div class="line"><a name="l00309"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a265767eefdcd2ab16d6fa1ea2c6b2e55">  309</a></span>&#160;        ,</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a87bd2a0331dcf070057357ecf4005506">e_INVALID_QUEUE</a> = -101  <span class="comment">// The queue provided is invalid</span></div>
+<div class="line"><a name="l00311"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a87bd2a0331dcf070057357ecf4005506">  311</a></span>&#160;    };</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160; </div>
+<div class="line"><a name="l00313"></a><span class="lineno">  313</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160; </div>
+<div class="line"><a name="l00327"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a98c4dbeea18e23464275e696dc03a2ea">  327</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a98c4dbeea18e23464275e696dc03a2ea">print</a>(bsl::ostream&amp;          stream,</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">CloseQueueResult::Enum</a> value,</div>
+<div class="line"><a name="l00329"></a><span class="lineno">  329</span>&#160;                               <span class="keywordtype">int</span>                    level          = 0,</div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;                               <span class="keywordtype">int</span>                    spacesPerLevel = 4);</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160; </div>
+<div class="line"><a name="l00340"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#ab6ac5abb3fb9b6fd63da51a579d6f2dc">  340</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#ab6ac5abb3fb9b6fd63da51a579d6f2dc">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">CloseQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160; </div>
+<div class="line"><a name="l00346"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a9bc6e32247ac36a85d7523b4aadf0286">  346</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a9bc6e32247ac36a85d7523b4aadf0286">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">CloseQueueResult::Enum</a>*  out,</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;                          <span class="keyword">const</span> bslstl::StringRef&amp; str);</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;};</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160; </div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160; </div>
+<div class="line"><a name="l00354"></a><span class="lineno">  354</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">CloseQueueResult::Enum</a> value);</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160; </div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;<span class="comment">// struct EventBuilderResult</span></div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;<span class="comment">// =========================</span></div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160; </div>
+<div class="line"><a name="l00362"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html">  362</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html">EventBuilderResult</a> {</div>
+<div class="line"><a name="l00363"></a><span class="lineno">  363</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00364"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">  364</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">Enum</a> {</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00366"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a87783759fb2853b2499cc8faaf3e4e7b">  366</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a87783759fb2853b2499cc8faaf3e4e7b">e_SUCCESS</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a1fe6aba19f67b0db7ffe3ecf489c9eb9">e_UNKNOWN</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a></div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160; </div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;        <span class="comment">// SPECIALIZED</span></div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160;        <span class="comment">// ERRORS</span></div>
+<div class="line"><a name="l00371"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a1fe6aba19f67b0db7ffe3ecf489c9eb9">  371</a></span>&#160;        ,</div>
+<div class="line"><a name="l00372"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a5e646fe9419e2653bbb3d432b578c8b1">  372</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a5e646fe9419e2653bbb3d432b578c8b1">e_QUEUE_INVALID</a>          = -100,</div>
+<div class="line"><a name="l00373"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a075e5da7034b914b498b6be1ed3431b9">  373</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a075e5da7034b914b498b6be1ed3431b9">e_QUEUE_READONLY</a>         = -101,</div>
+<div class="line"><a name="l00374"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a91d1917726619e338b4c719e097933aa">  374</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a91d1917726619e338b4c719e097933aa">e_MISSING_CORRELATION_ID</a> = -102,</div>
+<div class="line"><a name="l00375"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a7abd642f89711e854a308f9cfb02fed9">  375</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a7abd642f89711e854a308f9cfb02fed9">e_EVENT_TOO_BIG</a>          = -103,</div>
+<div class="line"><a name="l00376"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0ac81e8aa6ce0718f929787fdce4dcf7e8">  376</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0ac81e8aa6ce0718f929787fdce4dcf7e8">e_PAYLOAD_TOO_BIG</a>        = -104,</div>
+<div class="line"><a name="l00377"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a47ed5e2e439c5e4f9ce76afe18473be5">  377</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a47ed5e2e439c5e4f9ce76afe18473be5">e_PAYLOAD_EMPTY</a>          = -105,</div>
+<div class="line"><a name="l00378"></a><span class="lineno">  378</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a11295ea8c967aee5a9c1500bbc322600">e_OPTION_TOO_BIG</a>         = -106</div>
+<div class="line"><a name="l00379"></a><span class="lineno">  379</span>&#160;<span class="preprocessor">#ifdef BMQ_ENABLE_MSG_GROUPID</span></div>
+<div class="line"><a name="l00380"></a><span class="lineno">  380</span>&#160;        ,</div>
+<div class="line"><a name="l00381"></a><span class="lineno">  381</span>&#160;        e_INVALID_MSG_GROUP_ID = -107</div>
+<div class="line"><a name="l00382"></a><span class="lineno">  382</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00383"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a11295ea8c967aee5a9c1500bbc322600">  383</a></span>&#160;        ,</div>
+<div class="line"><a name="l00384"></a><span class="lineno">  384</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a66345be078dc084264977c9085570a84">e_QUEUE_SUSPENDED</a> = -108</div>
+<div class="line"><a name="l00385"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a66345be078dc084264977c9085570a84">  385</a></span>&#160;    };</div>
+<div class="line"><a name="l00386"></a><span class="lineno">  386</span>&#160; </div>
+<div class="line"><a name="l00387"></a><span class="lineno">  387</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00388"></a><span class="lineno">  388</span>&#160; </div>
+<div class="line"><a name="l00401"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a9fddff0ecb64b6d15bc60b1a50285a51">  401</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a9fddff0ecb64b6d15bc60b1a50285a51">print</a>(bsl::ostream&amp;            stream,</div>
+<div class="line"><a name="l00402"></a><span class="lineno">  402</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">EventBuilderResult::Enum</a> value,</div>
+<div class="line"><a name="l00403"></a><span class="lineno">  403</span>&#160;                               <span class="keywordtype">int</span>                      level          = 0,</div>
+<div class="line"><a name="l00404"></a><span class="lineno">  404</span>&#160;                               <span class="keywordtype">int</span>                      spacesPerLevel = 4);</div>
+<div class="line"><a name="l00405"></a><span class="lineno">  405</span>&#160; </div>
+<div class="line"><a name="l00414"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a5cad6344a358e9d337271ed809604326">  414</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a5cad6344a358e9d337271ed809604326">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">EventBuilderResult::Enum</a> value);</div>
+<div class="line"><a name="l00415"></a><span class="lineno">  415</span>&#160; </div>
+<div class="line"><a name="l00420"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a74e5f581fe1106bf3f9e8263855b5f5f">  420</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a74e5f581fe1106bf3f9e8263855b5f5f">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">EventBuilderResult::Enum</a>* out,</div>
+<div class="line"><a name="l00421"></a><span class="lineno">  421</span>&#160;                          <span class="keyword">const</span> bslstl::StringRef&amp;  str);</div>
+<div class="line"><a name="l00422"></a><span class="lineno">  422</span>&#160;};</div>
+<div class="line"><a name="l00423"></a><span class="lineno">  423</span>&#160; </div>
+<div class="line"><a name="l00424"></a><span class="lineno">  424</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00425"></a><span class="lineno">  425</span>&#160; </div>
+<div class="line"><a name="l00428"></a><span class="lineno">  428</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">EventBuilderResult::Enum</a> value);</div>
+<div class="line"><a name="l00429"></a><span class="lineno">  429</span>&#160; </div>
+<div class="line"><a name="l00430"></a><span class="lineno">  430</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00431"></a><span class="lineno">  431</span>&#160;<span class="comment">// struct AckResult</span></div>
+<div class="line"><a name="l00432"></a><span class="lineno">  432</span>&#160;<span class="comment">// ================</span></div>
+<div class="line"><a name="l00433"></a><span class="lineno">  433</span>&#160; </div>
+<div class="line"><a name="l00435"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html">  435</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html">AckResult</a> {</div>
+<div class="line"><a name="l00436"></a><span class="lineno">  436</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00437"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">  437</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">Enum</a> {</div>
+<div class="line"><a name="l00438"></a><span class="lineno">  438</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00439"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab7593856589ce30ad343c4b145bbf220">  439</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab7593856589ce30ad343c4b145bbf220">e_SUCCESS</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00440"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab81e9b0c9aa4fe43eafd837822b3d1ec">  440</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab81e9b0c9aa4fe43eafd837822b3d1ec">e_UNKNOWN</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a>,</div>
+<div class="line"><a name="l00441"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaf7e31a235197db4c65a60af205a5436b">  441</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaf7e31a235197db4c65a60af205a5436b">e_TIMEOUT</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">GenericResult::e_TIMEOUT</a>,</div>
+<div class="line"><a name="l00442"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aafeaef5ed109fb93b0dd35d9a11142316">  442</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aafeaef5ed109fb93b0dd35d9a11142316">e_NOT_CONNECTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">GenericResult::e_NOT_CONNECTED</a>,</div>
+<div class="line"><a name="l00443"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa795044858e0886be50df9dc637c45a5b">  443</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa795044858e0886be50df9dc637c45a5b">e_CANCELED</a>         = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">GenericResult::e_CANCELED</a>,</div>
+<div class="line"><a name="l00444"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa731c25cd92e3061c9717836010525723">  444</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa731c25cd92e3061c9717836010525723">e_NOT_SUPPORTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">GenericResult::e_NOT_SUPPORTED</a>,</div>
+<div class="line"><a name="l00445"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa0f116b0e16565d02b95d82c5a2776168">  445</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa0f116b0e16565d02b95d82c5a2776168">e_REFUSED</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">GenericResult::e_REFUSED</a>,</div>
+<div class="line"><a name="l00446"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa422be90b68e7d2c81ae1d6a9380a0e50">  446</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa422be90b68e7d2c81ae1d6a9380a0e50">e_INVALID_ARGUMENT</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">GenericResult::e_INVALID_ARGUMENT</a>,</div>
+<div class="line"><a name="l00447"></a><span class="lineno">  447</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae4bacf490ec27d51cb9761e43b9df392">e_NOT_READY</a>        = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">GenericResult::e_NOT_READY</a></div>
+<div class="line"><a name="l00448"></a><span class="lineno">  448</span>&#160; </div>
+<div class="line"><a name="l00449"></a><span class="lineno">  449</span>&#160;        <span class="comment">// SPECIALIZED</span></div>
+<div class="line"><a name="l00450"></a><span class="lineno">  450</span>&#160;        <span class="comment">// ERRORS</span></div>
+<div class="line"><a name="l00451"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae4bacf490ec27d51cb9761e43b9df392">  451</a></span>&#160;        ,</div>
+<div class="line"><a name="l00452"></a><span class="lineno">  452</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa361a109f3577357cb81ca85eeb8eeb53">e_LIMIT_MESSAGES</a> = -100  <span class="comment">// Messages limit reached</span></div>
+<div class="line"><a name="l00453"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa361a109f3577357cb81ca85eeb8eeb53">  453</a></span>&#160;        ,</div>
+<div class="line"><a name="l00454"></a><span class="lineno">  454</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa742895cd35ead8eed61a6273b1842b06">e_LIMIT_BYTES</a> = -101  <span class="comment">// Bytes limit reached</span></div>
+<div class="line"><a name="l00455"></a><span class="lineno">  455</span>&#160; </div>
+<div class="line"><a name="l00456"></a><span class="lineno">  456</span>&#160;        <span class="comment">// TBD:DEPRECATED &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></div>
+<div class="line"><a name="l00457"></a><span class="lineno">  457</span>&#160;        <span class="comment">// &gt;libbmq-1.3.5</span></div>
+<div class="line"><a name="l00458"></a><span class="lineno">  458</span>&#160;        <span class="comment">// The below 4 values are deprecated in favor of the above two ones</span></div>
+<div class="line"><a name="l00459"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa742895cd35ead8eed61a6273b1842b06">  459</a></span>&#160;        ,</div>
+<div class="line"><a name="l00460"></a><span class="lineno">  460</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa4f289420420c95f2849cfe143e4e67e5">e_LIMIT_DOMAIN_MESSAGES</a> = -100  <span class="comment">// The domain is full (messages)</span></div>
+<div class="line"><a name="l00461"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa4f289420420c95f2849cfe143e4e67e5">  461</a></span>&#160;        ,</div>
+<div class="line"><a name="l00462"></a><span class="lineno">  462</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa6c5f1cbc2303f53e3c564a7ec314f1e2">e_LIMIT_DOMAIN_BYTES</a> = -101  <span class="comment">// The domain is full (bytes)</span></div>
+<div class="line"><a name="l00463"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa6c5f1cbc2303f53e3c564a7ec314f1e2">  463</a></span>&#160;        ,</div>
+<div class="line"><a name="l00464"></a><span class="lineno">  464</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae2f76a912fab276284baac7123dd1798">e_LIMIT_QUEUE_MESSAGES</a> = -102  <span class="comment">// The queue is full (messages)</span></div>
+<div class="line"><a name="l00465"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae2f76a912fab276284baac7123dd1798">  465</a></span>&#160;        ,</div>
+<div class="line"><a name="l00466"></a><span class="lineno">  466</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaee2cb712fac6813a8472e3fc2c8fbb1c">e_LIMIT_QUEUE_BYTES</a> = -103  <span class="comment">// The queue is full (bytes)</span></div>
+<div class="line"><a name="l00467"></a><span class="lineno">  467</span>&#160;        <span class="comment">// TBD:DEPRECATED &gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span></div>
+<div class="line"><a name="l00468"></a><span class="lineno">  468</span>&#160;        <span class="comment">// &gt;libbmq-1.3.5</span></div>
+<div class="line"><a name="l00469"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaee2cb712fac6813a8472e3fc2c8fbb1c">  469</a></span>&#160;        ,</div>
+<div class="line"><a name="l00470"></a><span class="lineno">  470</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa94c019c57b990519b028fc9fb3c10e46">e_STORAGE_FAILURE</a> = -104  <span class="comment">// The storage (on disk) is full</span></div>
+<div class="line"><a name="l00471"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa94c019c57b990519b028fc9fb3c10e46">  471</a></span>&#160;    };</div>
+<div class="line"><a name="l00472"></a><span class="lineno">  472</span>&#160; </div>
+<div class="line"><a name="l00473"></a><span class="lineno">  473</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00474"></a><span class="lineno">  474</span>&#160; </div>
+<div class="line"><a name="l00487"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a9d28bdea7d5f180f8545a13cc95d5aac">  487</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a9d28bdea7d5f180f8545a13cc95d5aac">print</a>(bsl::ostream&amp;   stream,</div>
+<div class="line"><a name="l00488"></a><span class="lineno">  488</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">AckResult::Enum</a> value,</div>
+<div class="line"><a name="l00489"></a><span class="lineno">  489</span>&#160;                               <span class="keywordtype">int</span>             level          = 0,</div>
+<div class="line"><a name="l00490"></a><span class="lineno">  490</span>&#160;                               <span class="keywordtype">int</span>             spacesPerLevel = 4);</div>
+<div class="line"><a name="l00491"></a><span class="lineno">  491</span>&#160; </div>
+<div class="line"><a name="l00500"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#abf7ccd2ab7231decefb5472caf4c05b7">  500</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#abf7ccd2ab7231decefb5472caf4c05b7">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">AckResult::Enum</a> value);</div>
+<div class="line"><a name="l00501"></a><span class="lineno">  501</span>&#160; </div>
+<div class="line"><a name="l00506"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1AckResult.html#ad98e756468a1740a933b69cd3e8e38a4">  506</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#ad98e756468a1740a933b69cd3e8e38a4">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">AckResult::Enum</a>* out, <span class="keyword">const</span> bslstl::StringRef&amp; str);</div>
+<div class="line"><a name="l00507"></a><span class="lineno">  507</span>&#160;};</div>
+<div class="line"><a name="l00508"></a><span class="lineno">  508</span>&#160; </div>
+<div class="line"><a name="l00509"></a><span class="lineno">  509</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00510"></a><span class="lineno">  510</span>&#160; </div>
+<div class="line"><a name="l00513"></a><span class="lineno">  513</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">AckResult::Enum</a> value);</div>
+<div class="line"><a name="l00514"></a><span class="lineno">  514</span>&#160; </div>
+<div class="line"><a name="l00515"></a><span class="lineno">  515</span>&#160;<span class="comment">// =================</span></div>
+<div class="line"><a name="l00516"></a><span class="lineno">  516</span>&#160;<span class="comment">// struct PostResult</span></div>
+<div class="line"><a name="l00517"></a><span class="lineno">  517</span>&#160;<span class="comment">// =================</span></div>
+<div class="line"><a name="l00518"></a><span class="lineno">  518</span>&#160; </div>
+<div class="line"><a name="l00520"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html">  520</a></span>&#160;<span class="keyword">struct </span><a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html">PostResult</a> {</div>
+<div class="line"><a name="l00521"></a><span class="lineno">  521</span>&#160;    <span class="comment">// TYPES</span></div>
+<div class="line"><a name="l00522"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">  522</a></span>&#160;    <span class="keyword">enum</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">Enum</a> {</div>
+<div class="line"><a name="l00523"></a><span class="lineno">  523</span>&#160;        <span class="comment">// GENERIC</span></div>
+<div class="line"><a name="l00524"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a083bcab59b2dd65d05073793034affc2">  524</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a083bcab59b2dd65d05073793034affc2">e_SUCCESS</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">GenericResult::e_SUCCESS</a>,</div>
+<div class="line"><a name="l00525"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7407466887b9e9528248cf01fc836ed1">  525</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7407466887b9e9528248cf01fc836ed1">e_UNKNOWN</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">GenericResult::e_UNKNOWN</a>,</div>
+<div class="line"><a name="l00526"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3accc4be00510d2b675afe0f929d8bcd73">  526</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3accc4be00510d2b675afe0f929d8bcd73">e_TIMEOUT</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">GenericResult::e_TIMEOUT</a>,</div>
+<div class="line"><a name="l00527"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a311bf94e4d05b8903d6bb8e3b5f4f11b">  527</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a311bf94e4d05b8903d6bb8e3b5f4f11b">e_NOT_CONNECTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">GenericResult::e_NOT_CONNECTED</a>,</div>
+<div class="line"><a name="l00528"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3aeffe7d48e79f483c19352b3ed55bbad9">  528</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3aeffe7d48e79f483c19352b3ed55bbad9">e_CANCELED</a>         = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">GenericResult::e_CANCELED</a>,</div>
+<div class="line"><a name="l00529"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a1c3943c20ae9594a806e9867e20c94a7">  529</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a1c3943c20ae9594a806e9867e20c94a7">e_NOT_SUPPORTED</a>    = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">GenericResult::e_NOT_SUPPORTED</a>,</div>
+<div class="line"><a name="l00530"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3abe1bf18ba10efabf36a9283178c08fb7">  530</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3abe1bf18ba10efabf36a9283178c08fb7">e_REFUSED</a>          = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">GenericResult::e_REFUSED</a>,</div>
+<div class="line"><a name="l00531"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a20b473b3d14e754d81d998440db91def">  531</a></span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a20b473b3d14e754d81d998440db91def">e_INVALID_ARGUMENT</a> = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">GenericResult::e_INVALID_ARGUMENT</a>,</div>
+<div class="line"><a name="l00532"></a><span class="lineno">  532</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7078e4cf069576365b6815b53fc44f5b">e_NOT_READY</a>        = <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">GenericResult::e_NOT_READY</a></div>
+<div class="line"><a name="l00533"></a><span class="lineno">  533</span>&#160; </div>
+<div class="line"><a name="l00534"></a><span class="lineno">  534</span>&#160;        <span class="comment">// SPECIALIZED</span></div>
+<div class="line"><a name="l00535"></a><span class="lineno">  535</span>&#160;        <span class="comment">// WARNINGS</span></div>
+<div class="line"><a name="l00536"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7078e4cf069576365b6815b53fc44f5b">  536</a></span>&#160;        ,</div>
+<div class="line"><a name="l00537"></a><span class="lineno">  537</span>&#160;        <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c">e_BW_LIMIT</a> = 100  <span class="comment">// The application has been posting too much</span></div>
+<div class="line"><a name="l00538"></a><span class="lineno">  538</span>&#160;                          <span class="comment">// data, and the IO or broker are temporarily</span></div>
+<div class="line"><a name="l00539"></a><span class="lineno">  539</span>&#160;                          <span class="comment">// rejecting new messages.</span></div>
+<div class="line"><a name="l00540"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c">  540</a></span>&#160;    };</div>
+<div class="line"><a name="l00541"></a><span class="lineno">  541</span>&#160; </div>
+<div class="line"><a name="l00542"></a><span class="lineno">  542</span>&#160;    <span class="comment">// CLASS METHODS</span></div>
+<div class="line"><a name="l00543"></a><span class="lineno">  543</span>&#160; </div>
+<div class="line"><a name="l00556"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#ae6bcd7a424b1eccf9c03539fc05648fb">  556</a></span>&#160;    <span class="keyword">static</span> bsl::ostream&amp; <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#ae6bcd7a424b1eccf9c03539fc05648fb">print</a>(bsl::ostream&amp;    stream,</div>
+<div class="line"><a name="l00557"></a><span class="lineno">  557</span>&#160;                               <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">PostResult::Enum</a> value,</div>
+<div class="line"><a name="l00558"></a><span class="lineno">  558</span>&#160;                               <span class="keywordtype">int</span>              level          = 0,</div>
+<div class="line"><a name="l00559"></a><span class="lineno">  559</span>&#160;                               <span class="keywordtype">int</span>              spacesPerLevel = 4);</div>
+<div class="line"><a name="l00560"></a><span class="lineno">  560</span>&#160; </div>
+<div class="line"><a name="l00569"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a97d8ed80c1a82a75d62a7ce7658e4cf4">  569</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">char</span>* <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a97d8ed80c1a82a75d62a7ce7658e4cf4">toAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">PostResult::Enum</a> value);</div>
+<div class="line"><a name="l00570"></a><span class="lineno">  570</span>&#160; </div>
+<div class="line"><a name="l00575"></a><span class="lineno"><a class="line" href="structBloombergLP_1_1bmqt_1_1PostResult.html#aee80bbae12264a654ad74780b474cb20">  575</a></span>&#160;    <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#aee80bbae12264a654ad74780b474cb20">fromAscii</a>(<a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">PostResult::Enum</a>* out, <span class="keyword">const</span> bslstl::StringRef&amp; str);</div>
+<div class="line"><a name="l00576"></a><span class="lineno">  576</span>&#160;};</div>
+<div class="line"><a name="l00577"></a><span class="lineno">  577</span>&#160; </div>
+<div class="line"><a name="l00578"></a><span class="lineno">  578</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00579"></a><span class="lineno">  579</span>&#160; </div>
+<div class="line"><a name="l00582"></a><span class="lineno">  582</span>&#160;bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">operator&lt;&lt;</a>(bsl::ostream&amp; stream, <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">PostResult::Enum</a> value);</div>
+<div class="line"><a name="l00583"></a><span class="lineno">  583</span>&#160; </div>
+<div class="line"><a name="l00584"></a><span class="lineno">  584</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l00585"></a><span class="lineno">  585</span>&#160; </div>
+<div class="line"><a name="l00586"></a><span class="lineno">  586</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00587"></a><span class="lineno">  587</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l00588"></a><span class="lineno">  588</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00589"></a><span class="lineno">  589</span>&#160; </div>
+<div class="line"><a name="l00590"></a><span class="lineno">  590</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00591"></a><span class="lineno">  591</span>&#160;<span class="comment">// struct GenericResult</span></div>
+<div class="line"><a name="l00592"></a><span class="lineno">  592</span>&#160;<span class="comment">// --------------------</span></div>
+<div class="line"><a name="l00593"></a><span class="lineno">  593</span>&#160; </div>
+<div class="line"><a name="l00594"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a444cb6840998fc83d23a502fcb8cbd94">  594</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;             stream,</div>
+<div class="line"><a name="l00595"></a><span class="lineno">  595</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">bmqt::GenericResult::Enum</a> value)</div>
+<div class="line"><a name="l00596"></a><span class="lineno">  596</span>&#160;{</div>
+<div class="line"><a name="l00597"></a><span class="lineno">  597</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1GenericResult.html#acc016fdeb4298c78af908ba2d4a577fa">bmqt::GenericResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00598"></a><span class="lineno">  598</span>&#160;}</div>
+<div class="line"><a name="l00599"></a><span class="lineno">  599</span>&#160; </div>
+<div class="line"><a name="l00600"></a><span class="lineno">  600</span>&#160;<span class="comment">// ----------------------</span></div>
+<div class="line"><a name="l00601"></a><span class="lineno">  601</span>&#160;<span class="comment">// struct OpenQueueResult</span></div>
+<div class="line"><a name="l00602"></a><span class="lineno">  602</span>&#160;<span class="comment">// ----------------------</span></div>
+<div class="line"><a name="l00603"></a><span class="lineno">  603</span>&#160; </div>
+<div class="line"><a name="l00604"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a0d9f49ab8a34755f8fb43325ac322756">  604</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;               stream,</div>
+<div class="line"><a name="l00605"></a><span class="lineno">  605</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">bmqt::OpenQueueResult::Enum</a> value)</div>
+<div class="line"><a name="l00606"></a><span class="lineno">  606</span>&#160;{</div>
+<div class="line"><a name="l00607"></a><span class="lineno">  607</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#aa6dbf12740d4a447d78d367c214fb8d1">bmqt::OpenQueueResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00608"></a><span class="lineno">  608</span>&#160;}</div>
+<div class="line"><a name="l00609"></a><span class="lineno">  609</span>&#160; </div>
+<div class="line"><a name="l00610"></a><span class="lineno">  610</span>&#160;<span class="comment">// ---------------------------</span></div>
+<div class="line"><a name="l00611"></a><span class="lineno">  611</span>&#160;<span class="comment">// struct ConfigureQueueResult</span></div>
+<div class="line"><a name="l00612"></a><span class="lineno">  612</span>&#160;<span class="comment">// ---------------------------</span></div>
+<div class="line"><a name="l00613"></a><span class="lineno">  613</span>&#160; </div>
+<div class="line"><a name="l00614"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#aa9f2fcd5151c8fe4491eaee3091b1f4d">  614</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;                    stream,</div>
+<div class="line"><a name="l00615"></a><span class="lineno">  615</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">bmqt::ConfigureQueueResult::Enum</a> value)</div>
+<div class="line"><a name="l00616"></a><span class="lineno">  616</span>&#160;{</div>
+<div class="line"><a name="l00617"></a><span class="lineno">  617</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acb7981a7bf08627ad2dcf226ed277a6a">bmqt::ConfigureQueueResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00618"></a><span class="lineno">  618</span>&#160;}</div>
+<div class="line"><a name="l00619"></a><span class="lineno">  619</span>&#160; </div>
+<div class="line"><a name="l00620"></a><span class="lineno">  620</span>&#160;<span class="comment">// -----------------------</span></div>
+<div class="line"><a name="l00621"></a><span class="lineno">  621</span>&#160;<span class="comment">// struct CloseQueueResult</span></div>
+<div class="line"><a name="l00622"></a><span class="lineno">  622</span>&#160;<span class="comment">// -----------------------</span></div>
+<div class="line"><a name="l00623"></a><span class="lineno">  623</span>&#160; </div>
+<div class="line"><a name="l00624"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#af2fec5d17277cddd09430050bf0e17f5">  624</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;                stream,</div>
+<div class="line"><a name="l00625"></a><span class="lineno">  625</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">bmqt::CloseQueueResult::Enum</a> value)</div>
+<div class="line"><a name="l00626"></a><span class="lineno">  626</span>&#160;{</div>
+<div class="line"><a name="l00627"></a><span class="lineno">  627</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a98c4dbeea18e23464275e696dc03a2ea">bmqt::CloseQueueResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00628"></a><span class="lineno">  628</span>&#160;}</div>
+<div class="line"><a name="l00629"></a><span class="lineno">  629</span>&#160; </div>
+<div class="line"><a name="l00630"></a><span class="lineno">  630</span>&#160;<span class="comment">// -------------------------</span></div>
+<div class="line"><a name="l00631"></a><span class="lineno">  631</span>&#160;<span class="comment">// struct EventBuilderResult</span></div>
+<div class="line"><a name="l00632"></a><span class="lineno">  632</span>&#160;<span class="comment">// -------------------------</span></div>
+<div class="line"><a name="l00633"></a><span class="lineno">  633</span>&#160; </div>
+<div class="line"><a name="l00634"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a57b7924d558f51ba1bdaf8fe6dce5af2">  634</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;                  stream,</div>
+<div class="line"><a name="l00635"></a><span class="lineno">  635</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">bmqt::EventBuilderResult::Enum</a> value)</div>
+<div class="line"><a name="l00636"></a><span class="lineno">  636</span>&#160;{</div>
+<div class="line"><a name="l00637"></a><span class="lineno">  637</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a9fddff0ecb64b6d15bc60b1a50285a51">bmqt::EventBuilderResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00638"></a><span class="lineno">  638</span>&#160;}</div>
+<div class="line"><a name="l00639"></a><span class="lineno">  639</span>&#160; </div>
+<div class="line"><a name="l00640"></a><span class="lineno">  640</span>&#160;<span class="comment">// ----------------</span></div>
+<div class="line"><a name="l00641"></a><span class="lineno">  641</span>&#160;<span class="comment">// struct AckResult</span></div>
+<div class="line"><a name="l00642"></a><span class="lineno">  642</span>&#160;<span class="comment">// ----------------</span></div>
+<div class="line"><a name="l00643"></a><span class="lineno">  643</span>&#160; </div>
+<div class="line"><a name="l00644"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#aae8abf0a9fb96b775c90eb58a9ab7988">  644</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;         stream,</div>
+<div class="line"><a name="l00645"></a><span class="lineno">  645</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">bmqt::AckResult::Enum</a> value)</div>
+<div class="line"><a name="l00646"></a><span class="lineno">  646</span>&#160;{</div>
+<div class="line"><a name="l00647"></a><span class="lineno">  647</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1AckResult.html#a9d28bdea7d5f180f8545a13cc95d5aac">bmqt::AckResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00648"></a><span class="lineno">  648</span>&#160;}</div>
+<div class="line"><a name="l00649"></a><span class="lineno">  649</span>&#160; </div>
+<div class="line"><a name="l00650"></a><span class="lineno">  650</span>&#160;<span class="comment">// -----------------</span></div>
+<div class="line"><a name="l00651"></a><span class="lineno">  651</span>&#160;<span class="comment">// struct PostResult</span></div>
+<div class="line"><a name="l00652"></a><span class="lineno">  652</span>&#160;<span class="comment">// -----------------</span></div>
+<div class="line"><a name="l00653"></a><span class="lineno">  653</span>&#160; </div>
+<div class="line"><a name="l00654"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a4d147e91dfe4347bedb524db1feeebcd">  654</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;          stream,</div>
+<div class="line"><a name="l00655"></a><span class="lineno">  655</span>&#160;                                      <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">bmqt::PostResult::Enum</a> value)</div>
+<div class="line"><a name="l00656"></a><span class="lineno">  656</span>&#160;{</div>
+<div class="line"><a name="l00657"></a><span class="lineno">  657</span>&#160;    <span class="keywordflow">return</span> <a class="code" href="structBloombergLP_1_1bmqt_1_1PostResult.html#ae6bcd7a424b1eccf9c03539fc05648fb">bmqt::PostResult::print</a>(stream, value, 0, -1);</div>
+<div class="line"><a name="l00658"></a><span class="lineno">  658</span>&#160;}</div>
+<div class="line"><a name="l00659"></a><span class="lineno">  659</span>&#160; </div>
+<div class="line"><a name="l00660"></a><span class="lineno">  660</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l00661"></a><span class="lineno">  661</span>&#160; </div>
+<div class="line"><a name="l00662"></a><span class="lineno">  662</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a834a83fe28fd4313012e27be2f7bf732"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">BloombergLP::bmqt::operator&lt;&lt;</a></div><div class="ttdeci">bsl::ostream &amp; operator&lt;&lt;(bsl::ostream &amp;stream, CompressionAlgorithmType::Enum value)</div><div class="ttdef"><b>Definition:</b> bmqt_compressionalgorithmtype.h:141</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html">BloombergLP::bmqt::AckResult</a></div><div class="ttdoc">This enum represents the result code status of an ack message.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:435</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70a"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70a">BloombergLP::bmqt::AckResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:437</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa0f116b0e16565d02b95d82c5a2776168"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa0f116b0e16565d02b95d82c5a2776168">BloombergLP::bmqt::AckResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:445</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa361a109f3577357cb81ca85eeb8eeb53"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa361a109f3577357cb81ca85eeb8eeb53">BloombergLP::bmqt::AckResult::e_LIMIT_MESSAGES</a></div><div class="ttdeci">@ e_LIMIT_MESSAGES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:452</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa422be90b68e7d2c81ae1d6a9380a0e50"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa422be90b68e7d2c81ae1d6a9380a0e50">BloombergLP::bmqt::AckResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:446</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa4f289420420c95f2849cfe143e4e67e5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa4f289420420c95f2849cfe143e4e67e5">BloombergLP::bmqt::AckResult::e_LIMIT_DOMAIN_MESSAGES</a></div><div class="ttdeci">@ e_LIMIT_DOMAIN_MESSAGES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:460</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa6c5f1cbc2303f53e3c564a7ec314f1e2"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa6c5f1cbc2303f53e3c564a7ec314f1e2">BloombergLP::bmqt::AckResult::e_LIMIT_DOMAIN_BYTES</a></div><div class="ttdeci">@ e_LIMIT_DOMAIN_BYTES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:462</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa731c25cd92e3061c9717836010525723"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa731c25cd92e3061c9717836010525723">BloombergLP::bmqt::AckResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:444</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa742895cd35ead8eed61a6273b1842b06"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa742895cd35ead8eed61a6273b1842b06">BloombergLP::bmqt::AckResult::e_LIMIT_BYTES</a></div><div class="ttdeci">@ e_LIMIT_BYTES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:454</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa795044858e0886be50df9dc637c45a5b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa795044858e0886be50df9dc637c45a5b">BloombergLP::bmqt::AckResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:443</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aa94c019c57b990519b028fc9fb3c10e46"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa94c019c57b990519b028fc9fb3c10e46">BloombergLP::bmqt::AckResult::e_STORAGE_FAILURE</a></div><div class="ttdeci">@ e_STORAGE_FAILURE</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:470</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aab7593856589ce30ad343c4b145bbf220"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab7593856589ce30ad343c4b145bbf220">BloombergLP::bmqt::AckResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:439</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aab81e9b0c9aa4fe43eafd837822b3d1ec"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aab81e9b0c9aa4fe43eafd837822b3d1ec">BloombergLP::bmqt::AckResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:440</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aae2f76a912fab276284baac7123dd1798"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae2f76a912fab276284baac7123dd1798">BloombergLP::bmqt::AckResult::e_LIMIT_QUEUE_MESSAGES</a></div><div class="ttdeci">@ e_LIMIT_QUEUE_MESSAGES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:464</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aae4bacf490ec27d51cb9761e43b9df392"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aae4bacf490ec27d51cb9761e43b9df392">BloombergLP::bmqt::AckResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:447</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aaee2cb712fac6813a8472e3fc2c8fbb1c"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaee2cb712fac6813a8472e3fc2c8fbb1c">BloombergLP::bmqt::AckResult::e_LIMIT_QUEUE_BYTES</a></div><div class="ttdeci">@ e_LIMIT_QUEUE_BYTES</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:466</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aaf7e31a235197db4c65a60af205a5436b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaf7e31a235197db4c65a60af205a5436b">BloombergLP::bmqt::AckResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:441</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a1232d58884a451e4d58238115beaf70aafeaef5ed109fb93b0dd35d9a11142316"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aafeaef5ed109fb93b0dd35d9a11142316">BloombergLP::bmqt::AckResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:442</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_a9d28bdea7d5f180f8545a13cc95d5aac"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#a9d28bdea7d5f180f8545a13cc95d5aac">BloombergLP::bmqt::AckResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, AckResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_abf7ccd2ab7231decefb5472caf4c05b7"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#abf7ccd2ab7231decefb5472caf4c05b7">BloombergLP::bmqt::AckResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(AckResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1AckResult_html_ad98e756468a1740a933b69cd3e8e38a4"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1AckResult.html#ad98e756468a1740a933b69cd3e8e38a4">BloombergLP::bmqt::AckResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(AckResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html">BloombergLP::bmqt::CloseQueueResult</a></div><div class="ttdoc">This enum represents the result of a closeQueue operation.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:285</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620">BloombergLP::bmqt::CloseQueueResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:287</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a0039c90b272fad9daf39790b836acf6c"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a0039c90b272fad9daf39790b836acf6c">BloombergLP::bmqt::CloseQueueResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:295</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a123d82131de4533fdb04c44b70ae68df"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a123d82131de4533fdb04c44b70ae68df">BloombergLP::bmqt::CloseQueueResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:297</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a265767eefdcd2ab16d6fa1ea2c6b2e55"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a265767eefdcd2ab16d6fa1ea2c6b2e55">BloombergLP::bmqt::CloseQueueResult::e_UNKNOWN_QUEUE</a></div><div class="ttdeci">@ e_UNKNOWN_QUEUE</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:308</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a2994272f1406016cee114ed482fdbd7d"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a2994272f1406016cee114ed482fdbd7d">BloombergLP::bmqt::CloseQueueResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:294</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a4e851f13638d5be7f1ac58bd648c644d"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a4e851f13638d5be7f1ac58bd648c644d">BloombergLP::bmqt::CloseQueueResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:292</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a51862542162a31bb4bb22ede6808a955"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a51862542162a31bb4bb22ede6808a955">BloombergLP::bmqt::CloseQueueResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:290</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a601c58213f8943fe34d9cd06f89c604b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a601c58213f8943fe34d9cd06f89c604b">BloombergLP::bmqt::CloseQueueResult::e_ALREADY_IN_PROGRESS</a></div><div class="ttdeci">@ e_ALREADY_IN_PROGRESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:304</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a6929476b5d623c7f8dad4bccf146f5cc"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6929476b5d623c7f8dad4bccf146f5cc">BloombergLP::bmqt::CloseQueueResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:291</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a6af0f142ee41ebaa05cc7725e0702777"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a6af0f142ee41ebaa05cc7725e0702777">BloombergLP::bmqt::CloseQueueResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:289</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a87bd2a0331dcf070057357ecf4005506"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a87bd2a0331dcf070057357ecf4005506">BloombergLP::bmqt::CloseQueueResult::e_INVALID_QUEUE</a></div><div class="ttdeci">@ e_INVALID_QUEUE</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:310</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620a906f5ec4caf549050b172bfcf1d6a02a"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620a906f5ec4caf549050b172bfcf1d6a02a">BloombergLP::bmqt::CloseQueueResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:293</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620aabf6cbb9cc668176931dfe7b4757b63f"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620aabf6cbb9cc668176931dfe7b4757b63f">BloombergLP::bmqt::CloseQueueResult::e_ALREADY_CLOSED</a></div><div class="ttdeci">@ e_ALREADY_CLOSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:302</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a8a5f62a265c19e07a6f061c26ae47620acb991e2d63db47d03b728d2307997615"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620acb991e2d63db47d03b728d2307997615">BloombergLP::bmqt::CloseQueueResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:296</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a98c4dbeea18e23464275e696dc03a2ea"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a98c4dbeea18e23464275e696dc03a2ea">BloombergLP::bmqt::CloseQueueResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, CloseQueueResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_a9bc6e32247ac36a85d7523b4aadf0286"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a9bc6e32247ac36a85d7523b4aadf0286">BloombergLP::bmqt::CloseQueueResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(CloseQueueResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1CloseQueueResult_html_ab6ac5abb3fb9b6fd63da51a579d6f2dc"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#ab6ac5abb3fb9b6fd63da51a579d6f2dc">BloombergLP::bmqt::CloseQueueResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(CloseQueueResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html">BloombergLP::bmqt::ConfigureQueueResult</a></div><div class="ttdoc">This enum represents the result of a configureQueue operation.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:213</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_aadce93dd381669008c6a68c769d1aacf"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#aadce93dd381669008c6a68c769d1aacf">BloombergLP::bmqt::ConfigureQueueResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(ConfigureQueueResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540">BloombergLP::bmqt::ConfigureQueueResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:215</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a02dc9d4539b7d090bd30828f3454cb72"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a02dc9d4539b7d090bd30828f3454cb72">BloombergLP::bmqt::ConfigureQueueResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:220</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a150390dc676f99cb2180116b3d27133a"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a150390dc676f99cb2180116b3d27133a">BloombergLP::bmqt::ConfigureQueueResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:221</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a33552b0a5836045de7b3d5aed3c056e5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a33552b0a5836045de7b3d5aed3c056e5">BloombergLP::bmqt::ConfigureQueueResult::e_INVALID_QUEUE</a></div><div class="ttdeci">@ e_INVALID_QUEUE</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:233</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a6323fd808fd0ced5227d0b3c063efdf1"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a6323fd808fd0ced5227d0b3c063efdf1">BloombergLP::bmqt::ConfigureQueueResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:217</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a724b8669d53842e7dba679df15a2f2e7"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a724b8669d53842e7dba679df15a2f2e7">BloombergLP::bmqt::ConfigureQueueResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:219</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540a959b7785ab192e8211793a80f6ab8972"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540a959b7785ab192e8211793a80f6ab8972">BloombergLP::bmqt::ConfigureQueueResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:225</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540abe0fd3fe035a5ab414fa02eafe80abf3"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540abe0fd3fe035a5ab414fa02eafe80abf3">BloombergLP::bmqt::ConfigureQueueResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:224</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540ad002d7ad1cc366a84bd70b8b1811ed0e"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ad002d7ad1cc366a84bd70b8b1811ed0e">BloombergLP::bmqt::ConfigureQueueResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:218</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540ae7ee5d13517a2a3df4acb277b1bf26c5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540ae7ee5d13517a2a3df4acb277b1bf26c5">BloombergLP::bmqt::ConfigureQueueResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:222</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540aeaebfcd8d03c2083ae571d4e50d9236b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540aeaebfcd8d03c2083ae571d4e50d9236b">BloombergLP::bmqt::ConfigureQueueResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:223</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_ac84ef75fc9f456a509acbfe1d5e65540af76efb3006318a428d0b29bd461ca9b2"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#ac84ef75fc9f456a509acbfe1d5e65540af76efb3006318a428d0b29bd461ca9b2">BloombergLP::bmqt::ConfigureQueueResult::e_ALREADY_IN_PROGRESS</a></div><div class="ttdeci">@ e_ALREADY_IN_PROGRESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:229</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_acb7981a7bf08627ad2dcf226ed277a6a"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acb7981a7bf08627ad2dcf226ed277a6a">BloombergLP::bmqt::ConfigureQueueResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, ConfigureQueueResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1ConfigureQueueResult_html_acc8d5c55d835dc60b714f51841098bd4"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1ConfigureQueueResult.html#acc8d5c55d835dc60b714f51841098bd4">BloombergLP::bmqt::ConfigureQueueResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(ConfigureQueueResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html">BloombergLP::bmqt::EventBuilderResult</a></div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:362</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0">BloombergLP::bmqt::EventBuilderResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:364</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a075e5da7034b914b498b6be1ed3431b9"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a075e5da7034b914b498b6be1ed3431b9">BloombergLP::bmqt::EventBuilderResult::e_QUEUE_READONLY</a></div><div class="ttdeci">@ e_QUEUE_READONLY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:373</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a11295ea8c967aee5a9c1500bbc322600"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a11295ea8c967aee5a9c1500bbc322600">BloombergLP::bmqt::EventBuilderResult::e_OPTION_TOO_BIG</a></div><div class="ttdeci">@ e_OPTION_TOO_BIG</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:378</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a1fe6aba19f67b0db7ffe3ecf489c9eb9"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a1fe6aba19f67b0db7ffe3ecf489c9eb9">BloombergLP::bmqt::EventBuilderResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:367</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a47ed5e2e439c5e4f9ce76afe18473be5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a47ed5e2e439c5e4f9ce76afe18473be5">BloombergLP::bmqt::EventBuilderResult::e_PAYLOAD_EMPTY</a></div><div class="ttdeci">@ e_PAYLOAD_EMPTY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:377</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a5e646fe9419e2653bbb3d432b578c8b1"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a5e646fe9419e2653bbb3d432b578c8b1">BloombergLP::bmqt::EventBuilderResult::e_QUEUE_INVALID</a></div><div class="ttdeci">@ e_QUEUE_INVALID</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:372</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a66345be078dc084264977c9085570a84"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a66345be078dc084264977c9085570a84">BloombergLP::bmqt::EventBuilderResult::e_QUEUE_SUSPENDED</a></div><div class="ttdeci">@ e_QUEUE_SUSPENDED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:384</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a7abd642f89711e854a308f9cfb02fed9"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a7abd642f89711e854a308f9cfb02fed9">BloombergLP::bmqt::EventBuilderResult::e_EVENT_TOO_BIG</a></div><div class="ttdeci">@ e_EVENT_TOO_BIG</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:375</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a87783759fb2853b2499cc8faaf3e4e7b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a87783759fb2853b2499cc8faaf3e4e7b">BloombergLP::bmqt::EventBuilderResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:366</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0a91d1917726619e338b4c719e097933aa"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0a91d1917726619e338b4c719e097933aa">BloombergLP::bmqt::EventBuilderResult::e_MISSING_CORRELATION_ID</a></div><div class="ttdeci">@ e_MISSING_CORRELATION_ID</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:374</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a35b44c4ec533f5dc5fc7f8205569ccb0ac81e8aa6ce0718f929787fdce4dcf7e8"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a35b44c4ec533f5dc5fc7f8205569ccb0ac81e8aa6ce0718f929787fdce4dcf7e8">BloombergLP::bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG</a></div><div class="ttdeci">@ e_PAYLOAD_TOO_BIG</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:376</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a5cad6344a358e9d337271ed809604326"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a5cad6344a358e9d337271ed809604326">BloombergLP::bmqt::EventBuilderResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(EventBuilderResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a74e5f581fe1106bf3f9e8263855b5f5f"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a74e5f581fe1106bf3f9e8263855b5f5f">BloombergLP::bmqt::EventBuilderResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(EventBuilderResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1EventBuilderResult_html_a9fddff0ecb64b6d15bc60b1a50285a51"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1EventBuilderResult.html#a9fddff0ecb64b6d15bc60b1a50285a51">BloombergLP::bmqt::EventBuilderResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, EventBuilderResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html">BloombergLP::bmqt::GenericResult</a></div><div class="ttdoc">This enum represents generic common status.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:60</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0eb"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eb">BloombergLP::bmqt::GenericResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:62</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba182b04abb15848a7572247643e940ec4">BloombergLP::bmqt::GenericResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:69</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba6913d39c7e0f845481cd98cfecfaa0f6">BloombergLP::bmqt::GenericResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:71</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0eba7246e753005a98f8073f78a887a403fb">BloombergLP::bmqt::GenericResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:73</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebaa155a34a1a4eaf90aacb67087ad931c3"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa155a34a1a4eaf90aacb67087ad931c3">BloombergLP::bmqt::GenericResult::e_LAST</a></div><div class="ttdeci">@ e_LAST</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:81</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaa1d625d3b45f494f120830a1f5df9bb4">BloombergLP::bmqt::GenericResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:79</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab00d2a8aceb3e2e9f336ff75aeccd997">BloombergLP::bmqt::GenericResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:63</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebab9d0c6f7008416e61d09a132f41df85a">BloombergLP::bmqt::GenericResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:67</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaef009d6c3bcf6a06e148392b29e3d29b">BloombergLP::bmqt::GenericResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:77</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf0fe7420175c4220d3a0b78aedf930e3">BloombergLP::bmqt::GenericResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:65</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a32bb01beba222483e9439b7cf8d6a0ebaf906d098725dafcc375557ba7d47486f">BloombergLP::bmqt::GenericResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:75</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_a8573da9608080051ef896b52dc93fcd5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#a8573da9608080051ef896b52dc93fcd5">BloombergLP::bmqt::GenericResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(GenericResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_acc016fdeb4298c78af908ba2d4a577fa"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#acc016fdeb4298c78af908ba2d4a577fa">BloombergLP::bmqt::GenericResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, GenericResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1GenericResult_html_afa92c21a5a075a8edfd90efaceeb0932"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1GenericResult.html#afa92c21a5a075a8edfd90efaceeb0932">BloombergLP::bmqt::GenericResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(GenericResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html">BloombergLP::bmqt::OpenQueueResult</a></div><div class="ttdoc">This enum represents the result of an openQueue operation.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:135</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a0fe0bbab6dadb2bbaa4fbf84350ddaf8"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a0fe0bbab6dadb2bbaa4fbf84350ddaf8">BloombergLP::bmqt::OpenQueueResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(OpenQueueResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286">BloombergLP::bmqt::OpenQueueResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:137</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a25a7c4f94c68f16a7c1ee6e8a0972d2b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a25a7c4f94c68f16a7c1ee6e8a0972d2b">BloombergLP::bmqt::OpenQueueResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:143</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a38b050bd3f8d0e1b605b20f4801555cb"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a38b050bd3f8d0e1b605b20f4801555cb">BloombergLP::bmqt::OpenQueueResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:139</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a610c03211e611bc841b045945c366404"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a610c03211e611bc841b045945c366404">BloombergLP::bmqt::OpenQueueResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:142</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a813fabbe61b5a0d0be9549323992c873"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a813fabbe61b5a0d0be9549323992c873">BloombergLP::bmqt::OpenQueueResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:140</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a8563f964aba63ae6b3c737e42bd7069b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a8563f964aba63ae6b3c737e42bd7069b">BloombergLP::bmqt::OpenQueueResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:144</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286a930490a34bf8e087c209b69a4093658e"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286a930490a34bf8e087c209b69a4093658e">BloombergLP::bmqt::OpenQueueResult::e_INVALID_URI</a></div><div class="ttdeci">@ e_INVALID_URI</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:158</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286aa6f6d12adda15ef89d876258a5e11ad6"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286aa6f6d12adda15ef89d876258a5e11ad6">BloombergLP::bmqt::OpenQueueResult::e_INVALID_FLAGS</a></div><div class="ttdeci">@ e_INVALID_FLAGS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:160</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ab1252144eb62c7fb5d878dc505b9f1c9"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab1252144eb62c7fb5d878dc505b9f1c9">BloombergLP::bmqt::OpenQueueResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:147</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ab7a5e1ff9ad37d65515ee8a0fafe3180"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab7a5e1ff9ad37d65515ee8a0fafe3180">BloombergLP::bmqt::OpenQueueResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:145</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ab9d9a16a4a23c73e370a6fe73a1b0dec"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab9d9a16a4a23c73e370a6fe73a1b0dec">BloombergLP::bmqt::OpenQueueResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:146</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286abd82c96921203e54c04a4da9a380f38f"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286abd82c96921203e54c04a4da9a380f38f">BloombergLP::bmqt::OpenQueueResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:141</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ac1c0f37ccbf5e89dce8f67da6d13426f"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ac1c0f37ccbf5e89dce8f67da6d13426f">BloombergLP::bmqt::OpenQueueResult::e_ALREADY_OPENED</a></div><div class="ttdeci">@ e_ALREADY_OPENED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:152</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6">BloombergLP::bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE</a></div><div class="ttdeci">@ e_CORRELATIONID_NOT_UNIQUE</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:162</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6">BloombergLP::bmqt::OpenQueueResult::e_ALREADY_IN_PROGRESS</a></div><div class="ttdeci">@ e_ALREADY_IN_PROGRESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:154</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_a899dbe6eb3c04f3de1092d713e9910c5"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5">BloombergLP::bmqt::OpenQueueResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(OpenQueueResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1OpenQueueResult_html_aa6dbf12740d4a447d78d367c214fb8d1"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#aa6dbf12740d4a447d78d367c214fb8d1">BloombergLP::bmqt::OpenQueueResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, OpenQueueResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html">BloombergLP::bmqt::PostResult</a></div><div class="ttdoc">This enum represents the result code status of a post message.</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:520</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3">BloombergLP::bmqt::PostResult::Enum</a></div><div class="ttdeci">Enum</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:522</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a083bcab59b2dd65d05073793034affc2"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a083bcab59b2dd65d05073793034affc2">BloombergLP::bmqt::PostResult::e_SUCCESS</a></div><div class="ttdeci">@ e_SUCCESS</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:524</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a1c3943c20ae9594a806e9867e20c94a7"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a1c3943c20ae9594a806e9867e20c94a7">BloombergLP::bmqt::PostResult::e_NOT_SUPPORTED</a></div><div class="ttdeci">@ e_NOT_SUPPORTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:529</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a20b473b3d14e754d81d998440db91def"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a20b473b3d14e754d81d998440db91def">BloombergLP::bmqt::PostResult::e_INVALID_ARGUMENT</a></div><div class="ttdeci">@ e_INVALID_ARGUMENT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:531</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a311bf94e4d05b8903d6bb8e3b5f4f11b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a311bf94e4d05b8903d6bb8e3b5f4f11b">BloombergLP::bmqt::PostResult::e_NOT_CONNECTED</a></div><div class="ttdeci">@ e_NOT_CONNECTED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:527</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c">BloombergLP::bmqt::PostResult::e_BW_LIMIT</a></div><div class="ttdeci">@ e_BW_LIMIT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:537</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a7078e4cf069576365b6815b53fc44f5b"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7078e4cf069576365b6815b53fc44f5b">BloombergLP::bmqt::PostResult::e_NOT_READY</a></div><div class="ttdeci">@ e_NOT_READY</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:532</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3a7407466887b9e9528248cf01fc836ed1"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7407466887b9e9528248cf01fc836ed1">BloombergLP::bmqt::PostResult::e_UNKNOWN</a></div><div class="ttdeci">@ e_UNKNOWN</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:525</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3abe1bf18ba10efabf36a9283178c08fb7"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3abe1bf18ba10efabf36a9283178c08fb7">BloombergLP::bmqt::PostResult::e_REFUSED</a></div><div class="ttdeci">@ e_REFUSED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:530</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3accc4be00510d2b675afe0f929d8bcd73"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3accc4be00510d2b675afe0f929d8bcd73">BloombergLP::bmqt::PostResult::e_TIMEOUT</a></div><div class="ttdeci">@ e_TIMEOUT</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:526</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a647fe12951a2f54917cc1b98e3ca94d3aeffe7d48e79f483c19352b3ed55bbad9"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3aeffe7d48e79f483c19352b3ed55bbad9">BloombergLP::bmqt::PostResult::e_CANCELED</a></div><div class="ttdeci">@ e_CANCELED</div><div class="ttdef"><b>Definition:</b> bmqt_resultcode.h:528</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_a97d8ed80c1a82a75d62a7ce7658e4cf4"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#a97d8ed80c1a82a75d62a7ce7658e4cf4">BloombergLP::bmqt::PostResult::toAscii</a></div><div class="ttdeci">static const char * toAscii(PostResult::Enum value)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_ae6bcd7a424b1eccf9c03539fc05648fb"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#ae6bcd7a424b1eccf9c03539fc05648fb">BloombergLP::bmqt::PostResult::print</a></div><div class="ttdeci">static bsl::ostream &amp; print(bsl::ostream &amp;stream, PostResult::Enum value, int level=0, int spacesPerLevel=4)</div></div>
+<div class="ttc" id="astructBloombergLP_1_1bmqt_1_1PostResult_html_aee80bbae12264a654ad74780b474cb20"><div class="ttname"><a href="structBloombergLP_1_1bmqt_1_1PostResult.html#aee80bbae12264a654ad74780b474cb20">BloombergLP::bmqt::PostResult::fromAscii</a></div><div class="ttdeci">static bool fromAscii(PostResult::Enum *out, const bslstl::StringRef &amp;str)</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_8e091ab1c7d4f7f0c38972fd2ce6f060.html">bmqt</a></li><li class="navelem"><a class="el" href="bmqt__resultcode_8h.html">bmqt_resultcode.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>

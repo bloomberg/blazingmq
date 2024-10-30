@@ -1,399 +1,410 @@
-<!doctype HTML public "-//W3C//DTD HTML 4.0 Frameset//EN">
-<html>
-<title>Bloomberg Development Environment</title>
-<html>
-<pre>
-// Copyright 2015-2023 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-// bmqt_queueoptions.h                                                -*-C++-*-
-#ifndef INCLUDED_BMQT_QUEUEOPTIONS
-#define INCLUDED_BMQT_QUEUEOPTIONS
-
-//@PURPOSE: Provide a value-semantic type for options related to a queue.
-//
-//@CLASSES:
-//  bmqt::QueueOptions: options related to a queue.
-//
-//@DESCRIPTION: &#39;bmqt::QueueOptions&#39; provides a value-semantic type,
-// &#39;QueueOptions&#39;, which is used to specify parameters for a queue.
-//
-//
-// The following parameters are supported:
-//: o !maxUnconfirmedMessages!:
-//:      Maximum number of outstanding messages that can be sent by the broker
-//:      without being confirmed.
-//:
-//: o !maxUnconfirmedBytes!:
-//:      Maximum accumulated bytes of all outstanding messages that can be sent
-//:      by the broker without being confirmed.
-//:
-//: o !consumerPriority!:
-//:      Priority of a consumer with respect to delivery of messages.
-//:
-//: o !suspendsOnBadHostHealth!:
-//:      Sets whether the queue should suspend operation when the host machine
-//:      is unhealthy.
-
-
-// BMQ
-#include &lt;bmqscm_version.h&gt;
-#include &lt;bmqt_subscription.h&gt;
-
-//BDE
-#include &lt;bsl_iosfwd.h&gt;
-#include &lt;bsl_optional.h&gt;
-#include &lt;bsl_vector.h&gt;
-#include &lt;bsl_unordered_map.h&gt;
-#include &lt;bslma_allocator.h&gt;
-#include &lt;bslma_usesbslmaallocator.h&gt;
-#include &lt;bslmf_nestedtraitdeclaration.h&gt;
-
-namespace BloombergLP {
-
-namespace bmqt {
-
-
-                            // ==================
-                            // class QueueOptions
-                            // ==================
-
-class QueueOptions {
-    // Value-semantic type for options related to a queue.
-
-  public:
-    // PUBLIC CONSTANTS
-    static const int k_CONSUMER_PRIORITY_MIN;
-                                        // Constant representing the minimum
-                                        // valid consumer priority
-
-    static const int k_CONSUMER_PRIORITY_MAX;
-                                        // Constant representing the maximum
-                                        // valid consumer priority
-
-    static const int  k_DEFAULT_MAX_UNCONFIRMED_MESSAGES;
-    static const int  k_DEFAULT_MAX_UNCONFIRMED_BYTES;
-    static const int  k_DEFAULT_CONSUMER_PRIORITY;
-    static const bool k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH;
-
-  private:
-    // PRIVATE TYPES
-    typedef bsl::unordered_map&lt;SubscriptionHandle, Subscription&gt; Subscriptions;
-
-  private:
-    // DATA
-    Subscription        d_info;
-
-    bsl::optional&lt;bool&gt; d_suspendsOnBadHostHealth;
-                                        // Whether the queue suspends operation
-                                        // while the host is unhealthy.
-
-    Subscriptions       d_subscriptions;
-
-    bool                d_hadSubscriptions;
-                            // &#39;true&#39; if &#39;d_subscriptions&#39; had a value, &#39;false&#39;
-                            // otherwise.  Emulates &#39;bsl::optional&#39; for
-                            // &#39;d_subscriptions&#39;.
-
-    bslma::Allocator   *d_allocator_p;
-                            // Allocator
-
-  public:
-    // PUBLIC TYPES
-
-    typedef bsl::pair&lt;SubscriptionHandle, Subscription&gt; HandleAndSubscription;
-    typedef bsl::vector&lt;HandleAndSubscription&gt; SubscriptionsSnapshot;
-        // &#39;loadSubscriptions&#39; return types
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-  public:
-     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(QueueOptions, bslma::UsesBslmaAllocator)
-
-    // CREATORS
-    explicit QueueOptions(bslma::Allocator *allocator = 0);
-        // Create a new QueueOptions using the optionally specified
-        // &#39;allocator&#39;.
-
-    QueueOptions(const QueueOptions&amp;  other,
-                 bslma::Allocator    *allocator = 0);
-        // Create a new QueueOptions by copying values from the specified
-        // &#39;other&#39;, using the optionally specified &#39;allocator&#39;.
-
-    // MANIPULATORS
-    QueueOptions&amp; setMaxUnconfirmedMessages(int value);
-        // Set the maxUnconfirmedMessages to the specified &#39;value&#39;.  The
-        // behavior is undefined unless &#39;value &gt;= 0&#39;. If the specified &#39;value&#39;
-        // is set to 0, it means that the consumer does not receive any
-        // messages.  This might be useful when the consumer is shutting down
-        // and wants to process only pending messages, or when it is unable to
-        // process new messages because of transient issues.
-
-    QueueOptions&amp; setMaxUnconfirmedBytes(int value);
-        // Set the maxUnconfirmedBytes to the specified &#39;value&#39;.  The behavior
-        // is undefined unless &#39;value &gt;= 0&#39;.
-
-    QueueOptions&amp; setConsumerPriority(int value);
-        // Set the consumerPriority to the specified &#39;value&#39;.  The behavior is
-        // undefined unless &#39;k_CONSUMER_PRIORITY_MIN &lt;= value &lt;=
-        // k_CONSUMER_PRIORITY_MAX&#39;
-
-    QueueOptions&amp; setSuspendsOnBadHostHealth(bool value);
-        // Set whether the queue suspends operation while host is unhealthy.
-
-    QueueOptions&amp; merge(const QueueOptions&amp; other);
-        // &quot;Merges&quot; another &#39;QueueOptions&#39; into this one, by invoking
-        //     setF(other.F())
-        // for all fields &#39;F&#39; for which &#39;other.hasF()&#39; is true.  Returns the
-        // instance on which the method was invoked.
-
-    bool addOrUpdateSubscription(bsl::string               *errorDescription,
-                                 const SubscriptionHandle&amp;  handle,
-                                 const Subscription&amp;        subscription);
-        // Add, or update if it exists, the specified &#39;subscription&#39; for the
-        // specified &#39;handle&#39;.  Return true on success, otherwise return false
-        // and load the specified &#39;errorDescription&#39; with a description of the
-        // error.  Note that &#39;errorDescription&#39; may be null if the caller does
-        // not care about getting error messages, but users are strongly
-        // encouraged to log error string if this API returns failure.
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-    bool removeSubscription(const SubscriptionHandle&amp; handle);
-        // Return false if subscription does not exist.
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-    void removeAllSubscriptions();
-        // Remove all subscriptions.
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-    // ACCESSORS
-    int maxUnconfirmedMessages() const;
-        // Get the number for the maxUnconfirmedMessages parameter.
-
-    int maxUnconfirmedBytes() const;
-        // Get the number for the maxUnconfirmedBytes parameter.
-
-    int consumerPriority() const;
-        // Get the number for the consumerPriority parameter.
-
-    bool suspendsOnBadHostHealth() const;
-        // Get whether the queue suspends operation while host is unhealthy.
-
-    bool hasMaxUnconfirmedMessages() const;
-        // Returns whether &#39;maxUnconfirmedMessages&#39; has been set for this
-        // object, or whether it implicitly holds
-        // &#39;k_DEFAULT_MAX_UNCONFIRMED_MESSAGES&#39;.
-
-    bool hasMaxUnconfirmedBytes() const;
-        // Returns whether &#39;maxUnconfirmedBytes&#39; has been set for this object,
-        // or whether it implicitly holds &#39;k_DEFAULT_MAX_UNCONFIRMED_BYTES&#39;.
-
-    bool hasConsumerPriority() const;
-        // Returns whether &#39;consumerPriority&#39; has been set for this object, or
-        // whether it implicitly holds &#39;k_DEFAULT_CONSUMER_PRIORITY&#39;.
-
-    bool hasSuspendsOnBadHostHealth() const;
-        // Returns whether &#39;suspendsOnBadHostHealth&#39; has been set for this
-        // object, or whether it implicitly holds
-        // &#39;k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH&#39;.
-
-    bool loadSubscription(Subscription              *subscription,
-                          const SubscriptionHandle&amp;  handle) const;
-        // Return false if subscription does not exist.
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-    void loadSubscriptions(SubscriptionsSnapshot *snapshot) const;
-        // Load all handles and subscriptions into the specified &#39;snapshot&#39;.
-        //
-        // EXPERIMENTAL.  Do not use until this feature is announced.
-
-    bsl::ostream&amp; print(bsl::ostream&amp; stream,
-                        int           level          = 0,
-                        int           spacesPerLevel = 4) const;
-        // Format this object to the specified output &#39;stream&#39; at the (absolute
-        // value of) the optionally specified indentation &#39;level&#39; and return a
-        // reference to &#39;stream&#39;.  If &#39;level&#39; is specified, optionally specify
-        // &#39;spacesPerLevel&#39;, the number of spaces per indentation level for
-        // this and all of its nested objects.  If &#39;level&#39; is negative,
-        // suppress indentation of the first line.  If &#39;spacesPerLevel&#39; is
-        // negative format the entire output on one line, suppressing all but
-        // the initial indentation (as governed by &#39;level&#39;).  If &#39;stream&#39; is
-        // not valid on entry, this operation has no effect.
-};
-
-// FREE OPERATORS
-bool operator==(const QueueOptions&amp; lhs, const QueueOptions&amp; rhs);
-    // Return &#39;true&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return false otherwise.
-
-bool operator!=(const QueueOptions&amp; lhs, const QueueOptions&amp; rhs);
-    // Return &#39;false&#39; if the specified &#39;rhs&#39; object contains the value of the
-    // same type as contained in the specified &#39;lhs&#39; object and the value
-    // itself is the same in both objects, return &#39;true&#39; otherwise.
-
-bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const QueueOptions&amp; rhs);
-    // Format the specified &#39;rhs&#39; to the specified output &#39;stream&#39; and return a
-    // reference to the modifiable &#39;stream&#39;.
-
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-
-                             // ------------------
-                             // class QueueOptions
-                             // ------------------
-
-// MANIPULATORS
-inline
-QueueOptions&amp;
-QueueOptions::setMaxUnconfirmedMessages(int value)
-{
-    d_info.setMaxUnconfirmedMessages(value);
-    return *this;
-}
-
-inline
-QueueOptions&amp;
-QueueOptions::setMaxUnconfirmedBytes(int value)
-{
-    d_info.setMaxUnconfirmedBytes(value);
-    return *this;
-}
-
-inline
-QueueOptions&amp;
-QueueOptions::setConsumerPriority(int value)
-{
-    d_info.setConsumerPriority(value);
-    return *this;
-}
-
-inline
-QueueOptions&amp;
-QueueOptions::setSuspendsOnBadHostHealth(bool value)
-{
-    d_suspendsOnBadHostHealth.emplace(value);
-    return *this;
-}
-
-// ACCESSORS
-inline
-int
-QueueOptions::maxUnconfirmedMessages() const
-{
-    return d_info.maxUnconfirmedMessages();
-}
-
-inline
-int
-QueueOptions::maxUnconfirmedBytes() const
-{
-    return d_info.maxUnconfirmedBytes();
-}
-
-inline
-int
-QueueOptions::consumerPriority() const
-{
-    return d_info.consumerPriority();
-}
-
-inline
-bool
-QueueOptions::suspendsOnBadHostHealth() const
-{
-    return d_suspendsOnBadHostHealth.value_or(
-                                        k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
-}
-
-inline
-bool
-QueueOptions::hasMaxUnconfirmedMessages() const
-{
-    return d_info.hasMaxUnconfirmedMessages();
-}
-
-inline
-bool
-QueueOptions::hasMaxUnconfirmedBytes() const
-{
-    return d_info.hasMaxUnconfirmedBytes();
-}
-
-inline
-bool
-QueueOptions::hasConsumerPriority() const
-{
-    return d_info.hasConsumerPriority();
-}
-
-inline
-bool
-QueueOptions::hasSuspendsOnBadHostHealth() const
-{
-    return d_suspendsOnBadHostHealth.has_value();
-}
-
-}  // close package namespace
-
-
-                             // ------------------
-                             // class QueueOptions
-                             // ------------------
-
-inline
-bool
-bmqt::operator==(const bmqt::QueueOptions&amp; lhs,
-                 const bmqt::QueueOptions&amp; rhs)
-{
-    return    lhs.maxUnconfirmedMessages()  == rhs.maxUnconfirmedMessages()
-           &amp;&amp; lhs.maxUnconfirmedBytes()     == rhs.maxUnconfirmedBytes()
-           &amp;&amp; lhs.consumerPriority()        == rhs.consumerPriority()
-           &amp;&amp; lhs.suspendsOnBadHostHealth() == rhs.suspendsOnBadHostHealth();
-}
-
-inline
-bool
-bmqt::operator!=(const bmqt::QueueOptions&amp; lhs,
-                 const bmqt::QueueOptions&amp; rhs)
-{
-    return    lhs.maxUnconfirmedMessages()  != rhs.maxUnconfirmedMessages()
-           || lhs.maxUnconfirmedBytes()     != rhs.maxUnconfirmedBytes()
-           || lhs.consumerPriority()        != rhs.consumerPriority()
-           || lhs.suspendsOnBadHostHealth() != rhs.suspendsOnBadHostHealth();
-}
-
-inline
-bsl::ostream&amp;
-bmqt::operator&lt;&lt;(bsl::ostream&amp;             stream,
-                 const bmqt::QueueOptions&amp; rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
-
-}  // close enterprise namespace
-
-#endif
-</pre>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "https://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=9"/>
+<meta name="generator" content="Doxygen 1.9.1"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>libbmq: bmqt/bmqt_queueoptions.h Source File</title>
+<link href="tabs.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="jquery.js"></script>
+<script type="text/javascript" src="dynsections.js"></script>
+<link href="navtree.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="resize.js"></script>
+<script type="text/javascript" src="navtreedata.js"></script>
+<script type="text/javascript" src="navtree.js"></script>
+<link href="search/search.css" rel="stylesheet" type="text/css"/>
+<script type="text/javascript" src="search/searchdata.js"></script>
+<script type="text/javascript" src="search/search.js"></script>
+<link href="doxygen.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+<div id="top"><!-- do not remove this div, it is closed by doxygen! -->
+<div id="titlearea">
+<table cellspacing="0" cellpadding="0">
+ <tbody>
+ <tr style="height: 56px;">
+  <td id="projectalign" style="padding-left: 0.5em;">
+   <div id="projectname">libbmq
+   &#160;<span id="projectnumber">f10d75f08caa44a87e4d8117d1ab7de55accc0ad</span>
+   </div>
+  </td>
+ </tr>
+ </tbody>
+</table>
+</div>
+<!-- end header part -->
+<!-- Generated by Doxygen 1.9.1 -->
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+var searchBox = new SearchBox("searchBox", "search",false,'Search','.html');
+/* @license-end */
+</script>
+<script type="text/javascript" src="menudata.js"></script>
+<script type="text/javascript" src="menu.js"></script>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(function() {
+  initMenu('',true,false,'search.php','Search');
+  $(document).ready(function() { init_search(); });
+});
+/* @license-end */</script>
+<div id="main-nav"></div>
+</div><!-- top -->
+<div id="side-nav" class="ui-resizable side-nav-resizable">
+  <div id="nav-tree">
+    <div id="nav-tree-contents">
+      <div id="nav-sync" class="sync"></div>
+    </div>
+  </div>
+  <div id="splitbar" style="-moz-user-select:none;" 
+       class="ui-resizable-handle">
+  </div>
+</div>
+<script type="text/javascript">
+/* @license magnet:?xt=urn:btih:cf05388f2679ee054f2beb29a391d25f4e673ac3&amp;dn=gpl-2.0.txt GPL-v2 */
+$(document).ready(function(){initNavTree('bmqt__queueoptions_8h_source.html',''); initResizable(); });
+/* @license-end */
+</script>
+<div id="doc-content">
+<!-- window showing the filter options -->
+<div id="MSearchSelectWindow"
+     onmouseover="return searchBox.OnSearchSelectShow()"
+     onmouseout="return searchBox.OnSearchSelectHide()"
+     onkeydown="return searchBox.OnSearchSelectKey(event)">
+</div>
+
+<!-- iframe showing the search results (closed by default) -->
+<div id="MSearchResultsWindow">
+<iframe src="javascript:void(0)" frameborder="0" 
+        name="MSearchResults" id="MSearchResults">
+</iframe>
+</div>
+
+<div class="header">
+  <div class="headertitle">
+<div class="title">bmqt_queueoptions.h</div>  </div>
+</div><!--header-->
+<div class="contents">
+<a href="bmqt__queueoptions_8h.html">Go to the documentation of this file.</a><div class="fragment"><div class="line"><a name="l00001"></a><span class="lineno">    1</span>&#160;<span class="comment">// Copyright 2015-2023 Bloomberg Finance L.P.</span></div>
+<div class="line"><a name="l00002"></a><span class="lineno">    2</span>&#160;<span class="comment">// SPDX-License-Identifier: Apache-2.0</span></div>
+<div class="line"><a name="l00003"></a><span class="lineno">    3</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00004"></a><span class="lineno">    4</span>&#160;<span class="comment">// Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span></div>
+<div class="line"><a name="l00005"></a><span class="lineno">    5</span>&#160;<span class="comment">// you may not use this file except in compliance with the License.</span></div>
+<div class="line"><a name="l00006"></a><span class="lineno">    6</span>&#160;<span class="comment">// You may obtain a copy of the License at</span></div>
+<div class="line"><a name="l00007"></a><span class="lineno">    7</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00008"></a><span class="lineno">    8</span>&#160;<span class="comment">//     http://www.apache.org/licenses/LICENSE-2.0</span></div>
+<div class="line"><a name="l00009"></a><span class="lineno">    9</span>&#160;<span class="comment">//</span></div>
+<div class="line"><a name="l00010"></a><span class="lineno">   10</span>&#160;<span class="comment">// Unless required by applicable law or agreed to in writing, software</span></div>
+<div class="line"><a name="l00011"></a><span class="lineno">   11</span>&#160;<span class="comment">// distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span></div>
+<div class="line"><a name="l00012"></a><span class="lineno">   12</span>&#160;<span class="comment">// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span></div>
+<div class="line"><a name="l00013"></a><span class="lineno">   13</span>&#160;<span class="comment">// See the License for the specific language governing permissions and</span></div>
+<div class="line"><a name="l00014"></a><span class="lineno">   14</span>&#160;<span class="comment">// limitations under the License.</span></div>
+<div class="line"><a name="l00015"></a><span class="lineno">   15</span>&#160; </div>
+<div class="line"><a name="l00016"></a><span class="lineno">   16</span>&#160;<span class="comment">// bmqt_queueoptions.h                                                -*-C++-*-</span></div>
+<div class="line"><a name="l00017"></a><span class="lineno">   17</span>&#160;<span class="preprocessor">#ifndef INCLUDED_BMQT_QUEUEOPTIONS</span></div>
+<div class="line"><a name="l00018"></a><span class="lineno">   18</span>&#160;<span class="preprocessor">#define INCLUDED_BMQT_QUEUEOPTIONS</span></div>
+<div class="line"><a name="l00019"></a><span class="lineno">   19</span>&#160; </div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment">// BMQ</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160; </div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#include &lt;<a class="code" href="bmqt__subscription_8h.html">bmqt_subscription.h</a>&gt;</span></div>
+<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
+<div class="line"><a name="l00048"></a><span class="lineno">   48</span>&#160;<span class="comment">// BDE</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno">   49</span>&#160;<span class="preprocessor">#include &lt;bsl_iosfwd.h&gt;</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno">   50</span>&#160;<span class="preprocessor">#include &lt;bsl_optional.h&gt;</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno">   51</span>&#160;<span class="preprocessor">#include &lt;bsl_unordered_map.h&gt;</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno">   52</span>&#160;<span class="preprocessor">#include &lt;bsl_vector.h&gt;</span></div>
+<div class="line"><a name="l00053"></a><span class="lineno">   53</span>&#160;<span class="preprocessor">#include &lt;bslma_allocator.h&gt;</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno">   54</span>&#160;<span class="preprocessor">#include &lt;bslma_usesbslmaallocator.h&gt;</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno">   55</span>&#160;<span class="preprocessor">#include &lt;bslmf_nestedtraitdeclaration.h&gt;</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno">   56</span>&#160; </div>
+<div class="line"><a name="l00057"></a><span class="lineno">   57</span>&#160;<span class="keyword">namespace </span><a class="code" href="namespaceBloombergLP.html">BloombergLP</a> {</div>
+<div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160; </div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keyword">namespace </span>bmqt {</div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160; </div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="comment">// ==================</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="comment">// class QueueOptions</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="comment">// ==================</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160; </div>
+<div class="line"><a name="l00066"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">   66</a></span>&#160;<span class="keyword">class </span><a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a> {</div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;    <span class="comment">// PUBLIC CONSTANTS</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160; </div>
+<div class="line"><a name="l00071"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8147f25115d51916a53e47fca8b23c4f">   71</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8147f25115d51916a53e47fca8b23c4f">k_CONSUMER_PRIORITY_MIN</a>;</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160; </div>
+<div class="line"><a name="l00074"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a825a85d4c70fdb6b9bfa52882e9c08bc">   74</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a825a85d4c70fdb6b9bfa52882e9c08bc">k_CONSUMER_PRIORITY_MAX</a>;</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a86224a6d3d6a42eb8ac415e41c86a386">   76</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span>  <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a86224a6d3d6a42eb8ac415e41c86a386">k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</a>;</div>
+<div class="line"><a name="l00077"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#afb76495381e310dc5f50a3e788833fb2">   77</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span>  <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#afb76495381e310dc5f50a3e788833fb2">k_DEFAULT_MAX_UNCONFIRMED_BYTES</a>;</div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#af120b21a98d20f91f6f3ff7376abab0c">   78</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span>  <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#af120b21a98d20f91f6f3ff7376abab0c">k_DEFAULT_CONSUMER_PRIORITY</a>;</div>
+<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a05d3aeadc9fd76d23b8525aceaae4cc8">   79</a></span>&#160;    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a05d3aeadc9fd76d23b8525aceaae4cc8">k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</a>;</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160; </div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;    <span class="comment">// PRIVATE TYPES</span></div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;    <span class="keyword">typedef</span> bsl::unordered_map&lt;SubscriptionHandle, Subscription&gt; Subscriptions;</div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160; </div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;  <span class="keyword">private</span>:</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    <span class="comment">// DATA</span></div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a> d_info;</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160; </div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    bsl::optional&lt;bool&gt; d_suspendsOnBadHostHealth;</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160; </div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    Subscriptions d_subscriptions;</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160; </div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;    <span class="keywordtype">bool</span> d_hadSubscriptions;</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160; </div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    bslma::Allocator* d_allocator_p;</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160; </div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    <span class="comment">// PUBLIC TYPES</span></div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160; </div>
+<div class="line"><a name="l00104"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a7182950b23f3be13a908011d97c48689">  104</a></span>&#160;    <span class="keyword">typedef</span> bsl::pair&lt;SubscriptionHandle, Subscription&gt; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a7182950b23f3be13a908011d97c48689">HandleAndSubscription</a>;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160; </div>
+<div class="line"><a name="l00109"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ade59e8ce3ed6832982b2cf97309851a4">  109</a></span>&#160;    <span class="keyword">typedef</span> bsl::vector&lt;HandleAndSubscription&gt; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ade59e8ce3ed6832982b2cf97309851a4">SubscriptionsSnapshot</a>;</div>
+<div class="line"><a name="l00110"></a><span class="lineno">  110</span>&#160; </div>
+<div class="line"><a name="l00111"></a><span class="lineno">  111</span>&#160;  <span class="keyword">public</span>:</div>
+<div class="line"><a name="l00112"></a><span class="lineno">  112</span>&#160;    <span class="comment">// TRAITS</span></div>
+<div class="line"><a name="l00113"></a><span class="lineno">  113</span>&#160;    BSLMF_NESTED_TRAIT_DECLARATION(<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>, bslma::UsesBslmaAllocator)</div>
+<div class="line"><a name="l00114"></a><span class="lineno">  114</span>&#160; </div>
+<div class="line"><a name="l00115"></a><span class="lineno">  115</span>&#160;    <span class="comment">// CREATORS</span></div>
+<div class="line"><a name="l00116"></a><span class="lineno">  116</span>&#160; </div>
+<div class="line"><a name="l00117"></a><span class="lineno">  117</span>&#160;    </div>
+<div class="line"><a name="l00119"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab88a21a77012d237406d4b2e9564db3f">  119</a></span>&#160;    explicit <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>(bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00120"></a><span class="lineno">  120</span>&#160; </div>
+<div class="line"><a name="l00123"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac252eb432a498bb6ddf9745510eb836c">  123</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; other, bslma::Allocator* allocator = 0);</div>
+<div class="line"><a name="l00124"></a><span class="lineno">  124</span>&#160; </div>
+<div class="line"><a name="l00125"></a><span class="lineno">  125</span>&#160;    <span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00126"></a><span class="lineno">  126</span>&#160; </div>
+<div class="line"><a name="l00128"></a><span class="lineno">  128</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; operator=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00129"></a><span class="lineno">  129</span>&#160; </div>
+<div class="line"><a name="l00136"></a><span class="lineno">  136</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a6e3c702442804d2fcf6a4af2ea12bd6e">setMaxUnconfirmedMessages</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00137"></a><span class="lineno">  137</span>&#160; </div>
+<div class="line"><a name="l00140"></a><span class="lineno">  140</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a2a6e6c67572f9746a57819cff62aff65">setMaxUnconfirmedBytes</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00141"></a><span class="lineno">  141</span>&#160; </div>
+<div class="line"><a name="l00145"></a><span class="lineno">  145</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e18b1847b4fa600417b68bc16e339b8">setConsumerPriority</a>(<span class="keywordtype">int</span> value);</div>
+<div class="line"><a name="l00146"></a><span class="lineno">  146</span>&#160; </div>
+<div class="line"><a name="l00148"></a><span class="lineno">  148</span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4f5e06fc232b2a2bd73c13ad4ef0f4ed">setSuspendsOnBadHostHealth</a>(<span class="keywordtype">bool</span> value);</div>
+<div class="line"><a name="l00149"></a><span class="lineno">  149</span>&#160; </div>
+<div class="line"><a name="l00154"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35debf2cdb1fded0aa3381a3837f204e">  154</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35debf2cdb1fded0aa3381a3837f204e">merge</a>(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; other);</div>
+<div class="line"><a name="l00155"></a><span class="lineno">  155</span>&#160; </div>
+<div class="line"><a name="l00164"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab768250cd062181c49cb712954ecc163">  164</a></span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab768250cd062181c49cb712954ecc163">addOrUpdateSubscription</a>(bsl::<span class="keywordtype">string</span>*              errorDescription,</div>
+<div class="line"><a name="l00165"></a><span class="lineno">  165</span>&#160;                                 const <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; handle,</div>
+<div class="line"><a name="l00166"></a><span class="lineno">  166</span>&#160;                                 const <a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>&amp;       subscription);</div>
+<div class="line"><a name="l00167"></a><span class="lineno">  167</span>&#160; </div>
+<div class="line"><a name="l00171"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8b72387cbef0885039ac2b3d4b05e236">  171</a></span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8b72387cbef0885039ac2b3d4b05e236">removeSubscription</a>(const <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; handle);</div>
+<div class="line"><a name="l00172"></a><span class="lineno">  172</span>&#160; </div>
+<div class="line"><a name="l00176"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab77e693b5574ac5b7390158877c194d8">  176</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab77e693b5574ac5b7390158877c194d8">removeAllSubscriptions</a>();</div>
+<div class="line"><a name="l00177"></a><span class="lineno">  177</span>&#160; </div>
+<div class="line"><a name="l00178"></a><span class="lineno">  178</span>&#160;    <span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00179"></a><span class="lineno">  179</span>&#160; </div>
+<div class="line"><a name="l00181"></a><span class="lineno">  181</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">maxUnconfirmedMessages</a>() const;</div>
+<div class="line"><a name="l00182"></a><span class="lineno">  182</span>&#160; </div>
+<div class="line"><a name="l00184"></a><span class="lineno">  184</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">maxUnconfirmedBytes</a>() const;</div>
+<div class="line"><a name="l00185"></a><span class="lineno">  185</span>&#160; </div>
+<div class="line"><a name="l00187"></a><span class="lineno">  187</span>&#160;    <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">consumerPriority</a>() const;</div>
+<div class="line"><a name="l00188"></a><span class="lineno">  188</span>&#160; </div>
+<div class="line"><a name="l00190"></a><span class="lineno">  190</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">suspendsOnBadHostHealth</a>() const;</div>
+<div class="line"><a name="l00191"></a><span class="lineno">  191</span>&#160; </div>
+<div class="line"><a name="l00195"></a><span class="lineno">  195</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a65aa6bb069f65bcc84ccbca0d85bb80c">hasMaxUnconfirmedMessages</a>() const;</div>
+<div class="line"><a name="l00196"></a><span class="lineno">  196</span>&#160; </div>
+<div class="line"><a name="l00199"></a><span class="lineno">  199</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac82f72cd34682fae81a4d63eaaa3084a">hasMaxUnconfirmedBytes</a>() const;</div>
+<div class="line"><a name="l00200"></a><span class="lineno">  200</span>&#160; </div>
+<div class="line"><a name="l00203"></a><span class="lineno">  203</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35d2f15968dde84d2a5cde2f8ab11f38">hasConsumerPriority</a>() const;</div>
+<div class="line"><a name="l00204"></a><span class="lineno">  204</span>&#160; </div>
+<div class="line"><a name="l00208"></a><span class="lineno">  208</span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad24afcd174846dd0388906d8a7f3a744">hasSuspendsOnBadHostHealth</a>() const;</div>
+<div class="line"><a name="l00209"></a><span class="lineno">  209</span>&#160; </div>
+<div class="line"><a name="l00213"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a5e7aca6d09c035852f9d406589eff246">  213</a></span>&#160;    <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a5e7aca6d09c035852f9d406589eff246">loadSubscription</a>(<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html">Subscription</a>*             subscription,</div>
+<div class="line"><a name="l00214"></a><span class="lineno">  214</span>&#160;                          const <a class="code" href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">SubscriptionHandle</a>&amp; handle) const;</div>
+<div class="line"><a name="l00215"></a><span class="lineno">  215</span>&#160; </div>
+<div class="line"><a name="l00219"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a89d5ebcb3ca553ec434c1dbb4602b1b3">  219</a></span>&#160;    <span class="keywordtype">void</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a89d5ebcb3ca553ec434c1dbb4602b1b3">loadSubscriptions</a>(<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ade59e8ce3ed6832982b2cf97309851a4">SubscriptionsSnapshot</a>* snapshot) const;</div>
+<div class="line"><a name="l00220"></a><span class="lineno">  220</span>&#160; </div>
+<div class="line"><a name="l00230"></a><span class="lineno">  230</span>&#160;    bsl::ostream&amp;</div>
+<div class="line"><a name="l00231"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad50b411b3b44f860e459ebab009529fb">  231</a></span>&#160;    <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad50b411b3b44f860e459ebab009529fb">print</a>(bsl::ostream&amp; stream, <span class="keywordtype">int</span> level = 0, <span class="keywordtype">int</span> spacesPerLevel = 4) const;</div>
+<div class="line"><a name="l00232"></a><span class="lineno">  232</span>&#160;};</div>
+<div class="line"><a name="l00233"></a><span class="lineno">  233</span>&#160; </div>
+<div class="line"><a name="l00234"></a><span class="lineno">  234</span>&#160;<span class="comment">// FREE OPERATORS</span></div>
+<div class="line"><a name="l00235"></a><span class="lineno">  235</span>&#160; </div>
+<div class="line"><a name="l00239"></a><span class="lineno">  239</span>&#160;<span class="keywordtype">bool</span> operator==(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00240"></a><span class="lineno">  240</span>&#160; </div>
+<div class="line"><a name="l00244"></a><span class="lineno">  244</span>&#160;<span class="keywordtype">bool</span> operator!=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; lhs, const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00245"></a><span class="lineno">  245</span>&#160; </div>
+<div class="line"><a name="l00248"></a><span class="lineno">  248</span>&#160;bsl::ostream&amp; operator&lt;&lt;(bsl::ostream&amp; stream, const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; rhs);</div>
+<div class="line"><a name="l00249"></a><span class="lineno">  249</span>&#160; </div>
+<div class="line"><a name="l00250"></a><span class="lineno">  250</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00251"></a><span class="lineno">  251</span>&#160;<span class="comment">//                             INLINE DEFINITIONS</span></div>
+<div class="line"><a name="l00252"></a><span class="lineno">  252</span>&#160;<span class="comment">// ============================================================================</span></div>
+<div class="line"><a name="l00253"></a><span class="lineno">  253</span>&#160; </div>
+<div class="line"><a name="l00254"></a><span class="lineno">  254</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00255"></a><span class="lineno">  255</span>&#160;<span class="comment">// class QueueOptions</span></div>
+<div class="line"><a name="l00256"></a><span class="lineno">  256</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00257"></a><span class="lineno">  257</span>&#160; </div>
+<div class="line"><a name="l00258"></a><span class="lineno">  258</span>&#160;<span class="comment">// MANIPULATORS</span></div>
+<div class="line"><a name="l00259"></a><span class="lineno">  259</span>&#160; </div>
+<div class="line"><a name="l00260"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a68f56c5c903acdbc20c473d00f6483ec">  260</a></span>&#160;inline <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>::operator=(const <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00261"></a><span class="lineno">  261</span>&#160;{</div>
+<div class="line"><a name="l00262"></a><span class="lineno">  262</span>&#160;    <span class="keywordflow">if</span> (<span class="keyword">this</span> != &amp;rhs) {</div>
+<div class="line"><a name="l00263"></a><span class="lineno">  263</span>&#160;        d_info                    = rhs.d_info;</div>
+<div class="line"><a name="l00264"></a><span class="lineno">  264</span>&#160;        d_suspendsOnBadHostHealth = rhs.d_suspendsOnBadHostHealth;</div>
+<div class="line"><a name="l00265"></a><span class="lineno">  265</span>&#160;        d_hadSubscriptions        = rhs.d_hadSubscriptions;</div>
+<div class="line"><a name="l00266"></a><span class="lineno">  266</span>&#160;        d_subscriptions           = Subscriptions(rhs.d_subscriptions,</div>
+<div class="line"><a name="l00267"></a><span class="lineno">  267</span>&#160;                                        this-&gt;d_allocator_p);</div>
+<div class="line"><a name="l00268"></a><span class="lineno">  268</span>&#160;    }</div>
+<div class="line"><a name="l00269"></a><span class="lineno">  269</span>&#160; </div>
+<div class="line"><a name="l00270"></a><span class="lineno">  270</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00271"></a><span class="lineno">  271</span>&#160;}</div>
+<div class="line"><a name="l00272"></a><span class="lineno">  272</span>&#160; </div>
+<div class="line"><a name="l00273"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a6e3c702442804d2fcf6a4af2ea12bd6e">  273</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a6e3c702442804d2fcf6a4af2ea12bd6e">QueueOptions::setMaxUnconfirmedMessages</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00274"></a><span class="lineno">  274</span>&#160;{</div>
+<div class="line"><a name="l00275"></a><span class="lineno">  275</span>&#160;    d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">setMaxUnconfirmedMessages</a>(value);</div>
+<div class="line"><a name="l00276"></a><span class="lineno">  276</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00277"></a><span class="lineno">  277</span>&#160;}</div>
+<div class="line"><a name="l00278"></a><span class="lineno">  278</span>&#160; </div>
+<div class="line"><a name="l00279"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a2a6e6c67572f9746a57819cff62aff65">  279</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a2a6e6c67572f9746a57819cff62aff65">QueueOptions::setMaxUnconfirmedBytes</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00280"></a><span class="lineno">  280</span>&#160;{</div>
+<div class="line"><a name="l00281"></a><span class="lineno">  281</span>&#160;    d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">setMaxUnconfirmedBytes</a>(value);</div>
+<div class="line"><a name="l00282"></a><span class="lineno">  282</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00283"></a><span class="lineno">  283</span>&#160;}</div>
+<div class="line"><a name="l00284"></a><span class="lineno">  284</span>&#160; </div>
+<div class="line"><a name="l00285"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e18b1847b4fa600417b68bc16e339b8">  285</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e18b1847b4fa600417b68bc16e339b8">QueueOptions::setConsumerPriority</a>(<span class="keywordtype">int</span> value)</div>
+<div class="line"><a name="l00286"></a><span class="lineno">  286</span>&#160;{</div>
+<div class="line"><a name="l00287"></a><span class="lineno">  287</span>&#160;    d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">setConsumerPriority</a>(value);</div>
+<div class="line"><a name="l00288"></a><span class="lineno">  288</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00289"></a><span class="lineno">  289</span>&#160;}</div>
+<div class="line"><a name="l00290"></a><span class="lineno">  290</span>&#160; </div>
+<div class="line"><a name="l00291"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4f5e06fc232b2a2bd73c13ad4ef0f4ed">  291</a></span>&#160;<span class="keyword">inline</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">QueueOptions</a>&amp; <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4f5e06fc232b2a2bd73c13ad4ef0f4ed">QueueOptions::setSuspendsOnBadHostHealth</a>(<span class="keywordtype">bool</span> value)</div>
+<div class="line"><a name="l00292"></a><span class="lineno">  292</span>&#160;{</div>
+<div class="line"><a name="l00293"></a><span class="lineno">  293</span>&#160;    d_suspendsOnBadHostHealth.emplace(value);</div>
+<div class="line"><a name="l00294"></a><span class="lineno">  294</span>&#160;    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
+<div class="line"><a name="l00295"></a><span class="lineno">  295</span>&#160;}</div>
+<div class="line"><a name="l00296"></a><span class="lineno">  296</span>&#160; </div>
+<div class="line"><a name="l00297"></a><span class="lineno">  297</span>&#160;<span class="comment">// ACCESSORS</span></div>
+<div class="line"><a name="l00298"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">  298</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">QueueOptions::maxUnconfirmedMessages</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00299"></a><span class="lineno">  299</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00300"></a><span class="lineno">  300</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">maxUnconfirmedMessages</a>();</div>
+<div class="line"><a name="l00301"></a><span class="lineno">  301</span>&#160;}</div>
+<div class="line"><a name="l00302"></a><span class="lineno">  302</span>&#160; </div>
+<div class="line"><a name="l00303"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">  303</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">QueueOptions::maxUnconfirmedBytes</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00304"></a><span class="lineno">  304</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00305"></a><span class="lineno">  305</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">maxUnconfirmedBytes</a>();</div>
+<div class="line"><a name="l00306"></a><span class="lineno">  306</span>&#160;}</div>
+<div class="line"><a name="l00307"></a><span class="lineno">  307</span>&#160; </div>
+<div class="line"><a name="l00308"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">  308</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">int</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">QueueOptions::consumerPriority</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00309"></a><span class="lineno">  309</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00310"></a><span class="lineno">  310</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">consumerPriority</a>();</div>
+<div class="line"><a name="l00311"></a><span class="lineno">  311</span>&#160;}</div>
+<div class="line"><a name="l00312"></a><span class="lineno">  312</span>&#160; </div>
+<div class="line"><a name="l00313"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">  313</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">QueueOptions::suspendsOnBadHostHealth</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00314"></a><span class="lineno">  314</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00315"></a><span class="lineno">  315</span>&#160;    <span class="keywordflow">return</span> d_suspendsOnBadHostHealth.value_or(</div>
+<div class="line"><a name="l00316"></a><span class="lineno">  316</span>&#160;        <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a05d3aeadc9fd76d23b8525aceaae4cc8">k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</a>);</div>
+<div class="line"><a name="l00317"></a><span class="lineno">  317</span>&#160;}</div>
+<div class="line"><a name="l00318"></a><span class="lineno">  318</span>&#160; </div>
+<div class="line"><a name="l00319"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a65aa6bb069f65bcc84ccbca0d85bb80c">  319</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a65aa6bb069f65bcc84ccbca0d85bb80c">QueueOptions::hasMaxUnconfirmedMessages</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00320"></a><span class="lineno">  320</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00321"></a><span class="lineno">  321</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">hasMaxUnconfirmedMessages</a>();</div>
+<div class="line"><a name="l00322"></a><span class="lineno">  322</span>&#160;}</div>
+<div class="line"><a name="l00323"></a><span class="lineno">  323</span>&#160; </div>
+<div class="line"><a name="l00324"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac82f72cd34682fae81a4d63eaaa3084a">  324</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac82f72cd34682fae81a4d63eaaa3084a">QueueOptions::hasMaxUnconfirmedBytes</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00325"></a><span class="lineno">  325</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00326"></a><span class="lineno">  326</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">hasMaxUnconfirmedBytes</a>();</div>
+<div class="line"><a name="l00327"></a><span class="lineno">  327</span>&#160;}</div>
+<div class="line"><a name="l00328"></a><span class="lineno">  328</span>&#160; </div>
+<div class="line"><a name="l00329"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35d2f15968dde84d2a5cde2f8ab11f38">  329</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35d2f15968dde84d2a5cde2f8ab11f38">QueueOptions::hasConsumerPriority</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00330"></a><span class="lineno">  330</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00331"></a><span class="lineno">  331</span>&#160;    <span class="keywordflow">return</span> d_info.<a class="code" href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">hasConsumerPriority</a>();</div>
+<div class="line"><a name="l00332"></a><span class="lineno">  332</span>&#160;}</div>
+<div class="line"><a name="l00333"></a><span class="lineno">  333</span>&#160; </div>
+<div class="line"><a name="l00334"></a><span class="lineno"><a class="line" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad24afcd174846dd0388906d8a7f3a744">  334</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad24afcd174846dd0388906d8a7f3a744">QueueOptions::hasSuspendsOnBadHostHealth</a>()<span class="keyword"> const</span></div>
+<div class="line"><a name="l00335"></a><span class="lineno">  335</span>&#160;<span class="keyword"></span>{</div>
+<div class="line"><a name="l00336"></a><span class="lineno">  336</span>&#160;    <span class="keywordflow">return</span> d_suspendsOnBadHostHealth.has_value();</div>
+<div class="line"><a name="l00337"></a><span class="lineno">  337</span>&#160;}</div>
+<div class="line"><a name="l00338"></a><span class="lineno">  338</span>&#160; </div>
+<div class="line"><a name="l00339"></a><span class="lineno">  339</span>&#160;}  <span class="comment">// close package namespace</span></div>
+<div class="line"><a name="l00340"></a><span class="lineno">  340</span>&#160; </div>
+<div class="line"><a name="l00341"></a><span class="lineno">  341</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00342"></a><span class="lineno">  342</span>&#160;<span class="comment">// class QueueOptions</span></div>
+<div class="line"><a name="l00343"></a><span class="lineno">  343</span>&#160;<span class="comment">// ------------------</span></div>
+<div class="line"><a name="l00344"></a><span class="lineno">  344</span>&#160; </div>
+<div class="line"><a name="l00345"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a933a7377820f86dbf12d0f6e1a5d0ec3">  345</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">bmqt::operator==</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a>&amp; lhs,</div>
+<div class="line"><a name="l00346"></a><span class="lineno">  346</span>&#160;                             <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00347"></a><span class="lineno">  347</span>&#160;{</div>
+<div class="line"><a name="l00348"></a><span class="lineno">  348</span>&#160;    <span class="keywordflow">return</span> lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">maxUnconfirmedMessages</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">maxUnconfirmedMessages</a>() &amp;&amp;</div>
+<div class="line"><a name="l00349"></a><span class="lineno">  349</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">maxUnconfirmedBytes</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">maxUnconfirmedBytes</a>() &amp;&amp;</div>
+<div class="line"><a name="l00350"></a><span class="lineno">  350</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">consumerPriority</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">consumerPriority</a>() &amp;&amp;</div>
+<div class="line"><a name="l00351"></a><span class="lineno">  351</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">suspendsOnBadHostHealth</a>() == rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">suspendsOnBadHostHealth</a>();</div>
+<div class="line"><a name="l00352"></a><span class="lineno">  352</span>&#160;}</div>
+<div class="line"><a name="l00353"></a><span class="lineno">  353</span>&#160; </div>
+<div class="line"><a name="l00354"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#a43efb484cb847f69bb4fd53a463657a6">  354</a></span>&#160;<span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code" href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">bmqt::operator!=</a>(<span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a>&amp; lhs,</div>
+<div class="line"><a name="l00355"></a><span class="lineno">  355</span>&#160;                             <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00356"></a><span class="lineno">  356</span>&#160;{</div>
+<div class="line"><a name="l00357"></a><span class="lineno">  357</span>&#160;    <span class="keywordflow">return</span> lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">maxUnconfirmedMessages</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">maxUnconfirmedMessages</a>() ||</div>
+<div class="line"><a name="l00358"></a><span class="lineno">  358</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">maxUnconfirmedBytes</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">maxUnconfirmedBytes</a>() ||</div>
+<div class="line"><a name="l00359"></a><span class="lineno">  359</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">consumerPriority</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">consumerPriority</a>() ||</div>
+<div class="line"><a name="l00360"></a><span class="lineno">  360</span>&#160;           lhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">suspendsOnBadHostHealth</a>() != rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">suspendsOnBadHostHealth</a>();</div>
+<div class="line"><a name="l00361"></a><span class="lineno">  361</span>&#160;}</div>
+<div class="line"><a name="l00362"></a><span class="lineno">  362</span>&#160; </div>
+<div class="line"><a name="l00363"></a><span class="lineno"><a class="line" href="namespaceBloombergLP_1_1bmqt.html#afa10d17e9495999db04146c7e7d26877">  363</a></span>&#160;<span class="keyword">inline</span> bsl::ostream&amp; <a class="code" href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">bmqt::operator&lt;&lt;</a>(bsl::ostream&amp;             stream,</div>
+<div class="line"><a name="l00364"></a><span class="lineno">  364</span>&#160;                                      <span class="keyword">const</span> <a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">bmqt::QueueOptions</a>&amp; rhs)</div>
+<div class="line"><a name="l00365"></a><span class="lineno">  365</span>&#160;{</div>
+<div class="line"><a name="l00366"></a><span class="lineno">  366</span>&#160;    <span class="keywordflow">return</span> rhs.<a class="code" href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad50b411b3b44f860e459ebab009529fb">print</a>(stream, 0, -1);</div>
+<div class="line"><a name="l00367"></a><span class="lineno">  367</span>&#160;}</div>
+<div class="line"><a name="l00368"></a><span class="lineno">  368</span>&#160; </div>
+<div class="line"><a name="l00369"></a><span class="lineno">  369</span>&#160;}  <span class="comment">// close enterprise namespace</span></div>
+<div class="line"><a name="l00370"></a><span class="lineno">  370</span>&#160; </div>
+<div class="line"><a name="l00371"></a><span class="lineno">  371</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="ttc" id="abmqt__subscription_8h_html"><div class="ttname"><a href="bmqt__subscription_8h.html">bmqt_subscription.h</a></div><div class="ttdoc">Provide a value-semantic types for subscription related API.</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html">BloombergLP::bmqt::QueueOptions</a></div><div class="ttdoc">Value-semantic type for options related to a queue.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:66</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a05d3aeadc9fd76d23b8525aceaae4cc8"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a05d3aeadc9fd76d23b8525aceaae4cc8">BloombergLP::bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</a></div><div class="ttdeci">static const bool k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:79</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a2a6e6c67572f9746a57819cff62aff65"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a2a6e6c67572f9746a57819cff62aff65">BloombergLP::bmqt::QueueOptions::setMaxUnconfirmedBytes</a></div><div class="ttdeci">QueueOptions &amp; setMaxUnconfirmedBytes(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:279</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a3009e9361820da77f1a7bb0e2a1d7ba2"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a3009e9361820da77f1a7bb0e2a1d7ba2">BloombergLP::bmqt::QueueOptions::maxUnconfirmedMessages</a></div><div class="ttdeci">int maxUnconfirmedMessages() const</div><div class="ttdoc">Get the number for the maxUnconfirmedMessages parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:298</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a35d2f15968dde84d2a5cde2f8ab11f38"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35d2f15968dde84d2a5cde2f8ab11f38">BloombergLP::bmqt::QueueOptions::hasConsumerPriority</a></div><div class="ttdeci">bool hasConsumerPriority() const</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:329</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a35debf2cdb1fded0aa3381a3837f204e"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a35debf2cdb1fded0aa3381a3837f204e">BloombergLP::bmqt::QueueOptions::merge</a></div><div class="ttdeci">QueueOptions &amp; merge(const QueueOptions &amp;other)</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a37414a16285d08dcc625ec4b6ecf3efb"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a37414a16285d08dcc625ec4b6ecf3efb">BloombergLP::bmqt::QueueOptions::maxUnconfirmedBytes</a></div><div class="ttdeci">int maxUnconfirmedBytes() const</div><div class="ttdoc">Get the number for the maxUnconfirmedBytes parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:303</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a4e18b1847b4fa600417b68bc16e339b8"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e18b1847b4fa600417b68bc16e339b8">BloombergLP::bmqt::QueueOptions::setConsumerPriority</a></div><div class="ttdeci">QueueOptions &amp; setConsumerPriority(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:285</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a4e43bd96efcf5173972492321e67d164"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4e43bd96efcf5173972492321e67d164">BloombergLP::bmqt::QueueOptions::suspendsOnBadHostHealth</a></div><div class="ttdeci">bool suspendsOnBadHostHealth() const</div><div class="ttdoc">Get whether the queue suspends operation while host is unhealthy.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:313</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a4f5e06fc232b2a2bd73c13ad4ef0f4ed"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a4f5e06fc232b2a2bd73c13ad4ef0f4ed">BloombergLP::bmqt::QueueOptions::setSuspendsOnBadHostHealth</a></div><div class="ttdeci">QueueOptions &amp; setSuspendsOnBadHostHealth(bool value)</div><div class="ttdoc">Set whether the queue suspends operation while host is unhealthy.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:291</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a5e7aca6d09c035852f9d406589eff246"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a5e7aca6d09c035852f9d406589eff246">BloombergLP::bmqt::QueueOptions::loadSubscription</a></div><div class="ttdeci">bool loadSubscription(Subscription *subscription, const SubscriptionHandle &amp;handle) const</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a65aa6bb069f65bcc84ccbca0d85bb80c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a65aa6bb069f65bcc84ccbca0d85bb80c">BloombergLP::bmqt::QueueOptions::hasMaxUnconfirmedMessages</a></div><div class="ttdeci">bool hasMaxUnconfirmedMessages() const</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:319</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a6e3c702442804d2fcf6a4af2ea12bd6e"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a6e3c702442804d2fcf6a4af2ea12bd6e">BloombergLP::bmqt::QueueOptions::setMaxUnconfirmedMessages</a></div><div class="ttdeci">QueueOptions &amp; setMaxUnconfirmedMessages(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:273</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a7182950b23f3be13a908011d97c48689"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a7182950b23f3be13a908011d97c48689">BloombergLP::bmqt::QueueOptions::HandleAndSubscription</a></div><div class="ttdeci">bsl::pair&lt; SubscriptionHandle, Subscription &gt; HandleAndSubscription</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:104</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a8147f25115d51916a53e47fca8b23c4f"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8147f25115d51916a53e47fca8b23c4f">BloombergLP::bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN</a></div><div class="ttdeci">static const int k_CONSUMER_PRIORITY_MIN</div><div class="ttdoc">Constant representing the minimum valid consumer priority.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:71</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a825a85d4c70fdb6b9bfa52882e9c08bc"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a825a85d4c70fdb6b9bfa52882e9c08bc">BloombergLP::bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX</a></div><div class="ttdeci">static const int k_CONSUMER_PRIORITY_MAX</div><div class="ttdoc">Constant representing the maximum valid consumer priority.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:74</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a86224a6d3d6a42eb8ac415e41c86a386"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a86224a6d3d6a42eb8ac415e41c86a386">BloombergLP::bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</a></div><div class="ttdeci">static const int k_DEFAULT_MAX_UNCONFIRMED_MESSAGES</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:76</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a89d5ebcb3ca553ec434c1dbb4602b1b3"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a89d5ebcb3ca553ec434c1dbb4602b1b3">BloombergLP::bmqt::QueueOptions::loadSubscriptions</a></div><div class="ttdeci">void loadSubscriptions(SubscriptionsSnapshot *snapshot) const</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a8b72387cbef0885039ac2b3d4b05e236"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a8b72387cbef0885039ac2b3d4b05e236">BloombergLP::bmqt::QueueOptions::removeSubscription</a></div><div class="ttdeci">bool removeSubscription(const SubscriptionHandle &amp;handle)</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_a947f3c5fc040ee2a1c7024d766e70a95"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#a947f3c5fc040ee2a1c7024d766e70a95">BloombergLP::bmqt::QueueOptions::consumerPriority</a></div><div class="ttdeci">int consumerPriority() const</div><div class="ttdoc">Get the number for the consumerPriority parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:308</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ab768250cd062181c49cb712954ecc163"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab768250cd062181c49cb712954ecc163">BloombergLP::bmqt::QueueOptions::addOrUpdateSubscription</a></div><div class="ttdeci">bool addOrUpdateSubscription(bsl::string *errorDescription, const SubscriptionHandle &amp;handle, const Subscription &amp;subscription)</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ab77e693b5574ac5b7390158877c194d8"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ab77e693b5574ac5b7390158877c194d8">BloombergLP::bmqt::QueueOptions::removeAllSubscriptions</a></div><div class="ttdeci">void removeAllSubscriptions()</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ac82f72cd34682fae81a4d63eaaa3084a"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac82f72cd34682fae81a4d63eaaa3084a">BloombergLP::bmqt::QueueOptions::hasMaxUnconfirmedBytes</a></div><div class="ttdeci">bool hasMaxUnconfirmedBytes() const</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:324</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ad24afcd174846dd0388906d8a7f3a744"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad24afcd174846dd0388906d8a7f3a744">BloombergLP::bmqt::QueueOptions::hasSuspendsOnBadHostHealth</a></div><div class="ttdeci">bool hasSuspendsOnBadHostHealth() const</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:334</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ad50b411b3b44f860e459ebab009529fb"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ad50b411b3b44f860e459ebab009529fb">BloombergLP::bmqt::QueueOptions::print</a></div><div class="ttdeci">bsl::ostream &amp; print(bsl::ostream &amp;stream, int level=0, int spacesPerLevel=4) const</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_ade59e8ce3ed6832982b2cf97309851a4"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#ade59e8ce3ed6832982b2cf97309851a4">BloombergLP::bmqt::QueueOptions::SubscriptionsSnapshot</a></div><div class="ttdeci">bsl::vector&lt; HandleAndSubscription &gt; SubscriptionsSnapshot</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:109</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_af120b21a98d20f91f6f3ff7376abab0c"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#af120b21a98d20f91f6f3ff7376abab0c">BloombergLP::bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY</a></div><div class="ttdeci">static const int k_DEFAULT_CONSUMER_PRIORITY</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:78</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1QueueOptions_html_afb76495381e310dc5f50a3e788833fb2"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1QueueOptions.html#afb76495381e310dc5f50a3e788833fb2">BloombergLP::bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_BYTES</a></div><div class="ttdeci">static const int k_DEFAULT_MAX_UNCONFIRMED_BYTES</div><div class="ttdef"><b>Definition:</b> bmqt_queueoptions.h:77</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1SubscriptionHandle_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1SubscriptionHandle.html">BloombergLP::bmqt::SubscriptionHandle</a></div><div class="ttdoc">Value-semantic type for unique Subscription id.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:59</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html">BloombergLP::bmqt::Subscription</a></div><div class="ttdoc">Value-semantic type to carry Subscription parameters.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:169</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a02015f3582dc12432d4a18919b603cf7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a02015f3582dc12432d4a18919b603cf7">BloombergLP::bmqt::Subscription::hasMaxUnconfirmedBytes</a></div><div class="ttdeci">bool hasMaxUnconfirmedBytes() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:469</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a14736aced9a7f6e60cae94e6140179f7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a14736aced9a7f6e60cae94e6140179f7">BloombergLP::bmqt::Subscription::hasMaxUnconfirmedMessages</a></div><div class="ttdeci">bool hasMaxUnconfirmedMessages() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:464</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a1c9c8bf4229429bb88c6eb49ac2ab277"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a1c9c8bf4229429bb88c6eb49ac2ab277">BloombergLP::bmqt::Subscription::setConsumerPriority</a></div><div class="ttdeci">Subscription &amp; setConsumerPriority(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:429</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a2b6e5f5b0a496d4ecc739bbde4f635b0"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a2b6e5f5b0a496d4ecc739bbde4f635b0">BloombergLP::bmqt::Subscription::consumerPriority</a></div><div class="ttdeci">int consumerPriority() const</div><div class="ttdoc">Get the number for the consumerPriority parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:454</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a5791ae5d583f7fdd552d24fbfca46c33"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5791ae5d583f7fdd552d24fbfca46c33">BloombergLP::bmqt::Subscription::setMaxUnconfirmedBytes</a></div><div class="ttdeci">Subscription &amp; setMaxUnconfirmedBytes(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:423</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a5d6e383b8e750ceed26186b29009ef93"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a5d6e383b8e750ceed26186b29009ef93">BloombergLP::bmqt::Subscription::setMaxUnconfirmedMessages</a></div><div class="ttdeci">Subscription &amp; setMaxUnconfirmedMessages(int value)</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:417</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_a8daee807dc4bb4e3e851796d806e0cac"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#a8daee807dc4bb4e3e851796d806e0cac">BloombergLP::bmqt::Subscription::maxUnconfirmedMessages</a></div><div class="ttdeci">int maxUnconfirmedMessages() const</div><div class="ttdoc">Get the number for the maxUnconfirmedMessages parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:443</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_aae832ab67a37d6c75d8320cf29ea5df5"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#aae832ab67a37d6c75d8320cf29ea5df5">BloombergLP::bmqt::Subscription::maxUnconfirmedBytes</a></div><div class="ttdeci">int maxUnconfirmedBytes() const</div><div class="ttdoc">Get the number for the maxUnconfirmedBytes parameter.</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:449</div></div>
+<div class="ttc" id="aclassBloombergLP_1_1bmqt_1_1Subscription_html_ae639ccbcc9e9a5cd1d36481b813d72a7"><div class="ttname"><a href="classBloombergLP_1_1bmqt_1_1Subscription.html#ae639ccbcc9e9a5cd1d36481b813d72a7">BloombergLP::bmqt::Subscription::hasConsumerPriority</a></div><div class="ttdeci">bool hasConsumerPriority() const</div><div class="ttdef"><b>Definition:</b> bmqt_subscription.h:474</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_a834a83fe28fd4313012e27be2f7bf732"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#a834a83fe28fd4313012e27be2f7bf732">BloombergLP::bmqt::operator&lt;&lt;</a></div><div class="ttdeci">bsl::ostream &amp; operator&lt;&lt;(bsl::ostream &amp;stream, CompressionAlgorithmType::Enum value)</div><div class="ttdef"><b>Definition:</b> bmqt_compressionalgorithmtype.h:141</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_aa6566ff0a88bbcebb2d322152cd3472b"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#aa6566ff0a88bbcebb2d322152cd3472b">BloombergLP::bmqt::operator!=</a></div><div class="ttdeci">bool operator!=(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:582</div></div>
+<div class="ttc" id="anamespaceBloombergLP_1_1bmqt_html_ab916ce4498d29d2e31d35c6f5277fdc6"><div class="ttname"><a href="namespaceBloombergLP_1_1bmqt.html#ab916ce4498d29d2e31d35c6f5277fdc6">BloombergLP::bmqt::operator==</a></div><div class="ttdeci">bool operator==(const CorrelationId &amp;lhs, const CorrelationId &amp;rhs)</div><div class="ttdef"><b>Definition:</b> bmqt_correlationid.h:576</div></div>
+<div class="ttc" id="anamespaceBloombergLP_html"><div class="ttname"><a href="namespaceBloombergLP.html">BloombergLP</a></div><div class="ttdef"><b>Definition:</b> bmqa_abstractsession.h:42</div></div>
+</div><!-- fragment --></div><!-- contents -->
+</div><!-- doc-content -->
+<!-- start footer part -->
+<div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
+  <ul>
+    <li class="navelem"><a class="el" href="dir_8e091ab1c7d4f7f0c38972fd2ce6f060.html">bmqt</a></li><li class="navelem"><a class="el" href="bmqt__queueoptions_8h.html">bmqt_queueoptions.h</a></li>
+    <li class="footer">Generated by <a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.1 </li>
+  </ul>
+</div>
 </body>
 </html>
