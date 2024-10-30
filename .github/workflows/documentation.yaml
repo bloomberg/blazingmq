@@ -45,7 +45,9 @@ jobs:
           ( cat Doxyfile ; echo "PROJECT_NUMBER=${{ github.sha }}" ) | doxygen -
 
       - name: Commit new API documentation to `gh-pages`
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: Update docs for `main`@${{ github.sha }}
-          repository: docs
+        run: |
+          cd docs/
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git commit -am "Update C++ API docs from commit ${{ github.sha }} on main"
+          git push
