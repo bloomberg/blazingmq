@@ -356,9 +356,9 @@ ClientSessionState::ClientSessionState(
 , d_statContext_mp(clientStatContext)
 , d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
-, d_schemaEventBuilder(bufferFactory, allocator, encodingType)
-, d_pushBuilder(bufferFactory, allocator)
-, d_ackBuilder(bufferFactory, allocator)
+, d_schemaEventBuilder(blobSpPool, encodingType, allocator)
+, d_pushBuilder(blobSpPool, allocator)
+, d_ackBuilder(blobSpPool, allocator)
 , d_throttledFailedAckMessages()
 , d_throttledFailedPutMessages()
 {

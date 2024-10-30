@@ -31,6 +31,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
@@ -89,12 +90,6 @@ typedef mqbs::DataStore::AppInfos                      AppInfos;
 typedef mqbs::FileStore::SyncPointOffsetPairs          SyncPointOffsetPairs;
 typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
-typedef bdlcc::SharedObjectPool<
-    bdlbb::Blob,
-    bdlcc::ObjectPoolFunctors::DefaultCreator,
-    bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-    BlobSpPool;
-
 // FUNCTIONS
 
 /// Create a new blob at the specified `arena` address, using the specified
@@ -147,7 +142,7 @@ struct Tester {
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
     bsl::string                            d_clusterLocation;
     bsl::string                            d_clusterArchiveLocation;
-    BlobSpPool                             d_blobSpPool;
+    bmqp::BlobPoolUtil::BlobSpPool         d_blobSpPool;
     mqbcfg::PartitionConfig                d_partitionCfg;
     mqbcfg::ClusterDefinition              d_clusterCfg;
     bsl::vector<mqbcfg::ClusterNode>       d_clusterNodesCfg;
@@ -172,12 +167,9 @@ struct Tester {
     , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_clusterLocation(location, bmqtst::TestHelperUtil::allocator())
     , d_clusterArchiveLocation(location, bmqtst::TestHelperUtil::allocator())
-    , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
-                                        &d_bufferFactory,
-                                        bdlf::PlaceHolders::_1,   // arena
-                                        bdlf::PlaceHolders::_2),  // alloc
-                   1024,  // blob pool growth strategy
-                   bmqtst::TestHelperUtil::allocator())
+    , d_blobSpPool(bmqp::BlobPoolUtil::createBlobPool(
+          &d_bufferFactory,
+          bmqtst::TestHelperUtil::allocator()))
     , d_partitionCfg(bmqtst::TestHelperUtil::allocator())
     , d_clusterCfg(bmqtst::TestHelperUtil::allocator())
     , d_clusterNodesCfg(bmqtst::TestHelperUtil::allocator())

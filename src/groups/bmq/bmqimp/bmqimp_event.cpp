@@ -293,16 +293,17 @@ Event& Event::configureAsMessageEvent(const bmqp::Event& rawEvent)
     return *this;
 }
 
-Event& Event::configureAsMessageEvent(bdlbb::BlobBufferFactory* bufferFactory)
+Event&
+Event::configureAsMessageEvent(bmqp::BlobPoolUtil::BlobSpPool* blobSpPool_p)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type() == EventType::e_UNINITIALIZED);
-    BSLS_ASSERT_SAFE(bufferFactory);
+    BSLS_ASSERT_SAFE(blobSpPool_p);
 
     d_type         = EventType::e_MESSAGE;
     d_msgEventMode = MessageEventMode::e_WRITE;
     new (d_putEventBuilderBuffer.buffer())
-        bmqp::PutEventBuilder(bufferFactory, d_allocator_p);
+        bmqp::PutEventBuilder(blobSpPool_p, d_allocator_p);
     d_isPutEventBuilderConstructed = true;
 
     return *this;

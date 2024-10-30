@@ -51,8 +51,9 @@ void ControlMessageTransmitter::sendMessageHelper(
         return;  // RETURN
     }
 
-    bmqt::GenericResult::Enum writeRc =
-        destination->write(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
+    bmqt::GenericResult::Enum writeRc = destination->write(
+        schemaBuilder->blob_sp(),
+        bmqp::EventType::e_CONTROL);
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                        << "Failed to write schema message: " << message
@@ -83,7 +84,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     // Broadcast to cluster, using the unicast channel to ensure ordering of
     // events.
 
-    d_cluster_p->netCluster().writeAll(schemaBuilder->blob(),
+    d_cluster_p->netCluster().writeAll(schemaBuilder->blob_sp(),
                                        bmqp::EventType::e_CONTROL);
 
     BALL_LOG_INFO << "Broadcasted message '" << message
@@ -131,19 +132,19 @@ void ControlMessageTransmitter::broadcastMessageHelper(
 
 // CREATORS
 ControlMessageTransmitter::ControlMessageTransmitter(
-    bdlbb::BlobBufferFactory* bufferFactory,
+    BlobSpPool*               blobSpPool_p,
     mqbi::Cluster*            cluster,
     mqbnet::TransportManager* transportManager,
     bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
-, d_bufferFactory_p(bufferFactory)
-, d_schemaBuilder(bufferFactory, allocator)
+, d_blobSpPool_p(blobSpPool_p)
+, d_schemaBuilder(d_blobSpPool_p, bmqp::EncodingType::e_BER, allocator)
 , d_cluster_p(cluster)
 , d_transportManager_p(transportManager)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);
-    BSLS_ASSERT_SAFE(d_bufferFactory_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
 }
 
@@ -212,7 +213,9 @@ void ControlMessageTransmitter::sendMessageSafe(
     // Since this method can be invoked from any thread, schema event builder
     // is created on the stack, instead of using 'd_schemaBuilder'.
 
-    bmqp::SchemaEventBuilder schemaBuilder(d_bufferFactory_p, d_allocator_p);
+    bmqp::SchemaEventBuilder schemaBuilder(d_blobSpPool_p,
+                                           bmqp::EncodingType::e_BER,
+                                           d_allocator_p);
     sendMessageHelper(message, destination, &schemaBuilder);
 }
 
@@ -238,7 +241,9 @@ void ControlMessageTransmitter::broadcastMessageSafe(
     // Since this method can be invoked from any thread, schema event builder
     // is created on the stack, instead of using 'd_schemaBuilder'.
 
-    bmqp::SchemaEventBuilder schemaBuilder(d_bufferFactory_p, d_allocator_p);
+    bmqp::SchemaEventBuilder schemaBuilder(d_blobSpPool_p,
+                                           bmqp::EncodingType::e_BER,
+                                           d_allocator_p);
     broadcastMessageHelper(message, &schemaBuilder, false);
 }
 

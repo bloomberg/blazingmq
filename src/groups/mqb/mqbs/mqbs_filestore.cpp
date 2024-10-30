@@ -3904,9 +3904,8 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
 
     if (itNode == d_nodes.end()) {
         // no prior history about this node
-        d_nodes.insert(bsl::make_pair(
-            nodeId,
-            NodeContext(d_config.bufferFactory(), recordKey, d_allocator_p)));
+        d_nodes.insert(
+            bsl::make_pair(nodeId, NodeContext(d_blobSpPool_p, recordKey)));
         from = d_unreceipted.begin();
     }
     else if (itNode->second.d_key < recordKey) {
@@ -5241,7 +5240,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
-                        config.bufferFactory(),
+                        d_blobSpPool_p,
                         allocator)
 {
     // PRECONDITIONS
@@ -6524,11 +6523,9 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         if (itNode == d_nodes.end()) {
             // no prior history about this node
             itNode = d_nodes
-                         .insert(bsl::make_pair(
-                             nodeId,
-                             NodeContext(d_config.bufferFactory(),
-                                         key,
-                                         d_allocator_p)))
+                         .insert(
+                             bsl::make_pair(nodeId,
+                                            NodeContext(d_blobSpPool_p, key)))
                          .first;
         }
         nodeContext = &itNode->second;
@@ -6542,7 +6539,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
     }
 
     if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
-        char* buffer = nodeContext->d_blob.buffer(0).data();
+        char* buffer = nodeContext->d_blob_sp->buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
@@ -6555,7 +6552,11 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         nodeContext->d_state->unlock();
     }
     else {
-        bmqp::ProtocolUtil::buildReceipt(&nodeContext->d_blob,
+        // The pointer `nodeContext->d_blob_sp` might be in a write queue, so
+        // it's not safe to modify or replace the blob under this pointer.
+        // Instead, we get another shared pointer to another blob.
+        nodeContext->d_blob_sp = d_blobSpPool_p->getObject();
+        bmqp::ProtocolUtil::buildReceipt(nodeContext->d_blob_sp.get(),
                                          d_config.partitionId(),
                                          primaryLeaseId,
                                          sequenceNumber);
@@ -6572,7 +6573,7 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
         return;  // RETURN
     }
 
-    int rc = node->channel().writeBlob(nodeContext->d_blob,
+    int rc = node->channel().writeBlob(nodeContext->d_blob_sp,
                                        bmqp::EventType::e_REPLICATION_RECEIPT,
                                        nodeContext->d_state);
 
@@ -6977,7 +6978,7 @@ void FileStore::flushStorage()
                        << d_storageEventBuilder.messageCount()
                        << " STORAGE messages.";
         const int maxChannelPendingItems = d_cluster_p->broadcast(
-            d_storageEventBuilder.blob());
+            d_storageEventBuilder.blob_sp());
         if (maxChannelPendingItems > 0) {
             if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
                 // back off

@@ -523,8 +523,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
-            bdlbb::Blob advisoryEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&advisoryEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(advisoryEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 advisoryEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -566,8 +568,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             }
         }
         else {
-            bdlbb::Blob ackEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&ackEvent, ackRecord);
+            bsl::shared_ptr<bdlbb::Blob> ackEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(ackEvent.get(), ackRecord);
 
             mqbnet::ClusterNode* leaderNode =
                 d_clusterData_p->electorInfo().leaderNode();
@@ -631,8 +635,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
         }
 
         if (isSelfLeader()) {
-            bdlbb::Blob commitEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&commitEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> commitEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(commitEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 commitEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -1178,11 +1184,13 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     ClusterData*                        clusterData,
     ClusterState*                       clusterState,
     bdlbb::BlobBufferFactory*           bufferFactory,
+    BlobSpPool*                         blobSpPool_p,
     bslma::Allocator*                   allocator)
 : d_allocator_p(allocator)
 , d_isFirstLeaderAdvisory(true)
 , d_isOpen(false)
 , d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_description(allocator)
 , d_commitCb()
 , d_clusterData_p(clusterData)

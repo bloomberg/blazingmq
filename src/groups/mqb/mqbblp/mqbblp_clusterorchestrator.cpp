@@ -592,7 +592,8 @@ ClusterOrchestrator::ClusterOrchestrator(
                             //      Strong
                             d_clusterData_p,
                             clusterState,
-                            &d_clusterData_p->bufferFactory())),
+                            &d_clusterData_p->bufferFactory(),
+                            &d_clusterData_p->blobSpPool())),
                     k_WATCHDOG_TIMEOUT_DURATION,
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
@@ -611,7 +612,8 @@ ClusterOrchestrator::ClusterOrchestrator(
                             //      Strong
                             d_clusterData_p,
                             clusterState,
-                            &d_clusterData_p->bufferFactory())),
+                            &d_clusterData_p->bufferFactory(),
+                            &d_clusterData_p->blobSpPool())),
                     d_allocators.get("ClusterStateManager"))),
       d_allocator_p)
 , d_queueHelper(d_clusterData_p,
@@ -706,7 +708,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
                                  _3,   // LeaderNodeId
                                  _4),  // Term
             electorTerm,
-            &d_clusterData_p->bufferFactory(),
+            &d_clusterData_p->blobSpPool(),
             d_allocator_p),
         d_allocator_p);
 

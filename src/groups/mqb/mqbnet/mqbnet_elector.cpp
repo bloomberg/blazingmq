@@ -2078,7 +2078,9 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
     // 'emitIOEvent' is currently always called while 'd_lock' is held, but
     // that's an implementation side effect, not part of contract.  That's why
     // we create the builder on stack instead of making it a class member.
-    bmqp::SchemaEventBuilder builder(d_bufferFactory_p, d_allocator_p);
+    bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_ELECTOR);
     if (0 != rc) {
@@ -2089,7 +2091,7 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
     }
 
     // Retrieve the encoded event
-    const bdlbb::Blob& blob = builder.blob();
+    const bsl::shared_ptr<bdlbb::Blob> blob = builder.blob_sp();
     if (k_ALL_NODES_ID == output.destination()) {
         // Broadcast to cluster, using the unicast channel to ensure ordering
         // of events
@@ -2201,10 +2203,10 @@ Elector::Elector(mqbcfg::ElectorConfig&      config,
                  mqbi::Cluster*              cluster,
                  const ElectorStateCallback& callback,
                  bsls::Types::Uint64         initialTerm,
-                 bdlbb::BlobBufferFactory*   bufferFactory,
+                 BlobSpPool*                 blobSpPool_p,
                  bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
-, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_cluster_p(cluster)
 , d_netCluster_p(0)
 , d_config(config)
@@ -2223,7 +2225,7 @@ Elector::Elector(mqbcfg::ElectorConfig&      config,
 , d_previousEventAge(0)  // first state transition's age will be 1
 {
     BSLS_ASSERT_SAFE(d_allocator_p);
-    BSLS_ASSERT_SAFE(d_bufferFactory_p);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_callback);
 

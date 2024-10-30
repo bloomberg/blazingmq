@@ -30,12 +30,13 @@
 // Thread safe.
 
 // BMQ
-
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_queueid.h>
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -113,6 +114,9 @@ struct EventUtilEventInfo {
 
 /// Utilities for BlazingMQ protocol events.
 struct EventUtil {
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
     // CLASS METHODS
 
     /// PushEvent Utilities
@@ -125,10 +129,12 @@ struct EventUtil {
     /// case of failure.  The behavior is undefined unless the `event` is a
     /// valid push event.  Note that this function is exclusively used by
     /// the SDK and thus we can assume that the messages will only contain
-    /// old flavor of SubQueueIdsArray (i.e. SubQueueIdsArrayOld).
+    /// old flavor of SubQueueIdsArray (i.e. SubQueueIdsArrayOld).  Use the
+    /// specified `blobSpPool_p` to allocate shared pointer to blobs.
     static int flattenPushEvent(bsl::vector<EventUtilEventInfo>* eventInfos,
                                 const Event&                     event,
                                 bdlbb::BlobBufferFactory*        bufferFactory,
+                                BlobSpPool*                      blobSpPool_p,
                                 bslma::Allocator*                allocator);
 };
 

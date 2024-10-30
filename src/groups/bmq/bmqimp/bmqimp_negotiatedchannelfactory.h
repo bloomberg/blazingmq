@@ -30,14 +30,13 @@
 // peer on top of a channel created using a base 'bmqio::ChannelFactory'.
 
 // BMQ
-
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_connectoptions.h>
 #include <bmqio_listenoptions.h>
 #include <bmqio_status.h>
+#include <bmqp_blobpoolutil.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -59,12 +58,17 @@ namespace bmqimp {
 
 /// Configuration for a `NegotiatedChannelFactory`.
 class NegotiatedChannelFactoryConfig {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // PRIVATE DATA
     bmqio::ChannelFactory*           d_baseFactory_p;
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
     bsls::TimeInterval               d_negotiationTimeout;
     bdlbb::BlobBufferFactory*        d_bufferFactory_p;
+    BlobSpPool*                      d_blobSpPool_p;
     bslma::Allocator*                d_allocator_p;
 
     // FRIENDS
@@ -81,6 +85,7 @@ class NegotiatedChannelFactoryConfig {
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
         const bsls::TimeInterval&               negotiationTimeout,
         bdlbb::BlobBufferFactory*               bufferFactory,
+        BlobSpPool*                             blobSpPool_p,
         bslma::Allocator*                       basicAllocator = 0);
 
     NegotiatedChannelFactoryConfig(

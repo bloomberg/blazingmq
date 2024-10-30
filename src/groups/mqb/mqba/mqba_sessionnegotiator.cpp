@@ -686,9 +686,9 @@ int SessionNegotiator::sendNegotiationMessage(
     // Build connection response event
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
-    bmqp::SchemaEventBuilder builder(d_bufferFactory_p,
-                                     &localAllocator,
-                                     encodingType);
+    bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
+                                     encodingType,
+                                     &localAllocator);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_CONTROL);
     if (rc != 0) {

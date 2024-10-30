@@ -167,7 +167,11 @@ static void test2_ackMesageIteratorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::AckEventBuilder builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::AckEventBuilder builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<AckData>  messages(bmqtst::TestHelperUtil::allocator());
 
@@ -229,7 +233,11 @@ static void test3_putMessageIteratorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<PutData>  messages(bmqtst::TestHelperUtil::allocator());
 

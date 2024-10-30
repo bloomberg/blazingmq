@@ -26,7 +26,6 @@
 // storage recovery in a cluster node.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
@@ -64,6 +63,12 @@ namespace mqbc {
 /// This component provides a mechanism to manage storage recovery in a
 /// cluster node.
 class RecoveryManager {
+  public:
+    // TYPES
+    /// Pool of shared pointers to Blobs
+    typedef mqbs::FileStore::BlobSpPool BlobSpPool;
+
+  private:
     // ==================
     // class ChunkDeleter
     // ==================
@@ -259,11 +264,11 @@ class RecoveryManager {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
     /// Allocator to use
+    bslma::Allocator* d_allocator_p;
 
-    /// Blob buffer factory to use
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    /// Blob shared pointer pool to use
+    BlobSpPool* d_blobSpPool_p;
 
     /// Cluster configuration to use
     const mqbcfg::ClusterDefinition& d_clusterConfig;
@@ -297,7 +302,7 @@ class RecoveryManager {
     /// Create a `RecoveryManager` object with the specified `bufferFactory`,
     /// `clusterConfig`, `dataStoreConfig`, and `clusterData`. Use the
     /// specified `allocator` for any memory allocation.
-    RecoveryManager(bdlbb::BlobBufferFactory*        bufferFactory,
+    RecoveryManager(BlobSpPool*                      blobSpPool_p,
                     const mqbcfg::ClusterDefinition& clusterConfig,
                     const mqbc::ClusterData&         clusterData,
                     const mqbs::DataStoreConfig&     dataStoreConfig,

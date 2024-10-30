@@ -65,10 +65,9 @@
 //..
 
 // BMQ
-
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
-
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -93,20 +92,32 @@ namespace bmqp {
 
 /// Mechanism to build a BlazingMQ schema event
 class SchemaEventBuilder {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQP.SCHEMAEVENTBUILDER");
 
-  private:
     // DATA
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use by this object.
-    mutable bdlbb::Blob d_blob;
-    // blob containing the event under construction.
-    // This has been done mutable to be able to skip
-    // writing the length until the blob is retrieved.
+
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Error stream used to report errors when building a blob.
+    /// This stream is a field to prevent reallocations of the internal stream
+    /// buffer on multiple `SchemaEventBuilder::setMessage` calls.
+    bmqu::MemOutStream d_errorStream;
+
+    /// Encoding type for encoding the message
     EncodingType::Enum d_encodingType;
-    // Encoding type for encoding the message
 
   private:
     // NOT IMPLEMENTED
@@ -123,14 +134,15 @@ class SchemaEventBuilder {
 
     // CREATORS
 
-    /// Constructor of a `SchemaEventBuilder` using the specified
-    /// `bufferFactory` and `allocator` for the internal blob data member,
-    /// and the optionally specified `encodingType` (default to `ber`) for
-    /// encoding the message.
-    SchemaEventBuilder(
-        bdlbb::BlobBufferFactory* bufferFactory,
-        bslma::Allocator*         allocator,
-        bmqp::EncodingType::Enum  encodingType = bmqp::EncodingType::e_BER);
+    /// Create a new `SchemaEventBuilder` using the specified `blobSpPool_p`
+    /// for the blob.  Use the optionally specified `encodingType` (default to
+    /// `ber`) for encoding the message.  We require BlobSpPool to build Blobs
+    /// with set BlobBufferFactory since we might want to expand the built Blob
+    /// dynamically.  Use the optionally specified `allocator`.
+    explicit SchemaEventBuilder(
+        BlobSpPool*              blobSpPool_p,
+        bmqp::EncodingType::Enum encodingType = bmqp::EncodingType::e_BER,
+        bslma::Allocator*        allocator    = 0);
 
     // MANIPULATORS
 
@@ -152,6 +164,12 @@ class SchemaEventBuilder {
     /// SchemaEventBuilder, or if `reset` has been called since, the blob
     /// returned will be an empty one.
     const bdlbb::Blob& blob() const;
+
+    /// Return the fully formatted blob corresponding to the message built.
+    /// Note that if `setMessage` has not been called on this
+    /// SchemaEventBuilder, or if `reset` has been called since, the blob
+    /// returned will be an empty one.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // =============================
@@ -178,26 +196,36 @@ struct SchemaEventBuilderUtil {
 // ------------------------
 
 inline SchemaEventBuilder::SchemaEventBuilder(
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bslma::Allocator*         allocator,
-    bmqp::EncodingType::Enum  encodingType)
+    BlobSpPool*              blobSpPool_p,
+    bmqp::EncodingType::Enum encodingType,
+    bslma::Allocator*        allocator)
 : d_allocator_p(allocator)
-, d_blob(bufferFactory, allocator)
+, d_blobSpPool_p(blobSpPool_p)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
+, d_errorStream(allocator)
 , d_encodingType(encodingType)
 {
-    // NOTHING
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blobSpPool_p);
+
+    reset();
 }
 
 inline void SchemaEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp = d_blobSpPool_p->getObject();
+
+    // The following prerequisite is necessary since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_blob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 }
 
 template <class TYPE>
 int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() == 0);  // Ensure the blob is empty
+    BSLS_ASSERT_SAFE(d_blob_sp->length() == 0);  // Ensure the blob is empty
     BSLS_ASSERT_SAFE(d_encodingType != EncodingType::e_UNKNOWN);
     BSLS_ASSERT_SAFE(type == EventType::e_CONTROL ||
                      (type == EventType::e_ELECTOR &&
@@ -214,12 +242,13 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     // Ensure blob has enough space for an EventHeader.  Use placement new to
     // create the object directly in the blob buffer, while still calling it's
     // constructor (to memset memory and initialize some fields)
-    d_blob.setLength(sizeof(EventHeader));
-    BSLS_ASSERT_SAFE(d_blob.numDataBuffers() == 1 &&
+    d_blob_sp->setLength(sizeof(EventHeader));
+    BSLS_ASSERT_SAFE(d_blob_sp->numDataBuffers() == 1 &&
                      "The buffers allocated by the supplied bufferFactory "
                      "are too small");
 
-    EventHeader* eventHeader = new (d_blob.buffer(0).data()) EventHeader(type);
+    EventHeader* eventHeader = new (d_blob_sp->buffer(0).data())
+        EventHeader(type);
 
     // Specify the encoding type in the EventHeader for control messages
     if (type == EventType::e_CONTROL) {
@@ -228,15 +257,15 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     }
 
     // Append appropriate encoding of 'message' to the blob
-    bmqu::MemOutStream os;
-    int                rc = ProtocolUtil::encodeMessage(os,
-                                         &d_blob,
+    int rc = ProtocolUtil::encodeMessage(d_errorStream,
+                                         d_blob_sp.get(),
                                          message,
                                          d_encodingType,
                                          d_allocator_p);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!os.isEmpty())) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_errorStream.isEmpty())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BALL_LOG_DEBUG << os.str();
+        BALL_LOG_DEBUG << d_errorStream.str();
+        d_errorStream.clear();
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -246,13 +275,13 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     }
 
     // Make sure the event is padded
-    ProtocolUtil::appendPadding(&d_blob, d_blob.length());
+    ProtocolUtil::appendPadding(d_blob_sp.get(), d_blob_sp->length());
 
     // Fix packet's length in header now that we know it ..
-    eventHeader->setLength(d_blob.length());
+    eventHeader->setLength(d_blob_sp->length());
 
     // Guard against too big events
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_blob.length() >
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_blob_sp->length() >
                                               EventHeader::k_MAX_SIZE_SOFT)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         reset();
@@ -265,10 +294,19 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
 inline const bdlbb::Blob& SchemaEventBuilder::blob() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() <= EventHeader::k_MAX_SIZE_SOFT);
-    BSLS_ASSERT_SAFE(d_blob.length() % 4 == 0);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() % 4 == 0);
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+inline bsl::shared_ptr<bdlbb::Blob> SchemaEventBuilder::blob_sp() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() % 4 == 0);
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

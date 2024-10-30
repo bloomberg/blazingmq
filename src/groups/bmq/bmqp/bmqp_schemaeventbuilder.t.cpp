@@ -58,6 +58,10 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     struct Test {
         int                      d_line;
@@ -74,9 +78,9 @@ static void test1_breathingTest()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     bmqtst::TestHelperUtil::allocator(),
-                                     test.d_encodingType);
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     test.d_encodingType,
+                                     bmqtst::TestHelperUtil::allocator());
 
         PVV(test.d_line << ": Verifying accessors");
         ASSERT_EQ(obj.blob().length(), 0);
@@ -281,6 +285,10 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         k_SIZE,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     struct Test {
         int                      d_line;
@@ -297,9 +305,9 @@ static void testN1_decodeFromFile()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << " encoding");
 
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     bmqtst::TestHelperUtil::allocator(),
-                                     test.d_encodingType);
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     test.d_encodingType,
+                                     bmqtst::TestHelperUtil::allocator());
 
         PVV(test.d_line << ": Status message");
         {

@@ -67,11 +67,13 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsls::TimeInterval&               negotiationTimeout,
     bdlbb::BlobBufferFactory*               bufferFactory,
+    BlobSpPool*                             blobSpPool_p,
     bslma::Allocator*                       basicAllocator)
 : d_baseFactory_p(base)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
 , d_negotiationTimeout(negotiationTimeout)
 , d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // PRECONDITIONS
@@ -86,6 +88,7 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
 , d_negotiationTimeout(original.d_negotiationTimeout)
 , d_bufferFactory_p(original.d_bufferFactory_p)
+, d_blobSpPool_p(original.d_blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // NOTHING
@@ -124,9 +127,9 @@ void NegotiatedChannelFactory::negotiate(
 {
     static const bmqp::EncodingType::Enum k_DEFAULT_ENCODING =
         bmqp::EncodingType::e_BER;
-    bmqp::SchemaEventBuilder builder(d_config.d_bufferFactory_p,
-                                     d_config.d_allocator_p,
-                                     k_DEFAULT_ENCODING);
+    bmqp::SchemaEventBuilder builder(d_config.d_blobSpPool_p,
+                                     k_DEFAULT_ENCODING,
+                                     d_config.d_allocator_p);
     const int rc = builder.setMessage(d_config.d_negotiationMessage,
                                       bmqp::EventType::e_CONTROL);
     if (rc != 0) {

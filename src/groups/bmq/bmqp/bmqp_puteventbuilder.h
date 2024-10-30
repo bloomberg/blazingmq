@@ -61,6 +61,7 @@
 //
 
 // BMQ
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
 #include <bmqt_compressionalgorithmtype.h>
@@ -90,6 +91,8 @@ class PutEventBuilder {
     // TYPES
     typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
 
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // TYPES
     /// Mechanism to automatically reset PutEventBuilder on a built message
@@ -104,14 +107,15 @@ class PutEventBuilder {
     };
 
     // DATA
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
-    mutable bdlbb::Blob d_blob;
-    // blob being built by this
-    // PutEventBuilder.
-    // This has been done mutable to be able to
-    // skip writing the length until the blob
-    // is retrieved.
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
     bool d_msgStarted;
     // has startMessage been called
@@ -170,8 +174,6 @@ class PutEventBuilder {
 
     MessagePropertiesInfo d_messagePropertiesInfo;
 
-    bslma::Allocator* d_allocator_p;
-
   private:
     // NOT IMPLEMENTED
     PutEventBuilder(const PutEventBuilder&) BSLS_CPP11_DELETED;
@@ -194,10 +196,11 @@ class PutEventBuilder {
   public:
     // CREATORS
 
-    /// Create a new `PutEventBuilder` using the specified `bufferFactory`
-    /// and `allocator` for the blob.
-    PutEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
-                    bslma::Allocator*         allocator);
+    /// Create a new `PutEventBuilder` using the specified `blobSpPool_p` and
+    /// `allocator` for the blob.  We require BlobSpPool to build Blobs with
+    /// set BlobBufferFactory since we might want to expand the built Blob
+    /// dynamically.
+    PutEventBuilder(BlobSpPool* blobSpPool_p, bslma::Allocator* allocator);
 
     // MANIPULATORS
 
@@ -340,6 +343,13 @@ class PutEventBuilder {
     /// by this event.  If no messages were added, this will return a blob
     /// composed only of an `EventHeader`.
     const bdlbb::Blob& blob() const;
+
+    /// Return a shared pointer to the built Blob.  If no messages were added,
+    /// this will return an empty shared pointer.
+    /// Note that a shared pointer is returned by value, so the user holds to
+    /// the copy of a pointer.  The Blob in that copy will be valid even if we
+    /// `reset` this builder and modify the internal shared pointer.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 
     const bmqp::MessageProperties* messageProperties() const;
 };
@@ -500,7 +510,7 @@ inline const bmqt::MessageGUID& PutEventBuilder::messageGUID() const
 
 inline int PutEventBuilder::eventSize() const
 {
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int PutEventBuilder::unpackedMessageSize() const

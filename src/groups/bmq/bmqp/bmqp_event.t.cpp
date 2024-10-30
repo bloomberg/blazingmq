@@ -524,6 +524,10 @@ static void test4_eventLoading()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     struct Test {
         int                      d_line;
@@ -540,9 +544,9 @@ static void test4_eventLoading()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     bmqtst::TestHelperUtil::allocator(),
-                                     test.d_encodingType);
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     test.d_encodingType,
+                                     bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(obj.blob().length() == 0);
         {
@@ -586,7 +590,8 @@ static void test4_eventLoading()
     }
 
     {
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     bmqp::EncodingType::e_BER,
                                      bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(obj.blob().length() == 0);
 

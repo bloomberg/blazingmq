@@ -68,9 +68,9 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
 
     // Add the StorageHeader
     bmqu::BlobPosition offset;
-    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(StorageHeader));
+    bmqu::BlobUtil::reserve(&offset, d_blob_sp.get(), sizeof(StorageHeader));
 
-    bmqu::BlobObjectProxy<StorageHeader> storageHeader(&d_blob,
+    bmqu::BlobObjectProxy<StorageHeader> storageHeader(d_blob_sp.get(),
                                                        offset,
                                                        false,  // no read
                                                        true);  // write mode
@@ -91,11 +91,11 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
 
     storageHeader.reset();  // i.e., flush writing to blob..
 
-    d_blob.appendDataBuffer(journalRecordBuffer);
+    d_blob_sp->appendDataBuffer(journalRecordBuffer);
 
     if (StorageMessageType::e_DATA == messageType ||
         StorageMessageType::e_QLIST == messageType) {
-        d_blob.appendDataBuffer(payloadBuffer);
+        d_blob_sp->appendDataBuffer(payloadBuffer);
     }
 
     ++d_msgCount;
@@ -103,17 +103,18 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
 }
 
 // CREATORS
-StorageEventBuilder::StorageEventBuilder(
-    int                       storageProtocolVersion,
-    EventType::Enum           eventType,
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bslma::Allocator*         allocator)
-: d_storageProtocolVersion(storageProtocolVersion)
+StorageEventBuilder::StorageEventBuilder(int storageProtocolVersion,
+                                         EventType::Enum   eventType,
+                                         BlobSpPool*       blobSpPool_p,
+                                         bslma::Allocator* allocator)
+: d_blobSpPool_p(blobSpPool_p)
+, d_storageProtocolVersion(storageProtocolVersion)
 , d_eventType(eventType)
-, d_blob(bufferFactory, allocator)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blobSpPool_p);
     BSLS_ASSERT_SAFE(EventType::e_STORAGE == eventType ||
                      EventType::e_PARTITION_SYNC == eventType);
     reset();
@@ -122,7 +123,7 @@ StorageEventBuilder::StorageEventBuilder(
 // MANIPULATORS
 void StorageEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp  = d_blobSpPool_p->getObject();
     d_msgCount = 0;
 
     // NOTE: Since StorageEventBuilder owns the blob and we just reset it, we
@@ -134,8 +135,8 @@ void StorageEventBuilder::reset()
     // Use placement new to create the object directly in the blob buffer,
     // while still calling it's constructor (to memset memory and initialize
     // some fields)
-    d_blob.setLength(sizeof(EventHeader));
-    new (d_blob.buffer(0).data()) EventHeader(d_eventType);
+    d_blob_sp->setLength(sizeof(EventHeader));
+    new (d_blob_sp->buffer(0).data()) EventHeader(d_eventType);
 }
 
 bmqt::EventBuilderResult::Enum
@@ -168,8 +169,10 @@ StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            0 !=
-            bmqu::BlobUtil::appendToBlob(&d_blob, blob, startPos, length))) {
+            0 != bmqu::BlobUtil::appendToBlob(d_blob_sp.get(),
+                                              blob,
+                                              startPos,
+                                              length))) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return bmqt::EventBuilderResult::e_UNKNOWN;  // RETURN
     }
@@ -187,10 +190,27 @@ const bdlbb::Blob& StorageEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(d_blob.buffer(0).data());
-    eh.setLength(d_blob.length());
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+bsl::shared_ptr<bdlbb::Blob> StorageEventBuilder::blob_sp() const
+{
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+    }
+
+    // Fix packet's length in header now that we know it ..  Following is valid
+    // (see comment in reset)
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

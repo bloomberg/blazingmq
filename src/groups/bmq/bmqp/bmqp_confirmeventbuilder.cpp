@@ -34,18 +34,26 @@ namespace bmqp {
 // class ConfirmEventBuilder
 // -------------------------
 
-ConfirmEventBuilder::ConfirmEventBuilder(
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bslma::Allocator*         allocator)
-: d_blob(bufferFactory, allocator)
+ConfirmEventBuilder::ConfirmEventBuilder(BlobSpPool*       blobSpPool_p,
+                                         bslma::Allocator* allocator)
+: d_blobSpPool_p(blobSpPool_p)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blobSpPool_p);
+
     reset();
 }
 
 void ConfirmEventBuilder::reset()
 {
-    d_blob.removeAll();
+    d_blob_sp = d_blobSpPool_p->getObject();
+
+    // The following prerequisite is necessary since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_blob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     d_msgCount = 0;
 
@@ -58,16 +66,16 @@ void ConfirmEventBuilder::reset()
     // ConfirmHeader Use placement new to create the object directly in the
     // blob buffer, while still calling it's constructor (to memset memory and
     // initialize some fields).
-    d_blob.setLength(sizeof(EventHeader) + sizeof(ConfirmHeader));
-    BSLS_ASSERT_SAFE(d_blob.numDataBuffers() == 1 &&
+    d_blob_sp->setLength(sizeof(EventHeader) + sizeof(ConfirmHeader));
+    BSLS_ASSERT_SAFE(d_blob_sp->numDataBuffers() == 1 &&
                      "The buffers allocated by the supplied bufferFactory "
                      "are too small");
 
     // EventHeader
-    new (d_blob.buffer(0).data()) EventHeader(EventType::e_CONFIRM);
+    new (d_blob_sp->buffer(0).data()) EventHeader(EventType::e_CONFIRM);
 
     // ConfirmHeader
-    new (d_blob.buffer(0).data() + sizeof(EventHeader)) ConfirmHeader();
+    new (d_blob_sp->buffer(0).data() + sizeof(EventHeader)) ConfirmHeader();
 }
 
 bmqt::EventBuilderResult::Enum
@@ -87,9 +95,9 @@ ConfirmEventBuilder::appendMessage(int                      queueId,
 
     // Resize the blob to have space for an 'ConfirmMessage' at the end ...
     bmqu::BlobPosition offset;
-    bmqu::BlobUtil::reserve(&offset, &d_blob, sizeof(ConfirmMessage));
+    bmqu::BlobUtil::reserve(&offset, d_blob_sp.get(), sizeof(ConfirmMessage));
 
-    bmqu::BlobObjectProxy<ConfirmMessage> confirmMessage(&d_blob,
+    bmqu::BlobObjectProxy<ConfirmMessage> confirmMessage(d_blob_sp.get(),
                                                          offset,
                                                          false,  // no read
                                                          true);  // write mode
@@ -111,7 +119,7 @@ ConfirmEventBuilder::appendMessage(int                      queueId,
 const bdlbb::Blob& ConfirmEventBuilder::blob() const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob.length() <= EventHeader::k_MAX_SIZE_SOFT);
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
 
     // Empty event
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
@@ -121,10 +129,31 @@ const bdlbb::Blob& ConfirmEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it.  Following is valid
     // (see comment in reset).
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(d_blob.buffer(0).data());
-    eh.setLength(d_blob.length());
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+bsl::shared_ptr<bdlbb::Blob> ConfirmEventBuilder::blob_sp() const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+
+    // Empty event
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+    }
+
+    // Fix packet's length in header now that we know it.  Following is valid
+    // (see comment in reset).
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

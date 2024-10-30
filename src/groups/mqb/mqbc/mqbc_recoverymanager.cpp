@@ -117,13 +117,13 @@ void RecoveryManager::ReceiveDataContext::reset()
 
 // CREATORS
 RecoveryManager::RecoveryManager(
-    bdlbb::BlobBufferFactory*        bufferFactory,
+    BlobSpPool*                      blobSpPool_p,
     const mqbcfg::ClusterDefinition& clusterConfig,
     const mqbc::ClusterData&         clusterData,
     const mqbs::DataStoreConfig&     dataStoreConfig,
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
-, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_clusterConfig(clusterConfig)
 , d_dataStoreConfig(dataStoreConfig)
 , d_clusterData(clusterData)
@@ -422,7 +422,7 @@ int RecoveryManager::processSendDataChunks(
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
-                                      d_bufferFactory_p,
+                                      d_blobSpPool_p,
                                       d_allocator_p);
 
     // Note that partition has to be replayed from the record *after*
@@ -509,7 +509,7 @@ int RecoveryManager::processSendDataChunks(
                 .syncConfig()
                 .partitionSyncEventSize() <= builder.eventSize()) {
             const bmqt::GenericResult::Enum writeRc = destination->write(
-                builder.blob(),
+                builder.blob_sp(),
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -533,7 +533,7 @@ int RecoveryManager::processSendDataChunks(
 
     if (0 < builder.messageCount()) {
         const bmqt::GenericResult::Enum writeRc = destination->write(
-            builder.blob(),
+            builder.blob_sp(),
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {

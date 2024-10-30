@@ -57,7 +57,7 @@
 //..
 
 // BMQ
-
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_protocol.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
@@ -80,12 +80,19 @@ namespace bmqp {
 
 /// Mechanism to build a BlazingMQ ACK event
 class AckEventBuilder BSLS_CPP11_FINAL {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // DATA
-    mutable bdlbb::Blob d_blob;  // blob being built by this object.
-                                 // This has been done mutable to be able to
-                                 // skip writing the length until the blob
-                                 // is retrieved.
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
     int d_msgCount;              // number of messages currently in the
                                  // event
 
@@ -103,10 +110,11 @@ class AckEventBuilder BSLS_CPP11_FINAL {
   public:
     // CREATORS
 
-    /// Create a new `AckEventBuilder` using the specified `bufferFactory`
-    /// and `allocator` for the blob.
-    AckEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
-                    bslma::Allocator*         allocator);
+    /// Create a new `PushEventBuilder` using the specified `blobSpPool_p` and
+    /// `allocator` for the blob.  We require BlobSpPool to build Blobs with
+    /// set BlobBufferFactory since we might want to expand the built Blob
+    /// dynamically.
+    AckEventBuilder(BlobSpPool* blobSpPool_p, bslma::Allocator* allocator);
 
     // MANIPULATORS
 
@@ -141,6 +149,13 @@ class AckEventBuilder BSLS_CPP11_FINAL {
     /// by this event.  If no messages were added, this will return an empty
     /// blob, i.e., a blob with length == 0.
     const bdlbb::Blob& blob() const;
+
+    /// Return a shared pointer to the built Blob.  If no messages were added,
+    /// this will return an empty shared pointer.
+    /// Note that a shared pointer is returned by value, so the user holds to
+    /// the copy of a pointer.  The Blob in that copy will be valid even if we
+    /// `reset` this builder and modify the internal shared pointer.
+    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
 };
 
 // ============================================================================
@@ -171,7 +186,7 @@ inline int AckEventBuilder::eventSize() const
         return 0;  // RETURN
     }
 
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 }  // close package namespace

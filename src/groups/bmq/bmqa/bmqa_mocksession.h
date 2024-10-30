@@ -749,6 +749,11 @@ struct MockSessionUtil {
 /// Mechanism to mock a `bmqa::Session`
 class MockSession : public AbstractSession {
   public:
+    // TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bmqa::Session::BlobSpPool BlobSpPool;
+
     // CLASS METHODS
 
     /// Perform a one time initialization needed by components used in
@@ -1009,6 +1014,9 @@ class MockSession : public AbstractSession {
 
     /// Buffer factory
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
+
+    /// Pool of shared pointers to blobs
+    BlobSpPool d_blobSpPool;
 
     /// Event handler (set only in asynchronous mode)
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;

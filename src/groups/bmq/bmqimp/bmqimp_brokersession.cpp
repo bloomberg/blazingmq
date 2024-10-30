@@ -3629,6 +3629,7 @@ void BrokerSession::processPushEvent(const bmqp::Event& event)
         rc = bmqp::EventUtil::flattenPushEvent(&eventInfos,
                                                event,
                                                d_bufferFactory_p,
+                                               d_blobSpPool_p,
                                                d_allocator_p);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -4250,7 +4251,7 @@ void BrokerSession::doHandlePendingPutExpirationTimeout(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    bmqp::AckEventBuilder ackBuilder(d_bufferFactory_p, d_allocator_p);
+    bmqp::AckEventBuilder          ackBuilder(d_blobSpPool_p, d_allocator_p);
     bsl::vector<bmqt::MessageGUID> expiredKeys(d_allocator_p);
     bsl::shared_ptr<Event>         ackEvent = createEvent();
     bsl::shared_ptr<Queue>         queueSp;
@@ -4728,7 +4729,7 @@ void BrokerSession::cancelPendingMessages(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    bmqp::AckEventBuilder  ackBuilder(d_bufferFactory_p, d_allocator_p);
+    bmqp::AckEventBuilder  ackBuilder(d_blobSpPool_p, d_allocator_p);
     bsl::shared_ptr<Event> ackEvent = createEvent();
 
     MessageCorrelationIdContainer::KeyIdsCb callback = bdlf::BindUtil::bind(
@@ -4915,7 +4916,7 @@ void BrokerSession::retransmitPendingMessages()
     // Cancel pending PUTs expiration timer
     d_scheduler_p->cancelEvent(&d_messageExpirationTimeoutHandle);
 
-    bmqp::PutEventBuilder putBuilder(d_bufferFactory_p, d_allocator_p);
+    bmqp::PutEventBuilder putBuilder(d_blobSpPool_p, d_allocator_p);
 
     MessageCorrelationIdContainer::KeyIdsCb callback = bdlf::BindUtil::bind(
         &BrokerSession::handlePendingMessage,
@@ -5609,7 +5610,7 @@ void BrokerSession::actionResumeHealthSensitiveQueues()
 bmqt::GenericResult::Enum
 BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
                                const bmqp::QueueId&                 queueId,
-                               const bdlbb::Blob&                   blob,
+                               const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
                                bsls::Types::Int64                   watermark)
 {
     // executed by the FSM thread
@@ -5621,7 +5622,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
 
     if (isBuffered) {
         const bmqt::MessageGUID guid =
-            d_messageCorrelationIdContainer.add(context, queueId, blob);
+            d_messageCorrelationIdContainer.add(context, queueId, *blob_sp);
         char guidHex[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(guidHex);
         context->adoptUserData(
@@ -5640,7 +5641,7 @@ BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
         return bmqt::GenericResult::e_SUCCESS;  // RETURN
     }
 
-    bmqt::GenericResult::Enum res = writeOrBuffer(blob, watermark);
+    bmqt::GenericResult::Enum res = writeOrBuffer(*blob_sp, watermark);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             res != bmqt::GenericResult::e_SUCCESS && isBuffered)) {
@@ -5702,6 +5703,7 @@ BrokerSession::writeOrBuffer(const bdlbb::Blob& eventBlob,
 BrokerSession::BrokerSession(
     bdlmt::EventScheduler*                  scheduler,
     bdlbb::BlobBufferFactory*               bufferFactory,
+    BlobSpPool*                             blobSpPool_p,
     const bmqt::SessionOptions&             sessionOptions,
     const EventQueue::EventHandlerCallback& eventHandlerCb,
     const StateFunctor&                     stateCb,
@@ -5716,6 +5718,7 @@ BrokerSession::BrokerSession(
 , d_sessionOptions(sessionOptions)
 , d_scheduler_p(scheduler)
 , d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_channel_sp()
 , d_extensionBlobBuffer(allocator)
 , d_acceptRequests(false)
@@ -5747,7 +5750,7 @@ BrokerSession::BrokerSession(
                (eventHandlerCb ? sessionOptions.numProcessingThreads() : 0),
                d_allocators.get("EventQueue"))
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   bufferFactory,
+                   blobSpPool_p,
                    scheduler,
                    true,  // lateResponseMode
                    BrokerSession_Executor(this),
@@ -7313,7 +7316,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
     }
 
     // Build event
-    bmqp::ConfirmEventBuilder      builder(d_bufferFactory_p, d_allocator_p);
+    bmqp::ConfirmEventBuilder      builder(d_blobSpPool_p, d_allocator_p);
     bmqt::EventBuilderResult::Enum rc =
         builder.appendMessage(queue->id(), queue->subQueueId(), messageId);
 

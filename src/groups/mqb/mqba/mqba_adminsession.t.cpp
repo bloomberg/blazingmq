@@ -251,9 +251,9 @@ static void test1_watermark()
     admin.choice().makeAdminCommand();
     admin.choice().adminCommand().command() = command;
 
-    bmqp::SchemaEventBuilder builder(&tb.d_bufferFactory,
-                                     tb.d_allocator_p,
-                                     bmqp::EncodingType::e_JSON);
+    bmqp::SchemaEventBuilder builder(&tb.d_blobSpPool,
+                                     bmqp::EncodingType::e_JSON,
+                                     tb.d_allocator_p);
 
     int rc = builder.setMessage(admin, bmqp::EventType::e_CONTROL);
     ASSERT_EQ(rc, 0);

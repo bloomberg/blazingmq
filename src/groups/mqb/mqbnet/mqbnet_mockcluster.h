@@ -136,8 +136,8 @@ class MockClusterNode : public ClusterNode {
     /// imply that the data has been written or will be successfully written
     /// to the underlying stream used by this channel.
     bmqt::GenericResult::Enum
-    write(const bdlbb::Blob&    blob,
-          bmqp::EventType::Enum type) BSLS_KEYWORD_OVERRIDE;
+    write(const bsl::shared_ptr<bdlbb::Blob>& blob,
+          bmqp::EventType::Enum               type) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual mqbnet::ClusterNode)
@@ -271,13 +271,14 @@ class MockCluster : public Cluster {
     /// nodes of this cluster (with the exception of the current node).
     /// Return the maximum number of pending items across all cluster
     /// channels prior to broadcasting.
-    int writeAll(const bdlbb::Blob&    blob,
+    int writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
                  bmqp::EventType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `blob` to all currently up nodes of this cluster
     /// (exception of the current node).  Return the maximum number of
     /// pending items across all cluster channels prior to broadcasting.
-    int broadcast(const bdlbb::Blob& blob) BSLS_KEYWORD_OVERRIDE;
+    int
+    broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob) BSLS_KEYWORD_OVERRIDE;
 
     /// Close the channels associated to all nodes in this cluster.
     void closeChannels() BSLS_KEYWORD_OVERRIDE;

@@ -60,6 +60,8 @@ BSLMF_ASSERT(Protocol::SubQueueIdsArrayOld::static_size >= 1);
 class Flattener {
   private:
     // PRIVATE TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS = 0  // No error
@@ -180,10 +182,11 @@ class Flattener {
     // CREATORS
 
     /// Create a `Flattener` using the specified `eventInfos`, `event`,
-    /// `bufferFactory` and `allocator`
+    /// `blobSpPool_p`, `bufferFactory` and `allocator`
     Flattener(bsl::vector<EventUtilEventInfo>* eventInfos,
               const Event&                     event,
               bdlbb::BlobBufferFactory*        bufferFactory,
+              BlobSpPool*                      blobSpPool_p,
               bslma::Allocator*                allocator);
 
     // MANIPULATORS
@@ -400,10 +403,11 @@ void Flattener::advanceEvent()
 Flattener::Flattener(bsl::vector<EventUtilEventInfo>* eventInfos,
                      const Event&                     event,
                      bdlbb::BlobBufferFactory*        bufferFactory,
+                     BlobSpPool*                      blobSpPool_p,
                      bslma::Allocator*                allocator)
 : d_eventInfos_p(eventInfos)
 , d_allocator_p(allocator)
-, d_builder(bufferFactory, allocator)
+, d_builder(blobSpPool_p, allocator)
 , d_msgIterator(bufferFactory, allocator)
 , d_currEventInfo(allocator)
 , d_appData(bufferFactory, allocator)
@@ -486,6 +490,7 @@ int Flattener::flattenPushEvent()
 int EventUtil::flattenPushEvent(bsl::vector<EventUtilEventInfo>* eventInfos,
                                 const Event&                     event,
                                 bdlbb::BlobBufferFactory*        bufferFactory,
+                                BlobSpPool*                      blobSpPool_p,
                                 bslma::Allocator*                allocator)
 {
     // PRECONDITIONS
@@ -495,7 +500,11 @@ int EventUtil::flattenPushEvent(bsl::vector<EventUtilEventInfo>* eventInfos,
     BSLS_ASSERT_SAFE(bufferFactory);
     BSLS_ASSERT_SAFE(allocator);
 
-    Flattener flattener(eventInfos, event, bufferFactory, allocator);
+    Flattener flattener(eventInfos,
+                        event,
+                        bufferFactory,
+                        blobSpPool_p,
+                        allocator);
     return flattener.flattenPushEvent();
 }
 

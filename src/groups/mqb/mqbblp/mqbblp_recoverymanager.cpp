@@ -1522,7 +1522,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
 
     unsigned int               sequenceNumber = 0;
     bsls::Types::Uint64        currOffset     = beginOffset;
-    bmqp::RecoveryEventBuilder builder(&d_clusterData_p->bufferFactory(),
+    bmqp::RecoveryEventBuilder builder(&d_clusterData_p->blobSpPool(),
                                        d_allocator_p);
 
     while ((currOffset + chunkSize) < endOffset) {
@@ -1552,7 +1552,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         }
 
         bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-            builder.blob(),
+            builder.blob_sp(),
             bmqp::EventType::e_RECOVERY);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1600,7 +1600,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
     }
 
     bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-        builder.blob(),
+        builder.blob_sp(),
         bmqp::EventType::e_RECOVERY);
 
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1707,7 +1707,7 @@ int RecoveryManager::replayPartition(
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
-                                      &d_clusterData_p->bufferFactory(),
+                                      &d_clusterData_p->blobSpPool(),
                                       d_allocator_p);
 
     // Note that partition has to be replayed from the record *after*
@@ -1803,7 +1803,7 @@ int RecoveryManager::replayPartition(
                 .syncConfig()
                 .partitionSyncEventSize() <= builder.eventSize()) {
             bmqt::GenericResult::Enum writeRc = destination->write(
-                builder.blob(),
+                builder.blob_sp(),
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1827,7 +1827,7 @@ int RecoveryManager::replayPartition(
 
     if (0 < builder.messageCount()) {
         bmqt::GenericResult::Enum writeRc = destination->write(
-            builder.blob(),
+            builder.blob_sp(),
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -3271,7 +3271,7 @@ void RecoveryManager::processStorageEvent(
 
     bmqp::StorageEventBuilder seb(mqbs::FileStoreProtocol::k_VERSION,
                                   bmqp::EventType::e_STORAGE,
-                                  &d_clusterData_p->bufferFactory(),
+                                  &d_clusterData_p->blobSpPool(),
                                   d_allocator_p);
 
     while (1 == iter.next()) {

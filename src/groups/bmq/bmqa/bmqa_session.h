@@ -565,6 +565,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -678,6 +679,13 @@ struct SessionImpl {
 class Session : public AbstractSession {
   public:
     // TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
 
     /// Invoked as a response to an asynchronous open queue operation,
     /// `OpenQueueCallback` is an alias for a callback function object

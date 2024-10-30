@@ -114,7 +114,7 @@ AdminSessionState::AdminSessionState(BlobSpPool*               blobSpPool,
 , d_dispatcherClientData()
 , d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
-, d_schemaEventBuilder(bufferFactory, allocator, encodingType)
+, d_schemaEventBuilder(blobSpPool, encodingType, allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(encodingType != bmqp::EncodingType::e_UNKNOWN);

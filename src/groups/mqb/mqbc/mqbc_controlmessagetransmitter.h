@@ -69,17 +69,19 @@ namespace mqbc {
 /// This class provides a mechanism to transmit messages to peer nodes in
 /// the same cluster.
 class ControlMessageTransmitter {
+  public:
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.ControlMessageTransmitter");
 
-  private:
     // DATA
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use.
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
 
     bmqp::SchemaEventBuilder d_schemaBuilder;
     // Schema event builder to use.  Must be used
@@ -127,9 +129,9 @@ class ControlMessageTransmitter {
     // CREATORS
 
     /// Create an instance of `ControlMessageTransmitter` associated with
-    /// the specified `cluster` and using the specified `bufferFactory`.
+    /// the specified `cluster` and using the specified `blobSpPool_p`.
     /// Use the specified `allocator` for memory allocations.
-    ControlMessageTransmitter(bdlbb::BlobBufferFactory* bufferFactory,
+    ControlMessageTransmitter(BlobSpPool*               blobSpPool_p,
                               mqbi::Cluster*            cluster,
                               mqbnet::TransportManager* transportManager,
                               bslma::Allocator*         allocator);

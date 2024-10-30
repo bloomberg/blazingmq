@@ -762,7 +762,9 @@ class TestBench {
     /// this testbench's `ClientSession`.
     void openQueue(const bsl::string& uri, const int queueId)
     {
-        bmqp::SchemaEventBuilder     obj(&d_bufferFactory, d_allocator_p);
+        bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::OpenQueue&     openQueue =
             controlMessage.choice().makeOpenQueue();
@@ -787,7 +789,9 @@ class TestBench {
     /// this testbench's `ClientSession`.
     void closeQueue(const bsl::string& uri, const int queueId)
     {
-        bmqp::SchemaEventBuilder     obj(&d_bufferFactory, d_allocator_p);
+        bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::CloseQueue&    closeQueue =
             controlMessage.choice().makeCloseQueue();
@@ -1908,7 +1912,7 @@ static void test9_newStylePush()
     bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+    bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
                         bmqtst::TestHelperUtil::allocator());
@@ -2023,7 +2027,7 @@ static void test10_newStyleCompressedPush()
     bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+    bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
                         bmqtst::TestHelperUtil::allocator());

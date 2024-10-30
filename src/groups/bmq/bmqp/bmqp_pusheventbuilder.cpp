@@ -114,10 +114,10 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::packMessageImp(
     d_currPushHeader.reset();  // i.e., flush writing to blob..
 
     // Add the payload
-    bdlbb::BlobUtil::append(&d_blob, payload);
+    bdlbb::BlobUtil::append(d_blob_sp.get(), payload);
 
     // Add padding
-    ProtocolUtil::appendPadding(&d_blob, payloadLen);
+    ProtocolUtil::appendPadding(d_blob_sp.get(), payloadLen);
 
     d_options.reset();
     ++d_msgCount;
@@ -134,9 +134,9 @@ void PushEventBuilder::ensurePushHeader()
 
     // Add the PushHeader
     bmqu::BlobPosition phOffset;
-    bmqu::BlobUtil::reserve(&phOffset, &d_blob, sizeof(PushHeader));
+    bmqu::BlobUtil::reserve(&phOffset, d_blob_sp.get(), sizeof(PushHeader));
 
-    d_currPushHeader.reset(&d_blob,
+    d_currPushHeader.reset(d_blob_sp.get(),
                            phOffset,
                            false,  // no read
                            true);  // write mode
@@ -146,13 +146,18 @@ void PushEventBuilder::ensurePushHeader()
 }
 
 // CREATORS
-PushEventBuilder::PushEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
-                                   bslma::Allocator*         allocator)
-: d_allocator_p(allocator)
-, d_blob(bufferFactory, allocator)
+PushEventBuilder::PushEventBuilder(BlobSpPool*       blobSpPool_p,
+                                   bslma::Allocator* allocator)
+: d_allocator_p(bslma::Default::allocator(allocator))
+, d_blobSpPool_p(blobSpPool_p)
+, d_blob_sp(0, allocator)  // initialized in `reset()`
 , d_msgCount(0)
 , d_options()
+, d_currPushHeader()
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blobSpPool_p);
+
     reset();
 }
 
@@ -163,7 +168,12 @@ int PushEventBuilder::reset()
     // Flush any buffered changes if necessary, and make this object not
     // refer to any valid blob object.
 
-    d_blob.removeAll();
+    d_blob_sp = d_blobSpPool_p->getObject();
+
+    // The following prerequisite is necessary since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_blob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     d_msgCount = 0;
     d_options.reset();
@@ -177,8 +187,8 @@ int PushEventBuilder::reset()
     // Use placement new to create the object directly in the blob buffer,
     // while still calling it's constructor (to memset memory and initialize
     // some fields)
-    d_blob.setLength(sizeof(EventHeader));
-    new (d_blob.buffer(0).data()) EventHeader(EventType::e_PUSH);
+    d_blob_sp->setLength(sizeof(EventHeader));
+    new (d_blob_sp->buffer(0).data()) EventHeader(EventType::e_PUSH);
 
     return 0;
 }
@@ -230,7 +240,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
                    bdlb::BigEndianUint32::make);
 
     // TODO_POISON_PILL Make sure that adding *packed* option also works
-    d_options.add(&d_blob,
+    d_options.add(d_blob_sp.get(),
                   reinterpret_cast<const char*>(tempVec.data()),
                   option);
 
@@ -298,7 +308,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     if (packRdaCounter && isDefaultSubQueueInfo(subQueueInfos)) {
         // The header is packed and there is no payload, so simply add the
         // option header.
-        d_options.add(&d_blob, 0, option);
+        d_options.add(d_blob_sp.get(), 0, option);
         return bmqt::EventBuilderResult::e_SUCCESS;  // RETURN
     }
 
@@ -311,7 +321,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
         bsl::copy(subQueueInfos.begin(),
                   subQueueInfos.end(),
                   bsl::back_inserter(tempVec));
-        d_options.add(&d_blob,
+        d_options.add(d_blob_sp.get(),
                       reinterpret_cast<const char*>(tempVec.data()),
                       option);
         return bmqt::EventBuilderResult::e_SUCCESS;  // RETURN
@@ -332,7 +342,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
         tempVec.push_back(bdlb::BigEndianUint32::make(citer->id()));
     }
 
-    d_options.add(&d_blob,
+    d_options.add(d_blob_sp.get(),
                   reinterpret_cast<const char*>(tempVec.data()),
                   option);
 
@@ -383,7 +393,7 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
     // Make sure PushHeader is written for current message
     ensurePushHeader();
 
-    d_options.add(&d_blob,
+    d_options.add(d_blob_sp.get(),
                   reinterpret_cast<const char*>(msgGroupId.data()),
                   option);
 
@@ -395,10 +405,22 @@ const bdlbb::Blob& PushEventBuilder::blob() const
 {
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(d_blob.buffer(0).data());
-    eh.setLength(d_blob.length());
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
 
-    return d_blob;
+    return *d_blob_sp;
+}
+
+bsl::shared_ptr<bdlbb::Blob> PushEventBuilder::blob_sp() const
+{
+    // Fix packet's length in header now that we know it ..  Following is valid
+    // (see comment in reset)
+    EventHeader& eh = *reinterpret_cast<EventHeader*>(
+        d_blob_sp->buffer(0).data());
+    eh.setLength(d_blob_sp->length());
+
+    return d_blob_sp;
 }
 
 }  // close package namespace

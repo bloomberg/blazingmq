@@ -596,12 +596,14 @@ template <class REQUEST, class RESPONSE>
 class RequestManager {
   public:
     // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
     /// Signature of a method to send a request, represented by the
     /// specified `blob`.  Return 0 on success, and a non-zero value
     /// otherwise, populating the optionally specified `status` with
     /// information pertaining to the error.
-    typedef bsl::function<bmqt::GenericResult::Enum(const bdlbb::Blob& blob)>
+    typedef bsl::function<bmqt::GenericResult::Enum(
+        const bsl::shared_ptr<bdlbb::Blob>& blob)>
         SendFn;
 
     typedef RequestManagerRequest<REQUEST, RESPONSE> RequestType;
@@ -696,12 +698,13 @@ class RequestManager {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Send the specified `blob` over the specified `channel` using the
+    /// Send the specified `blob_sp` over the specified `channel` using the
     /// specified `watermark`.  Return a Generic Result code representing
     /// the status of delivery of this request.
-    static bmqt::GenericResult::Enum sendHelper(bmqio::Channel*    channel,
-                                                const bdlbb::Blob& blob,
-                                                bsls::Types::Int64 watermark);
+    static bmqt::GenericResult::Enum
+    sendHelper(bmqio::Channel*                     channel,
+               const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+               bsls::Types::Int64                  watermark);
 
     /// Callback invoked by the scheduler when the request identified by the
     /// specified `requestId` has timedout.
@@ -730,31 +733,31 @@ class RequestManager {
 
     // CREATORS
 
-    /// Create a new object using the specified `bufferFactory`, `scheduler`
+    /// Create a new object using the specified `blobSpPool_p`, `scheduler`
     /// and `executor` and the provided `allocator` for memory allocation.
     /// Events sent will be of the specified `eventType`.  If `executor` is
     /// specified, it will be used around the invocation of the callback
     /// when a request times out.  Note that `scheduler` must be
     /// configured to use the `bsls::SystemClockType::e_MONOTONIC` clock
     /// type.
-    RequestManager(bmqp::EventType::Enum     eventType,
-                   bdlbb::BlobBufferFactory* bufferFactory,
-                   bdlmt::EventScheduler*    scheduler,
-                   bool                      lateResponseMode,
-                   bslma::Allocator*         allocator = 0);
-    RequestManager(bmqp::EventType::Enum     eventType,
-                   bdlbb::BlobBufferFactory* bufferFactory,
-                   bdlmt::EventScheduler*    scheduler,
-                   bool                      lateResponseMode,
-                   const bmqex::Executor&    executor,
-                   bslma::Allocator*         allocator = 0);
-    RequestManager(bmqp::EventType::Enum     eventType,
-                   bdlbb::BlobBufferFactory* bufferFactory,
-                   bdlmt::EventScheduler*    scheduler,
-                   bool                      lateResponseMode,
-                   const bmqex::Executor&    executor,
-                   const DTContextSp&        dtContextSp,
-                   bslma::Allocator*         allocator = 0);
+    RequestManager(bmqp::EventType::Enum  eventType,
+                   BlobSpPool*            blobSpPool_p,
+                   bdlmt::EventScheduler* scheduler,
+                   bool                   lateResponseMode,
+                   bslma::Allocator*      allocator = 0);
+    RequestManager(bmqp::EventType::Enum  eventType,
+                   BlobSpPool*            blobSpPool_p,
+                   bdlmt::EventScheduler* scheduler,
+                   bool                   lateResponseMode,
+                   const bmqex::Executor& executor,
+                   bslma::Allocator*      allocator = 0);
+    RequestManager(bmqp::EventType::Enum  eventType,
+                   BlobSpPool*            blobSpPool_p,
+                   bdlmt::EventScheduler* scheduler,
+                   bool                   lateResponseMode,
+                   const bmqex::Executor& executor,
+                   const DTContextSp&     dtContextSp,
+                   bslma::Allocator*      allocator = 0);
 
     /// Destroy this object.
     ~RequestManager();
@@ -1042,13 +1045,13 @@ const bdld::Datum& RequestManagerRequest<REQUEST, RESPONSE>::userData() const
 // --------------------
 
 template <class REQUEST, class RESPONSE>
-inline bmqt::GenericResult::Enum
-RequestManager<REQUEST, RESPONSE>::sendHelper(bmqio::Channel*    channel,
-                                              const bdlbb::Blob& blob,
-                                              bsls::Types::Int64 watermark)
+inline bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendHelper(
+    bmqio::Channel*                     channel,
+    const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+    bsls::Types::Int64                  watermark)
 {
     bmqio::Status status;
-    channel->write(&status, blob, watermark);
+    channel->write(&status, *blob_sp, watermark);
 
     switch (status.category()) {
     case bmqio::StatusCategory::e_SUCCESS:
@@ -1192,17 +1195,17 @@ void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
 
 template <class REQUEST, class RESPONSE>
 RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum     eventType,
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bdlmt::EventScheduler*    scheduler,
-    bool                      lateResponseMode,
-    bslma::Allocator*         allocator)
+    bmqp::EventType::Enum  eventType,
+    BlobSpPool*            blobSpPool_p,
+    bdlmt::EventScheduler* scheduler,
+    bool                   lateResponseMode,
+    bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
 , d_nextRequestId(0)
 , d_requests(allocator)
-, d_schemaEventBuilder(bufferFactory, allocator)
+, d_schemaEventBuilder(blobSpPool_p, bmqp::EncodingType::e_BER, allocator)
 , d_lateResponseMode(lateResponseMode)
 , d_executor(bmqex::SystemExecutor())  // Use SystemExecutor so that when using
                                        // 'possiblyBlocking' it will inline
@@ -1218,18 +1221,18 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
 
 template <class REQUEST, class RESPONSE>
 RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum     eventType,
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bdlmt::EventScheduler*    scheduler,
-    bool                      lateResponseMode,
-    const bmqex::Executor&    executor,
-    bslma::Allocator*         allocator)
+    bmqp::EventType::Enum  eventType,
+    BlobSpPool*            blobSpPool_p,
+    bdlmt::EventScheduler* scheduler,
+    bool                   lateResponseMode,
+    const bmqex::Executor& executor,
+    bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
 , d_nextRequestId(0)
 , d_requests(allocator)
-, d_schemaEventBuilder(bufferFactory, allocator)
+, d_schemaEventBuilder(blobSpPool_p, bmqp::EncodingType::e_BER, allocator)
 , d_lateResponseMode(lateResponseMode)
 , d_executor(executor)
 , d_dtContext_sp(NULL)
@@ -1242,19 +1245,19 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
 
 template <class REQUEST, class RESPONSE>
 RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum     eventType,
-    bdlbb::BlobBufferFactory* bufferFactory,
-    bdlmt::EventScheduler*    scheduler,
-    bool                      lateResponseMode,
-    const bmqex::Executor&    executor,
-    const DTContextSp&        dtContext,
-    bslma::Allocator*         allocator)
+    bmqp::EventType::Enum  eventType,
+    BlobSpPool*            blobSpPool_p,
+    bdlmt::EventScheduler* scheduler,
+    bool                   lateResponseMode,
+    const bmqex::Executor& executor,
+    const DTContextSp&     dtContext,
+    bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
 , d_nextRequestId(0)
 , d_requests(allocator)
-, d_schemaEventBuilder(bufferFactory, allocator)
+, d_schemaEventBuilder(blobSpPool_p, bmqp::EncodingType::e_BER, allocator)
 , d_lateResponseMode(lateResponseMode)
 , d_executor(executor)
 , d_dtContext_sp(dtContext)
@@ -1362,7 +1365,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
 
     // Send the request
     request->d_sendTime              = bmqsys::Time::highResolutionTimer();
-    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob());
+    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob_sp());
     if (sendRc != bmqt::GenericResult::e_SUCCESS) {
         bmqu::MemOutStream errorDesc;
         errorDesc << "WRITE_FAILED, status: " << sendRc;
