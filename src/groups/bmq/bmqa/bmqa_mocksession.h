@@ -393,7 +393,7 @@
 ///       `emitting` on the @ref BMQA_EXPECT_CALL macro in synchronous mode is
 ///       meaningless.
 ///
-///```
+/// ```
 /// void unitTest()
 /// {
 ///     // MockSession created without an eventHandler.
