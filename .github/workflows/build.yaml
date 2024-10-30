@@ -221,6 +221,14 @@ jobs:
             --reruns=3                          \
             -n 4 -v
 
+      - name: Upload failure-logs as artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}
+          path: ${{ github.workspace }}/src/integration-tests/failure-logs
+          retention-days: 5
+
   fuzz_tests_ubuntu:
     name: Fuzz test [${{ matrix.request }}]
     strategy:
