@@ -151,6 +151,7 @@
 
 #include <mqbcmd_messages.h>
 #include <mqbu_resourceusagemonitor.h>
+#include <mqbu_storagekey.h>
 
 // BDE
 #include <ball_log.h>
@@ -189,6 +190,11 @@ class CapacityMeter {
         e_LIMIT_BYTES = 2  // bytes limit was hit
     };
 
+    // Callback function to log enhanced storage info into the
+    // specified `stream`.
+    typedef bsl::function<bsl::ostream&(bsl::ostream& stream)>
+        LogEnhancedStorageInfoCb;
+
   private:
     // DATA
     bsl::string d_name;
@@ -218,6 +224,10 @@ class CapacityMeter {
     // SpinLock for synchronization of this
     // component
 
+    LogEnhancedStorageInfoCb d_logEnhancedStorageInfoCb;
+    // Callback function to log enhanced storage info into the
+    // specified `stream`.
+
     // FRIENDS
     friend struct CapacityMeterUtil;
 
@@ -243,16 +253,20 @@ class CapacityMeter {
 
     // CREATORS
 
-    /// Create a new un-configured object having the specified `name` and
-    /// using the specified `allocator`.
-    CapacityMeter(const bsl::string& name, bslma::Allocator* allocator);
+    /// Create a new un-configured object having the specified `name`,
+    /// using the specified `allocator` and optionally specified
+    /// `logEnhancedStorageInfoCb`.
+    CapacityMeter(const bsl::string&       name,
+                  bslma::Allocator*        allocator,
+                  LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0);
 
     /// Create a new un-configured object having the specified `name`, being
     /// a child of the specified `parent` meter and using the specified
-    /// `allocator`.
-    CapacityMeter(const bsl::string& name,
-                  CapacityMeter*     parent,
-                  bslma::Allocator*  allocator);
+    /// `allocator` and optionally specified `logEnhancedStorageInfoCb`.
+    CapacityMeter(const bsl::string&       name,
+                  CapacityMeter*           parent,
+                  bslma::Allocator*        allocator,
+                  LogEnhancedStorageInfoCb logEnhancedStorageInfoCb = 0);
 
     // MANIPULATORS
 

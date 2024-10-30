@@ -83,6 +83,10 @@ void CapacityMeter::logOnMonitorStateTransition(
     switch (stateTransition) {
     case ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK:
     case ResourceUsageMonitorStateTransition::e_FULL: {
+        if (d_logEnhancedStorageInfoCb) {
+            d_logEnhancedStorageInfoCb(stream);
+        }
+
         BMQTSK_ALARMLOG_RAW_ALARM(categoryStream.str())
             << stream.str() << BMQTSK_ALARMLOG_END;
     } break;
@@ -100,8 +104,9 @@ void CapacityMeter::logOnMonitorStateTransition(
     }
 }
 
-CapacityMeter::CapacityMeter(const bsl::string& name,
-                             bslma::Allocator*  allocator)
+CapacityMeter::CapacityMeter(const bsl::string&       name,
+                             bslma::Allocator*        allocator,
+                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb)
 : d_name(name, allocator)
 , d_isDisabled(false)
 , d_parent_p(0)
@@ -115,13 +120,15 @@ CapacityMeter::CapacityMeter(const bsl::string& name,
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
 , d_lock(bsls::SpinLock::s_unlocked)
+, d_logEnhancedStorageInfoCb(logEnhancedStorageInfoCb)
 {
     // NOTHING
 }
 
-CapacityMeter::CapacityMeter(const bsl::string& name,
-                             CapacityMeter*     parent,
-                             bslma::Allocator*  allocator)
+CapacityMeter::CapacityMeter(const bsl::string&       name,
+                             CapacityMeter*           parent,
+                             bslma::Allocator*        allocator,
+                             LogEnhancedStorageInfoCb logEnhancedStorageInfoCb)
 : d_name(name, allocator)
 , d_isDisabled(false)
 , d_parent_p(parent)
@@ -135,6 +142,7 @@ CapacityMeter::CapacityMeter(const bsl::string& name,
 , d_nbMessagesReserved(0)
 , d_nbBytesReserved(0)
 , d_lock()
+, d_logEnhancedStorageInfoCb(logEnhancedStorageInfoCb)
 {
     // NOTHING
 }

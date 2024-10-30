@@ -63,5 +63,12 @@ void QueueEngine::unregisterStorage(
     // NOTHING
 }
 
+bsl::ostream&
+QueueEngine::logAppSubscriptionInfo(bsl::ostream&           stream,
+                                    const mqbu::StorageKey& appKey) const
+{
+    return stream;
+};
+
 }  // close package namespace
 }  // close enterprise namespace

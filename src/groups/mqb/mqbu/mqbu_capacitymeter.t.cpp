@@ -33,6 +33,16 @@ using namespace BloombergLP;
 using namespace bsl;
 
 // ============================================================================
+//                                    HELPERS
+// ----------------------------------------------------------------------------
+
+bsl::ostream& logEnhancedStorageInfoCb(bsl::ostream& stream)
+{
+    stream << "Test enhanced storage Info";
+    return stream;
+}
+
+// ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
@@ -229,6 +239,79 @@ static void test2_logStateChange()
     }
 }
 
+static void test3_enhancedLog()
+// ------------------------------------------------------------------------
+// ENHANCED ALARM LOG
+//
+// Concerns:
+//   Ensure that enhanced alarm log is printed if callback is passed.
+//
+// Plan:
+//   1. Pass LogEnhancedStorageInfoCb callback during initialization
+//   2. Set resources to the high watermark and ensure the enhanced
+//      error message was logged.
+//
+// Testing:
+//   logging
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ENHANCED ALARM LOG");
+
+    // Set resource to the high watermark, it should log one
+    PV("STATE - HIGH WATERMARK");
+
+    s_ignoreCheckDefAlloc = true;
+    // Logging infrastructure allocates using the default allocator, and
+    // that logging is beyond the control of this function.
+
+    const bsls::Types::Int64 k_MSGS_LIMIT                = 10;
+    const double             k_MSGS_THRESHOLD            = 0.5;
+    const bsls::Types::Int64 k_MSGS_HIGH_WATERMARK_VALUE = k_MSGS_LIMIT *
+                                                           k_MSGS_THRESHOLD;
+    const bsls::Types::Int64 k_BYTES_LIMIT                = 1024;
+    const double             k_BYTES_THRESHOLD            = 0.8;
+    const bsls::Types::Int64 k_BYTES_HIGH_WATERMARK_VALUE = k_BYTES_LIMIT *
+                                                            k_BYTES_THRESHOLD;
+
+    bmqtst::ScopedLogObserver observer(ball::Severity::WARN, s_allocator_p);
+    mqbu::CapacityMeter       capacityMeter(
+        "dummy",
+        s_allocator_p,
+        bdlf::BindUtil::bind(&logEnhancedStorageInfoCb,
+                             bdlf::PlaceHolders::_1)  // stream
+    );
+    capacityMeter.setLimits(k_MSGS_LIMIT, k_BYTES_LIMIT);
+    capacityMeter.setWatermarkThresholds(k_MSGS_THRESHOLD, k_BYTES_THRESHOLD);
+
+    bsls::Types::Int64 nbMessagesAvailable;
+    bsls::Types::Int64 nbBytesAvailable;
+    capacityMeter.reserve(&nbMessagesAvailable,
+                          &nbBytesAvailable,
+                          k_MSGS_HIGH_WATERMARK_VALUE,
+                          10);
+    BSLS_ASSERT_OPT(nbMessagesAvailable == k_MSGS_HIGH_WATERMARK_VALUE);
+    BSLS_ASSERT_OPT(nbBytesAvailable == 10);
+
+    ASSERT(observer.records().empty());
+
+    capacityMeter.commit(k_MSGS_HIGH_WATERMARK_VALUE, 10);
+
+    ASSERT_EQ(observer.records().size(), 1U);
+
+    const ball::Record& record = observer.records()[0];
+    ASSERT_EQ(record.fixedFields().severity(), ball::Severity::ERROR);
+
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        record,
+        "ALARM \\[CAPACITY_STATE_HIGH_WATERMARK\\]",
+        s_allocator_p));
+    // Check log from callback
+    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        record,
+        "Test enhanced storage Info",
+        s_allocator_p));
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -241,6 +324,7 @@ int main(int argc, char* argv[])
     case 0:
     case 2: test2_logStateChange(); break;
     case 1: test1_breathingTest(); break;
+    case 3: test3_enhancedLog(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

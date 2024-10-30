@@ -1619,6 +1619,131 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
     d_consumptionMonitor.onTimer(currentTimer);
 }
 
+bsl::ostream&
+RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&           stream,
+                                        const mqbu::StorageKey& appKey) const
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
+        d_queueState_p->queue()));
+
+    // Get AppState by appKey.
+    Apps::const_iterator cItApp = d_apps.findByKey2(AppKeyCount(appKey, 0));
+    if (cItApp == d_apps.end()) {
+        BALL_LOG_WARN << "No app found for appKey: " << appKey;
+        stream << "\nSubscription info: no app found for appKey: " << appKey;
+        return stream;  // RETURN
+    }
+
+    const AppStateSp& app = cItApp->value();
+    return logAppSubscriptionInfo(stream, app);
+}
+
+bsl::ostream&
+RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
+                                        const AppStateSp& appState) const
+{
+    mqbi::Storage* const storage = d_queueState_p->storage();
+
+    // Log un-delivered messages info
+    stream << "\nFor appId: " << appState->appId() << "\n\n";
+    stream << "Put aside list size: "
+           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                  appState->putAsideListSize()))
+           << '\n';
+    stream << "Redelivery list size: "
+           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
+                  appState->redeliveryListSize()))
+           << '\n';
+    stream << "Number of messages: "
+           << bmqu::PrintUtil::prettyNumber(
+                  storage->numMessages(appState->appKey()))
+           << '\n';
+    stream << "Number of bytes: "
+           << bmqu::PrintUtil::prettyBytes(
+                  storage->numBytes(appState->appKey()))
+           << "\n\n";
+
+    // Log consumer subscriptions
+    mqbblp::Routers::QueueRoutingContext& routingContext =
+        appState->routing()->d_queue;
+    mqbcmd::Routing routing;
+    routingContext.loadInternals(&routing);
+    const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
+        routing.subscriptionGroups();
+    if (!subscrGroups.empty()) {
+        // Limit to log only k_EXPR_NUM_LIMIT expressions
+        static const size_t k_EXPR_NUM_LIMIT = 50;
+        if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
+            stream << "First " << k_EXPR_NUM_LIMIT
+                   << " of consumer subscription expressions: \n";
+        }
+        else {
+            stream << "Consumer subscription expressions: \n";
+        }
+
+        size_t exprNum = 0;
+        for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
+                 subscrGroups.begin();
+             cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
+             ++cIt, ++exprNum) {
+            if (cIt->expression().empty()) {
+                stream << "<Empty>\n";
+            }
+            else {
+                stream << cIt->expression() << '\n';
+            }
+        }
+        stream << '\n';
+    }
+
+    // Log the first (oldest) message in a put aside list and its properties
+    if (!appState->putAsideList().empty()) {
+        bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
+        mqbi::StorageResult::Enum                rc = storage->getIterator(
+            &storageIt_mp,
+            appState->appKey(),
+            appState->putAsideList().first());
+        if (rc == mqbi::StorageResult::e_SUCCESS) {
+            // Log timestamp
+            stream << "Oldest message in the 'Put aside' list:\n";
+            mqbcmd::Result result;
+            mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
+                                                storage,
+                                                *storageIt_mp);
+            mqbcmd::HumanPrinter::print(stream, result);
+            stream << '\n';
+            // Log message properties
+            const bsl::shared_ptr<bdlbb::Blob>& appData =
+                storageIt_mp->appData();
+            const bmqp::MessagePropertiesInfo& logic =
+                storageIt_mp->attributes().messagePropertiesInfo();
+            bmqp::MessageProperties properties;
+            int ret = properties.streamIn(*appData, logic.isExtended());
+            if (!ret) {
+                stream << "Message Properties: " << properties << '\n';
+            }
+            else {
+                BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
+                              << rc;
+                stream << "Message Properties: Failed to acquire [rc: " << rc
+                       << "]\n";
+            }
+        }
+        else {
+            BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
+                          << appState->putAsideList().first()
+                          << ", rc = " << rc;
+            stream << "'Put aside' list: Failed to acquire [rc: " << rc
+                   << "]\n";
+        }
+    }
+
+    return stream;
+}
+
 bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
                                  bool                    enableLog) const
 {
@@ -1711,83 +1836,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         << " consumers." << ss.str() << '\n';
 
     // Log un-delivered messages info
-    out << "\nFor appId: " << app->appId() << '\n';
-    out << "Put aside list size: " << app->putAsideListSize() << '\n';
-    out << "Redelivery list size: " << app->redeliveryListSize() << '\n';
-    out << "Number of messages: " << storage->numMessages(appKey) << '\n';
-    out << "Number of bytes: " << storage->numBytes(appKey) << "\n\n";
-
-    // Log consumer subscriptions
-    mqbblp::Routers::QueueRoutingContext& routingContext =
-        app->routing()->d_queue;
-    mqbcmd::Routing routing;
-    routingContext.loadInternals(&routing);
-    const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
-        routing.subscriptionGroups();
-
-    // Limit to log only k_EXPR_NUM_LIMIT expressions
-    static const size_t k_EXPR_NUM_LIMIT = 50;
-    ss.reset();
-    size_t exprNum = 0;
-    for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
-             subscrGroups.begin();
-         cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
-         ++cIt) {
-        if (!cIt->expression().empty()) {
-            ss << cIt->expression() << '\n';
-            ++exprNum;
-        }
-    }
-    if (exprNum) {
-        if (exprNum == k_EXPR_NUM_LIMIT) {
-            out << "First " << k_EXPR_NUM_LIMIT
-                << " of consumer subscription expressions: ";
-        }
-        else {
-            out << "Consumer subscription expressions: ";
-        }
-        out << '\n' << ss.str() << '\n';
-    }
-
-    // Log the first (oldest) message in a put aside list and its properties
-    if (!app->putAsideList().empty()) {
-        bslma::ManagedPtr<mqbi::StorageIterator> storageIt_mp;
-        mqbi::StorageResult::Enum                rc = storage->getIterator(
-            &storageIt_mp,
-            appKey,
-            app->putAsideList().first());
-        if (rc == mqbi::StorageResult::e_SUCCESS) {
-            // Log timestamp
-            out << "Oldest message in the 'Put aside' list:\n";
-            mqbcmd::Result result;
-            mqbs::StoragePrintUtil::listMessage(&result.makeMessage(),
-                                                storage,
-                                                *storageIt_mp);
-            mqbcmd::HumanPrinter::print(out, result);
-            out << '\n';
-            // Log message properties
-            const bsl::shared_ptr<bdlbb::Blob>& appData =
-                storageIt_mp->appData();
-            const bmqp::MessagePropertiesInfo& logic =
-                storageIt_mp->attributes().messagePropertiesInfo();
-            bmqp::MessageProperties properties;
-            int ret = properties.streamIn(*appData, logic.isExtended());
-            if (!ret) {
-                out << "Message Properties: " << properties << '\n';
-            }
-            else {
-                BALL_LOG_WARN << "Failed to streamIn MessageProperties, rc = "
-                              << rc;
-                out << "Message Properties: Failed to acquire [rc: " << rc
-                    << "]\n";
-            }
-        }
-        else {
-            BALL_LOG_WARN << "Failed to get storage iterator for GUID: "
-                          << app->putAsideList().first() << ", rc = " << rc;
-            out << "'Put aside' list: Failed to acquire [rc: " << rc << "]\n";
-        }
-    }
+    logAppSubscriptionInfo(out, app);
 
     // Print the 10 oldest messages in the queue
     static const int k_NUM_MSGS = 10;
