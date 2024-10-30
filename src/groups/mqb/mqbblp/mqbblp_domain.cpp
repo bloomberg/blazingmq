@@ -68,32 +68,6 @@ void queueHolderDummy(const bsl::shared_ptr<mqbi::Queue>& queue)
     BALL_LOG_INFO << "Deleted queue '" << queue->uri().canonical() << "'";
 }
 
-void afterAppIdRegisteredDispatched(mqbi::Queue*       queue,
-                                    const bsl::string& appId)
-{
-    // executed by the *QUEUE DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
-
-    queue->queueEngine()->afterAppIdRegistered(
-        mqbi::Storage::AppInfo(appId, mqbu::StorageKey()));
-}
-
-void afterAppIdUnregisteredDispatched(mqbi::Queue*       queue,
-                                      const bsl::string& appId)
-{
-    // executed by the *QUEUE DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
-
-    // Note: Inputing nullKey here is okay since this routine will be removed
-    //       when we switch to CSL workflow.
-    queue->queueEngine()->afterAppIdUnregistered(
-        mqbi::Storage::AppInfo(appId, mqbu::StorageKey()));
-}
-
 /// Validates an application subscription.
 bool validdateSubscriptionExpression(bsl::ostream& errorDescription,
                                      const mqbconfm::Expression& expression,
@@ -462,51 +436,6 @@ int Domain::configure(bsl::ostream&           errorDescription,
     if (isReconfigure) {
         BSLS_ASSERT_OPT(oldConfig.has_value());
         BSLS_ASSERT_OPT(d_config.has_value());
-
-        // In non-CSL mode, manually dispatch AppId registration callbacks.
-        if (!d_cluster_sp->isCSLModeEnabled() &&
-            d_config.value().mode().isFanoutValue()) {
-            // Compute list of added and removed App IDs.
-            bsl::unordered_set<bsl::string> oldCfgAppIds(
-                oldConfig.value().mode().fanout().appIDs().cbegin(),
-                oldConfig.value().mode().fanout().appIDs().cend(),
-                d_allocator_p);
-            bsl::unordered_set<bsl::string> newCfgAppIds(
-                d_config.value().mode().fanout().appIDs().cbegin(),
-                d_config.value().mode().fanout().appIDs().cend(),
-                d_allocator_p);
-
-            bsl::unordered_set<bsl::string> addedIds, removedIds;
-            mqbc::StorageUtil::loadAddedAndRemovedEntries(&addedIds,
-                                                          &removedIds,
-                                                          oldCfgAppIds,
-                                                          newCfgAppIds);
-
-            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-
-            // Invoke callbacks for each added and removed ID on each queue.
-            bsl::unordered_set<bsl::string>::const_iterator it =
-                addedIds.cbegin();
-            QueueMap::const_iterator qIt;
-            for (; it != addedIds.cend(); it++) {
-                for (qIt = d_queues.cbegin(); qIt != d_queues.cend(); ++qIt) {
-                    d_dispatcher_p->execute(
-                        bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
-                                             qIt->second.get(),
-                                             *it),
-                        qIt->second.get());
-                }
-            }
-            for (it = removedIds.cbegin(); it != removedIds.cend(); ++it) {
-                for (qIt = d_queues.cbegin(); qIt != d_queues.cend(); ++qIt) {
-                    d_dispatcher_p->execute(
-                        bdlf::BindUtil::bind(afterAppIdUnregisteredDispatched,
-                                             qIt->second.get(),
-                                             *it),
-                        qIt->second.get());
-                }
-            }
-        }
 
         // Notify the 'cluster' of the updated configuration, so it can write
         // any needed update-advisories to the CSL.

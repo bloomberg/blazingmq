@@ -1263,7 +1263,7 @@ void ClusterUtil::populateAppInfos(
 
 void ClusterUtil::registerAppId(ClusterData*        clusterData,
                                 ClusterStateLedger* ledger,
-                                const ClusterState& clusterState,
+                                ClusterState&       clusterState,
                                 const bsl::string&  appId,
                                 const mqbi::Domain* domain,
                                 bslma::Allocator*   allocator)
@@ -1368,6 +1368,29 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
             queueUpdate.addedAppIds().push_back(appIdInfo);
             queueAdvisory.queueUpdates().push_back(queueUpdate);
+
+            if (!clusterData->cluster().isCSLModeEnabled()) {
+                // In CSL mode, we update the queue to ClusterState upon CSL
+                // commit callback of QueueUpdateAdvisory.
+
+                // In non-CSL mode this is the shortcut to call Primary CQH
+                // instead of waiting for the quorum of acks in the ledger.
+
+                AppInfos addedApps(allocator);
+                mqbc::ClusterUtil::parseQueueInfo(&addedApps,
+                                                  queueUpdate.addedAppIds(),
+                                                  allocator);
+
+                BSLA_MAYBE_UNUSED const int assignRc =
+                    clusterState.updateQueue(queueUpdate.uri(),
+                                             queueUpdate.domain(),
+                                             addedApps,
+                                             AppInfos(allocator));
+                BSLS_ASSERT_SAFE(assignRc == 0);
+
+                BALL_LOG_INFO << clusterData->cluster().description()
+                              << ": Queue updated: " << queueAdvisory;
+            }
         }
     }
 
@@ -1390,7 +1413,7 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
 void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
                                   ClusterStateLedger* ledger,
-                                  const ClusterState& clusterState,
+                                  ClusterState&       clusterState,
                                   const bsl::string&  appId,
                                   const mqbi::Domain* domain,
                                   bslma::Allocator*   allocator)
@@ -1496,6 +1519,29 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
                                << qinfoCit->second->uri() << "'.";
 
                 return;  // RETURN
+            }
+
+            if (!clusterData->cluster().isCSLModeEnabled()) {
+                // In CSL mode, we update the queue to ClusterState upon CSL
+                // commit callback of QueueUpdateAdvisory.
+
+                // In non-CSL mode this is the shortcut to call Primary CQH
+                // instead of waiting for the quorum of acks in the ledger.
+
+                AppInfos removedApps(allocator);
+                mqbc::ClusterUtil::parseQueueInfo(&removedApps,
+                                                  queueUpdate.removedAppIds(),
+                                                  allocator);
+
+                BSLA_MAYBE_UNUSED const int assignRc =
+                    clusterState.updateQueue(queueUpdate.uri(),
+                                             queueUpdate.domain(),
+                                             AppInfos(allocator),
+                                             removedApps);
+                BSLS_ASSERT_SAFE(assignRc == 0);
+
+                BALL_LOG_INFO << clusterData->cluster().description()
+                              << ": Queue updated: " << queueAdvisory;
             }
         }
     }
@@ -2304,9 +2350,17 @@ void ClusterUtil::parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
                                  const bmqp_ctrlmsg::QueueInfo& queueInfo,
                                  bslma::Allocator*              allocator)
 {
+    parseQueueInfo(out, queueInfo.appIds(), allocator);
+}
+
+void ClusterUtil::parseQueueInfo(
+    mqbi::ClusterStateManager::AppInfos*        out,
+    const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& apps,
+    bslma::Allocator*                           allocator)
+{
     for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
-             queueInfo.appIds().cbegin();
-         cit != queueInfo.appIds().cend();
+             apps.cbegin();
+         cit != apps.cend();
          ++cit) {
         out->emplace(mqbi::ClusterStateManager::AppInfo(
             bsl::string(cit->appId(), allocator),

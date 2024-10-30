@@ -70,9 +70,11 @@ class QueueEngine {
 
     // MANIPULATORS
 
-    /// Configure this instance.  Return zero on success, non-zero value
+    /// Configure this instance.  The specified `isReconfigure` flag indicates
+    /// if queue is being reconfigured. Return zero on success, non-zero value
     /// otherwise and populate the specified `errorDescription`.
-    virtual int configure(bsl::ostream& errorDescription) = 0;
+    virtual int configure(bsl::ostream& errorDescription,
+                          bool          isReconfigure) = 0;
 
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'isShuttingDown' is 'true', clear the routing state but keep the Apps
@@ -198,14 +200,14 @@ class QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdRegistered(const mqbi::Storage::AppInfo& appIdKeyPair);
+    afterAppIdRegistered(const mqbi::Storage::AppInfos& appIdKeyPairs);
 
     /// Called after the specified `appIdKeyPair` has been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdUnregistered(const mqbi::Storage::AppInfo& appIdKeyPair);
+    afterAppIdUnregistered(const mqbi::Storage::AppInfos& appIdKeyPairs);
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.
@@ -247,13 +249,13 @@ class QueueEngine {
     /// this queue engine and associated queue handles.
     virtual void loadInternals(mqbcmd::QueueEngine* out) const = 0;
 
-    /// Log appllication subscription info for the specified `appKey` into the
+    /// Log appllication subscription info for the specified `appId` into the
     /// specified `stream`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual bsl::ostream&
-    logAppSubscriptionInfo(bsl::ostream&           stream,
-                           const mqbu::StorageKey& appKey) const;
+    logAppSubscriptionInfo(bsl::ostream&      stream,
+                           const bsl::string& appId) const;
 };
 
 }  // close package namespace

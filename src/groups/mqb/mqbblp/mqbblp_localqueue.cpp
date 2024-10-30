@@ -161,7 +161,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
                                 d_allocator_p);
     }
 
-    rc = d_queueEngine_mp->configure(errorDescription);
+    rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }

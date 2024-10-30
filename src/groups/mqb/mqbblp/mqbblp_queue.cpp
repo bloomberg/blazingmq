@@ -343,7 +343,7 @@ void Queue::convertToLocalDispatched()
 
     d_state.setId(bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     createLocal();
-    rc = d_localQueue_mp->configure(errorDescription, true);
+    rc = d_localQueue_mp->configure(errorDescription, false);
     if (rc != 0) {
         BALL_LOG_ERROR
             << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
@@ -483,7 +483,6 @@ Queue::Queue(const bmqt::Uri&                          uri,
     //      storage.
 
     d_state.setStorageManager(storageManager)
-        .setAppKeyGenerator(storageManager)
         .setMiscWorkThreadPool(threadPool)
         .setRoutingConfig(routingCfg)
         .setMessageThrottleConfig(messageThrottleConfig);

@@ -36,13 +36,13 @@ QueueEngine::~QueueEngine()
 }
 
 void QueueEngine::afterAppIdRegistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfo& appIdKeyPair)
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfos& appIdKeyPairs)
 {
     // NOTHING
 }
 
 void QueueEngine::afterAppIdUnregistered(
-    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfo& appIdKeyPair)
+    BSLS_ANNOTATION_UNUSED const mqbi::Storage::AppInfos& appIdKeyPairs)
 {
     // NOTHING
 }
@@ -64,8 +64,8 @@ void QueueEngine::unregisterStorage(
 }
 
 bsl::ostream&
-QueueEngine::logAppSubscriptionInfo(bsl::ostream&           stream,
-                                    const mqbu::StorageKey& appKey) const
+QueueEngine::logAppSubscriptionInfo(bsl::ostream&      stream,
+                                    const bsl::string& appId) const
 {
     return stream;
 };

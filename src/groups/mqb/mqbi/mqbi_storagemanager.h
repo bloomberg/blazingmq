@@ -31,7 +31,6 @@
 
 // MQB
 
-#include <mqbi_appkeygenerator.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_storage.h>
@@ -165,7 +164,7 @@ class StorageManagerIterator {
 // ====================
 
 /// Storage Manager, in charge of all the partitions.
-class StorageManager : public mqbi::AppKeyGenerator {
+class StorageManager {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfo   AppInfo;
@@ -208,7 +207,7 @@ class StorageManager : public mqbi::AppKeyGenerator {
     // CREATORS
 
     /// Destructor
-    ~StorageManager() BSLS_KEYWORD_OVERRIDE;
+    virtual ~StorageManager();
 
     // MANIPULATORS
 
@@ -279,12 +278,6 @@ class StorageManager : public mqbi::AppKeyGenerator {
                                     const AppInfos&         appIdKeyPairs,
                                     mqbi::Domain*           domain = 0,
                                     bool allowDuplicate = false) = 0;
-
-    /// Return a unique appKey for the specified `appId` for a queue
-    /// assigned to the specified `partitionId`.  This routine can be
-    /// invoked by any thread.
-    mqbu::StorageKey generateAppKey(const bsl::string& appId,
-                                    int partitionId) BSLS_KEYWORD_OVERRIDE = 0;
 
     /// Set the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the

@@ -25,7 +25,6 @@
 #include <mqbblp_storagemanager.h>
 #include <mqbcmd_humanprinter.h>
 #include <mqbcmd_messages.h>
-#include <mqbi_appkeygenerator.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
@@ -138,7 +137,7 @@ void RootQueueEngine::deliverMessages(AppState* app)
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(numMessages > 0)) {
-        d_consumptionMonitor.onMessageSent(app->appKey());
+        d_consumptionMonitor.onMessageSent(app->appId());
     }
 
     if (app->isReadyForDelivery()) {
@@ -152,9 +151,9 @@ void RootQueueEngine::deliverMessages(AppState* app)
 }
 
 RootQueueEngine::Apps::iterator
-RootQueueEngine::makeSubStream(const bsl::string& appId,
-                               const AppKeyCount& appKey,
-                               unsigned int       upstreamSubQueueId)
+RootQueueEngine::makeSubStream(const bsl::string&      appId,
+                               const mqbu::StorageKey& appKey,
+                               unsigned int            upstreamSubQueueId)
 {
     AppStateSp app(new (*d_allocator_p)
                        AppState(d_queueState_p->queue(),
@@ -162,14 +161,12 @@ RootQueueEngine::makeSubStream(const bsl::string& appId,
                                 d_queueState_p->routingContext(),
                                 upstreamSubQueueId,
                                 appId,
-                                appKey.first,
+                                appKey,
                                 d_allocator_p),
                    d_allocator_p);
 
-    bsl::pair<Apps::iterator, Apps::InsertResult> rc = d_apps.insert(appId,
-                                                                     appKey,
-                                                                     app);
-    BSLS_ASSERT_SAFE(rc.second == Apps::e_INSERTED);
+    bsl::pair<Apps::iterator, bool> rc = d_apps.emplace(appId, app);
+    BSLS_ASSERT_SAFE(rc.second);
 
     return rc.first;
 }
@@ -268,7 +265,6 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                            bdlf::PlaceHolders::_2),  // enableLog
       allocator)
 , d_apps(allocator)
-, d_nullKeyCount(0)
 , d_hasAutoSubscriptions(false)
 , d_isFanout(domainConfig.mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
@@ -299,7 +295,8 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 
 // MANIPULATORS
 //   (virtual mqbi::QueueEngine)
-int RootQueueEngine::configure(bsl::ostream& errorDescription)
+int RootQueueEngine::configure(bsl::ostream& errorDescription,
+                               bool          isReconfigure)
 {
     enum RcEnum {
         // Return values
@@ -325,14 +322,15 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
-                                bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID)) {
+                                bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID,
+                                isReconfigure)) {
                 return rc_APP_INITIALIZATION_ERROR;  // RETURN
             }
         }
         for (unsigned int i = 0; i < subscriptions.size(); ++i) {
-            Apps::iterator itApp = d_apps.findByKey1(subscriptions[i].appId());
+            Apps::iterator itApp = d_apps.find(subscriptions[i].appId());
             if (itApp != d_apps.end()) {
-                int rc = itApp->value()->setSubscription(
+                int rc = itApp->second->setSubscription(
                     subscriptions[i].expression());
 
                 if (rc != 0) {
@@ -344,8 +342,8 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
                         << d_queueState_p->queue()->description()
                         << "' failed to compile auto subscription: '"
                         << subscriptions[i].expression().text()
-                        << "' for the '" << itApp->key1()
-                        << "' app, rc: " << rc << ", reason: '"
+                        << "' for the '" << itApp->first << "' app, rc: " << rc
+                        << ", reason: '"
                         << bmqeval::ErrorType::toString(errorType) << "'";
                     return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
                 }
@@ -362,7 +360,8 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
         numApps = 1;
         if (initializeAppId(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
                             errorDescription,
-                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)) {
+                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                            isReconfigure)) {
             return rc_APP_INITIALIZATION_ERROR;  // RETURN
         }
         // TODO: what is auto subscription "appId" for priority/broadcast?
@@ -379,12 +378,11 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
 
         int rc = 0;
         if (subscriptions.size() == 1) {
-            rc = itApp->value()->setSubscription(
-                subscriptions[0].expression());
+            rc = itApp->second->setSubscription(subscriptions[0].expression());
         }
         else {
             mqbconfm::Expression empty(d_allocator_p);
-            rc = itApp->value()->setSubscription(empty);
+            rc = itApp->second->setSubscription(empty);
         }
 
         if (rc != 0) {
@@ -412,21 +410,27 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription)
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
                                      bsl::ostream&      errorDescription,
-                                     unsigned int       upstreamSubQueueId)
+                                     unsigned int       upstreamSubQueueId,
+                                     bool               isReconfigure)
 {
-    Apps::iterator iter = d_apps.findByKey1(appId);
+    Apps::iterator iter = d_apps.find(appId);
 
     if (iter != d_apps.end()) {
         mqbconfm::Expression empty(d_allocator_p);
-        iter->value()->setSubscription(empty);
+        iter->second->setSubscription(empty);
 
         // Don't reconfigure an AppId that is already registered.
         return 0;  // RETURN
     }
 
-    mqbu::StorageKey appKey;
+    mqbu::StorageKey appKey  = mqbu::StorageKey::k_NULL_KEY;
     unsigned int     ordinal = 0;
-    if (!d_queueState_p->storage()->hasVirtualStorage(appId,
+
+    // Do not attempt to find VirtualStorage if this is reconfiguration.
+    // Reconfiguration results in 'afterAppIdRegistered' which results in
+    // 'registerStorage' which calls 'authorize'.
+    if (!isReconfigure &&
+        !d_queueState_p->storage()->hasVirtualStorage(appId,
                                                       &appKey,
                                                       &ordinal)) {
         BALL_LOG_ERROR << "#QUEUE_STORAGE_NOTFOUND "
@@ -438,20 +442,24 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
                          << appId << "], queue: '"
                          << d_queueState_p->queue()->description() << "'";
 
+        // TODO: handle w/o asserting
         BSLS_ASSERT_SAFE(false && "Virtual storage does not exist for appId");
         return -1;  // RETURN
     }
-    BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    iter = makeSubStream(appId, AppKeyCount(appKey, 0), upstreamSubQueueId);
+    iter = makeSubStream(appId, appKey, upstreamSubQueueId);
 
-    iter->value()->authorize(appKey, ordinal);
+    if (!isReconfigure) {
+        BSLS_ASSERT_SAFE(!appKey.isNull());
+        iter->second->authorize(appKey, ordinal);
 
-    d_consumptionMonitor.registerSubStream(appKey);
+        d_consumptionMonitor.registerSubStream(appId);
 
-    BALL_LOG_INFO << "Found virtual storage for appId [" << appId
-                  << "], queue [" << d_queueState_p->uri() << "], appKey ["
-                  << appKey << "], ordinal [" << ordinal << "]";
+        BALL_LOG_INFO << "Found virtual storage for appId [" << appId
+                      << "], queue [" << d_queueState_p->uri() << "], appKey ["
+                      << appKey << "], ordinal [" << ordinal << "]";
+    }
+    // else 'registerStorage' will update the authorization status of the App.
 
     return 0;
 }
@@ -459,8 +467,8 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
-        it->value()->undoRouting();
-        it->value()->routing()->reset();
+        it->second->undoRouting();
+        it->second->routing()->reset();
     }
 
     d_consumptionMonitor.reset();
@@ -487,13 +495,13 @@ void RootQueueEngine::rebuildSelectedApp(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    const AppStateSp& app = itApp->value();
+    const AppStateSp& app = itApp->second;
 
     BSLS_ASSERT_SAFE(app->routing());
 
     bmqu::MemOutStream errorStream(d_allocator_p);
 
-    app->routing()->loadApp(itApp->key1().c_str(),
+    app->routing()->loadApp(itApp->first.c_str(),
                             handle,
                             &errorStream,
                             info,
@@ -540,7 +548,7 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
         if (!previous) {
             continue;  // CONTINUE
         }
-        Apps::iterator itApp = d_apps.findByKey1(previous->appId());
+        Apps::iterator itApp              = d_apps.find(previous->appId());
         unsigned int   upstreamSubQueueId = previous->upstreamSubQueueId();
 
         if (itApp == d_apps.end()) {
@@ -551,27 +559,12 @@ int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
             // won't be part of 'd_apps'.  So we explicitly update 'd_apps'
             // with this appId with the similar logic that we execute when
             // invoking 'getHandle' with an unregistered appId.
-
-            AppKeyCount key2;
-
-            if (d_queueState_p->isCSLModeEnabled()) {
-                key2 = AppKeyCount(mqbu::StorageKey::k_NULL_KEY,
-                                   d_nullKeyCount++);
-            }
-            else {
-                key2 = AppKeyCount(
-                    d_queueState_p->appKeyGenerator()->generateAppKey(
-                        previous->appId(),
-                        d_queueState_p->partitionId()),
-                    0);
-            }
-
             itApp = makeSubStream(previous->appId(),
-                                  key2,
+                                  mqbu::StorageKey::k_NULL_KEY,
                                   bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
         }
 
-        AppStateSp& app = itApp->value();
+        AppStateSp& app = itApp->second;
         app->routing()  = previous->routing();
 
         app->setUpstreamSubQueueId(upstreamSubQueueId);
@@ -772,7 +765,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
     if (handleParameters.readCount()) {
         // Ensure appId is authorized
         const bsl::string& appId = subStreamInfo.appId();
-        Apps::iterator     iter  = d_apps.findByKey1(appId);
+        Apps::iterator     iter  = d_apps.find(appId);
 
         if (iter == d_apps.end()) {
             BMQTSK_ALARMLOG_ALARM("FANOUT_UNREGISTERED_APPID")
@@ -782,35 +775,22 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
                    " of this AppId"
                 << BMQTSK_ALARMLOG_END;
 
-            AppKeyCount key2;
-            if (d_queueState_p->isCSLModeEnabled()) {
-                key2 = AppKeyCount(mqbu::StorageKey::k_NULL_KEY,
-                                   d_nullKeyCount++);
-            }
-            else {
-                key2 = AppKeyCount(
-                    d_queueState_p->appKeyGenerator()->generateAppKey(
-                        appId,
-                        d_queueState_p->partitionId()),
-                    0);
-            }
             iter = makeSubStream(appId,
-                                 key2,
+                                 mqbu::StorageKey::k_NULL_KEY,
                                  bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
         }
         BSLS_ASSERT_SAFE(iter != d_apps.end());
-        BSLS_ASSERT_SAFE(iter->key1() == subStreamInfo.appId());
+        BSLS_ASSERT_SAFE(iter->first == subStreamInfo.appId());
 
         // Do not insert the handle to the AppState::d_consumers until
         // configureHandle (which specifies priority)
 
-        d_queueState_p->adopt(iter->value());
-        upstreamSubQueueId = iter->value()->upstreamSubQueueId();
+        d_queueState_p->adopt(iter->second);
+        upstreamSubQueueId = iter->second->upstreamSubQueueId();
 
-        if (!iter->value()->isAuthorized()) {
-            if (iter->value()->authorize()) {
-                d_consumptionMonitor.registerSubStream(
-                    iter->value()->appKey());
+        if (!iter->second->isAuthorized()) {
+            if (iter->second->authorize()) {
+                d_consumptionMonitor.registerSubStream(appId);
             }
         }
     }
@@ -935,12 +915,10 @@ void RootQueueEngine::configureHandle(
         return;  // RETURN
     }
 
-    Apps::iterator iter = d_apps.findByKey1(appId);
+    Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
 
-    const AppStateSp& affectedApp = iter->value();
-
-    BSLS_ASSERT_SAFE(affectedApp->appKey() == iter->key2().first);
+    const AppStateSp& affectedApp = iter->second;
 
     // prepare the App for rebuilding consumers
     affectedApp->undoRouting();
@@ -973,7 +951,7 @@ void RootQueueEngine::configureHandle(
     BALL_LOG_INFO << "Rebuilt active consumers of the highest "
                   << "priority for queue '"
                   << d_queueState_p->queue()->description() << "', appId = '"
-                  << iter->key1() << "'. Now there are "
+                  << iter->first << "'. Now there are "
                   << affectedApp->routing()->priorityCount() << " consumers.";
 
     // Inform the requester of the success before attempting to deliver new
@@ -1130,11 +1108,11 @@ void RootQueueEngine::releaseHandle(
         mqbi::QueueHandleReleaseResult result = proctor.releaseStream(copy);
 
         if (copy.readCount()) {
-            Apps::iterator itApp = d_apps.findByKey1(citer->first);
+            Apps::iterator itApp = d_apps.find(citer->first);
 
             BSLS_ASSERT_SAFE(itApp != d_apps.end());
 
-            AppState* app(itApp->value().get());
+            AppState* app(itApp->second.get());
 
             if (result.hasNoHandleStreamConsumers()) {
                 // No re-delivery attempts until entire handle stops consuming
@@ -1215,10 +1193,10 @@ void RootQueueEngine::releaseHandle(
                     // state.  On the surface it results in alarm being
                     // (re)generated if the unauthorized app is used again
                     // after all previous clients are gone.
-                    if (!itApp->value()->isAuthorized()) {
+                    if (!itApp->second->isAuthorized()) {
                         BALL_LOG_INFO
                             << "There are no more clients for the unauthorized"
-                            << " appId [" << itApp->key1()
+                            << " appId [" << itApp->first
                             << "] and the appId was not registered with BMQ."
                             << "Removing this appId from queue engine since "
                             << "all clients have gone away.  The 'unregistered"
@@ -1304,12 +1282,12 @@ void RootQueueEngine::afterNewMessage(
         // Assume, all Apps need to deliver (some may be at capacity)
         for (Apps::iterator iter = d_apps.begin(); iter != d_apps.end();
              ++iter) {
-            AppStateSp& app = iter->value();
+            AppStateSp& app = iter->second;
 
             if (d_appsDeliveryContext.processApp(*app, app->ordinal())) {
                 // Consider this message as sent out
 
-                d_consumptionMonitor.onMessageSent(iter->key2().first);
+                d_consumptionMonitor.onMessageSent(iter->first);
 
                 // Report queue time metric per App
                 // Report 'queue time' metric for all active appIds
@@ -1602,10 +1580,10 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
         return;  // RETURN
     }
 
-    Apps::iterator iter = d_apps.findByKey2(AppKeyCount(appKey, 0));
+    Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
-    BSLS_ASSERT_SAFE(iter->key1() == appId);
-    iter->value()->clear();
+    BSLS_ASSERT_SAFE(iter->first == appId);
+    iter->second->clear();
 }
 
 void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
@@ -1620,8 +1598,8 @@ void RootQueueEngine::onTimer(bsls::Types::Int64 currentTimer)
 }
 
 bsl::ostream&
-RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&           stream,
-                                        const mqbu::StorageKey& appKey) const
+RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&      stream,
+                                        const bsl::string& appId) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1630,14 +1608,14 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&           stream,
         d_queueState_p->queue()));
 
     // Get AppState by appKey.
-    Apps::const_iterator cItApp = d_apps.findByKey2(AppKeyCount(appKey, 0));
+    Apps::const_iterator cItApp = d_apps.find(appId);
     if (cItApp == d_apps.end()) {
-        BALL_LOG_WARN << "No app found for appKey: " << appKey;
-        stream << "\nSubscription info: no app found for appKey: " << appKey;
+        BALL_LOG_WARN << "No app found for appId: " << appId;
+        stream << "\nSubscription info: no app found for appId: " << appId;
         return stream;  // RETURN
     }
 
-    const AppStateSp& app = cItApp->value();
+    const AppStateSp& app = cItApp->second;
     return logAppSubscriptionInfo(stream, app);
 }
 
@@ -1744,8 +1722,8 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     return stream;
 }
 
-bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
-                                 bool                    enableLog) const
+bool RootQueueEngine::logAlarmCb(const bsl::string& appId,
+                                 bool               enableLog) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1754,12 +1732,12 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
         d_queueState_p->queue()));
 
     // Get AppState by appKey.
-    Apps::const_iterator cItApp = d_apps.findByKey2(AppKeyCount(appKey, 0));
+    Apps::const_iterator cItApp = d_apps.find(appId);
     if (cItApp == d_apps.end()) {
-        BALL_LOG_WARN << "No app found for appKey: " << appKey;
+        BALL_LOG_WARN << "No app found for appId: " << appId;
         return false;  // RETURN
     }
-    const AppStateSp& app = cItApp->value();
+    const AppStateSp& app = cItApp->second;
 
     // Check if there are un-delivered messages
     bslma::ManagedPtr<mqbi::StorageIterator> headIt = head(app);
@@ -1870,7 +1848,7 @@ bool RootQueueEngine::logAlarmCb(const mqbu::StorageKey& appKey,
 }
 
 void RootQueueEngine::afterAppIdRegistered(
-    const mqbi::Storage::AppInfo& appIdKeyPair)
+    const mqbi::Storage::AppInfos& addedAppIds)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1880,102 +1858,47 @@ void RootQueueEngine::afterAppIdRegistered(
 
     if (!d_isFanout) {
         BALL_LOG_ERROR << "RootQueueEngine::afterAppIdRegistered() should "
-                       << "never be called for a non-Fanout queue.  Received "
-                       << "call to register appId '" << appIdKeyPair.first
-                       << "', appKey '" << appIdKeyPair.second << "'.";
+                       << "never be called for a non-Fanout queue.";
 
         return;  // RETURN;
     }
 
-    // We need to handle 2 scenarios here: a consumer with the specified
-    // 'appId' may have already opened the queue, or otherwise.
+    for (mqbi::Storage::AppInfos::const_iterator cit = addedAppIds.cbegin();
+         cit != addedAppIds.cend();
+         ++cit) {
+        // We need to handle 2 scenarios here: a consumer with the specified
+        // 'appId' may have already opened the queue, or otherwise.
 
-    const bsl::string&      appId  = appIdKeyPair.first;
-    const mqbu::StorageKey& appKey = appIdKeyPair.second;
-    if (d_queueState_p->isCSLModeEnabled()) {
+        const bsl::string&      appId  = cit->first;
+        const mqbu::StorageKey& appKey = cit->second;
+
         BSLS_ASSERT_SAFE(!appKey.isNull());
-    }
-    else {
-        BSLS_ASSERT_SAFE(appKey.isNull());
-    }
 
-    Apps::iterator   iter = d_apps.findByKey1(appId);
-    mqbu::StorageKey key;
+        Apps::const_iterator citApp = d_apps.find(appId);
 
-    if (iter == d_apps.end()) {
-        // No consumer has opened the queue with 'appId'.
-        if (d_queueState_p->isCSLModeEnabled()) {
-            key = appKey;
-        }
-        else {
-            // TODO_CSL Remove this snippet when pre-CSL workflow has been
-            // retired from all clusters.
+        if (citApp == d_apps.end()) {
+            // No consumer has opened the queue with 'appId'.
 
-            key = d_queueState_p->appKeyGenerator()->generateAppKey(
-                appId,
-                d_queueState_p->partitionId());
+            citApp = makeSubStream(appId,
+                                   appKey,
+                                   bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
         }
 
-        iter = makeSubStream(appId,
-                             AppKeyCount(key, 0),
-                             bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
-    }
-    else {
-        // A consumer has already opened the queue with 'appId'.
-        if (d_queueState_p->isCSLModeEnabled()) {
-            // Two possible scenarios:
-            //
-            // 1. When a consumer opened the queue with an unauthorized appId,
-            //    we inserted an item having a pair of (appId, nullKey) as its
-            //    key to d_apps.  Now, we replace the nullKey with the actual
-            //    queue key from the appId registration.
-            //
-            // 2. The appId was previously registered and then unregistered.
-            //    However, the old appId/appKey pair is still lingering because
-            //    during RootQueueEngine::afterAppIdUnregistered() we still
-            //    keep the app but invalidate the iterator.  If not all
-            //    consumers using the old appId have closed the queue, then
-            //    there will still be an "ghost" entry in d_apps.  For this
-            //    very reason, we *cannot* assert that the appKey we have is a
-            //    nullKey.
+        BSLS_ASSERT_SAFE(!citApp->second->isAuthorized());
 
-            // Cannot assert due to Scenario (2.) above
-            // BSLS_ASSERT_SAFE(iter->key2().first.isNull());
-
-            key = appKey;
-
-            AppStateSp appStateSp = iter->value();
-            d_apps.erase(iter);
-
-            iter = d_apps.insert(appId, AppKeyCount(key, 0), appStateSp).first;
-        }
-        else {
-            // TODO_CSL Remove this snippet when pre-CSL workflow has been
-            // retired from all clusters.
-
-            key = iter->key2().first;
-        }
-
-        // Update the 'isAuthorized' boolean in app's state to true, now that
-        // the appId has been registered.  This is critical to ensure that the
-        // now-registered appId continues to be available across restarts of
-        // its consumers.
+        // 'registerStorage' will update the authorization status of the App.
     }
 
-    BSLS_ASSERT_SAFE(!key.isNull());
-
-    mqbi::Storage::AppInfos one(1, d_allocator_p);
-    one.emplace(mqbi::Storage::AppInfo(appId, key));
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
-        one,
+        addedAppIds,
         mqbi::Storage::AppInfos());
 }
 
 void RootQueueEngine::afterAppIdUnregistered(
-    const mqbi::Storage::AppInfo& appIdKeyPair)
+    const mqbi::Storage::AppInfos& removedAppIds)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1984,28 +1907,28 @@ void RootQueueEngine::afterAppIdUnregistered(
         d_queueState_p->queue()));
 
     if (!d_isFanout) {
-        BALL_LOG_ERROR << "It should be not possible to unregister appId '"
-                       << appIdKeyPair.first << "', appKey '"
-                       << appIdKeyPair.second << "' for a non-Fanout queue.";
+        BALL_LOG_ERROR << "Invalid queue type for unregistering appId.";
 
         return;  // RETURN
     }
 
-    const bsl::string& appId = appIdKeyPair.first;
-    Apps::iterator     iter  = d_apps.findByKey1(appId);
-    BSLS_ASSERT_SAFE(iter != d_apps.end());
+    for (mqbi::Storage::AppInfos::const_iterator cit = removedAppIds.cbegin();
+         cit != removedAppIds.cend();
+         ++cit) {
+        const bsl::string&      appId  = cit->first;
+        const mqbu::StorageKey& appKey = cit->second;
 
-    const mqbu::StorageKey& appKey = d_queueState_p->isCSLModeEnabled()
-                                         ? appIdKeyPair.second
-                                         : iter->key2().first;
-    BSLS_ASSERT_SAFE(iter->key2().first == appKey);
+        Apps::iterator iter = d_apps.find(appId);
+        BSLS_ASSERT_SAFE(iter != d_apps.end());
 
-    // we still keep the app but invalidate the authorization
-    iter->value()->unauthorize();
+        BSLS_ASSERT_SAFE(iter->second->isAuthorized());
 
-    // Do a best effort to confirm the messages and remove the storage.  If
-    // either fails, just log the condition.
-    {
+        // we still keep the app but invalidate the authorization
+        iter->second->unauthorize();
+
+        // Do a best effort to confirm the messages and remove the storage.  If
+        // either fails, just log the condition.
+
         const mqbi::StorageResult::Enum rc =
             d_queueState_p->storage()->removeAll(appKey);
         if (rc != mqbi::StorageResult::e_SUCCESS) {
@@ -2016,20 +1939,18 @@ void RootQueueEngine::afterAppIdUnregistered(
                           << "' [reason: " << mqbi::StorageResult::toAscii(rc)
                           << "]";
         }
+
+        d_consumptionMonitor.unregisterSubStream(appId);
     }
-    mqbi::Storage::AppInfos one(1, d_allocator_p);
-    one.emplace(mqbi::Storage::AppInfo(appId, appKey));
 
     d_queueState_p->storageManager()->updateQueuePrimary(
         d_queueState_p->uri(),
         d_queueState_p->key(),
         d_queueState_p->partitionId(),
         mqbi::Storage::AppInfos(),
-        one);
+        removedAppIds);
     // No need to log in case of failure because 'updateQueuePrimary' does it
     // (even in case of success FTM).
-
-    d_consumptionMonitor.unregisterSubStream(appKey);
 }
 
 void RootQueueEngine::registerStorage(const bsl::string&      appId,
@@ -2047,18 +1968,18 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
                   << ") now has storage: [App Id: " << appId
                   << ", key: " << appKey << ", ordinal: " << appOrdinal << "]";
 
-    Apps::iterator iter = d_apps.findByKey1(appId);
+    Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
-    BSLS_ASSERT_SAFE(iter->key2().first == appKey);
 
-    iter->value()->authorize(appKey, appOrdinal);
+    iter->second->authorize(appKey, appOrdinal);
 
-    d_consumptionMonitor.registerSubStream(appKey);
+    d_consumptionMonitor.registerSubStream(appId);
 }
 
-void RootQueueEngine::unregisterStorage(const bsl::string&      appId,
-                                        const mqbu::StorageKey& appKey,
-                                        unsigned int            appOrdinal)
+void RootQueueEngine::unregisterStorage(
+    const bsl::string&           appId,
+    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
+    unsigned int                                   appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -2066,12 +1987,11 @@ void RootQueueEngine::unregisterStorage(const bsl::string&      appId,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    Apps::iterator iter = d_apps.findByKey1(appId);
+    Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
-    BSLS_ASSERT_SAFE(iter->key2().first == appKey);
 
     // we still keep the app but invalidate the authorization
-    iter->value()->unauthorize();
+    iter->second->unauthorize();
 
     (void)appOrdinal;
 }
@@ -2103,9 +2023,9 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
         putHeader.messageGUID());
 
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
-        AppStateSp& app = it->value();
+        AppStateSp& app = it->second;
         if (!app->evaluateAutoSubcription()) {
-            result = d_queueState_p->storage()->autoConfirm(it->key2().first,
+            result = d_queueState_p->storage()->autoConfirm(app->appKey(),
                                                             timestamp);
 
             if (result != mqbi::StorageResult::e_SUCCESS) {
@@ -2185,14 +2105,14 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
          ++iter) {
         consumerStates.resize(consumerStates.size() + 1);
         mqbcmd::ConsumerState& consumerState = consumerStates.back();
-        consumerState.appId()                = iter->key1();
+        consumerState.appId()                = iter->first;
 
-        if (d_queueState_p->storage()->hasVirtualStorage(iter->key1())) {
-            const bool isAtEndOfStorage = iter->value()->isAtEndOfStorage() &&
+        if (d_queueState_p->storage()->hasVirtualStorage(iter->first)) {
+            const bool isAtEndOfStorage = iter->second->isAtEndOfStorage() &&
                                           d_storageIter_mp->atEnd();
 
             consumerState.isAtEndOfStorage().makeValue(isAtEndOfStorage);
-            consumerState.status() = (!iter->value()->hasConsumers()
+            consumerState.status() = (!iter->second->hasConsumers()
                                           ? mqbcmd::ConsumerStatus::REGISTERED
                                           : mqbcmd::ConsumerStatus::ALIVE);
         }
@@ -2200,7 +2120,7 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
             consumerState.status() = mqbcmd::ConsumerStatus::UNAUTHORIZED;
         }
 
-        iter->value()->loadInternals(&consumerState.appState());
+        iter->second->loadInternals(&consumerState.appState());
     }
 
     d_queueState_p->routingContext().loadInternals(
@@ -2210,10 +2130,10 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
 bool RootQueueEngine::hasHandle(const bsl::string& appId,
                                 mqbi::QueueHandle* handle) const
 {
-    Apps::iterator iter =
-        const_cast<RootQueueEngine*>(this)->d_apps.findByKey1(appId);
+    Apps::iterator iter = const_cast<RootQueueEngine*>(this)->d_apps.find(
+        appId);
 
-    return (iter != d_apps.end() && iter->value()->find(handle));
+    return (iter != d_apps.end() && iter->second->find(handle));
 }
 
 }  // close package namespace

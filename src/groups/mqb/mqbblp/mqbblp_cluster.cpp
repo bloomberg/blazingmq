@@ -2848,6 +2848,7 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
                                                   oldCfgAppIds,
                                                   newCfgAppIds);
 
+    // TODO: This should be one call - one QueueUpdateAdvisory for all Apps
     bsl::unordered_set<bsl::string>::const_iterator it = addedIds.cbegin();
     for (; it != addedIds.cend(); ++it) {
         dispatcher()->execute(

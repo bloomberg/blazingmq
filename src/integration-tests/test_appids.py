@@ -537,3 +537,112 @@ def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
     # shutdown and wait
 
     leader.stop()
+
+
+def set_app_ids(cluster: Cluster, app_ids: List[str]):  # noqa: F811
+    cluster.config.domains[
+        tc.DOMAIN_FANOUT
+    ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
+    cluster.reconfigure_domain(tc.DOMAIN_FANOUT, succeed=True)
+
+
+def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
+    leader = cluster.last_known_leader
+    proxies = cluster.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+
+    all_app_ids = authorized_app_ids + ["quux"]
+
+    # ---------------------------------------------------------------------
+    # Create a consumer for each authorized substream.
+
+    consumers = {}
+
+    for app_id in all_app_ids:
+        consumer = next(proxies).create_client(app_id)
+        consumers[app_id] = consumer
+        consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+
+    # ---------------------------------------------------------------------
+    # Authorize 'quux'.
+    set_app_ids(cluster, authorized_app_ids + ["quux"])
+
+    # ---------------------------------------------------------------------
+    # Post a message.
+    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # Post a second message.
+
+    producer.post(tc.URI_FANOUT, ["msg2"])
+    assert producer.outputs_regex(r"MESSAGE.*ACK", timeout)
+
+    # ---------------------------------------------------------------------
+    # Ensure that all substreams get 2 messages
+
+    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
+    for app_id in all_app_ids:
+        test_logger.info(f"Check if {app_id} has seen 2 messages")
+        assert wait_until(
+            lambda: len(
+                consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            )
+            == 2,
+            3,
+        )
+
+    # Save one confirm to the storage
+    consumers["quux"].confirm(f"{tc.URI_FANOUT}?id=quux", "+1", succeed=True)
+
+    for app_id in all_app_ids:
+        assert (
+            consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            == Client.e_SUCCESS
+        )
+
+    cluster.stop_nodes()
+
+    # Reconfigure the cluster from non-FSM to FSM mode
+    for broker in cluster.configurator.brokers.values():
+        my_clusters = broker.clusters.my_clusters
+        if len(my_clusters) > 0:
+            my_clusters[0].cluster_attributes.is_cslmode_enabled = True
+            my_clusters[0].cluster_attributes.is_fsmworkflow = True
+    cluster.deploy_domains()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+    # For a standard cluster, states have already been restored as part of
+    # leader re-election.
+    if cluster.is_single_node:
+        producer.wait_state_restored()
+
+    for app_id in all_app_ids:
+        consumer = next(proxies).create_client(app_id)
+        consumers[app_id] = consumer
+        consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+
+    # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
+    for app_id in authorized_app_ids:
+        test_logger.info(f"Check if {app_id} has seen 2 messages")
+        assert wait_until(
+            lambda: len(
+                consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            )
+            == 2,
+            3,
+        )
+
+    assert wait_until(
+        lambda: len(consumers["quux"].list(f"{tc.URI_FANOUT}?id=quux", block=True))
+        == 1,
+        3,
+    )
+
+    for app_id in all_app_ids:
+        assert (
+            consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            == Client.e_SUCCESS
+        )

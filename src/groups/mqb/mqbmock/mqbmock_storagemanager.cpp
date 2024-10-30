@@ -113,13 +113,6 @@ void StorageManager::updateQueueReplica(
     // NOTHING
 }
 
-mqbu::StorageKey
-StorageManager::generateAppKey(BSLS_ANNOTATION_UNUSED const bsl::string& appId,
-                               BSLS_ANNOTATION_UNUSED int partitionId)
-{
-    return mqbu::StorageKey();
-}
-
 void StorageManager::setQueue(BSLS_ANNOTATION_UNUSED mqbi::Queue* queue,
                               BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
                               BSLS_ANNOTATION_UNUSED int partitionId)

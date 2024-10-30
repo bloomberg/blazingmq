@@ -1464,7 +1464,7 @@ static void test9_priorityCreateAndConfigure()
     bmqu::MemOutStream errorDescription(s_allocator_p);
     errorDescription.reset();
 
-    int rc = queueEngineMp->configure(errorDescription);
+    int rc = queueEngineMp->configure(errorDescription, false);
 
     ASSERT_EQ(errorDescription.length(), 0U);
     ASSERT_EQ(rc, 0);
@@ -2779,7 +2779,7 @@ static void test22_createAndConfigure()
     //    configuring it successfully
     bmqu::MemOutStream errorDescription(s_allocator_p);
     errorDescription.reset();
-    int rc = queueEngineMp->configure(errorDescription);
+    int rc = queueEngineMp->configure(errorDescription, false);
 
     ASSERT_EQ(errorDescription.length(), 0U);
     ASSERT_EQ(rc, 0);

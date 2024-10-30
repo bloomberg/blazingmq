@@ -87,15 +87,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// instead of bsl::unique_ptr
     typedef bsl::shared_ptr<AppState> AppStateSp;
 
-    /// Pair of (AppKey, number of times the key has shown up before).  Note
-    /// that non-null keys *always* have a count of 0 as we do *not* allow
-    /// duplicate keys.  If multiple consumers open a queue with different
-    /// unregistered appIds, then there will be nullKeys showing up multiple
-    /// times.  The actual value of second field (the count) is meaningless.
-    typedef bsl::pair<mqbu::StorageKey, unsigned int> AppKeyCount;
-
-    /// (appId, appKeyCount) -> AppStateSp
-    typedef bmqc::TwoKeyHashMap<bsl::string, AppKeyCount, AppStateSp> Apps;
+    /// appId -> AppStateSp
+    typedef bsl::unordered_map<bsl::string, AppStateSp> Apps;
 
   private:
     // DATA
@@ -105,18 +98,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     QueueConsumptionMonitor d_consumptionMonitor;
 
     Apps d_apps;
-    // Map of (appId, appKeyCount) to
-    // AppState
-
-    unsigned int d_nullKeyCount;
-    // Number of times the nullKey has shown
-    // up before.  Needed because multiple
-    // consumers could open a queue with
-    // different unregistered appIds,
-    // resulting in multiple instances of
-    // nullKeys.  We need to differentiate
-    // them to use them as keys in
-    // bmqc::TwoKeyHashMap.
+    // Map of appId to AppState
 
     bool d_hasAutoSubscriptions;
     // Does this queue engine have any auto subscriptions configured
@@ -182,7 +164,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from any thread.
     int initializeAppId(const bsl::string& appId,
                         bsl::ostream&      errorDescription,
-                        unsigned int       upstreamSubQueueId);
+                        unsigned int       upstreamSubQueueId,
+                        bool               isReconfigure);
 
     /// Return true if the specified `handle` is registered for the
     /// specified `appId`.  Return false otherwise.
@@ -197,9 +180,9 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                             const Apps::iterator&                itApp,
                             const Routers::AppContext*           previous);
 
-    Apps::iterator makeSubStream(const bsl::string& appId,
-                                 const AppKeyCount& appKey,
-                                 unsigned int       upstreamSubQueueId);
+    Apps::iterator makeSubStream(const bsl::string&      appId,
+                                 const mqbu::StorageKey& appKey,
+                                 unsigned int            upstreamSubQueueId);
 
     bool validate(unsigned int upstreamSubQueueId) const;
 
@@ -209,7 +192,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// If there are un-delivered messages for the specified `appKey` and
     /// `enableLog` is `true` it logs alarm data. Return `true` if there are
     /// un-delivered messages and `false` otherwise.
-    bool logAlarmCb(const mqbu::StorageKey& appKey, bool enableLog) const;
+    bool logAlarmCb(const bsl::string& appId, bool enableLog) const;
 
   public:
     // TRAITS
@@ -261,10 +244,11 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
 
-    /// Configure this instance. Return zero on success, non-zero value
+    /// Configure this instance.  The specified `isReconfigure` flag indicates
+    /// if queue is being reconfigured. Return zero on success, non-zero value
     /// otherwise and populate the specified `errorDescription`.
-    virtual int
-    configure(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+    virtual int configure(bsl::ostream& errorDescription,
+                          bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
@@ -400,14 +384,14 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdRegistered(
-        const mqbi::Storage::AppInfo& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+        const mqbi::Storage::AppInfos& addedAppIds) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after the specified `appIdKeyPair` has been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdUnregistered(
-        const mqbi::Storage::AppInfo& appIdKeyPair) BSLS_KEYWORD_OVERRIDE;
+        const mqbi::Storage::AppInfos& appIdKeyPairs) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.
@@ -465,8 +449,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's
     /// dispatcher thread.
     virtual bsl::ostream& logAppSubscriptionInfo(
-        bsl::ostream&           stream,
-        const mqbu::StorageKey& appKey) const BSLS_KEYWORD_OVERRIDE;
+        bsl::ostream&      stream,
+        const bsl::string& appId) const BSLS_KEYWORD_OVERRIDE;
 
   private:
     /// Log appllication subscription info for the specified `appState` into
