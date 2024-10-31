@@ -153,15 +153,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     bslma::Allocator* d_allocator_p;
     // Allocator used to supply memory
 
-    bool d_isFirstLeaderAdvisory;
-    // Flag to indicate whether this is
-    // first leader advisory.  *NOTE*: this
-    // flag is a workaround to address the
-    // existing cyclic dependency b/w
-    // leader and primary at node startup
-    // and will be removed once all CSL
-    // phases are complete.
-
     bool d_isOpen;
     // Flag to indicate open/close status
     // of this object
@@ -266,16 +257,14 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     void cancelUncommittedAdvisories();
 
     /// Apply the specified raw cluster state record `event` received from
-    /// the specified `source` node according to the specified `delayed`
-    /// flag indicating if the event was previously buffered.  Note that
-    /// while a replica node may receive any type of records from the
-    /// leader, the leader may *only* receive ack records from a replica.
+    /// the specified `source` node.  Note that while a replica node may
+    /// receive any type of records from the leader, the leader may *only*
+    /// receive ack records from a replica.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
     int applyImpl(const bdlbb::Blob&   event,
-                  mqbnet::ClusterNode* source,
-                  bool                 delayed);
+                  mqbnet::ClusterNode* source);
 
     // PRIVATE ACCESSORS
 
@@ -388,9 +377,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     int apply(const bdlbb::Blob&   event,
               mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    setIsFirstLeaderAdvisory(bool isFirstLeaderAdvisory) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;

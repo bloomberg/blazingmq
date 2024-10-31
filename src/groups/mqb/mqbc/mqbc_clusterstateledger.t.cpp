@@ -107,13 +107,6 @@ struct ClusterStateLedgerTestImp
         return markDone();
     }
 
-    void
-    setIsFirstLeaderAdvisory(BSLS_ANNOTATION_UNUSED bool isFirstLeaderAdvisory)
-        BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-    }
-
     // ACCESSORS
     void setCommitCb(BSLS_ANNOTATION_UNUSED const CommitCb& value)
         BSLS_KEYWORD_OVERRIDE
@@ -205,7 +198,6 @@ static void test1_clusterStateLedger_protocol()
                                  apply(bmqp_ctrlmsg::LeaderAdvisory()));
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  apply(bmqp_ctrlmsg::ClusterMessage()));
-        BSLS_PROTOCOLTEST_ASSERT(testObj, setIsFirstLeaderAdvisory(true));
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             setCommitCb(mqbc::ClusterStateLedger::CommitCb()));
