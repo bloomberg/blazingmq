@@ -470,7 +470,7 @@ class ClusterStateManager : public mqbc::ClusterStateObserver,
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified `event`.
+    /// Process the specified cluster state `event`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

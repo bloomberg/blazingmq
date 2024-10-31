@@ -51,7 +51,6 @@ int ClusterStateLedger::applyAdvisoryInternal(
 ClusterStateLedger::ClusterStateLedger(mqbc::ClusterData* clusterData,
                                        bslma::Allocator*  allocator)
 : d_allocator_p(allocator)
-, d_isFirstLeaderAdvisory(true)
 , d_isOpen(false)
 , d_pauseCommitCb(false)
 , d_commitCb()

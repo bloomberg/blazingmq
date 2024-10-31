@@ -302,7 +302,7 @@ class ClusterStateManager {
     processRegistrationRequest(const bmqp_ctrlmsg::ControlMessage& message,
                                mqbnet::ClusterNode*                source) = 0;
 
-    /// Process the specified `event`.
+    /// Process the specified cluster state `event`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

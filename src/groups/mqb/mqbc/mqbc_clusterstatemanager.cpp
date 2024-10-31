@@ -1746,35 +1746,6 @@ void ClusterStateManager::processClusterStateEvent(
     bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isClusterStateEvent());
 
-    // NOTE: Any validation of the event would go here.
-    if (source != d_clusterData_p->electorInfo().leaderNode()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring cluster state event from cluster node "
-                      << source->nodeDescription() << " as this node is not "
-                      << "the current perceived leader. Current leader: ["
-                      << d_clusterData_p->electorInfo().leaderNodeId() << ": "
-                      << (d_clusterData_p->electorInfo().leaderNode()
-                              ? d_clusterData_p->electorInfo()
-                                    .leaderNode()
-                                    ->nodeDescription()
-                              : "* UNKNOWN *")
-                      << "]";
-        return;  // RETURN
-    }
-    // 'source' is the perceived leader
-
-    // TBD: Suppress the following check for now, which will help some
-    // integration tests to pass.  At this point, it is not clear if it is safe
-    // to process cluster state events while self is stopping.
-    //
-    // if (   bmqp_ctrlmsg::NodeStatus::E_STOPPING
-    //     == d_clusterData_p->membership().selfNodeStatus()) {
-    //     return;                                                    // RETURN
-    // }
-
-    // TODO: Validate the incoming advisory and potentially buffer it for later
-    //       if the node is currently starting.
-
     const int rc = d_clusterStateLedger_mp->apply(*rawEvent.blob(), source);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
