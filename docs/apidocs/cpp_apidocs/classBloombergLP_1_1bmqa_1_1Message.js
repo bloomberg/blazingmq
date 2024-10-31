@@ -1,0 +1,27 @@
+var classBloombergLP_1_1bmqa_1_1Message =
+[
+    [ "Message", "classBloombergLP_1_1bmqa_1_1Message.html#a53271dae3e68a11c0fc8a9a7f4f7095c", null ],
+    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#a243f90b97f389a3f29846141a14405c7", null ],
+    [ "setData", "classBloombergLP_1_1bmqa_1_1Message.html#a0c5269cc87400b555e92d6bfa243fb2e", null ],
+    [ "setDataRef", "classBloombergLP_1_1bmqa_1_1Message.html#ab43884237dbfcda7727efed89826f599", null ],
+    [ "setDataRef", "classBloombergLP_1_1bmqa_1_1Message.html#a5165b6003fcea623f496310a0a8e6c5a", null ],
+    [ "setPropertiesRef", "classBloombergLP_1_1bmqa_1_1Message.html#a82c308447d0d21ead17491f7e08960e8", null ],
+    [ "clearPropertiesRef", "classBloombergLP_1_1bmqa_1_1Message.html#a6e16efd4660f71dd3e98e9ef1c1d98f1", null ],
+    [ "setCorrelationId", "classBloombergLP_1_1bmqa_1_1Message.html#a8c9332049b3d8716ba48d65265d8dd0f", null ],
+    [ "setCompressionAlgorithmType", "classBloombergLP_1_1bmqa_1_1Message.html#ab3a1dd1897e4132901bf3235d29dc5ed", null ],
+    [ "isValid", "classBloombergLP_1_1bmqa_1_1Message.html#a96f4973b9796cc807c778f35212d5765", null ],
+    [ "operator bool", "classBloombergLP_1_1bmqa_1_1Message.html#a6a0349b20443b22fe866a21a51b1cec1", null ],
+    [ "clone", "classBloombergLP_1_1bmqa_1_1Message.html#a89d51c813c01e30bd61c73e7c20ce493", null ],
+    [ "queueId", "classBloombergLP_1_1bmqa_1_1Message.html#a72eba364de51853c3c58516f7ed0cda7", null ],
+    [ "correlationId", "classBloombergLP_1_1bmqa_1_1Message.html#aba4dad147b7ee28486bb5876f3bb0884", null ],
+    [ "subscriptionHandle", "classBloombergLP_1_1bmqa_1_1Message.html#a5bc6156e7fda2176e31d0613939c0eed", null ],
+    [ "compressionAlgorithmType", "classBloombergLP_1_1bmqa_1_1Message.html#ad0a2a9ed6ea0cb40f51f661b2523a5a9", null ],
+    [ "messageGUID", "classBloombergLP_1_1bmqa_1_1Message.html#a01c3175436b5741388eb9ce86c8b82c8", null ],
+    [ "confirmationCookie", "classBloombergLP_1_1bmqa_1_1Message.html#aef3fb6c68d812108b098f39bce7f4ae9", null ],
+    [ "ackStatus", "classBloombergLP_1_1bmqa_1_1Message.html#ae1e4e9728ceeae244c37a106893f6121", null ],
+    [ "getData", "classBloombergLP_1_1bmqa_1_1Message.html#a566651ed95a9e82ac1d286626cb1ea5d", null ],
+    [ "dataSize", "classBloombergLP_1_1bmqa_1_1Message.html#ae6b36d708dacd65a75e1d885009cf6c8", null ],
+    [ "hasProperties", "classBloombergLP_1_1bmqa_1_1Message.html#a65d9baad8ec080293075ddaaa687e45f", null ],
+    [ "loadProperties", "classBloombergLP_1_1bmqa_1_1Message.html#ae2012cfab817c05b304e06b49337adde", null ],
+    [ "print", "classBloombergLP_1_1bmqa_1_1Message.html#ab1b0c9e039f8439095e55bf7a5782d13", null ]
+];
