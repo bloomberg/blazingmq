@@ -64,6 +64,16 @@
 namespace BloombergLP {
 namespace mqbblp {
 
+namespace {
+
+/// The default timeout for scheduled PUT expiration clean-up event.
+static const bsls::Types::Int64 k_DEFAULT_PUT_EXPIRATION_TIMEOUT_MINUTES = 5;
+static const bsls::Types::Int64 k_DEFAULT_PUT_EXPIRATION_TIMEOUT_NS =
+    k_DEFAULT_PUT_EXPIRATION_TIMEOUT_MINUTES *
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE;
+
+}  // close unnamed namespace
+
 // -----------------
 // class RemoteQueue
 // -----------------
@@ -484,13 +494,12 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     d_state_p->setDescription(os.str());
 
     if (deduplicationTimeMs <= 0) {
-        d_pendingPutsTimeoutNs = 5 *
-                                 bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE;
+        d_pendingPutsTimeoutNs = k_DEFAULT_PUT_EXPIRATION_TIMEOUT_NS;
         BALL_LOG_WARN << "Remote queue [" << d_state_p->description()
-                      << "]: cannot schedule PUT deduplication timer with a "
+                      << "]: cannot schedule PUT expiration timer with a "
                       << "non-positive timeout from config ["
                       << deduplicationTimeMs << " ms], use a default PUT "
-                      << "deduplication timeout for scheduler instead ["
+                      << "expiration timeout for scheduler instead ["
                       << bmqu::PrintUtil::prettyTimeInterval(
                              d_pendingPutsTimeoutNs)
                       << "]";
