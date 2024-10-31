@@ -354,10 +354,12 @@ struct Tester {
         bdlbb::BlobUtil::append(event, record);
     }
 
-    /// Let the specified `ledger` receive the specified `numAcks` acks for the record having the specific `sequenceNumber`.  Behavior is undefined unless the caller is the leader node.
-    void receiveAck(mqbc::IncoreClusterStateLedger *ledger,
+    /// Let the specified `ledger` receive the specified `numAcks` acks for the
+    /// record having the specific `sequenceNumber`.  Behavior is undefined
+    /// unless the caller is the leader node.
+    void receiveAck(mqbc::IncoreClusterStateLedger*            ledger,
                     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-                    int numAcks)
+                    int                                        numAcks)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_isLeader);
@@ -370,16 +372,17 @@ struct Tester {
 
         bdlbb::Blob ackEvent(d_cluster_mp->_bufferFactory(), s_allocator_p);
         constructEventBlob(&ackEvent,
-                                  message,
-                                  ack.sequenceNumberAcked(),
-                                  123456,
-                                  mqbc::ClusterStateRecordType::e_ACK);
+                           message,
+                           ack.sequenceNumberAcked(),
+                           123456,
+                           mqbc::ClusterStateRecordType::e_ACK);
 
         for (int i = 1; i <= numAcks; ++i) {
-            ASSERT_EQ(ledger->apply(ackEvent,
-                                 d_cluster_mp->netCluster().lookupNode(
-                                     mqbmock::Cluster::k_LEADER_NODE_ID + i)),
-                      0);
+            ASSERT_EQ(
+                ledger->apply(ackEvent,
+                              d_cluster_mp->netCluster().lookupNode(
+                                  mqbmock::Cluster::k_LEADER_NODE_ID + i)),
+                0);
         }
     }
 
@@ -400,7 +403,9 @@ struct Tester {
         return true;
     }
 
-    /// Return true if we the follower has sent `number` messages to the leader, false otherwise.  Behavior is undefined unless the caller is a follower node.
+    /// Return true if we the follower has sent `number` messages to the
+    /// leader, false otherwise.  Behavior is undefined unless the caller is a
+    /// follower node.
     bool hasSentMessagesToLeader(int number) const
     {
         // PRECONDITIONS
@@ -415,7 +420,8 @@ struct Tester {
                     return false;  // RETURN
                 }
                 BSLS_ASSERT_OPT(citer->second->writeCalls().size() >= number);
-            } else {
+            }
+            else {
                 BSLS_ASSERT_OPT((!citer->second->waitFor(1)));
                 BSLS_ASSERT_OPT(citer->second->writeCalls().empty());
             }
@@ -424,7 +430,8 @@ struct Tester {
         return true;
     }
 
-    /// Return true if we the leader has broadcast `number` messages, false otherwise.  Behavior is undefined unless the caller is the leader node.
+    /// Return true if we the leader has broadcast `number` messages, false
+    /// otherwise.  Behavior is undefined unless the caller is the leader node.
     bool hasBroadcastedMessages(int number) const
     {
         // PRECONDITIONS
@@ -608,7 +615,8 @@ static void test3_apply_QueueAssignmentAdvisory()
 // QUEUE ASSIGNMENT ADVISORY
 //
 // Concerns:
-//   Applying 'QueueAssignmentAdvisory' (only at leader), receive a quorum of acks, then commit the advisory.
+//   Applying 'QueueAssignmentAdvisory' (only at leader), receive a quorum of
+//   acks, then commit the advisory.
 //
 // Testing:
 //   int apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory);
@@ -664,7 +672,8 @@ static void test4_apply_QueueUnassignedAdvisory()
 // QUEUE UNASSIGNED ADVISORY
 //
 // Concerns:
-//   Applying 'QueueUnassignedAdvisory' (only at leader), receive a quorum of acks, then commit the advisory.
+//   Applying 'QueueUnassignedAdvisory' (only at leader), receive a quorum of
+//   acks, then commit the advisory.
 //
 // Testing:
 //   int apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory);
@@ -716,7 +725,8 @@ static void test5_apply_QueueUpdateAdvisory()
 // QUEUE UPDATE ADVISORY
 //
 // Concerns:
-//   Applying 'QueueUpdateAdvisory' (only at leader), receive a quorum of acks, then commit the advisory.
+//   Applying 'QueueUpdateAdvisory' (only at leader), receive a quorum of acks,
+//   then commit the advisory.
 //
 // Testing:
 //   int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory);
@@ -785,7 +795,8 @@ static void test6_apply_LeaderAdvisory()
 // LEADER ADVISORY
 //
 // Concerns:
-//   Applying 'LeaderAdvisory' (only at leader), receive a quorum of acks, then commit the advisory.
+//   Applying 'LeaderAdvisory' (only at leader), receive a quorum of acks, then
+//   commit the advisory.
 //
 // Testing:
 //   int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory);
@@ -1040,16 +1051,16 @@ static void test8_apply_ClusterStateRecordCommit()
 
     // 3. Should fail for an invalid sequence number
     bmqp_ctrlmsg::LeaderAdvisoryCommit invalidCommit;
-    invalidCommit.sequenceNumberCommitted().electorTerm()        = 999U;
-    invalidCommit.sequenceNumberCommitted().sequenceNumber()     = 999U;
-    invalidCommit.sequenceNumber().electorTerm()    = 1U;
-    invalidCommit.sequenceNumber().sequenceNumber() = 4U;
+    invalidCommit.sequenceNumberCommitted().electorTerm()    = 999U;
+    invalidCommit.sequenceNumberCommitted().sequenceNumber() = 999U;
+    invalidCommit.sequenceNumber().electorTerm()             = 1U;
+    invalidCommit.sequenceNumber().sequenceNumber()          = 4U;
 
     bmqp_ctrlmsg::ClusterMessage invalidCommitMessage;
     invalidCommitMessage.choice().makeLeaderAdvisoryCommit(invalidCommit);
 
     bdlbb::Blob invalidCommitEvent(tester.d_cluster_mp->_bufferFactory(),
-                            s_allocator_p);
+                                   s_allocator_p);
     tester.constructEventBlob(&invalidCommitEvent,
                               invalidCommitMessage,
                               invalidCommit.sequenceNumber(),
@@ -1136,7 +1147,7 @@ static void test9_persistanceLeader()
     qupdate.partitionId() = 1U;
     key.loadBinary(&qupdate.key());
     qupdate.addedAppIds().resize(1);
-    qupdate.domain() = "bmq.test.mmap.fanout";
+    qupdate.domain()                    = "bmq.test.mmap.fanout";
     bmqp_ctrlmsg::AppIdInfo& addedAppId = qupdate.addedAppIds().back();
     addedAppId.appId()                  = "qux";
     mqbu::StorageKey appKey1(mqbu::StorageKey::BinaryRepresentation(),
@@ -2072,7 +2083,7 @@ static void test12_rolloverUncommittedAdvisories()
             .makeQueueAssignmentAdvisory(qAssignAdvisory);
         BSLS_ASSERT_OPT(tester.numCommittedMessages() == i + 1);
         BSLS_ASSERT_OPT(tester.committedMessage(i) == expected);
-        BSLS_ASSERT_OPT(tester.hasSentMessagesToLeader(i+ 4));
+        BSLS_ASSERT_OPT(tester.hasSentMessagesToLeader(i + 4));
 
         ++i;
     }
