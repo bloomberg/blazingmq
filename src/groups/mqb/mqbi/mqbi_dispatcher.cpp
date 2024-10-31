@@ -32,6 +32,47 @@
 namespace BloombergLP {
 namespace mqbi {
 
+namespace {
+
+class VoidCallback : public mqbi::CallbackFunctor {
+  private:
+    // PRIVATE DATA
+    mqbi::Dispatcher::VoidFunctor d_callback;
+
+  public:
+    // CREATORS
+    VoidCallback(const mqbi::Dispatcher::VoidFunctor& callback)
+    : d_callback(callback)
+    {
+        // NOTHING
+    }
+
+    VoidCallback(bslmf::MovableRef<mqbi::Dispatcher::VoidFunctor> callback)
+    : d_callback(bslmf::MovableRefUtil::move(callback))
+    {
+        // NOTHING
+    }
+
+    // ACCESSORS
+    void operator()() const BSLS_KEYWORD_OVERRIDE
+    {
+        if (d_callback) {
+            d_callback();
+        }
+    }
+};
+
+}  // close unnamed namespace
+
+// ----------------------
+// struct CallbackFunctor
+// ----------------------
+
+CallbackFunctor::~CallbackFunctor()
+{
+    // NOTHING
+}
+
 // ---------------------------
 // struct DispatcherClientType
 // ---------------------------
@@ -168,17 +209,30 @@ bool DispatcherEventType::fromAscii(DispatcherEventType::Enum* out,
 // class Dispatcher
 // ----------------
 
-// CLASS METHODS
-Dispatcher::ProcessorFunctor
-Dispatcher::voidToProcessorFunctor(const Dispatcher::VoidFunctor& functor)
-{
-    return bdlf::BindUtil::bind(functor);
-}
-
 // CREATORS
 Dispatcher::~Dispatcher()
 {
     // NOTHING
+}
+
+// ---------------------
+// class InPlaceCallback
+// ---------------------
+
+void InPlaceCallback::setCallback(const Dispatcher::VoidFunctor& callback)
+{
+    // Preconditions for placement are checked in `place`.
+    // Destructor is called by `reset` of the holding DispatcherEvent.
+    new (place<VoidCallback>()) VoidCallback(callback);
+}
+
+void InPlaceCallback::setCallback(
+    bslmf::MovableRef<Dispatcher::VoidFunctor> callback)
+{
+    // Preconditions for placement are checked in `place`.
+    // Destructor is called by `reset` of the holding DispatcherEvent.
+    new (place<VoidCallback>())
+        VoidCallback(bslmf::MovableRefUtil::move(callback));
 }
 
 // -------------------------------
@@ -327,7 +381,8 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
     } break;
     case DispatcherEventType::e_DISPATCHER: {
         printer.printAttribute("hasFinalizeCallback",
-                               (finalizeCallback() ? "yes" : "no"));
+                               (finalizeCallback().hasCallback() ? "yes"
+                                                                 : "no"));
     } break;
     case DispatcherEventType::e_CALLBACK: {
         // Nothing more to print

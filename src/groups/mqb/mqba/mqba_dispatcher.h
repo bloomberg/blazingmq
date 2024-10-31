@@ -221,6 +221,31 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
+    /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
+    /// when dispatching CONFIRM from Cluster to Queue.
+    class OnNewClientFunctor : public mqbi::CallbackFunctor {
+      private:
+        // PRIVATE DATA
+        Dispatcher*                      d_owner_p;
+        mqbi::DispatcherClientType::Enum d_type;
+        int                              d_processorId;
+
+      public:
+        // CREATORS
+        /// This functor is invoked when a new client with the specified `type`
+        /// is registered to the dispatcher, from the thread associated to that
+        /// new client that is mapped to the specified `processorId`.  The
+        /// specified `owner_p` holds pointer to the parent Dispatcher object.
+        OnNewClientFunctor(Dispatcher*                      owner_p,
+                           mqbi::DispatcherClientType::Enum type,
+                           int                              processorId);
+
+        // ACCESSORS
+        /// Updated the data associated with the new client from the
+        /// appropriate thread, using fields stored in this functor.
+        void operator()() const BSLS_KEYWORD_OVERRIDE;
+    };
+
     /// Context for a dispatcher, with threads and pools
     struct DispatcherContext {
       private:
@@ -332,11 +357,6 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// `processorId`.
     void flushClients(mqbi::DispatcherClientType::Enum type, int processorId);
 
-    /// This method is invoked when a new client of the specified `type` is
-    /// registered to the dispatcher, from the thread associated to that new
-    /// client that is mapped to the specified `processorId`.
-    void onNewClient(mqbi::DispatcherClientType::Enum type, int processorId);
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Dispatcher, bslma::UsesBslmaAllocator)
@@ -416,9 +436,9 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// clients of the specified `type`, and invoke the optionally specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    void execute(const mqbi::Dispatcher::ProcessorFunctor& functor,
-                 mqbi::DispatcherClientType::Enum          type,
-                 const mqbi::Dispatcher::VoidFunctor&      doneCallback =
+    void execute(const mqbi::Dispatcher::VoidFunctor& functor,
+                 mqbi::DispatcherClientType::Enum     type,
+                 const mqbi::Dispatcher::VoidFunctor& doneCallback =
                      mqbi::Dispatcher::VoidFunctor()) BSLS_KEYWORD_OVERRIDE;
 
     void execute(const mqbi::Dispatcher::VoidFunctor& functor,
@@ -569,8 +589,7 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
 
     mqbi::DispatcherEvent* event = getEvent(client);
 
-    (*event).setType(type).setCallback(
-        mqbi::Dispatcher::voidToProcessorFunctor(functor));
+    (*event).setType(type).callback().setCallback(functor);
 
     dispatchEvent(event, client);
 }
@@ -585,7 +604,8 @@ inline void Dispatcher::execute(const mqbi::Dispatcher::VoidFunctor& functor,
 
     (*event)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
-        .setCallback(mqbi::Dispatcher::voidToProcessorFunctor(functor));
+        .callback()
+        .setCallback(functor);
 
     dispatchEvent(event, client.clientType(), client.processorHandle());
 }
