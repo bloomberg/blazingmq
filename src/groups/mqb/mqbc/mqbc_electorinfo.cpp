@@ -96,9 +96,22 @@ void ElectorInfo::onHealedLeader()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_LEADER);
 
-    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedLeader()";
+    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedLeader()"
+                  << ", LSN = " << d_leaderMessageSequence << ".";
 
     onSelfActiveLeader();
+}
+
+void ElectorInfo::onHealedFollower()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_electorState == mqbnet::ElectorState::e_FOLLOWER);
+
+    BALL_LOG_INFO << "#ELECTOR_INFO: onHealedFollower()"
+                  << ", leader = " << d_leaderNode_p->nodeDescription()
+                  << ", LSN = " << d_leaderMessageSequence << ".";
+
+    setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
 
 // MANIPULATORS
@@ -132,6 +145,11 @@ ElectorInfo& ElectorInfo::setLeaderStatus(ElectorInfoLeaderStatus::Enum value)
     BSLS_ASSERT_SAFE(
         (d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED != value)) ||
         (!d_leaderNode_p && (ElectorInfoLeaderStatus::e_UNDEFINED == value)));
+    // It is **prohibited** to set leader status directly from e_UNDEFINED to
+    // e_ACTIVE.
+    if (d_leaderStatus == ElectorInfoLeaderStatus::e_UNDEFINED) {
+        BSLS_ASSERT_SAFE(value != ElectorInfoLeaderStatus::e_ACTIVE);
+    }
 
     BALL_LOG_INFO << "#ELECTOR_INFO: leader: "
                   << (d_leaderNode_p ? d_leaderNode_p->nodeDescription()
@@ -169,6 +187,11 @@ ElectorInfo& ElectorInfo::setElectorInfo(mqbnet::ElectorState::Enum    state,
     BSLS_ASSERT_SAFE(
         (node && (ElectorInfoLeaderStatus::e_UNDEFINED != status)) ||
         (!node && (ElectorInfoLeaderStatus::e_UNDEFINED == status)));
+    // It is **prohibited** to set leader status directly from e_UNDEFINED to
+    // e_ACTIVE.
+    if (d_leaderStatus == ElectorInfoLeaderStatus::e_UNDEFINED) {
+        BSLS_ASSERT_SAFE(status != ElectorInfoLeaderStatus::e_ACTIVE);
+    }
 
     mqbnet::ClusterNode* oldLeader = d_leaderNode_p;
 
