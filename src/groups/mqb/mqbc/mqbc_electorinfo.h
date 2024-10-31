@@ -213,6 +213,12 @@ class ElectorInfo : public ClusterFSMObserver {
     ///         dispatcher thread.
     void onHealedLeader() BSLS_KEYWORD_OVERRIDE;
 
+    /// Invoked when the Cluster FSM transitions to `FOL_HEALED` state.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onHealedFollower() BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
 
     /// Register the specified `observer` to be notified of elector changes.
@@ -230,9 +236,12 @@ class ElectorInfo : public ClusterFSMObserver {
     /// cluster's dispatcher thread.
     ElectorInfo& unregisterObserver(ElectorInfoObserver* observer);
 
-    ElectorInfo& setElectorState(mqbnet::ElectorState::Enum value);
     ElectorInfo& setElectorTerm(bsls::Types::Uint64 value);
     ElectorInfo& setLeaderNode(mqbnet::ClusterNode* value);
+
+    /// Set the leader status to the specified `value`.  Note that it is
+    /// **prohibited** to set leader status directly from e_UNDEFINED to
+    /// e_ACTIVE.
     ElectorInfo& setLeaderStatus(ElectorInfoLeaderStatus::Enum value);
 
     /// Set the corresponding member to the specified `value` and return a
@@ -245,7 +254,9 @@ class ElectorInfo : public ClusterFSMObserver {
     /// is the leader with the specified `status`, or a null pointer if
     /// there are no leader.  If the leader has changed, this will notify
     /// all active observers by invoking `onClusterLeader()` on each of
-    /// them, with the `node` as parameter.
+    /// them, with the `node` as parameter.  Note that it is
+    /// **prohibited** to set leader status directly from e_UNDEFINED to
+    /// e_ACTIVE.
     ElectorInfo& setElectorInfo(mqbnet::ElectorState::Enum    state,
                                 bsls::Types::Uint64           term,
                                 mqbnet::ClusterNode*          node,
@@ -316,13 +327,6 @@ inline ElectorInfo::ElectorInfo(mqbi::Cluster* cluster)
 }
 
 // MANIPULATORS
-inline ElectorInfo&
-ElectorInfo::setElectorState(mqbnet::ElectorState::Enum value)
-{
-    d_electorState = value;
-    return *this;
-}
-
 inline ElectorInfo& ElectorInfo::setElectorTerm(bsls::Types::Uint64 value)
 {
     d_leaderMessageSequence.electorTerm()    = value;

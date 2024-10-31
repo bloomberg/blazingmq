@@ -3549,10 +3549,13 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
     }
 
     d_clusterOrchestrator.updateDatumStats();
-    d_clusterData.stats().setIsLeader(
-        d_clusterData.membership().selfNode() == node
-            ? mqbstat::ClusterStats::LeaderStatus::e_LEADER
-            : mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+
+    if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
+        d_clusterData.stats().setIsLeader(
+            d_clusterData.membership().selfNode() == node
+                ? mqbstat::ClusterStats::LeaderStatus::e_LEADER
+                : mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+    }
 }
 
 void Cluster::onLeaderPassiveThreshold()

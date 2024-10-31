@@ -86,6 +86,7 @@ typedef mqbc::ClusterStateManager::ClusterStateLedgerMp ClusterStateLedgerMp;
 struct Tester {
   public:
     // PUBLIC DATA
+    bool                                         d_isLeader;
     bdlbb::PooledBlobBufferFactory               d_bufferFactory;
     bmqu::TempDirectory                          d_tempDir;
     bslma::ManagedPtr<mqbmock::Cluster>          d_cluster_mp;
@@ -96,7 +97,8 @@ struct Tester {
   public:
     // CREATORS
     Tester(bool isLeader)
-    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
+    : d_isLeader(isLeader)
+    , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
     , d_clusterStateLedger_p(0)
@@ -140,7 +142,7 @@ struct Tester {
                 mqbmock::Cluster(&d_bufferFactory,
                                  bmqtst::TestHelperUtil::allocator(),
                                  true,  // isClusterMember
-                                 isLeader,
+                                 d_isLeader,
                                  true,  // isCSLMode
                                  true,  // isFSMWorkflow
                                  clusterNodeDefs,
@@ -211,7 +213,8 @@ struct Tester {
                 mqbmock::Cluster::k_LEADER_NODE_ID);
         BSLS_ASSERT_OPT(leaderNode != 0);
         d_cluster_mp->_clusterData()->electorInfo().setElectorInfo(
-            mqbnet::ElectorState::e_LEADER,
+            d_isLeader ? mqbnet::ElectorState::e_LEADER
+                       : mqbnet::ElectorState::e_FOLLOWER,
             electorTerm,
             leaderNode,
             mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
