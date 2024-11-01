@@ -207,8 +207,17 @@ jobs:
             deps
             /opt/bb/include
           key: cache-${{ github.sha }}
+
+      - name: Setup Core Dumps config
+        run: |
+          sudo mkdir /cores
+          sudo chmod 777 /cores
+          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+
       - name: Run Integration Tests
         run: |
+          # Allow core dumps
+          ulimit -c unlimited
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
@@ -227,6 +236,22 @@ jobs:
         with:
           name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
+          retention-days: 5
+
+      - name: Upload broker core dump as artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core_dumps
+          path: /cores
+          retention-days: 5
+
+      - name: Upload broker executable as artifacts to debug the core
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bmqbrkr
+          path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
 
   fuzz_tests_ubuntu:
