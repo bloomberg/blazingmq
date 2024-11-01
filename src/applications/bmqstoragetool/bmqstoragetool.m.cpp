@@ -31,7 +31,7 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
 static bool
-parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
+parseArgs(CommandLineArguments& arguments, int argc, const char* argv[], bslma::Allocator* allocator)
 {
     bool showHelp = false;
 
@@ -82,6 +82,26 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "higher timestamp bound",
          balcl::TypeInfo(&arguments.d_timestampLt),
          balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-gt",
+         "record composite sequence number greater than",
+         "lower record sequence number bound",
+         balcl::TypeInfo(&arguments.d_seqNumGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-lt",
+         "record composite sequence number less than",
+         "higher sequence number bound",
+         balcl::TypeInfo(&arguments.d_seqNumLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-gt",
+         "record offset greater than",
+         "lower record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-lt",
+         "record offset less than",
+         "higher record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
         {"outstanding",
          "only outstanding",
          "show only outstanding (not deleted) messages",
@@ -130,7 +150,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
     }
 
     bsl::string error;
-    if (!arguments.validate(&error)) {
+    if (!arguments.validate(&error, allocator)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
         return false;  // RETURN
     }
@@ -157,7 +177,7 @@ int main(int argc, const char* argv[])
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
-    if (!parseArgs(arguments, argc, argv)) {
+    if (!parseArgs(arguments, argc, argv, allocator)) {
         return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
     }
 

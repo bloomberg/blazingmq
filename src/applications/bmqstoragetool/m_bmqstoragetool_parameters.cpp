@@ -77,11 +77,16 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_timestampGt(0)
 , d_timestampLt(0)
+, d_seqNumGt(allocator)
+, d_seqNumLt(allocator)
+, d_offsetGt(0)
+, d_offsetLt(0)
 , d_journalPath(allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
 , d_guid(allocator)
+, d_seqNum(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
 , d_dumpLimit(0)
@@ -94,9 +99,9 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 {
 }
 
-bool CommandLineArguments::validate(bsl::string* error)
+bool CommandLineArguments::validate(bsl::string* error, bslma::Allocator* allocator)
 {
-    bmqu::MemOutStream ss;
+    bmqu::MemOutStream ss(allocator);
 
     if (d_journalPath.empty() && d_journalFile.empty()) {
         ss << "Neither journal path nor journal file are specified\n";
@@ -162,18 +167,69 @@ bool CommandLineArguments::validate(bsl::string* error)
     if (d_cslFile.empty() && !d_queueName.empty()) {
         ss << "Can't search by queue name, because csl file is not "
               "specified\n";
-    }
+    }    
     if (d_timestampLt < 0 || d_timestampGt < 0 ||
         (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
         ss << "Invalid timestamp range specified\n";
     }
+    if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
+        bmqu::MemOutStream errorDescr(allocator);
+        CompositeSequenceNumber seqNumLt, seqNumGt;
+        if (!d_seqNumLt.empty()) {
+            seqNumLt.fromString(errorDescr, d_seqNumLt);
+            if(seqNumLt.isUnset()) {
+                ss << "--seqnum-lt: " << errorDescr.str() << "\n";
+                errorDescr.reset();
+            }
+        }
+        if (!d_seqNumGt.empty()) {
+            seqNumGt.fromString(errorDescr, d_seqNumGt);
+            if(seqNumGt.isUnset()) {
+                ss << "--seqnum-gt: " << errorDescr.str() << "\n";
+            }
+        }
+
+        if (!seqNumLt.isUnset() && !seqNumGt.isUnset()) {
+            if (seqNumLt <= seqNumGt) {
+                ss << "Invalid sequence number range specified\n";
+            }
+        }
+    }
+    if (d_offsetLt < 0 || d_offsetGt < 0 ||
+        (d_offsetLt > 0 && d_offsetGt >= d_offsetLt)) {
+        ss << "Invalid offset range specified\n";
+    }
+    // Check that only one range type can be selected
+    bsl::size_t rangesCnt = 0;
+    if (d_timestampLt || d_timestampGt) {
+        rangesCnt++;
+    }
+    if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
+        rangesCnt++;
+    }
+    if (d_offsetLt || d_offsetGt) {
+        rangesCnt++;
+    }
+    if (rangesCnt > 1) {
+        ss << "Only one range type can be selected: timestamp, seqnum or offset\n";
+    }
+
     if (!d_guid.empty() &&
-        (!d_queueKey.empty() || !d_queueName.empty() || d_outstanding ||
-         d_confirmed || d_partiallyConfirmed || d_timestampGt > 0 ||
-         d_timestampLt > 0 || d_summary)) {
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() || d_outstanding ||
+         d_confirmed || d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
         ss << "Giud filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
     }
+
+    if (!d_seqNum.empty() && 
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty()|| d_outstanding ||
+         d_confirmed || d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        ss << "secnum filter can't be combined with any other filters, as it is "
+              "specific enough to find a particular message\n";
+    }
+
+    // TODO: offset check too
+
     if (d_summary &&
         (d_outstanding || d_confirmed || d_partiallyConfirmed || d_details)) {
         ss << "'--summary' can't be combined with '--outstanding', "
@@ -211,8 +267,9 @@ bool CommandLineArguments::validate(bsl::string* error)
 
 Parameters::Parameters(bslma::Allocator* allocator)
 : d_queueMap(allocator)
-, d_timestampGt(0)
-, d_timestampLt(0)
+, d_valueType(e_NONE)
+, d_valueGt(0)
+, d_valueLt(0)
 , d_guid(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
@@ -229,8 +286,9 @@ Parameters::Parameters(bslma::Allocator* allocator)
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_queueMap(allocator)
-, d_timestampGt(arguments.d_timestampGt)
-, d_timestampLt(arguments.d_timestampLt)
+, d_valueType(e_NONE)
+, d_valueGt(0)
+, d_valueLt(0)
 , d_guid(arguments.d_guid, allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
@@ -242,6 +300,20 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
+    // Set search range type and values if present
+    if (arguments.d_timestampLt  || arguments.d_timestampGt) {
+        d_valueType = e_TIMESTAMP;
+        d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_timestampLt);
+        d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_timestampGt);
+    } else if (!arguments.d_seqNumLt.empty() || arguments.d_seqNumGt.empty()) {
+        d_valueType = e_SEQUENCE_NUM;
+        // d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_seqNumLt);
+        // d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_seqNumGt);
+    } else {
+        d_valueType = e_OFFSET;
+        d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
+        d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
+    }
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
