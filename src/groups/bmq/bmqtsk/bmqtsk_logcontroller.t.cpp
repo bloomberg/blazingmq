@@ -18,6 +18,9 @@
 
 #include <bmqu_memoutstream.h>
 
+// MQB
+#include <mqbcfg_messages.h>
+
 // BDE
 #include <bdld_datum.h>
 #include <bdld_datumarraybuilder.h>
@@ -34,7 +37,7 @@ using namespace bsl;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_logControllerConfigFromDatum()
+static void test1_logControllerConfigFromObj()
 // ------------------------------------------------------------------------
 // LOG CONTROLLER CONFIG FROM DATUM
 //
@@ -43,76 +46,64 @@ static void test1_logControllerConfigFromDatum()
 //   - Inner map with SyslogConfig should be processed correctly too.
 //
 // Plan:
-//   1. Fill the bdld::Datum structure representing LogControllerConfig.
-//   2. Initialize the LogControllerConfig with the given bdld::Datum.
-//   3. Verify that fromDatum call succeeded.
+//   1. Fill the MockObj structure representing LogControllerConfig.
+//   2. Initialize the LogControllerConfig with the given MockObj.
+//   3. Verify that fromObj call succeeded.
 //   4. Verify that syslog properties were correctly set.
+//   5. Verify that logDump properties were correctly set.
 //
 // Testing:
-//   - LogControllerConfig::fromDatum
+//   - LogControllerConfig::fromObj
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("LogControllerConfig::fromDatum Test");
+    bmqtst::TestHelper::printTestName("LogControllerConfig::fromObj Test");
+    mqbcfg::LogController lc(s_allocator_p);
 
-    bdld::DatumMapBuilder syslogBuilder(s_allocator_p);
-    syslogBuilder.pushBack("enabled", bdld::Datum::createBoolean(true));
-    syslogBuilder.pushBack("appName",
-                           bdld::Datum::createStringRef("testapp",
-                                                        s_allocator_p));
-    syslogBuilder.pushBack(
-        "logFormat",
-        bdld::Datum::createStringRef("test %d (%t) %s %F:%l %m\n\n",
-                                     s_allocator_p));
-    syslogBuilder.pushBack("verbosity",
-                           bdld::Datum::createStringRef("info",
-                                                        s_allocator_p));
+    lc.syslog().enabled()   = true;
+    lc.syslog().appName()   = "testapp";
+    lc.syslog().logFormat() = "test %d (%t) %s %F:%l %m\n\n";
+    lc.syslog().verbosity() = "INFO";
 
-    bdld::DatumArrayBuilder categoriesBuilder(s_allocator_p);
-    categoriesBuilder.pushBack(
-        bdld::Datum::copyString("category:info:red", s_allocator_p));
+    lc.categories().push_back("category:info:red");
+    // TODO: uncomment when setup of this parameter is uncommented
+    // lc.logDump().recordBufferSize() = 12345;
+    // lc.logDump().recordingLevel()   = "TRACE";
+    // lc.logDump().triggerLevel()     = "FATAL";
 
-    bdld::DatumMapBuilder logControllerBuilder(s_allocator_p);
-    logControllerBuilder.pushBack("fileName",
-                                  bdld::Datum::copyString("fileName",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("fileMaxAgeDays",
-                                  bdld::Datum::createDouble(8.2));
-    logControllerBuilder.pushBack("rotationBytes",
-                                  bdld::Datum::createDouble(2048));
-    logControllerBuilder.pushBack(
-        "logfileFormat",
-        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n", s_allocator_p));
-    logControllerBuilder.pushBack(
-        "consoleFormat",
-        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n", s_allocator_p));
-    logControllerBuilder.pushBack("loggingVerbosity",
-                                  bdld::Datum::copyString("debug",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("bslsLogSeverityThreshold",
-                                  bdld::Datum::copyString("info",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("consoleSeverityThreshold",
-                                  bdld::Datum::copyString("info",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("categories", categoriesBuilder.commit());
-    logControllerBuilder.pushBack("syslog", syslogBuilder.commit());
+    lc.fileName()         = "fileName";
+    lc.fileMaxAgeDays()   = 8;
+    lc.rotationBytes()    = 2048;
+    lc.logfileFormat()    = "%d (%t) %s %F:%l %m\n\n";
+    lc.consoleFormat()    = "%d (%t) %s %F:%l %m\n\n";
+    lc.loggingVerbosity() = "debug";
+    // TODO: uncomment when setup of this parameter is uncommented
+    // lc.bslsLogSeverityThreshold() = "error";
+    lc.consoleSeverityThreshold() = "info";
 
-    bdld::Datum                 datum = logControllerBuilder.commit();
     bmqtsk::LogControllerConfig config(s_allocator_p);
     bmqu::MemOutStream          errorDesc(s_allocator_p);
-    config.fromDatum(errorDesc, datum);
-    bdld::Datum::destroy(datum, s_allocator_p);
+
+    ASSERT_EQ(config.fromObj<mqbcfg::LogController>(errorDesc, lc), 0);
 
     ASSERT_D(errorDesc.str(), errorDesc.str().empty());
 
+    ASSERT_EQ(config.fileName(), "fileName");
     ASSERT_EQ(config.fileMaxAgeDays(), 8);
     ASSERT_EQ(config.rotationBytes(), 2048);
+    ASSERT_EQ(config.logfileFormat(), "%d (%t) %s %F:%l %m\n\n");
+    ASSERT_EQ(config.consoleFormat(), "%d (%t) %s %F:%l %m\n\n");
     ASSERT_EQ(config.loggingVerbosity(), ball::Severity::DEBUG);
+    ASSERT_EQ(config.bslsLogSeverityThreshold(), bsls::LogSeverity::e_ERROR);
+    ASSERT_EQ(config.consoleSeverityThreshold(), ball::Severity::INFO);
 
     ASSERT_EQ(config.syslogEnabled(), true);
     ASSERT_EQ(config.syslogFormat(), "test %d (%t) %s %F:%l %m\n\n");
     ASSERT_EQ(config.syslogAppName(), "testapp");
     ASSERT_EQ(config.syslogVerbosity(), ball::Severity::INFO);
+
+    ASSERT_EQ(config.recordBufferSize(), 32768);
+    ASSERT_EQ(config.recordingVerbosity(), ball::Severity::OFF);
+    ASSERT_EQ(config.triggerVerbosity(), ball::Severity::OFF);
 }
 
 // ============================================================================
@@ -125,7 +116,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 1: test1_logControllerConfigFromDatum(); break;
+    case 1: test1_logControllerConfigFromObj(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
