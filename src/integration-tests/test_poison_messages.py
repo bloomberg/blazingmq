@@ -158,8 +158,8 @@ class TestPoisonMessages:
         # 2. send a message to the consumer
         # 3. open a consumer
         # 4. kill a consumer
-        # 5. force a leader change
-        # 6. open a consumer
+        # 5. open a consumer
+        # 6. force a leader change
         # 7. kill a consumer a again
         # 8. open a consumer
         # The message should still exist and be delivered to the consumer (the
@@ -443,7 +443,7 @@ class TestPoisonMessages:
             multi_node, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
         )
 
-    @max_delivery_attempts(2)
+    @max_delivery_attempts(3)
     def test_poison_rda_reset_priority_active(self, multi_node: Cluster):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's

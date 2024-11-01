@@ -355,6 +355,55 @@ class TestReconfigureDomains:
         # Expect that message will expire after failed deliveries.
         do_test(False)
 
+    @tweak.domain.max_delivery_attempts(1)
+    def test_reconfigure_max_delivery_attempts_finite(self, multi_node: Cluster):
+        URI = f"bmq://{tc.DOMAIN_PRIORITY}/reconf-rda"
+        proxy = next(multi_node.proxy_cycle())
+
+        # Open the queue through the writer.
+        self.writer.open(URI, flags=["write,ack"], succeed=True)
+
+        def do_test(expect_success, delivery_attempts):
+            # Write one message to 'URI'.
+            self.post_n_msgs(URI, 1)
+
+            # Open, read, and kill delivery_attempts consumers in sequence.
+            for idx in range(0, delivery_attempts - 1):
+                client = proxy.create_client(f"reader-unstable-{idx}")
+                client.open(URI, flags=["read"], succeed=True)
+                client.check_exit_code = False
+                client.wait_push_event(timeout=5)
+                client.kill()
+                client.wait()
+
+            # Open one more client, and ensure it succeeds or fails to read a
+            # message according to 'expect_success'.
+            client = proxy.create_client("reader-stable")
+            client.open(URI, flags=["read"], succeed=True)
+            if expect_success:
+                client.confirm(URI, "+1", succeed=True)
+            else:
+                assert not client.wait_push_event(timeout=5)
+            client.stop_session(block=True)
+
+        # Expect that message will not expire after failed deliveries.
+        do_test(True, 1)
+
+        for max_delivery_attempts in range(2, 7):
+            # Reconfigure messages to expire after max_delivery_attempts delivery attempts.
+            multi_node.config.domains[
+                tc.DOMAIN_PRIORITY
+            ].definition.parameters.max_delivery_attempts = max_delivery_attempts
+            multi_node.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
+
+            # Attempt to deliver message max_delivery_attempts times,
+            # client confirms at the last attempt.
+            do_test(True, max_delivery_attempts)
+
+            # Attempt to deliver message max_delivery_attempts + 1 times,
+            # client never confirms, and should timeout after broker maxing out the attempts.
+            do_test(False, max_delivery_attempts + 1)
+
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts_on_existing_messages(
         self, multi_node: Cluster
