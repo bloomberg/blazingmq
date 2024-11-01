@@ -194,34 +194,6 @@ int normalizeConfig(mqbconfm::Domain* defn,
 {
     int updatedValues = 0;
 
-    const unsigned int maxDeliveryAttempts = defn->maxDeliveryAttempts();
-    const mqbcfg::MessageThrottleConfig& messageThrottleConfig =
-        domain.cluster()->isClusterMember()
-            ? domain.cluster()->clusterConfig()->messageThrottleConfig()
-            : domain.cluster()->clusterProxyConfig()->messageThrottleConfig();
-
-    const unsigned int highThresh = messageThrottleConfig.highThreshold();
-    const unsigned int minValue   = highThresh + 1;
-
-    // 'maxDeliveryAttempts' can be zero, which indicates unlimited attempts.
-    if (maxDeliveryAttempts && maxDeliveryAttempts < minValue) {
-        errorDescription << domain.cluster()->name() << ", " << domain.name()
-                         << ": maxDeliveryAttempts is less than message "
-                            "throttling high threshold value. "
-                            "maxDeliveryAttempts: "
-                         << maxDeliveryAttempts
-                         << ", highThreshold: " << highThresh
-                         << ". Updated "
-                            "maxDeliveryAttempts to have a value of "
-                         << minValue
-                         << ". Please update the value of "
-                            "maxDeliveryAttempts in this domain's config to "
-                            "have a value of at least "
-                         << minValue << ".\n";
-        defn->maxDeliveryAttempts() = minValue;
-        ++updatedValues;
-    }
-
     if (defn->mode().isBroadcastValue() &&
         defn->consistency().selectionId() ==
             mqbconfm::Consistency::SELECTION_ID_STRONG) {
@@ -515,7 +487,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
             // Invoke callbacks for each added and removed ID on each queue.
             bsl::unordered_set<bsl::string>::const_iterator it =
                 addedIds.cbegin();
-            QueueMap::const_iterator                 qIt;
+            QueueMap::const_iterator qIt;
             for (; it != addedIds.cend(); it++) {
                 for (qIt = d_queues.cbegin(); qIt != d_queues.cend(); ++qIt) {
                     d_dispatcher_p->execute(
