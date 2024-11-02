@@ -84,6 +84,32 @@ namespace bmqp {
 struct ProtocolUtil {
     // PUBLIC TYPES
 
+    /// The common interface for functors passed to `buildEvent`.
+    /// These functors exist as an alternative of using `bsl::function` on
+    /// critical performance paths, since they could be built on stack without
+    /// arguments copying and memory allocations/deallocations.  The price of
+    /// using virtual table is small compared to `bsl::function`.
+    /// Usage: inherit from this functor locally, override the () operator and
+    ///        store some arguments in the custom functor if needed.
+    struct BuildEventActionFunctor {
+        virtual ~BuildEventActionFunctor();
+
+        virtual bmqt::EventBuilderResult::Enum operator()() = 0;
+    };
+
+    /// The common interface for functors passed to `buildEvent`.
+    /// These functors exist as an alternative of using `bsl::function` on
+    /// critical performance paths, since they could be built on stack without
+    /// arguments copying and memory allocations/deallocations.  The price of
+    /// using virtual table is small compared to `bsl::function`.
+    /// Usage: inherit from this functor locally, override the () operator and
+    ///        store some arguments in the custom functor if needed.
+    struct BuildEventOverflowFunctor {
+        virtual ~BuildEventOverflowFunctor();
+
+        virtual void operator()() = 0;
+    };
+
     template <class VALUE>
     struct QueueInfo {
         struct StreamInfo {
@@ -399,9 +425,18 @@ struct ProtocolUtil {
     /// Invoke the specified `action` and if it returns e_EVENT_TOO_BIG then
     /// invoke the specified `overflowCb` and call `action` again.  Return
     /// result code returned from `action`
+    /// DEPRECATED: use `buildEvent` with functors instead, to avoid loss of
+    ///             performance from `bsl::function` on critical paths.
     static bmqt::EventBuilderResult::Enum buildEvent(
         const bsl::function<bmqt::EventBuilderResult::Enum(void)>& action,
         const bsl::function<void(void)>&                           overflowCb);
+
+    /// Invoke the specified `action` and if it returns e_EVENT_TOO_BIG then
+    /// invoke the specified `overflowCb` and call `action` again.  Return
+    /// result code returned from `action`
+    static bmqt::EventBuilderResult::Enum
+    buildEvent(BuildEventActionFunctor&   action,
+               BuildEventOverflowFunctor& overflowCb);
 
     /// Encode Receipt into the specified `blob` for the specified
     /// `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
@@ -697,6 +732,21 @@ inline bmqt::EventBuilderResult::Enum ProtocolUtil::buildEvent(
     BSLS_ASSERT_SAFE(action);
     BSLS_ASSERT_SAFE(overflowCb);
 
+    bmqt::EventBuilderResult::Enum rc = action();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            bmqt::EventBuilderResult::e_EVENT_TOO_BIG == rc)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        overflowCb();
+        rc = action();
+    }
+    return rc;
+};
+
+inline bmqt::EventBuilderResult::Enum
+ProtocolUtil::buildEvent(BuildEventActionFunctor&   action,
+                         BuildEventOverflowFunctor& overflowCb)
+{
     bmqt::EventBuilderResult::Enum rc = action();
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             bmqt::EventBuilderResult::e_EVENT_TOO_BIG == rc)) {

@@ -105,6 +105,24 @@ const char k_HEX_TO_INT_TABLE[24] = {0,  1,  2,  3,  4,  5,  6,  7,
                                      99, 10, 11, 12, 13, 14, 15, 99};
 }  // close unnamed namespace
 
+// --------------------------------------------
+// struct ProtocolUtil::BuildEventActionFunctor
+// --------------------------------------------
+
+ProtocolUtil::BuildEventActionFunctor::~BuildEventActionFunctor()
+{
+    // NOTHING
+}
+
+// ----------------------------------------------
+// struct ProtocolUtil::BuildEventOverflowFunctor
+// ----------------------------------------------
+
+ProtocolUtil::BuildEventOverflowFunctor::~BuildEventOverflowFunctor()
+{
+    // NOTHING
+}
+
 // -------------------
 // struct ProtocolUtil
 // -------------------

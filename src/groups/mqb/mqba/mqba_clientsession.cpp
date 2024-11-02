@@ -287,6 +287,57 @@ void finalizeClosedHandle(bsl::string description,
                   << handle->handleParameters();
 }
 
+/// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
+struct BuildAckFunctor : public bmqp::ProtocolUtil::BuildEventActionFunctor {
+    // DATA
+    bmqp::AckEventBuilder&   d_ackBuilder;
+    int                      d_status;
+    int                      d_correlationId;
+    const bmqt::MessageGUID& d_messageGUID;
+    int                      d_queueId;
+
+    // CREATORS
+    inline explicit BuildAckFunctor(bmqp::AckEventBuilder&   ackBuilder,
+                                    int                      status,
+                                    int                      correlationId,
+                                    const bmqt::MessageGUID& messageGUID,
+                                    int                      queueId)
+    : d_ackBuilder(ackBuilder)
+    , d_status(status)
+    , d_correlationId(correlationId)
+    , d_messageGUID(messageGUID)
+    , d_queueId(queueId)
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+    inline bmqt::EventBuilderResult::Enum operator()() BSLS_KEYWORD_OVERRIDE
+    {
+        return d_ackBuilder.appendMessage(d_status,
+                                          d_correlationId,
+                                          d_messageGUID,
+                                          d_queueId);
+    }
+};
+
+/// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
+struct BuildAckOverflowFunctor
+: public bmqp::ProtocolUtil::BuildEventOverflowFunctor {
+    // DATA
+    mqba::ClientSession& d_session;
+
+    // CREATORS
+    inline explicit BuildAckOverflowFunctor(mqba::ClientSession& session)
+    : d_session(session)
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+    inline void operator()() BSLS_KEYWORD_OVERRIDE { d_session.flush(); }
+};
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -560,13 +611,12 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
 
     // Append the ACK to the ackBuilder
     bmqt::EventBuilderResult::Enum rc = bmqp::ProtocolUtil::buildEvent(
-        bdlf::BindUtil::bind(&bmqp::AckEventBuilder::appendMessage,
-                             &d_state.d_ackBuilder,
-                             bmqp::ProtocolUtil::ackResultToCode(status),
-                             correlationId,
-                             messageGUID,
-                             queueId),
-        bdlf::BindUtil::bind(&ClientSession::flush, this));
+        BuildAckFunctor(d_state.d_ackBuilder,
+                        bmqp::ProtocolUtil::ackResultToCode(status),
+                        correlationId,
+                        messageGUID,
+                        queueId),
+        BuildAckOverflowFunctor(*this));
 
     if (rc != bmqt::EventBuilderResult::e_SUCCESS) {
         BALL_LOG_ERROR << "Failed to append ACK [rc: " << rc << ", source: '"
