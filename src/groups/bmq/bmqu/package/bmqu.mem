@@ -11,6 +11,7 @@ bmqu_operationchain
 bmqu_operationchain_cpp03
 bmqu_outstreamformatsaver
 bmqu_printutil
+bmqu_resourcemanager
 bmqu_samethreadchecker
 bmqu_sharedresource
 bmqu_stringutil
