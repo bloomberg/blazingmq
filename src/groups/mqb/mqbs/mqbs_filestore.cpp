@@ -7226,14 +7226,21 @@ void FileStore::gcStorage()
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return;  // RETURN
     }
+    const bool haveMore = gcExpiredMessages(bdlt::CurrentTime::utc());
+    BSLA_UNUSED const bool haveMoreHistory = gcHistory();
 
-    const bool haveMore        = gcExpiredMessages(bdlt::CurrentTime::utc());
-    const bool haveMoreHistory = gcHistory();
+    // This is either Idle or k_GC_MESSAGES_INTERVAL_SECONDS timeout.
+    // We try to remove at most k_GC_MESSAGES_BATCH_SIZE items in history.
+    // If there are more items ready to remove, the container's state changes,
+    // so any additional `insert` operation to the container will cause
+    // additional GC, until all old items are removed.
+    // If we don't balance adding new elements to the history with GC history,
+    // we might lose a lot of time on allocations of new items to the history,
+    // as well as get OOM due to uncontrollable history size increase.
 
-    if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'gcStorage()'
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::gcStorage,
-                                                   this),
+    if (haveMore) {
+        // Explicitly schedule 'flush()'
+        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
                               this,
                               mqbi::DispatcherEventType::e_CALLBACK);
     }
