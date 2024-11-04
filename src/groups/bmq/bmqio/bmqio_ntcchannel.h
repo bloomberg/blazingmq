@@ -99,9 +99,6 @@ class NtcRead {
     /// Set the timer to the specified `timer`.
     void setTimer(const bsl::shared_ptr<ntci::Timer>& timer);
 
-    /// Set the operation as completed.
-    void setComplete();
-
     /// Set the operation as completed and clear all resources.
     void clear();
 
