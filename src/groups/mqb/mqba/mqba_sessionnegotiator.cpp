@@ -735,8 +735,6 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
                          negoMsg,
                          description,
                          d_dispatcher_p,
-                         d_blobSpPool_p,
-                         d_bufferFactory_p,
                          d_scheduler_p,
                          d_adminCb,
                          d_allocator_p);
@@ -758,8 +756,6 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
                           d_clusterCatalog_p,
                           d_domainFactory_p,
                           statContext,
-                          d_blobSpPool_p,
-                          d_bufferFactory_p,
                           d_scheduler_p,
                           d_allocator_p);
 

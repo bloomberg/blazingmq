@@ -35,6 +35,7 @@
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -3344,7 +3345,7 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(&clusterData->blobSpPool())
+, d_blobSpPool_p(bmqu::ResourceManager::getResource<BlobSpPool>().get())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_cluster_p(cluster)
@@ -3532,13 +3533,15 @@ int StorageManager::start(bsl::ostream& errorDescription)
     bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
         "RecoveryManager");
 
-    d_recoveryManager_mp.load(new (*recoveryManagerAllocator) RecoveryManager(
-                                  &d_clusterData_p->bufferFactory(),
-                                  d_clusterConfig,
-                                  *d_clusterData_p,
-                                  dsCfg,
-                                  recoveryManagerAllocator),
-                              recoveryManagerAllocator);
+    d_recoveryManager_mp.load(
+        new (*recoveryManagerAllocator) RecoveryManager(
+            bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>()
+                .get(),
+            d_clusterConfig,
+            *d_clusterData_p,
+            dsCfg,
+            recoveryManagerAllocator),
+        recoveryManagerAllocator);
 
     rc = d_recoveryManager_mp->start(errorDescription);
 

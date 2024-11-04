@@ -293,7 +293,6 @@ class StatController {
     /// `allocator` for memory allocation.
     StatController(const CommandProcessorFn& commandProcessor,
                    mqbplug::PluginManager*   pluginManager,
-                   bdlbb::BlobBufferFactory* bufferFactory,
                    bmqst::StatContext*       allocatorsStatContext,
                    bdlmt::EventScheduler*    eventScheduler,
                    bslma::Allocator*         allocator);

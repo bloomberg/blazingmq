@@ -37,6 +37,7 @@
 #include <bmqp_recoverymessageiterator.h>
 #include <bmqp_storagemessageiterator.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_resourcemanager.h>
 
 #include <bmqsys_time.h>
 #include <bmqtsk_alarmlog.h>
@@ -986,7 +987,8 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(&clusterData->blobSpPool())
+, d_blobSpPool_p(
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_clusterConfig(clusterConfig)

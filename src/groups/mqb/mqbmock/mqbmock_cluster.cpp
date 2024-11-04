@@ -239,7 +239,7 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
-, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
+, d_resources(&d_scheduler)
 {
     // PRECONDITIONS
     if (isClusterMember) {

@@ -23,6 +23,22 @@ namespace bmqu {
 
 ResourceManager *ResourceManager::g_instance_p = 0;
 
+ResourceManager::ThreadResources::~ThreadResources()
+{
+    for (size_t i = 0; i < d_resources.size(); i++) {
+        if (d_resources.at(i).numReferences() > 1) {
+            BALL_LOG_ERROR
+                << "Resource " << d_resources.at(i).numReferences()
+                << " references "
+                << "will not be freed, something holds onto this resource";
+        }
+    }
+
+    // Free resources in the reversed order of how they were registered
+    while (!d_resources.empty()) {
+        d_resources.pop_back();
+    }
+}
 
 ResourceManager::ResourceManager(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
@@ -40,11 +56,10 @@ ResourceManager::~ResourceManager() {
                            << "will not be freed";
         }
     }
-    for (size_t i = 0; i < d_resources.size(); i++) {
-        if (d_resources.at(i).numReferences() > 1) {
-            BALL_LOG_ERROR << "Resource " << d_resourceCreators.at(i).numReferences() << " references "
-                           << "will not be freed, something holds onto this resource";
-        }
+
+    // Free resources in the reversed order of how they were registered
+    while (!d_resourceCreators.empty()) {
+        d_resourceCreators.pop_back();
     }
 }
 

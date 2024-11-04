@@ -48,13 +48,13 @@
 //
 
 // BMQ
+#include <bmqio_status.h>
 #include <bmqp_controlmessageutil.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
-
-#include <bmqio_status.h>
 #include <bmqu_blob.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -273,8 +273,6 @@ AdminSession::AdminSession(
     const bmqp_ctrlmsg::NegotiationMessage&       negotiationMessage,
     const bsl::string&                            sessionDescription,
     mqbi::Dispatcher*                             dispatcher,
-    AdminSessionState::BlobSpPool*                blobSpPool,
-    bdlbb::BlobBufferFactory*                     bufferFactory,
     bdlmt::EventScheduler*                        scheduler,
     const mqbnet::Session::AdminCommandEnqueueCb& adminCb,
     bslma::Allocator*                             allocator)
@@ -284,8 +282,9 @@ AdminSession::AdminSession(
 , d_clientIdentity_p(extractClientIdentity(d_negotiationMessage))
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
-, d_state(blobSpPool,
-          bufferFactory,
+, d_state(bmqu::ResourceManager::getResource<AdminSessionState::BlobSpPool>()
+              .get(),
+          bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get(),
           bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
               d_clientIdentity_p->features()),
           allocator)

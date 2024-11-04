@@ -43,13 +43,14 @@
 // TBD:
 
 // BDE
-#include <bslmt_threadutil.h>
-#include <bslmt_mutex.h>
-#include <bslmt_lockguard.h>
-#include <bsl_vector.h>
-#include <bsl_memory.h>
 #include <bsl_functional.h>
+#include <bsl_memory.h>
+#include <bsl_unordered_map.h>
+#include <bsl_vector.h>
+#include <bslmt_lockguard.h>
+#include <bslmt_mutex.h>
 #include <bslmt_once.h>
+#include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
 #include <bsls_types.h>
@@ -81,8 +82,25 @@ class ResourceManager {
     };
 
     struct ThreadResources {
-        
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(ThreadResources,
+                                       bslma::UsesBslmaAllocator)
+
+        // DATA
+        bsl::vector<bsl::shared_ptr<void> > d_resources;
+
+        explicit ThreadResources(bslma::Allocator* allocator)
+        : d_resources(allocator)
+        {
+            // NOTHING
+        }
+
+        ~ThreadResources();
     };
+
+    typedef bsl::unordered_map<bsls::Types::Uint64,
+                               bsl::shared_ptr<ThreadResources> >
+        ThreadIdToResourcesMap;
 
     // CLASS DATA
     static ResourceManager *g_instance_p;
@@ -93,22 +111,24 @@ class ResourceManager {
     bslmt::Mutex d_mutex;
 
     bsl::vector<bsl::shared_ptr<void> > d_resourceCreators;
-    bsl::vector<bsl::shared_ptr<void> > d_resources;
+
+    ThreadIdToResourcesMap d_resources;
 
   private:
     // CREATORS
     explicit ResourceManager(bslma::Allocator* allocator = 0);
-    ~ResourceManager();
 
     // PRIVATE CLASS METHODS
 
     static unsigned int nextTypeId();
 
   public:
-    // TYPES
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(ResourceManager, bslma::UsesBslmaAllocator)
 
   public:
     // CREATORS
+    ~ResourceManager();
 
     // PUBLIC CLASS METHODS
     static void init(bslma::Allocator* allocator);
@@ -124,15 +144,10 @@ class ResourceManager {
 
         size_t typeId = Traits::typeId();
 
-        BALL_LOG_ERROR << typeId;
-        
         bslmt::LockGuard<bslmt::Mutex> guard(&manager.d_mutex);
 
         if (manager.d_resourceCreators.size() <= typeId) {
             manager.d_resourceCreators.resize(typeId + 1);
-        }
-        if (manager.d_resources.size() <= typeId) {
-            manager.d_resources.resize(typeId + 1);
         }
         BSLS_ASSERT_OPT(!manager.d_resourceCreators.at(typeId));
 
@@ -150,21 +165,63 @@ class ResourceManager {
 
         typedef ResourceTraits<TYPE> Traits;
 
-        size_t typeId = Traits::typeId();
+        const size_t        typeId   = Traits::typeId();
+        bsls::Types::Uint64 threadId = bslmt::ThreadUtil::selfIdAsUint64();
 
-        bslmt::LockGuard<bslmt::Mutex> guard(&manager.d_mutex);
-        
-        if (manager.d_resources.at(typeId)) {
-            return bsl::reinterpret_pointer_cast<TYPE>(manager.d_resources.at(typeId));
+        ThreadResources* resources = NULL;
+
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&manager.d_mutex);  // LOCK
+
+            ThreadIdToResourcesMap::iterator it = manager.d_resources.find(
+                threadId);
+            if (it == manager.d_resources.end()) {
+                bsl::pair<ThreadIdToResourcesMap::iterator, bool> res =
+                    manager.d_resources.emplace(
+                        threadId,
+                        bsl::make_shared<ThreadResources>(
+                            manager.d_allocator_p));
+                resources = res.first->second.get();
+            }
+            else {
+                resources = it->second.get();
+            }
+        }
+        BSLS_ASSERT_SAFE(resources);
+        // Now we work with `resources` exclusively assigned to this thread.
+        // Can modify this object without synchronizations.
+
+        if (resources->d_resources.size() <= typeId) {
+            resources->d_resources.resize(typeId + 1);
         }
 
-        BSLS_ASSERT_OPT(manager.d_resourceCreators.at(typeId) && "Resource factory for the resource is not registered");
+        if (resources->d_resources.at(typeId)) {
+            return bsl::reinterpret_pointer_cast<TYPE>(
+                resources->d_resources.at(typeId));  // RETURN
+        }
 
-        const typename Traits::factory_type &creator =
-         *bsl::reinterpret_pointer_cast<typename Traits::factory_type >(manager.d_resourceCreators.at(typeId));
+        typename Traits::factory_type* creator = NULL;
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&manager.d_mutex);  // LOCK
 
-        typename Traits::pointer_type resource(creator(manager.d_allocator_p));
-        manager.d_resources.at(typeId) = resource;
+            // Need to make this check under mutex, since `d_resourceCreators`
+            // might be modified at the same time.
+            BSLS_ASSERT_OPT(
+                manager.d_resourceCreators.at(typeId) &&
+                "Resource factory for the resource is not registered");
+
+            creator =
+                bsl::reinterpret_pointer_cast<typename Traits::factory_type>(
+                    manager.d_resourceCreators.at(typeId))
+                    .get();
+        }
+        BSLS_ASSERT_SAFE(creator);
+
+        typename Traits::pointer_type resource = (*creator)(
+            manager.d_allocator_p);
+
+        // Store as a `void` shared pointer in the common collection.
+        resources->d_resources.at(typeId) = resource;
         return resource;
     }
 

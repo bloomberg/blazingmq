@@ -36,6 +36,7 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 #include <bmqu_throttledaction.h>
 
 // BDE
@@ -1171,7 +1172,9 @@ int StorageUtil::assignPartitionDispatcherThreads(
         int                   processorId = i % numProcessors;
         mqbs::DataStoreConfig dsCfg;
         dsCfg.setScheduler(&clusterData->scheduler())
-            .setBufferFactory(&clusterData->bufferFactory())
+            .setBufferFactory(
+                bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>()
+                    .get())
             .setPreallocate(config.preallocate())
             .setPrefaultPages(config.prefaultPages())
             .setLocation(config.location())

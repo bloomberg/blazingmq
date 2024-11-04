@@ -242,8 +242,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
                  const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                  const bsl::string&                      sessionDescription,
                  mqbi::Dispatcher*                       dispatcher,
-                 AdminSessionState::BlobSpPool*          blobSpPool,
-                 bdlbb::BlobBufferFactory*               bufferFactory,
                  bdlmt::EventScheduler*                  scheduler,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
                  bslma::Allocator*                             allocator);

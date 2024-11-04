@@ -31,6 +31,7 @@
 
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -53,6 +54,9 @@ QueueState::QueueState(mqbi::Queue*                 queue,
                        const mqbi::ClusterResources resources,
                        bslma::Allocator*            allocator)
 : d_queue_p(queue)
+, d_bufferFactory_p(
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get())
+, d_blobSpPool_p(bmqu::ResourceManager::getResource<BlobSpPool>().get())
 , d_uri(uri, allocator)
 , d_description(allocator)
 , d_id(id)

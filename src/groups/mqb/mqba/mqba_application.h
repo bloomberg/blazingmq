@@ -131,10 +131,6 @@ class Application {
     // the calling thread is blocked ("deadlock").
     // Note that rerouted commands never route again.
 
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-
-    BlobSpPool d_blobSpPool;
-
     bdlma::ConcurrentPool d_pushElementsPool;
 
     bmqst::StatContext* d_allocatorsStatContext_p;
