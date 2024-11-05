@@ -355,6 +355,8 @@ class NtcChannel : public bmqio::Channel,
         BSLS_KEYWORD_OVERRIDE;
 
     /// Cancel the operation.
+    /// Note: the result callback might still be called after close due to
+    ///       concurrency.
     void cancel() BSLS_KEYWORD_OVERRIDE;
 
     /// Cancel all pending read requests, and invoke their read callbacks
