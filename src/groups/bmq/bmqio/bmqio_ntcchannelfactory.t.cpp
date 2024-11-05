@@ -1128,47 +1128,11 @@ static void test4_cancelHandleTest()
 {
     bmqtst::TestHelper::printTestName("Cancel Handle Test");
 
-    Tester t(s_allocator_p);
-
-    // Concerns 'a'
-    t.init(L_);
-
-    t.listen(L_, "listenHandle", "127.0.0.1:0");
-
-    t.connect(L_, "connectHandle", "listenHandle");
-    t.connect(L_, "connect2Handle", "listenHandle");
-    t.cancelHandle(L_, "connect2Handle");
-
-    // First connect succeeded
-    t.checkResultCallback(L_, "listenHandle", "listen1Channel");
-    t.checkResultCallback(L_, "connectHandle", "connect1Channel");
-    t.checkChannelClose(L_, "listen1Channel", false);
-    t.checkChannelClose(L_, "connect1Channel", false);
-
-    // Second one didn't finish, and may have been closed before the
-    // listening socket accepts the connection. See implementation note 3
-    // at the top of this test driver.
-    //
-    // t.checkResultCallback(L_, "listenHandle", "listen2Channel");
-    // t.checkChannelClose(L_, "listen2Channel");
-    t.checkNoResultCallback(L_, "connect2Handle");
-
-    // Concern 'b'
-    t.connect(L_, "connect3Handle", "listenHandle");
-    t.cancelHandle(L_, "listenHandle");
-    t.checkNoResultCallback(L_, "listenHandle");
-    // Can't check if the connect3Handle got a channel because we can't
-    // guarantee that the connect came in before we canceled the listen, and
-    // waiting for some time would make the test flaky. Test the failure
-    // is reported as the overall failure of the connection operation. See
-    // implementation note 4 at the top of this test driver.
-
-    t.connect(L_, "connect4Handle", "listenHandle");
-    t.checkNoResultCallback(L_, "listenHandle");
-    t.checkResultCallback(L_,
-                          "connect4Handle",
-                          ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED,
-                          StatusCategory::e_CONNECTION);
+    // This test's original design was based on the assumption that `connect`
+    // and `listen` operations are slower than `cancel`, however, this is
+    // not the case in general.  We don't have non-invasive means to introduce
+    // more synchronizations to NtcChannel now just to test this in a
+    // controlled way, so this test is removed.
 }
 
 static void test3_watermarkTest()
