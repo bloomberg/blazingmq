@@ -753,14 +753,18 @@ void ClientSession::onHandleConfiguredDispatched(
 
     ClientSessionState::QueueStateMap::iterator queueStateIter =
         d_queueSessionManager.queues().find(qId);
+
+    d_currentOpDescription << "Configure queue [qId=" << qId;
+
     if (queueStateIter != d_queueSessionManager.queues().end()) {
-        d_currentOpDescription
-            << "Configure queue '"
-            << queueStateIter->second.d_handle_p->queue()->uri() << "'";
+        if (queueStateIter->second.d_handle_p) {
+            d_currentOpDescription
+                << ", uri='"
+                << queueStateIter->second.d_handle_p->queue()->uri() << "'";
+        }
     }
-    else {
-        d_currentOpDescription << "Configure queue [qId=" << qId << "]";
-    }
+
+    d_currentOpDescription << "]";
 
     if (isDisconnected()) {
         // The client is disconnected or the channel is down
