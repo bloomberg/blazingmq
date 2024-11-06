@@ -1579,7 +1579,8 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
         channelStatContext = portStatContext->addSubcontext(statConfig);
-        d_portMap.emplace(port, PortContext({portStatContext, 1}));
+        PortContext portContext = {portStatContext, 1};
+        d_portMap.emplace(port, portContext);
     }
 
     return channelStatContext;
