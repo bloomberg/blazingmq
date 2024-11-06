@@ -1732,23 +1732,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     }
                 }
 
-                if (!appKey.isNull()) {
-                    // Specific appKey is purged.
-                    StorageKeysOffsetsConstIter appKeyIt =
-                        deletedAppKeysOffsets.find(appKey);
-
-                    if (appKeyIt != deletedAppKeysOffsets.end()) {
-                        BSLS_ASSERT_SAFE(jit->recordOffset() !=
-                                         appKeyIt->second);
-                        if (jit->recordOffset() < appKeyIt->second) {
-                            // This record appears before the QueueOp.DELETION
-                            // record for this appKey so should be ignored.
-
-                            continue;  // CONTINUE
-                        }
-                    }
-                }
-                else {
+                if (appKey.isNull()) {
                     // Entire queue is purged.
                     purgedQueueKeys.insert(queueKey);
                 }
