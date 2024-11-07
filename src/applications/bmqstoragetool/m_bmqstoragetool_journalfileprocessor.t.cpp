@@ -1175,8 +1175,7 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
         ResultChecker::check(journalFileIt, ts);
     }
 
@@ -1196,15 +1195,13 @@ static void test15_timestampSearchTest()
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially forward
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially forward
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
         ResultChecker::check(journalFileIt, ts2);
 
         // Find record with lower timestamp than the record pointed by the
@@ -1212,8 +1209,7 @@ static void test15_timestampSearchTest()
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
         journalFileIt.flipDirection();
         ASSERT(journalFileIt.isReverseMode());
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
@@ -1221,8 +1217,7 @@ static void test15_timestampSearchTest()
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
         journalFileIt.flipDirection();
         ASSERT(journalFileIt.isReverseMode());
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
         ResultChecker::check(journalFileIt, ts2);
     }
 
@@ -1236,8 +1231,7 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts), 0);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 0);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 0);
         ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
         ASSERT(!journalFileIt.isReverseMode());
@@ -1252,8 +1246,7 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
         ASSERT_EQ(journalFileIt.recordIndex(), 0U);
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
         ASSERT(!journalFileIt.isReverseMode());
@@ -1332,8 +1325,7 @@ static void test16_sequenceNumSearchTest()
 
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        // ASSERT_EQ_D(test.d_line, m_bmqstoragetool::moveToLowerSeqNumber(&journalFileIt, seqNumGt), 1);
-        ASSERT_EQ_D(test.d_line, m_bmqstoragetool::moveToLower<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 1);
+        ASSERT_EQ_D(test.d_line, m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 1);
         ASSERT_EQ_D(test.d_line, journalFileIt.recordHeader().primaryLeaseId(), expectedLeaseId);
         ASSERT_EQ_D(test.d_line, journalFileIt.recordHeader().sequenceNumber(), expectedSeqNumber);
     }
@@ -1353,11 +1345,13 @@ static void test16_sequenceNumSearchTest()
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
         CompositeSequenceNumber seqNumGt(1, k_NUM_RECORDS);
-        // ASSERT_EQ(m_bmqstoragetool::moveToLowerSeqNumber(&journalFileIt, seqNumGt), 0);
-        ASSERT_EQ(m_bmqstoragetool::moveToLower<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 0);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 0);
         ASSERT_EQ(journalFileIt.recordHeader().primaryLeaseId(), 1u);
         ASSERT_EQ(journalFileIt.recordHeader().sequenceNumber(), k_NUM_RECORDS);
     }
+
+    // TODO: less than first record in the file
+
 }
 
 // ============================================================================
