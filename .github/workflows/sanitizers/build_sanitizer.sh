@@ -283,5 +283,5 @@ mkscript "${SANITIZER_ENV} \${@}" "${DIR_BUILD_BMQ}/run-env.sh"
 
 # 'run-unittests.sh' runs all instrumented unit-tests.
 CMD="cd $(realpath "${DIR_BUILD_BMQ}") && "
-CMD+="./run-env.sh ctest -E bmqsys_executil.t --output-on-failure"
+CMD+="./run-env.sh ctest --output-on-failure"
 mkscript "${CMD}" "${DIR_BUILD_BMQ}/run-unittests.sh"
