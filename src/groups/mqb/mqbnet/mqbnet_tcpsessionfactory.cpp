@@ -246,6 +246,22 @@ void stopChannelFactory(bmqio::ChannelFactory* channelFactory)
     factory->stop();
 }
 
+/// A predicate functor for comparing a [mqbcfg::TcpInterfaceListener] by their
+/// `port()` member.
+struct PortMatcher {
+    int d_port;
+
+    PortMatcher(int port)
+    : d_port(port)
+    {
+    }
+
+    bool operator()(const mqbcfg::TcpInterfaceListener& listener)
+    {
+        return listener.port() == d_port;
+    }
+};
+
 }  // close unnamed namespace
 
 // -----------------------------------------
@@ -1529,16 +1545,7 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
                bmqio::ChannelUtil::isLocalHost(endpoint.host());
     }
 
-    struct PortMatcher {
-        int d_port;
-
-        bool operator()(const mqbcfg::TcpInterfaceListener& listener)
-        {
-            return listener.port() == d_port;
-        }
-    };
-
-    PortMatcher portMatcher = {endpoint.port()};
+    PortMatcher portMatcher(endpoint.port());
     return bsl::any_of(d_config.listeners().cbegin(),
                        d_config.listeners().cend(),
                        portMatcher);
@@ -1578,7 +1585,7 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
         bsl::shared_ptr<bmqst::StatContext> portStatContext =
             parent->addSubcontext(
                 portConfig.storeExpiredSubcontextValues(true));
-        channelStatContext = portStatContext->addSubcontext(statConfig);
+        channelStatContext      = portStatContext->addSubcontext(statConfig);
         PortContext portContext = {portStatContext, 1};
         d_portMap.emplace(port, portContext);
     }
