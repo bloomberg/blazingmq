@@ -43,8 +43,11 @@ class Filters {
   private:
     // DATA
     bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
-    const bsls::Types::Uint64            d_timestampGt;
-    const bsls::Types::Uint64            d_timestampLt;
+    const Parameters::SearchValueType    d_valueType;
+    const bsls::Types::Uint64            d_valueGt;
+    const bsls::Types::Uint64            d_valueLt;
+    const CompositeSequenceNumber        d_seqNumGt;
+    const CompositeSequenceNumber        d_seqNumLt;
 
   public:
     // CREATORS
@@ -53,15 +56,18 @@ class Filters {
     explicit Filters(const bsl::vector<bsl::string>& queueKeys,
                      const bsl::vector<bsl::string>& queueUris,
                      const QueueMap&                 queueMap,
-                     const bsls::Types::Int64        timestampGt,
-                     const bsls::Types::Int64        timestampLt,
+                     const Parameters::SearchValueType valueType,
+                     const bsls::Types::Uint64        valueGt,
+                     const bsls::Types::Uint64        valueLt,
+                     const CompositeSequenceNumber    seqNumGt,
+                     const CompositeSequenceNumber    seqNumLt,
                      bslma::Allocator*               allocator);
 
-    // MANIPULATORS
+    // ACCESSORS
 
     /// Apply filters at specified 'record' and return true if all filters
     /// are matched, false otherwise.
-    bool apply(const mqbs::MessageRecord& record);
+    bool apply(const mqbs::MessageRecord& record, bsls::Types::Uint64 offset) const;
 };
 
 }  // close package namespace

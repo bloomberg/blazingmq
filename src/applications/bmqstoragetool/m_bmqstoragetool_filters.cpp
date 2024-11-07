@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// bmqstoragetool
 #include <m_bmqstoragetool_filters.h>
 
 namespace BloombergLP {
@@ -25,12 +26,18 @@ namespace m_bmqstoragetool {
 Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
                  const bsl::vector<bsl::string>& queueUris,
                  const QueueMap&                 queueMap,
-                 const bsls::Types::Int64        timestampGt,
-                 const bsls::Types::Int64        timestampLt,
+                 const Parameters::SearchValueType valueType,
+                 const bsls::Types::Uint64        valueGt,
+                 const bsls::Types::Uint64        valueLt,
+                 const CompositeSequenceNumber    seqNumGt,
+                 const CompositeSequenceNumber    seqNumLt,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
-, d_timestampGt(static_cast<bsls::Types::Uint64>(timestampGt))
-, d_timestampLt(static_cast<bsls::Types::Uint64>(timestampLt))
+, d_valueType(valueType)
+, d_valueGt(valueGt)
+, d_valueLt(valueLt)
+, d_seqNumGt(seqNumGt)
+, d_seqNumLt(seqNumLt)
 {
     // Fill internal structures
     if (!queueKeys.empty()) {
@@ -52,8 +59,9 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     }
 }
 
-bool Filters::apply(const mqbs::MessageRecord& record)
+bool Filters::apply(const mqbs::MessageRecord& record, bsls::Types::Uint64 offset) const
 {
+    // Apply `queue key` filter
     if (!d_queueKeys.empty()) {
         // Match by queueKey
         bsl::unordered_set<mqbu::StorageKey>::const_iterator it = bsl::find(
@@ -65,10 +73,34 @@ bool Filters::apply(const mqbs::MessageRecord& record)
             return false;  // RETURN
         }
     }
-    const bsls::Types::Uint64& ts = record.header().timestamp();
-    if ((d_timestampGt > 0 && ts <= d_timestampGt) ||
-        (d_timestampLt > 0 && ts >= d_timestampLt)) {
-        // Match by timestamp
+
+    // Apply `range` filter
+    bsls::Types::Uint64 value;
+    switch(d_valueType) {
+        case Parameters::e_TIMESTAMP:
+            value = record.header().timestamp();
+            break;
+        case Parameters::e_SEQUENCE_NUM:
+            {
+                CompositeSequenceNumber seqNum(record.header().primaryLeaseId(), record.header().sequenceNumber());
+                if ((!d_seqNumGt.isUnset() && seqNum <= d_seqNumGt) ||
+                    (!d_seqNumLt.isUnset() && d_seqNumLt <= seqNum)) {
+                    // Not inside range
+                    return false;  // RETURN
+                }
+            }
+            break;
+        case Parameters::e_OFFSET:
+            value = offset;
+            break;
+        default:
+            // No range filter defined
+            return true;  // RETURN
+        
+    }
+    if ((d_valueGt > 0 && value <= d_valueGt) ||
+        (d_valueLt > 0 && value >= d_valueLt)) {
+        // Not inside range
         return false;  // RETURN
     }
     return true;

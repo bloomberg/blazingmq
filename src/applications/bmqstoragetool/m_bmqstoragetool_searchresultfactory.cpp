@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -123,10 +124,10 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.
-    if (params->d_timestampLt > 0) {
+    if (params->d_valueType == Parameters::e_TIMESTAMP && params->d_valueLt > 0) {
         searchResult.reset(
             new (*alloc) SearchResultTimestampDecorator(searchResult,
-                                                        params->d_timestampLt,
+                                                        params->d_valueLt,
                                                         alloc),
             alloc);
     }
