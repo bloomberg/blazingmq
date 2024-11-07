@@ -35,6 +35,14 @@ CompositeSequenceNumber::CompositeSequenceNumber()
     // NOTHING
 }
 
+CompositeSequenceNumber::CompositeSequenceNumber(const unsigned int leaseId, const bsls::Types::Uint64 sequenceNumber)
+: d_leaseId(leaseId)
+, d_seqNumber(sequenceNumber)
+{
+    BSLS_ASSERT(d_leaseId > 0 && d_seqNumber > 0);
+    d_isUnset = !(d_leaseId > 0 && d_seqNumber > 0);
+}
+
 CompositeSequenceNumber& CompositeSequenceNumber::fromString(bsl::ostream& errorDescription, const bsl::string& seqNumString)
 {
     d_isUnset = true;

@@ -227,6 +227,19 @@ bool CommandLineArguments::validate(bsl::string* error, bslma::Allocator* alloca
         ss << "secnum filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
     }
+    if (!d_seqNum.empty()) {
+
+        // TODO: move to method
+
+        CompositeSequenceNumber seqNum;
+        bmqu::MemOutStream errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin(); cit != d_seqNum.end(); ++cit) {
+            seqNum.fromString(errorDescr, *cit);
+            if(seqNum.isUnset()) {
+                ss << "--seqnum: " << errorDescr.str() << "\n";
+            }
+        }
+    }
 
     // TODO: offset check too
 
@@ -281,6 +294,7 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 {
+    // NOTHING
 }
 
 Parameters::Parameters(const CommandLineArguments& arguments,
@@ -290,6 +304,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_valueGt(0)
 , d_valueLt(0)
 , d_guid(arguments.d_guid, allocator)
+, d_seqNum(allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
 , d_dumpLimit(arguments.d_dumpLimit)
@@ -305,14 +320,31 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         d_valueType = e_TIMESTAMP;
         d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_timestampLt);
         d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_timestampGt);
-    } else if (!arguments.d_seqNumLt.empty() || arguments.d_seqNumGt.empty()) {
+    } else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
+        bsl::cout << "INSIDE!!!!" << arguments.d_seqNumGt << "\n";
         d_valueType = e_SEQUENCE_NUM;
-        // d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_seqNumLt);
-        // d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_seqNumGt);
+        CompositeSequenceNumber seqNum;
+        bmqu::MemOutStream errorDescr(allocator);
+        if (!arguments.d_seqNumLt.empty()) {
+            d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
+        }
+        if (!arguments.d_seqNumGt.empty()) {
+            d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
+            // bsl::cout << "INSIDE _1 !!!!" << arguments.d_seqNumGt << "\n";
+        }
     } else {
         d_valueType = e_OFFSET;
         d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
         d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
+    }
+
+    if (!arguments.d_seqNum.empty()) {
+        CompositeSequenceNumber seqNum;
+        bmqu::MemOutStream errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit = arguments.d_seqNum.begin(); cit != arguments.d_seqNum.end(); ++cit) {
+            seqNum.fromString(errorDescr, *cit);
+            d_seqNum.push_back(seqNum);
+        }
     }
 }
 

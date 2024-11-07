@@ -41,7 +41,14 @@ namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 int moveToLowerBound(mqbs::JournalFileIterator* jit,
-                     const bsls::Types::Uint64& timestamp);
+                     const Parameters::SearchValueType valueType,
+                     const bsls::Types::Uint64& value);
+int moveToLowerSeqNumber(mqbs::JournalFileIterator* jit,
+                     const CompositeSequenceNumber& seqNumGt);
+template<typename T>
+int moveToLower(mqbs::JournalFileIterator* jit,
+                     const Parameters::SearchValueType valueType,
+                     const T& value);
 
 // ==========================
 // class JournalFileProcessor

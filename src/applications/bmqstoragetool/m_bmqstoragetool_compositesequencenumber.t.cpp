@@ -19,9 +19,6 @@
 // BMQ
 #include <bmqu_memoutstream.h>
 
-// BDE
-#include <bsl_limits.h>
-
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
@@ -47,9 +44,17 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    CompositeSequenceNumber compositeSeqNum;
+    {
+        CompositeSequenceNumber compositeSeqNum;
+        ASSERT(compositeSeqNum.isUnset());
+    }
 
-    ASSERT(compositeSeqNum.isUnset());
+    {
+        CompositeSequenceNumber compositeSeqNum(1, 2);
+        ASSERT(!compositeSeqNum.isUnset());
+        ASSERT_EQ(compositeSeqNum.leaseId(), 1ul);
+        ASSERT_EQ(compositeSeqNum.sequenceNumber(), 2ul);
+    }
 }
 
 static void test2_fromStringTest()
