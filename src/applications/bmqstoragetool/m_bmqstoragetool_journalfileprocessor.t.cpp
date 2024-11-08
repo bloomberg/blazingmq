@@ -1349,9 +1349,6 @@ static void test16_sequenceNumSearchTest()
         ASSERT_EQ(journalFileIt.recordHeader().primaryLeaseId(), 1u);
         ASSERT_EQ(journalFileIt.recordHeader().sequenceNumber(), k_NUM_RECORDS);
     }
-
-    // TODO: less than first record in the file
-
 }
 
 // ============================================================================
