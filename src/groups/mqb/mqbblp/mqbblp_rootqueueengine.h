@@ -379,19 +379,19 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     virtual void
     onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
+    /// Called after the specified `addedAppIds` have been dynamically
     /// registered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdRegistered(
         const mqbi::Storage::AppInfos& addedAppIds) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
+    /// Called after the specified `removedAppIds` have been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void afterAppIdUnregistered(
-        const mqbi::Storage::AppInfos& appIdKeyPairs) BSLS_KEYWORD_OVERRIDE;
+        const mqbi::Storage::AppInfos& removedAppIds) BSLS_KEYWORD_OVERRIDE;
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.
@@ -443,7 +443,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     virtual void
     loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Log appllication subscription info for the specified `appKey` into the
+    /// Log application subscription info for the specified `appId` into the
     /// specified `stream`.
     ///
     /// THREAD: This method is called from the Queue's
@@ -453,7 +453,7 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
         const bsl::string& appId) const BSLS_KEYWORD_OVERRIDE;
 
   private:
-    /// Log appllication subscription info for the specified `appState` into
+    /// Log application subscription info for the specified `appState` into
     /// the specified `stream`.
     bsl::ostream& logAppSubscriptionInfo(bsl::ostream&     stream,
                                          const AppStateSp& appState) const;

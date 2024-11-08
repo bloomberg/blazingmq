@@ -195,19 +195,19 @@ class QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void onTimer(bsls::Types::Int64 currentTimer) = 0;
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
+    /// Called after the specified `addedAppIds` have been dynamically
     /// registered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdRegistered(const mqbi::Storage::AppInfos& appIdKeyPairs);
+    afterAppIdRegistered(const mqbi::Storage::AppInfos& addedAppIds);
 
-    /// Called after the specified `appIdKeyPair` has been dynamically
+    /// Called after the specified `removedAppIds` have been dynamically
     /// unregistered.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    afterAppIdUnregistered(const mqbi::Storage::AppInfos& appIdKeyPairs);
+    afterAppIdUnregistered(const mqbi::Storage::AppInfos& removedAppIds);
 
     /// Called after creation of a new storage for the  specified
     /// `appIdKeyPair`.

@@ -1467,7 +1467,6 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
         // QueueUpdateAdvisory to indicate that we are updating appIds for the
         // entire domain.
 
-        bmqt::Uri                     uriii("bmq://bmq.test.mmap.priority/q1");
         bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
         queueUpdate.uri()         = "";
         queueUpdate.partitionId() = mqbs::DataStore::k_INVALID_PARTITION_ID;

@@ -1568,11 +1568,9 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
         d_queueState_p->queue()));
 
     if (appKey.isNull()) {
-        // NOTE: Since in CSL mode when a consumer opens the queue with an
-        // unauthorized appId, we insert an item having a pair of (appId,
-        // nullKey) as its key to d_apps.  Thus, to avoid accidentally treating
-        // a nullKey resulting from unauthorized appId as wildcard matching, we
-        // add an additional assert that the appId must be empty.
+        // 'mqbu::StorageKey::k_NULL_KEY' indicates the entire queue in which
+        // case there must be 'bmqp::ProtocolUtil::k_NULL_APP_ID'
+
         BSLS_ASSERT_SAFE(appId == bmqp::ProtocolUtil::k_NULL_APP_ID);
 
         d_storageIter_mp->reset();
@@ -1858,7 +1856,8 @@ void RootQueueEngine::afterAppIdRegistered(
 
     if (!d_isFanout) {
         BALL_LOG_ERROR << "RootQueueEngine::afterAppIdRegistered() should "
-                       << "never be called for a non-Fanout queue.";
+                       << "never be called for a non-Fanout queue: "
+                       << d_queueState_p->uri();
 
         return;  // RETURN;
     }
@@ -1907,7 +1906,8 @@ void RootQueueEngine::afterAppIdUnregistered(
         d_queueState_p->queue()));
 
     if (!d_isFanout) {
-        BALL_LOG_ERROR << "Invalid queue type for unregistering appId.";
+        BALL_LOG_ERROR << "Invalid queue type for unregistering appId."
+                       << d_queueState_p->uri();
 
         return;  // RETURN
     }
@@ -1979,7 +1979,7 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
 void RootQueueEngine::unregisterStorage(
     const bsl::string&           appId,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey,
-    unsigned int                                   appOrdinal)
+    BSLS_ANNOTATION_UNUSED unsigned int            appOrdinal)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1992,8 +1992,6 @@ void RootQueueEngine::unregisterStorage(
 
     // we still keep the app but invalidate the authorization
     iter->second->unauthorize();
-
-    (void)appOrdinal;
 }
 
 mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(

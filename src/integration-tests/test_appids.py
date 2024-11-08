@@ -30,7 +30,7 @@ from blazingmq.dev.it.util import attempt, wait_until
 
 pytestmark = order(3)
 
-authorized_app_ids = ["foo", "bar", "baz"]
+default_app_ids = ["foo", "bar", "baz"]
 timeout = 60
 max_msgs = 3
 
@@ -51,14 +51,14 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     producer = next(proxies).create_client("producer")
     producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
-    all_app_ids = authorized_app_ids + ["quux"]
+    all_app_ids = default_app_ids + ["quux"]
 
     # ---------------------------------------------------------------------
     # Create a consumer for each authorized substream.
 
     consumers = {}
 
-    for app_id in authorized_app_ids:
+    for app_id in default_app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
         consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
@@ -111,7 +111,7 @@ def test_open_alarm_authorize_post(cluster: Cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
@@ -133,7 +133,7 @@ def test_open_alarm_authorize_post(cluster: Cluster):
 
     leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in authorized_app_ids:
+    for app_id in default_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
@@ -171,7 +171,7 @@ def test_create_authorize_open_post(cluster: Cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -198,7 +198,7 @@ def test_load_domain_authorize_open_post(cluster: Cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
@@ -221,7 +221,7 @@ def _test_authorize_before_domain_loaded(cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
     # ---------------------------------------------------------------------
     # Create the queue.
@@ -249,9 +249,9 @@ def _test_command_errors(cluster):
     proxies = cluster.proxy_cycle()
     next(proxies).create_client("producer")
 
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
-    set_app_ids(cluster, authorized_app_ids)
+    set_app_ids(cluster, default_app_ids)
 
 
 def test_unregister_in_presence_of_queues(cluster: Cluster):
@@ -276,7 +276,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster):
     # message posted while 'foo' was still valid.
     foo.wait_push_event()
 
-    set_app_ids(cluster, [a for a in authorized_app_ids if a not in ["foo"]])
+    set_app_ids(cluster, [a for a in default_app_ids if a not in ["foo"]])
 
     @attempt(3)
     def _():
@@ -320,7 +320,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster):
     assert Client.e_SUCCESS == foo.close(tc.URI_FANOUT_FOO, block=True)
 
     # Re-authorize
-    set_app_ids(cluster, authorized_app_ids)
+    set_app_ids(cluster, default_app_ids)
 
     foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
     producer.post(tc.URI_FANOUT, ["after-reauthorize"], block=True)
@@ -408,7 +408,7 @@ def test_unauthorized_appid_doesnt_hold_messages(cluster: Cluster):
     # consume all the messages in all the authorized substreams
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in authorized_app_ids:
+    for app_id in default_app_ids:
         appid_uri = f"{tc.URI_FANOUT}?id={app_id}"
         consumer = next(proxies).create_client(app_id)
         consumer.open(appid_uri, flags=["read"], succeed=True)
@@ -446,7 +446,7 @@ def test_deauthorized_appid_doesnt_hold_messages(cluster: Cluster):
 
     # ---------------------------------------------------------------------
     # unauthorize 'bar' and 'baz'
-    set_app_ids(cluster, [a for a in authorized_app_ids if a not in ["bar", "baz"]])
+    set_app_ids(cluster, [a for a in default_app_ids if a not in ["bar", "baz"]])
 
     # ---------------------------------------------------------------------
     # fill queue to capacity
@@ -539,13 +539,8 @@ def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
     leader.stop()
 
 
-def set_app_ids(cluster: Cluster, app_ids: List[str]):  # noqa: F811
-    cluster.config.domains[
-        tc.DOMAIN_FANOUT
-    ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
-    cluster.reconfigure_domain(tc.DOMAIN_FANOUT, succeed=True)
-
-
+@tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
+@tweak.cluster.cluster_attributes.is_fsmworkflow(False)
 def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
@@ -553,7 +548,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
     producer = next(proxies).create_client("producer")
     producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
 
-    all_app_ids = authorized_app_ids + ["quux"]
+    all_app_ids = default_app_ids + ["quux"]
 
     # ---------------------------------------------------------------------
     # Create a consumer for each authorized substream.
@@ -567,7 +562,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, authorized_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"])
 
     # ---------------------------------------------------------------------
     # Post a message.
@@ -594,7 +589,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
             3,
         )
 
-    # Save one confirm to the storage
+    # Save one confirm to the storage for 'quux' only
     consumers["quux"].confirm(f"{tc.URI_FANOUT}?id=quux", "+1", succeed=True)
 
     for app_id in all_app_ids:
@@ -625,7 +620,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
         consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
-    for app_id in authorized_app_ids:
+    for app_id in default_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
