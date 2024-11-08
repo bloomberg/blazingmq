@@ -43,6 +43,7 @@
 // a logic of search and output results.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
@@ -367,8 +368,8 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 
     // ACCESSORS
 
-    bool stop(bsls::Types::Uint64 timestamp) const;
-    // Return 'true' if the specified 'timestamp' is greated than
+    bool stop(const bsls::Types::Uint64 timestamp) const;
+    // Return 'true' if the specified 'timestamp' is greater than
     // 'd_timestampLt' and internal cache is empty.
 
   public:
@@ -379,6 +380,102 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
     SearchResultTimestampDecorator(
         const bsl::shared_ptr<SearchResult>& component,
         const bsls::Types::Uint64            timestampLt,
+        bslma::Allocator*                    allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// =================================
+// class SearchResultOffsetDecorator
+// =================================
+
+/// This class provides decorator to handle offsets.
+class SearchResultOffsetDecorator : public SearchResultDecorator {
+  private:
+    const bsls::Types::Uint64 d_offsetLt;
+    // Higher bound offset.
+
+    // ACCESSORS
+
+    bool stop(const bsls::Types::Uint64 offset) const;
+    // Return 'true' if the specified 'offset' is greater than
+    // 'd_offsetLt' and internal cache is empty.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `offsetLt` and
+    /// `allocator`.
+    SearchResultOffsetDecorator(
+        const bsl::shared_ptr<SearchResult>& component,
+        const bsls::Types::Uint64            offsetLt,
+        bslma::Allocator*                    allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// =========================================
+// class SearchResultSequenceNumberDecorator
+// =========================================
+
+/// This class provides decorator to handle offsets.
+class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
+  private:
+    const CompositeSequenceNumber sequenceNumberLt;
+    // Higher bound sequence number.
+
+    // ACCESSORS
+
+    bool stop(const CompositeSequenceNumber& sequenceNumber) const;
+    // Return 'true' if the specified 'sequenceNumber' is greater than
+    // 'sequenceNumberLt' and internal cache is empty.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `offsetLt` and
+    /// `allocator`.
+    SearchResultSequenceNumberDecorator(
+        const bsl::shared_ptr<SearchResult>& component,
+        const CompositeSequenceNumber&       seqNumberLt,
         bslma::Allocator*                    allocator);
 
     // MANIPULATORS

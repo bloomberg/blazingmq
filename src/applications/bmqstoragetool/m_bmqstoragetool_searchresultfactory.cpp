@@ -123,13 +123,31 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Add TimestampDecorator if 'timestampLt' is given.
-    if (params->d_valueType == Parameters::e_TIMESTAMP && params->d_valueLt > 0) {
-        searchResult.reset(
-            new (*alloc) SearchResultTimestampDecorator(searchResult,
-                                                        params->d_valueLt,
-                                                        alloc),
-            alloc);
+    if (params->d_valueLt > 0) {
+        // Add TimestampDecorator if 'valueLt' is given and value type is `e_TIMESTAMP`.
+        if (params->d_valueType == Parameters::e_TIMESTAMP) {
+            searchResult.reset(
+                new (*alloc) SearchResultTimestampDecorator(searchResult,
+                                                            params->d_valueLt,
+                                                            alloc),
+                alloc);
+        } else if (params->d_valueType == Parameters::e_OFFSET) {
+            // Add OffsetDecorator if 'valueLt' is given and value type is `e_OFFSET`.
+            searchResult.reset(
+                new (*alloc) SearchResultOffsetDecorator(searchResult,
+                                                            params->d_valueLt,
+                                                            alloc),
+                alloc);
+        }
+    }
+
+    // Add SequenceNumberDecorator if 'seqNumLt' is given value type is `e_SEQUENCE_NUM`.
+    if (params->d_valueType == Parameters::e_SEQUENCE_NUM && !params->d_seqNumLt.isUnset()) {
+            searchResult.reset(
+                new (*alloc) SearchResultSequenceNumberDecorator(searchResult,
+                                                            params->d_seqNumLt,
+                                                            alloc),
+                alloc);
     }
 
     BSLS_ASSERT(searchResult);
