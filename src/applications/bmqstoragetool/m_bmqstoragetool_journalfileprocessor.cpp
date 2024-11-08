@@ -175,10 +175,10 @@ void JournalFileProcessor::process()
         }
 
         if (needMoveToLowerBound) {
-            if (d_parameters->d_valueType == Parameters::e_SEQUENCE_NUM) {
-                rc = moveToLowerBound<CompositeSequenceNumber>(iter, d_parameters->d_valueType, d_parameters->d_seqNumGt);
-            } else {
+            if (d_parameters->d_valueGt > 0) {
                 rc = moveToLowerBound<bsls::Types::Uint64>(iter, d_parameters->d_valueType, d_parameters->d_valueGt);
+            } else {
+                rc = moveToLowerBound<CompositeSequenceNumber>(iter, d_parameters->d_valueType, d_parameters->d_seqNumGt);
             }
             if (rc == 0) {
                 stopSearch = true;
@@ -191,9 +191,6 @@ void JournalFileProcessor::process()
             }
             needMoveToLowerBound = false;
         }
-
-        bsl::cout << iter->recordHeader() << '\n';
-        // continue;
         
         // MessageRecord
         if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {

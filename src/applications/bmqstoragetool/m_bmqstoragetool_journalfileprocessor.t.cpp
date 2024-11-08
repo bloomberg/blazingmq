@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_filemanagermock.h>
@@ -1253,19 +1254,19 @@ static void test15_timestampSearchTest()
     }
 }
 
-static void test16_sequenceNumSearchTest()
+static void test16_sequenceNumberLowerBoundTest()
 // ------------------------------------------------------------------------
-// TIMESTAMP SEARCH TEST
+// MOVE TO SEQUENCE NUMBER LOWER BOUND TEST
 //
 // Concerns:
-//   Find the first message in journal file with timestamp more than the
-//   specified 'ts' and move the specified JournalFileIterator to it.
+//   Find the first message in journal file with sequence number more than the
+//   specified 'valueGt' and move the specified JournalFileIterator to it.
 //
 // Testing:
 //   m_bmqstoragetool::moveToLowerBound()
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("TIMESTAMP SEARCH TEST");
+    bmqtst::TestHelper::printTestName("MOVE TO SEQUENCE NUMBER LOWER BOUND TEST");
 
     struct Test {
         int         d_line;
@@ -1275,11 +1276,11 @@ static void test16_sequenceNumSearchTest()
         bsls::Types::Uint64        d_seqNumberGt;
     } k_DATA[] = {{L_, 32, 4, 3, 2},
                   {L_, 300, 10, 3, 2},
-                  {L_, 320, 11, 3, 2},
-                  {L_, 320, 11, 3, 1}, // edge case (first seqNum edge inside leaseId)
-                  {L_, 320, 11, 3, 11}, // edge case (last seqNum edge inside leaseId)
+                  {L_, 300, 11, 3, 2},
+                  {L_, 300, 11, 3, 1}, // edge case (first seqNum inside leaseId)
+                  {L_, 300, 11, 3, 11}, // edge case (last seqNum inside leaseId)
                   {L_, 300, 11, 1, 1}, // edge case (left seqNum edge inside first leaseId)
-                  {L_, 330, 11, 30, 10}, // edge case (prev before last  seqNum edge inside last leaseId)
+                  {L_, 330, 11, 30, 10}, // edge case (prev before last seqNum inside last leaseId)
                   {L_, 3, 2, 1, 2},
                   {L_, 30, 29, 1, 29},
                   {L_, 30, 29, 1, 28},
@@ -1301,7 +1302,6 @@ static void test16_sequenceNumSearchTest()
                   {L_, 300, 9, 2, 3},
                   {L_, 300, 9, 2, 2},
                   {L_, 300, 9, 2, 1},
-
                  };
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -1351,6 +1351,135 @@ static void test16_sequenceNumSearchTest()
     }
 }
 
+static void test17_searchMessagesBySequenceNumbersRange()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST
+//
+// Concerns:
+//   Search messages by sequence number in journal file and output GUIDs.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 100;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecordsWithMultipleLeaseId(&records, 10);
+    const CompositeSequenceNumber seqNumGt(3, 3);
+    const CompositeSequenceNumber seqNumLt(4, 6);
+
+    // Configure parameters to search messages by sequence number range
+    Parameters params(s_allocator_p);
+    params.d_seqNumGt = seqNumGt;
+    params.d_seqNumLt = seqNumLt;
+    params.d_valueType = Parameters::e_SEQUENCE_NUM;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get GUIDs of messages inside sequence nums range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t msgCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const CompositeSequenceNumber seqNum(msg.header().primaryLeaseId(), msg.header().sequenceNumber());
+            if (seqNumGt < seqNum && seqNum < seqNumLt) {
+                outputGuidString(expectedStream, msg.messageGUID());
+                msgCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test18_searchMessagesByOffsetsRange()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY OFFSETS RANGE TEST
+//
+// Concerns:
+//   Search messages by offsets range in journal file and output GUIDs.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY OFFSETS RANGE TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) + sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+
+    // Configure parameters to search messages by timestamps
+    Parameters params(s_allocator_p);
+    params.d_valueGt = offsetGt;
+    params.d_valueLt = offsetLt;
+    params.d_valueType = Parameters::e_OFFSET;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get GUIDs of messages within offsets range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t msgCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const bsls::Types::Uint64& offset = msg.header().sequenceNumber() * mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                outputGuidString(expectedStream, msg.messageGUID());
+                msgCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1376,7 +1505,9 @@ int main(int argc, char* argv[])
     case 13: test13_searchMessagesWithPayloadDumpTest(); break;
     case 14: test14_summaryTest(); break;
     case 15: test15_timestampSearchTest(); break;
-    case 16: test16_sequenceNumSearchTest(); break;
+    case 16: test16_sequenceNumberLowerBoundTest(); break;
+    case 17: test17_searchMessagesBySequenceNumbersRange(); break;
+    case 18: test18_searchMessagesByOffsetsRange(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

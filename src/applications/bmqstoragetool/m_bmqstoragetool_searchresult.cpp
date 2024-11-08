@@ -245,14 +245,14 @@ void SearchResultDecorator::outputResult(const GuidsList& guidFilter)
 // class SearchResultTimestampDecorator
 // ====================================
 
-bool SearchResultTimestampDecorator::stop(bsls::Types::Uint64 timestamp) const
+bool SearchResultTimestampDecorator::stop(const bsls::Types::Uint64 timestamp) const
 {
     return timestamp >= d_timestampLt && !SearchResultDecorator::hasCache();
 }
 
 SearchResultTimestampDecorator::SearchResultTimestampDecorator(
     const bsl::shared_ptr<SearchResult>& component,
-    bsls::Types::Uint64                  timestampLt,
+    const bsls::Types::Uint64                  timestampLt,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_timestampLt(timestampLt)
@@ -290,6 +290,110 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
                                                         recordIndex,
                                                         recordOffset) ||
            stop(record.header().timestamp());
+}
+
+// =================================
+// class SearchResultOffsetDecorator
+// =================================
+
+bool SearchResultOffsetDecorator::stop(const bsls::Types::Uint64 offset) const
+{
+    return offset >= d_offsetLt && !SearchResultDecorator::hasCache();
+}
+
+SearchResultOffsetDecorator::SearchResultOffsetDecorator(
+    const bsl::shared_ptr<SearchResult>& component,
+    const bsls::Types::Uint64            offsetLt,
+    bslma::Allocator*                    allocator)
+: SearchResultDecorator(component, allocator)
+, d_offsetLt(offsetLt)
+{
+    // NOTHING
+}
+
+bool SearchResultOffsetDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processMessageRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(recordOffset);
+}
+
+bool SearchResultOffsetDecorator::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processConfirmRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(recordOffset);
+}
+
+bool SearchResultOffsetDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    return SearchResultDecorator::processDeletionRecord(record,
+                                                        recordIndex,
+                                                        recordOffset) ||
+           stop(recordOffset);
+}
+
+// =========================================
+// class SearchResultSequenceNumberDecorator
+// =========================================
+
+bool SearchResultSequenceNumberDecorator::stop(const CompositeSequenceNumber& sequenceNumber) const
+{
+    return sequenceNumberLt <= sequenceNumber && !SearchResultDecorator::hasCache();
+}
+
+SearchResultSequenceNumberDecorator::SearchResultSequenceNumberDecorator(
+    const bsl::shared_ptr<SearchResult>& component,
+    const CompositeSequenceNumber& sequenceNumberLt,
+    bslma::Allocator*                    allocator)
+: SearchResultDecorator(component, allocator)
+, sequenceNumberLt(sequenceNumberLt)
+{
+    // NOTHING
+}
+
+bool SearchResultSequenceNumberDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processMessageRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
+}
+
+bool SearchResultSequenceNumberDecorator::processConfirmRecord(
+    const mqbs::ConfirmRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return SearchResultDecorator::processConfirmRecord(record,
+                                                       recordIndex,
+                                                       recordOffset) ||
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
+}
+
+bool SearchResultSequenceNumberDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    return SearchResultDecorator::processDeletionRecord(record,
+                                                        recordIndex,
+                                                        recordOffset) ||
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
 }
 
 // =======================
