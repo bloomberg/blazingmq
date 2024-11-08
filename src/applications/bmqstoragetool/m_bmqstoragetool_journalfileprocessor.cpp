@@ -40,7 +40,10 @@ namespace m_bmqstoragetool {
 
 namespace {
 template<typename T>
-T getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
+T getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType);
+
+template<>
+bsls::Types::Uint64 getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
@@ -50,7 +53,7 @@ T getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueTy
 }
 
 template<>
-CompositeSequenceNumber getValue<CompositeSequenceNumber>(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
+CompositeSequenceNumber getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
