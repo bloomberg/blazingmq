@@ -162,10 +162,6 @@ class ClusterStateManager : public mqbc::ClusterStateObserver,
     // A queue advisory can be either an
     // assignment or an un-assignment msg.
 
-    QueueAssigningCb d_queueAssigningCb;
-
-    QueueUnassigningCb d_queueUnassigningCb;
-
     AfterPartitionPrimaryAssignmentCb d_afterPartitionPrimaryAssignmentCb;
 
   private:
@@ -302,14 +298,6 @@ class ClusterStateManager : public mqbc::ClusterStateObserver,
     ///         dispatcher thread.
     virtual void
     setStorageManager(mqbi::StorageManager* value) BSLS_KEYWORD_OVERRIDE;
-
-    /// Set the queue assigning callback to the specified `value`.
-    virtual void
-    setQueueAssigningCb(const QueueAssigningCb& value) BSLS_KEYWORD_OVERRIDE;
-
-    virtual void setQueueUnassigningCb(const QueueUnassigningCb& value)
-        BSLS_KEYWORD_OVERRIDE;
-    // Set the queue unassigning callback to the specified 'value'.
 
     virtual void setAfterPartitionPrimaryAssignmentCb(
         const AfterPartitionPrimaryAssignmentCb& value) BSLS_KEYWORD_OVERRIDE;
@@ -645,18 +633,6 @@ inline const mqbi::Dispatcher* ClusterStateManager::dispatcher() const
 inline void ClusterStateManager::setStorageManager(mqbi::StorageManager* value)
 {
     d_storageManager_p = value;
-}
-
-inline void
-ClusterStateManager::setQueueAssigningCb(const QueueAssigningCb& value)
-{
-    d_queueAssigningCb = value;
-}
-
-inline void
-ClusterStateManager::setQueueUnassigningCb(const QueueUnassigningCb& value)
-{
-    d_queueUnassigningCb = value;
 }
 
 inline void ClusterStateManager::setAfterPartitionPrimaryAssignmentCb(
