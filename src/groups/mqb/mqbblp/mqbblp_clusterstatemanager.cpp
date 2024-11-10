@@ -1167,7 +1167,6 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           d_clusterStateLedger_mp.get(),
                                           d_cluster_p,
                                           uri,
-                                          d_queueAssigningCb,
                                           d_allocator_p,
                                           status);
 }
@@ -1189,7 +1188,6 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
                                          partitionId,
                                          queueKey,
                                          appIdInfos,
-                                         d_queueAssigningCb,
                                          forceUpdate);
 }
 
@@ -1212,6 +1210,25 @@ void ClusterStateManager::unassignQueue(
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to apply queue unassignment advisory: "
                        << advisory << ", rc: " << rc;
+    }
+    else {
+        // In non-CSL mode this is the shortcut to call Primary CQH instead of
+        // waiting for the quorum of acks in the ledger.
+        for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator cit =
+                 advisory.queues().begin();
+             cit != advisory.queues().end();
+             ++cit) {
+            const bmqp_ctrlmsg::QueueInfo& queueInfo = *cit;
+
+            if (d_state_p->unassignQueue(queueInfo.uri())) {
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << ": Queue unassigned: " << queueInfo;
+            }
+            else {
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << ": Failed to unassign Queue: " << queueInfo;
+            }
+        }
     }
 }
 
@@ -1462,7 +1479,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_cluster_p,
         request,
         requester,
-        d_queueAssigningCb,
         d_allocator_p);
 }
 
@@ -1663,25 +1679,6 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
 
                     d_state_p->queueKeys().erase(qcit->second->key());
 
-                    mqbc::ClusterState::QueueKeysInsertRc irc =
-                        d_state_p->queueKeys().insert(queueKey);
-                    if (false == irc.second) {
-                        // QueueKey provided by the leader is not unique.  This
-                        // is bad, as thing means that 2 different queue URIs
-                        // have queue key.  Unfortunately we can't retrieve the
-                        // URI of the 'other' queue.
-
-                        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                            << d_cluster_p->description()
-                            << ": queueKey clash while applying"
-                            << (delayed ? " buffered " : " ")
-                            << "queue assignment advisory: " << queueInfo
-                            << ". QueueKey [" << queueKey
-                            << "]. Ignoring this entry in the advisory msg."
-                            << BMQTSK_ALARMLOG_END;
-                        continue;  // CONTINUE
-                    }
-
                     // no need to update d_state_p->domainStates() entry
                     // , queue was already known and registered
                     AppInfos appIdInfos(d_allocator_p);
@@ -1707,27 +1704,6 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
         }
 
         if (!queueAlreadyAssigned) {
-            // Since self node doesn't see the queue as assigned, the
-            // queueKey specified in the advisory must not occur in
-            // 'queueKeys' data structure.
-            mqbc::ClusterState::QueueKeysInsertRc insertRc =
-                d_state_p->queueKeys().insert(queueKey);
-
-            if (false == insertRc.second) {
-                // QueueKey is not unique.
-
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << d_cluster_p->description() << ": attemping to apply"
-                    << (delayed ? " buffered " : " ")
-                    << " queueAssignmentAdvisory from leader ["
-                    << source->nodeDescription() << "] for an unknown queue ["
-                    << uri << "] assigned to Partition ["
-                    << queueInfo.partitionId() << "], but queueKey ["
-                    << queueKey << "] is not unique. Ignoring this entry in "
-                    << "the advisory." << BMQTSK_ALARMLOG_END;
-                continue;  // CONTINUE
-            }
-
             AppInfos appIdInfos(d_allocator_p);
 
             mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
@@ -1738,16 +1714,10 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                                    queueKey,
                                    queueInfo.partitionId(),
                                    appIdInfos);
-
-            d_state_p->domainStates()
-                .at(uri.qualifiedDomain())
-                ->adjustQueueCount(1);
         }
 
         BALL_LOG_INFO << d_cluster_p->description()
                       << ": Queue assigned: " << queueInfo;
-
-        d_queueAssigningCb(uri, true);  // processingPendingRequests
     }
 }
 
@@ -1949,26 +1919,7 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                            << ", internalKey: " << qcit->second->key() << "]";
             continue;  // CONTINUE
         }
-
-        bool hasInFlightRequests = false;
-        if (d_queueUnassigningCb(&hasInFlightRequests, queueInfo)) {
-            const mqbu::StorageKey queueKey = qcit->second->key();
-            if (hasInFlightRequests) {
-                d_state_p->updatePartitionQueueMapped(queueInfo.partitionId(),
-                                                      -1);
-            }
-            else {
-                d_state_p->unassignQueue(uri);
-            }
-
-            d_state_p->queueKeys().erase(queueKey);
-            d_state_p->domainStates()
-                .at(uri.qualifiedDomain())
-                ->adjustQueueCount(-1);
-
-            BALL_LOG_INFO << d_cluster_p->description()
-                          << ": Unassigned queue: " << queueInfo;
-        }
+        d_state_p->unassignQueue(uri);
     }
 }
 

@@ -285,7 +285,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// Reset the `id`, `partitionId`, `key` and `queue` members of this
         /// object.  Note that `uri` is left untouched because it is an
         /// invariant member of a given instance of such a QueueInfo object.
-        void reset();
+        void resetAndKeepPending();
     };
 
     struct StopContext {
@@ -522,29 +522,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// based on the role of the current node within the cluster.
     QueueAssignmentResult::Enum
     assignQueue(const QueueContextSp& queueContext);
-
-    /// Called when the specified `uri` is in the process of being assigned.
-    /// If the specified `processingPendingRequests` is true, we will
-    /// process pending requests on this machine.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void onQueueAssigning(const bmqt::Uri& uri,
-                          bool             processingPendingRequests);
-
-    /// Called when the queue with the specified `queueInfo` is being
-    /// unassigned.  Load into the specified `hasInFlightRequests` whether
-    /// there are still in-flight requests for the queue.  Return true on
-    /// success, or false on failure.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueUnassigned() is stable.
-    bool onQueueUnassigning(bool*                          hasInFlightRequests,
-                            const bmqp_ctrlmsg::QueueInfo& queueInfo);
 
     /// Send a queueAssignment request to the leader, requesting assignment
     /// of the queue with the specified `uri`.  This method is called only
@@ -933,6 +910,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// assigned.
     bool isQueueAssigned(const QueueContext& queueContext) const;
 
+    /// Return true if the queue in the specified `queueContext` is
+    /// pending unassignment (async in CSL).
+    bool isQueuePendingUnassignment(const QueueContext& queueContext) const;
+
     /// Return true if the queue in the specified `queueContext` is assigned
     /// and its associated primary is AVAILABLE and is different from the
     /// optionally specified `otherThan`.
@@ -1109,13 +1090,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// failure.
     int gcExpiredQueues(bool immediate = false);
 
-    ClusterQueueHelper& setOnQueueAssignedCb(const OnQueueAssignedCb& value);
-
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    ClusterQueueHelper&
-    setOnQueueUnassignedCb(const OnQueueUnassignedCb& value);
-
     /// Start executing multi-step processing of StopRequest or CLOSING node
     /// advisory received from the specified `clusterNode`.   In the case of
     /// StopRequest the specified `request` references the request; in the
@@ -1135,8 +1109,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         mqbc::ClusterNodeSession*           ns,
         const VoidFunctor&                  callback = VoidFunctor());
 
+    /// Called upon leader becoming available.
     void onLeaderAvailable();
-    // Called upon leader becoming available.
 
     // ACCESSORS
 
@@ -1282,6 +1256,13 @@ ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
                          mqbs::DataStore::k_INVALID_PARTITION_ID &&
                      !qCit->second->key().isNull());
     return true;
+}
+
+inline bool ClusterQueueHelper::isQueuePendingUnassignment(
+    const QueueContext& queueContext) const
+{
+    const ClusterStateQueueInfoCSp& state = queueContext.d_stateQInfo_sp;
+    return state ? state->pendingUnassignment() : false;
 }
 
 inline bool ClusterQueueHelper::isQueuePrimaryAvailable(

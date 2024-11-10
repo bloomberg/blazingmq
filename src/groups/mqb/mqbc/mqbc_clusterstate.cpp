@@ -354,6 +354,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
             updatePartitionQueueMapped(iter->second->partitionId(), -1);
             iter->second->setKey(key).setPartitionId(partitionId);
             iter->second->appInfos() = appIdInfos;
+            // TODO: in what scenario 'pendingUnassignment() == true'?
             iter->second->setPendingUnassignment(false);
         }
     }

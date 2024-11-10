@@ -671,7 +671,6 @@ void ClusterUtil::processQueueAssignmentRequest(
     const mqbi::Cluster*                cluster,
     const bmqp_ctrlmsg::ControlMessage& request,
     mqbnet::ClusterNode*                requester,
-    const QueueAssigningCb&             queueAssigningCb,
     bslma::Allocator*                   allocator)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -764,7 +763,6 @@ void ClusterUtil::processQueueAssignmentRequest(
                 ledger,
                 cluster,
                 uri,
-                queueAssigningCb,
                 allocator,
                 &status);
 
@@ -846,14 +844,13 @@ void ClusterUtil::populateQueueUnassignedAdvisory(
 }
 
 ClusterUtil::QueueAssignmentResult::Enum
-ClusterUtil::assignQueue(ClusterState*           clusterState,
-                         ClusterData*            clusterData,
-                         ClusterStateLedger*     ledger,
-                         const mqbi::Cluster*    cluster,
-                         const bmqt::Uri&        uri,
-                         const QueueAssigningCb& queueAssigningCb,
-                         bslma::Allocator*       allocator,
-                         bmqp_ctrlmsg::Status*   status)
+ClusterUtil::assignQueue(ClusterState*         clusterState,
+                         ClusterData*          clusterData,
+                         ClusterStateLedger*   ledger,
+                         const mqbi::Cluster*  cluster,
+                         const bmqt::Uri&      uri,
+                         bslma::Allocator*     allocator,
+                         bmqp_ctrlmsg::Status* status)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -981,6 +978,8 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
         if (qcit != citDomainState->second->queuesInfo().cend()) {
             BSLS_ASSERT_SAFE(cluster->isCSLModeEnabled() &&
                              qcit->second->pendingUnassignment());
+
+            // TODO: cancel QUAA, if 'pendingUnassignment() == true'
             qcit->second->setPendingUnassignment(false);
         }
     }
@@ -1001,12 +1000,11 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
                                     clusterData,
                                     uri,
                                     domIt->second->domain());
-    if (cluster->isCSLModeEnabled()) {
-        // In CSL mode, we delay the insertion to queueKeys until
-        // 'onQueueAssigned' observer callback.
 
-        clusterState->queueKeys().erase(key);
-    }
+    // 'ClusterQueueHelper::onQueueAssigned' (the 'onQueueAssigned' observer
+    // callback) will insert the key to 'ClusterState::queueKeys'.
+
+    clusterState->queueKeys().erase(key);
 
     // Apply 'queueAssignmentAdvisory' to CSL
     BALL_LOG_INFO << clusterData->identity().description()
@@ -1041,16 +1039,12 @@ ClusterUtil::assignQueue(ClusterState*           clusterState,
             appInfos);
         BSLS_ASSERT_SAFE(assignRc);
 
-        domIt->second->adjustQueueCount(1);
-
         BALL_LOG_INFO << cluster->description()
                       << ": Queue assigned: " << queueAdvisory;
 
         // Broadcast 'queueAssignmentAdvisory' to all followers
         clusterData->messageTransmitter().broadcastMessage(controlMsg);
     }
-
-    queueAssigningCb(uri, true);  // processingPendingRequests
 
     return QueueAssignmentResult::k_ASSIGNMENT_OK;
 }
@@ -1061,7 +1055,6 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                                     int                     partitionId,
                                     const mqbu::StorageKey& queueKey,
                                     const AppInfos&         appInfos,
-                                    const QueueAssigningCb& queueAssigningCb,
                                     bool                    forceUpdate)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -1140,25 +1133,6 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                           << "[uri: " << uri << ", queueKey: " << queueKey
                           << ", partitionId: " << partitionId;
 
-            if (!cluster->isCSLModeEnabled()) {
-                ClusterState::QueueKeysInsertRc insertRc =
-                    clusterState->queueKeys().insert(queueKey);
-                if (false == insertRc.second) {
-                    BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                        << cluster->description()
-                        << ": re-registering a known queue with a stale view, "
-                        << "but queueKey is not unique. " << "QueueKey ["
-                        << queueKey << "], URI [" << uri << "], Partition ["
-                        << partitionId << "], AppInfos [" << storageAppInfos
-                        << "]." << BMQTSK_ALARMLOG_END;
-                    return;  // RETURN
-                }
-
-                clusterState->domainStates()
-                    .at(uri.qualifiedDomain())
-                    ->adjustQueueCount(1);
-            }
-
             BSLS_ASSERT_SAFE(1 == clusterState->queueKeys().count(queueKey));
 
             return;  // RETURN
@@ -1174,27 +1148,6 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
                   << ", queueKey: " << queueKey
                   << ", partitionId: " << partitionId
                   << ", appInfos: " << printer << "]";
-
-    if (!cluster->isCSLModeEnabled()) {
-        ClusterState::QueueKeysInsertRc insertRc =
-            clusterState->queueKeys().insert(queueKey);
-        if (false == insertRc.second) {
-            // Duplicate queue key.
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << cluster->description()
-                << ": registering a queue for an unknown queue, but "
-                << "queueKey is not unique. QueueKey [" << queueKey
-                << "], URI [" << uri << "], Partition [" << partitionId << "]."
-                << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
-
-        clusterState->domainStates()
-            .at(uri.qualifiedDomain())
-            ->adjustQueueCount(1);
-    }
-
-    queueAssigningCb(uri, false);  // processingPendingRequests
 }
 
 void ClusterUtil::populateAppInfos(

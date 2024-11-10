@@ -104,8 +104,6 @@ struct ClusterUtil {
     typedef mqbi::ClusterStateManager::QueueAssignmentResult
         QueueAssignmentResult;
 
-    typedef mqbi::ClusterStateManager::QueueAssigningCb QueueAssigningCb;
-
     /// Map of NodeSession -> number of new partitions to assign to it
     typedef bsl::unordered_map<ClusterNodeSession*, unsigned int>
                                                 NumNewPartitionsMap;
@@ -202,9 +200,8 @@ struct ClusterUtil {
                                   ClusterStateLedger*  ledger,
                                   const mqbi::Cluster* cluster,
                                   const bmqp_ctrlmsg::ControlMessage& request,
-                                  mqbnet::ClusterNode*    requester,
-                                  const QueueAssigningCb& queueAssigningCb,
-                                  bslma::Allocator*       allocator);
+                                  mqbnet::ClusterNode* requester,
+                                  bslma::Allocator*    allocator);
 
     /// Populate the specified `advisory` with information describing a
     /// queue assignment of the specified `uri` living in the specified
@@ -238,26 +235,24 @@ struct ClusterUtil {
     /// adviosry to the specified `ledger`.  Return a value indicating
     /// whether the assignment was successful or was definitively rejected,
     /// and populate the optionally specified `status` with a human readable
-    /// error code and string in case of failure.  Also invoke the specified
-    /// `queueAssigningCb` on success.  Use the specified `allocator` for
-    /// memory allocations.  This method is called only on the leader node.
+    /// error code and string in case of failure.  Use the specified
+    /// `allocator` for memory allocations.  This method is called only on the
+    /// leader node.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     static QueueAssignmentResult::Enum
-    assignQueue(ClusterState*           clusterState,
-                ClusterData*            clusterData,
-                ClusterStateLedger*     ledger,
-                const mqbi::Cluster*    cluster,
-                const bmqt::Uri&        uri,
-                const QueueAssigningCb& queueAssigningCb,
-                bslma::Allocator*       allocator,
-                bmqp_ctrlmsg::Status*   status = 0);
+    assignQueue(ClusterState*         clusterState,
+                ClusterData*          clusterData,
+                ClusterStateLedger*   ledger,
+                const mqbi::Cluster*  cluster,
+                const bmqt::Uri&      uri,
+                bslma::Allocator*     allocator,
+                bmqp_ctrlmsg::Status* status = 0);
 
     /// Register a queue info for the queue with the specified `uri`,
     /// `partitionId`, `queueKey` and the optionally specified `appIdInfos`
-    /// to the specified `clusterState` of the specified `cluster`.  Also
-    /// invoke the specified `queueAssigningCb` on success.  If no
+    /// to the specified `clusterState` of the specified `cluster`.  If no
     /// `appIdInfos` is specified, use the appId infos from the domain
     /// config instead.  If the specified `forceUpdate` flag is true, update
     /// queue info even if it is valid but different from the specified
@@ -271,7 +266,6 @@ struct ClusterUtil {
                                   int                     partitionId,
                                   const mqbu::StorageKey& queueKey,
                                   const AppInfos&         appIdInfos,
-                                  const QueueAssigningCb& queueAssigningCb,
                                   bool                    forceUpdate);
 
     /// Generate appKeys based on the appIds in the specified `domainConfig`
