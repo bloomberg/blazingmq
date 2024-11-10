@@ -393,7 +393,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void setStorageManager(mqbi::StorageManager* value) BSLS_KEYWORD_OVERRIDE;
-
     /// Set the after partition primary assignment callback to the specified
     /// `value`.
     void setAfterPartitionPrimaryAssignmentCb(
