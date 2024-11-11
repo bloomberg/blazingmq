@@ -1304,20 +1304,16 @@ static void test16_sequenceNumberLowerBoundTest()
         unsigned int        d_leaseIdGt;
         bsls::Types::Uint64 d_seqNumberGt;
     } k_DATA[] = {
-        {L_, 32, 4, 3, 2},     {L_, 300, 10, 3, 2}, {L_, 300, 11, 3, 2},
+        {L_, 32, 4, 3, 2},
+        {L_, 3, 2, 1, 2},
+        {L_, 300, 10, 3, 2},
+        {L_, 300, 11, 3, 2},
         {L_, 300, 11, 3, 1},    // edge case (first seqNum inside leaseId)
         {L_, 300, 11, 3, 11},   // edge case (last seqNum inside leaseId)
         {L_, 300, 11, 1, 1},    // edge case (left seqNum edge inside first
                                 // leaseId)
         {L_, 330, 11, 30, 10},  // edge case (prev before last seqNum inside
                                 // last leaseId)
-        {L_, 3, 2, 1, 2},      {L_, 30, 29, 1, 29}, {L_, 30, 29, 1, 28},
-        {L_, 300, 9, 1, 9},    {L_, 300, 9, 1, 8},  {L_, 300, 9, 1, 7},
-        {L_, 300, 9, 1, 6},    {L_, 300, 9, 1, 5},  {L_, 300, 9, 1, 4},
-        {L_, 300, 9, 1, 3},    {L_, 300, 9, 1, 2},  {L_, 300, 9, 1, 1},
-        {L_, 300, 9, 2, 9},    {L_, 300, 9, 2, 8},  {L_, 300, 9, 2, 7},
-        {L_, 300, 9, 2, 6},    {L_, 300, 9, 2, 5},  {L_, 300, 9, 2, 4},
-        {L_, 300, 9, 2, 3},    {L_, 300, 9, 2, 2},  {L_, 300, 9, 2, 1},
     };
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);

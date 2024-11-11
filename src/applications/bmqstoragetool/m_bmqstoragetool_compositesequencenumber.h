@@ -17,14 +17,14 @@
 #define INCLUDED_M_BMQSTORAGETOOL_COMPOSITESEQUENCENUMBER
 
 //@PURPOSE: Provide value-semantic type to represent composite sequence number,
-//which is used for message filtering.
+// which is used for message filtering.
 //
 //@CLASSES:
 //  m_bmqstoragetool::CompositeSequenceNumber: Value-semantic type to represent
 //  composite sequence number.
 //
 //@DESCRIPTION: 'CompositeSequenceNumber' provides value-semantic type to
-//represent sequence number.
+// represent sequence number.
 // There could be sequence numbers collision inside journal file for different
 // lease Ids, so need to handle composite sequence number taking into account
 // Primary Lease Id too.
