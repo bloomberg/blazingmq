@@ -241,6 +241,11 @@ void SearchResultDecorator::outputResult(const GuidsList& guidFilter)
     d_searchResult->outputResult(guidFilter);
 }
 
+bool SearchResultDecorator::hasCache() const
+{
+    return d_searchResult->hasCache();
+}
+
 // ====================================
 // class SearchResultTimestampDecorator
 // ====================================

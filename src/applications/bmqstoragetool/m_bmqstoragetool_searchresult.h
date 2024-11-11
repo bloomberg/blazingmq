@@ -78,11 +78,6 @@ class SearchResult {
         GuidsMap;
     // Hash map of message guids to iterators of GuidsList.
 
-    virtual bool hasCache() const { return false; }
-    // Return `false` if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return `true` to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -110,6 +105,11 @@ class SearchResult {
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
     virtual void outputResult(const GuidsList& guidFilter) = 0;
+
+    virtual bool hasCache() const { return false; }
+    /// Return `false` if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return `true` to indicate that
+    /// there is incomplete data.
 };
 
 // =======================
@@ -162,13 +162,6 @@ class SearchShortResult : public SearchResult {
     void outputGuidData(const GuidData& guidData);
     // Output result in short format (only GUIDs).
 
-    // PRIVATE ACCESSORS
-
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
-    // Return 'false' if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return 'true' to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -205,6 +198,13 @@ class SearchShortResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return 'false' if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return 'true' to indicate that
+    /// there is incomplete data.
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -264,13 +264,6 @@ class SearchDetailResult : public SearchResult {
     void outputMessageDetails(const MessageDetails& messageDetails);
     // Output message details with the specified 'messageDetails'.
 
-    // PRIVATE ACCESSORS
-
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
-    // Return 'false' if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return 'true' to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -308,6 +301,13 @@ class SearchDetailResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return 'false' if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return 'true' to indicate that
+    /// there is incomplete data.
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -354,6 +354,14 @@ class SearchResultDecorator : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+    // Return 'false' if all required data is processed, e.g. all given GUIDs
+    // are output and search could be stopped. Return 'true' to indicate that
+    // there is incomplete data.
+
 };
 
 // ====================================
