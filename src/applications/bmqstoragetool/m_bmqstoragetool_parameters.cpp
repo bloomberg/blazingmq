@@ -99,7 +99,8 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 {
 }
 
-bool CommandLineArguments::validate(bsl::string* error, bslma::Allocator* allocator)
+bool CommandLineArguments::validate(bsl::string*      error,
+                                    bslma::Allocator* allocator)
 {
     bmqu::MemOutStream ss(allocator);
 
@@ -167,24 +168,24 @@ bool CommandLineArguments::validate(bsl::string* error, bslma::Allocator* alloca
     if (d_cslFile.empty() && !d_queueName.empty()) {
         ss << "Can't search by queue name, because csl file is not "
               "specified\n";
-    }    
+    }
     if (d_timestampLt < 0 || d_timestampGt < 0 ||
         (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
         ss << "Invalid timestamp range specified\n";
     }
     if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
-        bmqu::MemOutStream errorDescr(allocator);
+        bmqu::MemOutStream      errorDescr(allocator);
         CompositeSequenceNumber seqNumLt, seqNumGt;
         if (!d_seqNumLt.empty()) {
             seqNumLt.fromString(errorDescr, d_seqNumLt);
-            if(seqNumLt.isUnset()) {
+            if (seqNumLt.isUnset()) {
                 ss << "--seqnum-lt: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
         }
         if (!d_seqNumGt.empty()) {
             seqNumGt.fromString(errorDescr, d_seqNumGt);
-            if(seqNumGt.isUnset()) {
+            if (seqNumGt.isUnset()) {
                 ss << "--seqnum-gt: " << errorDescr.str() << "\n";
             }
         }
@@ -211,31 +212,36 @@ bool CommandLineArguments::validate(bsl::string* error, bslma::Allocator* alloca
         rangesCnt++;
     }
     if (rangesCnt > 1) {
-        ss << "Only one range type can be selected: timestamp, seqnum or offset\n";
+        ss << "Only one range type can be selected: timestamp, seqnum or "
+              "offset\n";
     }
 
     if (!d_guid.empty() &&
-        (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() || d_outstanding ||
-         d_confirmed || d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() ||
+         d_outstanding || d_confirmed || d_partiallyConfirmed ||
+         rangesCnt > 0 || d_summary)) {
         ss << "Giud filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
     }
 
-    if (!d_seqNum.empty() && 
-        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty()|| d_outstanding ||
-         d_confirmed || d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
-        ss << "secnum filter can't be combined with any other filters, as it is "
+    if (!d_seqNum.empty() &&
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty() ||
+         d_outstanding || d_confirmed || d_partiallyConfirmed ||
+         rangesCnt > 0 || d_summary)) {
+        ss << "secnum filter can't be combined with any other filters, as it "
+              "is "
               "specific enough to find a particular message\n";
     }
     if (!d_seqNum.empty()) {
-
         // TODO: move to method
 
         CompositeSequenceNumber seqNum;
-        bmqu::MemOutStream errorDescr(allocator);
-        for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin(); cit != d_seqNum.end(); ++cit) {
+        bmqu::MemOutStream      errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
+             cit != d_seqNum.end();
+             ++cit) {
             seqNum.fromString(errorDescr, *cit);
-            if(seqNum.isUnset()) {
+            if (seqNum.isUnset()) {
                 ss << "--seqnum: " << errorDescr.str() << "\n";
             }
         }
@@ -316,15 +322,16 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
     // Set search range type and values if present
-    if (arguments.d_timestampLt  || arguments.d_timestampGt) {
+    if (arguments.d_timestampLt || arguments.d_timestampGt) {
         d_valueType = e_TIMESTAMP;
         d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_timestampLt);
         d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_timestampGt);
-    } else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
+    }
+    else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
         bsl::cout << "INSIDE!!!!" << arguments.d_seqNumGt << "\n";
         d_valueType = e_SEQUENCE_NUM;
         CompositeSequenceNumber seqNum;
-        bmqu::MemOutStream errorDescr(allocator);
+        bmqu::MemOutStream      errorDescr(allocator);
         if (!arguments.d_seqNumLt.empty()) {
             d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
         }
@@ -332,16 +339,20 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
             // bsl::cout << "INSIDE _1 !!!!" << arguments.d_seqNumGt << "\n";
         }
-    } else {
+    }
+    else {
         d_valueType = e_OFFSET;
-        d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
-        d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
+        d_valueLt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
+        d_valueGt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
     }
 
     if (!arguments.d_seqNum.empty()) {
         CompositeSequenceNumber seqNum;
-        bmqu::MemOutStream errorDescr(allocator);
-        for (bsl::vector<bsl::string>::const_iterator cit = arguments.d_seqNum.begin(); cit != arguments.d_seqNum.end(); ++cit) {
+        bmqu::MemOutStream      errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit =
+                 arguments.d_seqNum.begin();
+             cit != arguments.d_seqNum.end();
+             ++cit) {
             seqNum.fromString(errorDescr, *cit);
             d_seqNum.push_back(seqNum);
         }

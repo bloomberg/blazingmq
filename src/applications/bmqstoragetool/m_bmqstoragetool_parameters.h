@@ -58,9 +58,9 @@ struct CommandLineArguments {
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
     // Filter messages by maximum timestamp
-    bsl::string        d_seqNumGt;
+    bsl::string d_seqNumGt;
     // Filter messages by minimum record composite sequence number
-    bsl::string        d_seqNumLt;
+    bsl::string d_seqNumLt;
     // Filter messages by maximum record composite sequence number
     bsls::Types::Int64 d_offsetGt;
     // Filter messages by minimum record offset
@@ -107,7 +107,12 @@ struct CommandLineArguments {
 
 struct Parameters {
     // PUBLIC TYPES
-    enum SearchValueType { e_NONE = 0, e_TIMESTAMP = 1, e_SEQUENCE_NUM = 2, e_OFFSET = 3 };
+    enum SearchValueType {
+        e_NONE         = 0,
+        e_TIMESTAMP    = 1,
+        e_SEQUENCE_NUM = 2,
+        e_OFFSET       = 3
+    };
 
     // PUBLIC DATA
     QueueMap d_queueMap;

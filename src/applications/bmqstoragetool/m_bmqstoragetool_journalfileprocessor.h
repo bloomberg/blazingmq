@@ -40,10 +40,10 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-template<typename T>
-int moveToLowerBound(mqbs::JournalFileIterator* jit,
+template <typename T>
+int moveToLowerBound(mqbs::JournalFileIterator*        jit,
                      const Parameters::SearchValueType valueType,
-                     const T& value);
+                     const T&                          value);
 
 // ==========================
 // class JournalFileProcessor

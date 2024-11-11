@@ -35,7 +35,9 @@ CompositeSequenceNumber::CompositeSequenceNumber()
     // NOTHING
 }
 
-CompositeSequenceNumber::CompositeSequenceNumber(const unsigned int leaseId, const bsls::Types::Uint64 sequenceNumber)
+CompositeSequenceNumber::CompositeSequenceNumber(
+    const unsigned int        leaseId,
+    const bsls::Types::Uint64 sequenceNumber)
 : d_leaseId(leaseId)
 , d_seqNumber(sequenceNumber)
 {
@@ -43,7 +45,9 @@ CompositeSequenceNumber::CompositeSequenceNumber(const unsigned int leaseId, con
     d_isUnset = !(d_leaseId > 0 && d_seqNumber > 0);
 }
 
-CompositeSequenceNumber& CompositeSequenceNumber::fromString(bsl::ostream& errorDescription, const bsl::string& seqNumString)
+CompositeSequenceNumber&
+CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
+                                    const bsl::string& seqNumString)
 {
     d_isUnset = true;
 
@@ -57,11 +61,11 @@ CompositeSequenceNumber& CompositeSequenceNumber::fromString(bsl::ostream& error
     if (separatorPos == bsl::string::npos) {
         errorDescription << "Invalid format: no '-' separator found.";
         return *this;  // RETURN
-    }    
+    }
 
     // Extract parts
     // TODO: use allocator!
-    bsl::string firstPart = seqNumString.substr(0, separatorPos);
+    bsl::string firstPart  = seqNumString.substr(0, separatorPos);
     bsl::string secondPart = seqNumString.substr(separatorPos + 1);
 
     // Convert parts to numbers
@@ -69,7 +73,7 @@ CompositeSequenceNumber& CompositeSequenceNumber::fromString(bsl::ostream& error
         size_t posFirst, posSecond;
 
         unsigned long uLong = bsl::stoul(firstPart, &posFirst);
-        d_seqNumber = bsl::stoul(secondPart, &posSecond);
+        d_seqNumber         = bsl::stoul(secondPart, &posSecond);
 
         if (posFirst != firstPart.size() || posSecond != secondPart.size()) {
             throw bsl::invalid_argument("");
@@ -86,18 +90,20 @@ CompositeSequenceNumber& CompositeSequenceNumber::fromString(bsl::ostream& error
         }
 
         d_isUnset = false;
-
-    } catch (const bsl::invalid_argument& e) {
+    }
+    catch (const bsl::invalid_argument& e) {
         errorDescription << "Invalid input: non-numeric values encountered.";
-    } catch (const bsl::out_of_range& e) {
+    }
+    catch (const bsl::out_of_range& e) {
         errorDescription << "Invalid input: number out of range.";
     }
 
     return *this;
 }
 
-bsl::ostream&
-CompositeSequenceNumber::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+bsl::ostream& CompositeSequenceNumber::print(bsl::ostream& stream,
+                                             int           level,
+                                             int spacesPerLevel) const
 {
     if (stream.bad()) {
         return stream;  // RETURN
@@ -109,7 +115,8 @@ CompositeSequenceNumber::print(bsl::ostream& stream, int level, int spacesPerLev
         stream << "** UNSET **";
     }
     else {
-        stream << "leaseId: " << leaseId() << ", sequenceNumber: " << sequenceNumber();
+        stream << "leaseId: " << leaseId()
+               << ", sequenceNumber: " << sequenceNumber();
     }
 
     if (spacesPerLevel >= 0) {

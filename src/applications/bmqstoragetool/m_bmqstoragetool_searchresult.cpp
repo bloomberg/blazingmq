@@ -250,14 +250,15 @@ bool SearchResultDecorator::hasCache() const
 // class SearchResultTimestampDecorator
 // ====================================
 
-bool SearchResultTimestampDecorator::stop(const bsls::Types::Uint64 timestamp) const
+bool SearchResultTimestampDecorator::stop(
+    const bsls::Types::Uint64 timestamp) const
 {
     return timestamp >= d_timestampLt && !SearchResultDecorator::hasCache();
 }
 
 SearchResultTimestampDecorator::SearchResultTimestampDecorator(
     const bsl::shared_ptr<SearchResult>& component,
-    const bsls::Types::Uint64                  timestampLt,
+    const bsls::Types::Uint64            timestampLt,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , d_timestampLt(timestampLt)
@@ -353,14 +354,16 @@ bool SearchResultOffsetDecorator::processDeletionRecord(
 // class SearchResultSequenceNumberDecorator
 // =========================================
 
-bool SearchResultSequenceNumberDecorator::stop(const CompositeSequenceNumber& sequenceNumber) const
+bool SearchResultSequenceNumberDecorator::stop(
+    const CompositeSequenceNumber& sequenceNumber) const
 {
-    return sequenceNumberLt <= sequenceNumber && !SearchResultDecorator::hasCache();
+    return sequenceNumberLt <= sequenceNumber &&
+           !SearchResultDecorator::hasCache();
 }
 
 SearchResultSequenceNumberDecorator::SearchResultSequenceNumberDecorator(
     const bsl::shared_ptr<SearchResult>& component,
-    const CompositeSequenceNumber& sequenceNumberLt,
+    const CompositeSequenceNumber&       sequenceNumberLt,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
 , sequenceNumberLt(sequenceNumberLt)
@@ -376,7 +379,8 @@ bool SearchResultSequenceNumberDecorator::processMessageRecord(
     return SearchResultDecorator::processMessageRecord(record,
                                                        recordIndex,
                                                        recordOffset) ||
-           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(),
+                                        record.header().sequenceNumber()));
 }
 
 bool SearchResultSequenceNumberDecorator::processConfirmRecord(
@@ -387,7 +391,8 @@ bool SearchResultSequenceNumberDecorator::processConfirmRecord(
     return SearchResultDecorator::processConfirmRecord(record,
                                                        recordIndex,
                                                        recordOffset) ||
-           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(),
+                                        record.header().sequenceNumber()));
 }
 
 bool SearchResultSequenceNumberDecorator::processDeletionRecord(
@@ -398,7 +403,8 @@ bool SearchResultSequenceNumberDecorator::processDeletionRecord(
     return SearchResultDecorator::processDeletionRecord(record,
                                                         recordIndex,
                                                         recordOffset) ||
-           stop(CompositeSequenceNumber(record.header().primaryLeaseId(), record.header().sequenceNumber()));
+           stop(CompositeSequenceNumber(record.header().primaryLeaseId(),
+                                        record.header().sequenceNumber()));
 }
 
 // =======================

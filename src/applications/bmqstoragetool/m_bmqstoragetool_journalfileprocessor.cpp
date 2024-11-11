@@ -39,27 +39,34 @@ namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 namespace {
-template<typename T>
-T getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType);
+template <typename T>
+T getValue(const mqbs::JournalFileIterator*  jit,
+           const Parameters::SearchValueType valueType);
 
-template<>
-bsls::Types::Uint64 getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
+template <>
+bsls::Types::Uint64 getValue(const mqbs::JournalFileIterator*  jit,
+                             const Parameters::SearchValueType valueType)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
-    BSLS_ASSERT(valueType == Parameters::e_TIMESTAMP || valueType == Parameters::e_OFFSET);
+    BSLS_ASSERT(valueType == Parameters::e_TIMESTAMP ||
+                valueType == Parameters::e_OFFSET);
 
-    return (valueType == Parameters::e_TIMESTAMP) ? jit->recordHeader().timestamp() : jit->recordOffset();
+    return (valueType == Parameters::e_TIMESTAMP)
+               ? jit->recordHeader().timestamp()
+               : jit->recordOffset();
 }
 
-template<>
-CompositeSequenceNumber getValue(const mqbs::JournalFileIterator* jit, const Parameters::SearchValueType valueType)
+template <>
+CompositeSequenceNumber getValue(const mqbs::JournalFileIterator*  jit,
+                                 const Parameters::SearchValueType valueType)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
     BSLS_ASSERT(valueType == Parameters::e_SEQUENCE_NUM);
 
-    return CompositeSequenceNumber(jit->recordHeader().primaryLeaseId(), jit->recordHeader().sequenceNumber());
+    return CompositeSequenceNumber(jit->recordHeader().primaryLeaseId(),
+                                   jit->recordHeader().sequenceNumber());
 }
 
 }  // close unnamed namespace
@@ -70,10 +77,10 @@ CompositeSequenceNumber getValue(const mqbs::JournalFileIterator* jit, const Par
 /// was encountered.  Note that if this method returns < 0, the specified 'jit'
 /// is invalidated.  Behavior is undefined unless last call to `nextRecord` or
 /// 'advance' returned '1' and the iterator points to a valid record.
-template<typename T>
-int moveToLowerBound(mqbs::JournalFileIterator* jit,
+template <typename T>
+int moveToLowerBound(mqbs::JournalFileIterator*        jit,
                      const Parameters::SearchValueType valueType,
-                     const T& valueGt)
+                     const T&                          valueGt)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
@@ -158,8 +165,9 @@ void JournalFileProcessor::process()
                     d_parameters->d_seqNumLt,
                     d_allocator_p);
 
-    bool stopSearch          = false;
-    bool needMoveToLowerBound = d_parameters->d_valueGt > 0 || !d_parameters->d_seqNumGt.isUnset();
+    bool stopSearch           = false;
+    bool needMoveToLowerBound = d_parameters->d_valueGt > 0 ||
+                                !d_parameters->d_seqNumGt.isUnset();
 
     // Iterate through all Journal file records
     mqbs::JournalFileIterator* iter = d_fileManager->journalFileIterator();
@@ -176,22 +184,29 @@ void JournalFileProcessor::process()
 
         if (needMoveToLowerBound) {
             if (d_parameters->d_valueGt > 0) {
-                rc = moveToLowerBound<bsls::Types::Uint64>(iter, d_parameters->d_valueType, d_parameters->d_valueGt);
-            } else {
-                rc = moveToLowerBound<CompositeSequenceNumber>(iter, d_parameters->d_valueType, d_parameters->d_seqNumGt);
+                rc = moveToLowerBound<bsls::Types::Uint64>(
+                    iter,
+                    d_parameters->d_valueType,
+                    d_parameters->d_valueGt);
+            }
+            else {
+                rc = moveToLowerBound<CompositeSequenceNumber>(
+                    iter,
+                    d_parameters->d_valueType,
+                    d_parameters->d_seqNumGt);
             }
             if (rc == 0) {
                 stopSearch = true;
                 continue;  // CONTINUE
             }
             else if (rc < 0) {
-                d_ostream << "Binary search aborted (exit status "
-                          << rc << ").";
+                d_ostream << "Binary search aborted (exit status " << rc
+                          << ").";
                 return;  // RETURN
             }
             needMoveToLowerBound = false;
         }
-        
+
         // MessageRecord
         if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
             const mqbs::MessageRecord& record = iter->asMessageRecord();

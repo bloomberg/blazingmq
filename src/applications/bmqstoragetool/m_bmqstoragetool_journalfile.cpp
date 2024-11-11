@@ -602,12 +602,14 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     }
 }
 
-void JournalFile::addAllTypesRecordsWithMultipleLeaseId(RecordsListType* records, size_t leaseCount)
+void JournalFile::addAllTypesRecordsWithMultipleLeaseId(
+    RecordsListType* records,
+    size_t           leaseCount)
 {
     // PRECONDITIONS
     BSLS_ASSERT(records);
 
-    unsigned int leaseId = 0;
+    unsigned int        leaseId   = 0;
     bsls::Types::Uint64 seqNumber = 1;
 
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
@@ -737,7 +739,8 @@ void JournalFile::addAllTypesRecordsWithMultipleLeaseId(RecordsListType* records
         //     bsl::memcpy(buf.buffer(),
         //                 rec.get(),
         //                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-        //     records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP, buf));
+        //     records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP,
+        //     buf));
         // }
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;

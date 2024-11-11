@@ -53,21 +53,22 @@ class Filters {
     // CREATORS
 
     /// Constructor using the specified arguments.
-    explicit Filters(const bsl::vector<bsl::string>& queueKeys,
-                     const bsl::vector<bsl::string>& queueUris,
-                     const QueueMap&                 queueMap,
+    explicit Filters(const bsl::vector<bsl::string>&   queueKeys,
+                     const bsl::vector<bsl::string>&   queueUris,
+                     const QueueMap&                   queueMap,
                      const Parameters::SearchValueType valueType,
-                     const bsls::Types::Uint64        valueGt,
-                     const bsls::Types::Uint64        valueLt,
-                     const CompositeSequenceNumber    seqNumGt,
-                     const CompositeSequenceNumber    seqNumLt,
-                     bslma::Allocator*               allocator);
+                     const bsls::Types::Uint64         valueGt,
+                     const bsls::Types::Uint64         valueLt,
+                     const CompositeSequenceNumber     seqNumGt,
+                     const CompositeSequenceNumber     seqNumLt,
+                     bslma::Allocator*                 allocator);
 
     // ACCESSORS
 
     /// Apply filters at specified 'record' and return true if all filters
     /// are matched, false otherwise.
-    bool apply(const mqbs::MessageRecord& record, bsls::Types::Uint64 offset) const;
+    bool apply(const mqbs::MessageRecord& record,
+               bsls::Types::Uint64        offset) const;
 };
 
 }  // close package namespace

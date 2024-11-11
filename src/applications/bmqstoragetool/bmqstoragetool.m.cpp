@@ -30,8 +30,10 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool
-parseArgs(CommandLineArguments& arguments, int argc, const char* argv[], bslma::Allocator* allocator)
+static bool parseArgs(CommandLineArguments& arguments,
+                      int                   argc,
+                      const char*           argv[],
+                      bslma::Allocator*     allocator)
 {
     bool showHelp = false;
 

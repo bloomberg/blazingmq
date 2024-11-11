@@ -361,7 +361,6 @@ class SearchResultDecorator : public SearchResult {
     // Return 'false' if all required data is processed, e.g. all given GUIDs
     // are output and search could be stopped. Return 'true' to indicate that
     // there is incomplete data.
-
 };
 
 // ====================================
@@ -433,10 +432,9 @@ class SearchResultOffsetDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `offsetLt` and
     /// `allocator`.
-    SearchResultOffsetDecorator(
-        const bsl::shared_ptr<SearchResult>& component,
-        const bsls::Types::Uint64            offsetLt,
-        bslma::Allocator*                    allocator);
+    SearchResultOffsetDecorator(const bsl::shared_ptr<SearchResult>& component,
+                                const bsls::Types::Uint64            offsetLt,
+                                bslma::Allocator* allocator);
 
     // MANIPULATORS
 

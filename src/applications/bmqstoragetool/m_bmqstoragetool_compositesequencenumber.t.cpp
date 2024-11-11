@@ -62,7 +62,8 @@ static void test2_fromStringTest()
 // FROM STRING TEST
 //
 // Concerns:
-//   Exercise the functionality to initialize component from string representation.
+//   Exercise the functionality to initialize component from string
+//   representation.
 //
 // Testing:
 //   fromString method
@@ -123,7 +124,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid format: no '-' separator found.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid format: no '-' separator found.");
     }
 
     // Invalid string with wrong separator
@@ -136,7 +138,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid format: no '-' separator found.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid format: no '-' separator found.");
     }
 
     // Invalid string with non-numeric value in first part
@@ -149,7 +152,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: non-numeric values encountered.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: non-numeric values encountered.");
     }
 
     // Invalid string with non-numeric value in second part
@@ -162,7 +166,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: non-numeric values encountered.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: non-numeric values encountered.");
     }
 
     // Invalid string with zero value in first part
@@ -175,7 +180,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: zero values encountered.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: zero values encountered.");
     }
 
     // Invalid string with zero value in second part
@@ -188,7 +194,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: zero values encountered.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: zero values encountered.");
     }
 
     // Invalid string with out of range value in first part
@@ -202,7 +209,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: number out of range.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: number out of range.");
     }
 
     // Invalid string with out of range value in second part
@@ -216,7 +224,8 @@ static void test2_fromStringTest()
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
         ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: number out of range.");
+        ASSERT_EQ(errorDescription.str(),
+                  "Invalid input: number out of range.");
     }
 }
 
