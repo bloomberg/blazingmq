@@ -824,8 +824,8 @@ static void test11_searchMessagesByTimestamp()
 
     // Configure parameters to search messages by timestamps
     Parameters params(s_allocator_p);
-    params.d_valueGt = ts1;
-    params.d_valueLt = ts2;
+    params.d_valueGt   = ts1;
+    params.d_valueLt   = ts2;
     params.d_valueType = Parameters::e_TIMESTAMP;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1176,7 +1176,11 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts),
+                  1);
         ResultChecker::check(journalFileIt, ts);
     }
 
@@ -1196,13 +1200,21 @@ static void test15_timestampSearchTest()
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially forward
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts1),
+                  1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially forward
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts2),
+                  1);
         ResultChecker::check(journalFileIt, ts2);
 
         // Find record with lower timestamp than the record pointed by the
@@ -1210,7 +1222,11 @@ static void test15_timestampSearchTest()
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
         journalFileIt.flipDirection();
         ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts1), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts1),
+                  1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
@@ -1218,7 +1234,11 @@ static void test15_timestampSearchTest()
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
         journalFileIt.flipDirection();
         ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts2), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts2),
+                  1);
         ResultChecker::check(journalFileIt, ts2);
     }
 
@@ -1232,7 +1252,11 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 0);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts),
+                  0);
         ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
         ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
         ASSERT(!journalFileIt.isReverseMode());
@@ -1247,7 +1271,11 @@ static void test15_timestampSearchTest()
             false);
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(&journalFileIt, Parameters::e_TIMESTAMP, ts), 1);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<bsls::Types::Uint64>(
+                      &journalFileIt,
+                      Parameters::e_TIMESTAMP,
+                      ts),
+                  1);
         ASSERT_EQ(journalFileIt.recordIndex(), 0U);
         ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
         ASSERT(!journalFileIt.isReverseMode());
@@ -1266,43 +1294,31 @@ static void test16_sequenceNumberLowerBoundTest()
 //   m_bmqstoragetool::moveToLowerBound()
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("MOVE TO SEQUENCE NUMBER LOWER BOUND TEST");
+    bmqtst::TestHelper::printTestName(
+        "MOVE TO SEQUENCE NUMBER LOWER BOUND TEST");
 
     struct Test {
-        int         d_line;
-        size_t      d_numRecords;
-        size_t      d_numRecordsWithSameLeaseId;
-        unsigned int      d_leaseIdGt;
-        bsls::Types::Uint64        d_seqNumberGt;
-    } k_DATA[] = {{L_, 32, 4, 3, 2},
-                  {L_, 300, 10, 3, 2},
-                  {L_, 300, 11, 3, 2},
-                  {L_, 300, 11, 3, 1}, // edge case (first seqNum inside leaseId)
-                  {L_, 300, 11, 3, 11}, // edge case (last seqNum inside leaseId)
-                  {L_, 300, 11, 1, 1}, // edge case (left seqNum edge inside first leaseId)
-                  {L_, 330, 11, 30, 10}, // edge case (prev before last seqNum inside last leaseId)
-                  {L_, 3, 2, 1, 2},
-                  {L_, 30, 29, 1, 29},
-                  {L_, 30, 29, 1, 28},
-                  {L_, 300, 9, 1, 9},
-                  {L_, 300, 9, 1, 8},
-                  {L_, 300, 9, 1, 7},
-                  {L_, 300, 9, 1, 6},
-                  {L_, 300, 9, 1, 5},
-                  {L_, 300, 9, 1, 4},
-                  {L_, 300, 9, 1, 3},
-                  {L_, 300, 9, 1, 2},
-                  {L_, 300, 9, 1, 1},
-                  {L_, 300, 9, 2, 9},
-                  {L_, 300, 9, 2, 8},
-                  {L_, 300, 9, 2, 7},
-                  {L_, 300, 9, 2, 6},
-                  {L_, 300, 9, 2, 5},
-                  {L_, 300, 9, 2, 4},
-                  {L_, 300, 9, 2, 3},
-                  {L_, 300, 9, 2, 2},
-                  {L_, 300, 9, 2, 1},
-                 };
+        int                 d_line;
+        size_t              d_numRecords;
+        size_t              d_numRecordsWithSameLeaseId;
+        unsigned int        d_leaseIdGt;
+        bsls::Types::Uint64 d_seqNumberGt;
+    } k_DATA[] = {
+        {L_, 32, 4, 3, 2},     {L_, 300, 10, 3, 2}, {L_, 300, 11, 3, 2},
+        {L_, 300, 11, 3, 1},    // edge case (first seqNum inside leaseId)
+        {L_, 300, 11, 3, 11},   // edge case (last seqNum inside leaseId)
+        {L_, 300, 11, 1, 1},    // edge case (left seqNum edge inside first
+                                // leaseId)
+        {L_, 330, 11, 30, 10},  // edge case (prev before last seqNum inside
+                                // last leaseId)
+        {L_, 3, 2, 1, 2},      {L_, 30, 29, 1, 29}, {L_, 30, 29, 1, 28},
+        {L_, 300, 9, 1, 9},    {L_, 300, 9, 1, 8},  {L_, 300, 9, 1, 7},
+        {L_, 300, 9, 1, 6},    {L_, 300, 9, 1, 5},  {L_, 300, 9, 1, 4},
+        {L_, 300, 9, 1, 3},    {L_, 300, 9, 1, 2},  {L_, 300, 9, 1, 1},
+        {L_, 300, 9, 2, 9},    {L_, 300, 9, 2, 8},  {L_, 300, 9, 2, 7},
+        {L_, 300, 9, 2, 6},    {L_, 300, 9, 2, 5},  {L_, 300, 9, 2, 4},
+        {L_, 300, 9, 2, 3},    {L_, 300, 9, 2, 2},  {L_, 300, 9, 2, 1},
+    };
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
@@ -1311,43 +1327,66 @@ static void test16_sequenceNumberLowerBoundTest()
 
         // Simulate journal file
         JournalFile::RecordsListType records(s_allocator_p);
-        JournalFile                  journalFile(test.d_numRecords, s_allocator_p);
-        journalFile.addAllTypesRecordsWithMultipleLeaseId(&records, test.d_numRecordsWithSameLeaseId);
+        JournalFile journalFile(test.d_numRecords, s_allocator_p);
+        journalFile.addAllTypesRecordsWithMultipleLeaseId(
+            &records,
+            test.d_numRecordsWithSameLeaseId);
 
         mqbs::JournalFileIterator journalFileIt(
-                &journalFile.mappedFileDescriptor(),
-                journalFile.fileHeader(),
-                false);
-        
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+
         CompositeSequenceNumber seqNumGt(test.d_leaseIdGt, test.d_seqNumberGt);
-        unsigned int expectedLeaseId = test.d_leaseIdGt + (test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId ? 1 : 0);
-        bsls::Types::Uint64 expectedSeqNumber = test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId ? 1 : (test.d_seqNumberGt + 1);
+        unsigned int            expectedLeaseId =
+            test.d_leaseIdGt +
+            (test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId ? 1 : 0);
+        bsls::Types::Uint64 expectedSeqNumber =
+            test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId
+                ? 1
+                : (test.d_seqNumberGt + 1);
 
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ_D(test.d_line, m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 1);
-        ASSERT_EQ_D(test.d_line, journalFileIt.recordHeader().primaryLeaseId(), expectedLeaseId);
-        ASSERT_EQ_D(test.d_line, journalFileIt.recordHeader().sequenceNumber(), expectedSeqNumber);
+        ASSERT_EQ_D(
+            test.d_line,
+            m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(
+                &journalFileIt,
+                Parameters::e_SEQUENCE_NUM,
+                seqNumGt),
+            1);
+        ASSERT_EQ_D(test.d_line,
+                    journalFileIt.recordHeader().primaryLeaseId(),
+                    expectedLeaseId);
+        ASSERT_EQ_D(test.d_line,
+                    journalFileIt.recordHeader().sequenceNumber(),
+                    expectedSeqNumber);
     }
 
     // Edge case: not in the range (greater then the last record)
     {
-        const size_t k_NUM_RECORDS = 300;
+        const size_t                 k_NUM_RECORDS = 300;
         JournalFile::RecordsListType records(s_allocator_p);
         JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-        journalFile.addAllTypesRecordsWithMultipleLeaseId(&records, k_NUM_RECORDS);
+        journalFile.addAllTypesRecordsWithMultipleLeaseId(&records,
+                                                          k_NUM_RECORDS);
 
         mqbs::JournalFileIterator journalFileIt(
-                &journalFile.mappedFileDescriptor(),
-                journalFile.fileHeader(),
-                false);
-        
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+
         // Move the iterator to the beginning of the file
         ASSERT_EQ(journalFileIt.nextRecord(), 1);
         CompositeSequenceNumber seqNumGt(1, k_NUM_RECORDS);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(&journalFileIt, Parameters::e_SEQUENCE_NUM, seqNumGt), 0);
+        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound<CompositeSequenceNumber>(
+                      &journalFileIt,
+                      Parameters::e_SEQUENCE_NUM,
+                      seqNumGt),
+                  0);
         ASSERT_EQ(journalFileIt.recordHeader().primaryLeaseId(), 1u);
-        ASSERT_EQ(journalFileIt.recordHeader().sequenceNumber(), k_NUM_RECORDS);
+        ASSERT_EQ(journalFileIt.recordHeader().sequenceNumber(),
+                  k_NUM_RECORDS);
     }
 }
 
@@ -1362,7 +1401,8 @@ static void test17_searchMessagesBySequenceNumbersRange()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST");
+    bmqtst::TestHelper::printTestName(
+        "SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST");
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 100;
@@ -1374,8 +1414,8 @@ static void test17_searchMessagesBySequenceNumbersRange()
 
     // Configure parameters to search messages by sequence number range
     Parameters params(s_allocator_p);
-    params.d_seqNumGt = seqNumGt;
-    params.d_seqNumLt = seqNumLt;
+    params.d_seqNumGt  = seqNumGt;
+    params.d_seqNumLt  = seqNumLt;
     params.d_valueType = Parameters::e_SEQUENCE_NUM;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1394,7 +1434,9 @@ static void test17_searchMessagesBySequenceNumbersRange()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            const CompositeSequenceNumber seqNum(msg.header().primaryLeaseId(), msg.header().sequenceNumber());
+            const CompositeSequenceNumber seqNum(
+                msg.header().primaryLeaseId(),
+                msg.header().sequenceNumber());
             if (seqNumGt < seqNum && seqNum < seqNumLt) {
                 outputGuidString(expectedStream, msg.messageGUID());
                 msgCnt++;
@@ -1433,14 +1475,17 @@ static void test18_searchMessagesByOffsetsRange()
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
-    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) + sizeof(mqbs::JournalFileHeader);
-    const bsls::Types::Uint64 offsetGt = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
-    const bsls::Types::Uint64 offsetLt = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
+                                 sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by timestamps
     Parameters params(s_allocator_p);
-    params.d_valueGt = offsetGt;
-    params.d_valueLt = offsetLt;
+    params.d_valueGt   = offsetGt;
+    params.d_valueLt   = offsetLt;
     params.d_valueType = Parameters::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1459,7 +1504,9 @@ static void test18_searchMessagesByOffsetsRange()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = msg.header().sequenceNumber() * mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            const bsls::Types::Uint64& offset =
+                msg.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
             if (offset > offsetGt && offset < offsetLt) {
                 outputGuidString(expectedStream, msg.messageGUID());
                 msgCnt++;
