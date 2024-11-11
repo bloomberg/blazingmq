@@ -499,8 +499,6 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                                                 d_allocator_p),
                          d_allocator_p);
 
-    d_queueState_mp->setAppKeyGenerator(&d_appKeyGenerator);
-
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
 
     if (domainConfig.mode().isBroadcastValue()) {

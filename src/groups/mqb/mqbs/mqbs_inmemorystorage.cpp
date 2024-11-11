@@ -616,8 +616,7 @@ InMemoryStorage::logAppsSubscriptionInfoCb(bsl::ostream& stream) const
         for (mqbi::Storage::AppInfos::const_iterator cit = appInfos.begin();
              cit != appInfos.end();
              ++cit) {
-            queue()->queueEngine()->logAppSubscriptionInfo(stream,
-                                                           cit->second);
+            queue()->queueEngine()->logAppSubscriptionInfo(stream, cit->first);
         }
     }
 

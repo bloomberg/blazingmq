@@ -3857,17 +3857,6 @@ void StorageManager::updateQueueReplica(int                     partitionId,
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
 
-mqbu::StorageKey StorageManager::generateAppKey(const bsl::string& appId,
-                                                int                partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-    // or by *CLUSTER DISPATCHER* thread.
-
-    return StorageUtil::generateAppKey(&d_appKeysVec[partitionId],
-                                       &d_appKeysLock,
-                                       appId);
-}
-
 void StorageManager::setQueue(mqbi::Queue*     queue,
                               const bmqt::Uri& uri,
                               int              partitionId)

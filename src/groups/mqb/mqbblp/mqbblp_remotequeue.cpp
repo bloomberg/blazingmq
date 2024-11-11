@@ -152,7 +152,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
             RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
         d_allocator_p);
 
-    rc = d_queueEngine_mp->configure(errorDescription);
+    rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
@@ -256,7 +256,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    errorDesc(&localAllocator);
-    rc = d_queueEngine_mp->configure(errorDesc);
+    rc = d_queueEngine_mp->configure(errorDesc, isReconfigure);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_state_p->domain()->cluster()->name() << ": Partition ["

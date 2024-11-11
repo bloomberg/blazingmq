@@ -98,7 +98,6 @@
 #include <mqbblp_queuestate.h>
 #include <mqbblp_relayqueueengine.h>
 #include <mqbi_queueengine.h>
-#include <mqbmock_appkeygenerator.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbmock_domain.h>
@@ -237,7 +236,6 @@ class QueueEngineTester {
     // dropped (i.e. fully released) but
     // needed to stay alive to correctly
     // test post-drop state
-    mqbmock::AppKeyGenerator d_appKeyGenerator;
 
     size_t d_messageCount;
 
@@ -466,8 +464,6 @@ class QueueEngineTester {
     /// Note that pointers to these handles may be left dangling.
     void dropHandles();
 
-    mqbmock::AppKeyGenerator& appKeyGenerator();
-
     /// Load into the specified `value` previously cached parameters sent
     /// upstream for the specified `appId`.
     bool getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,
@@ -623,7 +619,7 @@ QueueEngineTester::createQueueEngineHelper(mqbi::QueueEngine* engine)
     BSLS_ASSERT_OPT(d_mockQueue_sp);
 
     bmqu::MemOutStream errorDescription(d_allocator_p);
-    int                rc = engine->configure(errorDescription);
+    int                rc = engine->configure(errorDescription, false);
     BSLS_ASSERT_OPT(rc == 0);
 
     // Set the engine on the Queue
@@ -648,11 +644,6 @@ inline T* QueueEngineTester::createQueueEngine()
     createQueueEngineHelper(d_queueEngine_mp.get());
 
     return result;
-}
-
-inline mqbmock::AppKeyGenerator& QueueEngineTester::appKeyGenerator()
-{
-    return d_appKeyGenerator;
 }
 
 inline void QueueEngineTester::synchronizeScheduler()

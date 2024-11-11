@@ -41,7 +41,8 @@ QueueEngine::~QueueEngine()
 
 // MANIPULATORS
 int QueueEngine::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
+    BSLS_ANNOTATION_UNUSED bool          isReconfigure)
 {
     return 0;
 }

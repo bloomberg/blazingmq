@@ -929,7 +929,8 @@ RelayQueueEngine::~RelayQueueEngine()
 
 // MANIPULATORS
 int RelayQueueEngine::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
+    BSLS_ANNOTATION_UNUSED bool          isReconfigure)
 {
     return 0;
 }
