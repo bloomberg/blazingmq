@@ -991,11 +991,11 @@ bool SearchSequenceNumberDecorator::processMessageRecord(
         SearchResultDecorator::processMessageRecord(record,
                                                     recordIndex,
                                                     recordOffset);
-        // Remove processed offset.
+        // Remove processed sequence number.
         d_seqNums.erase(it);
     }
 
-    // return true (stop search) if no detail is needed and d_offsets is empty.
+    // return true (stop search) if no detail is needed and d_seqNums is empty.
     return (!d_withDetails && d_seqNums.empty());
 }
 
@@ -1008,7 +1008,7 @@ bool SearchSequenceNumberDecorator::processDeletionRecord(
                                                  recordIndex,
                                                  recordOffset);
     // return true (stop search) when details needed and search is done
-    // (d_offsets is empty).
+    // (d_seqNums is empty).
     return (d_withDetails && d_seqNums.empty());
 }
 

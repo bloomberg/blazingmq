@@ -602,9 +602,9 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     }
 }
 
-void JournalFile::addAllTypesRecordsWithMultipleLeaseId(
+void JournalFile::addMultipleTypesRecordsWithMultipleLeaseId(
     RecordsListType* records,
-    size_t           leaseCount)
+    size_t           numRecordsWithSameLeaseId)
 {
     // PRECONDITIONS
     BSLS_ASSERT(records);
@@ -614,7 +614,7 @@ void JournalFile::addAllTypesRecordsWithMultipleLeaseId(
 
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 4;
-        if (i % leaseCount == 1) {
+        if (i % numRecordsWithSameLeaseId == 1) {
             leaseId++;
             seqNumber = 1;
         }
@@ -696,7 +696,7 @@ void JournalFile::addAllTypesRecordsWithMultipleLeaseId(
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
             records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
         }
-        else if (3 == remainder) {
+        else {
             // QueueOpRec
             OffsetPtr<QueueOpRecord> rec(d_block, d_currPos);
             new (rec.get()) QueueOpRecord();
@@ -720,28 +720,6 @@ void JournalFile::addAllTypesRecordsWithMultipleLeaseId(
                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
             records->push_back(bsl::make_pair(RecordType::e_QUEUE_OP, buf));
         }
-        // else {
-        //     OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
-        //     new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-        //                                     SyncPointType::e_REGULAR,
-        //                                     1234567,  // seqNum
-        //                                     25,       // leaderTerm
-        //                                     121,      // leaderNodeId
-        //                                     8800,     // dataFilePosition
-        //                                     100,      // qlistFilePosition
-        //                                     RecordHeader::k_MAGIC);
-
-        //     rec->header()
-        //         .setPrimaryLeaseId(100)
-        //         .setSequenceNumber(i)
-        //         .setTimestamp(i * d_timestampIncrement);
-        //     RecordBufferType buf;
-        //     bsl::memcpy(buf.buffer(),
-        //                 rec.get(),
-        //                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-        //     records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP,
-        //     buf));
-        // }
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }

@@ -143,7 +143,7 @@ bmqstoragetool --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnu
 NOTE: no other filters are allowed with this one
 
 Filter messages with corresponding record offsets
-----------------------------------------
+-------------------------------------------------
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --offset=<offset_1> --offset=<offset_N>

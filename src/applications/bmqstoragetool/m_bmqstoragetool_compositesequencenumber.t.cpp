@@ -36,10 +36,10 @@ static void test1_breathingTest()
 // BREATHING TEST
 //
 // Concerns:
-//   Exercise the basic functionality of the component.
+//   Exercise the component initialization.
 //
 // Testing:
-//   Basic functionality
+//   Component initialization
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -78,7 +78,6 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         bsl::string inputString("123-456", s_allocator_p);
-        errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), false);
@@ -92,7 +91,6 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         bsl::string inputString("00123-000456", s_allocator_p);
-        errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), false);
@@ -106,7 +104,6 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         bsl::string inputString("", s_allocator_p);
-        errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT_EQ(compositeSeqNum.isUnset(), true);
@@ -237,94 +234,64 @@ static void test3_comparisonTest()
 //   Exercise the functionality to compare objects.
 //
 // Testing:
-//   operator<() and operator<=() methods
+//   operator<()==, operator<() and operator<=() methods
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("COMPARISON TEST");
 
-    bmqu::MemOutStream errorDescription(s_allocator_p);
-
     // leaseId is less, seqNumber is greater
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("1-2", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("2-1", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(1, 2);
+        CompositeSequenceNumber rhs(2, 1);
         ASSERT(lhs < rhs);
     }
 
     // leaseId is less, seqNumber is less
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("1-1", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("2-2", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(1, 1);
+        CompositeSequenceNumber rhs(2, 2);
         ASSERT(lhs < rhs);
     }
 
     // leaseId is greater, seqNumber is greater
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("3-2", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("2-1", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(3, 2);
+        CompositeSequenceNumber rhs(2, 1);
         ASSERT_EQ((lhs < rhs), false);
     }
 
     // leaseId is greater, seqNumber is less
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("3-1", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("2-2", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(3, 1);
+        CompositeSequenceNumber rhs(2, 2);
         ASSERT_EQ((lhs < rhs), false);
     }
 
     // leaseId is equal, seqNumber is less
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("1-1", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("1-2", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(1, 1);
+        CompositeSequenceNumber rhs(1, 2);
         ASSERT(lhs < rhs);
     }
 
     // leaseId is equal, seqNumber is greater
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("1-2", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("1-1", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(1, 2);
+        CompositeSequenceNumber rhs(1, 1);
         ASSERT_EQ((lhs < rhs), false);
+    }
+
+    // Compare for equality: leaseId is equal, seqNumber is equal
+    {
+        CompositeSequenceNumber lhs(1, 2);
+        CompositeSequenceNumber rhs(1, 2);
+        ASSERT_EQ((lhs == rhs), true);
     }
 
     // Compare for equality using '<=': leaseId is equal, seqNumber is equal
     {
-        CompositeSequenceNumber lhs;
-        lhs.fromString(errorDescription, bsl::string("1-2", s_allocator_p));
-
-        CompositeSequenceNumber rhs;
-        rhs.fromString(errorDescription, bsl::string("1-2", s_allocator_p));
-
-        ASSERT(!lhs.isUnset() && !rhs.isUnset());
+        CompositeSequenceNumber lhs(1, 2);
+        CompositeSequenceNumber rhs(1, 2);
         ASSERT_EQ((lhs <= rhs), true);
     }
 }
