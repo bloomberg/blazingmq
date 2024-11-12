@@ -477,7 +477,7 @@ class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`, `offsetLt` and
+    /// Constructor using the specified `component`, `seqNumberLt` and
     /// `allocator`.
     SearchResultSequenceNumberDecorator(
         const bsl::shared_ptr<SearchResult>& component,
@@ -696,7 +696,7 @@ class SearchOffsetDecorator : public SearchResultDecorator {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`, `guids`, `ostream`,
+    /// Constructor using the specified `component`, `offsets`, `ostream`,
     /// `withDetails` and `allocator`.
     SearchOffsetDecorator(const bsl::shared_ptr<SearchResult>&   component,
                           const bsl::vector<bsls::Types::Int64>& offsets,

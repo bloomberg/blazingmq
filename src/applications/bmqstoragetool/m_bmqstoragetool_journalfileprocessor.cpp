@@ -222,7 +222,6 @@ void JournalFileProcessor::process()
         // ConfirmRecord
         else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
             const mqbs::ConfirmRecord& record = iter->asConfirmRecord();
-
             stopSearch = d_searchResult_p->processConfirmRecord(
                 record,
                 iter->recordIndex(),
@@ -231,7 +230,6 @@ void JournalFileProcessor::process()
         // DeletionRecord
         else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
             const mqbs::DeletionRecord& record = iter->asDeletionRecord();
-
             stopSearch = d_searchResult_p->processDeletionRecord(
                 record,
                 iter->recordIndex(),

@@ -16,7 +16,8 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_COMPOSITESEQUENCENUMBER
 #define INCLUDED_M_BMQSTORAGETOOL_COMPOSITESEQUENCENUMBER
 
-//@PURPOSE: Provide value-semantic type to represent composite sequence number,
+//@PURPOSE: Provide value-semantic type to represent composite sequence number
+//(consists of primary lease Id and sequence number),
 // which is used for message filtering.
 //
 //@CLASSES:
@@ -24,10 +25,10 @@
 //  composite sequence number.
 //
 //@DESCRIPTION: 'CompositeSequenceNumber' provides value-semantic type to
-// represent sequence number.
+// represent composite sequence number.
 // There could be sequence numbers collision inside journal file for different
 // lease Ids, so need to handle composite sequence number taking into account
-// Primary Lease Id too.
+// primary lease Id too.
 
 // BDE
 #include <bsl_ostream.h>
@@ -49,6 +50,7 @@ class CompositeSequenceNumber {
     bsls::Types::Uint64 d_seqNumber;
     // Sequence Number
     bool d_isUnset;
+    // Set to `true` if the value of this object is not set
 
   public:
     // CREATORS
@@ -101,9 +103,9 @@ class CompositeSequenceNumber {
 
 // FREE OPERATORS
 
-// -----------------
-// class MessageGUID
-// -----------------
+// -----------------------------
+// class CompositeSequenceNumber
+// -----------------------------
 
 /// Write the value of the specified `rhs` object to the specified output
 /// `stream` in a human-readable format, and return a reference to `stream`.
@@ -111,6 +113,11 @@ class CompositeSequenceNumber {
 /// change without notice.
 bsl::ostream& operator<<(bsl::ostream&                  stream,
                          const CompositeSequenceNumber& rhs);
+
+/// Return true if the specified `lhs` instance is equal to the
+/// specified `rhs` instance, false otherwise.
+bool operator==(const CompositeSequenceNumber& lhs,
+                const CompositeSequenceNumber& rhs);
 
 /// Return true if the specified `lhs` instance is less than the
 /// specified `rhs` instance, false otherwise.
@@ -120,11 +127,6 @@ bool operator<(const CompositeSequenceNumber& lhs,
 /// Return true if the specified `lhs` instance is less or equal to the
 /// specified `rhs` instance, false otherwise.
 bool operator<=(const CompositeSequenceNumber& lhs,
-                const CompositeSequenceNumber& rhs);
-
-/// Return true if the specified `lhs` instance is equal to the
-/// specified `rhs` instance, false otherwise.
-bool operator==(const CompositeSequenceNumber& lhs,
                 const CompositeSequenceNumber& rhs);
 
 // ============================================================================
@@ -170,6 +172,17 @@ inline bsl::ostream& m_bmqstoragetool::operator<<(
     return rhs.print(stream, 0, -1);
 }
 
+inline bool m_bmqstoragetool::operator==(
+    const m_bmqstoragetool::CompositeSequenceNumber& lhs,
+    const m_bmqstoragetool::CompositeSequenceNumber& rhs)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
+
+    return (lhs.leaseId() == rhs.leaseId() &&
+            lhs.sequenceNumber() == rhs.sequenceNumber());
+}
+
 inline bool m_bmqstoragetool::operator<(
     const m_bmqstoragetool::CompositeSequenceNumber& lhs,
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
@@ -197,23 +210,7 @@ inline bool m_bmqstoragetool::operator<=(
     // PRECONDITIONS
     BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
 
-    if (lhs.leaseId() == rhs.leaseId() &&
-        lhs.sequenceNumber() == rhs.sequenceNumber()) {
-        return true;
-    }
-
-    return lhs < rhs;
-}
-
-inline bool m_bmqstoragetool::operator==(
-    const m_bmqstoragetool::CompositeSequenceNumber& lhs,
-    const m_bmqstoragetool::CompositeSequenceNumber& rhs)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
-
-    return (lhs.leaseId() == rhs.leaseId() &&
-            lhs.sequenceNumber() == rhs.sequenceNumber());
+    return (lhs < rhs || lhs == rhs);
 }
 
 }  // close enterprise namespace

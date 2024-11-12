@@ -1324,7 +1324,7 @@ static void test16_sequenceNumberLowerBoundTest()
         // Simulate journal file
         JournalFile::RecordsListType records(s_allocator_p);
         JournalFile journalFile(test.d_numRecords, s_allocator_p);
-        journalFile.addAllTypesRecordsWithMultipleLeaseId(
+        journalFile.addMultipleTypesRecordsWithMultipleLeaseId(
             &records,
             test.d_numRecordsWithSameLeaseId);
 
@@ -1361,11 +1361,11 @@ static void test16_sequenceNumberLowerBoundTest()
 
     // Edge case: not in the range (greater then the last record)
     {
-        const size_t                 k_NUM_RECORDS = 300;
+        const size_t                 k_NUM_RECORDS = 30;
         JournalFile::RecordsListType records(s_allocator_p);
         JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-        journalFile.addAllTypesRecordsWithMultipleLeaseId(&records,
-                                                          k_NUM_RECORDS);
+        journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records,
+                                                               k_NUM_RECORDS);
 
         mqbs::JournalFileIterator journalFileIt(
             &journalFile.mappedFileDescriptor(),
@@ -1391,7 +1391,8 @@ static void test17_searchMessagesBySequenceNumbersRange()
 // SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST
 //
 // Concerns:
-//   Search messages by sequence number in journal file and output GUIDs.
+//   Search messages by sequence numbers range in journal file and output
+//   GUIDs.
 //
 // Testing:
 //   JournalFileProcessor::process()
@@ -1404,7 +1405,7 @@ static void test17_searchMessagesBySequenceNumbersRange()
     const size_t                 k_NUM_RECORDS = 100;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    journalFile.addAllTypesRecordsWithMultipleLeaseId(&records, 10);
+    journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records, 10);
     const CompositeSequenceNumber seqNumGt(3, 3);
     const CompositeSequenceNumber seqNumLt(4, 6);
 
@@ -1418,7 +1419,7 @@ static void test17_searchMessagesBySequenceNumbersRange()
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Get GUIDs of messages inside sequence nums range and prepare expected
+    // Get GUIDs of messages inside sequence numbers range and prepare expected
     // output
     bmqu::MemOutStream expectedStream(s_allocator_p);
 

@@ -64,9 +64,8 @@ CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
     }
 
     // Extract parts
-    // TODO: use allocator!
-    bsl::string firstPart  = seqNumString.substr(0, separatorPos);
-    bsl::string secondPart = seqNumString.substr(separatorPos + 1);
+    const bsl::string firstPart  = seqNumString.substr(0, separatorPos);
+    const bsl::string secondPart = seqNumString.substr(separatorPos + 1);
 
     // Convert parts to numbers
     try {
@@ -76,12 +75,12 @@ CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
         d_seqNumber         = bsl::stoul(secondPart, &posSecond);
 
         if (posFirst != firstPart.size() || posSecond != secondPart.size()) {
-            throw bsl::invalid_argument("");
+            throw bsl::invalid_argument("");  // THROW
         }
 
         d_leaseId = static_cast<unsigned int>(uLong);
         if (uLong != d_leaseId) {
-            throw bsl::out_of_range("");
+            throw bsl::out_of_range("");  // THROW
         }
 
         if (d_leaseId == 0 || d_seqNumber == 0) {

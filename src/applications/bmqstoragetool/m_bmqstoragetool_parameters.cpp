@@ -87,6 +87,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_cslFile(allocator)
 , d_guid(allocator)
 , d_seqNum(allocator)
+, d_offset(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
 , d_dumpLimit(0)
@@ -200,7 +201,7 @@ bool CommandLineArguments::validate(bsl::string*      error,
         (d_offsetLt > 0 && d_offsetGt >= d_offsetLt)) {
         ss << "Invalid offset range specified\n";
     }
-    // Check that only one range type can be selected
+    // Check that only one range type is selected
     bsl::size_t rangesCnt = 0;
     if (d_timestampLt || d_timestampGt) {
         rangesCnt++;
@@ -251,7 +252,6 @@ bool CommandLineArguments::validate(bsl::string*      error,
             }
         }
     }
-
     if (!d_offset.empty()) {
         for (bsl::vector<bsls::Types::Int64>::const_iterator cit =
                  d_offset.begin();
@@ -303,6 +303,8 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_valueType(e_NONE)
 , d_valueGt(0)
 , d_valueLt(0)
+, d_seqNumGt()
+, d_seqNumLt()
 , d_guid(allocator)
 , d_seqNum(allocator)
 , d_offset(allocator)
@@ -325,6 +327,8 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_valueType(e_NONE)
 , d_valueGt(0)
 , d_valueLt(0)
+, d_seqNumGt()
+, d_seqNumLt()
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
 , d_offset(arguments.d_offset, allocator)
@@ -346,8 +350,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
         d_valueType = e_SEQUENCE_NUM;
-        CompositeSequenceNumber seqNum;
-        bmqu::MemOutStream      errorDescr(allocator);
+        bmqu::MemOutStream errorDescr(allocator);
         if (!arguments.d_seqNumLt.empty()) {
             d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
         }
@@ -361,6 +364,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         d_valueGt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
     }
 
+    // Set specific sequence numbers if present
     if (!arguments.d_seqNum.empty()) {
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
