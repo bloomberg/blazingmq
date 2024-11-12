@@ -122,6 +122,11 @@ bool operator<(const CompositeSequenceNumber& lhs,
 bool operator<=(const CompositeSequenceNumber& lhs,
                 const CompositeSequenceNumber& rhs);
 
+/// Return true if the specified `lhs` instance is equal to the
+/// specified `rhs` instance, false otherwise.
+bool operator==(const CompositeSequenceNumber& lhs,
+                const CompositeSequenceNumber& rhs);
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -198,6 +203,17 @@ inline bool m_bmqstoragetool::operator<=(
     }
 
     return lhs < rhs;
+}
+
+inline bool m_bmqstoragetool::operator==(
+    const m_bmqstoragetool::CompositeSequenceNumber& lhs,
+    const m_bmqstoragetool::CompositeSequenceNumber& rhs)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
+
+    return (lhs.leaseId() == rhs.leaseId() &&
+            lhs.sequenceNumber() == rhs.sequenceNumber());
 }
 
 }  // close enterprise namespace
