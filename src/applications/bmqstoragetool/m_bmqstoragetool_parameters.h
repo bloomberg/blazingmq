@@ -77,7 +77,9 @@ struct CommandLineArguments {
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_seqNum;
-    // Filter messages by message composite sequence numbers
+    // Filter messages by record composite sequence numbers
+    bsl::vector<bsls::Types::Int64> d_offset;
+    // Filter messages by record offsets
     bsl::vector<bsl::string> d_queueKey;
     // Filter messages by queue keys
     bsl::vector<bsl::string> d_queueName;
@@ -131,6 +133,8 @@ struct Parameters {
     // Filter messages by message guids
     bsl::vector<CompositeSequenceNumber> d_seqNum;
     // Filter messages by message sequence number
+    bsl::vector<bsls::Types::Int64> d_offset;
+    // Filter messages by message offsets
     bsl::vector<bsl::string> d_queueKey;
     // Filter messages by queue keys
     bsl::vector<bsl::string> d_queueName;

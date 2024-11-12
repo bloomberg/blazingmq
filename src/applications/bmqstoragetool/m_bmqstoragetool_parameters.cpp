@@ -218,23 +218,28 @@ bool CommandLineArguments::validate(bsl::string*      error,
 
     if (!d_guid.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() ||
-         d_outstanding || d_confirmed || d_partiallyConfirmed ||
-         rangesCnt > 0 || d_summary)) {
+         !d_offset.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
         ss << "Giud filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
     }
-
     if (!d_seqNum.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty() ||
-         d_outstanding || d_confirmed || d_partiallyConfirmed ||
-         rangesCnt > 0 || d_summary)) {
-        ss << "secnum filter can't be combined with any other filters, as it "
+         !d_offset.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        ss << "Secnum filter can't be combined with any other filters, as it "
+              "is "
+              "specific enough to find a particular message\n";
+    }
+    if (!d_offset.empty() &&
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty() ||
+         !d_seqNum.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        ss << "Offset filter can't be combined with any other filters, as it "
               "is "
               "specific enough to find a particular message\n";
     }
     if (!d_seqNum.empty()) {
-        // TODO: move to method
-
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
@@ -247,7 +252,16 @@ bool CommandLineArguments::validate(bsl::string*      error,
         }
     }
 
-    // TODO: offset check too
+    if (!d_offset.empty()) {
+        for (bsl::vector<bsls::Types::Int64>::const_iterator cit =
+                 d_offset.begin();
+             cit != d_offset.end();
+             ++cit) {
+            if (*cit < 0) {
+                ss << "--offset: " << *cit << " cannot be negative\n";
+            }
+        }
+    }
 
     if (d_summary &&
         (d_outstanding || d_confirmed || d_partiallyConfirmed || d_details)) {
@@ -290,6 +304,8 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_valueGt(0)
 , d_valueLt(0)
 , d_guid(allocator)
+, d_seqNum(allocator)
+, d_offset(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
 , d_dumpLimit(0)
@@ -311,6 +327,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_valueLt(0)
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
+, d_offset(arguments.d_offset, allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
 , d_dumpLimit(arguments.d_dumpLimit)
@@ -328,7 +345,6 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_timestampGt);
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
-        bsl::cout << "INSIDE!!!!" << arguments.d_seqNumGt << "\n";
         d_valueType = e_SEQUENCE_NUM;
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
@@ -337,10 +353,9 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         }
         if (!arguments.d_seqNumGt.empty()) {
             d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
-            // bsl::cout << "INSIDE _1 !!!!" << arguments.d_seqNumGt << "\n";
         }
     }
-    else {
+    else if (arguments.d_offsetLt || arguments.d_offsetGt) {
         d_valueType = e_OFFSET;
         d_valueLt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
         d_valueGt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);

@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include <m_bmqstoragetool_searchresult.h>
 
 // MQB
@@ -891,6 +892,138 @@ void SearchGuidDecorator::outputResult()
         GuidsList::const_iterator it = d_guids.cbegin();
         for (; it != d_guids.cend(); ++it) {
             outputGuidString(d_ostream, *it);
+        }
+    }
+}
+
+// ===========================
+// class SearchOffsetDecorator
+// ===========================
+SearchOffsetDecorator::SearchOffsetDecorator(
+    const bsl::shared_ptr<SearchResult>&   component,
+    const bsl::vector<bsls::Types::Int64>& offsets,
+    bsl::ostream&                          ostream,
+    bool                                   withDetails,
+    bslma::Allocator*                      allocator)
+: SearchResultDecorator(component, allocator)
+, d_offsets(offsets, allocator)
+, d_ostream(ostream)
+, d_withDetails(withDetails)
+{
+    // NOTHING
+}
+
+bool SearchOffsetDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    bsl::vector<bsls::Types::Int64>::const_iterator it =
+        bsl::find(d_offsets.cbegin(), d_offsets.cend(), recordOffset);
+    if (it != d_offsets.cend()) {
+        SearchResultDecorator::processMessageRecord(record,
+                                                    recordIndex,
+                                                    recordOffset);
+        // Remove processed offset.
+        d_offsets.erase(it);
+    }
+
+    // return true (stop search) if no detail is needed and d_offsets is empty.
+    return (!d_withDetails && d_offsets.empty());
+}
+
+bool SearchOffsetDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResultDecorator::processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+    // return true (stop search) when details needed and search is done
+    // (d_offsets is empty).
+    return (d_withDetails && d_offsets.empty());
+}
+
+void SearchOffsetDecorator::outputResult()
+{
+    SearchResultDecorator::outputResult();
+    // Print non found offsets
+    if (!d_offsets.empty()) {
+        d_ostream << '\n'
+                  << "The following " << d_offsets.size()
+                  << " offset(s) not found:" << '\n';
+        bsl::vector<bsls::Types::Int64>::const_iterator it =
+            d_offsets.cbegin();
+        for (; it != d_offsets.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
+// ===================================
+// class SearchSequenceNumberDecorator
+// ===================================
+SearchSequenceNumberDecorator::SearchSequenceNumberDecorator(
+    const bsl::shared_ptr<SearchResult>&        component,
+    const bsl::vector<CompositeSequenceNumber>& seqNums,
+    bsl::ostream&                               ostream,
+    bool                                        withDetails,
+    bslma::Allocator*                           allocator)
+: SearchResultDecorator(component, allocator)
+, d_seqNums(seqNums, allocator)
+, d_ostream(ostream)
+, d_withDetails(withDetails)
+{
+    // NOTHING
+}
+
+bool SearchSequenceNumberDecorator::processMessageRecord(
+    const mqbs::MessageRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    CompositeSequenceNumber seqNum(record.header().primaryLeaseId(),
+                                   record.header().sequenceNumber());
+    bsl::vector<CompositeSequenceNumber>::const_iterator it =
+        bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), seqNum);
+    if (it != d_seqNums.cend()) {
+        SearchResultDecorator::processMessageRecord(record,
+                                                    recordIndex,
+                                                    recordOffset);
+        // Remove processed offset.
+        d_seqNums.erase(it);
+    }
+
+    // return true (stop search) if no detail is needed and d_offsets is empty.
+    return (!d_withDetails && d_seqNums.empty());
+}
+
+bool SearchSequenceNumberDecorator::processDeletionRecord(
+    const mqbs::DeletionRecord& record,
+    bsls::Types::Uint64         recordIndex,
+    bsls::Types::Uint64         recordOffset)
+{
+    SearchResultDecorator::processDeletionRecord(record,
+                                                 recordIndex,
+                                                 recordOffset);
+    // return true (stop search) when details needed and search is done
+    // (d_offsets is empty).
+    return (d_withDetails && d_seqNums.empty());
+}
+
+void SearchSequenceNumberDecorator::outputResult()
+{
+    SearchResultDecorator::outputResult();
+    // Print non found offsets
+    if (!d_seqNums.empty()) {
+        d_ostream << '\n'
+                  << "The following " << d_seqNums.size()
+                  << " sequence number(s) not found:" << '\n';
+        bsl::vector<CompositeSequenceNumber>::const_iterator it =
+            d_seqNums.cbegin();
+        for (; it != d_seqNums.cend(); ++it) {
+            d_ostream << *it << '\n';
         }
     }
 }

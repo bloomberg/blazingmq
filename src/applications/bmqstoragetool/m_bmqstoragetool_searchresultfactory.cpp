@@ -92,6 +92,25 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                                             alloc),
                            alloc);
     }
+    else if (!params->d_seqNum.empty()) {
+        // Search offsets
+        searchResult.reset(new (*alloc)
+                               SearchSequenceNumberDecorator(searchResult,
+                                                             params->d_seqNum,
+                                                             ostream,
+                                                             details,
+                                                             alloc),
+                           alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search composite sequence numbers
+        searchResult.reset(new (*alloc) SearchOffsetDecorator(searchResult,
+                                                              params->d_offset,
+                                                              ostream,
+                                                              details,
+                                                              alloc),
+                           alloc);
+    }
     else if (params->d_summary) {
         // Summary
         searchResult.reset(
@@ -144,7 +163,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
         }
     }
 
-    // Add SequenceNumberDecorator if 'seqNumLt' is given value type is
+    // Add SequenceNumberDecorator if 'seqNumLt' is given and value type is
     // `e_SEQUENCE_NUM`.
     if (params->d_valueType == Parameters::e_SEQUENCE_NUM &&
         !params->d_seqNumLt.isUnset()) {
