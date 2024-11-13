@@ -23,14 +23,14 @@
   font-family: "Rubik";
   font-weight: bold;
   font-style: normal;
-  src: url("../../assets/fonts/Rubik-Bold.ttf") format("truetype")
+  src: url("../../assets/fonts/Rubik-SemiBold.ttf") format("truetype")
 }
 
 @font-face {
   font-family: "Rubik";
   font-weight: bold;
   font-style: italic;
-  src: url("../../assets/fonts/Rubik-BoldItalic.ttf") format("truetype")
+  src: url("../../assets/fonts/Rubik-SemiBoldItalic.ttf") format("truetype")
 }
 
 $default-font-family: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif !default;
