@@ -18,6 +18,8 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
                         [--guid <guid>]*
+                        [--seqnum <secnum>]*
+                        [--offset <offset>]*
                         [--queue-name <queue name>]*
                         [--queue-key <queue key>]*
                         [--timestamp-gt <timestamp greater than>]
@@ -46,6 +48,10 @@ Where:
           path to a .bmq_csl file
        --guid                 <guid>
           message guid
+       --seqnum               <seqnum>
+          message composite sequence number
+       --offset               <offset>
+          message offset
        --queue-name           <queue name>
           message queue name
        --queue-key            <queue key>
