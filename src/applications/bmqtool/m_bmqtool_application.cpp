@@ -72,8 +72,7 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
-struct BuildConfirmFunctor
-: public bmqp::ProtocolUtil::BuildEventActionFunctor {
+struct BuildConfirmFunctor {
     // DATA
     bmqa::ConfirmEventBuilder& d_confirmBuilder;
     const bmqa::Message&       d_message;
@@ -89,15 +88,14 @@ struct BuildConfirmFunctor
     }
 
     // MANIPULATORS
-    inline bmqt::EventBuilderResult::Enum operator()() BSLS_KEYWORD_OVERRIDE
+    inline bmqt::EventBuilderResult::Enum operator()()
     {
         return d_confirmBuilder.addMessageConfirmation(d_message);
     }
 };
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
-struct BuildConfirmOverflowFunctor
-: public bmqp::ProtocolUtil::BuildEventOverflowFunctor {
+struct BuildConfirmOverflowFunctor {
     // DATA
     bmqa::Session&             d_session;
     bmqa::ConfirmEventBuilder& d_builder;
@@ -113,7 +111,7 @@ struct BuildConfirmOverflowFunctor
     }
 
     // MANIPULATORS
-    inline void operator()() BSLS_KEYWORD_OVERRIDE
+    inline void operator()()
     {
         d_session.confirmMessages(&d_builder);
     }

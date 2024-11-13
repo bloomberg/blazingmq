@@ -288,7 +288,7 @@ void finalizeClosedHandle(bsl::string description,
 }
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
-struct BuildAckFunctor : public bmqp::ProtocolUtil::BuildEventActionFunctor {
+struct BuildAckFunctor {
     // DATA
     bmqp::AckEventBuilder&   d_ackBuilder;
     int                      d_status;
@@ -312,7 +312,7 @@ struct BuildAckFunctor : public bmqp::ProtocolUtil::BuildEventActionFunctor {
     }
 
     // MANIPULATORS
-    inline bmqt::EventBuilderResult::Enum operator()() BSLS_KEYWORD_OVERRIDE
+    inline bmqt::EventBuilderResult::Enum operator()()
     {
         return d_ackBuilder.appendMessage(d_status,
                                           d_correlationId,
@@ -322,8 +322,7 @@ struct BuildAckFunctor : public bmqp::ProtocolUtil::BuildEventActionFunctor {
 };
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
-struct BuildAckOverflowFunctor
-: public bmqp::ProtocolUtil::BuildEventOverflowFunctor {
+struct BuildAckOverflowFunctor {
     // DATA
     mqba::ClientSession& d_session;
 
@@ -335,7 +334,7 @@ struct BuildAckOverflowFunctor
     }
 
     // MANIPULATORS
-    inline void operator()() BSLS_KEYWORD_OVERRIDE { d_session.flush(); }
+    inline void operator()() { d_session.flush(); }
 };
 
 }  // close unnamed namespace
