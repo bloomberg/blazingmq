@@ -735,6 +735,7 @@ ProtocolUtil::buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
     return rc;
 };
 
+
 inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
                                        int                 partitionId,
                                        unsigned int        primaryLeaseId,

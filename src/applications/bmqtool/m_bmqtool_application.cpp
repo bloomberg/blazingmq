@@ -111,10 +111,7 @@ struct BuildConfirmOverflowFunctor {
     }
 
     // MANIPULATORS
-    inline void operator()()
-    {
-        d_session.confirmMessages(&d_builder);
-    }
+    inline void operator()() { d_session.confirmMessages(&d_builder); }
 };
 
 }  // close unnamed namespace
