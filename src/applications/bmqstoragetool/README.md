@@ -18,7 +18,7 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
                         [--guid <guid>]*
-                        [--seqnum <secnum>]*
+                        [--seqnum <seqnum>]*
                         [--offset <offset>]*
                         [--queue-name <queue name>]*
                         [--queue-key <queue key>]*
