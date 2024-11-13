@@ -352,6 +352,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -qy doxygen
+      - name: Set up output directory
+        run: |
+          mkdir -p docs/docs/apidocs
       - name: Build docs
         run: |
           doxygen Doxyfile
