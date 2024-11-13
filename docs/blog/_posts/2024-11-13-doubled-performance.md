@@ -132,7 +132,7 @@ These plots also show that the number of allocations in the application is linea
 
 We benchmarked the changes discussed above, and found that stable throughput rates increased by 1.3-2.0x in some of our scenarios, without any increase in latency.
 
-The benchmarks below use the same topologies and scenarios as our [benchmarks]({{ site.baseurl }}/docs/performance/benchmarks/). For each scenario, we provide the message rate that BlazingMQ could sustain with reasonable `p99` latency.
+The benchmarks below use the same topologies and scenarios as our [benchmarks]({{ site.baseurl }}/docs/performance/benchmarks/). For each scenario, we provide the message rate that BlazingMQ could sustain with reasonable `p99` latency. All latency numbers (median, p90, p99) in the following tables are in milliseconds.
 
 | <a name="fig6" href="{{ site.baseurl }}/assets/images/2024-11-13-doubled-performance/6node_cluster.png">![6 node topology]({{ site.baseurl }}/assets/images/2024-11-13-doubled-performance/6node_cluster.png)</a> | <a name="fig7" href="{{ site.baseurl }}/assets/images/2024-11-13-doubled-performance/3node_cluster.png">![3 node topology]({{ site.baseurl }}/assets/images/2024-11-13-doubled-performance/3node_cluster.png)</a> |
 |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
