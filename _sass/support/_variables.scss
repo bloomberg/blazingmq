@@ -6,12 +6,35 @@
 }
 
 @font-face {
-  font-family: "Rubik Regular";
+  font-family: "Rubik";
+  font-weight: normal;
+  font-style: normal;
   src: url("../../assets/fonts/Rubik-Regular.ttf") format("truetype")
 }
 
+@font-face {
+  font-family: "Rubik";
+  font-weight: normal;
+  font-style: italic;
+  src: url("../../assets/fonts/Rubik-Italic.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: "Rubik";
+  font-weight: bold;
+  font-style: normal;
+  src: url("../../assets/fonts/Rubik-Bold.ttf") format("truetype")
+}
+
+@font-face {
+  font-family: "Rubik";
+  font-weight: bold;
+  font-style: italic;
+  src: url("../../assets/fonts/Rubik-BoldItalic.ttf") format("truetype")
+}
+
 $default-font-family: system-ui, -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif !default;
-$text-font-family: "Rubik Regular", $default-font-family;
+$text-font-family: "Rubik", $default-font-family;
 $body-font-family: "Chakra Petch", $default-font-family;
 $mono-font-family: "Chakra Petch", "SFMono-Regular", menlo, consolas, monospace !default;
 $root-font-size: 16px !default; // Base font-size for rems
