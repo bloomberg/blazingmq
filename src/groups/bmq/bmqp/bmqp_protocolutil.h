@@ -718,7 +718,6 @@ inline bmqt::EventBuilderResult::Enum ProtocolUtil::buildEvent(
     return rc;
 };
 
-
 template <class ACTION_FUNCTOR_TYPE, class OVERFLOW_FUNCTOR_TYPE>
 inline bmqt::EventBuilderResult::Enum
 ProtocolUtil::buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
@@ -734,7 +733,6 @@ ProtocolUtil::buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
     }
     return rc;
 };
-
 
 inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
                                        int                 partitionId,
