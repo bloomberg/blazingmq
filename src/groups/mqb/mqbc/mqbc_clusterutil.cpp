@@ -354,8 +354,7 @@ void createDomainCb(const bmqp_ctrlmsg::Status& status,
 // ------------------
 
 void ClusterUtil::setPendingUnassignment(ClusterState*    clusterState,
-                                         const bmqt::Uri& uri,
-                                         bool             pendingUnassignment)
+                                         const bmqt::Uri& uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
@@ -366,7 +365,7 @@ void ClusterUtil::setPendingUnassignment(ClusterState*    clusterState,
     if (iter != clusterState->domainStates().cend()) {
         UriToQueueInfoMapIter qiter = iter->second->queuesInfo().find(uri);
         if (qiter != iter->second->queuesInfo().cend()) {
-            qiter->second->setPendingUnassignment(pendingUnassignment);
+            qiter->second->setState(ClusterStateQueueInfo::k_UNASSIGNING);
         }
     }
 }
@@ -751,7 +750,7 @@ void ClusterUtil::processQueueAssignmentRequest(
         UriToQueueInfoMapCIter qcit = cit->second->queuesInfo().find(uri);
         if (qcit != cit->second->queuesInfo().cend() &&
             !(cluster->isCSLModeEnabled() &&
-              qcit->second->pendingUnassignment())) {
+              qcit->second->state() == ClusterStateQueueInfo::k_UNASSIGNING)) {
             // Queue is already assigned
             clusterData->messageTransmitter().sendMessage(response, requester);
             return;  // RETURN
@@ -897,6 +896,20 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             allocator);
         domIt = clusterState->domainStates().find(uri.qualifiedDomain());
     }
+    else {
+        // Set the queue as assigning (no longer pending unassignment)
+
+        UriToQueueInfoMapCIter qcit = domIt->second->queuesInfo().find(uri);
+        if (qcit != domIt->second->queuesInfo().cend()) {
+            if (qcit->second->state() == ClusterStateQueueInfo::k_ASSIGNING) {
+                BALL_LOG_INFO << cluster->description()
+                              << "queueAssignment of '" << uri
+                              << "' is already pending.";
+                return QueueAssignmentResult::k_ASSIGNMENT_OK;
+            }
+            qcit->second->setState(ClusterStateQueueInfo::k_ASSIGNING);
+        }
+    }
 
     if (domIt->second->domain() == 0) {
         BSLS_ASSERT_SAFE(clusterData->domainFactory());
@@ -966,21 +979,6 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             }
 
             return QueueAssignmentResult::k_ASSIGNMENT_REJECTED;  // RETURN
-        }
-    }
-
-    // Set the queue as no longer pending unassignment
-    const DomainStatesCIter citDomainState = clusterState->domainStates().find(
-        uri.qualifiedDomain());
-    if (citDomainState != clusterState->domainStates().cend()) {
-        UriToQueueInfoMapCIter qcit =
-            citDomainState->second->queuesInfo().find(uri);
-        if (qcit != citDomainState->second->queuesInfo().cend()) {
-            BSLS_ASSERT_SAFE(cluster->isCSLModeEnabled() &&
-                             qcit->second->pendingUnassignment());
-
-            // TODO: cancel QUAA, if 'pendingUnassignment() == true'
-            qcit->second->setPendingUnassignment(false);
         }
     }
 

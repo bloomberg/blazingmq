@@ -386,9 +386,8 @@ ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!isQueueAssigned(*(queueContext.get())) ||
-                     ((d_cluster_p->isCSLModeEnabled() &&
-                       queueContext->d_stateQInfo_sp->pendingUnassignment())));
+    BSLS_ASSERT_SAFE(!isQueueAssigned(*queueContext) ||
+                     queueContext->d_stateQInfo_sp->pendingUnassignment());
 
     if (d_cluster_p->isRemote()) {
         // Assigning a queue in a remote, is simply giving it a new queueId.
@@ -4546,7 +4545,7 @@ void ClusterQueueHelper::openQueue(
             if (!isQueueAssigned(*(queueContextIt->second)) ||
                 isQueuePendingUnassignment(*(queueContextIt->second))) {
                 // In CSL, unassignment is async.
-                // Since QueueUnassignemntAdvisory can contain multipe queues,
+                // Since QueueUnassignmentAdvisory can contain multiple queues,
                 // canceling pending Advisory is not an option.
                 // Instead, initiate new QueueAssignemntAdvisory which must
                 // take effect after old QueueUnassignemntAdvisory.
@@ -6145,9 +6144,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
                       << "], queueKey [" << keyCopy << "] assigned to "
                       << "Partition [" << pid << "] as it has expired.";
 
-        mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p,
-                                                  uriCopy,
-                                                  true);
+        mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uriCopy);
 
         // Populate 'queueUnassignedAdvisory'
         bdlma::LocalSequentialAllocator<1024>  localAlloc(d_allocator_p);
@@ -6163,7 +6160,6 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
                                                            uriCopy,
                                                            keyCopy,
                                                            pid,
-
                                                            *d_clusterState_p);
 
         // Apply 'queueUnassignedAdvisory' to CSL
