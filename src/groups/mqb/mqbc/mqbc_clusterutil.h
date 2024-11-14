@@ -136,8 +136,7 @@ struct ClusterUtil {
     /// Set the specified `uri` to have the specified `pendingUnassignment`
     /// status in the specified `clusterState`.
     static void setPendingUnassignment(ClusterState*    clusterState,
-                                       const bmqt::Uri& uri,
-                                       bool             pendingUnassignment);
+                                       const bmqt::Uri& uri);
 
     /// Load into the specified `message` the message encoded in the
     /// specified `eventBlob` using the specified `allocator`.
