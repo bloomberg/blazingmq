@@ -28,6 +28,10 @@
 //  search processor.
 // m_bmqstoragetool::SearchResultTimestampDecorator:
 //  provides decorator to handle timestamps.
+// m_bmqstoragetool::SearchResultOffsetDecorator:
+//  provides decorator to handle offsets.
+// m_bmqstoragetool::SearchResultSequenceNumberDecorator:
+//  provides decorator to handle composite sequence numbers.
 // m_bmqstoragetool::SearchAllDecorator: provides decorator to handle all
 //  messages.
 // m_bmqstoragetool::SearchOutstandingDecorator: provides decorator
@@ -36,6 +40,10 @@
 //  handle partially confirmed messages.
 // m_bmqstoragetool::SearchGuidDecorator:
 //  provides decorator to handle search of given GUIDs.
+// m_bmqstoragetool::SearchOffsetDecorator:
+//  provides decorator to handle search of given offsets.
+// m_bmqstoragetool::SearchSequenceNumberDecorator:
+//  provides decorator to handle search of given composite sequence numbers.
 // m_bmqstoragetool::SummaryProcessor: provides logic to collect summary of
 //  journal file.
 //
@@ -462,7 +470,7 @@ class SearchResultOffsetDecorator : public SearchResultDecorator {
 // class SearchResultSequenceNumberDecorator
 // =========================================
 
-/// This class provides decorator to handle offsets.
+/// This class provides decorator to handle composite sequence numbers.
 class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
   private:
     const CompositeSequenceNumber sequenceNumberLt;
