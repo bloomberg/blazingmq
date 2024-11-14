@@ -67,7 +67,6 @@ class NegotiatedChannelFactoryConfig {
     bmqio::ChannelFactory*           d_baseFactory_p;
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
     bsls::TimeInterval               d_negotiationTimeout;
-    bdlbb::BlobBufferFactory*        d_bufferFactory_p;
     BlobSpPool*                      d_blobSpPool_p;
     bslma::Allocator*                d_allocator_p;
 
@@ -84,7 +83,6 @@ class NegotiatedChannelFactoryConfig {
         bmqio::ChannelFactory*                  base,
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
         const bsls::TimeInterval&               negotiationTimeout,
-        bdlbb::BlobBufferFactory*               bufferFactory,
         BlobSpPool*                             blobSpPool_p,
         bslma::Allocator*                       basicAllocator = 0);
 

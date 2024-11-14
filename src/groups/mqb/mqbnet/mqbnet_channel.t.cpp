@@ -99,7 +99,7 @@ struct PseudoBuilder {
     }
     int  messageCount() const { return d_payload_sp->length() ? 1 : 0; }
     void reset() { d_payload_sp = d_blobSpPool_p->getObject(); }
-    bsl::shared_ptr<bdlbb::Blob> blob_sp() const { return d_payload_sp; }
+    bsl::shared_ptr<bdlbb::Blob> blob() const { return d_payload_sp; }
 };
 template <class Builder>
 struct Iterator {
@@ -432,7 +432,7 @@ inline void Tester<Builder>::test()
             bmqt::EventBuilderResult::e_OPTION_TOO_BIG == rc)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        d_history.push_back(d_builder.blob_sp());
+        d_history.push_back(d_builder.blob());
         d_builder.reset();
 
         rc = build();
@@ -630,7 +630,7 @@ inline size_t Tester<Builder>::verify(
     const bsl::shared_ptr<bmqio::TestChannelEx>& testChannel)
 {
     if (d_builder.messageCount()) {
-        d_history.push_back(d_builder.blob_sp());
+        d_history.push_back(d_builder.blob());
         d_builder.reset();
     }
 

@@ -43,10 +43,18 @@ RecoveryEventBuilder::RecoveryEventBuilder(BlobSpPool*       blobSpPool_p,
                                            bslma::Allocator* allocator)
 : d_blobSpPool_p(blobSpPool_p)
 , d_blob_sp(0, allocator)  // initialized in `reset()`
+, d_emptyBlob_sp(blobSpPool_p->getObject())
 , d_msgCount(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
+
+    // Assume that items built with the given `blobSpPool_p` either all have or
+    // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
+    // We require this since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_emptyBlob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     reset();
 }
@@ -55,11 +63,6 @@ RecoveryEventBuilder::RecoveryEventBuilder(BlobSpPool*       blobSpPool_p,
 void RecoveryEventBuilder::reset()
 {
     d_blob_sp = d_blobSpPool_p->getObject();
-
-    // The following prerequisite is necessary since we do `Blob::setLength`:
-    BSLS_ASSERT_SAFE(
-        NULL != d_blob_sp->factory() &&
-        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     d_msgCount = 0;
 
@@ -151,27 +154,11 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
 
-const bdlbb::Blob& RecoveryEventBuilder::blob() const
+const bsl::shared_ptr<bdlbb::Blob>& RecoveryEventBuilder::blob() const
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return ProtocolUtil::emptyBlob();  // RETURN
-    }
-
-    // Fix packet's length in header now that we know it ..  Following is valid
-    // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(
-        d_blob_sp->buffer(0).data());
-    eh.setLength(d_blob_sp->length());
-
-    return *d_blob_sp;
-}
-
-bsl::shared_ptr<bdlbb::Blob> RecoveryEventBuilder::blob_sp() const
-{
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+        return d_emptyBlob_sp;  // RETURN
     }
 
     // Fix packet's length in header now that we know it ..  Following is valid

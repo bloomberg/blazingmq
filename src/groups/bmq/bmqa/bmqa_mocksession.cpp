@@ -300,7 +300,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
 
     // TODO: deprecate `createAckEvent` with bufferFactory arg and introduce
     // another function with BlobSpPool arg.
-    bmqa::Session::BlobSpPool blobSpPool(
+    BlobSpPool blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
 
     bmqp::AckEventBuilder ackBuilder(&blobSpPool, alloc);
@@ -318,7 +318,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     }
 
     implPtr->configureAsMessageEvent(
-        bmqp::Event(&ackBuilder.blob(), alloc, true));
+        bmqp::Event(ackBuilder.blob().get(), alloc, true));
     for (size_t i = 0; i != acks.size(); ++i) {
         implPtr->addCorrelationId(acks[i].d_correlationId);
     }
@@ -343,7 +343,7 @@ Event MockSessionUtil::createPushEvent(
 
     // TODO: deprecate `createPushEvent` with bufferFactory arg and introduce
     // another function with BlobSpPool arg.
-    bmqa::Session::BlobSpPool blobSpPool(
+    BlobSpPool blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
 
     bmqp::PushEventBuilder pushBuilder(&blobSpPool, alloc);
@@ -379,7 +379,7 @@ Event MockSessionUtil::createPushEvent(
         implPtr->addCorrelationId(bmqt::CorrelationId());
     }
 
-    bmqp::Event bmqpEvent(&pushBuilder.blob(), alloc, true);
+    bmqp::Event bmqpEvent(pushBuilder.blob().get(), alloc, true);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     return event;

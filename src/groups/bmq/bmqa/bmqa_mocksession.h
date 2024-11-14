@@ -556,6 +556,7 @@
 #include <bdlb_variant.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_cstddef.h>
 #include <bsl_deque.h>
 #include <bsl_functional.h>
@@ -606,6 +607,13 @@ class ConfirmEventBuilder;
 struct MockSessionUtil {
   private:
     // PRIVATE TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
 
     /// Event impl shared pointer to access
     /// the pimpl of `bmqa::Event`.
@@ -751,9 +759,6 @@ class MockSession : public AbstractSession {
   public:
     // TYPES
 
-    /// Pool of shared pointers to Blobs
-    typedef bmqa::Session::BlobSpPool BlobSpPool;
-
     // CLASS METHODS
 
     /// Perform a one time initialization needed by components used in
@@ -802,6 +807,13 @@ class MockSession : public AbstractSession {
     static const int k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP = 256;
 
     // PRIVATE TYPES
+
+    /// Pool of shared pointers to Blobs
+    typedef bdlcc::SharedObjectPool<
+        bdlbb::Blob,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+        BlobSpPool;
 
     /// Aligned buffer holding the two key hash map
     typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP>

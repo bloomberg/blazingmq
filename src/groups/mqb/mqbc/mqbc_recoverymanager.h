@@ -299,12 +299,11 @@ class RecoveryManager {
 
     // CREATORS
 
-    /// Create a `RecoveryManager` object with the specified `bufferFactory`,
-    /// `clusterConfig`, `dataStoreConfig`, and `clusterData`. Use the
-    /// specified `allocator` for any memory allocation.
-    RecoveryManager(BlobSpPool*                      blobSpPool_p,
-                    const mqbcfg::ClusterDefinition& clusterConfig,
-                    const mqbc::ClusterData&         clusterData,
+    /// Create a `RecoveryManager` object with the specified `clusterConfig`,
+    /// `clusterData` and `dataStoreConfig`. Use the specified `allocator`
+    /// for any memory allocation.
+    RecoveryManager(const mqbcfg::ClusterDefinition& clusterConfig,
+                    mqbc::ClusterData&               clusterData,
                     const mqbs::DataStoreConfig&     dataStoreConfig,
                     bslma::Allocator*                allocator);
 

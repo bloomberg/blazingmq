@@ -284,13 +284,6 @@ struct ProtocolUtil {
     /// event.
     static const bdlbb::Blob& heartbeatRspBlob();
 
-    /// Return const reference to the pre-allocated empty blob.  If you need
-    /// an empty blob and not going to modify it use this method instead of
-    /// creating another blob.  Heap allocate it to prevent 'exit-time-
-    /// destructor needed' compiler warning.  Causes valgrind-reported
-    /// memory leak.
-    static const bdlbb::Blob& emptyBlob();
-
     /// Hex/Binary conversion
     ///---------------------
 

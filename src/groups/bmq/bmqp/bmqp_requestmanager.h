@@ -1365,7 +1365,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
 
     // Send the request
     request->d_sendTime              = bmqsys::Time::highResolutionTimer();
-    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob_sp());
+    bmqt::GenericResult::Enum sendRc = sendFn(d_schemaEventBuilder.blob());
     if (sendRc != bmqt::GenericResult::e_SUCCESS) {
         bmqu::MemOutStream errorDesc;
         errorDesc << "WRITE_FAILED, status: " << sendRc;

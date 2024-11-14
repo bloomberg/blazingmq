@@ -196,7 +196,7 @@ static void test2_validPushMessagePrint()
                                bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(peb.eventSize()));
     ASSERT_EQ(sizeof(bmqp::EventHeader),
-              static_cast<size_t>(peb.blob().length()));
+              static_cast<size_t>(peb.blob()->length()));
     ASSERT_EQ(0, peb.messageCount());
 
     // Add SubQueueInfo option
@@ -207,7 +207,7 @@ static void test2_validPushMessagePrint()
     ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(peb.eventSize()));
     // 'eventSize()' excludes unpacked messages
     ASSERT_LT(sizeof(bmqp::EventHeader),
-              static_cast<size_t>(peb.blob().length()));
+              static_cast<size_t>(peb.blob()->length()));
     // But the option is written to the underlying blob
     rc = peb.packMessage(payload,
                          queueId,
@@ -219,7 +219,7 @@ static void test2_validPushMessagePrint()
     ASSERT_LT(payload.length(), peb.eventSize());
     ASSERT_EQ(1, peb.messageCount());
 
-    bmqp::Event bmqpEvent(&peb.blob(),
+    bmqp::Event bmqpEvent(peb.blob().get(),
                           bmqtst::TestHelperUtil::allocator(),
                           true);
     implPtr->configureAsMessageEvent(bmqpEvent);
@@ -322,7 +322,7 @@ static void test3_messageProperties()
     queue->setId(queueId);
     implPtr->insertQueue(subQueueId, queue);
 
-    bmqp::Event bmqpEvent(&peb.blob(),
+    bmqp::Event bmqpEvent(peb.blob().get(),
                           bmqtst::TestHelperUtil::allocator(),
                           true);
 
@@ -471,7 +471,7 @@ static void test4_subscriptionHandle()
                   static_cast<size_t>(peb.eventSize()));
         // 'eventSize()' excludes unpacked messages
         ASSERT_LT(sizeof(bmqp::EventHeader),
-                  static_cast<size_t>(peb.blob().length()));
+                  static_cast<size_t>(peb.blob()->length()));
         // But the option is written to the underlying blob
 
         // Add message
@@ -485,7 +485,7 @@ static void test4_subscriptionHandle()
         ASSERT_LT(payload.length(), peb.eventSize());
         ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(&peb.blob(),
+        bmqp::Event bmqpEvent(peb.blob().get(),
                               bmqtst::TestHelperUtil::allocator(),
                               true);
         implPtr->configureAsMessageEvent(bmqpEvent);
@@ -538,7 +538,7 @@ static void test4_subscriptionHandle()
         ASSERT_LT(payload.length(), peb.eventSize());
         ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(&peb.blob(),
+        bmqp::Event bmqpEvent(peb.blob().get(),
                               bmqtst::TestHelperUtil::allocator(),
                               true);
         implPtr->configureAsMessageEvent(bmqpEvent);
@@ -584,7 +584,7 @@ static void test4_subscriptionHandle()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
         ASSERT_EQ(1, builder.messageCount());
 
-        bmqp::Event bmqpEvent(&builder.blob(),
+        bmqp::Event bmqpEvent(builder.blob().get(),
                               bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 
@@ -621,7 +621,7 @@ static void test4_subscriptionHandle()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
         ASSERT_EQ(1, builder.messageCount());
 
-        bmqp::Event bmqpEvent(&builder.blob(),
+        bmqp::Event bmqpEvent(builder.blob().get(),
                               bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 

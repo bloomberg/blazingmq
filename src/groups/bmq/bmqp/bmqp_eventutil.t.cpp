@@ -311,7 +311,7 @@ static void test1_breathingTest()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -487,7 +487,7 @@ static void test2_flattenExplodesEvent()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -760,7 +760,7 @@ static void test3_flattenWithMessageProperties()
                                           logic);
     BSLS_ASSERT_OPT(result == bmqt::EventBuilderResult::e_SUCCESS);
 
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event.

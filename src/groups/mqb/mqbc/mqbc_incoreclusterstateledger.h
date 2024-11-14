@@ -166,11 +166,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // Flag to indicate open/close status
     // of this object
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory for the headers and
-    // payloads of the messages to be
-    // written
-
     /// Pool of shared pointers to blobs
     BlobSpPool* d_blobSpPool_p;
 
@@ -306,7 +301,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         ClusterStateLedgerConsistency::Enum consistencyLevel,
         ClusterData*                        clusterData,
         ClusterState*                       clusterState,
-        bdlbb::BlobBufferFactory*           bufferFactory,
         BlobSpPool*                         blobSpPool_p,
         bslma::Allocator*                   allocator);
 

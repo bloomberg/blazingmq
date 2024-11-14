@@ -584,7 +584,6 @@ Application::Application(
       NegotiatedChannelFactoryConfig(&d_statChannelFactory,
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
-                                     &d_blobBufferFactory,
                                      &d_blobSpPool,
                                      allocator),
       allocator)

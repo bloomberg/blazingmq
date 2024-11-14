@@ -178,7 +178,8 @@ static void test2_ackMesageIteratorTest()
     PVV("Appending messages");
     appendMessages(&builder, &messages, k_NUM_MSGS);
 
-    bmqp::Event rawEvent(&builder.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> eventImpl;
     eventImpl.createInplace(bmqtst::TestHelperUtil::allocator(),
@@ -252,7 +253,8 @@ static void test3_putMessageIteratorTest()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
-    bmqp::Event rawEvent(&builder.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> eventImpl;
     eventImpl.createInplace(bmqtst::TestHelperUtil::allocator(),

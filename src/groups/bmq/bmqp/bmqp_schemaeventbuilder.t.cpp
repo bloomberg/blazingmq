@@ -83,7 +83,7 @@ static void test1_breathingTest()
                                      bmqtst::TestHelperUtil::allocator());
 
         PVV(test.d_line << ": Verifying accessors");
-        ASSERT_EQ(obj.blob().length(), 0);
+        ASSERT_EQ(obj.blob()->length(), 0);
 
         PVV(test.d_line << ": Create a message");
         bmqp_ctrlmsg::ControlMessage message(
@@ -95,11 +95,12 @@ static void test1_breathingTest()
         // Encode the message
         rc = obj.setMessage(message, bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
-        ASSERT_NE(obj.blob().length(), 0);
-        ASSERT_EQ(obj.blob().length() % 4, 0);
+        ASSERT_NE(obj.blob()->length(), 0);
+        ASSERT_EQ(obj.blob()->length() % 4, 0);
 
         PVV(test.d_line << ": Decode and compare message");
-        bmqp::Event event(&obj.blob(), bmqtst::TestHelperUtil::allocator());
+        bmqp::Event event(obj.blob().get(),
+                          bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(event.isValid(), true);
         ASSERT_EQ(event.isControlEvent(), true);
@@ -115,7 +116,7 @@ static void test1_breathingTest()
 
         PVV("Reset");
         obj.reset();
-        ASSERT_EQ(obj.blob().length(), 0);
+        ASSERT_EQ(obj.blob()->length(), 0);
     }
 }
 
@@ -137,7 +138,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
     // Encode the message
     rc = obj->setMessage(message, bmqp::EventType::e_CONTROL);
     ASSERT_EQ(rc, 0);
-    ASSERT_NE(obj->blob().length(), 0);
+    ASSERT_NE(obj->blob()->length(), 0);
 
     bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     bdlb::Guid         guid = bdlb::GuidUtil::generate();
@@ -160,15 +161,15 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
 
     BSLS_ASSERT(ofile.good() == true);
 
-    const int blobLen = obj->blob().length();
+    const int blobLen = obj->blob()->length();
     char*     buf     = new char[blobLen];
-    bdlbb::BlobUtil::copy(buf, obj->blob(), 0, blobLen);
+    bdlbb::BlobUtil::copy(buf, *obj->blob(), 0, blobLen);
     ofile.write(buf, blobLen);
     ofile.close();
     bsl::memset(buf, 0, blobLen);
 
     obj->reset();
-    ASSERT_EQ(obj->blob().length(), 0);
+    ASSERT_EQ(obj->blob()->length(), 0);
 
     // Read blob from file
     bsl::ifstream ifile(os.str().data(), bsl::ios::binary);

@@ -699,7 +699,7 @@ int SessionNegotiator::sendNegotiationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->d_channelSp->write(&status, builder.blob());
+    context->d_channelSp->write(&status, *builder.blob());
     if (!status) {
         errorDescription << "Failed sending NegotiationMessage "
                          << "[status: " << status << ", message: " << message
@@ -736,7 +736,6 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
                          description,
                          d_dispatcher_p,
                          d_blobSpPool_p,
-                         d_bufferFactory_p,
                          d_scheduler_p,
                          d_adminCb,
                          d_allocator_p);

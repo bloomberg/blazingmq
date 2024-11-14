@@ -1552,7 +1552,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
         }
 
         bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-            builder.blob_sp(),
+            builder.blob(),
             bmqp::EventType::e_RECOVERY);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1600,7 +1600,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
     }
 
     bmqt::GenericResult::Enum writeRc = context->requesterNode()->write(
-        builder.blob_sp(),
+        builder.blob(),
         bmqp::EventType::e_RECOVERY);
 
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1803,7 +1803,7 @@ int RecoveryManager::replayPartition(
                 .syncConfig()
                 .partitionSyncEventSize() <= builder.eventSize()) {
             bmqt::GenericResult::Enum writeRc = destination->write(
-                builder.blob_sp(),
+                builder.blob(),
                 bmqp::EventType::e_PARTITION_SYNC);
 
             if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -1827,7 +1827,7 @@ int RecoveryManager::replayPartition(
 
     if (0 < builder.messageCount()) {
         bmqt::GenericResult::Enum writeRc = destination->write(
-            builder.blob_sp(),
+            builder.blob(),
             bmqp::EventType::e_PARTITION_SYNC);
 
         if (bmqt::GenericResult::e_SUCCESS != writeRc) {
@@ -3297,12 +3297,7 @@ void RecoveryManager::processStorageEvent(
     // nothing to buffer in this event.
 
     if (0 < seb.messageCount()) {
-        bsl::shared_ptr<bdlbb::Blob> blobSp;
-        blobSp.createInplace(d_allocator_p,
-                             &d_clusterData_p->bufferFactory(),
-                             d_allocator_p);
-        *blobSp = seb.blob();
-        recoveryCtx.addStorageEvent(blobSp);
+        recoveryCtx.addStorageEvent(seb.blob());
     }
 
     recoveryCtx.setNewSyncPoint(syncPoint);

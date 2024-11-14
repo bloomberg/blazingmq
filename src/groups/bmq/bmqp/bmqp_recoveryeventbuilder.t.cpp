@@ -153,9 +153,8 @@ static void test1_breathingTest()
     // Get blob and use bmqp iterator to test.  Note that bmqp event and bmqp
     // iterators are lower than bmqp builders, and thus, can be used to test
     // them.
-
-    const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(reb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -183,7 +182,7 @@ static void test1_breathingTest()
     ASSERT_EQ(recoveryIter.loadChunkPosition(&position), 0);
     int res, compareResult;
     res = bmqu::BlobUtil::compareSection(&compareResult,
-                                         eventBlob,
+                                         *reb.blob(),
                                          position,
                                          CHUNK,
                                          CHUNK_LEN);
@@ -229,8 +228,8 @@ static void test2_multipleMessagesTest()
     }
 
     // Iterate and check
-    const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(reb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -267,7 +266,7 @@ static void test2_multipleMessagesTest()
 
         int res, compareResult;
         res = bmqu::BlobUtil::compareSection(&compareResult,
-                                             eventBlob,
+                                             *reb.blob(),
                                              chunkPosition,
                                              D.d_chunk.c_str(),
                                              D.d_chunk.size());
@@ -342,8 +341,8 @@ static void test3_eventTooBigTest()
               static_cast<unsigned int>(reb.eventSize()));
     ASSERT_EQ(reb.messageCount(), 1);
 
-    const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(reb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -368,7 +367,7 @@ static void test3_eventTooBigTest()
     ASSERT_EQ(recoveryIter.loadChunkPosition(&position), 0);
     int res, compareResult;
     res = bmqu::BlobUtil::compareSection(&compareResult,
-                                         eventBlob,
+                                         *reb.blob(),
                                          position,
                                          k_SMALL_CHUNK,
                                          k_SMALL_CHUNK_LEN);
@@ -415,8 +414,8 @@ static void test4_emptyPayloadTest()
     //           static_cast<unsigned int>(reb.eventSize()));
     ASSERT_EQ(reb.messageCount(), 1);
 
-    const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(reb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());

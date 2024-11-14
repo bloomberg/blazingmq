@@ -111,12 +111,21 @@ StorageEventBuilder::StorageEventBuilder(int storageProtocolVersion,
 , d_storageProtocolVersion(storageProtocolVersion)
 , d_eventType(eventType)
 , d_blob_sp(0, allocator)  // initialized in `reset()`
+, d_emptyBlob_sp(blobSpPool_p->getObject())
 , d_msgCount(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
     BSLS_ASSERT_SAFE(EventType::e_STORAGE == eventType ||
                      EventType::e_PARTITION_SYNC == eventType);
+
+    // Assume that items built with the given `blobSpPool_p` either all have or
+    // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
+    // We require this since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_emptyBlob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
+
     reset();
 }
 
@@ -181,27 +190,11 @@ StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
 
-const bdlbb::Blob& StorageEventBuilder::blob() const
+const bsl::shared_ptr<bdlbb::Blob>& StorageEventBuilder::blob() const
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return ProtocolUtil::emptyBlob();  // RETURN
-    }
-
-    // Fix packet's length in header now that we know it ..  Following is valid
-    // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(
-        d_blob_sp->buffer(0).data());
-    eh.setLength(d_blob_sp->length());
-
-    return *d_blob_sp;
-}
-
-bsl::shared_ptr<bdlbb::Blob> StorageEventBuilder::blob_sp() const
-{
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return bsl::shared_ptr<bdlbb::Blob>();  // RETURN
+        return d_emptyBlob_sp;  // RETURN
     }
 
     // Fix packet's length in header now that we know it ..  Following is valid

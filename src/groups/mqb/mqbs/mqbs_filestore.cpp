@@ -6978,7 +6978,7 @@ void FileStore::flushStorage()
                        << d_storageEventBuilder.messageCount()
                        << " STORAGE messages.";
         const int maxChannelPendingItems = d_cluster_p->broadcast(
-            d_storageEventBuilder.blob_sp());
+            d_storageEventBuilder.blob());
         if (maxChannelPendingItems > 0) {
             if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
                 // back off

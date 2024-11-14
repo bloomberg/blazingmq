@@ -151,12 +151,20 @@ PushEventBuilder::PushEventBuilder(BlobSpPool*       blobSpPool_p,
 : d_allocator_p(bslma::Default::allocator(allocator))
 , d_blobSpPool_p(blobSpPool_p)
 , d_blob_sp(0, allocator)  // initialized in `reset()`
+, d_emptyBlob_sp(blobSpPool_p->getObject())
 , d_msgCount(0)
 , d_options()
 , d_currPushHeader()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
+
+    // Assume that items built with the given `blobSpPool_p` either all have or
+    // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
+    // We require this since we do `Blob::setLength`:
+    BSLS_ASSERT_SAFE(
+        NULL != d_emptyBlob_sp->factory() &&
+        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     reset();
 }
@@ -169,11 +177,6 @@ int PushEventBuilder::reset()
     // refer to any valid blob object.
 
     d_blob_sp = d_blobSpPool_p->getObject();
-
-    // The following prerequisite is necessary since we do `Blob::setLength`:
-    BSLS_ASSERT_SAFE(
-        NULL != d_blob_sp->factory() &&
-        "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     d_msgCount = 0;
     d_options.reset();
@@ -401,19 +404,14 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
 }
 
 // ACCESSORS
-const bdlbb::Blob& PushEventBuilder::blob() const
+const bsl::shared_ptr<bdlbb::Blob>& PushEventBuilder::blob() const
 {
-    // Fix packet's length in header now that we know it ..  Following is valid
-    // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(
-        d_blob_sp->buffer(0).data());
-    eh.setLength(d_blob_sp->length());
+    // Empty event
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return d_emptyBlob_sp;  // RETURN
+    }
 
-    return *d_blob_sp;
-}
-
-bsl::shared_ptr<bdlbb::Blob> PushEventBuilder::blob_sp() const
-{
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(

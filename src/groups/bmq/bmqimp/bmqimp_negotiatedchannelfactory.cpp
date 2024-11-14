@@ -66,19 +66,16 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
     bmqio::ChannelFactory*                  base,
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
     const bsls::TimeInterval&               negotiationTimeout,
-    bdlbb::BlobBufferFactory*               bufferFactory,
     BlobSpPool*                             blobSpPool_p,
     bslma::Allocator*                       basicAllocator)
 : d_baseFactory_p(base)
 , d_negotiationMessage(negotiationMessage, basicAllocator)
 , d_negotiationTimeout(negotiationTimeout)
-, d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     // PRECONDITIONS
     BSLS_ASSERT(base);
-    BSLS_ASSERT(bufferFactory);
 }
 
 NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
@@ -87,7 +84,6 @@ NegotiatedChannelFactoryConfig::NegotiatedChannelFactoryConfig(
 : d_baseFactory_p(original.d_baseFactory_p)
 , d_negotiationMessage(original.d_negotiationMessage, basicAllocator)
 , d_negotiationTimeout(original.d_negotiationTimeout)
-, d_bufferFactory_p(original.d_bufferFactory_p)
 , d_blobSpPool_p(original.d_blobSpPool_p)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -146,8 +142,8 @@ void NegotiatedChannelFactory::negotiate(
                   << "': " << d_config.d_negotiationMessage;
     bmqio::Status status;
     BALL_LOG_TRACE << "Sending blob:\n"
-                   << bmqu::BlobStartHexDumper(&builder.blob());
-    channel->write(&status, builder.blob());
+                   << bmqu::BlobStartHexDumper(builder.blob().get());
+    channel->write(&status, *builder.blob());
     if (!status) {
         BALL_LOG_ERROR << "Negotiation failed [reason: 'failed sending packet'"
                        << ", status: " << status << "]";

@@ -1209,8 +1209,8 @@ static void test8_putEventBuilder()
     // Get blob and use bmqp iterator to test.  Note that bmqp event and
     // bmqp iterators are lower than bmqp builders, and thus, can be used
     // to test them.
-    const bdlbb::Blob& eventBlob = builder.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     ASSERT(rawEvent.isValid());
     ASSERT(rawEvent.isPutEvent());

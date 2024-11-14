@@ -2091,7 +2091,7 @@ void Elector::emitIOEvent(const ElectorStateMachineOutput& output)
     }
 
     // Retrieve the encoded event
-    const bsl::shared_ptr<bdlbb::Blob> blob = builder.blob_sp();
+    const bsl::shared_ptr<bdlbb::Blob> blob = builder.blob();
     if (k_ALL_NODES_ID == output.destination()) {
         // Broadcast to cluster, using the unicast channel to ensure ordering
         // of events

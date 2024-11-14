@@ -428,18 +428,7 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessageRaw(int queueId)
     return packMessageInternal(*d_blobPayload_p, queueId);
 }
 
-const bdlbb::Blob& PutEventBuilder::blob() const
-{
-    // Fix packet's length in header now that we know it ..  Following is valid
-    // (see comment in reset)
-    EventHeader& eh = *reinterpret_cast<EventHeader*>(
-        d_blob_sp->buffer(0).data());
-    eh.setLength(d_blob_sp->length());
-
-    return *d_blob_sp;
-}
-
-bsl::shared_ptr<bdlbb::Blob> PutEventBuilder::blob_sp() const
+const bsl::shared_ptr<bdlbb::Blob>& PutEventBuilder::blob() const
 {
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)

@@ -106,13 +106,11 @@ bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
 // struct AdminSessionState
 // -------------------------
 
-AdminSessionState::AdminSessionState(BlobSpPool*               blobSpPool,
-                                     bdlbb::BlobBufferFactory* bufferFactory,
-                                     bmqp::EncodingType::Enum  encodingType,
-                                     bslma::Allocator*         allocator)
+AdminSessionState::AdminSessionState(BlobSpPool*              blobSpPool,
+                                     bmqp::EncodingType::Enum encodingType,
+                                     bslma::Allocator*        allocator)
 : d_allocator_p(allocator)
 , d_dispatcherClientData()
-, d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
 , d_schemaEventBuilder(blobSpPool, encodingType, allocator)
 {
@@ -135,7 +133,7 @@ void AdminSession::sendPacket()
     bdlb::ScopeExitAny resetBlobScopeGuard(
         bdlf::BindUtil::bind(&bmqp::SchemaEventBuilder::reset,
                              &d_state.d_schemaEventBuilder));
-    const bdlbb::Blob& blob = d_state.d_schemaEventBuilder.blob();
+    const bdlbb::Blob& blob = *d_state.d_schemaEventBuilder.blob();
 
     // This method is the centralized *single* place where we should try to
     // send data to the client over the channel.
@@ -194,7 +192,7 @@ void AdminSession::finalizeAdminCommand(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
     BSLS_ASSERT_SAFE(adminCommandCtrlMsg.choice().isAdminCommandValue());
-    BSLS_ASSERT_SAFE(d_state.d_schemaEventBuilder.blob().length() == 0);
+    BSLS_ASSERT_SAFE(d_state.d_schemaEventBuilder.blob()->length() == 0);
 
     // Send success/error response to client
     bdlma::LocalSequentialAllocator<2048> localAllocator(
@@ -274,7 +272,6 @@ AdminSession::AdminSession(
     const bsl::string&                            sessionDescription,
     mqbi::Dispatcher*                             dispatcher,
     AdminSessionState::BlobSpPool*                blobSpPool,
-    bdlbb::BlobBufferFactory*                     bufferFactory,
     bdlmt::EventScheduler*                        scheduler,
     const mqbnet::Session::AdminCommandEnqueueCb& adminCb,
     bslma::Allocator*                             allocator)
@@ -285,7 +282,6 @@ AdminSession::AdminSession(
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
 , d_state(blobSpPool,
-          bufferFactory,
           bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
               d_clientIdentity_p->features()),
           allocator)

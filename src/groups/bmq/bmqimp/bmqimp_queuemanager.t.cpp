@@ -629,8 +629,8 @@ static void test9_pushStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPushEvent());
@@ -738,8 +738,8 @@ static void test10_putStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPutEvent());

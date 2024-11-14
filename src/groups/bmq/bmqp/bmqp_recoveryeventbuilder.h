@@ -42,18 +42,22 @@
 /// Usage
 ///-----
 //..
-//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
-//  bmqp::RecoveryEventBuilder builder(&bufferFactory, d_allocator_p);
+//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+//  bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+//        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, s_allocator_p));
+//  bmqp::RecoveryEventBuilder builder(&blobSpPool, d_allocator_p);
 //
 //  // Append multiple messages
 //  builder.appendMessage(0, 1, bmqt::MessageGUID(), 1);
 //  builder.appendMessage(-1, 2, bmqt::MessageGUID(), 1);
 //
-//  const bdlbb::Blob& eventBlob = builder.blob();
+//  const bsl::shared_ptr<bdlbb::Blob>& eventBlob = builder.blob();
 //  // Send the blob ...
 //
 //  // We can reset the builder to reuse it; note that this invalidates the
-//  // 'eventBlob' retrieved above
+//  // 'eventBlob' shared pointer reference retrieved above.  To keep the
+//  // bdlbb::Blob valid the shared pointer should be copied, and the copy
+//  // should be passed and kept in IO components.
 //  builder.reset();
 //
 //..
@@ -94,6 +98,9 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// Blob being built by this object.
     /// `mutable` to skip writing the length until the blob is retrieved.
     mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
+    /// Empty blob to be returned when no messages were added to this builder.
+    bsl::shared_ptr<bdlbb::Blob> d_emptyBlob_sp;
 
     int d_msgCount;  // number of messages currently in the
                      // event
@@ -149,17 +156,13 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// Return the number of messages currently in the event being built.
     int messageCount() const;
 
-    /// Return a reference not offering modifiable access to the blob built
-    /// by this event.  If no messages were added, this will return an empty
-    /// blob, i.e., a blob with length == 0.
-    const bdlbb::Blob& blob() const;
-
-    /// Return a shared pointer to the built Blob.  If no messages were added,
-    /// this will return an empty shared pointer.
-    /// Note that a shared pointer is returned by value, so the user holds to
-    /// the copy of a pointer.  The Blob in that copy will be valid even if we
-    /// `reset` this builder and modify the internal shared pointer.
-    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
+    /// Return a reference to the shared pointer to the built Blob.  If no
+    /// messages were added, the Blob object under this reference will be
+    /// empty.
+    /// Note that this accessor exposes an internal shared pointer object, and
+    /// it is the user's responsibility to make a copy of it if it needs to be
+    /// passed and kept in another thread while this builder object is used.
+    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
 
 // ============================================================================

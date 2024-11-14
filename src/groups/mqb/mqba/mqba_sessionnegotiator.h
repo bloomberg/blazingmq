@@ -150,9 +150,10 @@ class SessionNegotiator : public mqbnet::Negotiator {
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
+    /// Buffer factory to use in constructed client sessions
+    /// TODO: this field should be removed once we retire the code for
+    ///       message properties conversion in `mqba::ClientSession`.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory to inject into new client
-    // sessions
 
     mqbi::Dispatcher* d_dispatcher_p;
     // Dispatcher to inject into new client

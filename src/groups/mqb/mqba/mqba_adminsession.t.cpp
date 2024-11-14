@@ -171,7 +171,6 @@ class TestBench {
            "sessionDescription",
            setInDispatcherThread(&d_mockDispatcher),
            &d_blobSpPool,
-           &d_bufferFactory,
            &d_scheduler,
            adminEnqueueCb,
            allocator)
@@ -258,7 +257,7 @@ static void test1_watermark()
     int rc = builder.setMessage(admin, bmqp::EventType::e_CONTROL);
     ASSERT_EQ(rc, 0);
 
-    bmqp::Event adminEvent(&builder.blob(),
+    bmqp::Event adminEvent(builder.blob().get(),
                            bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT(adminEvent.isValid());
     BSLS_ASSERT(adminEvent.isControlEvent());

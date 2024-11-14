@@ -163,13 +163,7 @@ class SchemaEventBuilder {
     /// Note that if `setMessage` has not been called on this
     /// SchemaEventBuilder, or if `reset` has been called since, the blob
     /// returned will be an empty one.
-    const bdlbb::Blob& blob() const;
-
-    /// Return the fully formatted blob corresponding to the message built.
-    /// Note that if `setMessage` has not been called on this
-    /// SchemaEventBuilder, or if `reset` has been called since, the blob
-    /// returned will be an empty one.
-    bsl::shared_ptr<bdlbb::Blob> blob_sp() const;
+    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
 
 // =============================
@@ -291,16 +285,7 @@ int SchemaEventBuilder::setMessage(const TYPE& message, EventType::Enum type)
     return 0;
 }
 
-inline const bdlbb::Blob& SchemaEventBuilder::blob() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
-    BSLS_ASSERT_SAFE(d_blob_sp->length() % 4 == 0);
-
-    return *d_blob_sp;
-}
-
-inline bsl::shared_ptr<bdlbb::Blob> SchemaEventBuilder::blob_sp() const
+inline const bsl::shared_ptr<bdlbb::Blob>& SchemaEventBuilder::blob() const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);

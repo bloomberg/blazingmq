@@ -320,7 +320,7 @@ Event& Event::downgradeMessageEventModeToRead()
 
     d_msgEventMode = MessageEventMode::e_READ;
 
-    d_rawEvent.reset(&(d_putEventBuilderBuffer.object().blob()));
+    d_rawEvent.reset(d_putEventBuilderBuffer.object().blob().get());
 
     BSLS_ASSERT(d_rawEvent.isPutEvent());
     // Only PUT events can be built via SDK

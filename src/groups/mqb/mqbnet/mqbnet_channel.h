@@ -1058,7 +1058,7 @@ Channel::flushBuilder(Builder&                               builder,
     bmqio::Status st;
 
     if (builder.messageCount()) {
-        channel->write(&st, builder.blob());
+        channel->write(&st, *builder.blob());
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
                 st.category() == bmqio::StatusCategory::e_SUCCESS)) {

@@ -235,9 +235,6 @@ class StorageManager
     //
     // THREAD: Protected by 'd_unrecognizedDomainsLock'.
 
-    BlobSpPool* d_blobSpPool_p;
-    // SharedObjectPool of blobs to use
-
     mqbi::DomainFactory* d_domainFactory_p;
     // Domain factory to use
 

@@ -526,13 +526,6 @@ static void test6_heartbeatAndEmptyBlobs()
                          sizeof(bmqp::EventHeader)));
     }
 
-    PV("Verifying emtpy blob")
-    {
-        const bdlbb::Blob& blob = bmqp::ProtocolUtil::emptyBlob();
-        ASSERT_EQ(0, blob.length());
-        ASSERT_EQ(0, blob.numDataBuffers());
-    }
-
     bmqp::ProtocolUtil::shutdown();
 }
 
@@ -887,7 +880,8 @@ static void test11_parseMessageProperties()
     bmqp::PutMessageIterator putIt(&bufferFactory,
                                    bmqtst::TestHelperUtil::allocator(),
                                    true);
-    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event              rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(rawEvent.isPutEvent());
     rawEvent.loadPutMessageIterator(&putIt);

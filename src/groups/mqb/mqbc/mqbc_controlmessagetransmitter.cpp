@@ -51,9 +51,8 @@ void ControlMessageTransmitter::sendMessageHelper(
         return;  // RETURN
     }
 
-    bmqt::GenericResult::Enum writeRc = destination->write(
-        schemaBuilder->blob_sp(),
-        bmqp::EventType::e_CONTROL);
+    bmqt::GenericResult::Enum writeRc =
+        destination->write(schemaBuilder->blob(), bmqp::EventType::e_CONTROL);
     if (bmqt::GenericResult::e_SUCCESS != writeRc) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                        << "Failed to write schema message: " << message
@@ -84,7 +83,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
     // Broadcast to cluster, using the unicast channel to ensure ordering of
     // events.
 
-    d_cluster_p->netCluster().writeAll(schemaBuilder->blob_sp(),
+    d_cluster_p->netCluster().writeAll(schemaBuilder->blob(),
                                        bmqp::EventType::e_CONTROL);
 
     BALL_LOG_INFO << "Broadcasted message '" << message
@@ -115,7 +114,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
                 bmqp::HighAvailabilityFeatures::k_BROADCAST_TO_PROXIES,
                 negoMsg.clientIdentity().features())) {
             bmqio::Status status;
-            sessionSp->channel()->write(&status, schemaBuilder->blob());
+            sessionSp->channel()->write(&status, *schemaBuilder->blob());
             if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
                 BALL_LOG_INFO << "Sent message '" << message << "' to proxy "
                               << sessionSp->description();
@@ -190,7 +189,7 @@ void ControlMessageTransmitter::sendMessage(
     }
 
     bmqio::Status status;
-    channel->write(&status, d_schemaBuilder.blob());
+    channel->write(&status, *d_schemaBuilder.blob());
     if (status.category() != bmqio::StatusCategory::e_SUCCESS) {
         BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
                        << "Failed to write schema message: " << message

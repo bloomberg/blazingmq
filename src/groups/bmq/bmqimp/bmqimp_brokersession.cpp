@@ -4530,7 +4530,7 @@ void BrokerSession::transferAckEvent(bmqp::AckEventBuilder*  ackBuilder,
     // Our event is full at this point so send this ack event to the user and
     // reset the builder to append the ack that was rejected.
 
-    bmqp::Event event(&ackBuilder->blob(), d_allocator_p, true);
+    bmqp::Event event(ackBuilder->blob().get(), d_allocator_p, true);
     // clone = true
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             d_messageDumper.isEventDumpEnabled<bmqp::EventType::e_ACK>())) {
@@ -4820,7 +4820,7 @@ bool BrokerSession::appendOrSend(
     if (result == bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG) {
         // Send the current event, reset the builder.
         bmqt::GenericResult::Enum res = writeOrBuffer(
-            builder.blob(),
+            *builder.blob(),
             d_sessionOptions.channelHighWatermark());
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -4943,7 +4943,7 @@ void BrokerSession::retransmitPendingMessages()
     // Send the final PUT event if there are any messages in the builder
     if (putBuilder.messageCount()) {
         bmqt::GenericResult::Enum res = writeOrBuffer(
-            putBuilder.blob(),
+            *putBuilder.blob(),
             d_sessionOptions.channelHighWatermark());
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
@@ -7330,7 +7330,7 @@ int BrokerSession::confirmMessage(const bsl::shared_ptr<bmqimp::Queue>& queue,
                        << rc;
         return rc;  // RETURN
     }
-    bool isAccepted = acceptUserEvent(builder.blob(), timeout);
+    bool isAccepted = acceptUserEvent(*builder.blob(), timeout);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isAccepted)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 

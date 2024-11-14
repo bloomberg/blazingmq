@@ -292,7 +292,6 @@ struct Tester {
                     d_consistencyLevel,
                     d_cluster_mp->_clusterData(),
                     &d_cluster_mp->_state(),
-                    d_cluster_mp->_bufferFactory(),
                     d_cluster_mp->_blobSpPool(),
                     bmqtst::TestHelperUtil::allocator()),
             bmqtst::TestHelperUtil::allocator());

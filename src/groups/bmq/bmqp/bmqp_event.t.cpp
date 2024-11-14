@@ -548,7 +548,7 @@ static void test4_eventLoading()
                                      test.d_encodingType,
                                      bmqtst::TestHelperUtil::allocator());
 
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
         {
             PVV(test.d_line << ": Create a control message");
 
@@ -561,12 +561,12 @@ static void test4_eventLoading()
             // Encode the message
             rc = obj.setMessage(ctrlMessage, bmqp::EventType::e_CONTROL);
             BSLS_ASSERT_OPT(rc == 0);
-            BSLS_ASSERT_OPT(obj.blob().length() > 0);
-            BSLS_ASSERT_OPT(obj.blob().length() % 4 == 0);
+            BSLS_ASSERT_OPT(obj.blob()->length() > 0);
+            BSLS_ASSERT_OPT(obj.blob()->length() % 4 == 0);
 
             PVV(test.d_line << ": Decode and compare message");
 
-            bmqp::Event ctrlEvent(&obj.blob(),
+            bmqp::Event ctrlEvent(obj.blob().get(),
                                   bmqtst::TestHelperUtil::allocator());
 
             ASSERT_EQ(ctrlEvent.isValid(), true);
@@ -586,14 +586,14 @@ static void test4_eventLoading()
         PVV(test.d_line << ": Reset");
 
         obj.reset();
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
 
     {
         bmqp::SchemaEventBuilder obj(&blobSpPool,
                                      bmqp::EncodingType::e_BER,
                                      bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
 
         PVV(L_ << ": Create an elector message");
 
@@ -604,12 +604,12 @@ static void test4_eventLoading()
         rc = obj.setMessage(electorMsg, bmqp::EventType::e_ELECTOR);
 
         BSLS_ASSERT_OPT(rc == 0);
-        BSLS_ASSERT_OPT(obj.blob().length() > 0);
-        BSLS_ASSERT_OPT(obj.blob().length() % 4 == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() > 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() % 4 == 0);
 
         PVV(L_ << ": Decode and compare message");
 
-        bmqp::Event electorEvent(&obj.blob(),
+        bmqp::Event electorEvent(obj.blob().get(),
                                  bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(electorEvent.isValid());
@@ -624,7 +624,7 @@ static void test4_eventLoading()
         PVV(L_ << ": Reset");
 
         obj.reset();
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
 
     bmqp::ProtocolUtil::shutdown();

@@ -394,7 +394,7 @@ void Flattener::advanceEvent()
     BSLS_ASSERT_SAFE(d_builder.messageCount() > 0);
     BSLS_ASSERT_SAFE(!d_currEventInfo.d_ids.empty());
 
-    d_eventInfos_p->emplace_back(d_builder.blob(), d_currEventInfo.d_ids);
+    d_eventInfos_p->emplace_back(*d_builder.blob(), d_currEventInfo.d_ids);
 
     d_currEventInfo.d_ids.clear();
     d_builder.reset();
