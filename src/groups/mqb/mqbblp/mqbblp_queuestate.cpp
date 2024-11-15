@@ -66,7 +66,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
 , d_resources(resources)
 , d_miscWorkThreadPool_p(0)
 , d_storage_mp(0)
-, d_stats(allocator)
+, d_stats_sp(0)
 , d_messageThrottleConfig()
 , d_handleCatalog(queue, allocator)
 , d_context(queue->schemaLearner(), allocator)
@@ -79,7 +79,12 @@ QueueState::QueueState(mqbi::Queue*                 queue,
     d_handleParameters.qId() = d_id;
 
     // Initialize stats
-    d_stats.initialize(d_uri, d_domain_p);
+    // There are niegher FileBackedStorage nor domain config on proxies
+    if (d_domain_p->cluster()->isRemote() ||
+        !d_domain_p->config().storage().config().isFileBackedValue()) {
+        d_stats_sp.createInplace(allocator, allocator);
+        d_stats_sp->initialize(d_uri, d_domain_p);
+    }
 
     // NOTE: The 'description' will be set by the owner of this object.
 
@@ -134,7 +139,7 @@ QueueState::subtract(const bmqp_ctrlmsg::QueueHandleParameters& params)
 void QueueState::updateStats()
 {
     stats()
-        .setReaderCount(handleParameters().readCount())
+        ->setReaderCount(handleParameters().readCount())
         .setWriterCount(handleParameters().writeCount());
 }
 
@@ -239,8 +244,8 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
                      appIdKeyPairs.cbegin();
                  cit != appIdKeyPairs.cend();
                  ++cit, ++i) {
-                const mqbi::Storage::AppInfo& p      = *cit;
-                virtualStorages[i].appId()           = p.first;
+                const mqbi::Storage::AppInfo& p = *cit;
+                virtualStorages[i].appId()      = p.first;
                 os.reset();
                 os << p.second;
                 virtualStorages[i].appKey()      = os.str();

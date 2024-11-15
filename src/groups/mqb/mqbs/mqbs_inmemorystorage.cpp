@@ -589,6 +589,11 @@ void InMemoryStorage::purge(
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
 }
 
+void InMemoryStorage::setPrimary()
+{
+    // NOTHING
+}
+
 // ACCESSORS (for mqbs::ReplicatedStorage)
 const ReplicatedStorage::RecordHandles&
 InMemoryStorage::queueOpRecordHandles() const

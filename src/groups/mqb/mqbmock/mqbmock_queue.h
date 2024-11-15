@@ -136,7 +136,7 @@ class Queue : public mqbi::Queue {
     // Configuration values for message
     // throttling intervals and thresholds.
 
-    mqbstat::QueueStatsDomain d_stats;
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_stats_sp;
     // Statistics of the queue
 
     mqbi::Domain* d_domain_p;
@@ -242,7 +242,11 @@ class Queue : public mqbi::Queue {
     mqbi::QueueEngine* queueEngine() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the stats associated with this queue.
-    mqbstat::QueueStatsDomain* stats() BSLS_KEYWORD_OVERRIDE;
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> stats() BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the stats associated with this queue.
+    void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return number of unconfirmed messages across all handles with the
     /// `specified `subId'.

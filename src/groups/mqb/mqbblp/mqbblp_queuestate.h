@@ -160,7 +160,7 @@ class QueueState {
     // Dispatcher Client Data of the queue
     // associated to this state.
 
-    mqbstat::QueueStatsDomain d_stats;
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_stats_sp;
     // Statistics of the queue associated
     // to this state.
 
@@ -240,7 +240,11 @@ class QueueState {
 
     /// Return a reference offering modifiable access to the corresponding
     /// attribute.
-    mqbstat::QueueStatsDomain& stats();
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> stats();
+
+    /// Return a reference offering modifiable access to the corresponding
+    /// attribute.
+    void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats);
 
     /// Add read, write, and admin counters from the specified `params` to
     /// cumulative values per queue and per appId.
@@ -459,9 +463,16 @@ QueueState::getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,
     return true;
 }
 
-inline mqbstat::QueueStatsDomain& QueueState::stats()
+inline bsl::shared_ptr<mqbstat::QueueStatsDomain> QueueState::stats()
 {
-    return d_stats;
+    BSLS_ASSERT_SAFE(d_stats_sp);
+    return d_stats_sp;
+}
+
+inline void
+QueueState::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
+{
+    d_stats_sp = stats;
 }
 
 inline void

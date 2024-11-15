@@ -510,13 +510,15 @@ struct Tester {
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = ttlSeconds;
 
+        bmqu::MemOutStream errDescription(s_allocator_p);
+        d_mockDomain.configure(errDescription, domainCfg);
+
         d_replicatedStorage_mp.load(
             new (*d_allocator_p)
                 mqbs::FileBackedStorage(&d_dataStore,
                                         bmqt::Uri(uri, s_allocator_p),
                                         queueKey,
-                                        domainCfg,
-                                        d_mockDomain.capacityMeter(),
+                                        &d_mockDomain,
                                         d_allocator_p),
             d_allocator_p);
 

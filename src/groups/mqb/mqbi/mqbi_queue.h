@@ -796,7 +796,11 @@ class Queue : public DispatcherClient {
     virtual QueueEngine* queueEngine() = 0;
 
     /// Return the stats associated with this queue.
-    virtual mqbstat::QueueStatsDomain* stats() = 0;
+    virtual bsl::shared_ptr<mqbstat::QueueStatsDomain> stats() = 0;
+
+    /// Set the stats associated with this queue.
+    virtual void
+    setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats) = 0;
 
     /// Return number of unconfirmed messages across all handles with the
     /// `specified `subId'.

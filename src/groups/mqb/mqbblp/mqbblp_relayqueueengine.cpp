@@ -1039,7 +1039,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         queueHandle = d_queueState_p->handleCatalog().createHandle(
             clientContext,
             handleParameters,
-            &d_queueState_p->stats());
+            d_queueState_p->stats().get());
         handleCreated = true;
 
         BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()

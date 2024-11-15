@@ -157,7 +157,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
 
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
         mqbstat::QueueStatsDomain::Role::e_PROXY);
 
@@ -274,7 +274,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     d_state_p->storageManager()->setQueueRaw(queue,
                                              d_state_p->uri(),
                                              d_state_p->partitionId());
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
         mqbstat::QueueStatsDomain::Role::e_REPLICA);
 
@@ -527,7 +527,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (isReconfigure) {
         const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -920,7 +920,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                 bmqt::AckResult::e_REFUSED));
             ackMessage.setMessageGUID(putHeader.messageGUID());
 
-            d_state_p->stats().onEvent(
+            d_state_p->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_NACK,
                 1);
 
@@ -994,8 +994,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     // the time the message is actually sent upstream, i.e. in
     // cluster/clusterProxy) for the most exact accuracy, but doing it here is
     // good enough.
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
-                               appData->length());
+    d_state_p->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
+                                appData->length());
 }
 
 void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
@@ -1494,8 +1494,8 @@ RemoteQueue::Puts::iterator& RemoteQueue::nack(Puts::iterator&   it,
 {
     ackMessage.setMessageGUID(it->first);
 
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
-                               1);
+    d_state_p->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
+                                1);
 
     // CorrelationId & QueueId are left unset as those fields
     // will be filled downstream.

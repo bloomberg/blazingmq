@@ -4252,8 +4252,8 @@ int FileStore::writeQueueCreationRecord(
         return rc_INVALID_QUEUE_RECORD;  // RETURN
     }
 
-    bmqt::Uri     quri;
-    AppInfos      appIdKeyPairs;
+    bmqt::Uri quri;
+    AppInfos  appIdKeyPairs;
     if (!d_isFSMWorkflow) {
         // Check qlist offset in the replicated journal record sent by the
         // primary vs qlist offset maintained by self.  A mismatch means that
@@ -5358,8 +5358,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                              FileBackedStorage(this,
                                                queueUri,
                                                queueKey,
-                                               domain->config(),
-                                               domain->capacityMeter(),
+                                               domain,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -6645,6 +6644,11 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     d_clusterStats_p->setNodeRoleForPartition(
         d_config.partitionId(),
         mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+
+    for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
+         ++sIt) {
+        sIt->second->setPrimary();
+    }
 
     // Schedule a sync point issue recurring event every 1 second, starting
     // after 1 second.
