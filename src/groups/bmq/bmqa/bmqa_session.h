@@ -1159,13 +1159,6 @@ class Session : public AbstractSession {
     /// been started.
     int configureMessageDumping(const bslstl::StringRef& command)
         BSLS_KEYWORD_OVERRIDE;
-
-    /// Internal
-    ///--------
-
-    /// Do *NOT* use.  Internal function, reserved for BlazingMQ internal
-    /// usage.
-    void* impl();
 };
 
 // ============================================================================
@@ -1179,11 +1172,6 @@ class Session : public AbstractSession {
 inline int Session::confirmMessage(const Message& message)
 {
     return confirmMessage(message.confirmationCookie());
-}
-
-inline void* Session::impl()
-{
-    return &d_impl;
 }
 
 }  // close package namespace
