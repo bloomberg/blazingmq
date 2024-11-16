@@ -621,6 +621,9 @@ class SummaryProcessor : public SearchResult {
     QueueRecordsMap d_queueRecordsMap;
     OtherRecordsMap d_otherRecordsCounts;
 
+    const QueueMap& d_queueMap;
+    // Reference to 'QueueMap' instance.
+
   public:
     // CREATORS
 
@@ -629,6 +632,7 @@ class SummaryProcessor : public SearchResult {
     explicit SummaryProcessor(bsl::ostream&              ostream,
                               mqbs::JournalFileIterator* journalFile_p,
                               mqbs::DataFileIterator*    dataFile_p,
+                              const QueueMap&            queueMap,
                               bslma::Allocator*          allocator);
 
     // MANIPULATORS

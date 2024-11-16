@@ -793,6 +793,7 @@ void SearchGuidDecorator::outputResult()
 SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
                                    mqbs::JournalFileIterator* journalFile_p,
                                    mqbs::DataFileIterator*    dataFile_p,
+                                   const QueueMap&            queueMap,
                                    bslma::Allocator*          allocator)
 : d_ostream(ostream)
 , d_journalFile_p(journalFile_p)
@@ -803,6 +804,7 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
 , d_queueRecordsMap(allocator)
+, d_queueMap(queueMap)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -861,6 +863,10 @@ bool SummaryProcessor::processOtherRecord(mqbs::RecordType::Enum recordType)
 
 void SummaryProcessor::outputResult()
 {
+    // Check if queueInfo is present for queue key
+    bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
+    
+
     if (d_foundMessagesCount == 0) {
         d_ostream << "No messages found." << '\n';
         return;  // RETURN
@@ -883,7 +889,20 @@ void SummaryProcessor::outputResult()
     }
 
     for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
-        d_ostream << "Number of records per Queue Key " << it->first <<  ": " << it->second << "\n";
+        const mqbu::StorageKey& qKey = it->first;
+        const bool              queueInfoPresent = d_queueMap.findInfoByKey(
+            &queueInfo,
+            qKey
+        );
+        bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
+
+        d_ostream << "Number of records per Queue ";
+        if (queueInfo_p) {
+            d_ostream << queueInfo_p->uri();
+        } else {
+            d_ostream << qKey;
+        }
+        d_ostream <<  ": " << it->second << "\n";
     }
 
     // Print meta data of opened files
