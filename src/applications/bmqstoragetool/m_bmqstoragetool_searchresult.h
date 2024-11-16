@@ -105,6 +105,10 @@ class SearchResult {
     virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                        bsls::Types::Uint64         recordIndex,
                                        bsls::Types::Uint64 recordOffset) = 0;
+
+    /// Process `other` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    virtual bool processOtherRecord(mqbs::RecordType::Enum recordType);
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -583,7 +587,15 @@ class SearchGuidDecorator : public SearchResultDecorator {
 class SummaryProcessor : public SearchResult {
   private:
     // PTIVATE TYPES
+    // struct RecordTypeHash {
+    //   bsl::size_t operator()(mqbs::RecordType rt) const {
+    //       return bsl::hash<int>()(static_cast<int>(rt));
+    //   }
+    // };
+
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
+    typedef bsl::unordered_map<mqbu::StorageKey, bsl::size_t> QueueRecordsMap;
+    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsl::size_t> OtherRecordsMap;
     // Set of message guids.
 
     // PRIVATE DATA
@@ -605,6 +617,9 @@ class SummaryProcessor : public SearchResult {
     // message and no delete message associated with them.
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
+
+    QueueRecordsMap d_queueRecordsMap;
+    OtherRecordsMap d_otherRecordsCounts;
 
   public:
     // CREATORS
@@ -635,6 +650,10 @@ class SummaryProcessor : public SearchResult {
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processOtherRecord(mqbs::RecordType::Enum recordType)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;

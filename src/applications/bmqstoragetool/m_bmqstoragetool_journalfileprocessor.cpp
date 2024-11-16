@@ -179,6 +179,9 @@ void JournalFileProcessor::process()
                 record,
                 iter->recordIndex(),
                 iter->recordOffset());
+        } else {
+            stopSearch = d_searchResult_p->processOtherRecord(
+                iter->recordType());
         }
     }
 }

@@ -184,6 +184,12 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 // class SearchResult
 // ==================
 
+bool SearchResult::processOtherRecord(
+    BSLS_ANNOTATION_UNUSED mqbs::RecordType::Enum recordType)
+{
+    return false;
+}
+
 SearchResult::~SearchResult()
 {
     // NOTHING
@@ -793,8 +799,10 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_dataFile_p(dataFile_p)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
+, d_otherRecordsCounts(allocator)
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
+, d_queueRecordsMap(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -807,6 +815,8 @@ bool SummaryProcessor::processMessageRecord(
 {
     d_notConfirmedGuids.emplace(record.messageGUID());
     d_foundMessagesCount++;
+
+    d_queueRecordsMap[record.queueKey()]++;
 
     return false;
 }
@@ -842,6 +852,13 @@ bool SummaryProcessor::processDeletionRecord(
     return false;
 }
 
+bool SummaryProcessor::processOtherRecord(mqbs::RecordType::Enum recordType)
+{
+    d_otherRecordsCounts[recordType]++;
+
+    return false;
+}
+
 void SummaryProcessor::outputResult()
 {
     if (d_foundMessagesCount == 0) {
@@ -856,10 +873,18 @@ void SummaryProcessor::outputResult()
               << d_partiallyConfirmedGuids.size() << '\n';
     d_ostream << "Number of outstanding messages: "
               << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
-
+    
     outputOutstandingRatio(d_ostream,
                            d_foundMessagesCount,
                            d_deletedMessagesCount);
+
+    for(OtherRecordsMap::iterator it = d_otherRecordsCounts.begin(); it != d_otherRecordsCounts.end(); ++it) {
+        d_ostream << "Number of " << it->first<< " records: " << it->second << "\n";
+    }
+
+    for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
+        d_ostream << "Number of records per Queue Key " << it->first <<  ": " << it->second << "\n";
+    }
 
     // Print meta data of opened files
     printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);
