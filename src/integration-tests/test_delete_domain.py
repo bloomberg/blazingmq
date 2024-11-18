@@ -26,7 +26,7 @@ from blazingmq.dev.it.process.admin import AdminClient
 def test_domain_deletion_fail_confirm(cluster: Cluster):
     """
     1. Connect producer and consumer to BMQ on `domain1/qqq`
-    2. Producer produces 5 messages, and the consumer consumes all 5.
+    2. Producer produces 5 messages, and the consumer consumes all 5
     3. Delete config of `domain1` on the disk
     4. Restart the broker, while producer and consumer are still alive
     5. Consumer couldn't connect with the broker, thus fails to confirm messages
@@ -58,7 +58,49 @@ def test_domain_deletion_fail_confirm(cluster: Cluster):
     except ITError as e:
         print(e)
 
+    # TODO: producer should receive NACKs
     assert producer.post(tc.URI_PRIORITY, ["msg5"], succeed=True) == Client.e_SUCCESS
+
+
+def test_domain_deletion_fail_open_queue(cluster: Cluster):
+    """
+    1. Connect producer and consumer to BMQ on `domain1/qqq`
+    2. Producer produces 5 messages, and the consumer consumes all 5
+    3. Delete config of `domain1` on the disk
+    4. Restart the broker, while producer and consumer are still alive
+    5. Both producer and consumer would throw ITError when they try to open
+       a queue on the deleted domain
+    """
+    proxies = cluster.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
+
+    consumer = next(proxies).create_client("consumer")
+    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+
+    producer.post(
+        tc.URI_PRIORITY, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True
+    )
+
+    assert consumer.wait_push_event()
+
+    del cluster.config.domains[tc.DOMAIN_PRIORITY]
+    cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True, succeed=True)
+
+    for node in cluster.nodes():
+        node.force_stop()
+    cluster.start_nodes(wait_ready=True)
+
+    try:
+        producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
+    except ITError as e:
+        print(e)
+
+    try:
+        consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    except ITError as e:
+        print(e)
 
 
 def test_domain_deletion_produce_more_after_delete_domain(cluster: Cluster):
