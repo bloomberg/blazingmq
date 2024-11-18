@@ -59,9 +59,9 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "classBloombergLP_1_1bmqa_1_1MessageEventBuilder.html#a12f61310671544ae0d292cf3a12e4589",
-"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a70d462ea8cd93f54f8adad384fd882e8",
-"functions_~.html",
-"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6"
+"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a70e34a633a6b0307ca504a75fb9c8d89",
+"globals.html",
+"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

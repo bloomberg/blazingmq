@@ -37,6 +37,5 @@ var classBloombergLP_1_1bmqa_1_1Session =
     [ "confirmMessage", "classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b", null ],
     [ "confirmMessage", "classBloombergLP_1_1bmqa_1_1Session.html#a649fd19cc63291837cff806792fd5a59", null ],
     [ "confirmMessages", "classBloombergLP_1_1bmqa_1_1Session.html#a52826f1bfc28aef7276bb884c02e6e1e", null ],
-    [ "configureMessageDumping", "classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87", null ],
-    [ "impl", "classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7", null ]
+    [ "configureMessageDumping", "classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87", null ]
 ];

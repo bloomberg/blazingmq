@@ -1,6 +1,5 @@
 var NAVTREEINDEX3 =
 {
-"functions_~.html":[1,2,0,21],
 "globals.html":[2,1,0],
 "globals_defs.html":[2,1,1],
 "hierarchy.html":[1,1],
@@ -249,5 +248,6 @@ var NAVTREEINDEX3 =
 "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ab9d9a16a4a23c73e370a6fe73a1b0dec":[1,0,0,2,14,0,7],
 "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286abd82c96921203e54c04a4da9a380f38f":[1,0,0,2,14,0,2],
 "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ac1c0f37ccbf5e89dce8f67da6d13426f":[1,0,0,2,14,0,9],
-"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6":[1,0,0,2,14,0,13]
+"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6":[1,0,0,2,14,0,13],
+"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ae8a03af061cfa814957de73af96dc1c6":[1,0,0,2,14,0,10]
 };

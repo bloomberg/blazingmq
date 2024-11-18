@@ -168,7 +168,6 @@ var NAVTREEINDEX1 =
 "classBloombergLP_1_1bmqa_1_1Session.html#a3303273ef6c85aa09c8b37b4cd847075":[1,0,0,0,18,19],
 "classBloombergLP_1_1bmqa_1_1Session.html#a43319196f64699cc03ee669de05fa05b":[1,0,0,0,18,34],
 "classBloombergLP_1_1bmqa_1_1Session.html#a4791cd81b196479ee9b964bdca28ed1e":[1,0,0,0,18,23],
-"classBloombergLP_1_1bmqa_1_1Session.html#a48f7efe5794608507003ea55aa1754a7":[1,0,0,0,18,38],
 "classBloombergLP_1_1bmqa_1_1Session.html#a52826f1bfc28aef7276bb884c02e6e1e":[1,0,0,0,18,36],
 "classBloombergLP_1_1bmqa_1_1Session.html#a5de8e6b8e3af91c946c2caaf38760f87":[1,0,0,0,18,37],
 "classBloombergLP_1_1bmqa_1_1Session.html#a649fd19cc63291837cff806792fd5a59":[1,0,0,0,18,35],
@@ -249,5 +248,6 @@ var NAVTREEINDEX1 =
 "classBloombergLP_1_1bmqt_1_1CorrelationId.html#a3f712363607589bb19085016f961a74f":[1,0,0,2,1,13],
 "classBloombergLP_1_1bmqt_1_1CorrelationId.html#a4848b92c9bb2e129cb1774f9acedb59b":[1,0,0,2,1,10],
 "classBloombergLP_1_1bmqt_1_1CorrelationId.html#a51d1c2cbc73c4fda38f5be47fb8bf722":[1,0,0,2,1,20],
-"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a56b4b8609fc3092187fd9c25480f1b08":[1,0,0,2,1,4]
+"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a56b4b8609fc3092187fd9c25480f1b08":[1,0,0,2,1,4],
+"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a70d462ea8cd93f54f8adad384fd882e8":[1,0,0,2,1,18]
 };
