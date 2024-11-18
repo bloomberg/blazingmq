@@ -17,14 +17,13 @@
 #ifndef INCLUDED_MQBA_APPLICATION
 #define INCLUDED_MQBA_APPLICATION
 
-//@PURPOSE: Provide an Application class to control object lifetime/creation.
-//
-//@CLASSES:
-//  mqba::Application: BlazingMQ broker application top level component
-//
-//@DESCRIPTION: This component defines a mechanism, 'mqba::Application',
-// responsible for instantiating and destroying the top-level BlazingMQ objects
-// used by the BlazingMQ broker.
+/// @file mqba_application.h
+///
+/// @brief Provide an `Application` class to control object lifetime/creation.
+///
+/// This component defines a mechanism, @bbref{mqba::Application}, responsible
+/// for instantiating and destroying the top-level BlazingMQ objects used by
+/// the BlazingMQ broker.
 
 // MQB
 #include <mqba_commandrouter.h>
@@ -32,6 +31,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 
+// BMQ
 #include <bmqma_countingallocatorstore.h>
 
 // BDE
@@ -110,26 +110,23 @@ class Application {
         BlobSpPool;
 
     // Data members
+
+    /// Allocator store to spawn new allocators for sub components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new allocators
-    // for sub-components
 
+    /// Event scheduler (held not owned to use, sharde with all interested
+    /// components.
     bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler (held not owned) to use,
-    // shared with all interested components.
 
+    /// Thread pool for admin commands execution.
     bdlmt::ThreadPool d_adminExecutionPool;
-    // Thread pool for admin commands
-    // execution.
 
+    /// Thread pool for routed admin commands execution.  Ensuring rerouted
+    /// commands always execute on their own dedicated thread prevents a case
+    /// where two nodes are simultaneously waiting for each other to process a
+    /// routed command, but cannot make progress because the calling thread is
+    /// blocked ("deadlock").  Note that rerouted commands never route again.
     bdlmt::ThreadPool d_adminRerouteExecutionPool;
-    // Thread pool for routed admin commands execution.
-    // Ensuring rerouted commands always execute on their
-    // own dedicated thread prevents a case where two nodes
-    // are simultaneously waiting for each other to process
-    // a routed command, but cannot make process because
-    // the calling thread is blocked ("deadlock").
-    // Note that rerouted commands never route again.
 
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
 
@@ -137,14 +134,13 @@ class Application {
 
     bdlma::ConcurrentPool d_pushElementsPool;
 
+    /// Stat context of the counting allocators, if used.
     bmqst::StatContext* d_allocatorsStatContext_p;
-    // Stat context of the counting allocators,
-    // if used
 
     PluginManagerMp d_pluginManager_mp;
 
+    /// Statistics controller component.
     StatControllerMp d_statController_mp;
-    // Statistics controller component
 
     ConfigProviderMp d_configProvider_mp;
 
@@ -156,8 +152,8 @@ class Application {
 
     DomainManagerMp d_domainManager_mp;
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // PRIVATE MANIPULATORS
