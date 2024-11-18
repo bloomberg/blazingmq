@@ -20,6 +20,7 @@ Testing deletion of domains.
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import Cluster, cluster
 from blazingmq.dev.it.process.client import Client, ITError
+from blazingmq.dev.it.process.admin import AdminClient
 
 
 def test_domain_deletion_fail_confirm(cluster: Cluster):
@@ -103,17 +104,17 @@ def test_domain_deletion_produce_more_after_delete_domain(cluster: Cluster):
 
 def test_domain_deletion_add_back(cluster: Cluster):
     """
-    1. Connect producer only to BMQ on `domain1/q1`
+    1. Connect producer only to BMQ on `domain1/qqq`
     2. Producer produces 5 messages
     3. Producer closes queue
     4. Delete config of `domain1` on the disk
     5. Restart broker
-    6. Add config of `domain1` back on the disk (can try same and different config parameters)
+    6. Add config of `domain1` back on the disk (with or without different config parameters)
     7. Invoke `DOMAIN RECONFIGURE` command to reload the config on the broker
     8. Producer opens the queue once again
     9. Producer produces 2 more messages
-    10. Now, start a consumer to open the queue and try to confirm messages. How many messages will the consumer see?
-    11. Check if `domain1/q1` is now assigned to two different partitions, which is the bug we saw in {DRQS 176641839 30 <GO>}
+    10. Now, start a consumer to open the queue and try to confirm messages. Consumer sees 7 messages.
+    11. Check to see `domain1/qqq` appears only in one partition
     """
     proxies = cluster.proxy_cycle()
 
@@ -135,7 +136,7 @@ def test_domain_deletion_add_back(cluster: Cluster):
         node.force_stop()
     cluster.start_nodes(wait_ready=True)
 
-    # TODO: set domain to have different config
+    domain_config.definition.parameters.max_consumers = 100
     cluster.config.domains[tc.DOMAIN_PRIORITY] = domain_config
 
     cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
@@ -153,4 +154,10 @@ def test_domain_deletion_add_back(cluster: Cluster):
     msgs = consumer.list(tc.URI_PRIORITY, block=True)
     assert len(msgs) == 7
 
-    # TODO: how to check partition
+    leader = cluster.last_known_leader
+    admin = AdminClient()
+    admin.connect(leader.config.host, int(leader.config.port))
+    res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.name} STORAGE SUMMARY")
+    assert res.count("Number of assigned queue-storages: 1") == 1
+
+    admin.stop()
