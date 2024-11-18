@@ -114,10 +114,6 @@ class DomainResolver {
         mqbconfm::DomainResolver d_data;
         // Cached response data.
 
-        bdlt::Datetime d_scriptTimestamp;
-        // Last modification timestamp of the script
-        // at the time this data was generated.
-
         bdlt::Datetime d_cfgDirTimestamp;
         // Last modification timestamp of the config
         // directory at the time this data was
