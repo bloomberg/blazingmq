@@ -71,6 +71,49 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
 
+/// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
+struct BuildConfirmFunctor {
+    // DATA
+    bmqa::ConfirmEventBuilder& d_confirmBuilder;
+    const bmqa::Message&       d_message;
+
+    // CREATORS
+    inline explicit BuildConfirmFunctor(
+        bmqa::ConfirmEventBuilder& confirmBuilder,
+        const bmqa::Message&       message)
+    : d_confirmBuilder(confirmBuilder)
+    , d_message(message)
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+    inline bmqt::EventBuilderResult::Enum operator()()
+    {
+        return d_confirmBuilder.addMessageConfirmation(d_message);
+    }
+};
+
+/// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
+struct BuildConfirmOverflowFunctor {
+    // DATA
+    bmqa::Session&             d_session;
+    bmqa::ConfirmEventBuilder& d_builder;
+
+    // CREATORS
+    inline explicit BuildConfirmOverflowFunctor(
+        bmqa::Session&             session,
+        bmqa::ConfirmEventBuilder& builder)
+    : d_session(session)
+    , d_builder(builder)
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+    inline void operator()() { d_session.confirmMessages(&d_builder); }
+};
+
 }  // close unnamed namespace
 
 // -----------------
@@ -685,10 +728,9 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 
                 bmqt::EventBuilderResult::Enum rc =
                     bmqp::ProtocolUtil::buildEvent(
-                        bdlf::BindUtil::bind(f, &confirmBuilder, message),
-                        bdlf::BindUtil::bind(&bmqa::Session::confirmMessages,
-                                             d_session_mp.get(),
-                                             &confirmBuilder));
+                        BuildConfirmFunctor(confirmBuilder, message),
+                        BuildConfirmOverflowFunctor(*d_session_mp.get(),
+                                                    confirmBuilder));
 
                 BSLS_ASSERT_SAFE(rc == 0);
                 (void)rc;  // compiler happiness
