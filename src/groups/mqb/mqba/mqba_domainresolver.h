@@ -17,45 +17,44 @@
 #ifndef INCLUDED_MQBA_DOMAINRESOLVER
 #define INCLUDED_MQBA_DOMAINRESOLVER
 
-//@PURPOSE: Provide a mechanism to resolve domain and their associated cluster.
-//
-//@CLASSES:
-//  mqba::DomainResolver: Mechanism to resolve domain and their cluster
-//
-//@DESCRIPTION: 'mqba::DomainResolver' provides a mechanism to resolve a
-// domain, and figure out the associated cluster where that domain lives.
-// Resolving a domain means that, for a given domain name, on a given machine,
-// it may be translated to a more qualified domain.  This is done in order to
-// provide seamless segregation between tiers for a given domain, to account
-// for a dev, alpha, beta, prod, ..., cluster.
-//
-/// CACHING
-///-------
-// Each resolved domain response is kept in a map, along with the last
-// modification timestamp of the script and associated configuration directory
-// at the time the entry was added to the cache.  When querying to resolve a
-// domain, this component will reuse that cache entry if it's not considered
-// stale.  An entry is stale if either the last modification timestamp of the
-// script or the one of the configuration directory is different than the
-// stored value in the cache for that entry.  This means that we need to verify
-// those timestampseverytime before checking the cache.  In order to minimize
-// filesystem overhead, we don't look up the timestamps more than once per
-// minute (see 'k_SCRIPT_CHECK_TTL' value in the cpp file).
-//
-/// Thread-safety
-///-------------
-// This object is *fully thread-safe*, meaning that two threads can safely call
-// any methods on the *same* *instance* without external synchronization.
-//
-/// TBD
-///---
-//: o add commandHandler
-//: o add statistics
-//: o eventually split domain resolution and domain location in two separate
-//:   entities
+/// @file mqba_domainresolver.h
+///
+/// @brief Provide a mechanism to resolve domain and their associated cluster.
+///
+///
+/// @bbref{mqba::DomainResolver} provides a mechanism to resolve a domain, and
+/// figure out the associated cluster where that domain lives.  Resolving a
+/// domain means that, for a given domain name, on a given machine, it may be
+/// translated to a more qualified domain.  This is done in order to provide
+/// seamless segregation between tiers for a given domain, to account for a
+/// dev, alpha, beta, prod, ..., cluster.
+///
+/// Caching                                      {#mqba_domainresolver_caching}
+/// =======
+///
+/// Each resolved domain response is kept in a map, along with the last
+/// modification timestamp of the script and associated configuration directory
+/// at the time the entry was added to the cache.  When querying to resolve a
+/// domain, this component will reuse that cache entry if it's not considered
+/// stale.  An entry is stale if either the last modification timestamp of the
+/// script or the one of the configuration directory is different than the
+/// stored value in the cache for that entry.  This means that we need to
+/// verify those timestampseverytime before checking the cache.  In order to
+/// minimize filesystem overhead, we don't look up the timestamps more than
+/// once per minute (see `k_SCRIPT_CHECK_TTL` value in the cpp file).
+///
+/// Thread-safety                                 {#mqba_domainresolver_thread}
+/// =============
+///
+/// This object is *fully thread-safe*, meaning that two threads can safely
+/// call any methods on the *same* *instance* without external synchronization.
+///
+/// @todo Add `commandHandler`
+/// @todo Add statistics.
+/// @todo Eventually split domain resolution and domain location in two
+///       separate entities.
 
 // MQB
-
 #include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 
@@ -111,36 +110,36 @@ class DomainResolver {
     /// map.
     struct CacheEntry {
         // PUBLIC DATA
-        mqbconfm::DomainResolver d_data;
-        // Cached response data.
 
+        /// Cached response data.
+        mqbconfm::DomainResolver d_data;
+
+        /// Last modification timestamp of the config directory at the time
+        /// this data was generated.
         bdlt::Datetime d_cfgDirTimestamp;
-        // Last modification timestamp of the config
-        // directory at the time this data was
-        // generated.
     };
 
+    /// Map of domain name to cache entry.
     typedef bsl::unordered_map<bsl::string, CacheEntry> CacheMap;
-    // Map of domain name to cache entry
 
   private:
     // DATA
+
+    /// Protecting the CacheMap.
     bslmt::Mutex d_mutex;
-    // Protecting the CacheMap
 
+    /// Cache map
     CacheMap d_cache;
-    // Cache map
 
+    /// Last modification timestamp of the config directory.
     bdlt::Datetime d_lastCfgDirTimestamp;
-    // Last modification timestamp of the config
-    // directory.
 
+    /// Time until which the `d_lastCfgDirTimestamp` should be considered
+    /// valid.
     bsls::TimeInterval d_timestampsValidUntil;
-    // Time until which the 'd_lastCfgDirTimestamp'
-    // should be considered valid.
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // PRIVATE MANIPULATORS
@@ -162,10 +161,10 @@ class DomainResolver {
     /// return false and leave `out` untouched.  Note that if the entry is
     /// found but has expired, this will erase it from the cache.
     ///
-    /// NOTE:
-    /// * `d_mutex` *MUST* be locked prior to calling this function,
-    /// * the caller must call `updateScriptTimestamp()` to update the
-    ///   timestamps prior to calling this method.
+    /// @attention `d_mutex` *MUST* be locked prior to calling this function.
+    ///
+    /// @attention The caller must call `updateScriptTimestamp()` to update the
+    ///            timestamps prior to calling this method.
     bool cacheLookup(mqbconfm::DomainResolver* out,
                      const bslstl::StringRef&  domainName);
 
