@@ -110,7 +110,7 @@ LessThanLowerBoundFn::LessThanLowerBoundFn(const Parameters::Range& range)
 }
 
 bool LessThanLowerBoundFn::operator()(const mqbs::JournalFileIterator* jit,
-                                      bool inverseOrder)
+                                      bool inverseOrder) const
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
