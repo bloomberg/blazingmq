@@ -179,19 +179,19 @@ bool CommandLineArguments::validate(bsl::string*      error,
         CompositeSequenceNumber seqNumLt, seqNumGt;
         if (!d_seqNumLt.empty()) {
             seqNumLt.fromString(errorDescr, d_seqNumLt);
-            if (seqNumLt.isUnset()) {
+            if (!seqNumLt.isSet()) {
                 ss << "--seqnum-lt: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
         }
         if (!d_seqNumGt.empty()) {
             seqNumGt.fromString(errorDescr, d_seqNumGt);
-            if (seqNumGt.isUnset()) {
+            if (!seqNumGt.isSet()) {
                 ss << "--seqnum-gt: " << errorDescr.str() << "\n";
             }
         }
 
-        if (!seqNumLt.isUnset() && !seqNumGt.isUnset()) {
+        if (seqNumLt.isSet() && seqNumGt.isSet()) {
             if (seqNumLt <= seqNumGt) {
                 ss << "Invalid sequence number range specified\n";
             }
@@ -247,7 +247,7 @@ bool CommandLineArguments::validate(bsl::string*      error,
              cit != d_seqNum.end();
              ++cit) {
             seqNum.fromString(errorDescr, *cit);
-            if (seqNum.isUnset()) {
+            if (!seqNum.isSet()) {
                 ss << "--seqnum: " << errorDescr.str() << "\n";
             }
         }
@@ -298,13 +298,21 @@ bool CommandLineArguments::validate(bsl::string*      error,
     return error->empty();
 }
 
-Parameters::Parameters(bslma::Allocator* allocator)
-: d_queueMap(allocator)
-, d_valueType(e_NONE)
-, d_valueGt(0)
-, d_valueLt(0)
+Parameters::Range::Range()
+: d_type(Range::e_NONE)
+, d_timestampGt(0)
+, d_timestampLt(0)
+, d_offsetGt(0)
+, d_offsetLt(0)
 , d_seqNumGt()
 , d_seqNumLt()
+{
+    // NOTHING
+}
+
+Parameters::Parameters(bslma::Allocator* allocator)
+: d_queueMap(allocator)
+, d_range()
 , d_guid(allocator)
 , d_seqNum(allocator)
 , d_offset(allocator)
@@ -324,11 +332,7 @@ Parameters::Parameters(bslma::Allocator* allocator)
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_queueMap(allocator)
-, d_valueType(e_NONE)
-, d_valueGt(0)
-, d_valueLt(0)
-, d_seqNumGt()
-, d_seqNumLt()
+, d_range()
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
 , d_offset(arguments.d_offset, allocator)
@@ -344,24 +348,28 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 {
     // Set search range type and values if present
     if (arguments.d_timestampLt || arguments.d_timestampGt) {
-        d_valueType = e_TIMESTAMP;
-        d_valueLt = static_cast<bsls::Types::Uint64>(arguments.d_timestampLt);
-        d_valueGt = static_cast<bsls::Types::Uint64>(arguments.d_timestampGt);
-    }
-    else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
-        d_valueType = e_SEQUENCE_NUM;
-        bmqu::MemOutStream errorDescr(allocator);
-        if (!arguments.d_seqNumLt.empty()) {
-            d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
-        }
-        if (!arguments.d_seqNumGt.empty()) {
-            d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
-        }
+        d_range.d_type        = Range::e_TIMESTAMP;
+        d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
+            arguments.d_timestampLt);
+        d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
+            arguments.d_timestampGt);
     }
     else if (arguments.d_offsetLt || arguments.d_offsetGt) {
-        d_valueType = e_OFFSET;
-        d_valueLt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetLt);
-        d_valueGt   = static_cast<bsls::Types::Uint64>(arguments.d_offsetGt);
+        d_range.d_type     = Range::e_OFFSET;
+        d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
+            arguments.d_offsetLt);
+        d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
+            arguments.d_offsetGt);
+    }
+    else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
+        d_range.d_type = Range::e_SEQUENCE_NUM;
+        bmqu::MemOutStream errorDescr(allocator);
+        if (!arguments.d_seqNumLt.empty()) {
+            d_range.d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
+        }
+        if (!arguments.d_seqNumGt.empty()) {
+            d_range.d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
+        }
     }
 
     // Set specific sequence numbers if present

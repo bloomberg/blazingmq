@@ -142,34 +142,33 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    if (params->d_valueLt > 0) {
-        // Add TimestampDecorator if 'valueLt' is given and value type is
-        // `e_TIMESTAMP`.
-        if (params->d_valueType == Parameters::e_TIMESTAMP) {
-            searchResult.reset(
-                new (*alloc) SearchResultTimestampDecorator(searchResult,
-                                                            params->d_valueLt,
-                                                            alloc),
-                alloc);
-        }
-        else if (params->d_valueType == Parameters::e_OFFSET) {
-            // Add OffsetDecorator if 'valueLt' is given and value type is
-            // `e_OFFSET`.
-            searchResult.reset(
-                new (*alloc) SearchResultOffsetDecorator(searchResult,
-                                                         params->d_valueLt,
-                                                         alloc),
-                alloc);
-        }
+    // Add TimestampDecorator if 'timestampLt' is given and value type is
+    // `e_TIMESTAMP`.
+    if (params->d_range.d_type == Parameters::Range::e_TIMESTAMP &&
+        params->d_range.d_timestampLt > 0) {
+        searchResult.reset(new (*alloc) SearchResultTimestampDecorator(
+                               searchResult,
+                               params->d_range.d_timestampLt,
+                               alloc),
+                           alloc);
     }
-
-    // Add SequenceNumberDecorator if 'seqNumLt' is given and value type is
-    // `e_SEQUENCE_NUM`.
-    if (params->d_valueType == Parameters::e_SEQUENCE_NUM &&
-        !params->d_seqNumLt.isUnset()) {
+    else if (params->d_range.d_type == Parameters::Range::e_OFFSET &&
+             params->d_range.d_offsetLt > 0) {
+        // Add OffsetDecorator if 'offsetLt' is given and value type is
+        // `e_OFFSET`.
+        searchResult.reset(new (*alloc) SearchResultOffsetDecorator(
+                               searchResult,
+                               params->d_range.d_offsetLt,
+                               alloc),
+                           alloc);
+    }
+    else if (params->d_range.d_type == Parameters::Range::e_SEQUENCE_NUM &&
+             params->d_range.d_seqNumLt.isSet()) {
+        // Add SequenceNumberDecorator if 'seqNumLt' is given and value type is
+        // `e_SEQUENCE_NUM`.
         searchResult.reset(new (*alloc) SearchResultSequenceNumberDecorator(
                                searchResult,
-                               params->d_seqNumLt,
+                               params->d_range.d_seqNumLt,
                                alloc),
                            alloc);
     }
