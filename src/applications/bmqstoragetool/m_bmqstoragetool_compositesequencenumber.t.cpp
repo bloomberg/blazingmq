@@ -46,12 +46,12 @@ static void test1_breathingTest()
 
     {
         CompositeSequenceNumber compositeSeqNum;
-        ASSERT(compositeSeqNum.isUnset());
+        ASSERT(!compositeSeqNum.isSet());
     }
 
     {
         CompositeSequenceNumber compositeSeqNum(1, 2);
-        ASSERT(!compositeSeqNum.isUnset());
+        ASSERT(compositeSeqNum.isSet());
         ASSERT_EQ(compositeSeqNum.leaseId(), 1ul);
         ASSERT_EQ(compositeSeqNum.sequenceNumber(), 2ul);
     }
@@ -80,7 +80,7 @@ static void test2_fromStringTest()
         bsl::string inputString("123-456", s_allocator_p);
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), false);
+        ASSERT(compositeSeqNum.isSet());
         ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
         ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
         ASSERT(errorDescription.str().empty());
@@ -93,7 +93,7 @@ static void test2_fromStringTest()
         bsl::string inputString("00123-000456", s_allocator_p);
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), false);
+        ASSERT(compositeSeqNum.isSet());
         ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
         ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
         ASSERT(errorDescription.str().empty());
@@ -106,7 +106,7 @@ static void test2_fromStringTest()
         bsl::string inputString("", s_allocator_p);
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(), "Invalid input: empty string.");
     }
@@ -119,7 +119,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid format: no '-' separator found.");
@@ -133,7 +133,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid format: no '-' separator found.");
@@ -147,7 +147,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: non-numeric values encountered.");
@@ -161,7 +161,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: non-numeric values encountered.");
@@ -175,7 +175,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: zero values encountered.");
@@ -189,7 +189,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: zero values encountered.");
@@ -204,7 +204,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: number out of range.");
@@ -219,7 +219,7 @@ static void test2_fromStringTest()
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isUnset(), true);
+        ASSERT_EQ(compositeSeqNum.isSet(), false);
         ASSERT(!errorDescription.str().empty());
         ASSERT_EQ(errorDescription.str(),
                   "Invalid input: number out of range.");

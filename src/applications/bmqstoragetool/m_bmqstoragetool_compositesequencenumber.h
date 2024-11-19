@@ -49,14 +49,14 @@ class CompositeSequenceNumber {
     // Primary Lease Id
     bsls::Types::Uint64 d_seqNumber;
     // Sequence Number
-    bool d_isUnset;
-    // Set to `true` if the value of this object is not set
+    bool d_isSet;
+    // Set to `true` if the value of this object is set
 
   public:
     // CREATORS
 
     /// Create an un-initialized CompositeSequenceNumber.  Note that
-    /// `isUnset()` would return true.
+    /// `isSet()` would return false.
     CompositeSequenceNumber();
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
@@ -69,8 +69,8 @@ class CompositeSequenceNumber {
     /// Initialize this CompositeSequenceNumber from the specified
     /// `seqNumString` representation in format `<leaseId>-<sequenceNumber>`.
     /// Return a reference offering modifiable access to this object. If
-    /// convertion is successfull, `isUnset()` would return `true`. Otherwise,
-    /// `isUnset()` would return `false` and specified `errorDescription` is
+    /// convertion is successfull, `isSet()` would return `true`. Otherwise,
+    /// `isSet()` would return `false` and specified `errorDescription` is
     /// filled with error description.
     CompositeSequenceNumber& fromString(bsl::ostream&      errorDescription,
                                         const bsl::string& seqNumString);
@@ -78,7 +78,7 @@ class CompositeSequenceNumber {
     // ACCESSORS
 
     /// Return `true` if the value of this object is not set.
-    bool isUnset() const;
+    bool isSet() const;
 
     /// Return Primary Lease Id value.
     unsigned int leaseId() const;
@@ -139,9 +139,9 @@ bool operator<=(const CompositeSequenceNumber& lhs,
 
 // ACCESSORS
 
-inline bool CompositeSequenceNumber::isUnset() const
+inline bool CompositeSequenceNumber::isSet() const
 {
-    return d_isUnset;
+    return d_isSet;
 }
 
 inline unsigned int CompositeSequenceNumber::leaseId() const
@@ -167,7 +167,7 @@ inline bsl::ostream& m_bmqstoragetool::operator<<(
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT(!rhs.isUnset());
+    BSLS_ASSERT(rhs.isSet());
 
     return rhs.print(stream, 0, -1);
 }
@@ -177,7 +177,7 @@ inline bool m_bmqstoragetool::operator==(
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
+    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
 
     return (lhs.leaseId() == rhs.leaseId() &&
             lhs.sequenceNumber() == rhs.sequenceNumber());
@@ -188,7 +188,7 @@ inline bool m_bmqstoragetool::operator<(
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
+    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
 
     // Check leaseId first
     if (lhs.leaseId() < rhs.leaseId()) {
@@ -208,7 +208,7 @@ inline bool m_bmqstoragetool::operator<=(
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT(!lhs.isUnset() && !rhs.isUnset());
+    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
 
     return (lhs < rhs || lhs == rhs);
 }

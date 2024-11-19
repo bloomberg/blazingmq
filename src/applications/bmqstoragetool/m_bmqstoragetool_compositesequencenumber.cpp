@@ -30,7 +30,7 @@ namespace m_bmqstoragetool {
 CompositeSequenceNumber::CompositeSequenceNumber()
 : d_leaseId(0)
 , d_seqNumber(0)
-, d_isUnset(true)
+, d_isSet(false)
 {
     // NOTHING
 }
@@ -42,14 +42,14 @@ CompositeSequenceNumber::CompositeSequenceNumber(
 , d_seqNumber(sequenceNumber)
 {
     BSLS_ASSERT(d_leaseId > 0 && d_seqNumber > 0);
-    d_isUnset = !(d_leaseId > 0 && d_seqNumber > 0);
+    d_isSet = d_leaseId > 0 && d_seqNumber > 0;
 }
 
 CompositeSequenceNumber&
 CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
                                     const bsl::string& seqNumString)
 {
-    d_isUnset = true;
+    d_isSet = false;
 
     if (seqNumString.empty()) {
         errorDescription << "Invalid input: empty string.";
@@ -88,7 +88,7 @@ CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
             return *this;  // RETURN
         }
 
-        d_isUnset = false;
+        d_isSet = true;
     }
     catch (const bsl::invalid_argument& e) {
         errorDescription << "Invalid input: non-numeric values encountered.";
@@ -110,12 +110,12 @@ bsl::ostream& CompositeSequenceNumber::print(bsl::ostream& stream,
 
     bdlb::Print::indent(stream, level, spacesPerLevel);
 
-    if (isUnset()) {
-        stream << "** UNSET **";
-    }
-    else {
+    if (isSet()) {
         stream << "leaseId: " << leaseId()
                << ", sequenceNumber: " << sequenceNumber();
+    }
+    else {
+        stream << "** UNSET **";
     }
 
     if (spacesPerLevel >= 0) {

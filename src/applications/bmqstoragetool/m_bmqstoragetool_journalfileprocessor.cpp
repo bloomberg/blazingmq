@@ -38,49 +38,15 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-namespace {
-template <typename T>
-T getValue(const mqbs::JournalFileIterator*  jit,
-           const Parameters::SearchValueType valueType);
-
-template <>
-bsls::Types::Uint64 getValue(const mqbs::JournalFileIterator*  jit,
-                             const Parameters::SearchValueType valueType)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(jit);
-    BSLS_ASSERT(valueType == Parameters::e_TIMESTAMP ||
-                valueType == Parameters::e_OFFSET);
-
-    return (valueType == Parameters::e_TIMESTAMP)
-               ? jit->recordHeader().timestamp()
-               : jit->recordOffset();
-}
-
-template <>
-CompositeSequenceNumber getValue(const mqbs::JournalFileIterator*  jit,
-                                 const Parameters::SearchValueType valueType)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(jit);
-    BSLS_ASSERT(valueType == Parameters::e_SEQUENCE_NUM);
-
-    return CompositeSequenceNumber(jit->recordHeader().primaryLeaseId(),
-                                   jit->recordHeader().sequenceNumber());
-}
-
-}  // close unnamed namespace
-
 /// Move the journal iterator pointed by the specified 'jit' to the first
-/// record whose value `T` is more then the specified 'valueGt'.  Return '1'
-/// on success, '0' if there are no such records or negative value if an error
-/// was encountered.  Note that if this method returns < 0, the specified 'jit'
-/// is invalidated.  Behavior is undefined unless last call to `nextRecord` or
+/// record whose value is more then the range lower bound. The specified
+/// `lessThanLowerBoundFn` functor is used for comparison. Return '1' on
+/// success, '0' if there are no such records or negative value if an error was
+/// encountered.  Note that if this method returns < 0, the specified 'jit' is
+/// invalidated.  Behavior is undefined unless last call to `nextRecord` or
 /// 'advance' returned '1' and the iterator points to a valid record.
-template <typename T>
-int moveToLowerBound(mqbs::JournalFileIterator*        jit,
-                     const Parameters::SearchValueType valueType,
-                     const T&                          valueGt)
+int moveToLowerBound(mqbs::JournalFileIterator* jit,
+                     LessThanLowerBoundFn&      lessThanLowerBoundFn)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
@@ -94,7 +60,7 @@ int moveToLowerBound(mqbs::JournalFileIterator*        jit,
     bsls::Types::Uint64 left  = 0;
     bsls::Types::Uint64 right = recordsNumber;
     while (right > left + 1) {
-        const bool goBackwards = valueGt < getValue<T>(jit, valueType);
+        const bool goBackwards = lessThanLowerBoundFn(jit, true);
         if (goBackwards != jit->isReverseMode()) {
             jit->flipDirection();
         }
@@ -118,7 +84,8 @@ int moveToLowerBound(mqbs::JournalFileIterator*        jit,
     if (jit->isReverseMode()) {
         jit->flipDirection();
     }
-    if (getValue<T>(jit, valueType) <= valueGt) {
+    // Move to next record if value <= lower bound) {
+    if (lessThanLowerBoundFn(jit) || !lessThanLowerBoundFn(jit, true)) {
         if (jit->recordIndex() < recordsNumber) {
             rc = jit->nextRecord();
         }
@@ -130,6 +97,42 @@ int moveToLowerBound(mqbs::JournalFileIterator*        jit,
     }
 
     return rc;  // RETURN
+}
+
+// ==========================
+// class LessThanLowerBoundFn
+// ==========================
+
+LessThanLowerBoundFn::LessThanLowerBoundFn(const Parameters::Range& range)
+: d_range(range)
+{
+    BSLS_ASSERT(d_range.d_type != Parameters::Range::e_NONE);
+}
+
+bool LessThanLowerBoundFn::operator()(const mqbs::JournalFileIterator* jit,
+                                      bool inverseOrder)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(jit);
+
+    bool res;
+    if (d_range.d_type == Parameters::Range::e_TIMESTAMP) {
+        res = inverseOrder
+                  ? d_range.d_timestampGt < jit->recordHeader().timestamp()
+                  : jit->recordHeader().timestamp() < d_range.d_timestampGt;
+    }
+    else if (d_range.d_type == Parameters::Range::e_OFFSET) {
+        res = inverseOrder ? d_range.d_offsetGt < jit->recordOffset()
+                           : jit->recordOffset() < d_range.d_offsetGt;
+    }
+    else {
+        CompositeSequenceNumber seqNum(jit->recordHeader().primaryLeaseId(),
+                                       jit->recordHeader().sequenceNumber());
+        res = inverseOrder ? d_range.d_seqNumGt < seqNum
+                           : seqNum < d_range.d_seqNumGt;
+    }
+
+    return res;
 }
 
 // ==========================
@@ -158,16 +161,13 @@ void JournalFileProcessor::process()
     Filters filters(d_parameters->d_queueKey,
                     d_parameters->d_queueName,
                     d_parameters->d_queueMap,
-                    d_parameters->d_valueType,
-                    d_parameters->d_valueGt,
-                    d_parameters->d_valueLt,
-                    d_parameters->d_seqNumGt,
-                    d_parameters->d_seqNumLt,
+                    d_parameters->d_range,
                     d_allocator_p);
 
     bool stopSearch           = false;
-    bool needMoveToLowerBound = d_parameters->d_valueGt > 0 ||
-                                !d_parameters->d_seqNumGt.isUnset();
+    bool needMoveToLowerBound = d_parameters->d_range.d_timestampGt > 0 ||
+                                d_parameters->d_range.d_offsetGt > 0 ||
+                                d_parameters->d_range.d_seqNumGt.isSet();
 
     // Iterate through all Journal file records
     mqbs::JournalFileIterator* iter = d_fileManager->journalFileIterator();
@@ -183,18 +183,8 @@ void JournalFileProcessor::process()
         }
 
         if (needMoveToLowerBound) {
-            if (d_parameters->d_valueGt > 0) {
-                rc = moveToLowerBound<bsls::Types::Uint64>(
-                    iter,
-                    d_parameters->d_valueType,
-                    d_parameters->d_valueGt);
-            }
-            else {
-                rc = moveToLowerBound<CompositeSequenceNumber>(
-                    iter,
-                    d_parameters->d_valueType,
-                    d_parameters->d_seqNumGt);
-            }
+            LessThanLowerBoundFn lessThanLowerBoundFn(d_parameters->d_range);
+            rc = moveToLowerBound(iter, lessThanLowerBoundFn);
             if (rc == 0) {
                 stopSearch = true;
                 continue;  // CONTINUE

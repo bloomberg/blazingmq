@@ -109,26 +109,42 @@ struct CommandLineArguments {
 
 struct Parameters {
     // PUBLIC TYPES
-    enum SearchValueType {
-        e_NONE         = 0,
-        e_TIMESTAMP    = 1,
-        e_SEQUENCE_NUM = 2,
-        e_OFFSET       = 3
+
+    // VST representing search range parameters
+    struct Range {
+        // PUBLIC TYPES
+        enum Type {
+            e_NONE         = 0,
+            e_TIMESTAMP    = 1,
+            e_SEQUENCE_NUM = 2,
+            e_OFFSET       = 3
+        };
+
+        // PUBLIC DATA
+        Type d_type;
+        /// Range type
+        bsls::Types::Uint64 d_timestampGt;
+        // Filter messages greater than timestamp value
+        bsls::Types::Uint64 d_timestampLt;
+        // Filter messages less than timestamp value
+        bsls::Types::Uint64 d_offsetGt;
+        // Filter messages greater than offset value
+        bsls::Types::Uint64 d_offsetLt;
+        // Filter messages less than offset value
+        CompositeSequenceNumber d_seqNumGt;
+        // Filter messages greater than sequence number
+        CompositeSequenceNumber d_seqNumLt;
+        // Filter messages less than sequence number
+
+        // CREATORS
+        explicit Range();
     };
 
     // PUBLIC DATA
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
-    SearchValueType d_valueType;
-    // Search value type for message filtering
-    bsls::Types::Uint64 d_valueGt;
-    // Filter messages greater than value
-    bsls::Types::Uint64 d_valueLt;
-    // Filter messages less than value
-    CompositeSequenceNumber d_seqNumGt;
-    // Filter messages greater than sequence number
-    CompositeSequenceNumber d_seqNumLt;
-    // Filter messages less than sequence number
+    Range d_range;
+    // Range parameters for filtering
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<CompositeSequenceNumber> d_seqNum;

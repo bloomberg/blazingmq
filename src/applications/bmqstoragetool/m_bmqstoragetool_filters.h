@@ -43,25 +43,17 @@ class Filters {
   private:
     // DATA
     bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
-    const Parameters::SearchValueType    d_valueType;
-    const bsls::Types::Uint64            d_valueGt;
-    const bsls::Types::Uint64            d_valueLt;
-    const CompositeSequenceNumber        d_seqNumGt;
-    const CompositeSequenceNumber        d_seqNumLt;
+    const Parameters::Range              d_range;
 
   public:
     // CREATORS
 
     /// Constructor using the specified arguments.
-    explicit Filters(const bsl::vector<bsl::string>&   queueKeys,
-                     const bsl::vector<bsl::string>&   queueUris,
-                     const QueueMap&                   queueMap,
-                     const Parameters::SearchValueType valueType,
-                     const bsls::Types::Uint64         valueGt,
-                     const bsls::Types::Uint64         valueLt,
-                     const CompositeSequenceNumber     seqNumGt,
-                     const CompositeSequenceNumber     seqNumLt,
-                     bslma::Allocator*                 allocator);
+    explicit Filters(const bsl::vector<bsl::string>& queueKeys,
+                     const bsl::vector<bsl::string>& queueUris,
+                     const QueueMap&                 queueMap,
+                     const Parameters::Range&        range,
+                     bslma::Allocator*               allocator);
 
     // ACCESSORS
 

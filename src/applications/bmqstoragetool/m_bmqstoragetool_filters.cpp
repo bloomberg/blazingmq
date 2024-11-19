@@ -23,21 +23,13 @@ namespace m_bmqstoragetool {
 // class Filters
 // =============
 
-Filters::Filters(const bsl::vector<bsl::string>&   queueKeys,
-                 const bsl::vector<bsl::string>&   queueUris,
-                 const QueueMap&                   queueMap,
-                 const Parameters::SearchValueType valueType,
-                 const bsls::Types::Uint64         valueGt,
-                 const bsls::Types::Uint64         valueLt,
-                 const CompositeSequenceNumber     seqNumGt,
-                 const CompositeSequenceNumber     seqNumLt,
-                 bslma::Allocator*                 allocator)
+Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
+                 const bsl::vector<bsl::string>& queueUris,
+                 const QueueMap&                 queueMap,
+                 const Parameters::Range&        range,
+                 bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
-, d_valueType(valueType)
-, d_valueGt(valueGt)
-, d_valueLt(valueLt)
-, d_seqNumGt(seqNumGt)
-, d_seqNumLt(seqNumLt)
+, d_range(range)
 {
     // Fill internal structures
     if (!queueKeys.empty()) {
@@ -76,25 +68,32 @@ bool Filters::apply(const mqbs::MessageRecord& record,
     }
 
     // Apply `range` filter
-    bsls::Types::Uint64 value;
-    switch (d_valueType) {
-    case Parameters::e_TIMESTAMP: value = record.header().timestamp(); break;
-    case Parameters::e_SEQUENCE_NUM: {
+    bsls::Types::Uint64 value, valueGt, valueLt;
+    switch (d_range.d_type) {
+    case Parameters::Range::e_TIMESTAMP:
+        value   = record.header().timestamp();
+        valueGt = d_range.d_timestampGt;
+        valueLt = d_range.d_timestampLt;
+        break;
+    case Parameters::Range::e_OFFSET:
+        value   = offset;
+        valueGt = d_range.d_offsetGt;
+        valueLt = d_range.d_offsetLt;
+        break;
+    case Parameters::Range::e_SEQUENCE_NUM: {
         CompositeSequenceNumber seqNum(record.header().primaryLeaseId(),
                                        record.header().sequenceNumber());
-        if ((!d_seqNumGt.isUnset() && seqNum <= d_seqNumGt) ||
-            (!d_seqNumLt.isUnset() && d_seqNumLt <= seqNum)) {
-            // Not inside range
-            return false;  // RETURN
-        }
+        return !(
+            (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
+            (d_range.d_seqNumLt.isSet() &&
+             d_range.d_seqNumLt <= seqNum));  // RETURN
     } break;
-    case Parameters::e_OFFSET: value = offset; break;
     default:
         // No range filter defined
         return true;  // RETURN
     }
-    if ((d_valueGt > 0 && value <= d_valueGt) ||
-        (d_valueLt > 0 && value >= d_valueLt)) {
+    if ((valueGt > 0 && value <= valueGt) ||
+        (valueLt > 0 && value >= valueLt)) {
         // Not inside range
         return false;  // RETURN
     }
