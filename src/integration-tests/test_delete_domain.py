@@ -46,8 +46,9 @@ def test_domain_deletion_fail_confirm(cluster: Cluster):
 
     assert consumer.wait_push_event()
 
-    del cluster.config.domains[tc.DOMAIN_PRIORITY]
-    cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True, succeed=True)
+    for node in cluster.configurator.brokers.values():
+        del node.domains[tc.DOMAIN_PRIORITY]
+    cluster.deploy_domains()
 
     for node in cluster.nodes():
         node.force_stop()
@@ -58,8 +59,7 @@ def test_domain_deletion_fail_confirm(cluster: Cluster):
     except ITError as e:
         print(e)
 
-    # TODO: producer should receive NACKs
-    assert producer.post(tc.URI_PRIORITY, ["msg5"], succeed=True) == Client.e_SUCCESS
+    producer.post(tc.URI_PRIORITY, ["msg5"], succeed=True)
 
 
 def test_domain_deletion_fail_open_queue(cluster: Cluster):
@@ -85,8 +85,9 @@ def test_domain_deletion_fail_open_queue(cluster: Cluster):
 
     assert consumer.wait_push_event()
 
-    del cluster.config.domains[tc.DOMAIN_PRIORITY]
-    cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True, succeed=True)
+    for node in cluster.configurator.brokers.values():
+        del node.domains[tc.DOMAIN_PRIORITY]
+    cluster.deploy_domains()
 
     for node in cluster.nodes():
         node.force_stop()
@@ -124,8 +125,9 @@ def test_domain_deletion_produce_more_after_delete_domain(cluster: Cluster):
         tc.URI_PRIORITY, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True
     )
 
-    del cluster.config.domains[tc.DOMAIN_PRIORITY]
-    cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True, succeed=True)
+    for node in cluster.configurator.brokers.values():
+        del node.domains[tc.DOMAIN_PRIORITY]
+    cluster.deploy_domains()
 
     producer.post(
         tc.URI_PRIORITY,
@@ -171,15 +173,19 @@ def test_domain_deletion_add_back(cluster: Cluster):
 
     domain_config = cluster.config.domains[tc.DOMAIN_PRIORITY]
 
-    del cluster.config.domains[tc.DOMAIN_PRIORITY]
-    cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, write_only=True, succeed=True)
+    for node in cluster.configurator.brokers.values():
+        del node.domains[tc.DOMAIN_PRIORITY]
+    cluster.deploy_domains()
 
     for node in cluster.nodes():
         node.force_stop()
     cluster.start_nodes(wait_ready=True)
 
     domain_config.definition.parameters.max_consumers = 100
+
     cluster.config.domains[tc.DOMAIN_PRIORITY] = domain_config
+    for node in cluster.nodes():
+        node.config.domains[tc.DOMAIN_PRIORITY] = domain_config
 
     cluster.reconfigure_domain(tc.DOMAIN_PRIORITY, succeed=True)
 
