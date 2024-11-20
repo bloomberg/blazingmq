@@ -529,8 +529,6 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
         .setSyslogAppName(obj.syslog().appName())
         .setSyslogFormat(obj.syslog().logFormat())
         .setRecordBufferSize(32768);
-    // TODO: use obj.logDump() when the config is updated
-    // .setRecordBufferSize(obj.logDump().recordBufferSize());
 
     if (ball::SeverityUtil::fromAsciiCaseless(
             &d_loggingVerbosity,
@@ -542,21 +540,6 @@ int LogControllerConfig::fromObj(bsl::ostream& errorDescription,
 
     d_recordingVerbosity = ball::Severity::OFF;
     d_triggerVerbosity   = ball::Severity::OFF;
-    // if (ball::SeverityUtil::fromAsciiCaseless(
-    //         &d_recordingVerbosity,
-    //         obj.logDump().recordingLevel().c_str()) != 0) {
-    //     errorDescription << "Invalid value for 'recordingLevel' ('"
-    //                      << obj.logDump().recordingLevel() << "')";
-    //     return -1;  // RETURN
-    // }
-
-    // if (ball::SeverityUtil::fromAsciiCaseless(
-    //         &d_triggerVerbosity,
-    //         obj.logDump().triggerLevel().c_str()) != 0) {
-    //     errorDescription << "Invalid value for 'triggerLevel' ('"
-    //                      << obj.logDump().triggerLevel() << "')";
-    //     return -1;  // RETURN
-    // }
 
     ball::Severity::Level bslsSeverityAsBal = ball::Severity::e_ERROR;
     // TODO: enforcing 'obj' to have 'bslsLogSeverityThreshold' accessor is a

@@ -65,19 +65,13 @@ static void test1_logControllerConfigFromObj()
     lc.syslog().verbosity() = "INFO";
 
     lc.categories().push_back("category:info:red");
-    // TODO: uncomment when setup of this parameter is uncommented
-    // lc.logDump().recordBufferSize() = 12345;
-    // lc.logDump().recordingLevel()   = "TRACE";
-    // lc.logDump().triggerLevel()     = "FATAL";
 
-    lc.fileName()         = "fileName";
-    lc.fileMaxAgeDays()   = 8;
-    lc.rotationBytes()    = 2048;
-    lc.logfileFormat()    = "%d (%t) %s %F:%l %m\n\n";
-    lc.consoleFormat()    = "%d (%t) %s %F:%l %m\n\n";
-    lc.loggingVerbosity() = "debug";
-    // TODO: uncomment when setup of this parameter is uncommented
-    // lc.bslsLogSeverityThreshold() = "error";
+    lc.fileName()                 = "fileName";
+    lc.fileMaxAgeDays()           = 8;
+    lc.rotationBytes()            = 2048;
+    lc.logfileFormat()            = "%d (%t) %s %F:%l %m\n\n";
+    lc.consoleFormat()            = "%d (%t) %s %F:%l %m\n\n";
+    lc.loggingVerbosity()         = "debug";
     lc.consoleSeverityThreshold() = "info";
 
     bmqtsk::LogControllerConfig config(s_allocator_p);
