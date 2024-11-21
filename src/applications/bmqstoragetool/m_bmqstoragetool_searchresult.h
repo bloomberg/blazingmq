@@ -109,6 +109,16 @@ class SearchResult {
     virtual bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                        bsls::Types::Uint64         recordIndex,
                                        bsls::Types::Uint64 recordOffset) = 0;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    virtual bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                                      bsls::Types::Uint64        recordIndex,
+                                      bsls::Types::Uint64 recordOffset) = 0;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    virtual bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                        bsls::Types::Uint64 recordIndex,
+                                        bsls::Types::Uint64 recordOffset) = 0;
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -201,6 +211,18 @@ class SearchShortResult : public SearchResult {
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
@@ -305,6 +327,18 @@ class SearchDetailResult : public SearchResult {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -357,6 +391,18 @@ class SearchResultDecorator : public SearchResult {
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
@@ -786,6 +832,9 @@ class SummaryProcessor : public SearchResult {
     // PTIVATE TYPES
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
     // Set of message guids.
+    typedef bsl::map<mqbs::QueueOpType::Enum, bsls::Types::Uint64>
+        QueueOpCountsMap;
+    // Queue op counts map.
 
     // PRIVATE DATA
     bsl::ostream& d_ostream;
@@ -794,10 +843,18 @@ class SummaryProcessor : public SearchResult {
     // Pointer to journal file iterator.
     mqbs::DataFileIterator* d_dataFile_p;
     // Pointer to data file iterator.
-    bsl::size_t d_foundMessagesCount;
+    Parameters::ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
+    bsls::Types::Uint64 d_foundMessagesCount;
     // Counter of found messages.
-    bsl::size_t d_deletedMessagesCount;
+    bsls::Types::Uint64 d_deletedMessagesCount;
     // Counter of deleted messages.
+    bsls::Types::Uint64 d_journalOpRecordsCount;
+    // Counter of journalOp records.
+    bsls::Types::Uint64 d_queueOpRecordsCount;
+    // Counter of queueOp records.
+    QueueOpCountsMap d_queueOpCountsMap;
+    // Queue op counts map.
     GuidsSet d_notConfirmedGuids;
     // Set of message guids. Messages stored here have neither confirmation
     // messages no delete message associated with them.
@@ -812,10 +869,12 @@ class SummaryProcessor : public SearchResult {
 
     /// Constructor using the specified `component`, `journalFile_p`,
     /// `dataFile_p` and `allocator`.
-    explicit SummaryProcessor(bsl::ostream&              ostream,
-                              mqbs::JournalFileIterator* journalFile_p,
-                              mqbs::DataFileIterator*    dataFile_p,
-                              bslma::Allocator*          allocator);
+    explicit SummaryProcessor(
+        bsl::ostream&                         ostream,
+        mqbs::JournalFileIterator*            journalFile_p,
+        mqbs::DataFileIterator*               dataFile_p,
+        const Parameters::ProcessRecordTypes& processRecordTypes,
+        bslma::Allocator*                     allocator);
 
     // MANIPULATORS
 
@@ -836,6 +895,18 @@ class SummaryProcessor : public SearchResult {
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;

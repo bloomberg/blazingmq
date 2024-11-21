@@ -27,6 +27,7 @@
 #include <mqbu_messageguidutil.h>
 
 // BMQ
+#include <bmqu_alignedprinter.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -1121,10 +1122,14 @@ static void test14_summaryTest()
 
     // Prepare expected output
     bmqu::MemOutStream expectedStream(s_allocator_p);
-    expectedStream
-        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
-           "partially confirmed messages: 2\n"
-           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
+    expectedStream << "5 message(s) found.\n";
+    bsl::vector<const char*> fields(s_allocator_p);
+    fields.push_back("Number of partially confirmed messages");
+    fields.push_back("Number of confirmed messages");
+    fields.push_back("Number of outstanding messages");
+    bmqu::AlignedPrinter printer(expectedStream, &fields);
+    printer << 3 << 2 << 2;
+    expectedStream << "Outstanding ratio: 40% (2/5)\n";
 
     bsl::string res(resultStream.str(), s_allocator_p);
     ASSERT(res.starts_with(expectedStream.str()));
