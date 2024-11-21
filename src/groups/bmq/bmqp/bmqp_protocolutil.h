@@ -399,9 +399,19 @@ struct ProtocolUtil {
     /// Invoke the specified `action` and if it returns e_EVENT_TOO_BIG then
     /// invoke the specified `overflowCb` and call `action` again.  Return
     /// result code returned from `action`
+    /// DEPRECATED: use `buildEvent` with functors instead, to avoid loss of
+    ///             performance from `bsl::function` on critical paths.
     static bmqt::EventBuilderResult::Enum buildEvent(
         const bsl::function<bmqt::EventBuilderResult::Enum(void)>& action,
         const bsl::function<void(void)>&                           overflowCb);
+
+    /// Invoke the specified `actionCb` and if it returns e_EVENT_TOO_BIG then
+    /// invoke the specified `overflowCb` and call `actionCb` again.  Return
+    /// result code returned from `action`
+    template <class ACTION_FUNCTOR_TYPE, class OVERFLOW_FUNCTOR_TYPE>
+    static bmqt::EventBuilderResult::Enum
+    buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
+               OVERFLOW_FUNCTOR_TYPE& overflowCb);
 
     /// Encode Receipt into the specified `blob` for the specified
     /// `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
@@ -704,6 +714,22 @@ inline bmqt::EventBuilderResult::Enum ProtocolUtil::buildEvent(
 
         overflowCb();
         rc = action();
+    }
+    return rc;
+};
+
+template <class ACTION_FUNCTOR_TYPE, class OVERFLOW_FUNCTOR_TYPE>
+inline bmqt::EventBuilderResult::Enum
+ProtocolUtil::buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
+                         OVERFLOW_FUNCTOR_TYPE& overflowCb)
+{
+    bmqt::EventBuilderResult::Enum rc = actionCb();
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            bmqt::EventBuilderResult::e_EVENT_TOO_BIG == rc)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        overflowCb();
+        rc = actionCb();
     }
     return rc;
 };
