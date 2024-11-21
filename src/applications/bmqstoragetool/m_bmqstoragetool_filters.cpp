@@ -51,16 +51,15 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     }
 }
 
-bool Filters::apply(const mqbs::MessageRecord& record,
-                    bsls::Types::Uint64        offset) const
+bool Filters::apply(const mqbs::RecordHeader& recordHeader,
+                    bsls::Types::Uint64       recordOffset,
+                    const mqbu::StorageKey&   queueKey) const
 {
     // Apply `queue key` filter
-    if (!d_queueKeys.empty()) {
+    if (queueKey != mqbu::StorageKey::k_NULL_KEY && !d_queueKeys.empty()) {
         // Match by queueKey
-        bsl::unordered_set<mqbu::StorageKey>::const_iterator it = bsl::find(
-            d_queueKeys.cbegin(),
-            d_queueKeys.cend(),
-            record.queueKey());
+        bsl::unordered_set<mqbu::StorageKey>::const_iterator it =
+            bsl::find(d_queueKeys.cbegin(), d_queueKeys.cend(), queueKey);
         if (it == d_queueKeys.cend()) {
             // Not matched
             return false;  // RETURN
@@ -71,18 +70,18 @@ bool Filters::apply(const mqbs::MessageRecord& record,
     bsls::Types::Uint64 value, valueGt, valueLt;
     switch (d_range.d_type) {
     case Parameters::Range::e_TIMESTAMP:
-        value   = record.header().timestamp();
+        value   = recordHeader.timestamp();
         valueGt = d_range.d_timestampGt;
         valueLt = d_range.d_timestampLt;
         break;
     case Parameters::Range::e_OFFSET:
-        value   = offset;
+        value   = recordOffset;
         valueGt = d_range.d_offsetGt;
         valueLt = d_range.d_offsetLt;
         break;
     case Parameters::Range::e_SEQUENCE_NUM: {
-        CompositeSequenceNumber seqNum(record.header().primaryLeaseId(),
-                                       record.header().sequenceNumber());
+        CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
+                                       recordHeader.sequenceNumber());
         return !(
             (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
             (d_range.d_seqNumLt.isSet() &&

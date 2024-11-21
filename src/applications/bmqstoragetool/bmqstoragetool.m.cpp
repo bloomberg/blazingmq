@@ -24,11 +24,44 @@
 
 // BDE
 #include <balcl_commandline.h>
+#include <bdls_filesystemutil.h>
 #include <bsl_iostream.h>
 #include <bslma_managedptr.h>
 
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
+
+namespace {
+
+bool isValidRecordType(const bsl::string* recordType, bsl::ostream& stream)
+{
+    static const bsl::array<bsl::string, 3> availableTypes{
+        CommandLineArguments::k_MESSAGE_TYPE,
+        CommandLineArguments::k_QUEUEOP_TYPE,
+        CommandLineArguments::k_JOURNAL_TYPE};
+
+    if (bsl::find(availableTypes.begin(), availableTypes.end(), *recordType) ==
+        availableTypes.end()) {
+        stream << "--record-type invalid: " << *recordType << bsl::endl;
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool isValidFileName(const bsl::string* fileName, bsl::ostream& stream)
+{
+    if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
+        stream << "The specified file does not exist: " << *fileName
+               << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+}  // close unnamed namespace
 
 static bool parseArgs(CommandLineArguments& arguments,
                       int                   argc,
@@ -37,7 +70,15 @@ static bool parseArgs(CommandLineArguments& arguments,
 {
     bool showHelp = false;
 
+    // bsl::vector<bsl::string> defaultType{ {k_MESSAGE_TYPE} };
+
     balcl::OptionInfo specTable[] = {
+        {"r|record-type",
+         "record-type",
+         "record type to search {message|queue-op|journal-op}",
+         balcl::TypeInfo(&arguments.d_recordType, isValidRecordType),
+         balcl::OccurrenceInfo(bsl::vector<bsl::string>(
+             {CommandLineArguments::k_MESSAGE_TYPE}))},
         {"journal-path",
          "journal path",
          "'*'-ended file path pattern, where the tool will try to find "
@@ -47,17 +88,17 @@ static bool parseArgs(CommandLineArguments& arguments,
         {"journal-file",
          "journal file",
          "path to a .bmq_journal file",
-         balcl::TypeInfo(&arguments.d_journalFile),
+         balcl::TypeInfo(&arguments.d_journalFile, isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"data-file",
          "data file",
          "path to a .bmq_data file",
-         balcl::TypeInfo(&arguments.d_dataFile),
+         balcl::TypeInfo(&arguments.d_dataFile, isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"csl-file",
          "csl file",
          "path to a .bmq_csl file",
-         balcl::TypeInfo(&arguments.d_cslFile),
+         balcl::TypeInfo(&arguments.d_cslFile, isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"guid",
          "guid",
@@ -148,8 +189,7 @@ static bool parseArgs(CommandLineArguments& arguments,
          balcl::OccurrenceInfo(1024)},
         {"summary",
          "summary",
-         "summary of all matching messages (number of outstanding messages "
-         "and other statistics)",
+         "summary of all matching records",
          balcl::TypeInfo(&arguments.d_summary),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"h|help",

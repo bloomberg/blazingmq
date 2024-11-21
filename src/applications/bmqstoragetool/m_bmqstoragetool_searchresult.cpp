@@ -232,6 +232,26 @@ bool SearchResultDecorator::processDeletionRecord(
                                                  recordOffset);
 }
 
+bool SearchResultDecorator::processQueueOpRecord(
+    const mqbs::QueueOpRecord& record,
+    bsls::Types::Uint64        recordIndex,
+    bsls::Types::Uint64        recordOffset)
+{
+    return d_searchResult->processQueueOpRecord(record,
+                                                recordIndex,
+                                                recordOffset);
+}
+
+bool SearchResultDecorator::processJournalOpRecord(
+    const mqbs::JournalOpRecord& record,
+    bsls::Types::Uint64          recordIndex,
+    bsls::Types::Uint64          recordOffset)
+{
+    return d_searchResult->processJournalOpRecord(record,
+                                                  recordIndex,
+                                                  recordOffset);
+}
+
 void SearchResultDecorator::outputResult()
 {
     d_searchResult->outputResult();
@@ -479,6 +499,24 @@ bool SearchShortResult::processDeletionRecord(
     return false;
 }
 
+bool SearchShortResult::processQueueOpRecord(
+    const mqbs::QueueOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_ostream << record << '\n';
+    return false;
+}
+
+bool SearchShortResult::processJournalOpRecord(
+    const mqbs::JournalOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_ostream << record << '\n';
+    return false;
+}
+
 void SearchShortResult::outputResult()
 {
     if (!d_printOnDelete) {
@@ -595,6 +633,30 @@ bool SearchDetailResult::processDeletionRecord(
         }
     }
 
+    return false;
+}
+
+bool SearchDetailResult::processQueueOpRecord(
+    const mqbs::QueueOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_ostream << "Record index: " << recordIndex
+              << ", offset: " << recordOffset << '\n'
+              << mqbs::RecordType::e_QUEUE_OP << " Record:" << '\n';
+    mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
+    return false;
+}
+
+bool SearchDetailResult::processJournalOpRecord(
+    const mqbs::JournalOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_ostream << "Record index: " << recordIndex
+              << ", offset: " << recordOffset << '\n'
+              << mqbs::RecordType::e_JOURNAL_OP << " Record:" << '\n';
+    mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
     return false;
 }
 
@@ -1032,15 +1094,21 @@ void SearchSequenceNumberDecorator::outputResult()
 // class SummaryProcessor
 // ======================
 
-SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
-                                   mqbs::JournalFileIterator* journalFile_p,
-                                   mqbs::DataFileIterator*    dataFile_p,
-                                   bslma::Allocator*          allocator)
+SummaryProcessor::SummaryProcessor(
+    bsl::ostream&                         ostream,
+    mqbs::JournalFileIterator*            journalFile_p,
+    mqbs::DataFileIterator*               dataFile_p,
+    const Parameters::ProcessRecordTypes& processRecordTypes,
+    bslma::Allocator*                     allocator)
 : d_ostream(ostream)
 , d_journalFile_p(journalFile_p)
 , d_dataFile_p(dataFile_p)
+, d_processRecordTypes(processRecordTypes)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
+, d_journalOpRecordsCount(0)
+, d_queueOpRecordsCount(0)
+, d_queueOpCountsMap(allocator)
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
 , d_allocator_p(allocator)
@@ -1090,24 +1158,81 @@ bool SummaryProcessor::processDeletionRecord(
     return false;
 }
 
+bool SummaryProcessor::processQueueOpRecord(
+    const mqbs::QueueOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_queueOpRecordsCount++;
+    d_queueOpCountsMap[record.type()]++;
+
+    return false;
+}
+
+bool SummaryProcessor::processJournalOpRecord(
+    BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
+{
+    d_journalOpRecordsCount++;
+
+    return false;
+}
+
 void SummaryProcessor::outputResult()
 {
-    if (d_foundMessagesCount == 0) {
-        d_ostream << "No messages found." << '\n';
-        return;  // RETURN
+    if (d_processRecordTypes.d_message) {
+        if (d_foundMessagesCount == 0) {
+            d_ostream << "No messages found." << '\n';
+        }
+        else {
+            d_ostream << d_foundMessagesCount << " message(s) found." << '\n';
+
+            bsl::vector<const char*> fields(d_allocator_p);
+            fields.push_back("Number of partially confirmed messages");
+            fields.push_back("Number of confirmed messages");
+            fields.push_back("Number of outstanding messages");
+            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            printer << d_deletedMessagesCount
+                    << d_partiallyConfirmedGuids.size()
+                    << (d_foundMessagesCount - d_deletedMessagesCount);
+
+            outputOutstandingRatio(d_ostream,
+                                   d_foundMessagesCount,
+                                   d_deletedMessagesCount);
+        }
     }
 
-    d_ostream << d_foundMessagesCount << " message(s) found." << '\n';
-    d_ostream << "Number of confirmed messages: " << d_deletedMessagesCount
-              << '\n';
-    d_ostream << "Number of partially confirmed messages: "
-              << d_partiallyConfirmedGuids.size() << '\n';
-    d_ostream << "Number of outstanding messages: "
-              << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
+    if (d_processRecordTypes.d_queueOp) {
+        if (d_queueOpRecordsCount == 0) {
+            d_ostream << "\nNo queueOp records found." << '\n';
+        }
+        else {
+            d_ostream << "\nTotal number of queueOp records: "
+                      << d_queueOpRecordsCount << '\n';
 
-    outputOutstandingRatio(d_ostream,
-                           d_foundMessagesCount,
-                           d_deletedMessagesCount);
+            bsl::vector<const char*> fields(d_allocator_p);
+            fields.push_back("Number of 'purge' operations");
+            fields.push_back("Number of 'creation' operations");
+            fields.push_back("Number of 'deletion' operations");
+            fields.push_back("Number of 'addition' operations");
+            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            printer << d_queueOpCountsMap[mqbs::QueueOpType::e_PURGE]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_CREATION]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_DELETION]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_ADDITION];
+        }
+    }
+
+    if (d_processRecordTypes.d_journalOp) {
+        if (d_journalOpRecordsCount == 0) {
+            d_ostream << "\nNo journalOp records found." << '\n';
+        }
+        else {
+            d_ostream << "\nNumber of journalOp records: "
+                      << d_journalOpRecordsCount << '\n';
+        }
+    }
 
     // Print meta data of opened files
     printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);

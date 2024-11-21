@@ -27,6 +27,7 @@
 #include <m_bmqstoragetool_parameters.h>
 
 // MQB
+#include <mqbs_filestoreprotocol.h>
 #include <mqbu_storagekey.h>
 
 // BDE
@@ -57,10 +58,12 @@ class Filters {
 
     // ACCESSORS
 
-    /// Apply filters at specified 'record' and return true if all filters
-    /// are matched, false otherwise.
-    bool apply(const mqbs::MessageRecord& record,
-               bsls::Types::Uint64        offset) const;
+    /// Apply filters at the record with the specified `recordHeader`,
+    /// `recordOffset` and `queueKey`. Return true if all filters are matched,
+    /// false otherwise.
+    bool apply(const mqbs::RecordHeader& recordHeader,
+               bsls::Types::Uint64       recordOffset,
+               const mqbu::StorageKey&   queueKey) const;
 };
 
 }  // close package namespace

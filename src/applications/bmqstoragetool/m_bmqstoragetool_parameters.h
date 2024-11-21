@@ -54,6 +54,12 @@ namespace m_bmqstoragetool {
 
 struct CommandLineArguments {
     // PUBLIC DATA
+    static const char* k_MESSAGE_TYPE;
+    static const char* k_QUEUEOP_TYPE;
+    static const char* k_JOURNAL_TYPE;
+    // Record types constants
+    bsl::vector<bsl::string> d_recordType;
+    // List of record types to process (message, journalOp, queueOp)
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
@@ -140,7 +146,23 @@ struct Parameters {
         explicit Range();
     };
 
+    // VST representing record types to process
+    struct ProcessRecordTypes {
+        // PUBLIC DATA
+        bool d_message;
+        // Flag to process records of type message
+        bool d_queueOp;
+        // Flag to process records of type queueOp
+        bool d_journalOp;
+        // Flag to process records of type journalOp
+
+        // CREATORS
+        explicit ProcessRecordTypes(bool enableDefault = true);
+    };
+
     // PUBLIC DATA
+    ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
     Range d_range;
