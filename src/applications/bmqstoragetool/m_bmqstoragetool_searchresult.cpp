@@ -15,6 +15,7 @@
 
 // bmqstoragetool
 #include "m_bmqstoragetool_compositesequencenumber.h"
+#include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_searchresult.h>
 
 // MQB
@@ -152,13 +153,13 @@ void outputGuidString(bsl::ostream&            ostream,
 }
 
 // Helper to calculate and print outstanding ratio
-void outputOutstandingRatio(bsl::ostream& ostream,
-                            bsl::size_t   totalMessagesCount,
-                            bsl::size_t   deletedMessagesCount)
+void outputOutstandingRatio(bsl::ostream&       ostream,
+                            bsls::Types::Uint64 totalMessagesCount,
+                            bsls::Types::Uint64 deletedMessagesCount)
 {
     if (totalMessagesCount > 0) {
-        bsl::size_t outstandingMessages = totalMessagesCount -
-                                          deletedMessagesCount;
+        bsls::Types::Uint64 outstandingMessages = totalMessagesCount -
+                                                  deletedMessagesCount;
         ostream << "Outstanding ratio: "
                 << static_cast<int>(bsl::floor(float(outstandingMessages) /
                                                    float(totalMessagesCount) *
@@ -170,13 +171,30 @@ void outputOutstandingRatio(bsl::ostream& ostream,
 }
 
 // Helper to print summary of search result
-void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
+void outputFooter(bsl::ostream&                         ostream,
+                  bsls::Types::Uint64                   foundMessagesCount,
+                  bsls::Types::Uint64                   foundQueueOpCount,
+                  bsls::Types::Uint64                   foundJournalOpCount,
+                  const Parameters::ProcessRecordTypes& processRecordTypes)
 {
-    const char* captionForFound    = " message GUID(s) found.";
-    const char* captionForNotFound = "No message GUID found.";
-    foundMessagesCount > 0 ? (ostream << foundMessagesCount << captionForFound)
-                           : ostream << captionForNotFound;
-    ostream << '\n';
+    if (processRecordTypes.d_message) {
+        foundMessagesCount > 0
+            ? (ostream << foundMessagesCount << " message GUID(s)")
+            : ostream << "No message GUID";
+        ostream << " found.\n";
+    }
+    if (processRecordTypes.d_queueOp) {
+        foundQueueOpCount > 0
+            ? (ostream << foundQueueOpCount << " queueOp record(s)")
+            : ostream << "No queueOp record";
+        ostream << " found.\n";
+    }
+    if (processRecordTypes.d_journalOp) {
+        foundJournalOpCount > 0
+            ? (ostream << foundJournalOpCount << " journalOp record(s)")
+            : ostream << "No journalOp record";
+        ostream << " found.\n";
+    }
 }
 
 }  // close unnamed namespace
@@ -433,18 +451,22 @@ bool SearchResultSequenceNumberDecorator::processDeletionRecord(
 // =======================
 
 SearchShortResult::SearchShortResult(
-    bsl::ostream&                     ostream,
-    bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-    bool                              printImmediately,
-    bool                              eraseDeleted,
-    bool                              printOnDelete,
-    bslma::Allocator*                 allocator)
+    bsl::ostream&                         ostream,
+    const Parameters::ProcessRecordTypes& processRecordTypes,
+    bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
+    bool                                  printImmediately,
+    bool                                  eraseDeleted,
+    bool                                  printOnDelete,
+    bslma::Allocator*                     allocator)
 : d_ostream(ostream)
+, d_processRecordTypes(processRecordTypes)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
 , d_printOnDelete(printOnDelete)
 , d_printedMessagesCount(0)
+, d_printedQueueOpCount(0)
+, d_printedJournalOpCount(0)
 , d_guidMap(allocator)
 , d_guidList(allocator)
 , d_allocator_p(allocator)
@@ -505,6 +527,7 @@ bool SearchShortResult::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     d_ostream << record << '\n';
+    d_printedQueueOpCount++;
     return false;
 }
 
@@ -514,6 +537,7 @@ bool SearchShortResult::processJournalOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     d_ostream << record << '\n';
+    d_printedJournalOpCount++;
     return false;
 }
 
@@ -527,7 +551,11 @@ void SearchShortResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    outputFooter(d_ostream,
+                 d_printedMessagesCount,
+                 d_printedQueueOpCount,
+                 d_printedJournalOpCount,
+                 d_processRecordTypes);
 }
 
 void SearchShortResult::outputResult(const GuidsList& guidFilter)
@@ -547,7 +575,11 @@ void SearchShortResult::outputResult(const GuidsList& guidFilter)
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    outputFooter(d_ostream,
+                 d_printedMessagesCount,
+                 d_printedQueueOpCount,
+                 d_printedJournalOpCount,
+                 d_processRecordTypes);
 }
 
 void SearchShortResult::outputGuidData(const GuidData& guidData)
@@ -569,20 +601,24 @@ bool SearchShortResult::hasCache() const
 // ========================
 
 SearchDetailResult::SearchDetailResult(
-    bsl::ostream&                     ostream,
-    const QueueMap&                   queueMap,
-    bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-    bool                              printImmediately,
-    bool                              eraseDeleted,
-    bool                              cleanUnprinted,
-    bslma::Allocator*                 allocator)
+    bsl::ostream&                         ostream,
+    const Parameters::ProcessRecordTypes& processRecordTypes,
+    const QueueMap&                       queueMap,
+    bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
+    bool                                  printImmediately,
+    bool                                  eraseDeleted,
+    bool                                  cleanUnprinted,
+    bslma::Allocator*                     allocator)
 : d_ostream(ostream)
+, d_processRecordTypes(processRecordTypes)
 , d_queueMap(queueMap)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
 , d_cleanUnprinted(cleanUnprinted)
 , d_printedMessagesCount(0)
+, d_printedQueueOpCount(0)
+, d_printedJournalOpCount(0)
 , d_messageDetailsList(allocator)
 , d_messageDetailsMap(allocator)
 , d_allocator_p(allocator)
@@ -641,10 +677,12 @@ bool SearchDetailResult::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
+    // TODO: must show queue uri, use custom printRecord()
     d_ostream << "Record index: " << recordIndex
               << ", offset: " << recordOffset << '\n'
               << mqbs::RecordType::e_QUEUE_OP << " Record:" << '\n';
     mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
+    d_printedQueueOpCount++;
     return false;
 }
 
@@ -657,6 +695,7 @@ bool SearchDetailResult::processJournalOpRecord(
               << ", offset: " << recordOffset << '\n'
               << mqbs::RecordType::e_JOURNAL_OP << " Record:" << '\n';
     mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
+    d_printedJournalOpCount++;
     return false;
 }
 
@@ -669,7 +708,11 @@ void SearchDetailResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    outputFooter(d_ostream,
+                 d_printedMessagesCount,
+                 d_printedQueueOpCount,
+                 d_printedJournalOpCount,
+                 d_processRecordTypes);
 }
 
 void SearchDetailResult::outputResult(const GuidsList& guidFilter)
@@ -689,7 +732,11 @@ void SearchDetailResult::outputResult(const GuidsList& guidFilter)
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    outputFooter(d_ostream,
+                 d_printedMessagesCount,
+                 d_printedQueueOpCount,
+                 d_printedJournalOpCount,
+                 d_processRecordTypes);
 }
 
 void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
