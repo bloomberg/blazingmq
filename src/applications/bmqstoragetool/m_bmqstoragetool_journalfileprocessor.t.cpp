@@ -1504,7 +1504,7 @@ static void test18_searchMessagesByOffsetsRange()
     const bsls::Types::Uint64 offsetLt =
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
-    // Configure parameters to search messages by timestamps
+    // Configure parameters to search messages by offsets
     Parameters params(s_allocator_p);
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
@@ -1549,6 +1549,255 @@ static void test18_searchMessagesByOffsetsRange()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
+static void test19_searchQueueOpRecords()
+// ------------------------------------------------------------------------
+// SEARCH QUEUE OP RECORDS
+//
+// Concerns:
+//   Search queueOP records by offsets range in journal file and output result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH QUEUE OP RECORDS TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
+                                 sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+
+    // Configure parameters to search queueOp records by offsets
+    Parameters params(s_allocator_p);
+    params.d_processRecordTypes.d_message = false;
+    params.d_processRecordTypes.d_queueOp = true;
+    params.d_range.d_offsetGt             = offsetGt;
+    params.d_range.d_offsetLt             = offsetLt;
+    params.d_range.d_type                 = Parameters::Range::e_OFFSET;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get queueOp records content within offsets range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t recCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_QUEUE_OP) {
+            const QueueOpRecord& queueOp =
+                *reinterpret_cast<const QueueOpRecord*>(
+                    recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                queueOp.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                expectedStream << queueOp << '\n';
+                recCnt++;
+            }
+        }
+    }
+    expectedStream << recCnt << " queueOp record(s) found.\n";
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test20_searchJournalOpRecords()
+// ------------------------------------------------------------------------
+// SEARCH JOURNAL OP RECORDS
+//
+// Concerns:
+//   Search journalOP records by offsets range in journal file and output
+//   result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH JOURNAL OP RECORDS TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
+                                 sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+
+    // Configure parameters to search journalOp records by offsets
+    Parameters params(s_allocator_p);
+    params.d_processRecordTypes.d_message   = false;
+    params.d_processRecordTypes.d_journalOp = true;
+    params.d_range.d_offsetGt               = offsetGt;
+    params.d_range.d_offsetLt               = offsetLt;
+    params.d_range.d_type                   = Parameters::Range::e_OFFSET;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get journalOp records content within offsets range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t recCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_JOURNAL_OP) {
+            const JournalOpRecord& journalOp =
+                *reinterpret_cast<const JournalOpRecord*>(
+                    recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                journalOp.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                expectedStream << journalOp << '\n';
+                recCnt++;
+            }
+        }
+    }
+    expectedStream << recCnt << " journalOp record(s) found.\n";
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test21_searchAllTypesRecords()
+// ------------------------------------------------------------------------
+// SEARCH ALL TYPES RECORDS
+//
+// Concerns:
+//   Search all types records by offsets range in journal file and output
+//   result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH ALL TYPES RECORDS TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
+                                 sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+
+    // Configure parameters to search journalOp records by offsets
+    Parameters params(s_allocator_p);
+    params.d_processRecordTypes.d_message   = true;
+    params.d_processRecordTypes.d_queueOp   = true;
+    params.d_processRecordTypes.d_journalOp = true;
+    params.d_range.d_offsetGt               = offsetGt;
+    params.d_range.d_offsetLt               = offsetLt;
+    params.d_range.d_type                   = Parameters::Range::e_OFFSET;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get all records content within offsets range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t msgCnt       = 0;
+    bsl::size_t queueOpCnt   = 0;
+    bsl::size_t journalOpCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                msg.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                outputGuidString(expectedStream, msg.messageGUID());
+                msgCnt++;
+            }
+        }
+        if (rtype == RecordType::e_QUEUE_OP) {
+            const QueueOpRecord& queueOp =
+                *reinterpret_cast<const QueueOpRecord*>(
+                    recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                queueOp.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                expectedStream << queueOp << '\n';
+                queueOpCnt++;
+            }
+        }
+        if (rtype == RecordType::e_JOURNAL_OP) {
+            const JournalOpRecord& journalOp =
+                *reinterpret_cast<const JournalOpRecord*>(
+                    recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                journalOp.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                expectedStream << journalOp << '\n';
+                journalOpCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+    expectedStream << queueOpCnt << " queueOp record(s) found.\n";
+    expectedStream << journalOpCnt << " journalOp record(s) found.\n";
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1577,6 +1826,9 @@ int main(int argc, char* argv[])
     case 16: test16_sequenceNumberLowerBoundTest(); break;
     case 17: test17_searchMessagesBySequenceNumbersRange(); break;
     case 18: test18_searchMessagesByOffsetsRange(); break;
+    case 19: test19_searchQueueOpRecords(); break;
+    case 20: test20_searchJournalOpRecords(); break;
+    case 21: test21_searchAllTypesRecords(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

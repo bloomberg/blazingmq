@@ -154,6 +154,8 @@ class SearchShortResult : public SearchResult {
 
     bsl::ostream& d_ostream;
     // Reference to output stream.
+    Parameters::ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -166,8 +168,12 @@ class SearchShortResult : public SearchResult {
     // further processing.
     const bool d_printOnDelete;
     // If 'true', print message guid when 'deleted' record is received.
-    bsl::size_t d_printedMessagesCount;
+    bsls::Types::Uint64 d_printedMessagesCount;
     // Counter of already output (printed) messages.
+    bsls::Types::Uint64 d_printedQueueOpCount;
+    // Counter of already output (printed) QueueOp records.
+    bsls::Types::Uint64 d_printedJournalOpCount;
+    // Counter of already output (printed) JournalOp records.
     GuidDataMap d_guidMap;
     // Map to store guid and list iterator, for fast searching by guid.
     bsl::list<GuidData> d_guidList;
@@ -185,12 +191,14 @@ class SearchShortResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
-    explicit SearchShortResult(bsl::ostream&                     ostream,
-                               bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-                               bool              printImmediately = true,
-                               bool              eraseDeleted     = false,
-                               bool              printOnDelete    = false,
-                               bslma::Allocator* allocator        = 0);
+    explicit SearchShortResult(
+        bsl::ostream&                         ostream,
+        const Parameters::ProcessRecordTypes& processRecordTypes,
+        bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
+        bool                                  printImmediately = true,
+        bool                                  eraseDeleted     = false,
+        bool                                  printOnDelete    = false,
+        bslma::Allocator*                     allocator        = 0);
 
     // MANIPULATORS
 
@@ -256,6 +264,8 @@ class SearchDetailResult : public SearchResult {
 
     bsl::ostream& d_ostream;
     // Reference to output stream.
+    Parameters::ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
@@ -271,8 +281,12 @@ class SearchDetailResult : public SearchResult {
     const bool d_cleanUnprinted;
     // If true, clean remaining data in MessagesDetails before printing final
     // result.
-    bsl::size_t d_printedMessagesCount;
+    bsls::Types::Uint64 d_printedMessagesCount;
     // Printed messages count.
+    bsls::Types::Uint64 d_printedQueueOpCount;
+    // Printed QueueOp records count.
+    bsls::Types::Uint64 d_printedJournalOpCount;
+    // Printed JournalOp records count.
     DetailsList d_messageDetailsList;
     // List of message details to preserve messages order for output.
     DetailsMap d_messageDetailsMap;
@@ -299,13 +313,15 @@ class SearchDetailResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
-    SearchDetailResult(bsl::ostream&                     ostream,
-                       const QueueMap&                   queueMap,
-                       bslma::ManagedPtr<PayloadDumper>& payloadDumper,
-                       bool              printImmediately = true,
-                       bool              eraseDeleted     = true,
-                       bool              cleanUnprinted   = false,
-                       bslma::Allocator* allocator        = 0);
+    SearchDetailResult(
+        bsl::ostream&                         ostream,
+        const Parameters::ProcessRecordTypes& processRecordTypes,
+        const QueueMap&                       queueMap,
+        bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
+        bool                                  printImmediately = true,
+        bool                                  eraseDeleted     = true,
+        bool                                  cleanUnprinted   = false,
+        bslma::Allocator*                     allocator        = 0);
 
     // MANIPULATORS
 
@@ -595,9 +611,9 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
     bsl::ostream& d_ostream;
     // Reference to output stream.
-    bsl::size_t d_foundMessagesCount;
+    bsls::Types::Uint64 d_foundMessagesCount;
     // Counter of found messages.
-    bsl::size_t d_deletedMessagesCount;
+    bsls::Types::Uint64 d_deletedMessagesCount;
     // Counter of deleted messages.
     bsl::unordered_set<bmqt::MessageGUID> d_guids;
     // Set of found non-deleted message GUIDs.
@@ -639,9 +655,9 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
 
     bsl::ostream& d_ostream;
     // Reference to output stream.
-    bsl::size_t d_foundMessagesCount;
+    bsls::Types::Uint64 d_foundMessagesCount;
     // Counter of found messages.
-    bsl::size_t d_deletedMessagesCount;
+    bsls::Types::Uint64 d_deletedMessagesCount;
     // Counter of deleted messages.
     GuidsList d_guidsList;
     // List of message guids to retain the order thir original order.
