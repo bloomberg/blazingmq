@@ -330,6 +330,11 @@ class FileStore : public DataStore {
     // Ordered list of records pending
     // Receipt.
 
+    ///
+    bsl::unordered_set<mqbi::Queue*> d_replicationNotificationsLookup;
+
+    bsl::vector<mqbi::Queue*> d_replicationNotifications;
+
     int d_replicationFactor;
 
     NodeReceiptContexts d_nodes;
@@ -755,13 +760,13 @@ class FileStore : public DataStore {
     /// `queueKey` and having specified `guid` and `attributes` to the data
     /// store, and update the specified `handle` with an identifier which
     /// can be used to retrieve the message.
-    int
-    writeMessageRecord(mqbi::StorageMessageAttributes*     attributes,
-                       DataStoreRecordHandle*              handle,
-                       const bmqt::MessageGUID&            guid,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       const bsl::shared_ptr<bdlbb::Blob>& options,
-                       const mqbu::StorageKey& queueKey) BSLS_KEYWORD_OVERRIDE;
+    int writeMessageRecord(mqbi::StorageMessageAttributes*     attributes,
+                           DataStoreRecordHandle*              handle,
+                           const bmqt::MessageGUID&            guid,
+                           const bsl::shared_ptr<bdlbb::Blob>& appData,
+                           const bsl::shared_ptr<bdlbb::Blob>& options,
+                           const mqbu::StorageKey&             queueKey,
+                           mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
 
     /// Qlist related
     /// -------------

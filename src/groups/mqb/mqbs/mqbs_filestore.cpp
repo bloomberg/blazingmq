@@ -5151,6 +5151,8 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_lastSyncPtReceived(false)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
+, d_replicationNotificationsLookup(allocator)
+, d_replicationNotifications(allocator)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
 , d_lastRecoveredStrongConsistency()
@@ -5374,7 +5376,8 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                   const bmqt::MessageGUID&        guid,
                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
                                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                                  const mqbu::StorageKey&             queueKey)
+                                  const mqbu::StorageKey&             queueKey,
+                                  mqbi::Queue*                        queue)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -5560,6 +5563,13 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                           1,  // receipt count
                                           attributes->queueHandle())));
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
+    }
+    else {
+        if (d_replicationNotificationsLookup.find(queue) ==
+            d_replicationNotificationsLookup.end()) {
+            d_replicationNotifications.push_back(queue);
+            d_replicationNotificationsLookup.insert(queue);
+        }
     }
 
     // Replicate the message.
@@ -6918,13 +6928,11 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
     if (queues && d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
         // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
-            }
+        for (size_t i = 0; i < d_replicationNotifications.size(); i++) {
+            d_replicationNotifications[i]->onReplicatedBatch();
         }
+        d_replicationNotificationsLookup.clear();
+        d_replicationNotifications.clear();
     }
 }
 
@@ -6933,13 +6941,11 @@ void FileStore::notifyQueuesOnReplicatedBatch()
     if (d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
         // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
-            }
+        for (size_t i = 0; i < d_replicationNotifications.size(); i++) {
+            d_replicationNotifications[i]->onReplicatedBatch();
         }
+        d_replicationNotificationsLookup.clear();
+        d_replicationNotifications.clear();
     }
 }
 
