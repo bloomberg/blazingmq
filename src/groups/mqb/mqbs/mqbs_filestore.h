@@ -331,8 +331,8 @@ class FileStore : public DataStore {
     // Receipt.
 
     /// For weak consistency only.
-    /// The container holding keys to storages where we put messages since the
-    /// last storage event builder flush.  Used to notify these queues on
+    /// The container that holds keys to storages where we put messages since
+    /// the last storage event builder flush.  Used to notify these queues on
     /// replication complete, so they change from processing PUTs to PUSHes.
     bsl::unordered_set<mqbu::StorageKey> d_replicationNotifications;
 
