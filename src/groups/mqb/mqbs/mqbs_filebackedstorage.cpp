@@ -305,15 +305,13 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     }
 
     // Update
-    // only for weak consistency
     DataStoreRecordHandle handle;
     int                   rc = d_store_p->writeMessageRecord(attributes,
                                            &handle,
                                            msgGUID,
                                            appData,
                                            options,
-                                           d_queueKey,
-                                           queue());
+                                           d_queueKey);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 

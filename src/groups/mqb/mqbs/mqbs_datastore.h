@@ -584,8 +584,7 @@ class DataStore : public mqbi::DispatcherClient {
                                    const bmqt::MessageGUID&        guid,
                                    const bsl::shared_ptr<bdlbb::Blob>& appData,
                                    const bsl::shared_ptr<bdlbb::Blob>& options,
-                                   const mqbu::StorageKey& queueKey,
-                                   mqbi::Queue*            queue) = 0;
+                                   const mqbu::StorageKey& queueKey) = 0;
 
     /// Queue List related
     /// -------------

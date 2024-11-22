@@ -5151,7 +5151,6 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_lastSyncPtReceived(false)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
-, d_replicationNotificationsLookup(allocator)
 , d_replicationNotifications(allocator)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
@@ -5376,8 +5375,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                   const bmqt::MessageGUID&        guid,
                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
                                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                                  const mqbu::StorageKey&             queueKey,
-                                  mqbi::Queue*                        queue)
+                                  const mqbu::StorageKey&             queueKey)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -5565,10 +5563,9 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
     }
     else {
-        if (d_replicationNotificationsLookup.find(queue) ==
-            d_replicationNotificationsLookup.end()) {
-            d_replicationNotifications.push_back(queue);
-            d_replicationNotificationsLookup.insert(queue);
+        if (d_replicationNotifications.find(queueKey) ==
+            d_replicationNotifications.end()) {
+            d_replicationNotifications.insert(queueKey);
         }
     }
 
@@ -6928,10 +6925,18 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
     if (queues && d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
         // good time to flush queues.
-        for (size_t i = 0; i < d_replicationNotifications.size(); i++) {
-            d_replicationNotifications[i]->onReplicatedBatch();
+        for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
+                 d_replicationNotifications.begin();
+             it != d_replicationNotifications.end();
+             it++) {
+            StoragesMap::iterator storageIt = d_storages.find(*it);
+            if (storageIt != d_storages.end()) {
+                ReplicatedStorage* rs = storageIt->second;
+                if (rs->queue()) {
+                    rs->queue()->onReplicatedBatch();
+                }
+            }
         }
-        d_replicationNotificationsLookup.clear();
         d_replicationNotifications.clear();
     }
 }
@@ -6941,10 +6946,18 @@ void FileStore::notifyQueuesOnReplicatedBatch()
     if (d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
         // good time to flush queues.
-        for (size_t i = 0; i < d_replicationNotifications.size(); i++) {
-            d_replicationNotifications[i]->onReplicatedBatch();
+        for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
+                 d_replicationNotifications.begin();
+             it != d_replicationNotifications.end();
+             it++) {
+            StoragesMap::iterator storageIt = d_storages.find(*it);
+            if (storageIt != d_storages.end()) {
+                ReplicatedStorage* rs = storageIt->second;
+                if (rs->queue()) {
+                    rs->queue()->onReplicatedBatch();
+                }
+            }
         }
-        d_replicationNotificationsLookup.clear();
         d_replicationNotifications.clear();
     }
 }
