@@ -6924,7 +6924,7 @@ void FileStore::dispatcherFlush(bool storage, bool queues)
     }
     if (queues && d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
+        // good time to flush weak consistency queues.
         for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
                  d_replicationNotifications.begin();
              it != d_replicationNotifications.end();
@@ -6945,7 +6945,7 @@ void FileStore::notifyQueuesOnReplicatedBatch()
 {
     if (d_storageEventBuilder.messageCount() == 0) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
+        // good time to flush weak consistency queues.
         for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
                  d_replicationNotifications.begin();
              it != d_replicationNotifications.end();

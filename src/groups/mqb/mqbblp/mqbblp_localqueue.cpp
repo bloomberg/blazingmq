@@ -500,10 +500,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(res ==
                                             mqbi::StorageResult::e_SUCCESS)) {
-        // Upd
         // Message has been saved in the storage, but we don't indicate the
-        // engine yet of the new message, instead we just update the
-        // 'd_hasNewMessages' flag.  This is because storage (replicated)
+        // engine yet of the new message.  This is because storage (replicated)
         // messages are nagled, and we don't want to indicate to a peer to
         // deliver a particular guid downstream, before actually replicating
         // that message.  So notification to deliver a particular guid
