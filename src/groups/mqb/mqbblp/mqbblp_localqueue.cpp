@@ -66,7 +66,6 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 , d_state_p(state)
 , d_queueEngine_mp(0)
 , d_throttledFailedPutMessages(5000, 1)  // 1 log per 5s interval
-, d_hasNewMessages(false)
 , d_throttledDuplicateMessages()
 , d_haveStrongConsistency(false)
 {
@@ -501,6 +500,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(res ==
                                             mqbi::StorageResult::e_SUCCESS)) {
+        // Upd
         // Message has been saved in the storage, but we don't indicate the
         // engine yet of the new message, instead we just update the
         // 'd_hasNewMessages' flag.  This is because storage (replicated)
@@ -513,10 +513,6 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
         d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
                                    appData->length());
-
-        if (haveReceipt && refCount) {
-            d_hasNewMessages = true;
-        }
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -572,8 +568,6 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
         // filled downstream.
         qH->onAckMessage(ackMessage);
     }  // else the handle is gone
-
-    d_hasNewMessages = true;
 }
 
 void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
@@ -601,12 +595,8 @@ void LocalQueue::deliverIfNeeded()
 {
     // Now that storage messages have been flushed, notify the engine (and thus
     // any peer or downstream client) to deliver next applicable message.
-
-    if (d_hasNewMessages) {
-        d_hasNewMessages = false;
-        d_queueEngine_mp->afterNewMessage(bmqt::MessageGUID(),
-                                          static_cast<mqbi::QueueHandle*>(0));
-    }
+    d_queueEngine_mp->afterNewMessage(bmqt::MessageGUID(),
+                                      static_cast<mqbi::QueueHandle*>(0));
 }
 
 void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
