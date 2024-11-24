@@ -58,8 +58,7 @@ static void test1_basic()
                                                      itApp);
 
     ps.add(element);
-    ps.remove(element);
-    ps.destroy(element, false);
+    ps.remove(element, true);
 }
 
 static void test2_iterations()
@@ -183,10 +182,8 @@ static void test2_iterations()
         ASSERT(vit.atEnd());
     }
 
-    ps.remove(element2);
-    ps.destroy(element2, false);
-    ps.remove(element3);
-    ps.destroy(element3, false);
+    ps.remove(element2, true);
+    ps.remove(element3, true);
 }
 
 // ============================================================================

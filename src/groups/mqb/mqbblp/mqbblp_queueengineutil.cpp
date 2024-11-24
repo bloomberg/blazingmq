@@ -633,7 +633,8 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
     mqbi::Queue*      queue,
     bslma::Allocator* allocator)
 : d_consumers(allocator)
-, d_isReady(false)
+, d_numApps(0)
+, d_numStops(0)
 , d_currentMessage(0)
 , d_queue_p(queue)
 , d_timeDelta()
@@ -652,25 +653,26 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
     BSLS_ASSERT_SAFE(queue);
 }
 
-void QueueEngineUtil_AppsDeliveryContext::start()
-{
-    d_isReady = true;
-}
-
 bool QueueEngineUtil_AppsDeliveryContext::reset(
     mqbi::StorageIterator* currentMessage)
 {
     d_consumers.clear();
     d_timeDelta.reset();
 
-    if (!d_isReady) {
-        return false;  // RETURN
+    bool result = false;
+
+    if (haveProgress() && currentMessage && currentMessage->hasReceipt()) {
+        d_currentMessage = currentMessage;
+        result           = true;
+    }
+    else {
+        d_currentMessage = 0;
     }
 
-    d_currentMessage = currentMessage;
-    d_isReady        = false;
+    d_numApps  = 0;
+    d_numStops = 0;
 
-    return d_currentMessage ? d_currentMessage->hasReceipt() : false;
+    return result;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
@@ -679,11 +681,11 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 {
     BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
 
+    ++d_numApps;
+
     if (d_queue_p->isDeliverAll()) {
         // collect all handles
         app.routing()->iterateConsumers(d_broadcastVisitor, d_currentMessage);
-
-        d_isReady = true;
 
         // Broadcast does not need stats nor any special per-message treatment.
         return false;  // RETURN
@@ -695,6 +697,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
             // The queue iterator can advance leaving the 'app' behind.
             app.setResumePoint(d_currentMessage->guid());
         }
+        ++d_numStops;
         // else the existing resumePoint is earlier (if authorized)
         return false;  // RETURN
     }
@@ -703,7 +706,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
         ordinal);
 
     if (!appView.isNew()) {
-        d_isReady = true;
         return true;  // RETURN
     }
 
@@ -736,7 +738,9 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         // Early return.
         // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
-        // (d_isReady == false).
+        // (d_numApps == 0).
+
+        ++d_numStops;
 
         return false;  // RETURN
     }
@@ -750,7 +754,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     }
 
     // Still making progress (result != Routers::e_NO_CAPACITY_ALL)
-    d_isReady = true;
 
     return (result == Routers::e_SUCCESS);
 }
@@ -811,7 +814,7 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
         }
     }
 
-    if (d_isReady) {
+    if (haveProgress()) {
         d_currentMessage->advance();
     }
 
@@ -821,6 +824,11 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
 bool QueueEngineUtil_AppsDeliveryContext::isEmpty() const
 {
     return d_consumers.empty();
+}
+
+bool QueueEngineUtil_AppsDeliveryContext::haveProgress() const
+{
+    return (d_numStops < d_numApps || d_numApps == 0);
 }
 
 bsls::Types::Int64 QueueEngineUtil_AppsDeliveryContext::timeDelta()

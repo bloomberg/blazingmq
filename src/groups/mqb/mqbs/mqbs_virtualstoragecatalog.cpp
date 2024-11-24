@@ -422,9 +422,10 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
         appOrdinal = d_nextOrdinal++;
     }
     else {
-        appOrdinal = d_availableOrdinals.front();
+        AvailableOrdinals::const_iterator first = d_availableOrdinals.cbegin();
+        appOrdinal                              = *first;
         // There is no conflict because everything 'appOrdinal' was removed.
-        d_availableOrdinals.pop_front();
+        d_availableOrdinals.erase(first);
     }
 
     BSLS_ASSERT_SAFE(appOrdinal <= d_virtualStorages.size());
@@ -468,7 +469,7 @@ bool VirtualStorageCatalog::removeVirtualStorage(
         removeAll(appKey);
 
         const VirtualStorage& vs = *it->value();
-        d_availableOrdinals.push_back(vs.ordinal());
+        d_availableOrdinals.insert(vs.ordinal());
 
         if (d_queue_p) {
             BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
