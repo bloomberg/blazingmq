@@ -822,6 +822,7 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_totalRecordsCount(0)
 , d_queueRecordsMap(allocator)
 , d_otherRecordsCounts(allocator)
+, d_queueAppRecordsMap(allocator)
 , d_queueQueueOpRecordsMap(allocator)
 , d_queueMessageRecordsMap(allocator)
 , d_queueConfirmRecordsMap(allocator)
@@ -863,7 +864,7 @@ bool SummaryProcessor::processConfirmRecord(
     }
 
     d_queueRecordsMap[record.queueKey()]++;
-    // d_queueAppRecordsMap[record.AppKey()]++;
+    d_queueAppRecordsMap[record.queueKey()][record.appKey()]++;
     
     d_queueConfirmRecordsMap[record.queueKey()]++;
 
@@ -890,7 +891,6 @@ bool SummaryProcessor::processDeletionRecord(
 
     return false;
 }
-
 
 bool SummaryProcessor::processQueueOpRecord(
     const mqbs::QueueOpRecord& record,
@@ -932,7 +932,6 @@ void SummaryProcessor::outputResult()
     // Check if queueInfo is present for queue key
     bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
     
-
     if (d_foundMessagesCount == 0) {
         d_ostream << "No messages found." << '\n';
         return;  // RETURN
@@ -964,7 +963,7 @@ void SummaryProcessor::outputResult()
     fields.push_back("Num Queue Op Records");
     fields.push_back("Num Message Records");
     fields.push_back("Num Confirm Records");
-    // fields.push_back("Confirm Records Per App");
+    fields.push_back("Confirm Records Per App");
     fields.push_back("Num Delete Records");
 
     for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
@@ -986,7 +985,11 @@ void SummaryProcessor::outputResult()
         printer << d_queueQueueOpRecordsMap[qKey];
         printer << d_queueMessageRecordsMap[qKey];
         printer << d_queueConfirmRecordsMap[qKey];
-        // printer << d_queueAppRecordsMap[qKey];
+        bsl::stringstream ss;
+        for(QueueRecordsMap::iterator it = d_queueAppRecordsMap[qKey].begin(); it != d_queueAppRecordsMap[qKey].end(); ++it) {
+            ss << it->first << "=" << it->second << " ";
+        }
+        printer << ss.str();
         printer << d_queueDeleteRecordsMap[qKey];
     }
 

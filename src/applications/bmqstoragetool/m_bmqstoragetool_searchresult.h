@@ -597,15 +597,11 @@ class SearchGuidDecorator : public SearchResultDecorator {
 class SummaryProcessor : public SearchResult {
   private:
     // PTIVATE TYPES
-    // struct RecordTypeHash {
-    //   bsl::size_t operator()(mqbs::RecordType rt) const {
-    //       return bsl::hash<int>()(static_cast<int>(rt));
-    //   }
-    // };
 
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
-    typedef bsl::unordered_map<mqbu::StorageKey, bsl::size_t> QueueRecordsMap;
-    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsl::size_t> OtherRecordsMap;
+    typedef bsl::unordered_map<mqbu::StorageKey, bsls::Types::Uint64> QueueRecordsMap;
+    typedef bsl::unordered_map<mqbu::StorageKey, QueueRecordsMap> QueueAppRecordsMap;
+    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsls::Types::Uint64> OtherRecordsMap;
     // Set of message guids.
 
     // PRIVATE DATA
@@ -630,6 +626,7 @@ class SummaryProcessor : public SearchResult {
 
     QueueRecordsMap d_queueRecordsMap;
     OtherRecordsMap d_otherRecordsCounts;
+    QueueAppRecordsMap d_queueAppRecordsMap;
     
     QueueRecordsMap d_queueQueueOpRecordsMap;
     QueueRecordsMap d_queueMessageRecordsMap;
