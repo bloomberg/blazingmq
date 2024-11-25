@@ -1,0 +1,66 @@
+name: Dependencies
+
+on:
+  workflow_call:
+    outputs:
+      cache_key:
+        description: "GH Actions Cache key associated with the built dependencies"
+        value: ${{ jobs.build_dependencies.outputs.cache_key }}
+
+concurrency:
+  group: deps-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build_dependencies:
+    name: Build [ubuntu]
+    runs-on: ubuntu-latest
+    outputs:
+      cache_key: ${{ steps.get-cache-key.outputs.cache_key }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate dependencies cache key
+        id: get-cache-key
+        run: |
+          echo "cache_key=deps-`date +%y-%m-%d`-`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
+
+      - name: Cache lookup
+        uses: actions/cache/restore@v4
+        id: cache-lookup
+        with:
+          path: deps
+          key: ${{ steps.get-cache-key.outputs.cache_key }}
+          lookup-only: true
+
+      - name: Set up build dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -qy build-essential \
+            gdb \
+            curl \
+            python3.10 \
+            python3-pip \
+            cmake \
+            ninja-build \
+            pkg-config \
+            bison \
+            libfl-dev \
+            libbenchmark-dev \
+            libgmock-dev \
+            libz-dev
+
+      - name: Fetch & build non packaged dependencies
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p deps
+          cd deps
+          ../docker/build_deps.sh
+
+      - name: Cache save
+        if: steps.cache-lookup.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: deps
+          key: ${{ steps.get-cache-key.outputs.cache_key }}
