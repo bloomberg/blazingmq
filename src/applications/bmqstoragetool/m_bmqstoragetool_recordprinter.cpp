@@ -146,7 +146,7 @@ void printRecord(bsl::ostream&                  stream,
         appKeyStr << rec.appKey();
     }
 
-    bsl::string appIdStr;
+    bsl::string appIdStr(allocator);
     if (queueInfo_p) {
         if (!findQueueAppIdByAppKey(&appIdStr,
                                     queueInfo_p->appIds(),
@@ -213,6 +213,78 @@ void printRecord(bsl::ostream&                  stream,
     if (queueInfo_p)
         printer << queueInfo_p->uri();
     printer << rec.deletionRecordFlag() << rec.messageGUID();
+    stream << "\n";
+}
+
+void printRecord(bsl::ostream&                  stream,
+                 const mqbs::QueueOpRecord&     rec,
+                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                 bslma::Allocator*              allocator)
+
+{
+    bsl::vector<const char*> fields(allocator);
+    fields.push_back("PrimaryLeaseId");
+    fields.push_back("SequenceNumber");
+    fields.push_back("Timestamp");
+    fields.push_back("Epoch");
+    fields.push_back("QueueKey");
+    if (queueInfo_p)
+        fields.push_back("QueueUri");
+    fields.push_back("AppKey");
+    if (queueInfo_p)
+        fields.push_back("AppId");
+    fields.push_back("QueueOpType");
+    if (mqbs::QueueOpType::e_CREATION == rec.type() ||
+        mqbs::QueueOpType::e_ADDITION == rec.type()) {
+        fields.push_back("QLIST OffsetWords");
+    }
+
+    bmqu::MemOutStream queueKeyStr(allocator), appKeyStr(allocator);
+    queueKeyStr << rec.queueKey();
+
+    if (rec.appKey().isNull()) {
+        appKeyStr << "** NULL **";
+    }
+    else {
+        appKeyStr << rec.appKey();
+    }
+
+    bsl::string appIdStr(allocator);
+    if (queueInfo_p) {
+        if (!findQueueAppIdByAppKey(&appIdStr,
+                                    queueInfo_p->appIds(),
+                                    rec.appKey())) {
+            appIdStr = "** NULL **";
+        }
+    }
+
+    bmqu::AlignedPrinter printer(stream, &fields);
+    printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
+
+    bsls::Types::Uint64 epochValue = rec.header().timestamp();
+    bdlt::Datetime      datetime;
+    int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    if (0 != rc) {
+        printer << 0;
+    }
+    else {
+        printer << datetime;
+    }
+    printer << epochValue << queueKeyStr.str();
+    if (queueInfo_p)
+        printer << queueInfo_p->uri();
+
+    printer << appKeyStr.str();
+    if (queueInfo_p)
+        printer << appIdStr;
+
+    printer << rec.type();
+
+    if (mqbs::QueueOpType::e_CREATION == rec.type() ||
+        mqbs::QueueOpType::e_ADDITION == rec.type()) {
+        printer << rec.queueUriRecordOffsetWords();
+    }
+
     stream << "\n";
 }
 

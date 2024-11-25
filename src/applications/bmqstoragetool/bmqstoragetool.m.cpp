@@ -35,13 +35,9 @@ namespace {
 
 bool isValidRecordType(const bsl::string* recordType, bsl::ostream& stream)
 {
-    static const bsl::array<bsl::string, 3> availableTypes{
-        CommandLineArguments::k_MESSAGE_TYPE,
-        CommandLineArguments::k_QUEUEOP_TYPE,
-        CommandLineArguments::k_JOURNAL_TYPE};
-
-    if (bsl::find(availableTypes.begin(), availableTypes.end(), *recordType) ==
-        availableTypes.end()) {
+    if (*recordType != CommandLineArguments::k_MESSAGE_TYPE &&
+        *recordType != CommandLineArguments::k_QUEUEOP_TYPE &&
+        *recordType != CommandLineArguments::k_JOURNAL_TYPE) {
         stream << "--record-type invalid: " << *recordType << bsl::endl;
         return false;  // RETURN
     }
