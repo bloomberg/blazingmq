@@ -272,7 +272,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    bool
+    void
     setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
 
     virtual void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;

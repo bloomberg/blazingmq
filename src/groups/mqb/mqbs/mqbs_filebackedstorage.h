@@ -367,7 +367,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    bool
+    void
     setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this storage.

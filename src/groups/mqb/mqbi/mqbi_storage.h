@@ -410,7 +410,7 @@ class Storage {
 
     /// Set the consistency level associated to this storage to the specified
     /// `value`.
-    virtual bool setConsistency(const mqbconfm::Consistency& value) = 0;
+    virtual void setConsistency(const mqbconfm::Consistency& value) = 0;
 
     virtual void setQueue(mqbi::Queue* queue) = 0;
 

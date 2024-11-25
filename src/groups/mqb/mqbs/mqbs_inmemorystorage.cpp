@@ -110,7 +110,7 @@ int InMemoryStorage::configure(
     return 0;
 }
 
-bool InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
+void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
 {
     BALL_LOG_WARN_BLOCK
     {

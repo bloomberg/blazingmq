@@ -248,7 +248,7 @@ int FileBackedStorage::configure(
     return 0;
 }
 
-bool FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)
+void FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(value.isEventualValue() || value.isStrongValue());
