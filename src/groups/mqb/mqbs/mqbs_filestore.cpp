@@ -6962,6 +6962,15 @@ void FileStore::notifyQueuesOnReplicatedBatch()
     }
 }
 
+void FileStore::cancelReplicationNotification(const mqbu::StorageKey& queueKey)
+{
+    bsl::unordered_set<mqbu::StorageKey>::iterator it =
+        d_replicationNotifications.find(queueKey);
+    if (it != d_replicationNotifications.end()) {
+        d_replicationNotifications.erase(it);
+    }
+}
+
 bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
 {
     if (!d_isOpen) {

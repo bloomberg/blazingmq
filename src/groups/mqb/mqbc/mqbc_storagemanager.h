@@ -1046,6 +1046,13 @@ class StorageManager
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() BSLS_KEYWORD_OVERRIDE;
 
+    /// Cancel replication notification (if any) for the specified `queueKey`.
+    /// Thread: executed by QUEUE dispatcher thread associated with the
+    ///         specified `partitionId`.
+    void cancelReplicationNotification(int                     partitionId,
+                                       const mqbu::StorageKey& queueKey)
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id. Note, this modifiable reference to partition is only

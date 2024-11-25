@@ -185,6 +185,16 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         domainCfg.storage().queueLimits().bytes());
 
     if (isReconfigure) {
+        if (domainCfg.consistency().isStrongValue()) {
+            /// We register notifications for weak consistency queues to
+            /// deliver messages after any replication.  For strong consistency
+            /// queues, we start to PUSH only on receipt.  We have to check and
+            /// possibly remove from notifications the queues that changed
+            /// their consistency level from weak to strong.
+            d_state_p->storageManager()->cancelReplicationNotification(
+                d_state_p->partitionId(),
+                d_state_p->key());
+        }
         if (domainCfg.mode().isFanoutValue()) {
             d_state_p->stats().updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());

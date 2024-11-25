@@ -270,6 +270,13 @@ class StorageManager : public mqbi::StorageManager {
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() BSLS_KEYWORD_OVERRIDE;
 
+    /// Cancel replication notification (if any) for the specified `queueKey`.
+    /// Thread: executed by QUEUE dispatcher thread associated with the
+    ///         specified `partitionId`.
+    void cancelReplicationNotification(int                     partitionId,
+                                       const mqbu::StorageKey& queueKey)
+        BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
 
     /// Return the processor handle in charge of the specified

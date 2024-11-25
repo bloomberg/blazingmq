@@ -413,6 +413,13 @@ class StorageManager {
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;
 
+    /// Cancel replication notification (if any) for the specified `queueKey`.
+    /// Thread: executed by QUEUE dispatcher thread associated with the
+    ///         specified `partitionId`.
+    virtual void
+    cancelReplicationNotification(int                     partitionId,
+                                  const mqbu::StorageKey& queueKey) = 0;
+
     // ACCESSORS
 
     /// Return the processor handle in charge of the specified

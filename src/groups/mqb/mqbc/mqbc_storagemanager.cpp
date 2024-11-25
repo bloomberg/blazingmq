@@ -4474,6 +4474,21 @@ void StorageManager::gcUnrecognizedDomainQueues()
                                             d_unrecognizedDomains);
 }
 
+void StorageManager::cancelReplicationNotification(
+    int                     partitionId,
+    const mqbu::StorageKey& queueKey)
+{
+    // executed by *QUEUE* dispatcher thread associated with partitionId
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    fs->cancelReplicationNotification(queueKey);
+}
+
 mqbs::FileStore& StorageManager::fileStore(int partitionId)
 {
     // PRECONDITIONS
