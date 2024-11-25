@@ -3210,6 +3210,8 @@ int StorageUtil::makeStorage(bsl::ostream& errorDescription,
     // Configure the storage.  Note that if a queue calls 'makeStorage' twice,
     // its storage will be configured twice as things are currently.
 
+    // Do not change consistency level of `storageSp`, use the one provided on
+    // construction instead.
     const int rc = storageSp->configure(errorDescription,
                                         storageDef.config(),
                                         storageDef.queueLimits(),

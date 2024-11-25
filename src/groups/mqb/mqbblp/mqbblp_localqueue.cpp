@@ -139,6 +139,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         d_state_p->setStorage(storageMp);
     }
     else {
+        d_state_p->storage()->setConsistency(domainCfg.consistency());
         rc = d_state_p->storage()->configure(errorDescription,
                                              domainCfg.storage().config(),
                                              domainCfg.storage().queueLimits(),

@@ -408,6 +408,10 @@ class Storage {
                           const bsls::Types::Int64 messageTtl,
                           const int                maxDeliveryAttempts) = 0;
 
+    /// Set the consistency level associated to this storage to the specified
+    /// `value`.
+    virtual bool setConsistency(const mqbconfm::Consistency& value) = 0;
+
     virtual void setQueue(mqbi::Queue* queue) = 0;
 
     /// Close this storage.

@@ -248,6 +248,14 @@ int FileBackedStorage::configure(
     return 0;
 }
 
+bool FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value.isEventualValue() || value.isStrongValue());
+
+    d_hasReceipts = value.isEventualValue();
+}
+
 void FileBackedStorage::setQueue(mqbi::Queue* queue)
 {
     d_virtualStorageCatalog.setQueue(queue);

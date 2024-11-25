@@ -203,7 +203,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bmqp::SchemaLearner::Context d_schemaLearnerContext;
     // Context for replicated data.
 
-    const bool d_hasReceipts;
+    bool d_hasReceipts;
 
     bmqt::MessageGUID d_currentlyAutoConfirming;
     // Message being evaluated and possibly auto confirmed.
@@ -364,6 +364,11 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                           const mqbconfm::Limits&  limits,
                           const bsls::Types::Int64 messageTtl,
                           int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the consistency level associated to this storage to the specified
+    /// `value`.
+    bool
+    setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
