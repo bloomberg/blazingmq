@@ -615,14 +615,16 @@ class SummaryProcessor : public SearchResult {
     GuidsSet d_partiallyConfirmedGuids;
     // Set of message guids. Messages stored here have at leas one confirmation
     // message and no delete message associated with them.
-    bslma::Allocator* d_allocator_p;
-    // Pointer to allocator that is used inside the class.
 
     QueueRecordsMap d_queueRecordsMap;
     OtherRecordsMap d_otherRecordsCounts;
 
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
+
+    
+    bslma::Allocator* d_allocator_p;
+    // Pointer to allocator that is used inside the class.
 
   public:
     // CREATORS

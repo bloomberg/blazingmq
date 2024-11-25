@@ -800,10 +800,10 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_dataFile_p(dataFile_p)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
-, d_otherRecordsCounts(allocator)
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
 , d_queueRecordsMap(allocator)
+, d_otherRecordsCounts(allocator)
 , d_queueMap(queueMap)
 , d_allocator_p(allocator)
 {
@@ -888,22 +888,31 @@ void SummaryProcessor::outputResult()
         d_ostream << "Number of " << it->first<< " records: " << it->second << "\n";
     }
 
+    // Print information per Queue:
+    d_ostream << "Number of records per Queue:\n";
+
+    bsl::vector<const char*> fields(d_allocator_p);
+    fields.push_back("Queue Name");
+    fields.push_back("Num Records");
+
     for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
+        bmqu::AlignedPrinter printer(d_ostream, &fields);
+
         const mqbu::StorageKey& qKey = it->first;
         const bool              queueInfoPresent = d_queueMap.findInfoByKey(
             &queueInfo,
             qKey
         );
-        bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
 
-        d_ostream << "Number of records per Queue ";
-        if (queueInfo_p) {
-            d_ostream << queueInfo_p->uri();
+        if (queueInfoPresent) {
+            printer << queueInfo.uri();
         } else {
-            d_ostream << qKey;
+            printer << qKey;
         }
-        d_ostream <<  ": " << it->second << "\n";
+
+        printer << it->second;
     }
+
 
     // Print meta data of opened files
     printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);
