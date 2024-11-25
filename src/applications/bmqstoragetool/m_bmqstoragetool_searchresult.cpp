@@ -16,6 +16,7 @@
 // bmqstoragetool
 #include "m_bmqstoragetool_compositesequencenumber.h"
 #include "m_bmqstoragetool_parameters.h"
+#include <m_bmqstoragetool_recordprinter.h>
 #include <m_bmqstoragetool_searchresult.h>
 
 // MQB
@@ -677,12 +678,18 @@ bool SearchDetailResult::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    // TODO: must show queue uri, use custom printRecord()
+    bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
+    const bool queueInfoPresent          = d_queueMap.findInfoByKey(&queueInfo,
+                                                           record.queueKey());
+    bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
+
     d_ostream << "Record index: " << recordIndex
               << ", offset: " << recordOffset << '\n'
               << mqbs::RecordType::e_QUEUE_OP << " Record:" << '\n';
-    mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
+    RecordPrinter::printRecord(d_ostream, record, queueInfo_p, d_allocator_p);
+
     d_printedQueueOpCount++;
+
     return false;
 }
 
@@ -695,7 +702,9 @@ bool SearchDetailResult::processJournalOpRecord(
               << ", offset: " << recordOffset << '\n'
               << mqbs::RecordType::e_JOURNAL_OP << " Record:" << '\n';
     mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
+
     d_printedJournalOpCount++;
+
     return false;
 }
 

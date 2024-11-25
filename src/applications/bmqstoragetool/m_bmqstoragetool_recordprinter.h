@@ -66,6 +66,14 @@ void printRecord(bsl::ostream&                  stream,
                  const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
                  bslma::Allocator*              allocator);
 
+/// Print the specified queueOp record `rec` and QueueInfo pointed by the
+/// specified `queueInfo_p` to the specified `stream`, using the specified
+/// `allocator` for memory allocation.
+void printRecord(bsl::ostream&                  stream,
+                 const mqbs::QueueOpRecord&     rec,
+                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
+                 bslma::Allocator*              allocator);
+
 /// Find AppId in the specified `appIds` by the specified `appKey` and store
 /// the result in the specified `appId`. Return `true` on success and `false
 /// otherwise.
