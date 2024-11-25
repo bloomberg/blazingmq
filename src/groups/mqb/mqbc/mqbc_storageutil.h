@@ -181,9 +181,8 @@ struct StorageUtil {
     /// Load into the specified `addedAppInfos` and
     /// `removedAppInfos` the appId/key pairs which have been added and
     /// removed respectively for the specified `storage` based on the
-    /// specified `newAppInfos` or `cfgAppIds`, as well as the
-    /// specified `isCSLMode` mode.  Return true if there are any added or
-    /// removed appId/key pairs, false otherwise.
+    /// specified `newAppInfos`.  Return true if there are any added or removed
+    /// appId/key pairs, false otherwise.
     ///
     /// THREAD: Executed by the cluster dispatcher thread.
     static bool loadUpdatedAppInfos(AppInfos* addedAppInfos,

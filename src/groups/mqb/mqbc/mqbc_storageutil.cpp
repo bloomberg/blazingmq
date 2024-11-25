@@ -2351,16 +2351,25 @@ void StorageUtil::registerQueue(
     storageMap->insert(bsl::make_pair(uri, storageSp));
 
     bmqu::MemOutStream errorDesc;
-    int                rc = 0;
+    bool               result = true;
     AppInfos           appIdKeyPairsToUse;
     if (queueMode.isFanoutValue()) {
         if (cluster->isCSLModeEnabled() || !appIdKeyPairs.empty()) {
             for (AppInfosCIter citer = appIdKeyPairs.begin();
                  citer != appIdKeyPairs.end();
                  ++citer) {
-                rc = storageSp->addVirtualStorage(errorDesc,
-                                                  citer->first,
-                                                  citer->second);
+                int rc = storageSp->addVirtualStorage(errorDesc,
+                                                      citer->first,
+                                                      citer->second);
+                if (rc) {
+                    BMQTSK_ALARMLOG_ALARM("STORAGE")
+                        << "Partition [" << partitionId
+                        << "] VirtualStorage creation error " << rc
+                        << " while registering App ['" << citer->first << "', "
+                        << citer->second << "] for '" << uri << "', queueKey '"
+                        << queueKey << "." << BMQTSK_ALARMLOG_END;
+                    result = false;
+                }
             }
 
             appIdKeyPairsToUse = appIdKeyPairs;
@@ -2381,9 +2390,22 @@ void StorageUtil::registerQueue(
                  ++citer) {
                 mqbu::StorageKey appKey = generateAppKey(&appKeys, *citer);
 
-                rc = storageSp->addVirtualStorage(errorDesc, *citer, appKey);
-
                 appIdKeyPairsToUse.emplace(bsl::make_pair(*citer, appKey));
+
+                int rc = storageSp->addVirtualStorage(errorDesc,
+                                                      *citer,
+                                                      appKey);
+
+                if (rc) {
+                    BMQTSK_ALARMLOG_ALARM("STORAGE")
+                        << "Partition [" << partitionId
+                        << "] VirtualStorage creation error " << rc
+                        << " while registering App ['" << *citer << "', "
+                        << appKey << "] for '" << uri << "', queueKey '"
+                        << queueKey << "." << BMQTSK_ALARMLOG_END;
+
+                    result = false;
+                }
             }
         }
     }
@@ -2394,14 +2416,23 @@ void StorageUtil::registerQueue(
         // VirtualStorage to the storage - just like in the Fanout case,
         // except it is harcoded '__default' appId.
 
-        rc = storageSp->addVirtualStorage(
+        int rc = storageSp->addVirtualStorage(
             errorDesc,
             bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
             mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+
+        if (rc) {
+            BMQTSK_ALARMLOG_ALARM("STORAGE")
+                << "Partition [" << partitionId
+                << "] VirtualStorage creation error " << rc
+                << " while registering the default for '" << uri
+                << "', queueKey '" << queueKey << "." << BMQTSK_ALARMLOG_END;
+            result = false;
+        }
     }
 
-    BSLS_ASSERT_SAFE(rc == 0);
-    static_cast<void>(rc);
+    BSLS_ASSERT_SAFE(result);
+    static_cast<void>(result);
 
     // Dispatch the registration of storage with the partition in appropriate
     // thread.
