@@ -179,6 +179,20 @@ void JournalFileProcessor::process()
                 record,
                 iter->recordIndex(),
                 iter->recordOffset());
+        } else if (iter->recordType() == mqbs::RecordType::e_QUEUE_OP) {
+            const mqbs::QueueOpRecord& record = iter->asQueueOpRecord();
+
+            stopSearch = d_searchResult_p->processQueueOpRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
+        } else if (iter->recordType() == mqbs::RecordType::e_JOURNAL_OP) {
+            const mqbs::JournalOpRecord& record = iter->asJournalOpRecord();
+
+            stopSearch = d_searchResult_p->processJournalOpRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
         } else {
             stopSearch = d_searchResult_p->processOtherRecord(
                 iter->recordType());

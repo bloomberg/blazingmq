@@ -184,6 +184,22 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 // class SearchResult
 // ==================
 
+bool SearchResult::processQueueOpRecord(
+    BSLS_ANNOTATION_UNUSED const mqbs::QueueOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordOffset)
+{
+    return false;
+}
+
+bool SearchResult::processJournalOpRecord(
+    BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordOffset)
+{
+    return false;
+}
+
 bool SearchResult::processOtherRecord(
     BSLS_ANNOTATION_UNUSED mqbs::RecordType::Enum recordType)
 {
@@ -236,6 +252,7 @@ bool SearchResultDecorator::processDeletionRecord(
                                                  recordIndex,
                                                  recordOffset);
 }
+
 
 void SearchResultDecorator::outputResult()
 {
@@ -802,8 +819,13 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_deletedMessagesCount(0)
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
+, d_totalRecordsCount(0)
 , d_queueRecordsMap(allocator)
 , d_otherRecordsCounts(allocator)
+, d_queueQueueOpRecordsMap(allocator)
+, d_queueMessageRecordsMap(allocator)
+, d_queueConfirmRecordsMap(allocator)
+, d_queueDeleteRecordsMap(allocator)
 , d_queueMap(queueMap)
 , d_allocator_p(allocator)
 {
@@ -815,10 +837,13 @@ bool SummaryProcessor::processMessageRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
+    handleAnyRecordType();
+
     d_notConfirmedGuids.emplace(record.messageGUID());
     d_foundMessagesCount++;
 
     d_queueRecordsMap[record.queueKey()]++;
+    d_queueMessageRecordsMap[record.queueKey()]++;
 
     return false;
 }
@@ -828,12 +853,19 @@ bool SummaryProcessor::processConfirmRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
+    handleAnyRecordType();
+
     GuidsSet::iterator it = d_notConfirmedGuids.find(record.messageGUID());
     if (it != d_notConfirmedGuids.end()) {
         // Message is partially confirmed, move it to the dedeicated set.
         d_partiallyConfirmedGuids.emplace(*it);
         d_notConfirmedGuids.erase(it);
     }
+
+    d_queueRecordsMap[record.queueKey()]++;
+    // d_queueAppRecordsMap[record.AppKey()]++;
+    
+    d_queueConfirmRecordsMap[record.queueKey()]++;
 
     return false;
 }
@@ -843,6 +875,8 @@ bool SummaryProcessor::processDeletionRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
+    handleAnyRecordType();
+
     GuidsSet::iterator it = d_partiallyConfirmedGuids.find(
         record.messageGUID());
     if (it != d_partiallyConfirmedGuids.end()) {
@@ -851,15 +885,47 @@ bool SummaryProcessor::processDeletionRecord(
         d_deletedMessagesCount++;
     }
 
+    d_queueRecordsMap[record.queueKey()]++;
+    d_queueDeleteRecordsMap[record.queueKey()]++;
+
+    return false;
+}
+
+
+bool SummaryProcessor::processQueueOpRecord(
+    const mqbs::QueueOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordOffset)
+{
+    handleAnyRecordType();
+
+    d_queueRecordsMap[record.queueKey()]++;
+    d_queueQueueOpRecordsMap[record.queueKey()]++;
+
+    return false;
+}
+
+bool SummaryProcessor::processJournalOpRecord(
+    BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordOffset)
+{
+    handleAnyRecordType();
+
+    d_otherRecordsCounts[mqbs::RecordType::Enum::e_JOURNAL_OP]++;
+
     return false;
 }
 
 bool SummaryProcessor::processOtherRecord(mqbs::RecordType::Enum recordType)
 {
+    handleAnyRecordType();
+   
     d_otherRecordsCounts[recordType]++;
 
     return false;
 }
+
 
 void SummaryProcessor::outputResult()
 {
@@ -884,6 +950,7 @@ void SummaryProcessor::outputResult()
                            d_foundMessagesCount,
                            d_deletedMessagesCount);
 
+    d_ostream << "Total number of records: " << d_totalRecordsCount << "\n";
     for(OtherRecordsMap::iterator it = d_otherRecordsCounts.begin(); it != d_otherRecordsCounts.end(); ++it) {
         d_ostream << "Number of " << it->first<< " records: " << it->second << "\n";
     }
@@ -892,8 +959,13 @@ void SummaryProcessor::outputResult()
     d_ostream << "Number of records per Queue:\n";
 
     bsl::vector<const char*> fields(d_allocator_p);
-    fields.push_back("Queue Name");
-    fields.push_back("Num Records");
+    fields.push_back("Queue");
+    fields.push_back("Total Records");
+    fields.push_back("Num Queue Op Records");
+    fields.push_back("Num Message Records");
+    fields.push_back("Num Confirm Records");
+    // fields.push_back("Confirm Records Per App");
+    fields.push_back("Num Delete Records");
 
     for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
         bmqu::AlignedPrinter printer(d_ostream, &fields);
@@ -911,6 +983,11 @@ void SummaryProcessor::outputResult()
         }
 
         printer << it->second;
+        printer << d_queueQueueOpRecordsMap[qKey];
+        printer << d_queueMessageRecordsMap[qKey];
+        printer << d_queueConfirmRecordsMap[qKey];
+        // printer << d_queueAppRecordsMap[qKey];
+        printer << d_queueDeleteRecordsMap[qKey];
     }
 
 
