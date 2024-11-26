@@ -126,7 +126,7 @@ static void test2_defaultHashUniqueness()
 //   hash.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -151,7 +151,8 @@ static void test2_defaultHashUniqueness()
     typedef bsl::vector<mqbs::DataStoreRecordKey> Keys;
 
     // hash -> vector of corresponding DataStoreRecordKeys
-    bsl::unordered_map<size_t, Keys> hashes(s_allocator_p);
+    bsl::unordered_map<size_t, Keys> hashes(
+        bmqtst::TestHelperUtil::allocator());
     hashes.reserve(k_NUM_KEYS);
 
     bsl::hash<mqbs::DataStoreRecordKey> hasher;
@@ -179,7 +180,8 @@ static void test2_defaultHashUniqueness()
 
     ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
-    if (s_verbosityLevel >= 1 || maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
+        maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
              << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << endl
              << "Max collisions.....................: " << maxCollisions
@@ -212,7 +214,7 @@ static void test3_customHashUniqueness()
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -234,7 +236,8 @@ static void test3_customHashUniqueness()
     typedef bsl::vector<mqbs::DataStoreRecordKey> Keys;
 
     // hash -> vector of corresponding Keys
-    bsl::unordered_map<size_t, Keys> hashes(s_allocator_p);
+    bsl::unordered_map<size_t, Keys> hashes(
+        bmqtst::TestHelperUtil::allocator());
 
     hashes.reserve(k_NUM_KEYS);
 
@@ -263,7 +266,8 @@ static void test3_customHashUniqueness()
 
     ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
-    if (s_verbosityLevel >= 1 || maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
+        maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
              << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << endl
              << "Max collisions.....................: " << maxCollisions
@@ -364,8 +368,9 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
     const size_t             k_NUM_ELEMS = 10000000;  // 10M
     mqbs::DataStoreRecordKey key;
 
-    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(k_NUM_ELEMS,
-                                                              s_allocator_p);
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(
+        k_NUM_ELEMS,
+        bmqtst::TestHelperUtil::allocator());
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
@@ -408,7 +413,7 @@ static void testN4_orderedMapWithCustomHashBenchmark()
     bmqc::OrderedHashMap<mqbs::DataStoreRecordKey,
                          size_t,
                          mqbs::DataStoreRecordKeyHashAlgo>
-        ht(k_NUM_ELEMS, s_allocator_p);
+        ht(k_NUM_ELEMS, bmqtst::TestHelperUtil::allocator());
 
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -501,8 +506,9 @@ static void testN3_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 
     mqbs::DataStoreRecordKey key;
 
-    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(state.range(0),
-                                                              s_allocator_p);
+    bmqc::OrderedHashMap<mqbs::DataStoreRecordKey, size_t> ht(
+        state.range(0),
+        bmqtst::TestHelperUtil::allocator());
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
         ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
@@ -536,7 +542,7 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<mqbs::DataStoreRecordKey,
                          size_t,
                          mqbs::DataStoreRecordKeyHashAlgo>
-        ht(state.range(0), s_allocator_p);
+        ht(state.range(0), bmqtst::TestHelperUtil::allocator());
 
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
@@ -590,7 +596,7 @@ int main(int argc, char* argv[])
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 #ifdef BSLS_PLATFORM_OS_LINUX

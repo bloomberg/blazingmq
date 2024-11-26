@@ -85,7 +85,8 @@ static void test1_addFindRemove()
 {
     bmqtst::TestHelper::printTestName("ADD FIND REMOVE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID emptyGuid;
@@ -140,8 +141,9 @@ static void test2_iterateAndInvoke()
 {
     bmqtst::TestHelper::printTestName("ITERATE AND INVOKE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
-    IterateAndInvokeHelper                helper(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
+    IterateAndInvokeHelper helper(bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
@@ -177,8 +179,9 @@ static void test3_associate()
 {
     bmqtst::TestHelper::printTestName("ASSOCIATE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
-    IterateAndInvokeHelper                helper(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
+    IterateAndInvokeHelper helper(bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
@@ -228,7 +231,7 @@ int main(int argc, char* argv[])
     case 1: test1_addFindRemove(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

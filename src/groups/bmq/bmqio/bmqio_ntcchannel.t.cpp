@@ -170,18 +170,20 @@ Tester::Tester(bslma::Allocator* basicAllocator)
 , d_blobBufferFactory_sp()
 , d_interface_sp()
 , d_listener_sp()
-, d_listenResultCallback(bdlf::BindUtil::bindS(s_allocator_p,
-                                               &Tester::onChannelResult,
-                                               this,
-                                               bdlf::PlaceHolders::_1,
-                                               bdlf::PlaceHolders::_2,
-                                               bdlf::PlaceHolders::_3))
-, d_connectResultCallback(bdlf::BindUtil::bindS(s_allocator_p,
-                                                &Tester::onChannelResult,
-                                                this,
-                                                bdlf::PlaceHolders::_1,
-                                                bdlf::PlaceHolders::_2,
-                                                bdlf::PlaceHolders::_3))
+, d_listenResultCallback(
+      bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                            &Tester::onChannelResult,
+                            this,
+                            bdlf::PlaceHolders::_1,
+                            bdlf::PlaceHolders::_2,
+                            bdlf::PlaceHolders::_3))
+, d_connectResultCallback(
+      bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                            &Tester::onChannelResult,
+                            this,
+                            bdlf::PlaceHolders::_1,
+                            bdlf::PlaceHolders::_2,
+                            bdlf::PlaceHolders::_3))
 , d_listenChannels(d_allocator_p)
 , d_connectChannels(d_allocator_p)
 , d_semaphore()
@@ -237,7 +239,7 @@ void Tester::onAcceptConnection(
 
     ntsa::Error error = acceptor->accept(
         ntca::AcceptOptions(),
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &Tester::onAcceptConnection,
                               this,
                               bdlf::PlaceHolders::_1,
@@ -353,27 +355,29 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    Tester tester(s_allocator_p);
+    Tester tester(bmqtst::TestHelperUtil::allocator());
     tester.init();
 
     bsl::shared_ptr<bmqio::NtcChannel> channel = tester.connect();
-    bdlbb::PooledBlobBufferFactory     blobFactory(4096, s_allocator_p);
-    bdlbb::Blob                        blob(&blobFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory     blobFactory(
+        4096,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&blobFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::string           message("test", s_allocator_p);
+    bsl::string           message("test", bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<char> messagePtr;
     messagePtr.reset(message.data(),
                      bslstl::SharedPtrNilDeleter(),
-                     s_allocator_p);
+                     bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobBuffer buffer(messagePtr, message.size());
 
     blob.appendDataBuffer(buffer);
-    bmqio::Status status(s_allocator_p);
+    bmqio::Status status(bmqtst::TestHelperUtil::allocator());
     channel->write(&status, blob);
     ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
 
     bmqio::Channel::CloseFn closeCb = bdlf::BindUtil::bindS(
-        s_allocator_p,
+        bmqtst::TestHelperUtil::allocator(),
         executeOnClosedChannelFunc,
         channel.get(),
         bdlf::PlaceHolders::_1);
@@ -395,7 +399,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

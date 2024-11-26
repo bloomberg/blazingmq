@@ -44,7 +44,7 @@ static void test1_breathingTest()
     // acceptable (and this test driver needs fixing) or BDE will need to
     // make a new component with the changes and keep
     // `bdesb_MemOutStreamBuf` as it is.
-    bslma::TestAllocator alloc(s_allocator_p);
+    bslma::TestAllocator alloc(bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream obj(&alloc);
 
@@ -106,7 +106,7 @@ static void test2_usageExample()
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
-    bmqu::MemOutStream obj(30, s_allocator_p);
+    bmqu::MemOutStream obj(30, bmqtst::TestHelperUtil::allocator());
     obj << "hello world";
     ASSERT_EQ(obj.str(), "hello world");
 }
@@ -125,7 +125,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

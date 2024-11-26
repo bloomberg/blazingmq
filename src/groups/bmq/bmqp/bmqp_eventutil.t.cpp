@@ -248,9 +248,13 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PushEventBuilder pushEventBuilder(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>      data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PushEventBuilder pushEventBuilder(
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
     int                    payloadLength    = 0;
     int                    numSubQueueInfos = 0;
     int                    rc               = 0;
@@ -263,7 +267,7 @@ static void test1_breathingTest()
                 numSubQueueInfos,
                 payloadLength,
                 &bufferFactory,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
     // Msg2
     payloadLength    = generateRandomInteger(1, 120);
@@ -272,7 +276,7 @@ static void test1_breathingTest()
                 numSubQueueInfos,
                 payloadLength,
                 &bufferFactory,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
     // Msg3
     payloadLength    = generateRandomInteger(1, 120);
@@ -281,7 +285,7 @@ static void test1_breathingTest()
                 numSubQueueInfos,
                 payloadLength,
                 &bufferFactory,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
     // Msg4
     payloadLength    = generateRandomInteger(1, 120);
@@ -290,7 +294,7 @@ static void test1_breathingTest()
                 numSubQueueInfos,
                 payloadLength,
                 &bufferFactory,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
     // Msg5
     payloadLength    = generateRandomInteger(1, 120);
@@ -299,24 +303,29 @@ static void test1_breathingTest()
                 numSubQueueInfos,
                 payloadLength,
                 &bufferFactory,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()), s_allocator_p);
+    bmqp::Event event(&(pushEventBuilder.blob()),
+                      bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
-    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(s_allocator_p);
-    rc = bmqp::EventUtil::flattenPushEvent(&eventInfos,
-                                           event,
-                                           &bufferFactory,
-                                           s_allocator_p);
+    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
+        bmqtst::TestHelperUtil::allocator());
+    rc = bmqp::EventUtil::flattenPushEvent(
+        &eventInfos,
+        event,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 1u);
 
     // 3) Verify that the flattened event has the expected messages.
-    bmqp::Event flattenedEvent(&(eventInfos[0].d_blob), s_allocator_p);
-    bmqp::PushMessageIterator msgIterator(&bufferFactory, s_allocator_p);
+    bmqp::Event               flattenedEvent(&(eventInfos[0].d_blob),
+                               bmqtst::TestHelperUtil::allocator());
+    bmqp::PushMessageIterator msgIterator(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
     flattenedEvent.loadPushMessageIterator(&msgIterator, true);
 
     for (bsl::vector<Data>::size_type i = 0; i < data.size(); ++i) {
@@ -333,7 +342,8 @@ static void test1_breathingTest()
             rc = msgIterator.next();
             BSLS_ASSERT_OPT(rc == 1);
 
-            bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+            bdlbb::Blob payload(&bufferFactory,
+                                bmqtst::TestHelperUtil::allocator());
             rc = msgIterator.loadMessagePayload(&payload);
             BSLS_ASSERT_OPT(rc == 0);
 
@@ -362,20 +372,22 @@ static void test1_breathingTest()
             BSLS_ASSERT_OPT(rc == 1);
             BSLS_ASSERT_OPT(msgIterator.hasOptions());
 
-            bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+            bdlbb::Blob payload(&bufferFactory,
+                                bmqtst::TestHelperUtil::allocator());
             rc = msgIterator.loadMessagePayload(&payload);
             BSLS_ASSERT_OPT(rc == 0);
 
             ASSERT_EQ(bdlbb::BlobUtil::compare(D.d_payload, payload), 0);
 
-            bmqp::OptionsView optionsView(s_allocator_p);
+            bmqp::OptionsView optionsView(bmqtst::TestHelperUtil::allocator());
             rc = msgIterator.loadOptionsView(&optionsView);
             BSLS_ASSERT_OPT(rc == 0);
             BSLS_ASSERT_OPT(optionsView.isValid());
             BSLS_ASSERT_OPT(
                 optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
                 optionsView.end());
-            bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+            bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+                bmqtst::TestHelperUtil::allocator());
             rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
             BSLS_ASSERT_OPT(rc == 0);
             BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
@@ -397,7 +409,7 @@ static void test1_breathingTest()
         //
         // TBD: figure out the right way to "fix" this.
 
-        Data dummy(&bufferFactory, s_allocator_p);
+        Data dummy(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         static_cast<void>(
             static_cast<
                 bslmf::NestedTraitDeclaration<Data,
@@ -434,9 +446,13 @@ static void test2_flattenExplodesEvent()
 {
     bmqtst::TestHelper::printTestName("FLATTEN EXPLODES EVENT");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PushEventBuilder pushEventBuilder(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>      data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PushEventBuilder pushEventBuilder(
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
     int                    payloadLength  = 0;
     int                    numSubQueueIds = 0;
     int                    rc             = 0;
@@ -455,31 +471,36 @@ static void test2_flattenExplodesEvent()
                     numSubQueueIds,
                     payloadLength,
                     &bufferFactory,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
         total += data[count].d_payload.length();
         ++count;
     }
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()), s_allocator_p);
+    bmqp::Event event(&(pushEventBuilder.blob()),
+                      bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
-    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(s_allocator_p);
-    rc = bmqp::EventUtil::flattenPushEvent(&eventInfos,
-                                           event,
-                                           &bufferFactory,
-                                           s_allocator_p);
+    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
+        bmqtst::TestHelperUtil::allocator());
+    rc = bmqp::EventUtil::flattenPushEvent(
+        &eventInfos,
+        event,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 2u);
 
     // 3) Verify that the flattening results in two event blobs, each having
     //    two messages with one SubQueueId each.
-    bmqp::PushMessageIterator msgIterator(&bufferFactory, s_allocator_p);
+    bmqp::PushMessageIterator msgIterator(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
     int                       idx = 0;
 
     // 1st flattened event
-    bmqp::Event flattenedEvent1(&(eventInfos[0].d_blob), s_allocator_p);
+    bmqp::Event flattenedEvent1(&(eventInfos[0].d_blob),
+                                bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(eventInfos[0].d_ids.size(),
               static_cast<size_t>(count * numSubQueueIds - 1));
 
@@ -493,7 +514,8 @@ static void test2_flattenExplodesEvent()
 
     // Verify payload
     {
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
@@ -502,14 +524,15 @@ static void test2_flattenExplodesEvent()
 
     // Verify SubQueueInfos
     {
-        bmqp::OptionsView optionsView(s_allocator_p);
+        bmqp::OptionsView optionsView(bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadOptionsView(&optionsView);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(optionsView.isValid());
         BSLS_ASSERT_OPT(
             optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
             optionsView.end());
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+        bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
         rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
@@ -535,7 +558,8 @@ static void test2_flattenExplodesEvent()
 
     // Verify payload
     {
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
@@ -544,14 +568,15 @@ static void test2_flattenExplodesEvent()
 
     // Verify SubQueueInfos
     {
-        bmqp::OptionsView optionsView(s_allocator_p);
+        bmqp::OptionsView optionsView(bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadOptionsView(&optionsView);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(optionsView.isValid());
         BSLS_ASSERT_OPT(
             optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
             optionsView.end());
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+        bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
         rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
@@ -562,7 +587,8 @@ static void test2_flattenExplodesEvent()
     idx = count - 1;  // the last one did not fit the first event
 
     // 2nd flattened event
-    bmqp::Event flattenedEvent2(&(eventInfos[1].d_blob), s_allocator_p);
+    bmqp::Event flattenedEvent2(&(eventInfos[1].d_blob),
+                                bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(eventInfos[1].d_ids.size(), 1u);
 
     flattenedEvent2.loadPushMessageIterator(&msgIterator, true);
@@ -575,7 +601,8 @@ static void test2_flattenExplodesEvent()
 
     // Verify payload
     {
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadMessagePayload(&payload);
         BSLS_ASSERT_OPT(rc == 0);
 
@@ -584,14 +611,15 @@ static void test2_flattenExplodesEvent()
 
     // Verify SubQueueInfos
     {
-        bmqp::OptionsView optionsView(s_allocator_p);
+        bmqp::OptionsView optionsView(bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadOptionsView(&optionsView);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(optionsView.isValid());
         BSLS_ASSERT_OPT(
             optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
             optionsView.end());
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+        bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
         rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
@@ -641,10 +669,14 @@ static void test3_flattenWithMessageProperties()
 {
     bmqtst::TestHelper::printTestName("FLATTEN WITH MESSAGE PROPERTIES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::MessageProperties        msgProperties(s_allocator_p);
-    bdlbb::Blob                    appData(s_allocator_p);
-    bmqp::PushEventBuilder pushEventBuilder(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties msgProperties(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob             appData(bmqtst::TestHelperUtil::allocator());
+    bmqp::PushEventBuilder  pushEventBuilder(
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::EventBuilderResult::Enum result;
     int                            payloadLength    = 0;
     int                            numSubQueueInfos = 0;
@@ -654,7 +686,7 @@ static void test3_flattenWithMessageProperties()
 
     // 1) Create an event composed of one message having message properties
     //    and two SubQueueIds.
-    Data datum(&bufferFactory, s_allocator_p);
+    Data datum(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bmqp::PushHeaderFlagUtil::setFlag(
         &flags,
@@ -714,24 +746,29 @@ static void test3_flattenWithMessageProperties()
                                           logic);
     BSLS_ASSERT_OPT(result == bmqt::EventBuilderResult::e_SUCCESS);
 
-    bmqp::Event event(&(pushEventBuilder.blob()), s_allocator_p);
+    bmqp::Event event(&(pushEventBuilder.blob()),
+                      bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event.
-    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(s_allocator_p);
-    rc = bmqp::EventUtil::flattenPushEvent(&eventInfos,
-                                           event,
-                                           &bufferFactory,
-                                           s_allocator_p);
+    bsl::vector<bmqp::EventUtilEventInfo> eventInfos(
+        bmqtst::TestHelperUtil::allocator());
+    rc = bmqp::EventUtil::flattenPushEvent(
+        &eventInfos,
+        event,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 1U);
 
     // 3) Verify that the flattening results in one event blob containing
     //    two messages with the original message properties and message
     //    payload and corresponding to the respective SubQueueIds.
-    bmqp::Event flattenedEvent(&(eventInfos[0].d_blob), s_allocator_p);
+    bmqp::Event flattenedEvent(&(eventInfos[0].d_blob),
+                               bmqtst::TestHelperUtil::allocator());
     ASSERT(flattenedEvent.isPushEvent());
 
-    bmqp::PushMessageIterator msgIterator(&bufferFactory, s_allocator_p);
+    bmqp::PushMessageIterator msgIterator(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
     flattenedEvent.loadPushMessageIterator(&msgIterator, true);
 
     for (bmqp::Protocol::SubQueueInfosArray::size_type i = 0;
@@ -742,35 +779,39 @@ static void test3_flattenWithMessageProperties()
         BSLS_ASSERT_OPT(msgIterator.hasOptions());
 
         // Verify msgProperties
-        bdlbb::Blob properties(&bufferFactory, s_allocator_p);
+        bdlbb::Blob properties(&bufferFactory,
+                               bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadMessageProperties(&properties);
         P(msgIterator.messagePropertiesSize());
         ASSERT_EQ(rc, 0);
         ASSERT_EQ(bdlbb::BlobUtil::compare(datum.d_properties, properties), 0);
 
         // Verify msgPayload
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadMessagePayload(&payload);
         P(msgIterator.messagePayloadSize());
         ASSERT_EQ(rc, 0);
         ASSERT_EQ(bdlbb::BlobUtil::compare(datum.d_payload, payload), 0);
 
         // Verify applicationData (msgProperties + msgPayload)
-        bdlbb::Blob applicationData(&bufferFactory, s_allocator_p);
+        bdlbb::Blob applicationData(&bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
         rc = msgIterator.loadApplicationData(&applicationData);
         P(msgIterator.applicationDataSize());
         ASSERT_EQ(rc, 0);
         ASSERT_EQ(bdlbb::BlobUtil::compare(appData, applicationData), 0);
 
         // Verify subQueueInfo
-        bmqp::OptionsView optionsView(s_allocator_p);
+        bmqp::OptionsView optionsView(bmqtst::TestHelperUtil::allocator());
         msgIterator.loadOptionsView(&optionsView);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(optionsView.isValid());
         BSLS_ASSERT_OPT(
             optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
             optionsView.end());
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+        bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
         rc = optionsView.loadSubQueueInfosOption(&subQueueInfos);
         BSLS_ASSERT_OPT(rc == 0);
         BSLS_ASSERT_OPT(subQueueInfos.size() == 1);
@@ -787,7 +828,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     unsigned int seed = bsl::time(0);
     bsl::srand(seed);
@@ -800,7 +841,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

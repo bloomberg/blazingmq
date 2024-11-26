@@ -88,11 +88,11 @@ static void test1_breathingTest()
 
     const bslstl::StringRef k_strVal("theQuickBrownFoxJumped");
     bsl::shared_ptr<int>    intSp;
-    intSp.createInplace(s_allocator_p, 1);
+    intSp.createInplace(bmqtst::TestHelperUtil::allocator(), 1);
 
-    PropertyBag obj(s_allocator_p);
+    PropertyBag obj(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj.allocator(), s_allocator_p);
+    ASSERT_EQ(obj.allocator(), bmqtst::TestHelperUtil::allocator());
 
     // Set a value and read it back
     obj.set("intVal", 1)
@@ -156,14 +156,14 @@ static void test2_copyAndAssignment()
 
     const bslstl::StringRef k_strVal("theQuickBrownFoxJumped");
     bsl::shared_ptr<int>    intSp;
-    intSp.createInplace(s_allocator_p, 1);
+    intSp.createInplace(bmqtst::TestHelperUtil::allocator(), 1);
 
-    PropertyBag obj1(s_allocator_p);
+    PropertyBag obj1(bmqtst::TestHelperUtil::allocator());
     obj1.set("intVal", 5).set("strVal", k_strVal).set("ptrVal", intSp);
 
     {
         PV("Copy PropertyBag and check values in copied object");
-        PropertyBag obj2(obj1, s_allocator_p);
+        PropertyBag obj2(obj1, bmqtst::TestHelperUtil::allocator());
         checkValue(L_, obj2, "intVal", 5);
         checkValue(L_, obj2, "strVal", k_strVal);
         checkValueSp(L_, obj2, "ptrVal", intSp);
@@ -176,7 +176,7 @@ static void test2_copyAndAssignment()
 
     {
         PV("Assignment");
-        PropertyBag obj3(s_allocator_p);
+        PropertyBag obj3(bmqtst::TestHelperUtil::allocator());
         obj3.set("someIntVal", 3);
 
         obj3 = obj1;
@@ -192,7 +192,7 @@ static void test2_copyAndAssignment()
 
 static void test3_print()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We can't use 'bmqu::MemOutStream' because bmqu is above bmqvt, so use
     // a 'ostringstream', which allocates its string using the default
     // allocator.
@@ -201,7 +201,7 @@ static void test3_print()
 
     const bslstl::StringRef k_strVal("theQuickBrownFox");
 
-    PropertyBag obj(s_allocator_p);
+    PropertyBag obj(bmqtst::TestHelperUtil::allocator());
     obj.set("IntVal", 5).set("strVal", k_strVal);
 
     {
@@ -209,7 +209,7 @@ static void test3_print()
 
         bsl::ostringstream out;
         bsl::string        expected("[ strVal = \"theQuickBrownFox\" ]",
-                             s_allocator_p);
+                             bmqtst::TestHelperUtil::allocator());
 
         bslma::ManagedPtr<PropertyBagValue> bagValue;
         obj.load(&bagValue, "strVal");
@@ -235,7 +235,7 @@ static void test3_print()
         bsl::ostringstream out;
 
         bsl::string expected("[ strVal = \"theQuickBrownFox\" IntVal = 5 ]",
-                             s_allocator_p);
+                             bmqtst::TestHelperUtil::allocator());
 
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
@@ -257,13 +257,14 @@ static void test4_loadAllImport()
 {
     bmqtst::TestHelper::printTestName("loadAll/import");
 
-    PropertyBag obj(s_allocator_p);
-    PropertyBag obj2(s_allocator_p);
+    PropertyBag obj(bmqtst::TestHelperUtil::allocator());
+    PropertyBag obj2(bmqtst::TestHelperUtil::allocator());
 
     obj.set("int1", 1);
     obj.set("int2", 2);
 
-    bsl::vector<bslma::ManagedPtr<PropertyBagValue> > values(s_allocator_p);
+    bsl::vector<bslma::ManagedPtr<PropertyBagValue> > values(
+        bmqtst::TestHelperUtil::allocator());
     obj.loadAll(&values);
     ASSERT_EQ(static_cast<int>(values.size()), 2);
 
@@ -271,7 +272,7 @@ static void test4_loadAllImport()
     checkValue(L_, obj2, "int1", 1);
     checkValue(L_, obj2, "int2", 2);
 
-    PropertyBag obj3(s_allocator_p);
+    PropertyBag obj3(bmqtst::TestHelperUtil::allocator());
     obj3.import(*values[0]);
     obj3.import(*values[1]);
     checkValue(L_, obj3, "int1", 1);
@@ -288,7 +289,7 @@ static void test5_propertyBagUtil()
     bslstl::StringRef longStr(
         "theQuickBrownFoxALongStringThatWillForceAllocation");
 
-    PropertyBag obj(s_allocator_p);
+    PropertyBag obj(bmqtst::TestHelperUtil::allocator());
     obj.set("int1", 1).set("int2", 2).set("str1", "abc").set("str2", longStr);
 
     bdlma::LocalSequentialAllocator<10 * 1024> arena;
@@ -358,7 +359,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

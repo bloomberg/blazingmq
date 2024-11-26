@@ -71,7 +71,7 @@ static void test2_printTest()
 {
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
-    bmqu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
     stream << bmqt::PropertyType::e_INT64;
     ASSERT_EQ(stream.str(), "INT64");
     stream.reset();
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

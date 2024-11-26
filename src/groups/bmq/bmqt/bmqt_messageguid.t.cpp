@@ -127,7 +127,7 @@ static void test2_streamout()
         PV("Unset GUID");
         bmqt::MessageGUID obj;
 
-        bmqu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
         osstr << obj;
 
         ASSERT_EQ("** UNSET **", osstr.str());
@@ -142,12 +142,12 @@ static void test2_streamout()
         bmqt::MessageGUID obj;
         obj.fromHex(k_HEX_G);
 
-        bmqu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
         osstr << obj;
 
         bsl::string guidStr(k_HEX_G,
                             bmqt::MessageGUID::e_SIZE_HEX,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(guidStr, osstr.str());
 
@@ -164,7 +164,7 @@ static void test2_streamout()
         bmqt::MessageGUID obj;
         obj.fromHex(k_HEX_G);
 
-        bmqu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
         obj.print(osstr, 2, 4);
 
         ASSERT_EQ(k_EXPECTED, osstr.str());
@@ -177,7 +177,7 @@ static void test2_streamout()
 
         bmqt::MessageGUID obj;
 
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
 
@@ -322,7 +322,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

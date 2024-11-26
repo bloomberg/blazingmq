@@ -43,17 +43,18 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
-    CommandLineArguments           arguments(s_allocator_p);
-    Parameters                     params(arguments, s_allocator_p);
-    bslma::ManagedPtr<FileManager> fileManager(new (*s_allocator_p)
-                                                   FileManagerMock(),
-                                               s_allocator_p);
+    CommandLineArguments arguments(bmqtst::TestHelperUtil::allocator());
+    Parameters params(arguments, bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
+        bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<SearchResult> searchResult =
-        SearchResultFactory::createSearchResult(&params,
-                                                fileManager,
-                                                bsl::cout,
-                                                s_allocator_p);
+        SearchResultFactory::createSearchResult(
+            &params,
+            fileManager,
+            bsl::cout,
+            bmqtst::TestHelperUtil::allocator());
     ASSERT(dynamic_cast<SearchResult*>(searchResult.get()) != 0);
 }
 
@@ -70,7 +71,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

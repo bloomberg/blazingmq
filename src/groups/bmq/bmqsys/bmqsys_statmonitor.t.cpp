@@ -201,12 +201,12 @@ void doWorkAndPostWhenDone(bslmt::Semaphore* workDoneSemaphore)
     const int k_NUM_THREADS = 3;
 
     // Multithreaded calculation
-    bslmt::ThreadGroup threadGroup(s_allocator_p);
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
     bslmt::Barrier     workDoneBarrier(k_NUM_THREADS + 1);
 
     for (int i = 0; i < k_NUM_THREADS; ++i) {
         int rc = threadGroup.addThread(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &doWork_threadFunction,
                                   &workDoneBarrier,
                                   10000,  // rate
@@ -245,15 +245,16 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'snapshot' passes a string using default alloc
 
     PVV("Constructor");
     {
         const int k_HISTORY_SIZE = 5;
 
-        bmqu::MemOutStream  errorDesc(s_allocator_p);
-        bmqsys::StatMonitor obj(k_HISTORY_SIZE, s_allocator_p);
+        bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
+        bmqsys::StatMonitor obj(k_HISTORY_SIZE,
+                                bmqtst::TestHelperUtil::allocator());
 
         ASSERT(obj.isStarted() == false);
         ASSERT(obj.statContext() != 0);
@@ -296,15 +297,16 @@ static void test2_start()
 //   - Constructor
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'start' passes a string using default alloc
 
     bmqtst::TestHelper::printTestName("START");
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(s_allocator_p);
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE, s_allocator_p);
+    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
+    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
+                            bmqtst::TestHelperUtil::allocator());
 
     // Given
     BSLS_ASSERT_OPT(obj.isStarted() == false);
@@ -349,15 +351,16 @@ static void test3_stop()
 //   - stop
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'start' passes a string using default alloc
 
     bmqtst::TestHelper::printTestName("STOP");
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(s_allocator_p);
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE, s_allocator_p);
+    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
+    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
+                            bmqtst::TestHelperUtil::allocator());
 
     // Given
     BSLS_ASSERT_OPT(obj.start(errorDesc) == 0);
@@ -439,15 +442,16 @@ static void test4_snapshot()
     PVV_INV_CONTEXT_SWITCHES_N(0);                                            \
     BSLS_MACROREPEAT(3, PVV_INV_CONTEXT_SWITCHES_N);
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'start' passes a string using default alloc
 
     bmqtst::TestHelper::printTestName("SNAPSHOT");
 
     const int k_HISTORY_SIZE = 5;
 
-    bmqu::MemOutStream  errorDesc(s_allocator_p);
-    bmqsys::StatMonitor obj(k_HISTORY_SIZE, s_allocator_p);
+    bmqu::MemOutStream  errorDesc(bmqtst::TestHelperUtil::allocator());
+    bmqsys::StatMonitor obj(k_HISTORY_SIZE,
+                            bmqtst::TestHelperUtil::allocator());
 
     // Given
     int rc = obj.start(errorDesc);
@@ -466,10 +470,10 @@ static void test4_snapshot()
     bslmt::ThreadUtil::createWithAllocator(
         &handle,
         attributes,
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &doWorkAndPostWhenDone,
                               &workDoneSemaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bslmt::ThreadUtil::sleep(
         bsls::TimeInterval(0, 1 * bdlt::TimeUnitRatio::k_NS_PER_MS));
@@ -510,10 +514,10 @@ static void test4_snapshot()
     bslmt::ThreadUtil::createWithAllocator(
         &handle,
         attributes,
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &doWorkAndPostWhenDone,
                               &workDoneSemaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     workDoneSemaphore.wait();
     BSLS_ASSERTTEST_ASSERT_OPT_PASS(obj.snapshot());
 
@@ -532,10 +536,10 @@ static void test4_snapshot()
     bslmt::ThreadUtil::createWithAllocator(
         &handle,
         attributes,
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &doWorkAndPostWhenDone,
                               &workDoneSemaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     workDoneSemaphore.wait();
     BSLS_ASSERTTEST_ASSERT_OPT_PASS(obj.snapshot());
 
@@ -574,7 +578,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

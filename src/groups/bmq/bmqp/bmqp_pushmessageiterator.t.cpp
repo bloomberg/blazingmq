@@ -191,7 +191,8 @@ generateSubQueueInfos(bsl::vector<bmqp::SubQueueInfo>* subQueueInfos,
 
     subQueueInfos->clear();
 
-    bsl::unordered_set<unsigned int> generatedIds(s_allocator_p);
+    bsl::unordered_set<unsigned int> generatedIds(
+        bmqtst::TestHelperUtil::allocator());
     for (int i = 0; i < numSubQueueInfos; ++i) {
         unsigned int currId = static_cast<unsigned int>(
             generateRandomInteger(0, 200));
@@ -217,7 +218,7 @@ static void generateMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId)
     // PRECONDITIONS
     BSLS_ASSERT_OPT(msgGroupId);
 
-    bmqu::MemOutStream oss(s_allocator_p);
+    bmqu::MemOutStream oss(bmqtst::TestHelperUtil::allocator());
     oss << "gid:" << generateRandomInteger(0, 200);
     *msgGroupId = oss.str();
 }
@@ -711,14 +712,16 @@ void breathingTestHelper(
     bdlbb::BlobBufferFactory*            bufferFactory_p)
 {
     // Create valid iter
-    bdlbb::Blob        blob(bufferFactory_p, s_allocator_p);
-    bdlbb::Blob        expectedBlob(bufferFactory_p, s_allocator_p);
-    bdlbb::Blob        expectedCompressedBlob(bufferFactory_p, s_allocator_p);
+    bdlbb::Blob blob(bufferFactory_p, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob expectedBlob(bufferFactory_p,
+                             bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob expectedCompressedBlob(bufferFactory_p,
+                                       bmqtst::TestHelperUtil::allocator());
     int                expectedBlobLength = 0;
     bmqu::BlobPosition expectedHeaderPos;
     bmqu::BlobPosition expectedPayloadPos;
     bmqu::BlobPosition retrievedPayloadPos;
-    bdlbb::Blob        retrievedPayloadBlob(s_allocator_p);
+    bdlbb::Blob retrievedPayloadBlob(bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     const int         queueId = 123;
@@ -736,14 +739,14 @@ void breathingTestHelper(
                  compressionAlgorithmType,
                  &expectedCompressedBlob,
                  bufferFactory_p,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Iterate and verify
     bmqp::PushMessageIterator iter(&blob,
                                    eventHeader,
                                    decompressFlag,
                                    bufferFactory_p,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(true, iter.isValid());
     ASSERT_EQ(true, iter.next());
@@ -759,11 +762,12 @@ void breathingTestHelper(
         ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
         ASSERT_EQ(0, iter.messagePropertiesSize());
 
-        bdlbb::Blob emptyBlob(s_allocator_p);
+        bdlbb::Blob emptyBlob(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
 
-        bmqp::MessageProperties emptyProps(s_allocator_p);
+        bmqp::MessageProperties emptyProps(
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
         ASSERT_EQ(0, emptyProps.numProperties());
 
@@ -773,7 +777,7 @@ void breathingTestHelper(
                                            expectedBlob));
     }
 
-    bmqp::OptionsView emptyOptionsView(s_allocator_p);
+    bmqp::OptionsView emptyOptionsView(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(0, iter.loadOptionsView(&emptyOptionsView));
     ASSERT_EQ(true, emptyOptionsView.isValid());
 
@@ -805,7 +809,7 @@ void breathingTestHelper(
     ASSERT_EQ(false, iter.isValid());
 
     // Copy
-    bmqp::PushMessageIterator iter2(iter, s_allocator_p);
+    bmqp::PushMessageIterator iter2(iter, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(false, iter2.isValid());
 
     // Clear
@@ -835,15 +839,16 @@ void breathingTestHelper(
         ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
         ASSERT_EQ(0, iter.messagePropertiesSize());
 
-        bdlbb::Blob emptyBlob(s_allocator_p);
+        bdlbb::Blob emptyBlob(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
         ASSERT_EQ(0, emptyBlob.length());
 
-        bmqp::MessageProperties emptyProps(s_allocator_p);
+        bmqp::MessageProperties emptyProps(
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
         ASSERT_EQ(0, emptyProps.numProperties());
 
-        bdlbb::Blob retrievedPayloadBlob2(s_allocator_p);
+        bdlbb::Blob retrievedPayloadBlob2(bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
         ASSERT_EQ(0,
@@ -856,7 +861,7 @@ void breathingTestHelper(
     ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
     ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
-    bdlbb::Blob retrievedApplicationData(s_allocator_p);
+    bdlbb::Blob retrievedApplicationData(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(0, iter.loadApplicationData(&retrievedApplicationData));
 
     // expect decompressed payload if decompressFlag is true and vice-versa.
@@ -916,18 +921,23 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Create invalid iter
-        bmqp::PushMessageIterator iter(&bufferFactory, s_allocator_p);
+        bmqp::PushMessageIterator iter(&bufferFactory,
+                                       bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(false, iter.isValid());
     }
 
     {
         // Create invalid iter from another invalid iter
-        bmqp::PushMessageIterator iter1(&bufferFactory, s_allocator_p);
-        bmqp::PushMessageIterator iter2(iter1, s_allocator_p);
+        bmqp::PushMessageIterator iter1(&bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator());
+        bmqp::PushMessageIterator iter2(iter1,
+                                        bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(false, iter1.isValid());
         ASSERT_EQ(false, iter2.isValid());
@@ -935,8 +945,9 @@ static void test1_breathingTest()
 
     {
         // Assigning invalid iter
-        bmqp::PushMessageIterator iter1(&bufferFactory, s_allocator_p),
-            iter2(&bufferFactory, s_allocator_p);
+        bmqp::PushMessageIterator iter1(&bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator()),
+            iter2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(false, iter1.isValid());
         ASSERT_EQ(false, iter2.isValid());
 
@@ -978,22 +989,27 @@ static void test2_iteratorReset()
 {
     bmqtst::TestHelper::printTestName("ITERATOR RESET");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PushMessageIterator      pmt(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    copiedBlob(s_allocator_p);
-    bdlbb::Blob                    expectedBlob(&bufferFactory, s_allocator_p);
-    bdlbb::Blob        expectedCompressedBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PushMessageIterator pmt(&bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob               copiedBlob(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob               expectedBlob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob               expectedCompressedBlob(&bufferFactory,
+                                       bmqtst::TestHelperUtil::allocator());
     int                expectedBlobLength = 0;
     bmqu::BlobPosition headerPosition;
     bmqu::BlobPosition payloadPosition;
     const int          queueId = 123;
     bmqt::MessageGUID  guid;
     bmqp::EventHeader  eventHeader;
-    bdlbb::Blob        payloadBlob(s_allocator_p);
-    bdlbb::Blob        appDataBlob(s_allocator_p);
+    bdlbb::Blob               payloadBlob(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob               appDataBlob(bmqtst::TestHelperUtil::allocator());
 
     {
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob,
@@ -1007,13 +1023,13 @@ static void test2_iteratorReset()
                      bmqt::CompressionAlgorithmType::e_ZLIB,
                      &expectedCompressedBlob,
                      &bufferFactory,
-                     s_allocator_p);
+                     bmqtst::TestHelperUtil::allocator());
 
         bmqp::PushMessageIterator iter(&blob,
                                        eventHeader,
                                        true,  // decompress flag
                                        &bufferFactory,
-                                       s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(true, iter.isValid());
 
@@ -1049,10 +1065,12 @@ static void test3_iteratePushEventHavingNoMessages()
     bmqtst::TestHelper::printTestName(
         "ITERATE PUSH EVENT HAVING NO PUSH MESSAGES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     populateBlob(&eventBlob,
@@ -1062,10 +1080,11 @@ static void test3_iteratePushEventHavingNoMessages()
                  &bufferFactory,
                  false,  // No zero-length msgs
                  false,  // No implicit app data
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Verify non-validity
-    bmqp::PushMessageIterator iter(&bufferFactory, s_allocator_p);
+    bmqp::PushMessageIterator iter(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_LT(iter.reset(&eventBlob, eventHeader, true), 0);
     ASSERT_EQ(false, iter.isValid());
 }
@@ -1076,10 +1095,12 @@ static void test4_iterateInvalidPushEvent()
 {
     bmqtst::TestHelper::printTestName("ITERATE INVALID PUSH EVENT");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     populateBlob(&eventBlob,
@@ -1089,7 +1110,7 @@ static void test4_iterateInvalidPushEvent()
                  &bufferFactory,
                  false,  // No zero-length msgs
                  false,  // No implicit app data
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Render the blob invalid by removing it's last byte
     bdlbb::BlobUtil::erase(&eventBlob, eventBlob.length() - 1, 1);
@@ -1099,7 +1120,7 @@ static void test4_iterateInvalidPushEvent()
                                    eventHeader,
                                    true,  // decompress flag
                                    &bufferFactory,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(true, iter.isValid());
 
     // First message is valid..
@@ -1116,9 +1137,11 @@ static void test5_iteratePushEventHavingMultipleMessages()
     bmqtst::TestHelper::printTestName("PUSH EVENT HAVING MULTIPLE MESSAGES");
     // Test iterating over PUSH event having multiple PUSH messages
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     const size_t                   k_NUM_MSGS = 1000;
 
@@ -1129,14 +1152,14 @@ static void test5_iteratePushEventHavingMultipleMessages()
                  &bufferFactory,
                  false,  // No zero-length PUSH msgs.
                  true,   // make some PUSH msgs w/ implicit app data
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Iterate and verify
     bmqp::PushMessageIterator iter(&eventBlob,
                                    eventHeader,
                                    true,  // decompress flag
                                    &bufferFactory,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(true, iter.isValid());
 
     size_t index = 0;
@@ -1168,9 +1191,9 @@ static void test5_iteratePushEventHavingMultipleMessages()
                     (D.d_msgLen + D.d_propLen),
                     iter.applicationDataSize());
 
-        bdlbb::Blob        props(s_allocator_p);
-        bdlbb::Blob        payload(s_allocator_p);
-        bdlbb::Blob        appData(s_allocator_p);
+        bdlbb::Blob        props(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        payload(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        appData(bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition propsPos;
         bmqu::BlobPosition payloadPos;
         bmqu::BlobPosition appDataPos;
@@ -1220,9 +1243,11 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
     bmqtst::TestHelper::printTestName(
         "PUSH EVENT HAVING ZERO-LENGTH MESSAGES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     const size_t                   k_NUM_MSGS = 1000;
 
@@ -1233,14 +1258,14 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
                  &bufferFactory,
                  true,  // make some PUSH msgs zero-length
                  true,  // make some PUSH msgs w/ implicit app data
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Iterate and verify
     bmqp::PushMessageIterator iter(&eventBlob,
                                    eventHeader,
                                    true,  // decompress flag
                                    &bufferFactory,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(true, iter.isValid());
 
     size_t index = 0;
@@ -1274,9 +1299,9 @@ static void test6_iteratePushEventHavingZeroLengthMessages()
                     (D.d_msgLen + D.d_propLen),
                     iter.applicationDataSize());
 
-        bdlbb::Blob        props(s_allocator_p);
-        bdlbb::Blob        payload(s_allocator_p);
-        bdlbb::Blob        appData(s_allocator_p);
+        bdlbb::Blob        props(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        payload(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob        appData(bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition propsPos;
         bmqu::BlobPosition payloadPos;
         bmqu::BlobPosition appDataPos;
@@ -1352,9 +1377,11 @@ static void test7_extractOptions()
 {
     bmqtst::TestHelper::printTestName("EXTRACT OPTIONS");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
-    bsl::vector<Data1>             data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data1>             data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     int                            qid;
     bool                           hasSubQueueInfo   = false;
@@ -1375,7 +1402,7 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Msg2: One SubQueueId
     qid               = 1;
@@ -1390,7 +1417,7 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Msg3: No SubQueueId and no GroupId
     qid               = 1;
@@ -1405,7 +1432,7 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Msg4: One SubQueueId and one GroupId
     qid               = 2;
@@ -1420,7 +1447,7 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Msg5: No SubQueueId and one GroupId
     qid               = 1;
@@ -1435,7 +1462,7 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Msg 6: One subQueueId encoded using old SubQueueId options
     qid               = 1;
@@ -1450,21 +1477,21 @@ static void test7_extractOptions()
                  hasMsgGroupId,
                  payloadLength,
                  &bufferFactory,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Build the event blob
     appendMessages1(&eventHeader,
                     &eventBlob,
                     data,
                     &bufferFactory,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
 
     // Iterate and verify
     bmqp::PushMessageIterator iter(&eventBlob,
                                    eventHeader,
                                    true,  // decompress flag
                                    &bufferFactory,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(iter.isValid(), true);
 
     size_t index = 0;
@@ -1515,7 +1542,8 @@ static void test7_extractOptions()
                         actualHavingMsgGroupId);
         }
         else if (actualHavingMsgGroupId) {
-            bmqp::Protocol::MsgGroupId        actual(s_allocator_p);
+            bmqp::Protocol::MsgGroupId actual(
+                bmqtst::TestHelperUtil::allocator());
             const bmqp::Protocol::MsgGroupId& expected =
                 D.d_msgGroupId.value();
             iter.extractMsgGroupId(&actual);
@@ -1540,18 +1568,20 @@ int main(int argc, char* argv[])
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD:
     // figure out the right way to "fix" this.
-    Data dummy(static_cast<bdlbb::BlobBufferFactory*>(0), s_allocator_p);
+    Data dummy(static_cast<bdlbb::BlobBufferFactory*>(0),
+               bmqtst::TestHelperUtil::allocator());
     static_cast<void>(
         static_cast<
             bslmf::NestedTraitDeclaration<Data, bslma::UsesBslmaAllocator> >(
             dummy));
-    Data1 dummy1(static_cast<bdlbb::BlobBufferFactory*>(0), s_allocator_p);
+    Data1 dummy1(static_cast<bdlbb::BlobBufferFactory*>(0),
+                 bmqtst::TestHelperUtil::allocator());
     static_cast<void>(
         static_cast<
             bslmf::NestedTraitDeclaration<Data1, bslma::UsesBslmaAllocator> >(
             dummy1));
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     unsigned int seed = bsl::time(0);
     bsl::srand(seed);
@@ -1568,7 +1598,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

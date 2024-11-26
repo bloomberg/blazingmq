@@ -202,7 +202,8 @@ static unsigned int findExpectedCrc32(
     bslma::Allocator*                    allocator,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType)
 {
-    bdlbb::Blob testApplicationData(bufferFactory, s_allocator_p);
+    bdlbb::Blob testApplicationData(bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
 
     if (hasProperties) {
         bdlbb::BlobUtil::append(
@@ -234,9 +235,11 @@ static unsigned int findExpectedCrc32(
 static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     bmqt::MessageGUID              guid;
     guid.fromHex(k_HEX_REP);
@@ -259,7 +262,7 @@ static void test1_breathingTest()
                                &eventBlob,
                                &guid,
                                bmqp::EventType::e_ACK);
-    bmqp::Event event(&eventBlob, s_allocator_p);
+    bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     // Fails to configure initialized event
     ASSERT_OPT_FAIL(obj.configureAsMessageEvent(event));
@@ -283,7 +286,7 @@ static void test1_breathingTest()
     // Fails to configure as raw event with not cloned underlying event
     ASSERT_OPT_FAIL(obj.configureAsRawEvent(event));
 
-    obj.configureAsRawEvent(event.clone(s_allocator_p));
+    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_RAW);
 
@@ -317,8 +320,10 @@ static void test2_setterGetterTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("GENERAL SETTER GETTER TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
 
@@ -347,10 +352,11 @@ static void test2_setterGetterTest()
 
     // insertQueue / queues
     bsl::shared_ptr<bmqimp::Queue> queue =
-        bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(s_allocator_p);
+        bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(
+            bmqtst::TestHelperUtil::allocator());
 
     const char         k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
-    bmqt::Uri          uri(k_URI, s_allocator_p);
+    bmqt::Uri          uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const unsigned int k_SQID         = 2U;
     const unsigned int k_ID           = 12345;
     const int          k_PENDING_ID   = 65432;
@@ -362,7 +368,7 @@ static void test2_setterGetterTest()
     bmqt::QueueFlagsUtil::setWriter(&flags);
     bmqt::QueueFlagsUtil::setAdmin(&flags);
 
-    bmqt::QueueOptions options(s_allocator_p);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
     options.setMaxUnconfirmedBytes(123);
 
     (*queue)
@@ -423,8 +429,10 @@ static void test3_sessionEvent_setterGetterTest()
     // ------------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("SETTER GETTER TEST FOR SESSION EVENT");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
     PV("Configure as SessionEvent");
@@ -477,11 +485,13 @@ static void test4_messageEvent_setterGetterTest()
     bmqt::CorrelationId corrId2(234);
 
     // addCorrelationId / correlationId / numCorrrelationIds
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     bmqt::MessageGUID              guid;
-    bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
 
@@ -490,7 +500,7 @@ static void test4_messageEvent_setterGetterTest()
                                &eventBlob,
                                &guid,
                                bmqp::EventType::e_ACK);
-    bmqp::Event event(&eventBlob, s_allocator_p);
+    bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
     obj.configureAsMessageEvent(event);
     obj.addCorrelationId(corrId1);
     ASSERT_EQ(1, obj.numCorrrelationIds());
@@ -501,7 +511,8 @@ static void test4_messageEvent_setterGetterTest()
     ASSERT_EQ(corrId2, obj.correlationId(1));
 
     // setMessageCorrelationIdContainer / messageCorrelationIdContainer
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
     obj.setMessageCorrelationIdContainer(&container);
     bmqimp::MessageCorrelationIdContainer* container_p =
         obj.messageCorrelationIdContainer();
@@ -547,7 +558,9 @@ static void test5_configureAsMessageEventTest()
 
     // Variables
     bmqt::MessageGUID              guid;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     guid.fromHex(k_HEX_REP);
 
     // Test data
@@ -629,7 +642,8 @@ static void test5_configureAsMessageEventTest()
 
         // 1. Create and init blob containing event header, message header of
         // considered type and also message or padding.
-        bdlbb::Blob       eventBlob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob       eventBlob(&bufferFactory,
+                              bmqtst::TestHelperUtil::allocator());
         bmqp::EventHeader eventHeader;
         prepareBlobForMessageEvent(&eventHeader,
                                    &eventBlob,
@@ -637,11 +651,11 @@ static void test5_configureAsMessageEventTest()
                                    test.d_type);
 
         // 2. Create raw(bmqp::Event) event over prepared blob
-        bmqp::Event event(&eventBlob, s_allocator_p);
+        bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
         // 3. Create bmqimp::Event instance and initialize it by
         //    configureAsMessageEvent method taking raw event as argument.
-        bmqimp::Event obj(&bufferFactory, s_allocator_p);
+        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         obj.configureAsMessageEvent(event);
 
         // 4. Verify event fields according to event type.
@@ -750,9 +764,11 @@ static void test6_comparisonOperatorTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("COMPARISON OPERATORS");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqimp::Event                  obj1(&bufferFactory, s_allocator_p);
-    bmqimp::Event                  obj2(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj1(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqt::SessionEventType::Enum   sessionType =
         bmqt::SessionEventType::e_TIMEOUT;
     bmqimp::Event::EventType::Enum eventType =
@@ -760,7 +776,7 @@ static void test6_comparisonOperatorTest()
     int                 statusCode = -3;
     bmqt::CorrelationId correlationId(123);
     bsl::string         errorDescription("testing");
-    bdlbb::Blob         eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader   eventHeader;
     bmqt::MessageGUID   guid;
     guid.fromHex(k_HEX_REP);
@@ -789,8 +805,8 @@ static void test6_comparisonOperatorTest()
     ASSERT(obj1 == obj2);
 
     PV("Configure as MesageEvent");
-    bmqimp::Event obj3(&bufferFactory, s_allocator_p);
-    bmqimp::Event obj4(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj3.configureAsMessageEvent(&bufferFactory);
     obj4.configureAsMessageEvent(&bufferFactory);
 
@@ -802,11 +818,11 @@ static void test6_comparisonOperatorTest()
                                &eventBlob,
                                &guid,
                                bmqp::EventType::e_ACK);
-    bmqp::Event   event(&eventBlob, s_allocator_p);
-    bmqimp::Event obj5(&bufferFactory, s_allocator_p);
-    bmqimp::Event obj6(&bufferFactory, s_allocator_p);
-    obj5.configureAsRawEvent(event.clone(s_allocator_p));
-    obj6.configureAsRawEvent(event.clone(s_allocator_p));
+    bmqp::Event   event(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj5(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj6(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    obj5.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
+    obj6.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
 
     // NOTE: Raw event can not be equal
     ASSERT(obj5 != obj6);
@@ -839,13 +855,15 @@ static void test7_printing()
 // --------------------------------------------------------------------
 {
     // bmqu::PrintUtil::prettyTimeInterval uses default allocator
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("PRINT");
-    bmqu::MemOutStream             out(s_allocator_p);
-    bmqu::MemOutStream             expected(s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     bmqt::MessageGUID              guid;
     guid.fromHex(k_HEX_REP);
@@ -913,7 +931,7 @@ static void test7_printing()
     // Iterate over test data.
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         Test&         data = k_DATA[idx];
-        bmqimp::Event obj(&bufferFactory, s_allocator_p);
+        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Prepare bmqimp::event object based on data.
         switch (data.d_eventType) {
@@ -924,10 +942,10 @@ static void test7_printing()
                 .setCorrelationId(data.d_correlationId)
                 .setErrorDescription(data.d_errorDescription);
 
-            bmqt::Uri                      uri(data.d_uri, s_allocator_p);
+            bmqt::Uri uri(data.d_uri, bmqtst::TestHelperUtil::allocator());
             bsl::shared_ptr<bmqimp::Queue> queue =
                 bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
             queue->setUri(uri);
             obj.insertQueue(queue);
         } break;
@@ -942,14 +960,15 @@ static void test7_printing()
                                            &eventBlob,
                                            &guid,
                                            bmqp::EventType::e_PUT);
-                bmqp::Event rawEvent(&eventBlob, s_allocator_p);
+                bmqp::Event rawEvent(&eventBlob,
+                                     bmqtst::TestHelperUtil::allocator());
                 obj.configureAsMessageEvent(rawEvent);
             }
 
-            bmqt::Uri                      uri(data.d_uri, s_allocator_p);
+            bmqt::Uri uri(data.d_uri, bmqtst::TestHelperUtil::allocator());
             bsl::shared_ptr<bmqimp::Queue> queue =
                 bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
             queue->setUri(uri);
             obj.insertQueue(queue);
         } break;
@@ -959,8 +978,10 @@ static void test7_printing()
                                        &eventBlob,
                                        &guid,
                                        data.d_rawEventType);
-            bmqp::Event rawEvent(&eventBlob, s_allocator_p);
-            obj.configureAsRawEvent(rawEvent.clone(s_allocator_p));
+            bmqp::Event rawEvent(&eventBlob,
+                                 bmqtst::TestHelperUtil::allocator());
+            obj.configureAsRawEvent(
+                rawEvent.clone(bmqtst::TestHelperUtil::allocator()));
             break;
         }
         case bmqimp::Event::EventType::e_REQUEST:
@@ -988,7 +1009,8 @@ static void test7_printing()
                 expected << " errorDescription = \"" << data.d_errorDescription
                          << "\"";
             }
-            if (!bsl::string(data.d_uri, s_allocator_p).empty()) {
+            if (!bsl::string(data.d_uri, bmqtst::TestHelperUtil::allocator())
+                     .empty()) {
                 expected << " queue = " << data.d_uri;
             }
         } break;
@@ -1002,7 +1024,8 @@ static void test7_printing()
                      bmqimp::Event::MessageEventMode::e_READ) {
                 expected << " rawEventType = " << data.d_rawEventType;
             }
-            if (!bsl::string(data.d_uri, s_allocator_p).empty()) {
+            if (!bsl::string(data.d_uri, bmqtst::TestHelperUtil::allocator())
+                     .empty()) {
                 expected << " queue = " << data.d_uri;
             }
         } break;
@@ -1030,7 +1053,7 @@ static void test7_printing()
 
     {
         PV("Bad stream test");
-        bmqimp::Event obj(&bufferFactory, s_allocator_p);
+        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         obj.setType(bmqimp::Event::EventType::e_SESSION);
         out << "NO LAYOUT";
         out.clear(bsl::ios_base::badbit);
@@ -1042,7 +1065,7 @@ static void test7_printing()
 
     {
         PV("Bad enum value test");
-        bmqimp::Event obj(&bufferFactory, s_allocator_p);
+        bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         obj.setType(static_cast<bmqimp::Event::EventType::Enum>(
             bsl::numeric_limits<int>::min()));
 
@@ -1066,7 +1089,7 @@ static void test8_putEventBuilder()
     // Testing:
     //   - putEventBuilder
     // ------------------------------------------------------------------------
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'putIter.loadMessageProperties' allocates into a temporary blob
     // using the default allocator
 
@@ -1075,9 +1098,13 @@ static void test8_putEventBuilder()
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID("gid:0", s_allocator_p);
+    const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
+        "gid:0",
+        bmqtst::TestHelperUtil::allocator());
 #endif
     const int                k_PROPERTY_VAL_ENCODING = 3;
     const bsl::string        k_PROPERTY_VAL_ID       = "myCoolId";
@@ -1090,7 +1117,7 @@ static void test8_putEventBuilder()
     const char*              k_HEX_GUID2 = "40000000000000000000000000000002";
     const char*              k_HEX_GUID3 = "40000000000000000000000000000003";
 
-    bmqp::MessageProperties msgProps(s_allocator_p);
+    bmqp::MessageProperties msgProps(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0,
               msgProps.setPropertyAsInt32("encoding",
@@ -1101,7 +1128,7 @@ static void test8_putEventBuilder()
     ASSERT_EQ(k_NUM_PROPERTIES, msgProps.numProperties());
 
     // Create PutEventBuilder
-    bmqimp::Event obj(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj.configureAsMessageEvent(&bufferFactory);
     bmqp::PutEventBuilder& builder = *(obj.putEventBuilder());
 
@@ -1149,7 +1176,7 @@ static void test8_putEventBuilder()
             &msgProps,
             test.d_hasProperties,
             &bufferFactory,
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             bmqt::CompressionAlgorithmType::e_NONE);
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
@@ -1175,16 +1202,17 @@ static void test8_putEventBuilder()
     // bmqp iterators are lower than bmqp builders, and thus, can be used
     // to test them.
     const bdlbb::Blob& eventBlob = builder.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     ASSERT(rawEvent.isValid());
     ASSERT(rawEvent.isPutEvent());
 
-    bmqp::PutMessageIterator putIter(&bufferFactory, s_allocator_p);
+    bmqp::PutMessageIterator putIter(&bufferFactory,
+                                     bmqtst::TestHelperUtil::allocator());
     rawEvent.loadPutMessageIterator(&putIter, true);
 
     ASSERT(putIter.isValid());
-    bdlbb::Blob payloadBlob(s_allocator_p);
+    bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&       test = k_DATA[idx];
@@ -1212,7 +1240,7 @@ static void test8_putEventBuilder()
         ASSERT_EQ(compareResult, 0);
 
         bmqt::PropertyType::Enum ptype;
-        bmqp::MessageProperties  prop(s_allocator_p);
+        bmqp::MessageProperties  prop(bmqtst::TestHelperUtil::allocator());
 
         if (!test.d_hasProperties) {
             ASSERT_EQ(false, putIter.hasMessageProperties());
@@ -1238,7 +1266,8 @@ static void test8_putEventBuilder()
         }
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
-        bmqp::Protocol::MsgGroupId msgGroupId(s_allocator_p);
+        bmqp::Protocol::MsgGroupId msgGroupId(
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(putIter.hasMsgGroupId(), true);
         ASSERT_EQ(putIter.extractMsgGroupId(&msgGroupId), true);
         ASSERT_EQ(msgGroupId, k_MSG_GROUP_ID);
@@ -1280,23 +1309,25 @@ static void test9_copyTest()
     bmqtst::TestHelper::printTestName("COPY CONSTRUCTOR TEST");
 
     PV("Configure as MesageEvent");
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     bmqt::MessageGUID              guid;
     guid.fromHex(k_HEX_REP);
 
-    bmqimp::Event obj(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
 
     prepareBlobForMessageEvent(&eventHeader,
                                &eventBlob,
                                &guid,
                                bmqp::EventType::e_ACK);
-    bmqp::Event event(&eventBlob, s_allocator_p);
+    bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
     obj.configureAsMessageEvent(event);
 
-    bmqimp::Event obj2(obj, s_allocator_p);
+    bmqimp::Event obj2(obj, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(obj2.type(), bmqimp::Event::EventType::e_MESSAGE);
     ASSERT_EQ(obj2.rawEvent().type(), bmqp::EventType::e_ACK);
     ASSERT_EQ(obj2.rawEvent().isAckEvent(), true);
@@ -1306,9 +1337,10 @@ static void test9_copyTest()
               obj.messageCorrelationIdContainer());
 
     // The same steps for cloned event
-    bmqimp::Event obj3(&bufferFactory, s_allocator_p);
-    obj3.configureAsMessageEvent(event.clone(s_allocator_p));
-    bmqimp::Event obj4(obj3, s_allocator_p);
+    bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    obj3.configureAsMessageEvent(
+        event.clone(bmqtst::TestHelperUtil::allocator()));
+    bmqimp::Event obj4(obj3, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(obj4.rawEvent().type(), bmqp::EventType::e_ACK);
     ASSERT_EQ(obj4.rawEvent().isAckEvent(), true);
     ASSERT_EQ(obj4.messageEventMode(), obj.messageEventMode());
@@ -1323,15 +1355,15 @@ static void test9_copyTest()
                                 bmqt::CorrelationId(2),
                                 "testing");
 
-    bmqimp::Event obj5(obj, s_allocator_p);
+    bmqimp::Event obj5(obj, bmqtst::TestHelperUtil::allocator());
 
     ASSERT(obj5 == obj);
 
     PV("Configure as RawEvent");
     obj.reset();
-    obj.configureAsRawEvent(event.clone(s_allocator_p));
+    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
 
-    bmqimp::Event obj6(obj, s_allocator_p);
+    bmqimp::Event obj6(obj, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(obj6.type(), bmqimp::Event::EventType::e_RAW);
     ASSERT_EQ(obj6.rawEvent().type(), obj.rawEvent().type());
 }
@@ -1367,24 +1399,26 @@ static void test10_assignmentTest()
     bmqtst::TestHelper::printTestName("ASSIGNMENT OPERATOR TEST");
 
     PV("ASSIGNMENT OPERATOR - Configure as MesageEvent");
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
     bmqt::MessageGUID              guid;
     guid.fromHex(k_HEX_REP);
 
-    bmqimp::Event obj(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
 
     prepareBlobForMessageEvent(&eventHeader,
                                &eventBlob,
                                &guid,
                                bmqp::EventType::e_ACK);
-    bmqp::Event event(&eventBlob, s_allocator_p);
+    bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
     obj.configureAsMessageEvent(event);
 
     PV("ASSIGNMENT OPERATOR - Assign to the empty event");
-    bmqimp::Event obj2(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj2 = obj;
     ASSERT_EQ(obj2.type(), bmqimp::Event::EventType::e_MESSAGE);
     ASSERT_EQ(obj2.rawEvent().type(), bmqp::EventType::e_ACK);
@@ -1395,9 +1429,10 @@ static void test10_assignmentTest()
               obj.messageCorrelationIdContainer());
 
     PV("ASSIGNMENT OPERATOR - Assign cloned event to the empty event");
-    bmqimp::Event obj3(&bufferFactory, s_allocator_p);
-    obj3.configureAsMessageEvent(event.clone(s_allocator_p));
-    bmqimp::Event obj4(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    obj3.configureAsMessageEvent(
+        event.clone(bmqtst::TestHelperUtil::allocator()));
+    bmqimp::Event obj4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj4 = obj3;
     ASSERT_EQ(obj4.type(), bmqimp::Event::EventType::e_MESSAGE);
     ASSERT_EQ(obj4.rawEvent().type(), bmqp::EventType::e_ACK);
@@ -1417,16 +1452,16 @@ static void test10_assignmentTest()
                                 bmqt::CorrelationId(5),
                                 "testingAssignment");
 
-    bmqimp::Event obj5(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj5(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     obj5 = obj;
 
     ASSERT(obj5 == obj);
 
     PV("ASSIGNMENT OPERATOR - Configure as RawEvent");
     obj.reset();
-    obj.configureAsRawEvent(event.clone(s_allocator_p));
+    obj.configureAsRawEvent(event.clone(bmqtst::TestHelperUtil::allocator()));
 
-    bmqimp::Event obj6(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj6(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     obj6 = obj;
 
@@ -1459,8 +1494,10 @@ static void test11_doneCallbackTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("DONE CALLBACK TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqimp::Event                  obj(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
 
@@ -1511,10 +1548,12 @@ static void test12_upgradeDowngradeMessageEvent()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("UPGRADE DOWNGRADE MESSAGE EVENT TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     // 1. Create session event
-    bmqimp::Event obj(&bufferFactory, s_allocator_p);
+    bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // 2. Configure event as message event in WRITE mode.
     obj.configureAsMessageEvent(&bufferFactory);
@@ -1557,8 +1596,8 @@ static void test12_upgradeDowngradeMessageEvent()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1576,7 +1615,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

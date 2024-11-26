@@ -68,7 +68,7 @@ struct LogTestImp : bsls::ProtocolTestImp<mqbsi::Log> {
   public:
     // CREATORS
     LogTestImp()
-    : d_config(0, mqbu::StorageKey(), s_allocator_p)
+    : d_config(0, mqbu::StorageKey(), bmqtst::TestHelperUtil::allocator())
     {
         // NOTHING
     }
@@ -205,7 +205,8 @@ static void test1_log_protocol()
     bmqtst::TestHelper::printTestName("LOG");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<LogTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<LogTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -230,7 +231,7 @@ int main(int argc, char* argv[])
     case 1: test1_log_protocol(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

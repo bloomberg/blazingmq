@@ -316,7 +316,8 @@ void TestContext::populateRequest(const ReqSp&        request,
 {
     bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
 
-    bmqp_ctrlmsg::QueueHandleParameters params(s_allocator_p);
+    bmqp_ctrlmsg::QueueHandleParameters params(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqt::QueueFlagsUtil::setWriter(&flags);
     bmqt::QueueFlagsUtil::setAck(&flags);
@@ -377,37 +378,39 @@ static void test1_creatorsTest()
 {
     bmqtst::TestHelper::printTestName("CREATORS TEST");
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(4096, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        4096,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Wrong clock type
         bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_REALTIME,
-                                        s_allocator_p);
+                                        bmqtst::TestHelperUtil::allocator());
 
         ASSERT_SAFE_FAIL(ReqManagerType(bmqp::EventType::e_CONTROL,
                                         &blobBufferFactory,
                                         &scheduler,
                                         false,  // late response mode is off
-                                        s_allocator_p));
+                                        bmqtst::TestHelperUtil::allocator()));
     }
 
     {
         // Success creation
         bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                        s_allocator_p);
+                                        bmqtst::TestHelperUtil::allocator());
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
                                    &blobBufferFactory,
                                    &scheduler,
                                    false,  // late response mode is off
-                                   s_allocator_p));
+                                   bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
                                    &blobBufferFactory,
                                    &scheduler,
                                    false,  // late response mode is off
                                    bmqex::SystemExecutor(),
-                                   s_allocator_p));
+                                   bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
                                    &blobBufferFactory,
@@ -415,7 +418,7 @@ static void test1_creatorsTest()
                                    false,  // late response mode is off
                                    bmqex::SystemExecutor(),
                                    ReqManagerType::DTContextSp(),
-                                   s_allocator_p));
+                                   bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -429,7 +432,7 @@ static void test2_setExecutorTest()
 
     {
         // set SystemExecutor
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ASSERT_PASS(context.manager().setExecutor(bmqex::SystemExecutor()));
     }
 }
@@ -444,7 +447,7 @@ static void test3_createRequestTest()
 
     {
         // Check that RequestManager really creates request
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         ASSERT(request);
     }
@@ -465,9 +468,9 @@ static void test4_sendRequestTest()
         sendFn(bool* called, const bdlbb::Blob& blob, const ReqSp& request)
         {
             *called = true;
-            bmqp::Event ev(&blob, s_allocator_p);
+            bmqp::Event ev(&blob, bmqtst::TestHelperUtil::allocator());
             ASSERT(ev.isControlEvent());
-            Mes controlMessage(s_allocator_p);
+            Mes controlMessage(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
             ASSERT_EQ(request->request(), controlMessage);
             return bmqt::GenericResult::e_SUCCESS;
@@ -476,7 +479,7 @@ static void test4_sendRequestTest()
 
     {
         // Check one request sent to channel
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
         context.sendChannelRequest(request);
@@ -489,14 +492,14 @@ static void test4_sendRequestTest()
 
     {
         // Check several requests sent to channel in correct order
-        TestContext       context(false, s_allocator_p);
+        TestContext       context(false, bmqtst::TestHelperUtil::allocator());
         const bsl::size_t num_requests = 5;
 
-        ReqVec requests(s_allocator_p);
+        ReqVec requests(bmqtst::TestHelperUtil::allocator());
         requests.reserve(num_requests);
         for (bsl::size_t i = 0; i < num_requests; ++i) {
             ReqSp              request = context.createRequest();
-            bsl::ostringstream os(s_allocator_p);
+            bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
             os << "bmq://foo.bar" << i;
             context.populateRequest(request,
                                     os.str(),
@@ -520,7 +523,7 @@ static void test4_sendRequestTest()
 
     {
         // Check one request sent with provided SendFunction
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
         bool called = false;
@@ -536,13 +539,13 @@ static void test4_sendRequestTest()
 
     {
         // Concurrency
-        TestContext  context(false, s_allocator_p);
+        TestContext  context(false, bmqtst::TestHelperUtil::allocator());
         ReqChoiceSet requestsWithoutId;
         // We store only 'choices' because request obtains id only after it has
         // been sent
         const bsl::size_t  numThreads  = 10;
         const bsl::size_t  numRequests = 100;
-        bslmt::ThreadGroup threadGroup(s_allocator_p);
+        bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
         bslmt::Barrier     barrier(numThreads + 1);
 
         struct Caller {
@@ -564,11 +567,11 @@ static void test4_sendRequestTest()
         };
 
         for (bsl::size_t i = 0; i < numThreads; ++i) {
-            ReqVec requestsGroup(s_allocator_p);
+            ReqVec requestsGroup(bmqtst::TestHelperUtil::allocator());
             requestsGroup.reserve(numRequests);
             for (bsl::size_t j = 0; j < numRequests; ++j) {
                 ReqSp              req = context.createRequest();
-                bsl::ostringstream os(s_allocator_p);
+                bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
                 os << "bmq://foo.bar_" << i << "_" << j;
                 context.populateRequest(req,
                                         os.str(),
@@ -620,7 +623,7 @@ static void test5_processResponseTest()
 
     {
         // Correct response
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
         context.sendChannelRequest(request);
@@ -638,7 +641,7 @@ static void test5_processResponseTest()
 
     {
         // Response with invalid ID
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
         request->request().rId() = 111;
@@ -655,7 +658,7 @@ static void test5_processResponseTest()
 
     {
         // Callback
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
 
@@ -676,7 +679,7 @@ static void test5_processResponseTest()
 
     {
         // Timeout
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
 
@@ -699,7 +702,7 @@ static void test5_processResponseTest()
 
     {
         // Late Mes mode
-        TestContext context(true, s_allocator_p);
+        TestContext context(true, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
 
@@ -722,13 +725,13 @@ static void test5_processResponseTest()
 
     {
         // Concurrency
-        TestContext        context(false, s_allocator_p);
+        TestContext        context(false, bmqtst::TestHelperUtil::allocator());
         bslmt::Mutex       responsesLock;
-        MesQue             responses(s_allocator_p);
+        MesQue             responses(bmqtst::TestHelperUtil::allocator());
         bsls::AtomicUint   callsCounter = 0;
         const bsl::size_t  numThreads   = 10;
         const bsl::size_t  numRequests  = 500;
-        bslmt::ThreadGroup threadGroup(s_allocator_p);
+        bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
         bslmt::Barrier     barrier(numThreads + 1);
 
         /// Check that the specified `request` is the same request as
@@ -782,7 +785,7 @@ static void test5_processResponseTest()
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp& request = requests.emplace_back(context.createRequest());
 
-            bsl::ostringstream os(s_allocator_p);
+            bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
             os << "bmq://foo.bar" << i;
             context.populateRequest(request,
                                     os.str(),
@@ -792,7 +795,7 @@ static void test5_processResponseTest()
                                     i + 4);
 
             request->setResponseCb(
-                bdlf::BindUtil::bindS(s_allocator_p,
+                bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                       &ConcurrentCaller::callback,
                                       &callsCounter,
                                       bdlf::PlaceHolders::_1,
@@ -831,7 +834,7 @@ static void test6_cancelAllRequestsTest()
 
     {
         // Cancel one event
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         context.populateRequest(request);
         context.sendChannelRequest(request);
@@ -845,13 +848,13 @@ static void test6_cancelAllRequestsTest()
 
     {
         // Cancel all events
-        TestContext       context(false, s_allocator_p);
+        TestContext       context(false, bmqtst::TestHelperUtil::allocator());
         const bsl::size_t numRequests = 10;
-        ReqVec            requests(s_allocator_p);
+        ReqVec            requests(bmqtst::TestHelperUtil::allocator());
         requests.reserve(numRequests);
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp              request = context.createRequest();
-            bsl::ostringstream os(s_allocator_p);
+            bsl::ostringstream os(bmqtst::TestHelperUtil::allocator());
             os << "bmq://foo.bar" << i;
             context.populateRequest(request,
                                     os.str(),
@@ -876,11 +879,11 @@ static void test6_cancelAllRequestsTest()
 
     {
         // Cancel group of events
-        TestContext       context(false, s_allocator_p);
+        TestContext       context(false, bmqtst::TestHelperUtil::allocator());
         const bsl::size_t numRequests = 10;
-        ReqVec            requests(s_allocator_p);
+        ReqVec            requests(bmqtst::TestHelperUtil::allocator());
         requests.reserve(numRequests);
-        bsl::vector<int> groupIds(2, s_allocator_p);
+        bsl::vector<int> groupIds(2, bmqtst::TestHelperUtil::allocator());
         groupIds[0] = 1;
         groupIds[1] = 2;
         for (bsl::size_t i = 0; i < numRequests; ++i) {
@@ -919,7 +922,9 @@ static void test7_requestBreathingTest()
     {
         // Create request and check its initial state
         ReqSp request;
-        ASSERT_PASS(request.createInplace(s_allocator_p, s_allocator_p));
+        ASSERT_PASS(
+            request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                  bmqtst::TestHelperUtil::allocator()));
         ASSERT(request);
         ASSERT(!request->isLateResponse());
         ASSERT(!request->isLocalTimeout());
@@ -940,13 +945,15 @@ static void test7_requestBreathingTest()
     {
         // set responseCb and call it
         ReqSp request;
-        request.createInplace(s_allocator_p, s_allocator_p);
+        request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              bmqtst::TestHelperUtil::allocator());
         bool called = false;
-        request->setResponseCb(bdlf::BindUtil::bindS(s_allocator_p,
-                                                     &Caller::callback,
-                                                     &called,
-                                                     bdlf::PlaceHolders::_1,
-                                                     &request));
+        request->setResponseCb(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &Caller::callback,
+                                  &called,
+                                  bdlf::PlaceHolders::_1,
+                                  &request));
         request->responseCb()(request);
 
         ASSERT(called);
@@ -954,11 +961,11 @@ static void test7_requestBreathingTest()
 
     {
         // set asyncNotifierCb and check if it is called
-        TestContext context(false, s_allocator_p);
+        TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
         bool        called  = false;
         request->setAsyncNotifierCb(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &Caller::callback,
                                   &called,
                                   bdlf::PlaceHolders::_1,
@@ -970,7 +977,8 @@ static void test7_requestBreathingTest()
     {
         // set groupId and check it
         ReqSp request;
-        request.createInplace(s_allocator_p, s_allocator_p);
+        request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              bmqtst::TestHelperUtil::allocator());
         int expected = 666;
         request->setGroupId(expected);
         ASSERT_EQ(request->groupId(), expected);
@@ -978,11 +986,13 @@ static void test7_requestBreathingTest()
 
     {
         // set user data and check it
-        bsl::string test("test string", s_allocator_p);
-        bdld::Datum datum = bdld::Datum::createStringRef(test.c_str(),
-                                                         s_allocator_p);
+        bsl::string test("test string", bmqtst::TestHelperUtil::allocator());
+        bdld::Datum datum = bdld::Datum::createStringRef(
+            test.c_str(),
+            bmqtst::TestHelperUtil::allocator());
         ReqSp       request;
-        request.createInplace(s_allocator_p, s_allocator_p);
+        request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              bmqtst::TestHelperUtil::allocator());
         request->adoptUserData(datum);
         const bdld::Datum& new_datum = request->userData();
         ASSERT(new_datum.isString());
@@ -1013,17 +1023,19 @@ static void test8_requestSignalWaitTest()
         // Wait for signal in separate thread
         bool  worked = false;
         ReqSp request;
-        ASSERT_PASS(request.createInplace(s_allocator_p, s_allocator_p));
+        ASSERT_PASS(
+            request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                  bmqtst::TestHelperUtil::allocator()));
 
         bslmt::ThreadUtil::Handle handle;
 
         int rc = bslmt::ThreadUtil::createWithAllocator(
             &handle,
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &RequestKeeper::waiter,
                                   &worked,
                                   &request),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(rc, 0);
         bslmt::ThreadUtil::yield();
         ASSERT(!worked);
@@ -1044,8 +1056,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1059,7 +1071,7 @@ int main(int argc, char* argv[])
     case 1: test1_creatorsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
