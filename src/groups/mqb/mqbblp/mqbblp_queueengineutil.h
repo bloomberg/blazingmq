@@ -599,7 +599,8 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
   private:
     Consumers                         d_consumers;
-    bool                              d_isReady;
+    int                               d_numApps;
+    int                               d_numStops;  // Apps not moving
     mqbi::StorageIterator*            d_currentMessage;
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
@@ -625,9 +626,6 @@ struct QueueEngineUtil_AppsDeliveryContext {
     // CREATORS
     QueueEngineUtil_AppsDeliveryContext(mqbi::Queue*      queue,
                                         bslma::Allocator* allocator);
-
-    /// Start delivery cycle(s).
-    void start();
 
     /// Prepare the context to process next message.
     /// Return `true` if the delivery can continue iterating dataStream
@@ -661,6 +659,9 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
     /// Return `true` if there is at least one delivery target selected.
     bool isEmpty() const;
+
+    /// Return `true` if not all Apps are at capacity or there are no Apps.
+    bool haveProgress() const;
 
     bsls::Types::Int64 timeDelta();
 };

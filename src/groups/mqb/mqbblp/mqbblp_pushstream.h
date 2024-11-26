@@ -194,9 +194,11 @@ struct PushStream {
     void add(Element* element);
 
     /// Remove the specified `element` from both GUID and App corresponding to
-    /// the `element` (and specified when constructing the `element`).
-    /// Return the number of remaining Elements in the corresponding GUID.
-    unsigned int remove(Element* element);
+    /// the `element` (and specified when constructing the `element`).  If
+    /// there are no more elements in the App, erase the App.  If the specified
+    /// `canEraseGuid` is `true` and there are no more elements in the GUID,
+    /// erase the GUID.
+    void remove(Element* element, bool canEraseGuid);
 
     /// Remove all PushStream Elements corresponding to the specified
     /// `upstreamSubQueueId`.  Erase each corresponding GUIDs from the
@@ -218,9 +220,6 @@ struct PushStream {
     Element* create(const bmqp::SubQueueInfo& info,
                     const iterator&           iterator,
                     const Apps::iterator&     iteratorApp);
-
-    /// Destroy the specified `element`
-    void destroy(Element* element, bool doKeepGuid);
 };
 
 // ========================
@@ -605,6 +604,7 @@ inline void PushStream::App::add(Element* element)
 {
     d_elements.add(element, e_APP);
 }
+
 inline void PushStream::App::remove(Element* element)
 {
     d_elements.remove(element, e_APP);
@@ -631,19 +631,6 @@ PushStream::create(const bmqp::SubQueueInfo& subscription,
     return element;
 }
 
-inline void PushStream::destroy(Element* element, bool doKeepGuid)
-{
-    if (element->app().d_elements.numElements() == 0) {
-        element->eraseApp(d_apps);
-    }
-
-    if (!doKeepGuid && element->guid().numElements() == 0) {
-        element->eraseGuid(d_stream);
-    }
-
-    d_pushElementsPool_sp->deallocate(element);
-}
-
 inline PushStream::iterator
 PushStream::findOrAppendMessage(const bmqt::MessageGUID& guid)
 {
@@ -662,7 +649,7 @@ inline void PushStream::add(Element* element)
     element->app().add(element);
 }
 
-inline unsigned int PushStream::remove(Element* element)
+inline void PushStream::remove(Element* element, bool canEraseGuid)
 {
     BSLS_ASSERT_SAFE(element);
     BSLS_ASSERT_SAFE(!element->equal(d_stream.end()));
@@ -673,7 +660,15 @@ inline unsigned int PushStream::remove(Element* element)
     // remove from the guid
     element->guid().remove(element, e_GUID);
 
-    return element->guid().numElements();
+    if (element->app().d_elements.numElements() == 0) {
+        element->eraseApp(d_apps);
+    }
+
+    if (canEraseGuid && element->guid().numElements() == 0) {
+        element->eraseGuid(d_stream);
+    }
+
+    d_pushElementsPool_sp->deallocate(element);
 }
 
 inline unsigned int PushStream::removeApp(unsigned int upstreamSubQueueId)
@@ -695,10 +690,9 @@ inline unsigned int PushStream::removeApp(Apps::iterator itApp)
     for (unsigned int count = 0; count < numElements; ++count) {
         Element* element = itApp->second.d_elements.front();
 
-        remove(element);
-
-        destroy(element, false);
-        // do not keep Guid
+        remove(element, true);
+        // do not keep Guid.  This relies on either 'beforeOneAppRemoved' or
+        // resetting iterator(s).
     }
 
     return numElements;
