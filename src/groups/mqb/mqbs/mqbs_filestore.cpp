@@ -6933,6 +6933,9 @@ void FileStore::flushQueues()
                  d_replicationNotifications.begin();
              it != d_replicationNotifications.end();
              it++) {
+            // TODO: possible to store ReplicatedStorage directly and have one
+            //       less lookup, but it requires to handle the case when the
+            //       storage was removed before `flushQueues` call.
             StoragesMap::iterator storageIt = d_storages.find(*it);
             if (storageIt != d_storages.end()) {
                 ReplicatedStorage* rs = storageIt->second;
