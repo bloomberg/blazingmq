@@ -238,11 +238,11 @@ void JournalFileProcessor::process()
             // Apply filters
             if (filters.apply(iter->recordHeader(),
                               iter->recordOffset(),
-                              record.queueKey())) {
-                stopSearch = d_searchResult_p->processQueueOpRecord(
-                    record,
-                    iter->recordIndex(),
-                    iter->recordOffset());
+                              record.queueKey(),
+                              &stopSearch)) {
+                d_searchResult_p->processQueueOpRecord(record,
+                                                       iter->recordIndex(),
+                                                       iter->recordOffset());
             }
         }
         // Process JournalOp record
@@ -253,11 +253,11 @@ void JournalFileProcessor::process()
             // Apply filters
             if (filters.apply(iter->recordHeader(),
                               iter->recordOffset(),
-                              mqbu::StorageKey::k_NULL_KEY)) {
-                stopSearch = d_searchResult_p->processJournalOpRecord(
-                    record,
-                    iter->recordIndex(),
-                    iter->recordOffset());
+                              mqbu::StorageKey::k_NULL_KEY,
+                              &stopSearch)) {
+                d_searchResult_p->processJournalOpRecord(record,
+                                                         iter->recordIndex(),
+                                                         iter->recordOffset());
             }
         }
     }
