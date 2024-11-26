@@ -53,7 +53,8 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
 
 bool Filters::apply(const mqbs::RecordHeader& recordHeader,
                     bsls::Types::Uint64       recordOffset,
-                    const mqbu::StorageKey&   queueKey) const
+                    const mqbu::StorageKey&   queueKey,
+                    bool*                     highBoundReached) const
 {
     // Apply `queue key` filter
     if (queueKey != mqbu::StorageKey::k_NULL_KEY && !d_queueKeys.empty()) {
@@ -82,20 +83,27 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     case Parameters::Range::e_SEQUENCE_NUM: {
         CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
                                        recordHeader.sequenceNumber());
+        const bool greaterOrEqualToHigherBound = d_range.d_seqNumLt.isSet() &&
+                                                 d_range.d_seqNumLt <= seqNum;
+        if (highBoundReached)
+            *highBoundReached = greaterOrEqualToHigherBound;
+
         return !(
             (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
-            (d_range.d_seqNumLt.isSet() &&
-             d_range.d_seqNumLt <= seqNum));  // RETURN
+            greaterOrEqualToHigherBound);  // RETURN
     } break;
     default:
         // No range filter defined
         return true;  // RETURN
     }
-    if ((valueGt > 0 && value <= valueGt) ||
-        (valueLt > 0 && value >= valueLt)) {
+    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
+    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
+        if (highBoundReached)
+            *highBoundReached = greaterOrEqualToHigherBound;
         // Not inside range
         return false;  // RETURN
     }
+
     return true;
 }
 
