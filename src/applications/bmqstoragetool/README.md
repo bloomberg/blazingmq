@@ -13,7 +13,8 @@ the project. From the command-line, there are a few options you can use when
 invoking the tool.
 
 ```bash
-Usage:   bmqstoragetool [--journal-path <journal path>]
+Usage:   bmqstoragetool [-r|record-type <record-type>]*
+                        [--journal-path <journal path>]
                         [--journal-file <journal file>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
@@ -37,6 +38,9 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--summary]
                         [-h|help]
 Where:
+  -r | --record-type          <record-type>
+          record type to search {message|queue-op|journal-op} (default: [
+          message ])
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
