@@ -6893,13 +6893,13 @@ void FileStore::clearPrimary()
 
 void FileStore::flushStorage()
 {
-    // 'LocalQueue::flush' invokes 'dispaterFlush'.
-    // This means that 'dispaterFlush' will be executed more frequently on a
+    // 'LocalQueue::flush' invokes 'flushStorage'.
+    // This means that 'flushStorage' will be executed more frequently on a
     // FileStore than actually applicable.  This is ok and has no side effect.
 
-    // Note that 'RemoteQueue::dispaterFlush' will not invoke
-    // 'FileStore::dispaterFlush' because only the partition's primary node
-    // should invoke 'dispaterFlush' on the FileStore.
+    // Note that 'RemoteQueue::flush' will not invoke
+    // 'FileStore::flushStorage' because only the partition's primary node
+    // should invoke 'flushStorage' on the FileStore.
 
     BSLS_ASSERT_SAFE(d_isPrimary);
 
