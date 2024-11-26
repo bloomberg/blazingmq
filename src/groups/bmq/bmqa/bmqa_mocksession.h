@@ -1024,7 +1024,7 @@ class MockSession : public AbstractSession {
 
     // DATA
 
-    /// Buffer factory
+    /// Buffer factory used to build Blobs with `d_blobSpPool`
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
 
     /// Pool of shared pointers to blobs

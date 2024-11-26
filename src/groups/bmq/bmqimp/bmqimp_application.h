@@ -259,11 +259,6 @@ class Application {
 
     // MANIPULATORS
 
-    /// Return a pointer to the blob buffer factory used by this instance.
-    /// Note that lifetime of the pointed-to buffer factory is bound by this
-    /// instance.
-    bdlbb::BlobBufferFactory* bufferFactory();
-
     /// Return a pointer to the blob shared pointer pool used by this instance.
     /// Note that lifetime of the pointed-to pool is bound by this instance.
     BlobSpPool* blobSpPool();
@@ -325,11 +320,6 @@ inline bool Application::isStarted() const
     // the session is started
     return (state == bmqimp::BrokerSession::State::e_STARTED ||
             state == bmqimp::BrokerSession::State::e_RECONNECTING);
-}
-
-inline bdlbb::BlobBufferFactory* Application::bufferFactory()
-{
-    return &d_blobBufferFactory;
 }
 
 inline Application::BlobSpPool* Application::blobSpPool()

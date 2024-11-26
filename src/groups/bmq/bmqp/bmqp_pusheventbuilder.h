@@ -103,9 +103,6 @@ class PushEventBuilder {
     /// `mutable` to skip writing the length until the blob is retrieved.
     mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
-    /// Empty blob to be returned when no messages were added to this builder.
-    bsl::shared_ptr<bdlbb::Blob> d_emptyBlob_sp;
-
     int d_msgCount;
     // number of messages currently in
     // the event.

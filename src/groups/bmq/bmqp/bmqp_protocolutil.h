@@ -406,8 +406,8 @@ struct ProtocolUtil {
     buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
                OVERFLOW_FUNCTOR_TYPE& overflowCb);
 
-    /// Encode Receipt into the specified `blob` for the specified
-    /// `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
+    /// Encode Receipt into the specified `blob` (expected to be empty) for
+    /// the specified `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
     static void buildReceipt(bdlbb::Blob*        blob,
                              int                 partitionId,
                              unsigned int        primaryLeaseId,
@@ -732,7 +732,8 @@ inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
                                        unsigned int        primaryLeaseId,
                                        bsls::Types::Uint64 sequenceNumber)
 {
-    blob->removeAll();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 == blob->length());
 
     blob->setLength(sizeof(EventHeader) + sizeof(ReplicationReceipt));
 

@@ -99,9 +99,6 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// `mutable` to skip writing the length until the blob is retrieved.
     mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
-    /// Empty blob to be returned when no messages were added to this builder.
-    bsl::shared_ptr<bdlbb::Blob> d_emptyBlob_sp;
-
     int d_msgCount;  // number of messages currently in the
                      // event
 
@@ -156,9 +153,7 @@ class RecoveryEventBuilder BSLS_CPP11_FINAL {
     /// Return the number of messages currently in the event being built.
     int messageCount() const;
 
-    /// Return a reference to the shared pointer to the built Blob.  If no
-    /// messages were added, the Blob object under this reference will be
-    /// empty.
+    /// Return a reference to the shared pointer to the built Blob.
     /// Note that this accessor exposes an internal shared pointer object, and
     /// it is the user's responsibility to make a copy of it if it needs to be
     /// passed and kept in another thread while this builder object is used.

@@ -110,14 +110,16 @@ StorageEventBuilder::StorageEventBuilder(int storageProtocolVersion,
 : d_blobSpPool_p(blobSpPool_p)
 , d_storageProtocolVersion(storageProtocolVersion)
 , d_eventType(eventType)
-, d_blob_sp(0, allocator)  // initialized in `reset()`
-, d_emptyBlob_sp(blobSpPool_p->getObject())
+, d_blob_sp(0, allocator)       // initialized in `reset()`
+, d_emptyBlob_sp(0, allocator)  // initialized later in constructor
 , d_msgCount(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
     BSLS_ASSERT_SAFE(EventType::e_STORAGE == eventType ||
                      EventType::e_PARTITION_SYNC == eventType);
+
+    d_emptyBlob_sp = blobSpPool_p->getObject();
 
     // Assume that items built with the given `blobSpPool_p` either all have or
     // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
@@ -192,6 +194,9 @@ StorageEventBuilder::packMessageRaw(const bdlbb::Blob&        blob,
 
 const bsl::shared_ptr<bdlbb::Blob>& StorageEventBuilder::blob() const
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return d_emptyBlob_sp;  // RETURN

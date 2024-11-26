@@ -43,17 +43,16 @@ RecoveryEventBuilder::RecoveryEventBuilder(BlobSpPool*       blobSpPool_p,
                                            bslma::Allocator* allocator)
 : d_blobSpPool_p(blobSpPool_p)
 , d_blob_sp(0, allocator)  // initialized in `reset()`
-, d_emptyBlob_sp(blobSpPool_p->getObject())
 , d_msgCount(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blobSpPool_p);
 
     // Assume that items built with the given `blobSpPool_p` either all have or
-    // all don't have buffer factory, and check it once for `d_emptyBlob_sp`.
+    // all don't have buffer factory, and check it once for a sample blob.
     // We require this since we do `Blob::setLength`:
     BSLS_ASSERT_SAFE(
-        NULL != d_emptyBlob_sp->factory() &&
+        NULL != blobSpPool_p->getObject()->factory() &&
         "Passed BlobSpPool must build Blobs with set BlobBufferFactory");
 
     reset();
@@ -156,10 +155,8 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
 
 const bsl::shared_ptr<bdlbb::Blob>& RecoveryEventBuilder::blob() const
 {
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return d_emptyBlob_sp;  // RETURN
-    }
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_blob_sp->length() <= EventHeader::k_MAX_SIZE_SOFT);
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
