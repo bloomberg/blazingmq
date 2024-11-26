@@ -431,17 +431,19 @@ struct TestSession BSLS_CPP11_FINAL {
 
     /// Create a `TestSession` object using the specified `sessionOptions`,
     /// `scheduler`, and `allocator` to supply memory.
-    explicit TestSession(const bmqt::SessionOptions& sessionOptions,
-                         bdlmt::EventScheduler&      scheduler,
-                         bool                        useEventHandler = true,
-                         bslma::Allocator* allocator = s_allocator_p);
+    explicit TestSession(
+        const bmqt::SessionOptions& sessionOptions,
+        bdlmt::EventScheduler&      scheduler,
+        bool                        useEventHandler = true,
+        bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator());
 
     /// Create a `TestSession` object using the specified `sessionOptions`,
     /// `clockPtr`, and `allocator` to supply memory.
-    explicit TestSession(const bmqt::SessionOptions& sessionOptions,
-                         TestClock&                  testClock,
-                         bool                        useEventHandler = true,
-                         bslma::Allocator* allocator = s_allocator_p);
+    explicit TestSession(
+        const bmqt::SessionOptions& sessionOptions,
+        TestClock&                  testClock,
+        bool                        useEventHandler = true,
+        bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator());
 
     ~TestSession();
 
@@ -1008,7 +1010,8 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
     ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
     ASSERT_EQ(queue->isValid(), false);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // open queue request is not sent
     if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_NOT_SENT) {
@@ -1227,7 +1230,8 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
     ASSERT(queue->isValid());
     ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // configure queue request is not sent
     if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
@@ -1408,7 +1412,8 @@ TestSession::openQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue,
     ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
     ASSERT_EQ(queue->isValid(), false);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     PVVV_SAFE(L_ << " Open the queue async");
     int rc = d_brokerSession.openQueueAsync(queue, timeout);
@@ -1428,7 +1433,8 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                        const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Start with a queue in OPENING state and pending open request
     currentRequest = arriveAtStep(queue, e_OPEN_OPENING, timeout);
@@ -1459,7 +1465,8 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Go to the state with pending reopen request
     currentRequest = arriveAtStep(queue, e_REOPEN_OPENING, timeout);
@@ -1497,7 +1504,8 @@ TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
     ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
     ASSERT(queue->isValid());
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     PVVV_SAFE(L_ << " Trigger channel drop");
     session().setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -1547,7 +1555,8 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::closeQueueSecondStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Go to the step with pending 2nd phase close request
     currentRequest = arriveAtStep(queue, e_CLOSE_CLOSING, timeout);
@@ -1586,7 +1595,8 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 {
     BSLS_ASSERT_OPT(bmqt::QueueFlagsUtil::isReader(queue->flags()));
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -1739,7 +1749,8 @@ TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
                                      const QueueTestStep            step,
                                      const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -1875,7 +1886,8 @@ void TestSession::arriveAtLateResponseStepReader(
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -2068,7 +2080,8 @@ void TestSession::arriveAtLateResponseStepWriter(
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -2146,10 +2159,11 @@ TestSession::createQueue(const char*               name,
 {
     ASSERT(name);
 
-    bmqt::Uri                      uri(name, s_allocator_p);
+    bmqt::Uri uri(name, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Queue> pQueue;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(flags);
     pQueue->setOptions(options);
@@ -2255,14 +2269,16 @@ void TestSession::stopGracefully(bool waitForDisconnected)
     session().stopAsync();
 
     PVVV_SAFE("Stopping: Verify disconnect request is sent");
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     getOutboundControlMessage(&disconnectMessage);
 
     ASSERT(!disconnectMessage.rId().isNull());
     ASSERT(disconnectMessage.choice().isDisconnectValue());
 
     PVVV_SAFE("Stopping: Prepare and send disconnect response message");
-    bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+        bmqtst::TestHelperUtil::allocator());
     disconnectResponseMessage.rId().makeValue(disconnectMessage.rId().value());
     disconnectResponseMessage.choice().makeDisconnectResponse();
 
@@ -2388,7 +2404,7 @@ void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
     ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
-    bmqp::Event                   ev(&wc.d_blob, s_allocator_p, true);
+    bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator(), true);
 
     *rawEvent = ev;
 }
@@ -2399,7 +2415,7 @@ void TestSession::getOutboundControlMessage(
     ASSERT(d_testChannel.waitFor(1, true, k_EVENT_TIMEOUT));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
-    bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
+    bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
 
     ASSERT(ev.isControlEvent());
 
@@ -2422,7 +2438,8 @@ void TestSession::sendControlMessage(
 
 void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     responseMessage.rId() = request.rId();
 
     if (request.choice().isOpenQueueValue()) {
@@ -2441,7 +2458,8 @@ void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
 
 void TestSession::sendStatus(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    bmqp_ctrlmsg::ControlMessage statusMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage statusMessage(
+        bmqtst::TestHelperUtil::allocator());
     statusMessage.rId() = request.rId();
     statusMessage.choice().makeStatus();
     statusMessage.choice().status().category() =
@@ -2455,7 +2473,8 @@ void TestSession::sendStatus(const bmqp_ctrlmsg::ControlMessage& request)
 bmqp_ctrlmsg::ControlMessage
 TestSession::getNextOutboundRequest(const RequestType requestType)
 {
-    bmqp_ctrlmsg::ControlMessage controlMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage controlMessage(
+        bmqtst::TestHelperUtil::allocator());
     getOutboundControlMessage(&controlMessage);
 
     PVVV_SAFE("Outbound request: " << controlMessage);
@@ -2608,11 +2627,13 @@ static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
 {
     bmqt::SessionOptions  sessionOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     sessionOptions.setNumProcessingThreads(1).setDisconnectTimeout(
         bsls::TimeInterval(0.01));
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
@@ -2793,10 +2814,12 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     scheduler.start();
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
@@ -2814,7 +2837,7 @@ static void test1_breathingTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     PVV_SAFE("Starting session...");
     int rc = session.startAsync();
     ASSERT_EQ(rc, 0);
@@ -2855,14 +2878,16 @@ static void test2_basicAccessorsTest()
 {
     bmqtst::TestHelper::printTestName("BASIC ACCESSORS");
 
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqp::QueueId            k_QUEUE_ID(0, 0);
     const bmqt::CorrelationId      corrId(bmqt::CorrelationId::autoValue());
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
     bmqimp::BrokerSession::StateFunctor      emptyStateCb;
@@ -2872,7 +2897,7 @@ static void test2_basicAccessorsTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     ASSERT(!obj.isUsingSessionEventHandler());
 
@@ -2902,7 +2927,9 @@ static void test3_nullChannelTest()
     bmqtst::TestHelper::printTestName("NULL CHANNEL");
 
     const int                      k_NUM_EVENTS = 3;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
@@ -2910,7 +2937,7 @@ static void test3_nullChannelTest()
     bslmt::TimedSemaphore          eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::BrokerSession obj(
         &scheduler,
@@ -2924,7 +2951,7 @@ static void test3_nullChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
 
@@ -2992,9 +3019,11 @@ static void test4_createEventTest()
     bmqtst::TestHelper::printTestName("CREATE EVENT TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
@@ -3005,7 +3034,7 @@ static void test4_createEventTest()
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> ev = obj.createEvent();
     ASSERT_EQ(bmqimp::Event::EventType::e_UNINITIALIZED, ev->type());
@@ -3013,10 +3042,12 @@ static void test4_createEventTest()
 
 static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
 {
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval&      timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -3024,13 +3055,14 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     bsls::AtomicInt                stopCounter(0);
     bslmt::TimedSemaphore          semaphore;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(queueFlags);
     pQueue->setOptions(queueOptions);
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     scheduler.start();
 
@@ -3052,7 +3084,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
     int rc = session.startAsync();
@@ -3244,16 +3276,18 @@ static void test6_setChannelTest()
     // - CONNECTION_LOST
     const int                      k_NUM_CALLS  = 4;
     const int                      k_NUM_EVENTS = 2 + 3 * (k_NUM_CALLS - 1);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
     bsls::AtomicInt                stopCounter(0);
-    bmqio::TestChannel             testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     bslmt::TimedSemaphore          eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::BrokerSession obj(
         &scheduler,
@@ -3269,7 +3303,7 @@ static void test6_setChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Starting session...");
     int rc = obj.startAsync();
@@ -3302,12 +3336,14 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3459,11 +3495,13 @@ static void test8_queueWriterConfigureTest()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE);
@@ -3548,11 +3586,13 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3576,7 +3616,8 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 4. Send open queue response with error");
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     responseMessage.rId().makeValue(openReqId1);
     responseMessage.choice().makeStatus();
     responseMessage.choice().status().category() =
@@ -3683,11 +3724,13 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3725,14 +3768,17 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
 
     // Prepare and process open queue response
     PVV_SAFE("Prepare and send back open queue response");
-    bmqp_ctrlmsg::ControlMessage openQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage openQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
     openQueueResponse.rId().makeValue(openId);
     openQueueResponse.choice().makeOpenQueueResponse();
 
     obj.sendControlMessage(openQueueResponse);
 
-    bmqp_ctrlmsg::ControlMessage configureQueueMessage(s_allocator_p);
-    bmqp_ctrlmsg::ControlMessage configureQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage configureQueueMessage(
+        bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::ControlMessage configureQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
 
     // For reader queue there is a configuring phase
     if (bmqt::QueueFlagsUtil::isReader(queueFlags)) {
@@ -3790,7 +3836,8 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
 
     // Verify close request (todo: check handle queue parameters)
     PVV_SAFE("Ensure close queue request has been sent");
-    bmqp_ctrlmsg::ControlMessage closeQueueMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage closeQueueMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&closeQueueMessage);
 
     ASSERT(!closeQueueMessage.rId().isNull());
@@ -3799,7 +3846,8 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
 
     // Prepare and process close queue response
     PVV_SAFE("Prepare and send back close queue response");
-    bmqp_ctrlmsg::ControlMessage closeQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage closeQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
     closeQueueResponse.rId().makeValue(closeQueueMessage.rId().value());
     closeQueueResponse.choice().makeCloseQueueResponse();
 
@@ -3893,12 +3941,14 @@ static void test11_disconnect()
     bmqtst::TestHelper::printTestName("DISCONNECT");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > eventQueue(
         bsls::SystemClockType::e_MONOTONIC,
-        s_allocator_p);
-    bmqio::TestChannel testChannel(s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     bsls::AtomicInt    startCounter(0);
     bsls::AtomicInt    stopCounter(0);
 
@@ -3926,7 +3976,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Start the session
         PVV_SAFE("Starting session");
@@ -3965,22 +4015,25 @@ static void test11_disconnect()
         ASSERT(!event);
 
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
-        bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectMessage(
+            bmqtst::TestHelperUtil::allocator());
         ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
-        bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
+        bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
         ASSERT(ev.isControlEvent());
 
         rc = ev.loadControlEvent(&disconnectMessage);
         ASSERT_EQ(rc, 0);
 
         PVV_SAFE("Send the disconnect response");
-        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+            bmqtst::TestHelperUtil::allocator());
         disconnectResponseMessage.rId().makeValue(
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory, s_allocator_p);
+        bmqp::SchemaEventBuilder builder(&blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
@@ -4026,7 +4079,7 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Start the session
         PVV_SAFE("Starting session");
@@ -4062,22 +4115,25 @@ static void test11_disconnect()
                   bmqt::SessionEventType::e_TIMEOUT);
 
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
-        bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectMessage(
+            bmqtst::TestHelperUtil::allocator());
         ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
-        bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
+        bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
         ASSERT(ev.isControlEvent());
 
         rc = ev.loadControlEvent(&disconnectMessage);
         ASSERT_EQ(rc, 0);
 
         PVV_SAFE("Send the disconnect response");
-        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+            bmqtst::TestHelperUtil::allocator());
         disconnectResponseMessage.rId().makeValue(
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory, s_allocator_p);
+        bmqp::SchemaEventBuilder builder(&blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
@@ -4134,25 +4190,29 @@ static void test12_disconnectStatus()
     bmqtst::TestHelper::printTestName("DISCONNECT STATUS MESSAGE");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
     PVV_SAFE("Stopping session...");
     obj.session().stopAsync();
 
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&disconnectMessage);
 
     ASSERT(!disconnectMessage.rId().isNull());
     ASSERT(disconnectMessage.choice().isDisconnectValue());
 
     // prepare status message
-    bmqp_ctrlmsg::ControlMessage statusMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage statusMessage(
+        bmqtst::TestHelperUtil::allocator());
     statusMessage.rId().makeValue(disconnectMessage.rId().value());
     statusMessage.choice().makeStatus();
     statusMessage.choice().status().category() =
@@ -4198,18 +4258,21 @@ static void test13_disconnectTimeout()
     const bsls::TimeInterval timeout = bsls::TimeInterval(5);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
     sessionOptions.setNumProcessingThreads(1).setDisconnectTimeout(timeout);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
     PVV_SAFE("Stopping session...");
     obj.session().stopAsync();
 
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&disconnectMessage);
 
     ASSERT(!disconnectMessage.rId().isNull());
@@ -4372,12 +4435,14 @@ static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI, queueFlags);
 
@@ -4490,17 +4555,20 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
 
-    bmqt::Uri                    uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                    testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     // The test case is applicable only for the reader queue
     bsl::shared_ptr<bmqimp::Queue> pQueue =
@@ -4601,12 +4669,14 @@ static void test21_post_Limit()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
     // Create test session with the system time source
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -4642,7 +4712,7 @@ static void test21_post_Limit()
     ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     // Check PUT event is sent
-    bmqp::Event rawEvent(s_allocator_p);
+    bmqp::Event rawEvent(bmqtst::TestHelperUtil::allocator());
     obj.getOutboundEvent(&rawEvent);
 
     ASSERT(rawEvent.isPutEvent());
@@ -4738,11 +4808,13 @@ static void test22_confirm_Limit()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -4835,11 +4907,13 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -4938,12 +5012,14 @@ queueAsyncCanceled(int                          lineNum,
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("==================\n"
              << "Starting test " << lineNum << "\n"
@@ -5623,16 +5699,20 @@ static void test25_sessionFsmTable()
     bmqtst::TestHelper::printTestName("SESSION FSM TRANSITION TABLE TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     scheduler.start();
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
@@ -5641,7 +5721,7 @@ static void test25_sessionFsmTable()
     bslmt::TimedSemaphore                               doneSemaphore;
     bsls::AtomicInt                                     tcpRc(0);
 
-    bmqio::TestChannel testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     testChannel.setPeerUri("tcp://testHost:1234");  // for better logging
 
     bmqimp::BrokerSession obj(
@@ -5655,7 +5735,7 @@ static void test25_sessionFsmTable()
                              &table,
                              &tcpRc,
                              &doneSemaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     table = obj.getSessionFsmTransitionTable();
 
@@ -5891,11 +5971,13 @@ static void test26_openCloseMultipleSubqueues()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueFoo = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=foo",
@@ -5967,12 +6049,14 @@ static void test27_openCloseMultipleSubqueuesWithErrors()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueValid = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=valid",
@@ -6163,7 +6247,7 @@ queueLateAsyncCanceled(int                               testId,
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     // Set timeouts used for implicit reopening, reconfiguring and closing
@@ -6172,7 +6256,9 @@ queueLateAsyncCanceled(int                               testId,
         .setConfigureQueueTimeout(timeout)
         .setCloseQueueTimeout(timeout);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE(testId << ": Step 1. Starting session...");
     obj.startAndConnect();
@@ -6352,11 +6438,13 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI,
                                                              queueFlags,
@@ -6437,11 +6525,13 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions      sessionOptions;
     bmqt::QueueOptions        queueOptions;
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI1,
                                                              queueFlags,
@@ -6548,16 +6638,21 @@ static void test33_queueNackTest()
     const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder          eventBuilder(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PutEventBuilder          eventBuilder(&bufferFactory,
+                                       bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId      corrId(243);
     bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -6600,7 +6695,7 @@ static void test33_queueNackTest()
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     PVV_SAFE("Step 4. Verify PUT event is sent");
-    bmqp::Event rawEvent(s_allocator_p);
+    bmqp::Event rawEvent(bmqtst::TestHelperUtil::allocator());
     obj.getOutboundEvent(&rawEvent);
 
     ASSERT(rawEvent.isPutEvent());
@@ -6669,11 +6764,13 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queue = obj.createQueue(k_URI,
                                                            queueFlags,
@@ -6859,20 +6956,24 @@ static void test35_hostHealthMonitoring()
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession with "
              "bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -6939,7 +7040,7 @@ static void test35_hostHealthMonitoring()
              "Verify that queue resumes when the host becomes healthy");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
 
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
@@ -7069,14 +7170,17 @@ static void test36_closingAfterConfigTimeout()
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                    testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Test step: Start the session");
     obj.startAndConnect();
@@ -7170,13 +7274,16 @@ static void test37_closingPendingConfig()
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
-    bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Test step: Start the session");
     obj.startAndConnect();
@@ -7267,7 +7374,8 @@ static void responderMockup(TestSession*                   obj,
         bmqp_ctrlmsg::ControlMessage request = obj->getNextOutboundRequest(
             type[i]);
         if (TestSession::e_REQ_DISCONNECT == type[i]) {
-            bmqp_ctrlmsg::ControlMessage response(s_allocator_p);
+            bmqp_ctrlmsg::ControlMessage response(
+                bmqtst::TestHelperUtil::allocator());
             response.rId().makeValue(request.rId().value());
             response.choice().makeDisconnectResponse();
 
@@ -7304,9 +7412,10 @@ static void test_syncOpenConfigureClose(bool withHandler)
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
     bmqt::SessionOptions           sessionOptions;
-    bmqp_ctrlmsg::ControlMessage   currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage   currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestSession           obj(sessionOptions, scheduler, withHandler);
 
     sessionOptions.setNumProcessingThreads(1);
@@ -7336,7 +7445,7 @@ static void test_syncOpenConfigureClose(bool withHandler)
     bslmt::ThreadUtil::createWithAllocator(
         &threadHandle,
         bdlf::BindUtil::bind(&responderMockup, &obj, 6, requestType),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     obj.session().openQueueSync(queueSp, timeout, cb);
 
@@ -7415,11 +7524,14 @@ static void test_asyncOpenConfigureClose(bool withHandler)
     bsl::shared_ptr<bmqimp::Event> eventSp;
     bsl::shared_ptr<bmqimp::Event> dummy;
     bmqt::SessionOptions           sessionOptions;
-    bmqp_ctrlmsg::ControlMessage   currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage   currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestSession           obj(sessionOptions, scheduler, withHandler);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
@@ -7440,7 +7552,7 @@ static void test_asyncOpenConfigureClose(bool withHandler)
         &obj.session(),
         bdlf::PlaceHolders::_1);  // event
 
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
 
     obj.session().openQueueAsync(queueSp, timeout, cb);
 
@@ -7613,10 +7725,12 @@ static void test40_syncCalledFromEventHandler()
     bmqtst::TestHelper::printTestName(
         "SYNC API CALLED FROM EVENT HANDLER TEST");
 
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval&      timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -7624,13 +7738,14 @@ static void test40_syncCalledFromEventHandler()
     bsls::AtomicInt                stopCounter(0);
     bslmt::TimedSemaphore          semaphore;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(bmqt::QueueFlags::e_WRITE);
     pQueue->setOptions(queueOptions);
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     scheduler.start();
 
@@ -7651,7 +7766,7 @@ static void test40_syncCalledFromEventHandler()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
     int rc = session.startAsync();
@@ -7778,14 +7893,16 @@ static void test43_hostHealthMonitoringErrors()
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING ERRORS TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -7795,7 +7912,9 @@ static void test43_hostHealthMonitoringErrors()
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession with "
              "bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -7818,7 +7937,7 @@ static void test43_hostHealthMonitoringErrors()
     ASSERT(obj.waitHostUnhealthyEvent());
 
     PVV_SAFE("Step 5. Provide an error response from the broker");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendStatus(request);
 
@@ -7939,7 +8058,7 @@ static void testHostHealthWithMultipleQueues(
     ASSERT(testSession->waitHostUnhealthyEvent());
 
     PVV_SAFE("Step 2. Verify that only two queues are suspended");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         request = testSession->getNextOutboundRequest(
             TestSession::e_REQ_CONFIG_QUEUE);
@@ -8038,14 +8157,16 @@ static void test44_hostHealthMonitoringMultipleQueues()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING MULTIPLE QUEUES TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval                  timeout = bsls::TimeInterval(15);
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1)
@@ -8054,7 +8175,9 @@ static void test44_hostHealthMonitoringMultipleQueues()
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -8205,21 +8328,25 @@ static void test45_hostHealthMonitoringPendingStandalone()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING PENDING STANDALONE TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -8246,7 +8373,8 @@ static void test45_hostHealthMonitoringPendingStandalone()
                                                timeout);
     ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
-    bmqp_ctrlmsg::ControlMessage configureRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage configureRequest(
+        bmqtst::TestHelperUtil::allocator());
     configureRequest = obj.getNextOutboundRequest(
         TestSession::e_REQ_CONFIG_QUEUE);
 
@@ -8322,21 +8450,25 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING DEFERRED SUSPEND RESUME TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -8371,7 +8503,8 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     ASSERT(obj.waitHostUnhealthyEvent());
 
     PVVV_SAFE("The queue should send suspend request.");
-    bmqp_ctrlmsg::ControlMessage suspendRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage suspendRequest(
+        bmqtst::TestHelperUtil::allocator());
     suspendRequest = obj.getNextOutboundRequest(
         TestSession::e_REQ_CONFIG_QUEUE);
     suspendRequest = obj.getNextOutboundRequest(
@@ -8401,8 +8534,10 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
         ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
         PVVV_SAFE("Closing: Check configure request was sent");
-        bmqp_ctrlmsg::ControlMessage request1(s_allocator_p);
-        bmqp_ctrlmsg::ControlMessage request2(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage request1(
+            bmqtst::TestHelperUtil::allocator());
+        bmqp_ctrlmsg::ControlMessage request2(
+            bmqtst::TestHelperUtil::allocator());
         request1 = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
         request2 = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
@@ -8469,13 +8604,15 @@ static void test47_configureMergesQueueOptions()
     bmqtst::TestHelper::printTestName("CONFIGURE MERGED QUEUE OPTIONS TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
@@ -8506,7 +8643,7 @@ static void test47_configureMergesQueueOptions()
 
     PVV_SAFE("Step 5. "
              "Verify that request and queue finish with merged options");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
@@ -8565,21 +8702,25 @@ static void test48_hostHealthSensitivityReconfiguration()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH SENSITIVITY RECONFIGURATION TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
@@ -8615,7 +8756,7 @@ static void test48_hostHealthSensitivityReconfiguration()
     // Writer should suspend immediately without configure request.
     obj.waitQueueSuspendedEvent();
     // Reader needs to wait for the configure-roundtrip.
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
@@ -8740,12 +8881,14 @@ static void test49_controlsBuffering()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
     // Create test session with the system time source
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueFoo = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=foo",
@@ -8882,17 +9025,22 @@ static void test50_putRetransmittingTest()
     int                            phFlags = 0;
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::PutMessageIterator  putIter(&bufferFactory, s_allocator_p);
-    bmqp::AckEventBuilder     ackEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::Event               rawEvent(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::PutMessageIterator  putIter(&bufferFactory,
+                                     bmqtst::TestHelperUtil::allocator());
+    bmqp::AckEventBuilder     ackEventBuilder(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::Event               rawEvent(bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId corrIdFirst(243);
     const bmqt::CorrelationId corrIdSecond(987);
     const bmqt::CorrelationId corrIdThird(591);
     const bmqt::CorrelationId corrIdFourth(193);
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                 testClock(scheduler);
 
     bmqt::MessageGUID guidFirst  = bmqp::MessageGUIDGenerator::testGUID();
@@ -8902,7 +9050,9 @@ static void test50_putRetransmittingTest()
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -9164,20 +9314,26 @@ static void test51_putRetransmittingNoAckTest()
     int                            phFlags = 0;
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::PutMessageIterator  putIter(&bufferFactory, s_allocator_p);
-    bmqp::Event               rawEvent(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::PutMessageIterator  putIter(&bufferFactory,
+                                     bmqtst::TestHelperUtil::allocator());
+    bmqp::Event               rawEvent(bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId corrId(243);
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::MessageGUID         guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID         guid2 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID         guid3 = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -9378,12 +9534,14 @@ static void test52_controlRetransmission()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
@@ -9531,12 +9689,14 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions  sessionOptions;
     bmqt::QueueOptions    queueOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -9776,7 +9936,7 @@ static void test54_distributedTrace()
 
         static void getSpacer(bdlcc::Deque<bsl::string>& events)
         {
-            bsl::string spacer(s_allocator_p);
+            bsl::string spacer(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(events.tryPopFront(&spacer), 0);
             ASSERT_EQ(spacer, "spacer");
         }
@@ -9806,7 +9966,7 @@ static void test54_distributedTrace()
             getSpacer(events);
 
             // Make sure no other events arrive with the given default timeout.
-            bsl::string emptyStr(s_allocator_p);
+            bsl::string emptyStr(bmqtst::TestHelperUtil::allocator());
             ASSERT_NE(events.timedPopFront(&emptyStr,
                                            bdlt::CurrentTime::now() +
                                                bsls::TimeInterval(0.01)),
@@ -9814,8 +9974,9 @@ static void test54_distributedTrace()
         }
     };
 
-    bsl::vector<bsl::string>  dtEvents(s_allocator_p);
-    bdlcc::Deque<bsl::string> dtEventsQueue(s_allocator_p);
+    bsl::vector<bsl::string>  dtEvents(bmqtst::TestHelperUtil::allocator());
+    bdlcc::Deque<bsl::string> dtEventsQueue(
+        bmqtst::TestHelperUtil::allocator());
 
     // Contract.  Each event buffer fill is surrounded by spacers:
     // > addSpacer        (first spacer for convenience)
@@ -9829,23 +9990,27 @@ static void test54_distributedTrace()
     localFns::addSpacer(dtEventsQueue);
 
     bsl::shared_ptr<bmqpi::DTContext> dtContext(
-        new (*s_allocator_p) DTTestContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            DTTestContext(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqpi::DTTracer> dtTracer(
-        new (*s_allocator_p) DTTestTracer(&dtEventsQueue, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            DTTestTracer(&dtEventsQueue, bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1).setTraceOptions(dtContext,
                                                               dtTracer);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
@@ -9859,13 +10024,16 @@ static void test54_distributedTrace()
     ASSERT_EQ(dtEvents[1], "END bmq.session.start");
     dtEvents.clear();
     {
-        bmqpi::DTSpan::Baggage baggage(s_allocator_p);
+        bmqpi::DTSpan::Baggage baggage(bmqtst::TestHelperUtil::allocator());
         baggage.put("tag", "value");
 
         bsl::shared_ptr<bmqpi::DTSpan> span(
-            new (*s_allocator_p)
-                DTTestSpan("test54", baggage, &dtEventsQueue, s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                DTTestSpan("test54",
+                           baggage,
+                           &dtEventsQueue,
+                           bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         bslma::ManagedPtr<void> scopeGuard(dtContext->scope(span));
 
         PVV_SAFE("Step 2. Open a queue...");
@@ -10212,8 +10380,8 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqsys::Time::initialize();
-    bmqt::UriParser::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -10290,7 +10458,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

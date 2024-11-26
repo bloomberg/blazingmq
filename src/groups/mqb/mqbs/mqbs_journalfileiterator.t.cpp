@@ -444,13 +444,14 @@ static void test2_forwardIteration()
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    char*       p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
     MemoryBlock block(p, totalSize);
     FileHeader  fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
 
-    RecordsListType records(s_allocator_p);
+    RecordsListType records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -489,7 +490,7 @@ static void test2_forwardIteration()
     ASSERT_EQ(i, records.size());
     ASSERT_EQ(false, it.isValid());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test3_forwardIterationWithZeroJournalRecords()
@@ -506,7 +507,8 @@ static void test3_forwardIterationWithZeroJournalRecords()
     bsls::Types::Uint64 totalSize = sizeof(FileHeader) +
                                     sizeof(JournalFileHeader);
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
@@ -594,7 +596,7 @@ static void test3_forwardIterationWithZeroJournalRecords()
         ASSERT_EQ(0U, numRecords);
     }
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test4_backwardIteration()
@@ -613,13 +615,14 @@ static void test4_backwardIteration()
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
-    RecordsListType     records(s_allocator_p);
+    RecordsListType     records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -658,7 +661,7 @@ static void test4_backwardIteration()
     ASSERT_EQ(i, records.size());
     ASSERT_EQ(false, it.isValid());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test5_backwardIterationWithZeroJournalEntries()
@@ -675,7 +678,8 @@ static void test5_backwardIterationWithZeroJournalEntries()
     bsls::Types::Uint64 totalSize = sizeof(FileHeader) +
                                     sizeof(JournalFileHeader);
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
@@ -759,7 +763,7 @@ static void test5_backwardIterationWithZeroJournalEntries()
         ASSERT_EQ(0U, numRecords);
     }
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test6_forwardIterationOfSparseJournalFileNoRecords()
@@ -780,7 +784,8 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
 
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
     // When this block gets passed to the JournalFileIterator c'tor, it will
     // iterate over the record-set and parse the type of each. To avoid reading
     // uninitialized memory, we zero-out the buffer now.
@@ -880,7 +885,7 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
         ASSERT_EQ(0U, numRecords);
     }
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test7_backwardIterationOfSparseJournalFileNoRecords()
@@ -901,7 +906,8 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
 
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
     // When this block gets passed to the JournalFileIterator c'tor, it will
     // iterate over the record-set and parse the type of each. To avoid reading
     // uninitialized memory, we zero-out the buffer now.
@@ -997,7 +1003,7 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
         ASSERT_EQ(0U, numRecords);
     }
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test8_forwardIterationOfSparseJournalFileWithRecords()
@@ -1023,7 +1029,8 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
         1024 * 1024 * 10;  // 10MB of sparse area
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
     // When this block gets passed to the JournalFileIterator c'tor, it will
     // iterate over the record-set and parse the type of each. To avoid reading
     // uninitialized memory, we zero-out the buffer now.
@@ -1034,7 +1041,7 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
 
-    RecordsListType records(s_allocator_p);
+    RecordsListType records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -1072,7 +1079,7 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
     ASSERT_EQ(i, records.size());
     ASSERT_EQ(false, it.isValid());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test9_backwardIterationOfSparseJournalFileWithRecords()
@@ -1098,7 +1105,8 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
         1024 * 1024 * 50;  // 50MB of sparse area
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
     // When this block gets passed to the JournalFileIterator c'tor, it will
     // iterate over the record-set and parse the type of each. To avoid reading
     // uninitialized memory, we zero-out the buffer now.
@@ -1109,7 +1117,7 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
 
-    RecordsListType records(s_allocator_p);
+    RecordsListType records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -1148,7 +1156,7 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
     ASSERT_EQ(i, records.size());
     ASSERT_EQ(false, it.isValid());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test10_bidirectionalIteration()
@@ -1167,13 +1175,14 @@ static void test10_bidirectionalIteration()
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
-    RecordsListType     records(s_allocator_p);
+    RecordsListType     records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -1258,7 +1267,7 @@ static void test10_bidirectionalIteration()
     ASSERT_EQ(false, it.isReverseMode());
     ASSERT_EQ(false, it.hasRecordSizeRemaining());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test11_forwardAdvance()
@@ -1277,13 +1286,14 @@ static void test11_forwardAdvance()
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
-    RecordsListType     records(s_allocator_p);
+    RecordsListType     records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -1328,7 +1338,7 @@ static void test11_forwardAdvance()
     // Not enough bytes remaining to advance
     ASSERT_NE_D(i, 1, (rc = it.advance(increment)));
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test12_backwardAdvance()
@@ -1347,13 +1357,14 @@ static void test12_backwardAdvance()
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    char* p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+    char* p = static_cast<char*>(
+        bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
 
     MemoryBlock         block(p, totalSize);
     FileHeader          fileHeader;
     bsls::Types::Uint64 lastRecordPos = 0;
     bsls::Types::Uint64 lastSyncPtPos = 0;
-    RecordsListType     records(s_allocator_p);
+    RecordsListType     records(bmqtst::TestHelperUtil::allocator());
 
     addRecords(&block,
                &fileHeader,
@@ -1398,7 +1409,7 @@ static void test12_backwardAdvance()
     // Not enough bytes remaining to advance
     ASSERT_NE_D(i, 1, (rc = it.advance(increment)));
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 // ============================================================================
@@ -1427,7 +1438,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

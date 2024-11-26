@@ -87,11 +87,11 @@ struct Test : bmqtst::Test {
 
 Test::Test()
 : d_id()
-, d_dispatcher(s_allocator_p)
-, d_bufferFactory(1024, s_allocator_p)
-, d_cluster(&d_bufferFactory, s_allocator_p)
-, d_domain(&d_cluster, s_allocator_p)
-, d_queue(&d_domain, s_allocator_p)
+, d_dispatcher(bmqtst::TestHelperUtil::allocator())
+, d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
+, d_cluster(&d_bufferFactory, bmqtst::TestHelperUtil::allocator())
+, d_domain(&d_cluster, bmqtst::TestHelperUtil::allocator())
+, d_queue(&d_domain, bmqtst::TestHelperUtil::allocator())
 , d_queueState(&d_queue,
                bmqt::Uri("bmq://bmq.test.local/test_queue"),
                802701,
@@ -99,26 +99,26 @@ Test::Test()
                1,
                &d_domain,
                d_cluster._resources(),
-               s_allocator_p)
+               bmqtst::TestHelperUtil::allocator())
 , d_monitor(&d_queueState,
             bdlf::BindUtil::bind(&Test::loggingCb,
                                  this,
                                  bdlf::PlaceHolders::_1,   // id
                                  bdlf::PlaceHolders::_2),  // enableLog
 
-            s_allocator_p)
+            bmqtst::TestHelperUtil::allocator())
 , d_storage(d_queue.uri(),
             mqbu::StorageKey::k_NULL_KEY,
             mqbs::DataStore::k_INVALID_PARTITION_ID,
             getDomainConfig(),
             d_domain.capacityMeter(),
-            s_allocator_p)
-, d_haveUndelivered(s_allocator_p)
+            bmqtst::TestHelperUtil::allocator())
+, d_haveUndelivered(bmqtst::TestHelperUtil::allocator())
 {
     d_dispatcher._setInDispatcherThread(true);
     d_queue._setDispatcher(&d_dispatcher);
 
-    bmqu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<mqbi::Queue> queueMp(&d_queue,
                                            0,
@@ -188,7 +188,8 @@ TEST_F(Test, doNotMonitor)
 {
     putMessage();
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::INFO,
+                                       bmqtst::TestHelperUtil::allocator());
 
     d_monitor.registerSubStream(d_id);
 
@@ -211,7 +212,8 @@ TEST_F(Test, emptyQueue)
 // Plan: Start monitoring, make time pass, state should remain ALIVE.
 // ------------------------------------------------------------------------
 {
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -241,7 +243,8 @@ TEST_F(Test, putAliveIdleSendAlive)
 // pass, check that state remains 'alive'.
 // ------------------------------------------------------------------------
 {
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -270,7 +273,7 @@ TEST_F(Test, putAliveIdleSendAlive)
     ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "ALARM \\[QUEUE_STUCK\\]",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
     ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
@@ -284,7 +287,7 @@ TEST_F(Test, putAliveIdleSendAlive)
     ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "no longer appears to be stuck",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
     ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
 }
 
@@ -341,7 +344,8 @@ TEST_F(Test, changeMaxIdleTime)
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
     ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME * 2);
     ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
@@ -377,7 +381,8 @@ TEST_F(Test, reset)
     d_monitor.onTimer(0);
     ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     d_monitor.reset();
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
@@ -396,7 +401,8 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 // pass, check that state remains 'alive'.
 // ------------------------------------------------------------------------
 {
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
     size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
@@ -409,7 +415,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME);
 
-    bmqu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
     d_storage.addVirtualStorage(errorDescription, id1, key1);
     d_storage.addVirtualStorage(errorDescription, id2, key2);
 
@@ -444,7 +450,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
         ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records().rbegin()[i],
             "ALARM \\[QUEUE_STUCK\\]",
-            s_allocator_p));
+            bmqtst::TestHelperUtil::allocator()));
     }
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
@@ -462,7 +468,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app1' no longer appears "
         "to be stuck.",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
     ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_IDLE);
@@ -474,7 +480,7 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app2' no longer appears "
         "to be stuck.",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
     ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
     ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_ALIVE);
 }
@@ -489,7 +495,8 @@ TEST_F(Test, usage)
 {
 #define monitor d_monitor
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     monitor.setMaxIdleTime(20);
 
@@ -542,7 +549,7 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     ball::LoggerManager::singleton().setDefaultThresholdLevels(
         ball::Severity::OFF,
@@ -550,11 +557,13 @@ int main(int argc, char* argv[])
         ball::Severity::OFF,
         ball::Severity::OFF);
     {
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
 
         bmqtst::runTest(_testCase);
     }

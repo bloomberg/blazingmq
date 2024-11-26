@@ -71,9 +71,9 @@ Handle _(const int handle)
 
 MsgGroupId msgGroupIdFromInt(const int id)
 {
-    bmqu::MemOutStream ss(s_allocator_p);
+    bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
     ss << id;
-    return MsgGroupId(ss.str(), s_allocator_p);
+    return MsgGroupId(ss.str(), bmqtst::TestHelperUtil::allocator());
 }
 
 void addHandles(MessageGroupIdManager* obj, const int handles = 1000)
@@ -97,7 +97,8 @@ void allocateSomeGroups(MessageGroupIdManager* obj,
     BSLS_ASSERT_SAFE((groups % handles) == 0);
 
     // Add a few handles
-    bsl::vector<Handle> handlesBefore(handles, s_allocator_p);
+    bsl::vector<Handle> handlesBefore(handles,
+                                      bmqtst::TestHelperUtil::allocator());
     for (int i = 0; i < groups; ++i) {
         const Handle h = obj->getHandle(msgGroupIdFromInt(i), k_T0);
         if (i < handles) {
@@ -112,7 +113,7 @@ void allocateSomeGroups(MessageGroupIdManager* obj,
     // We expect 'groups' equally assigned to 'handles' handles.
     const int groupsPerHandle = groups / handles;
     for (int i = 0; i < handles; ++i) {
-        IdsForHandle gids(s_allocator_p);
+        IdsForHandle gids(bmqtst::TestHelperUtil::allocator());
         obj->idsForHandle(&gids, _(i));
         ASSERT_EQ(static_cast<int>(gids.size()), groupsPerHandle);
         for (IdsForHandle::const_iterator j = gids.begin(); j != gids.end();
@@ -209,7 +210,7 @@ static void test1_sameGroupIdSameHandleTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_OFF,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     const int             k_NUMBER_OF_HANDLES = 5;
     addHandles(&obj, k_NUMBER_OF_HANDLES);
 
@@ -245,7 +246,7 @@ static void test2_differentGroupIdsHaveDifferentHandlesTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_OFF,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj);
 
     const Handle h1 = obj.getHandle(*k_GID1, k_T0);
@@ -276,7 +277,7 @@ static void test3_timeoutOldMappingsTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_OFF,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj);
 
     const Handle h1 = obj.getHandle(*k_GID1, k_T0);
@@ -311,7 +312,7 @@ static void test4_groupIdExpiresAfterTtlTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_OFF,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj);
 
     const Handle h1  = obj.getHandle(*k_GID1, k_T0);
@@ -352,7 +353,7 @@ static void test5_longLivedMoreThanMaxGroupsGcTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MY_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_ON,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj);
 
     const Handle h1  = obj.getHandle(*k_GID1, k_T0 + 1);
@@ -392,7 +393,7 @@ static void test6_shortLivedMoreThanMaxGroupsGcTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MY_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_OFF,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj);
 
     const Handle h1 = obj.getHandle(*k_GID1, k_T0);
@@ -443,7 +444,7 @@ static void test7_retrievesGroupIdsFromHandlesTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_ON,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     const int             JUST_FEW = 2;
     addHandles(&obj, JUST_FEW);
 
@@ -457,7 +458,8 @@ static void test7_retrievesGroupIdsFromHandlesTest()
     ASSERT_NE(h1, h2);
 
     // Confirm the handle view is as expected
-    MessageGroupIdManager::IdsForHandle gids(s_allocator_p);
+    MessageGroupIdManager::IdsForHandle gids(
+        bmqtst::TestHelperUtil::allocator());
     obj.idsForHandle(&gids, h1);
 
     ASSERT_EQ(gids.size(), 2u);
@@ -512,14 +514,15 @@ static void test8_rebalanceWhenAddingHandleTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_ON,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     addHandles(&obj, k_HANDLES_LIMIT_BEFORE);
 
     allocateSomeGroups(&obj, k_HANDLES_LIMIT_BEFORE, k_MSG_GROUP_IDS_COUNT);
 
     BSLS_ASSERT_SAFE((k_MSG_GROUP_IDS_COUNT % k_HANDLES_LIMIT_AFTER) == 0);
 
-    bsl::vector<IdsForHandle> before(k_HANDLES_LIMIT_BEFORE, s_allocator_p);
+    bsl::vector<IdsForHandle> before(k_HANDLES_LIMIT_BEFORE,
+                                     bmqtst::TestHelperUtil::allocator());
     for (int i = 0; i < k_HANDLES_LIMIT_BEFORE; ++i) {
         obj.idsForHandle(&before[i], _(i));
     }
@@ -531,7 +534,8 @@ static void test8_rebalanceWhenAddingHandleTest()
     const unsigned k_GROUPS_PER_HANDLE_AFTER = k_MSG_GROUP_IDS_COUNT /
                                                k_HANDLES_LIMIT_AFTER;
 
-    bsl::vector<IdsForHandle> after(k_HANDLES_LIMIT_AFTER, s_allocator_p);
+    bsl::vector<IdsForHandle> after(k_HANDLES_LIMIT_AFTER,
+                                    bmqtst::TestHelperUtil::allocator());
     for (int i = 0; i < k_HANDLES_LIMIT_AFTER; ++i) {
         obj.idsForHandle(&after[i], _(i));
 
@@ -543,7 +547,8 @@ static void test8_rebalanceWhenAddingHandleTest()
     for (int i = 0; i < k_HANDLES_LIMIT_BEFORE; ++i) {
         typedef bsl::vector<MessageGroupIdManager::MsgGroupId>
                          IntersectionType;
-        IntersectionType intersection(k_MSG_GROUP_IDS_COUNT, s_allocator_p);
+        IntersectionType intersection(k_MSG_GROUP_IDS_COUNT,
+                                      bmqtst::TestHelperUtil::allocator());
         const IntersectionType::const_iterator end = bsl::set_intersection(
             before[i].begin(),
             before[i].end(),
@@ -593,11 +598,12 @@ static void test9_noRebalanceWhenRemovingHandleTest()
             k_MAX_NUMBER_OF_MAPPINGS,
             (rebalanceMode == 0 ? MessageGroupIdManager::k_REBALANCE_OFF
                                 : MessageGroupIdManager::k_REBALANCE_ON),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         addHandles(&obj, HANDLES_LIMIT_BEFORE);
         allocateSomeGroups(&obj, HANDLES_LIMIT_BEFORE, MSG_GROUP_IDS_COUNT);
 
-        bsl::vector<IdsForHandle> before(HANDLES_LIMIT_BEFORE, s_allocator_p);
+        bsl::vector<IdsForHandle> before(HANDLES_LIMIT_BEFORE,
+                                         bmqtst::TestHelperUtil::allocator());
         for (int i = 0; i < HANDLES_LIMIT_BEFORE; ++i) {
             obj.idsForHandle(&before[i], _(i));
         }
@@ -608,7 +614,8 @@ static void test9_noRebalanceWhenRemovingHandleTest()
 
         // Message Group Ids should remain the same as before with the
         // exception of the removed handle
-        bsl::vector<IdsForHandle> after(HANDLES_LIMIT_BEFORE, s_allocator_p);
+        bsl::vector<IdsForHandle> after(HANDLES_LIMIT_BEFORE,
+                                        bmqtst::TestHelperUtil::allocator());
         for (int i = 0; i < HANDLES_LIMIT_BEFORE; ++i) {
             obj.idsForHandle(&after[i], _(i));
             if (i == toRemove) {
@@ -650,7 +657,7 @@ static void test10_chooseLeastUsedHandleAfterRemoveTest()
             k_MAX_NUMBER_OF_MAPPINGS,
             (rebalanceMode == 0 ? MessageGroupIdManager::k_REBALANCE_OFF
                                 : MessageGroupIdManager::k_REBALANCE_ON),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         obj.addHandle(_(1), k_T0);
         obj.addHandle(_(2), k_T0);
@@ -707,7 +714,7 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_ON,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     // Add handles
     for (int i = 0; i < HANDLES_COUNT; ++i) {
@@ -738,7 +745,7 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
     // h0  h1  h2
     obj.getHandle(msgGroupIdFromInt(0), k_T0 + k_TIMEOUT);
 
-    IdsForHandle gids(s_allocator_p);
+    IdsForHandle gids(bmqtst::TestHelperUtil::allocator());
     obj.idsForHandle(&gids, _(0));
     ASSERT_EQ(GROUP_IDS_PER_HANDLE, static_cast<int>(gids.size()));
     ASSERT_EQ(GROUP_IDS_PER_HANDLE, obj.msgGroupIdsCount());
@@ -770,23 +777,30 @@ static void test12_printerTest()
     MessageGroupIdManager obj(k_TIMEOUT,
                               k_MAX_NUMBER_OF_MAPPINGS,
                               MessageGroupIdManager::k_REBALANCE_ON,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     typedef bsl::shared_ptr<mqbi::Queue> QueuePtr;
-    QueuePtr queue(new (*s_allocator_p) mqbmock::Queue(0, s_allocator_p),
-                   s_allocator_p);
+    QueuePtr queue(new (*bmqtst::TestHelperUtil::allocator())
+                       mqbmock::Queue(0, bmqtst::TestHelperUtil::allocator()),
+                   bmqtst::TestHelperUtil::allocator());
 
     // Add handles
     MyDispatcherClient dc1("1"), dc2("2"), dc3("3");
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> context1(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> context2(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> context3(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     context1->setClient(&dc1);
     context2->setClient(&dc2);
     context3->setClient(&dc3);
@@ -813,8 +827,8 @@ static void test12_printerTest()
 
     // Dump internals
     const Time         k_at = k_T0 + 5;
-    bmqu::MemOutStream ss(s_allocator_p);
-    mqbcmd::Result     result(s_allocator_p);
+    bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
+    mqbcmd::Result     result(bmqtst::TestHelperUtil::allocator());
     obj.loadInternals(&result.makeMessageGroupIdHelper(), k_at);
     mqbcmd::HumanPrinter::print(ss, result, 1);
 
@@ -870,14 +884,16 @@ static void test13_largeMessageGroupIdsUseAllocator()
             k_MAX_NUMBER_OF_MAPPINGS,
             (rebalanceMode == 0 ? MessageGroupIdManager::k_REBALANCE_OFF
                                 : MessageGroupIdManager::k_REBALANCE_ON),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         addHandles(&obj, 3);
 
         for (int i = 0; i < 10; ++i) {
-            bmqu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
             ss << "01234567890123456789012345678901234567890123456789" << i;
-            (void)obj.getHandle(bsl::string(ss.str(), s_allocator_p), k_T0);
+            (void)obj.getHandle(
+                bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()),
+                k_T0);
         }
 
         // Remove a handle
@@ -894,12 +910,12 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    const MsgGroupId gid1("1", s_allocator_p);
-    const MsgGroupId gid2("2", s_allocator_p);
-    const MsgGroupId gid3("3", s_allocator_p);
-    const MsgGroupId gid4("4", s_allocator_p);
+    const MsgGroupId gid1("1", bmqtst::TestHelperUtil::allocator());
+    const MsgGroupId gid2("2", bmqtst::TestHelperUtil::allocator());
+    const MsgGroupId gid3("3", bmqtst::TestHelperUtil::allocator());
+    const MsgGroupId gid4("4", bmqtst::TestHelperUtil::allocator());
 
     k_GID1 = &gid1;
     k_GID2 = &gid2;
@@ -923,7 +939,7 @@ int main(int argc, char* argv[])
     case 1: test1_sameGroupIdSameHandleTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

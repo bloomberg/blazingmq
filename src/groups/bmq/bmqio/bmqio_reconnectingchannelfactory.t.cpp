@@ -216,19 +216,20 @@ void Tester::connectResultCb(ChannelFactoryEvent::Enum       event,
 }
 
 Tester::Tester()
-: d_scheduler(s_allocator_p)
+: d_scheduler(bmqtst::TestHelperUtil::allocator())
 , d_timeSource(&d_scheduler)
-, d_baseFactory(s_allocator_p)
-, d_resolverResults(s_allocator_p)
-, d_connectResultItems(s_allocator_p)
+, d_baseFactory(bmqtst::TestHelperUtil::allocator())
+, d_resolverResults(bmqtst::TestHelperUtil::allocator())
+, d_connectResultItems(bmqtst::TestHelperUtil::allocator())
 , d_connectHandle()
-, d_channel(s_allocator_p)
+, d_channel(bmqtst::TestHelperUtil::allocator())
 {
     d_scheduler.start();
 
-    ReconnectingChannelFactoryConfig config(&d_baseFactory,
-                                            &d_scheduler,
-                                            s_allocator_p);
+    ReconnectingChannelFactoryConfig config(
+        &d_baseFactory,
+        &d_scheduler,
+        bmqtst::TestHelperUtil::allocator());
     config
         .setEndpointResolveFn(bdlf::BindUtil::bind(&Tester::resolverFn,
                                                    this,
@@ -242,7 +243,8 @@ Tester::Tester()
                                  bdlf::PlaceHolders::_3));
 
     new (d_reconnectingFactory.buffer())
-        ReconnectingChannelFactory(config, s_allocator_p);
+        ReconnectingChannelFactory(config,
+                                   bmqtst::TestHelperUtil::allocator());
     obj().start();
 }
 
@@ -280,7 +282,7 @@ void Tester::setResolverResults(const char** endpoints, size_t count)
 
     while (count--) {
         d_resolverResults.emplace_back(
-            bsl::string(*endpoints++, s_allocator_p));
+            bsl::string(*endpoints++, bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -300,10 +302,11 @@ void Tester::connect(const ConnectOptions& options)
     PVV("Connecting using '" << options << "'");
 
     // Inform the baseFactory how it should respond to the connect.
-    const Status successStatus(StatusCategory::e_SUCCESS, s_allocator_p);
+    const Status successStatus(StatusCategory::e_SUCCESS,
+                               bmqtst::TestHelperUtil::allocator());
     baseFactory().setConnectStatus(successStatus);
 
-    Status status(s_allocator_p);
+    Status status(bmqtst::TestHelperUtil::allocator());
     obj().connect(&status,
                   &d_connectHandle,
                   options,
@@ -324,7 +327,8 @@ void Tester::closeChannel()
     ASSERT_EQ(d_channel.onCloseCalls().size(), 1U);
 
     TestChannel::OnCloseCall& call = d_channel.onCloseCalls().front();
-    call.d_closeFn(Status(StatusCategory::e_CONNECTION, s_allocator_p));
+    call.d_closeFn(Status(StatusCategory::e_CONNECTION,
+                          bmqtst::TestHelperUtil::allocator()));
     d_channel.onCloseCalls().pop_front();
 }
 
@@ -340,7 +344,7 @@ void Tester::ensureConnectAndEmitEvent(int                       line,
         d_baseFactory.connectCalls().front();
     // Ensure the endpoint matches the expectation
     ASSERT_EQ_D("Line: " << line,
-                bsl::string(endpoint, s_allocator_p),
+                bsl::string(endpoint, bmqtst::TestHelperUtil::allocator()),
                 call.d_options.endpoint());
 
     bsl::shared_ptr<Channel> channel = bsl::shared_ptr<Channel>();
@@ -349,7 +353,7 @@ void Tester::ensureConnectAndEmitEvent(int                       line,
     }
 
     PV("Emiting " << event << " from the testFactory for " << endpoint);
-    call.d_cb(event, Status(s_allocator_p), channel);
+    call.d_cb(event, Status(bmqtst::TestHelperUtil::allocator()), channel);
     d_baseFactory.connectCalls().pop_front();
 }
 
@@ -385,7 +389,7 @@ TEST_F(Tester, SingleHost)
     const char* k_ENDPOINT[] = {"singleHost:123"};
     setResolverResults(k_ENDPOINT, 1);
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -465,7 +469,7 @@ TEST_F(Tester, MultipleHosts)
     const char* k_ENDPOINTS[] = {"first:123", "second:456", "third:789"};
     setResolverResults(k_ENDPOINTS, 3);
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -583,7 +587,7 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
     // the `EndpointResolveFn` was only called at expected time.
     const char* k_GARBAGE_ENDPOINTS[] = {"garbage:123"};
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(99)  // 'infinite' retry for this test
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -697,7 +701,7 @@ TEST_F(Tester, NonReconnecting)
 // to reconnect.
 // ------------------------------------------------------------------------
 {
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -875,7 +879,7 @@ TEST(DefaultConnectIntervalFn)
     static const bsls::Types::Int64 k_MAX      = 50;   // maxInterval
     static const bsls::Types::Int64 k_INTERVAL = 10;   // attemptInterval
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setAttemptInterval(bsls::TimeInterval(k_INTERVAL));
 
     // Initialize the random number generator

@@ -65,7 +65,8 @@ static void test1_createQueueIdFromHandleParameters()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.qId() = test.d_id;
 
         if (test.d_hasSubId) {
@@ -120,8 +121,10 @@ static void test2_extractSubQueueId()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueStreamParameters streamParams(s_allocator_p);
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueStreamParameters streamParams(
+            bmqtst::TestHelperUtil::allocator());
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
 
         if (test.d_hasSubId) {
             streamParams.subIdInfo().makeValue().subId() = test.d_subId;
@@ -235,13 +238,16 @@ static void test3_extractCanonicalHandleParameters()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.flags() = test.d_flags;
-        handleParams.uri()   = bsl::string(test.d_uri, s_allocator_p);
+        handleParams.uri()   = bsl::string(test.d_uri,
+                                         bmqtst::TestHelperUtil::allocator());
         if (test.d_hasSubStreamInfo) {
             bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo =
                 handleParams.subIdInfo().makeValue();
-            subStreamInfo.appId() = bsl::string(test.d_appId, s_allocator_p);
+            subStreamInfo.appId() =
+                bsl::string(test.d_appId, bmqtst::TestHelperUtil::allocator());
             subStreamInfo.subId() = test.d_subId;
         }
         handleParams.readCount()  = test.d_readCount;
@@ -251,12 +257,13 @@ static void test3_extractCanonicalHandleParameters()
         PVV(test.d_line << ": extracting canonical handle parameters from "
                         << "'handleParameters': " << handleParams);
 
-        bmqp_ctrlmsg::QueueHandleParameters result(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters result(
+            bmqtst::TestHelperUtil::allocator());
         result = bmqp::QueueUtil::extractCanonicalHandleParameters(
             &result,
             handleParams);
-        bmqt::Uri   expectedUri(s_allocator_p);
-        bsl::string errorDescription(s_allocator_p);
+        bmqt::Uri   expectedUri(bmqtst::TestHelperUtil::allocator());
+        bsl::string errorDescription(bmqtst::TestHelperUtil::allocator());
         int         rc = bmqt::UriParser::parse(&expectedUri,
                                         &errorDescription,
                                         test.d_uri);
@@ -341,7 +348,8 @@ static void test4_isEmpty()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.readCount()  = test.d_readCount;
         handleParams.writeCount() = test.d_writeCount;
         handleParams.adminCount() = test.d_adminCount;
@@ -380,7 +388,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -391,7 +399,7 @@ int main(int argc, char* argv[])
     case 1: test1_createQueueIdFromHandleParameters(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -132,7 +132,7 @@ static void test2_print()
     bmqp::QueueId obj(id, subId);
 
     // Print
-    bmqu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
     out.setstate(bsl::ios_base::badbit);
     obj.print(out, 0, -1);
 
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

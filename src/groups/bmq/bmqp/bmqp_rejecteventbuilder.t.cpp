@@ -98,7 +98,7 @@ static void verifyContent(const bmqp::RejectEventBuilder& builder,
     ASSERT_EQ(static_cast<size_t>(builder.blob().length()), expectedSize);
 
     PVV("Iterating over messages");
-    bmqp::Event event(&builder.blob(), s_allocator_p);
+    bmqp::Event event(&builder.blob(), bmqtst::TestHelperUtil::allocator());
 
     ASSERT(event.isValid());
     ASSERT(event.isRejectEvent());
@@ -134,9 +134,12 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
-    bmqp::RejectEventBuilder       obj(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              messages(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        256,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RejectEventBuilder obj(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
     PVV("Verifying accessors");
     ASSERT_EQ(obj.messageCount(), 0);
@@ -158,9 +161,12 @@ static void test2_multiMessage()
 
     const int k_NUM_MSGS = 1000;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
-    bmqp::RejectEventBuilder       obj(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              messages(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        256,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RejectEventBuilder obj(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
     PVV("Appending messages");
     appendMessages(&obj, &messages, k_NUM_MSGS);
@@ -174,9 +180,12 @@ static void test3_reset()
     bmqtst::TestHelper::printTestName("RESET");
     // Verifying reset: add three messages, reset, and add another message.
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
-    bmqp::RejectEventBuilder       obj(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              messages(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        256,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RejectEventBuilder obj(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
     PV("Appending 3 messages");
     appendMessages(&obj, &messages, 3);
@@ -203,8 +212,11 @@ static void test4_capacity()
     // Verify that once the event is full, AppendMessage returns error.
 
     int                            rc;
-    bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
-    bmqp::RejectEventBuilder       obj(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        256,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RejectEventBuilder obj(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
 
     PVV("Computing max message");
     // Compute max message using a different logic than how it is done in
@@ -256,11 +268,14 @@ static void testN1_decodeFromFile()
 {
     bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(256, s_allocator_p);
-    bmqp::RejectEventBuilder       obj(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              messages(s_allocator_p);
-    bdlbb::Blob                    outBlob(&bufferFactory, s_allocator_p);
-    bmqu::MemOutStream             os(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        256,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RejectEventBuilder obj(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream             os(bmqtst::TestHelperUtil::allocator());
     bdlb::Guid                     guid       = bdlb::GuidUtil::generate();
     const int                      k_NUM_MSGS = 10;
 
@@ -305,7 +320,7 @@ static void testN1_decodeFromFile()
 
     bsl::shared_ptr<char> dataBufferSp(buf,
                                        bslstl::SharedPtrNilDeleter(),
-                                       s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, blobLen);
 
     outBlob.appendDataBuffer(dataBlobBuffer);
@@ -314,7 +329,7 @@ static void testN1_decodeFromFile()
     ASSERT_EQ(bdlbb::BlobUtil::compare(obj.blob(), outBlob), 0);
 
     // Decode event
-    bmqp::Event event(&outBlob, s_allocator_p);
+    bmqp::Event event(&outBlob, bmqtst::TestHelperUtil::allocator());
 
     ASSERT(event.isValid());
     ASSERT(event.isRejectEvent());
@@ -359,7 +374,7 @@ int main(int argc, char* argv[])
     case -1: testN1_decodeFromFile(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

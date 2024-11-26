@@ -148,7 +148,8 @@ static void test2_throttleNoReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -259,7 +260,7 @@ static void test3_throttleWithDefaultReset()
 //   BMQU_THROTTLEDACTION_THROTTLE(P, ACTION)
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -271,7 +272,8 @@ static void test3_throttleWithDefaultReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -326,13 +328,13 @@ static void test3_throttleWithDefaultReset()
     }
 
     // Ensure the default reset function was invoked.
-    if (s_verbosityLevel >= 1) {
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {
         ASSERT_EQ(logObserver.records().size(), 1U);
         PV("Logged during reset: " << logObserver.records()[0]);
         ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records()[0],
             "'obj'.*2",
-            s_allocator_p));
+            bmqtst::TestHelperUtil::allocator()));
     }
     ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     ASSERT_EQ(obj.d_intervalNano,
@@ -348,7 +350,7 @@ static void test3_throttleWithDefaultReset()
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
 
-    if (s_verbosityLevel >= 1) {
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {
         ASSERT_EQ(logObserver.records().size(), 1U);
     }
     ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
@@ -389,7 +391,7 @@ static void test4_throttleWithCustomReset()
 //   BMQU_THROTTLEDACTION_THROTTLE_WITH_RESET(P, ACTION)
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -399,7 +401,8 @@ static void test4_throttleWithCustomReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -514,7 +517,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

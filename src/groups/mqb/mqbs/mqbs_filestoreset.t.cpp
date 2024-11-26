@@ -55,7 +55,7 @@ static void test1_breathingTest()
 
     // Default constructor
     PV("Default constructor");
-    mqbs::FileStoreSet obj1(s_allocator_p);
+    mqbs::FileStoreSet obj1(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj1.dataFile(), "");
     ASSERT_EQ(obj1.journalFile(), "");
@@ -78,7 +78,7 @@ static void test1_breathingTest()
 
     // Copy constructor
     PV("Copy constructor");
-    mqbs::FileStoreSet obj2(obj1, s_allocator_p);
+    mqbs::FileStoreSet obj2(obj1, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj1.dataFile(), obj2.dataFile());
     ASSERT_EQ(obj1.dataFileSize(), obj2.dataFileSize());
@@ -116,21 +116,21 @@ static void test1_breathingTest()
                            " journalFileSize = 2,048 ]";
     {
         PVV("Print (print function)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         obj2.print(out, 0, -1);
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (stream operator)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out << obj2;
         ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (bad stream)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         obj2.print(out, 0, -1);
         ASSERT_EQ(out.str(), "");
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

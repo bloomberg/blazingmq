@@ -62,16 +62,21 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     // Create statcontexts
     const int k_HISTORY_SIZE = 2;
 
     bsl::shared_ptr<bmqst::StatContext> client =
-        mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
-                                                              s_allocator_p);
+        mqbstat::QueueStatsUtil::initializeStatContextClients(
+            k_HISTORY_SIZE,
+            bmqtst::TestHelperUtil::allocator());
     bmqst::StatContext* domain = mockDomain.queueStatContext();
 
     using namespace mqbstat;
@@ -80,12 +85,13 @@ static void test1_breathingTest()
 
     // Create queuestat objects and assert that subcontexts are created
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+    queueStatsClient.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
                                 client.get(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
 
-    QueueStatsDomain queueStatsDomain(s_allocator_p);
-    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    QueueStatsDomain queueStatsDomain(bmqtst::TestHelperUtil::allocator());
+    queueStatsDomain.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                                &mockDomain);
 
     client->snapshot();
     domain->snapshot();
@@ -166,8 +172,9 @@ static void test2_queueStatsClient()
     // Create statcontexts
     const int                           k_HISTORY_SIZE = 3;
     bsl::shared_ptr<bmqst::StatContext> client =
-        mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
-                                                              s_allocator_p);
+        mqbstat::QueueStatsUtil::initializeStatContextClients(
+            k_HISTORY_SIZE,
+            bmqtst::TestHelperUtil::allocator());
 
     client->snapshot();
 
@@ -175,9 +182,9 @@ static void test2_queueStatsClient()
     typedef QueueStatsClient::Stat ClientStat;
 
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+    queueStatsClient.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
                                 client.get(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
 
     const int k_DUMMY = 0;
 
@@ -263,9 +270,13 @@ static void test3_queueStatsDomain()
     bmqtst::TestHelper::printTestName("QueueStatsDomain");
 
     // Create statcontext
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     bmqst::StatContext* domain = mockDomain.queueStatContext();
 
@@ -274,8 +285,9 @@ static void test3_queueStatsDomain()
     using namespace mqbstat;
     typedef QueueStatsDomain::Stat DomainStat;
 
-    QueueStatsDomain queueStatsDomain(s_allocator_p);
-    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    QueueStatsDomain queueStatsDomain(bmqtst::TestHelperUtil::allocator());
+    queueStatsDomain.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                                &mockDomain);
 
     const int k_DUMMY = 0;
 
@@ -429,13 +441,18 @@ static void test4_queueStatsDomainContent()
                   mqbstat::QueueStatsDomain::Stat::PARAM));
 
     // Create the necessary objects to test
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster               mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain                mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
     bmqst::StatContext*            sc = mockDomain.queueStatContext();
 
-    mqbstat::QueueStatsDomain obj(s_allocator_p);
-    obj.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    mqbstat::QueueStatsDomain obj(bmqtst::TestHelperUtil::allocator());
+    obj.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                   &mockDomain);
 
     // Initial Snapshot
     {
@@ -532,63 +549,68 @@ static void test5_appIdMetrics()
     const bool isCSL           = false;
     const bool isFSM           = false;
 
-    mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+    mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+        bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "E1",
                                          "US-EAST",
                                          41234,
                                          mqbmock::Cluster::k_LEADER_NODE_ID,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "E2",
                                          "US-EAST",
                                          41235,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              1,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "W1",
                                          "US-WEST",
                                          41236,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              2,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "W2",
                                          "US-WEST",
                                          41237,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              3,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory,
-                                 s_allocator_p,
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
                                  isClusterMember,
                                  isLeader,
                                  isCSL,
                                  isFSM,
                                  clusterNodeDefs);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     // Reconfigure the domain with appIds and enabled appId metrics
     const char* k_APPID_FOO = "foo";
     const char* k_APPID_BAR = "bar";
     const char* k_APPID_BAZ = "baz";
 
-    mqbconfm::Domain           domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     mqbconfm::QueueModeFanout& mode = domainConfig.mode().makeFanout();
     mode.publishAppIdMetrics()      = true;
     mode.appIDs().push_back(k_APPID_FOO);
 
-    bmqu::MemOutStream errorDesc(s_allocator_p);
+    bmqu::MemOutStream errorDesc(bmqtst::TestHelperUtil::allocator());
     mockDomain.configure(errorDesc, domainConfig);
 
     // Do not use stat context (`mockDomain.queueStatContext()`) declared
     // within mock domain, since it was not initialized using the proper
     // config.  Init a new stats object from the scratch instead.
-    mqbstat::QueueStatsDomain stats(s_allocator_p);
-    stats.initialize(bmqt::Uri("bmq://mock-domain/abc", s_allocator_p),
+    mqbstat::QueueStatsDomain stats(bmqtst::TestHelperUtil::allocator());
+    stats.initialize(bmqt::Uri("bmq://mock-domain/abc",
+                               bmqtst::TestHelperUtil::allocator()),
                      &mockDomain);
 
     bmqst::StatContext* sc = stats.statContext();
@@ -612,7 +634,7 @@ static void test5_appIdMetrics()
     // Reconfigure queue domain stats, by excluding "foo" and including "bar"
     // and "baz"
     {
-        bsl::vector<bsl::string> appIds(s_allocator_p);
+        bsl::vector<bsl::string> appIds(bmqtst::TestHelperUtil::allocator());
         appIds.push_back(k_APPID_BAR);
         appIds.push_back(k_APPID_BAZ);
 
@@ -676,14 +698,16 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
         switch (_testCase) {
         case 0:
         case 5: test5_appIdMetrics(); break;
@@ -693,7 +717,7 @@ int main(int argc, char* argv[])
         case 1: test1_breathingTest(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
     }

@@ -44,14 +44,15 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create a default application
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 }
 
 static void test2_startStopTest()
@@ -76,14 +77,15 @@ static void test2_startStopTest()
     bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 
     // Stop without previous start
     obj.stop();
@@ -126,14 +128,15 @@ static void test3_startStopAsyncTest()
     bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 
     // Stop without previous start
     obj.stopAsync();
@@ -185,7 +188,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

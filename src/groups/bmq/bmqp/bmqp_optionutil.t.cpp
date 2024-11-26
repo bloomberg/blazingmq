@@ -50,9 +50,9 @@ LimitT maxCanBeAdded(const int contentSize, const int payloadSize)
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         bmqp::EventHeader::k_MAX_SIZE_SOFT,
-        s_allocator_p);
-    bdlbb::Blob      blob(&bufferFactory, s_allocator_p);
-    bsl::string      payload(payloadSize, 'a', s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bsl::string payload(payloadSize, 'a', bmqtst::TestHelperUtil::allocator());
     const OptionMeta meta = OptionMeta::forOption(type, payloadSize);
     OptionsBox       box;
     LimitT           limit(0, Result::e_SUCCESS);
@@ -334,8 +334,8 @@ static void test3_checkOptionsBlobSegment()
     // Initialize the blob and add header
     bdlbb::PooledBlobBufferFactory bufferFactory(
         bmqp::EventHeader::k_MAX_SIZE_SOFT,
-        s_allocator_p);
-    bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bsl::string header     = "....";  // Fake headers
     int         headerSize = header.size();
     bdlbb::BlobUtil::append(&blob, header.c_str(), headerSize);
@@ -411,10 +411,10 @@ static void test4_isValidMsgGroupId()
 
     const bmqp::Protocol::MsgGroupId maxLength(
         "1234567890123456789012345678901",
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     const bmqp::Protocol::MsgGroupId overMaxLength(
         "12345678901234567890123456789012",
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
     ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
@@ -437,7 +437,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -449,7 +449,7 @@ int main(int argc, char* argv[])
     case 1: test1_basicOptionMetaProperties(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

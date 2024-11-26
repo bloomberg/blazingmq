@@ -168,7 +168,7 @@ static void test1_MonitoredSingleConsumerQueue_breathingTest()
 
         bmqc::MonitoredQueue<bdlcc::SingleConsumerQueue<int> > queue(
             k_QUEUE_SIZE,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(queue.numElements(), 0);
         ASSERT_EQ(queue.isEmpty(), true);
@@ -219,7 +219,7 @@ static void test1_MonitoredSingleConsumerQueue_breathingTest()
             k_QUEUE_SIZE,
             true,
             // supportTimedOperations
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(queue.numElements(), 0);
         ASSERT_EQ(queue.isEmpty(), true);
@@ -294,7 +294,7 @@ static void test2_MonitoredSingleConsumerQueue_exceed_reset()
 
     bmqc::MonitoredQueue<bdlcc::SingleConsumerQueue<int> > queue(
         k_QUEUE_SIZE,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     queue.setWatermarks(k_LOW_WATERMARK, k_HIGH_WATERMARK, k_HIGH_WATERMARK2);
 
     // 1. Enqueue items until the queue is full
@@ -341,7 +341,7 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
 //  Performance
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("MONITORED SINGLE CONSUMER QUEUE "
                                       "- PERFORMANCE TEST");
@@ -354,10 +354,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
     PRINT("============================");
     PRINT("MonitoredSingleConsumerQueue");
     PRINT("============================");
-    PerformanceTestObjectPool  objectPool1(-1, s_allocator_p);
+    PerformanceTestObjectPool  objectPool1(-1,
+                                          bmqtst::TestHelperUtil::allocator());
     PerformanceTestObjectQueue monitoredSingleConsumerQueue(
         k_SINGLE_CONSUMER_QUEUE_SIZE,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     // #1
     {
@@ -366,11 +367,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
             1,                                // minThreads
             1,                                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             &performanceTestPopper<PerformanceTestObjectQueue>,
             &monitoredSingleConsumerQueue,
             &objectPool1));
@@ -400,11 +401,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             &performanceTestPopper<PerformanceTestObjectQueue>,
             &monitoredSingleConsumerQueue,
             &objectPool1));
@@ -417,7 +418,7 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
 
         for (int i = 0; i < k_NUM_PUSHERS; ++i) {
             threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                s_allocator_p,
+                bmqtst::TestHelperUtil::allocator(),
                 &performanceTestPusher<PerformanceTestObjectQueue>,
                 k_NUM_ITERATIONS / k_NUM_PUSHERS,
                 &monitoredSingleConsumerQueue,
@@ -445,12 +446,13 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
     PRINT("bdlcc::SingleConsumerQueue");
     PRINT("==========================");
 
-    PerformanceTestObjectPool objectPool2(-1, s_allocator_p);
+    PerformanceTestObjectPool objectPool2(-1,
+                                          bmqtst::TestHelperUtil::allocator());
 
     typedef bdlcc::SingleConsumerQueue<PerformanceTestObject*>
                      UnmonitoredQueue;
     UnmonitoredQueue singleConsumerQueue(k_SINGLE_CONSUMER_QUEUE_SIZE,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
     // #1
     {
@@ -459,11 +461,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &performanceTestPopper<UnmonitoredQueue>,
                                   &singleConsumerQueue,
                                   &objectPool2));
@@ -493,10 +495,10 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
         threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &performanceTestPopper<UnmonitoredQueue>,
                                   &singleConsumerQueue,
                                   &objectPool2));
@@ -509,7 +511,7 @@ static void testN1_MonitoredSingleConsumerQueue_performance()
 
         for (int i = 0; i < k_NUM_PUSHERS; ++i) {
             threadPool.enqueueJob(
-                bdlf::BindUtil::bindS(s_allocator_p,
+                bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                       &performanceTestPusher<UnmonitoredQueue>,
                                       k_NUM_ITERATIONS / k_NUM_PUSHERS,
                                       &singleConsumerQueue,
@@ -553,7 +555,7 @@ static void testN1_MonitoredSingleConsumerQueue_performance_GoogleBenchmark(
 //  Performance
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("MONITORED SINGLE CONSUMER QUEUE "
                                       "- PERFORMANCE TEST");
@@ -565,10 +567,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance_GoogleBenchmark(
     PRINT("============================");
     PRINT("MonitoredSingleConsumerQueue");
     PRINT("============================");
-    PerformanceTestObjectPool  objectPool1(-1, s_allocator_p);
+    PerformanceTestObjectPool  objectPool1(-1,
+                                          bmqtst::TestHelperUtil::allocator());
     PerformanceTestObjectQueue monitoredSingleConsumerQueue(
         k_SINGLE_CONSUMER_QUEUE_SIZE,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     // #1
     {
@@ -577,11 +580,11 @@ static void testN1_MonitoredSingleConsumerQueue_performance_GoogleBenchmark(
             1,                                // minThreads
             1,                                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             &performanceTestPopper<PerformanceTestObjectQueue>,
             &monitoredSingleConsumerQueue,
             &objectPool1));
@@ -622,21 +625,22 @@ testN1_MonitoredSingleConsumerQueueThreaded_performance_GoogleBenchmark(
     const int k_SINGLE_CONSUMER_QUEUE_SIZE = 250 * 1000;        // 250K
     const int k_NUM_PUSHERS                = 5;
 
-    PerformanceTestObjectPool  objectPool1(-1, s_allocator_p);
+    PerformanceTestObjectPool  objectPool1(-1,
+                                          bmqtst::TestHelperUtil::allocator());
     PerformanceTestObjectQueue monitoredSingleConsumerQueue(
         k_SINGLE_CONSUMER_QUEUE_SIZE,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     {
         bdlmt::ThreadPool threadPool(
             bslmt::ThreadAttributes(),        // default
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             &performanceTestPopper<PerformanceTestObjectQueue>,
             &monitoredSingleConsumerQueue,
             &objectPool1));
@@ -646,7 +650,7 @@ testN1_MonitoredSingleConsumerQueueThreaded_performance_GoogleBenchmark(
 
             for (int i = 0; i < k_NUM_PUSHERS; ++i) {
                 threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                    s_allocator_p,
+                    bmqtst::TestHelperUtil::allocator(),
                     &performanceTestPusher<PerformanceTestObjectQueue>,
                     k_NUM_ITERATIONS / k_NUM_PUSHERS,
                     &monitoredSingleConsumerQueue,
@@ -691,12 +695,13 @@ static void testN1_bdlccSingleConsumerQueue_performance_GoogleBenchmark(
     const int k_NUM_ITERATIONS             = 10 * 1000 * 1000;  // 10 M
     const int k_SINGLE_CONSUMER_QUEUE_SIZE = 250 * 1000;        // 250K
     const int k_NUM_PUSHERS                = 5;
-    PerformanceTestObjectPool objectPool2(-1, s_allocator_p);
+    PerformanceTestObjectPool objectPool2(-1,
+                                          bmqtst::TestHelperUtil::allocator());
 
     typedef bdlcc::SingleConsumerQueue<PerformanceTestObject*>
                      UnmonitoredQueue;
     UnmonitoredQueue singleConsumerQueue(k_SINGLE_CONSUMER_QUEUE_SIZE,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
     // #1
     {
@@ -705,11 +710,11 @@ static void testN1_bdlccSingleConsumerQueue_performance_GoogleBenchmark(
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
 
         threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &performanceTestPopper<UnmonitoredQueue>,
                                   &singleConsumerQueue,
                                   &objectPool2));
@@ -749,12 +754,13 @@ testN1_bdlccSingleConsumerQueueThreaded_performance_GoogleBenchmark(
     const int k_NUM_ITERATIONS             = 10 * 1000 * 1000;  // 10 M
     const int k_SINGLE_CONSUMER_QUEUE_SIZE = 250 * 1000;        // 250K
     const int k_NUM_PUSHERS                = 5;
-    PerformanceTestObjectPool objectPool2(-1, s_allocator_p);
+    PerformanceTestObjectPool objectPool2(-1,
+                                          bmqtst::TestHelperUtil::allocator());
 
     typedef bdlcc::SingleConsumerQueue<PerformanceTestObject*>
                      UnmonitoredQueue;
     UnmonitoredQueue singleConsumerQueue(k_SINGLE_CONSUMER_QUEUE_SIZE,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     // #2 .. again
     {
         bdlmt::ThreadPool threadPool(
@@ -762,10 +768,10 @@ testN1_bdlccSingleConsumerQueueThreaded_performance_GoogleBenchmark(
             k_NUM_PUSHERS + 1,                // minThreads
             k_NUM_PUSHERS + 1,                // maxThreads
             bsl::numeric_limits<int>::max(),  // maxIdleTime
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(threadPool.start() == 0);
         threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &performanceTestPopper<UnmonitoredQueue>,
                                   &singleConsumerQueue,
                                   &objectPool2));
@@ -774,7 +780,7 @@ testN1_bdlccSingleConsumerQueueThreaded_performance_GoogleBenchmark(
         for (auto _ : state) {
             for (int i = 0; i < k_NUM_PUSHERS; ++i) {
                 threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                    s_allocator_p,
+                    bmqtst::TestHelperUtil::allocator(),
                     &performanceTestPusher<UnmonitoredQueue>,
                     k_NUM_ITERATIONS / k_NUM_PUSHERS,
                     &singleConsumerQueue,
@@ -830,7 +836,7 @@ int main(int argc, char* argv[])
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

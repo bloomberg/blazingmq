@@ -183,7 +183,9 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         PVV("Create invalid iter");
@@ -216,7 +218,7 @@ static void test1_breathingTest()
         PVV("Valid iter");
 
         // Create valid iter
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         const bmqt::MessageGUID GUID;
@@ -313,7 +315,7 @@ static void test1_breathingTest()
 
         // Verify dumping the blob
         const char*        k_NO_BLOB_STR = "/no blob/";
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
 
         iter2.dumpBlob(out);
         ASSERT_NE(out.str(), k_NO_BLOB_STR);
@@ -342,10 +344,12 @@ static void test2_ackEventWithMultipleMessages()
 {
     bmqtst::TestHelper::printTestName("ACK EVENT WITH MULTIPLE MESSAGES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     const size_t k_NUM_MSGS = 1000;
@@ -412,8 +416,10 @@ static void test3_nextMethod()
     // Next method. Iterator is in invalid state case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob,
@@ -437,8 +443,10 @@ static void test3_nextMethod()
     // Next method. Not enough bytes case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob,
@@ -500,10 +508,12 @@ static void test4_resetMethod()
 
     // Reset method. Invalid event header case.
     {
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create buffer factory and blob
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob,
@@ -535,8 +545,10 @@ static void test4_resetMethod()
     // Reset method. Not enough bytes case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob,
@@ -592,10 +604,12 @@ static void test5_dumpBlob()
     const int               k_STATUS   = 3;
     const int               k_QUEUE_ID = 9876;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
-    bmqu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob,
@@ -613,14 +627,14 @@ static void test5_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
         bsl::string str2("     0:   00000024 45020000 163E0000 0300D431     "
                          "|...$E....>.....1|\n"
                          "    16:   00000000 00000000 00000000 00000000     "
                          "|................|\n"
                          "    32:   00002694                                "
                          "|..&.            |\n",
-                         s_allocator_p);
+                         bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
         ASSERT_EQ(str1, str2);
@@ -633,8 +647,8 @@ static void test5_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
-        bsl::string str2("/no blob/", s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
+        bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
         ASSERT_EQ(str1, str2);
@@ -658,7 +672,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
