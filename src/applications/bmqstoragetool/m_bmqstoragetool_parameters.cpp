@@ -241,6 +241,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
+, d_minRecordsPerQueue(arguments.d_minRecordsPerQueue)
 {
 }
 

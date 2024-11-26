@@ -624,10 +624,10 @@ class SummaryProcessor : public SearchResult {
 
     bsls::Types::Uint64 d_totalRecordsCount;
 
-    QueueRecordsMap d_queueRecordsMap;
-    OtherRecordsMap d_otherRecordsCounts;
+    QueueRecordsMap    d_queueRecordsMap;
+    OtherRecordsMap    d_otherRecordsCounts;
     QueueAppRecordsMap d_queueAppRecordsMap;
-    
+
     QueueRecordsMap d_queueQueueOpRecordsMap;
     QueueRecordsMap d_queueMessageRecordsMap;
     QueueRecordsMap d_queueConfirmRecordsMap;
@@ -636,7 +636,8 @@ class SummaryProcessor : public SearchResult {
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
 
-    
+    bsls::Types::Uint64 d_minRecordsPerQueue;
+
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
 
@@ -649,6 +650,7 @@ class SummaryProcessor : public SearchResult {
                               mqbs::JournalFileIterator* journalFile_p,
                               mqbs::DataFileIterator*    dataFile_p,
                               const QueueMap&            queueMap,
+                              bsls::Types::Uint64        minRecordsPerQueue,
                               bslma::Allocator*          allocator);
 
     // MANIPULATORS

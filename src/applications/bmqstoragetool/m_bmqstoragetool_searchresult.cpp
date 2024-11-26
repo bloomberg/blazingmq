@@ -811,6 +811,7 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
                                    mqbs::JournalFileIterator* journalFile_p,
                                    mqbs::DataFileIterator*    dataFile_p,
                                    const QueueMap&            queueMap,
+                                   bsls::Types::Uint64        minRecordsPerQueue,
                                    bslma::Allocator*          allocator)
 : d_ostream(ostream)
 , d_journalFile_p(journalFile_p)
@@ -828,6 +829,7 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_queueConfirmRecordsMap(allocator)
 , d_queueDeleteRecordsMap(allocator)
 , d_queueMap(queueMap)
+, d_minRecordsPerQueue(minRecordsPerQueue)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -967,6 +969,12 @@ void SummaryProcessor::outputResult()
     fields.push_back("Num Delete Records");
 
     for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
+        bsls::Types::Uint64 totalRecordsCount = it->second;
+
+        if (totalRecordsCount < d_minRecordsPerQueue) {
+            continue;
+        }
+
         bmqu::AlignedPrinter printer(d_ostream, &fields);
 
         const mqbu::StorageKey& qKey = it->first;
@@ -981,7 +989,7 @@ void SummaryProcessor::outputResult()
             printer << qKey;
         }
 
-        printer << it->second;
+        printer << totalRecordsCount;
         printer << d_queueQueueOpRecordsMap[qKey];
         printer << d_queueMessageRecordsMap[qKey];
         printer << d_queueConfirmRecordsMap[qKey];
