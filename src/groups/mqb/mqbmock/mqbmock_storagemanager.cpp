@@ -276,13 +276,6 @@ void StorageManager::gcUnrecognizedDomainQueues()
     // NOTHING
 }
 
-void StorageManager::cancelReplicationNotification(
-    BSLS_ANNOTATION_UNUSED int   partitionId,
-    BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey)
-{
-    // NOTHING
-}
-
 // ACCESSORS
 mqbi::Dispatcher::ProcessorHandle StorageManager::processorForPartition(
     BSLS_ANNOTATION_UNUSED int partitionId) const

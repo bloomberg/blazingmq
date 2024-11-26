@@ -884,12 +884,6 @@ class FileStore : public DataStore {
     /// builder is empty (just flushed).
     void notifyQueuesOnReplicatedBatch();
 
-    /// When reconfigure from weak consistency to strong consistency:
-    /// Cancel replication notification (if any) for the specified `queueKey`.
-    /// No effect if `queueKey` is not found in this storage or if there are no
-    /// current registered notifications for this queue.
-    void cancelReplicationNotification(const mqbu::StorageKey& queueKey);
-
     /// Invoke the specified `functor` with each queue associated to the
     /// partition represented by this FileStore if the partition was
     /// successfully opened.  The behavior is undefined unless invoked from
