@@ -507,11 +507,13 @@ class Storage {
     /// * e_APPKEY_NOT_FOUND : Invalid `appKey` specified
     virtual StorageResult::Enum removeAll(const mqbu::StorageKey& appKey) = 0;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    virtual void dispatcherFlush(bool storage, bool queues) = 0;
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
+
+    /// Flush all associated weak consistency queues.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushQueues() = 0;
 
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() = 0;

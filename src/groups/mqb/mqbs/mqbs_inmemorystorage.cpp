@@ -423,7 +423,12 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     return mqbi::StorageResult::e_SUCCESS;
 }
 
-void InMemoryStorage::dispatcherFlush(bool, bool)
+void InMemoryStorage::flushStorage()
+{
+    // NOTHING
+}
+
+void InMemoryStorage::flushQueues()
 {
     // NOTHING
 }

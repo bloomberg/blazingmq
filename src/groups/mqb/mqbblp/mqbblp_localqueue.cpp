@@ -294,7 +294,7 @@ void LocalQueue::configureHandle(
     // to it.  We need to make sure that storage/replication is in sync, and
     // thus, we force-flush the file store.
 
-    d_state_p->storage()->dispatcherFlush(true, false);
+    d_state_p->storage()->flushStorage();
 
     // Attempt to deliver all data in the storage.  Otherwise, broadcast
     // can get dropped if the incoming configure request removes consumers.
@@ -316,7 +316,7 @@ void LocalQueue::releaseHandle(
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    d_state_p->storage()->dispatcherFlush(true, false);
+    d_state_p->storage()->flushStorage();
 
     d_queueEngine_mp->releaseHandle(handle,
                                     handleParameters,
@@ -385,8 +385,8 @@ void LocalQueue::flush()
     // until it gets rolled back.  If 'flush' gets called in between, the queue
     // may have no storage.
     if (d_state_p->storage()) {
-        d_state_p->storage()->dispatcherFlush(true, false);
-        // See notes in 'FileStore::dispatcherFlush' for motivation behind
+        d_state_p->storage()->flushStorage();
+        // See notes in 'FileStore::flushStorage' for motivation behind
         // this flush.
     }
 
@@ -543,7 +543,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
 
     // If 'FileStore::d_storageEventBuilder' is flushed, flush all relevant
     // queues (call 'afterNewMessage' to deliver accumulated data)
-    d_state_p->storage()->dispatcherFlush(false, true);
+    d_state_p->storage()->flushQueues();
 }
 
 void LocalQueue::onPushMessage(

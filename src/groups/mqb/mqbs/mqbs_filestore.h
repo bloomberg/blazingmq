@@ -872,11 +872,13 @@ class FileStore : public DataStore {
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    void flushStorage() BSLS_KEYWORD_OVERRIDE;
+
+    /// Flush all associated weak consistency queues.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    void flushQueues() BSLS_KEYWORD_OVERRIDE;
 
     /// Call `onReplicatedBatch` on all associated queues if the storage
     /// builder is empty (just flushed).

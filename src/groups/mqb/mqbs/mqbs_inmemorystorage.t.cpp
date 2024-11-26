@@ -412,7 +412,7 @@ TEST(breathingTest)
     ASSERT_NE(storage.queue(), static_cast<mqbi::Queue*>(0));
     // Queue has been set via call to 'setQueue'
 
-    ASSERT_PASS(storage.dispatcherFlush(true, false));
+    ASSERT_PASS(storage.flushStorage());
     // Does nothing, at the time of this writing
 
     ASSERT_EQ(storage.queueOpRecordHandles().empty(), true);
