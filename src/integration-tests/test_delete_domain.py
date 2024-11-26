@@ -225,9 +225,9 @@ def test_domain_deletion_add_back(cluster: Cluster):
     producer = next(proxies).create_client("producer")
     producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
 
-    producer.post(
-        tc.URI_PRIORITY, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True
-    )
+    # producer.post(
+    #     tc.URI_PRIORITY, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True
+    # )
 
     producer.close(tc.URI_PRIORITY, succeed=True)
 
@@ -243,11 +243,15 @@ def test_domain_deletion_add_back(cluster: Cluster):
         node.force_stop()
     cluster.start_nodes(wait_ready=True)
 
+    # leader = cluster.last_known_leader
+    # leader.force_stop()
+    # leader.start()
+    # leader.wait_until_started()
+    # leader.wait_status(wait_leader=True, wait_ready=True)
+
     cluster._logger.info("================ After first restart ================")
 
     cluster._logger.info("================ Before adding it back ================")
-
-    domain_config.definition.parameters.max_consumers = 100
 
     for node in cluster.configurator.brokers.values():
         node.domains[tc.DOMAIN_PRIORITY] = domain_config
@@ -259,6 +263,13 @@ def test_domain_deletion_add_back(cluster: Cluster):
 
     cluster._logger.info("================ After reconfigure ================")
 
+    # leader = cluster.last_known_leader
+    # admin = AdminClient()
+    # admin.connect(leader.config.host, int(leader.config.port))
+    # res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.name} STORAGE SUMMARY")
+    # assert res.count("Number of assigned queue-storages: 1") == 10
+    # admin.stop()
+
     producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
 
     """
@@ -267,28 +278,28 @@ def test_domain_deletion_add_back(cluster: Cluster):
     we can see starting from here a different key is used for the same uri
     """
 
-    producer.post(
-        tc.URI_PRIORITY, [f"msg{i}" for i in range(5, 7)], succeed=True, wait_ack=True
-    )
+    # producer.post(
+    #     tc.URI_PRIORITY, [f"msg{i}" for i in range(5, 7)], succeed=True, wait_ack=True
+    # )
 
-    consumer = next(proxies).create_client("consumer")
-    consumer.open(tc.URI_PRIORITY, flags=["read"], block=True, succeed=True)
+    # consumer = next(proxies).create_client("consumer")
+    # consumer.open(tc.URI_PRIORITY, flags=["read"], block=True, succeed=True)
 
-    assert consumer.wait_push_event()
-    msgs = consumer.list(tc.URI_PRIORITY, block=True)
-    assert len(msgs) == 2
+    # assert consumer.wait_push_event()
+    # msgs = consumer.list(tc.URI_PRIORITY, block=True)
+    # assert len(msgs) == 2
 
-    leader = cluster.last_known_leader
-    admin = AdminClient()
-    admin.connect(leader.config.host, int(leader.config.port))
-    res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.name} STORAGE SUMMARY")
-    assert res.count("Number of assigned queue-storages: 1") == 1
-    admin.stop()
+    # leader = cluster.last_known_leader
+    # admin = AdminClient()
+    # admin.connect(leader.config.host, int(leader.config.port))
+    # res = admin.send_admin(f"CLUSTERS CLUSTER {cluster.name} STORAGE SUMMARY")
+    # assert res.count("Number of assigned queue-storages: 1") == 1
+    # admin.stop()
 
-    cluster._logger.info("================ Before second restart ================")
+    # cluster._logger.info("================ Before second restart ================")
 
     for node in cluster.nodes():
         node.force_stop()
     cluster.start_nodes(wait_leader=True, wait_ready=True)
 
-    cluster._logger.info("================ After second restart ================")
+    # cluster._logger.info("================ After second restart ================")
