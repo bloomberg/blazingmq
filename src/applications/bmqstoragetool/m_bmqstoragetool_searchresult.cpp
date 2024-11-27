@@ -15,6 +15,7 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_searchresult.h>
+#include <m_bmqstoragetool_recordprinter.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -959,46 +960,79 @@ void SummaryProcessor::outputResult()
     // Print information per Queue:
     d_ostream << "Number of records per Queue:\n";
 
-    bsl::vector<const char*> fields(d_allocator_p);
-    fields.push_back("Queue");
-    fields.push_back("Total Records");
-    fields.push_back("Num Queue Op Records");
-    fields.push_back("Num Message Records");
-    fields.push_back("Num Confirm Records");
-    fields.push_back("Confirm Records Per App");
-    fields.push_back("Num Delete Records");
+    
 
-    for(QueueRecordsMap::iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
+
+    for(QueueRecordsMap::const_iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
         bsls::Types::Uint64 totalRecordsCount = it->second;
 
+        // Skip this queue if the number of records for this queue is smaller than threshold
         if (totalRecordsCount < d_minRecordsPerQueue) {
             continue;
         }
+        
+        const mqbu::StorageKey& queueKey = it->first;
+        bsl::size_t appKeysCount = d_queueAppRecordsMap[queueKey].size();
+        
+        // Setup fields to be displayed
+        bsl::vector<const char*> fields(d_allocator_p);
+        fields.push_back("Queue");
+        fields.push_back("Total Records");
+        fields.push_back("Num Queue Op Records");
+        fields.push_back("Num Message Records");
+        fields.push_back("Num Confirm Records");
+        if (appKeysCount > 1U) {
+            fields.push_back("Confirm Records Per App");
+        }
+        fields.push_back("Num Delete Records");
 
         bmqu::AlignedPrinter printer(d_ostream, &fields);
 
-        const mqbu::StorageKey& qKey = it->first;
-        const bool              queueInfoPresent = d_queueMap.findInfoByKey(
+
+        // Get queue information contained in CSL file
+        const bool queueInfoPresent = d_queueMap.findInfoByKey(
             &queueInfo,
-            qKey
+            queueKey
         );
 
+        // Print queue id: either Key or URI
         if (queueInfoPresent) {
             printer << queueInfo.uri();
         } else {
-            printer << qKey;
+            printer << queueKey;
         }
 
+        // Print number of records of all types related to the queue
         printer << totalRecordsCount;
-        printer << d_queueQueueOpRecordsMap[qKey];
-        printer << d_queueMessageRecordsMap[qKey];
-        printer << d_queueConfirmRecordsMap[qKey];
-        bsl::stringstream ss;
-        for(QueueRecordsMap::iterator it = d_queueAppRecordsMap[qKey].begin(); it != d_queueAppRecordsMap[qKey].end(); ++it) {
-            ss << it->first << "=" << it->second << " ";
+        printer << d_queueQueueOpRecordsMap[queueKey];
+        printer << d_queueMessageRecordsMap[queueKey];
+        printer << d_queueConfirmRecordsMap[queueKey];
+        
+        // Print number of records per App Key/Id
+        if (appKeysCount > 1U) {
+            bsl::stringstream ss;
+            for(QueueRecordsMap::const_iterator it = d_queueAppRecordsMap[queueKey].begin(); it != d_queueAppRecordsMap[queueKey].end(); ++it) {
+                const mqbu::StorageKey& appKey = it->first;
+                bsl::string appIdStr;
+                if (queueInfoPresent) {
+                    RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
+                                                queueInfo.appIds(),
+                                                appKey);
+                        
+                    
+                }
+                if (!appIdStr.empty()) {
+                    ss << appIdStr;
+                } else {
+                    ss << appKey;
+                }
+
+                ss << "=" << it->second << " ";
+            }
+            printer << ss.str();
         }
-        printer << ss.str();
-        printer << d_queueDeleteRecordsMap[qKey];
+
+        printer << d_queueDeleteRecordsMap[queueKey];
     }
 
 
