@@ -982,7 +982,7 @@ void SummaryProcessor::outputResult()
         fields.push_back("Num Message Records");
         fields.push_back("Num Confirm Records");
         if (appKeysCount > 1U) {
-            fields.push_back("Confirm Records Per App");
+            fields.push_back("Num Records Per App");
         }
         fields.push_back("Num Delete Records");
 
@@ -1011,23 +1011,32 @@ void SummaryProcessor::outputResult()
         // Print number of records per App Key/Id
         if (appKeysCount > 1U) {
             bsl::stringstream ss;
-            for(QueueRecordsMap::const_iterator it = d_queueAppRecordsMap[queueKey].begin(); it != d_queueAppRecordsMap[queueKey].end(); ++it) {
-                const mqbu::StorageKey& appKey = it->first;
+            typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey>> AppsData;
+            AppsData appsData;
+
+            for(QueueRecordsMap::const_iterator it = d_queueAppRecordsMap[queueKey].cbegin(); it != d_queueAppRecordsMap[queueKey].cend(); ++it) {
+                appsData.emplace_back(it->second, it->first);
+            }
+
+            bsl::sort(appsData.begin(), appsData.end());
+
+            for(AppsData::const_iterator it = appsData.cbegin(); it != appsData.cend(); ++it) {
+                const mqbu::StorageKey& appKey = it->second;
                 bsl::string appIdStr;
+
                 if (queueInfoPresent) {
                     RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
                                                 queueInfo.appIds(),
-                                                appKey);
-                        
-                    
+                                                appKey);   
                 }
+
                 if (!appIdStr.empty()) {
                     ss << appIdStr;
                 } else {
                     ss << appKey;
                 }
 
-                ss << "=" << it->second << " ";
+                ss << "=" << it->first << " ";
             }
             printer << ss.str();
         }
