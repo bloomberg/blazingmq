@@ -104,7 +104,7 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
     if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
         if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached = true;
+            *highBoundReached_p = true;
         }
         // Not inside range
         return false;  // RETURN
