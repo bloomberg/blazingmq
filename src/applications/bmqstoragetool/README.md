@@ -108,6 +108,15 @@ Example:
 bmqstoragetool --journal-file=<path>
 ```
 
+Search and otput all queueOp/journalOp records or all records in journal file
+--------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --record-type=queue-op
+bmqstoragetool --journal-file=<path> --record-type=journal-op
+bmqstoragetool --journal-file=<path> --record-type=journal-op --record-type=queue-op --record-type=message
+```
+
 Search and otput all messages details in journal file
 -----------------------------------------------------
 Example:
