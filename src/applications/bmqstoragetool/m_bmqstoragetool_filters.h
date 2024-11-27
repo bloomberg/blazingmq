@@ -60,13 +60,10 @@ class Filters {
 
     /// Apply filters at the record with the specified `recordHeader`,
     /// `recordOffset` and `queueKey`. Return true if all filters are matched,
-    /// false otherwise. If the specified `highBoundReached` pointer is
-    /// present, pointed value is set to true if higher bound value is reached,
     /// false otherwise.
     bool apply(const mqbs::RecordHeader& recordHeader,
                bsls::Types::Uint64       recordOffset,
-               const mqbu::StorageKey&   queueKey,
-               bool*                     highBoundReached = 0) const;
+               const mqbu::StorageKey&   queueKey) const;
 };
 
 }  // close package namespace
