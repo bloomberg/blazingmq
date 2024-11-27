@@ -120,7 +120,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          balcl::OccurrenceInfo::e_OPTIONAL},
          {"min-records-per-queue",
          "min records per queue",
-         "min number of records per queue for detailed information to be displayed",
+         "min number of records per queue for detailed info to be displayed",
          balcl::TypeInfo(&arguments.d_minRecordsPerQueue),
          balcl::OccurrenceInfo(bsl::numeric_limits<bsls::Types::Int64>::max())},
         {"h|help",
