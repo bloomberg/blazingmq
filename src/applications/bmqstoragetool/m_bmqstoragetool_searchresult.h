@@ -109,7 +109,7 @@ class SearchResult {
     /// and `recordOffset`.
     virtual bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
                                       bsls::Types::Uint64        recordIndex,
-                                      bsls::Types::Uint64 recordOffset);
+                                      bsls::Types::Uint64        recordOffset);
     /// Process `journalOp` record with the specified `record`, `recordIndex`
     /// and `recordOffset`.
     virtual bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
@@ -599,10 +599,14 @@ class SummaryProcessor : public SearchResult {
     // PTIVATE TYPES
 
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
-    typedef bsl::unordered_map<mqbu::StorageKey, bsls::Types::Uint64> QueueRecordsMap;
-    typedef bsl::unordered_map<mqbu::StorageKey, QueueRecordsMap> QueueAppRecordsMap;
-    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsls::Types::Uint64> OtherRecordsMap;
-    typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey>> AppsData;
+    typedef bsl::unordered_map<mqbu::StorageKey, bsls::Types::Uint64>
+        QueueRecordsMap;
+    typedef bsl::unordered_map<mqbu::StorageKey, QueueRecordsMap>
+        QueueAppRecordsMap;
+    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsls::Types::Uint64>
+        OtherRecordsMap;
+    typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey> >
+        AppsData;
     // Set of message guids.
 
     // PRIVATE DATA
@@ -626,9 +630,9 @@ class SummaryProcessor : public SearchResult {
     bsls::Types::Uint64 d_totalRecordsCount;
     // Counter of total number of records.
 
-    QueueRecordsMap    d_queueRecordsMap;
+    QueueRecordsMap d_queueRecordsMap;
     // Map containing total records counts per queue
-    OtherRecordsMap    d_otherRecordsCounts;
+    OtherRecordsMap d_otherRecordsCounts;
     // Map containing counts per record type which are not processed by default
     QueueAppRecordsMap d_queueAppRecordsMap;
     // Map containing counts of records per Queue/App
@@ -646,7 +650,8 @@ class SummaryProcessor : public SearchResult {
     // Reference to 'QueueMap' instance.
 
     bsls::Types::Uint64 d_minRecordsPerQueue;
-    // Minimum number of records for the queue to be displayed its detailed info
+    // Minimum number of records for the queue to be displayed its detailed
+    // info
 
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
@@ -707,13 +712,13 @@ class SummaryProcessor : public SearchResult {
     void handleAnyRecordType();
 };
 
+// =================================================
+//                       INLINE FUNCTION DEFINITIONS
+// =================================================
 
-             // =================================================
-             //                       INLINE FUNCTION DEFINITIONS
-             // =================================================
-
-inline void SummaryProcessor::handleAnyRecordType() {
-  d_totalRecordsCount++;
+inline void SummaryProcessor::handleAnyRecordType()
+{
+    d_totalRecordsCount++;
 }
 
 }  // close package namespace

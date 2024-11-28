@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_searchresult.h>
 #include <m_bmqstoragetool_recordprinter.h>
+#include <m_bmqstoragetool_searchresult.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -187,16 +187,16 @@ void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
 
 bool SearchResult::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED const mqbs::QueueOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     return false;
 }
 
 bool SearchResult::processJournalOpRecord(
     BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     return false;
 }
@@ -253,7 +253,6 @@ bool SearchResultDecorator::processDeletionRecord(
                                                  recordIndex,
                                                  recordOffset);
 }
-
 
 void SearchResultDecorator::outputResult()
 {
@@ -812,8 +811,8 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
                                    mqbs::JournalFileIterator* journalFile_p,
                                    mqbs::DataFileIterator*    dataFile_p,
                                    const QueueMap&            queueMap,
-                                   bsls::Types::Uint64        minRecordsPerQueue,
-                                   bslma::Allocator*          allocator)
+                                   bsls::Types::Uint64 minRecordsPerQueue,
+                                   bslma::Allocator*   allocator)
 : d_ostream(ostream)
 , d_journalFile_p(journalFile_p)
 , d_dataFile_p(dataFile_p)
@@ -868,7 +867,7 @@ bool SummaryProcessor::processConfirmRecord(
 
     d_queueRecordsMap[record.queueKey()]++;
     d_queueAppRecordsMap[record.queueKey()][record.appKey()]++;
-    
+
     d_queueConfirmRecordsMap[record.queueKey()]++;
 
     return false;
@@ -897,8 +896,8 @@ bool SummaryProcessor::processDeletionRecord(
 
 bool SummaryProcessor::processQueueOpRecord(
     const mqbs::QueueOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64        recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     handleAnyRecordType();
 
@@ -910,8 +909,8 @@ bool SummaryProcessor::processQueueOpRecord(
 
 bool SummaryProcessor::processJournalOpRecord(
     BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64          recordOffset)
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
+    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
     handleAnyRecordType();
 
@@ -923,18 +922,17 @@ bool SummaryProcessor::processJournalOpRecord(
 bool SummaryProcessor::processOtherRecord(mqbs::RecordType::Enum recordType)
 {
     handleAnyRecordType();
-   
+
     d_otherRecordsCounts[recordType]++;
 
     return false;
 }
 
-
 void SummaryProcessor::outputResult()
 {
     // Check if queueInfo is present for queue key
     bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
-    
+
     if (d_foundMessagesCount == 0) {
         d_ostream << "No messages found." << '\n';
         return;  // RETURN
@@ -947,33 +945,36 @@ void SummaryProcessor::outputResult()
               << d_partiallyConfirmedGuids.size() << '\n';
     d_ostream << "Number of outstanding messages: "
               << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
-    
+
     outputOutstandingRatio(d_ostream,
                            d_foundMessagesCount,
                            d_deletedMessagesCount);
 
     d_ostream << "Total number of records: " << d_totalRecordsCount << "\n";
-    for(OtherRecordsMap::iterator it = d_otherRecordsCounts.begin(); it != d_otherRecordsCounts.end(); ++it) {
-        d_ostream << "Number of " << it->first<< " records: " << it->second << "\n";
+    for (OtherRecordsMap::iterator it = d_otherRecordsCounts.begin();
+         it != d_otherRecordsCounts.end();
+         ++it) {
+        d_ostream << "Number of " << it->first << " records: " << it->second
+                  << "\n";
     }
 
     // Print information per Queue:
     d_ostream << "Number of records per Queue:\n";
 
-    
-
-
-    for(QueueRecordsMap::const_iterator it = d_queueRecordsMap.begin(); it != d_queueRecordsMap.end(); ++it) {
+    for (QueueRecordsMap::const_iterator it = d_queueRecordsMap.begin();
+         it != d_queueRecordsMap.end();
+         ++it) {
         bsls::Types::Uint64 totalRecordsCount = it->second;
 
-        // Skip this queue if the number of records for this queue is smaller than threshold
+        // Skip this queue if the number of records for this queue is smaller
+        // than threshold
         if (totalRecordsCount < d_minRecordsPerQueue) {
             continue;
         }
-        
+
         const mqbu::StorageKey& queueKey = it->first;
         bsl::size_t appKeysCount = d_queueAppRecordsMap[queueKey].size();
-        
+
         // Setup fields to be displayed
         bsl::vector<const char*> fields(d_allocator_p);
         fields.push_back("Queue");
@@ -988,17 +989,15 @@ void SummaryProcessor::outputResult()
 
         bmqu::AlignedPrinter printer(d_ostream, &fields);
 
-
         // Get queue information contained in CSL file
-        const bool queueInfoPresent = d_queueMap.findInfoByKey(
-            &queueInfo,
-            queueKey
-        );
+        const bool queueInfoPresent = d_queueMap.findInfoByKey(&queueInfo,
+                                                               queueKey);
 
         // Print queue id: either Key or URI
         if (queueInfoPresent) {
             printer << queueInfo.uri();
-        } else {
+        }
+        else {
             printer << queueKey;
         }
 
@@ -1007,33 +1006,39 @@ void SummaryProcessor::outputResult()
         printer << d_queueQueueOpRecordsMap[queueKey];
         printer << d_queueMessageRecordsMap[queueKey];
         printer << d_queueConfirmRecordsMap[queueKey];
-        
+
         // Print number of records per App Key/Id
         if (appKeysCount > 1U) {
             bsl::stringstream ss;
 
             // Sort Apps by number of records ascending
             AppsData appsData;
-            for(QueueRecordsMap::const_iterator it = d_queueAppRecordsMap[queueKey].cbegin(); it != d_queueAppRecordsMap[queueKey].cend(); ++it) {
+            for (QueueRecordsMap::const_iterator it =
+                     d_queueAppRecordsMap[queueKey].cbegin();
+                 it != d_queueAppRecordsMap[queueKey].cend();
+                 ++it) {
                 appsData.emplace_back(it->second, it->first);
             }
             bsl::sort(appsData.begin(), appsData.end());
 
             // Print number of records per App
-            for(AppsData::const_iterator it = appsData.cbegin(); it != appsData.cend(); ++it) {
+            for (AppsData::const_iterator it = appsData.cbegin();
+                 it != appsData.cend();
+                 ++it) {
                 const mqbu::StorageKey& appKey = it->second;
-                
+
                 // Try resolve App Key to string App Id
                 bsl::string appIdStr;
                 if (queueInfoPresent) {
                     RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
-                                                queueInfo.appIds(),
-                                                appKey);   
+                                                          queueInfo.appIds(),
+                                                          appKey);
                 }
 
                 if (!appIdStr.empty()) {
                     ss << appIdStr;
-                } else {
+                }
+                else {
                     ss << appKey;
                 }
 
@@ -1044,7 +1049,6 @@ void SummaryProcessor::outputResult()
 
         printer << d_queueDeleteRecordsMap[queueKey];
     }
-
 
     // Print meta data of opened files
     printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);
