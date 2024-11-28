@@ -475,10 +475,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// undefined unless this cluster node is the primary for this partition.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Flush all associated weak consistency queues.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    void flushQueues() BSLS_KEYWORD_OVERRIDE;
-
     /// Attempt to garbage-collect messages for which TTL has expired, and
     /// return the number of messages garbage-collected.  Populate the
     /// specified `latestMsgTimestampEpoch` with the timestamp, as seconds

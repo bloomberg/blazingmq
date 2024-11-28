@@ -690,10 +690,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// undefined unless this cluster node is the primary for this partition.
     virtual void flushStorage() = 0;
 
-    /// Flush all associated weak consistency queues.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    virtual void flushQueues() = 0;
-
     // ACCESSORS
 
     /// Return true if this instance is open, false otherwise.

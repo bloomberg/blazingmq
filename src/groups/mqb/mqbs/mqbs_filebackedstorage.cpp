@@ -619,11 +619,6 @@ void FileBackedStorage::flushStorage()
     d_store_p->flushStorage();
 }
 
-void FileBackedStorage::flushQueues()
-{
-    d_store_p->flushQueues();
-}
-
 int FileBackedStorage::gcExpiredMessages(
     bsls::Types::Uint64* latestMsgTimestampEpoch,
     bsls::Types::Int64*  configuredTtlValue,

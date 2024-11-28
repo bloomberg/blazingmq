@@ -5118,7 +5118,7 @@ void FileStore::flushIfNeeded(bool immediateFlush)
         d_storageEventBuilder.messageCount() >= d_nagglePacketCount) {
         // Should notify weak consistency queues after replicated batch
         flushStorage();
-        flushQueues();
+        notifyQueuesOnReplicatedBatch();
     }
 }
 
@@ -6922,7 +6922,7 @@ void FileStore::flushStorage()
     }
 }
 
-void FileStore::flushQueues()
+void FileStore::notifyQueuesOnReplicatedBatch()
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             d_storageEventBuilder.messageCount() == 0)) {
@@ -6935,7 +6935,8 @@ void FileStore::flushQueues()
              it++) {
             // TODO: possible to store ReplicatedStorage directly and have one
             //       less lookup, but it requires to handle the case when the
-            //       storage was removed before `flushQueues` call.
+            //       storage was removed before `notifyQueuesOnReplicatedBatch`
+            //       call.
             StoragesMap::iterator storageIt = d_storages.find(*it);
             if (storageIt != d_storages.end()) {
                 ReplicatedStorage* rs = storageIt->second;

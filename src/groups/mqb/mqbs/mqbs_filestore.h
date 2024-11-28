@@ -876,12 +876,10 @@ class FileStore : public DataStore {
     /// undefined unless this cluster node is the primary for this partition.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Flush all associated weak consistency queues.  Behaviour is
+    /// Flush weak consistency queues that have replicated messages since the
+    /// last call.  This method has no effect if `d_storageEventBuilder` is not
+    /// empty, and must only be called after `flushStorage`.  Behaviour is
     /// undefined unless this cluster node is the primary for this partition.
-    void flushQueues() BSLS_KEYWORD_OVERRIDE;
-
-    /// Call `onReplicatedBatch` on all associated queues if the storage
-    /// builder is empty (just flushed).
     void notifyQueuesOnReplicatedBatch();
 
     /// Invoke the specified `functor` with each queue associated to the

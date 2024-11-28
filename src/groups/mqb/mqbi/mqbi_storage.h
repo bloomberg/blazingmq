@@ -511,10 +511,6 @@ class Storage {
     /// undefined unless this cluster node is the primary for this partition.
     virtual void flushStorage() = 0;
 
-    /// Flush all associated weak consistency queues.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    virtual void flushQueues() = 0;
-
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() = 0;
 

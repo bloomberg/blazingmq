@@ -428,11 +428,6 @@ void InMemoryStorage::flushStorage()
     // NOTHING
 }
 
-void InMemoryStorage::flushQueues()
-{
-    // NOTHING
-}
-
 int InMemoryStorage::gcExpiredMessages(
     bsls::Types::Uint64* latestMsgTimestampEpoch,
     bsls::Types::Int64*  configuredTtlValue,

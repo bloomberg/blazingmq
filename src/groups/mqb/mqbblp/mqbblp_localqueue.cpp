@@ -530,10 +530,6 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                 1);
         }
     }
-
-    // If 'FileStore::d_storageEventBuilder' is flushed, flush all relevant
-    // queues (call 'afterNewMessage' to deliver accumulated data)
-    d_state_p->storage()->flushQueues();
 }
 
 void LocalQueue::onPushMessage(

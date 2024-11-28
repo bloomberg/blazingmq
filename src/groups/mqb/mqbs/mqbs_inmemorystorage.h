@@ -377,10 +377,6 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// undefined unless this cluster node is the primary for this partition.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Flush all associated weak consistency queues.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    void flushQueues() BSLS_KEYWORD_OVERRIDE;
-
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
 

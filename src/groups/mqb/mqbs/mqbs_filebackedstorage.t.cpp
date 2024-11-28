@@ -410,8 +410,6 @@ class MockDataStore : public mqbs::DataStore {
 
     void flushStorage() BSLS_KEYWORD_OVERRIDE {}
 
-    void flushQueues() BSLS_KEYWORD_OVERRIDE {}
-
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
 
     const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
