@@ -111,6 +111,18 @@ struct CommandLineArguments {
     // MANIPULATORS
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
+
+    // ACCESSORS
+    /// Return true if the specified `recordType` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `recordType` is
+    /// invalid.
+    static bool isValidRecordType(const bsl::string* recordType,
+                                  bsl::ostream&      stream);
+    /// Return true if the specified `fileName` is valid (file exists), false
+    /// otherwise. Error message is written into the specified `stream` if
+    /// `fileName` is invalid.
+    static bool isValidFileName(const bsl::string* fileName,
+                                bsl::ostream&      stream);
 };
 
 struct Parameters {

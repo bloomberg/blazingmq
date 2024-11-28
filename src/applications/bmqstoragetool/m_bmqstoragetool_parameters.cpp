@@ -103,6 +103,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 {
+    // NOTHING
 }
 
 bool CommandLineArguments::validate(bsl::string*      error,
@@ -292,6 +293,33 @@ bool CommandLineArguments::validate(bsl::string*      error,
 
     error->assign(ss.str().data(), ss.str().length());
     return error->empty();
+}
+
+bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
+                                             bsl::ostream&      stream)
+{
+    if (*recordType != CommandLineArguments::k_MESSAGE_TYPE &&
+        *recordType != CommandLineArguments::k_QUEUEOP_TYPE &&
+        *recordType != CommandLineArguments::k_JOURNAL_TYPE) {
+        stream << "--record-type invalid: " << *recordType << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
+                                           bsl::ostream&      stream)
+{
+    if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
+        stream << "The specified file does not exist: " << *fileName
+               << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
 }
 
 Parameters::Range::Range()
