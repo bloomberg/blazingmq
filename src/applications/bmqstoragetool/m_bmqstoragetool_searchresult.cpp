@@ -1011,19 +1011,20 @@ void SummaryProcessor::outputResult()
         // Print number of records per App Key/Id
         if (appKeysCount > 1U) {
             bsl::stringstream ss;
-            typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey>> AppsData;
-            AppsData appsData;
 
+            // Sort Apps by number of records ascending
+            AppsData appsData;
             for(QueueRecordsMap::const_iterator it = d_queueAppRecordsMap[queueKey].cbegin(); it != d_queueAppRecordsMap[queueKey].cend(); ++it) {
                 appsData.emplace_back(it->second, it->first);
             }
-
             bsl::sort(appsData.begin(), appsData.end());
 
+            // Print number of records per App
             for(AppsData::const_iterator it = appsData.cbegin(); it != appsData.cend(); ++it) {
                 const mqbu::StorageKey& appKey = it->second;
+                
+                // Try resolve App Key to string App Id
                 bsl::string appIdStr;
-
                 if (queueInfoPresent) {
                     RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
                                                 queueInfo.appIds(),
