@@ -2,8 +2,8 @@ BMQStorageTool
 ==============
 
 BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
-files. It allows to search messages in `journal` file with set of different 
-filters and output found message GUIDs or message detail information.
+files. It allows to search records in `journal` file with set of different 
+filters and output found results in the short or detail form.
 As input, a `journal` file (*.bmq_journal) is *always* required. To dump 
 payload, `data` file (*.bmq_data) is required. To filter by queue Uri, cluster
 state ledger (CSL) file (*.bmq_csl) is required.
@@ -39,8 +39,7 @@ Usage:   bmqstoragetool [-r|record-type <record-type>]*
                         [-h|help]
 Where:
   -r | --record-type          <record-type>
-          record type to search {message|queue-op|journal-op} (default: [
-          message ])
+          record type to search {message|queue-op|journal-op} (default: message)
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
