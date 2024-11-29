@@ -42,7 +42,7 @@ static bool parseArgs(CommandLineArguments& arguments,
 
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
-         "record-type",
+         "record type",
          "record type to search {message|queue-op|journal-op}",
          balcl::TypeInfo(&arguments.d_recordType,
                          CommandLineArguments::isValidRecordType),
