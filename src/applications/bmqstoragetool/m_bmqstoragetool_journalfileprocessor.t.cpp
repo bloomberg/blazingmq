@@ -1798,6 +1798,145 @@ static void test21_searchAllTypesRecords()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
+static void test22_searchQueueOpRecordsByOffset()
+// ------------------------------------------------------------------------
+// SEARCH QUEUE OP RECORDS BY OFFSET
+//
+// Concerns:
+//   Search queueOP records by exact offsets in journal file and output result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH QUEUE OP RECORDS BY OFFSET TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_OFFSET = sizeof(mqbs::FileHeader) / 2;
+
+    // Configure parameters to search queueOp records
+    Parameters params(s_allocator_p);
+    params.d_processRecordTypes.d_message = false;
+    params.d_processRecordTypes.d_queueOp = true;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get queueOp records content and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t resCnt     = 0;
+    bsl::size_t queueOpCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_QUEUE_OP) {
+            const QueueOpRecord& queueOp =
+                *reinterpret_cast<const QueueOpRecord*>(
+                    recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                queueOp.header().sequenceNumber() *
+                    mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE -
+                k_HEADER_OFFSET;
+            if (queueOpCnt++ % 3 == 0) {
+                params.d_offset.push_back(offset);
+                expectedStream << queueOp << '\n';
+                resCnt++;
+            }
+        }
+    }
+    expectedStream << resCnt << " queueOp record(s) found.\n";
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test23_searchJournalOpRecordsBySeqNumber()
+// ------------------------------------------------------------------------
+// SEARCH JOURNAL OP RECORDS BY SEQUENCE NUMBER
+//
+// Concerns:
+//   Search journalOP records by exact sequence numbers in journal file and
+//   output result.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH JOURNAL OP RECORDS BY SEQUENCE NUMBER TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    journalFile.addAllTypesRecords(&records);
+
+    // Configure parameters to search journalOp
+    Parameters params(s_allocator_p);
+    params.d_processRecordTypes.d_message   = false;
+    params.d_processRecordTypes.d_journalOp = true;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Get journalOp records content and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t resCnt = 0;
+    bsl::size_t jOpCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_JOURNAL_OP) {
+            const JournalOpRecord& journalOp =
+                *reinterpret_cast<const JournalOpRecord*>(
+                    recordIter->second.buffer());
+            if (jOpCnt++ % 3 == 0) {
+                params.d_seqNum.emplace_back(
+                    journalOp.header().primaryLeaseId(),
+                    journalOp.header().sequenceNumber());
+                expectedStream << journalOp << '\n';
+                resCnt++;
+            }
+            jOpCnt++;
+        }
+    }
+    expectedStream << resCnt << " journalOp record(s) found.\n";
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1829,6 +1968,8 @@ int main(int argc, char* argv[])
     case 19: test19_searchQueueOpRecords(); break;
     case 20: test20_searchJournalOpRecords(); break;
     case 21: test21_searchAllTypesRecords(); break;
+    case 22: test22_searchQueueOpRecordsByOffset(); break;
+    case 23: test23_searchJournalOpRecordsBySeqNumber(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

@@ -788,6 +788,18 @@ class SearchOffsetDecorator : public SearchResultDecorator {
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
         BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
 };
@@ -833,6 +845,18 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     bool processDeletionRecord(const mqbs::DeletionRecord& record,
                                bsls::Types::Uint64         recordIndex,
                                bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `queueOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processQueueOpRecord(const mqbs::QueueOpRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `journalOp` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
+                                bsls::Types::Uint64          recordIndex,
+                                bsls::Types::Uint64          recordOffset)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;
