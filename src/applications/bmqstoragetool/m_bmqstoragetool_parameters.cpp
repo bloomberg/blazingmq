@@ -249,6 +249,7 @@ bool CommandLineArguments::validate(bsl::string*      error,
             seqNum.fromString(errorDescr, *cit);
             if (!seqNum.isSet()) {
                 ss << "--seqnum: " << errorDescr.str() << "\n";
+                errorDescr.reset();
             }
         }
     }
