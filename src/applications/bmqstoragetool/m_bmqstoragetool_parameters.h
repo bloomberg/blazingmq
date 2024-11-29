@@ -112,7 +112,7 @@ struct CommandLineArguments {
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
 
-    // ACCESSORS
+    // CLASS METHODS
     /// Return true if the specified `recordType` is valid, false otherwise.
     /// Error message is written into the specified `stream` if `recordType` is
     /// invalid.
