@@ -766,9 +766,15 @@ void QueueHandle::confirmMessage(const bmqt::MessageGUID& msgGUID,
     // A more generic approach would be to maintain a queue of CONFIRMs per
     // queue (outside of the dispatcher) and process it separately (on idle?).
 
-    QueueHandle::ConfirmFunctor f(this, msgGUID, downstreamSubQueueId);
+    mqbi::DispatcherEvent* queueEvent = d_queue_sp->dispatcher()->getEvent(
+        mqbi::DispatcherClientType::e_QUEUE);
 
-    d_queue_sp->dispatcher()->execute(f, d_queue_sp.get());
+    (*queueEvent).setType(mqbi::DispatcherEventType::e_CALLBACK);
+
+    new (queueEvent->callback().place<QueueHandle::ConfirmFunctor>())
+        QueueHandle::ConfirmFunctor(this, msgGUID, downstreamSubQueueId);
+
+    d_queue_sp->dispatcher()->dispatchEvent(queueEvent, d_queue_sp.get());
 }
 
 void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,

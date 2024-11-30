@@ -108,13 +108,12 @@ void Dispatcher::execute(
 }
 
 void Dispatcher::execute(
-    const mqbi::Dispatcher::ProcessorFunctor& functor,
+    const mqbi::Dispatcher::VoidFunctor& functor,
     BSLS_ANNOTATION_UNUSED mqbi::DispatcherClientType::Enum type,
     const mqbi::Dispatcher::VoidFunctor&                    doneCallback)
 {
     if (functor) {
-        const ProcessorHandle dummy = Dispatcher::k_INVALID_PROCESSOR_HANDLE;
-        functor(dummy);
+        functor();
     }
 
     if (doneCallback) {
@@ -243,7 +242,8 @@ mqbi::DispatcherClientData& DispatcherClient::dispatcherClientData()
 void DispatcherClient::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 {
     if (event.type() == mqbi::DispatcherEventType::e_CALLBACK) {
-        event.asCallbackEvent()->callback()(0);
+        BSLS_ASSERT_SAFE(event.asCallbackEvent()->callback().hasCallback());
+        event.asCallbackEvent()->callback()();
     }
 }
 

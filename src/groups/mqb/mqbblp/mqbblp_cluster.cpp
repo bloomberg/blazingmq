@@ -3397,8 +3397,8 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent& realEvent =
             *event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent.callback());
-        realEvent.callback()(dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(realEvent.callback().hasCallback());
+        realEvent.callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbi::DispatcherPutEvent& realEvent = *event.asPutEvent();

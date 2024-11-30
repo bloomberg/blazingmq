@@ -118,12 +118,11 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
 }
 
 void StorageUtil::registerQueueDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::FileStore*                                                fs,
-    mqbs::ReplicatedStorage*                                        storage,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const AppInfos&    appIdKeyPairs)
+    mqbs::FileStore*         fs,
+    mqbs::ReplicatedStorage* storage,
+    const bsl::string&       clusterDescription,
+    int                      partitionId,
+    const AppInfos&          appIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -178,18 +177,17 @@ void StorageUtil::registerQueueDispatched(
 }
 
 void StorageUtil::updateQueuePrimaryDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::ReplicatedStorage*                                        storage,
-    bslmt::Mutex*      storagesLock,
-    mqbs::FileStore*   fs,
-    AppKeys*           appKeys,
-    bslmt::Mutex*      appKeysLock,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const AppInfos&    addedIdKeyPairs,
-    const AppInfos&    removedIdKeyPairs,
-    bool               isFanout,
-    bool               isCSLMode)
+    mqbs::ReplicatedStorage* storage,
+    bslmt::Mutex*            storagesLock,
+    mqbs::FileStore*         fs,
+    AppKeys*                 appKeys,
+    bslmt::Mutex*            appKeysLock,
+    const bsl::string&       clusterDescription,
+    int                      partitionId,
+    const AppInfos&          addedIdKeyPairs,
+    const AppInfos&          removedIdKeyPairs,
+    bool                     isFanout,
+    bool                     isCSLMode)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2253,22 +2251,20 @@ mqbu::StorageKey StorageUtil::generateAppKey(AppKeys*           appKeys,
     return appKey;
 }
 
-void StorageUtil::registerQueue(
-    const mqbi::Cluster*                     cluster,
-    mqbi::Dispatcher*                        dispatcher,
-    StorageSpMap*                            storageMap,
-    bslmt::Mutex*                            storagesLock,
-    mqbs::FileStore*                         fs,
-    AppKeys*                                 appKeys,
-    bslmt::Mutex*                            appKeysLock,
-    bmqma::CountingAllocatorStore*           allocators,
-    const mqbi::Dispatcher::ProcessorHandle& processor,
-    const bmqt::Uri&                         uri,
-    const mqbu::StorageKey&                  queueKey,
-    const bsl::string&                       clusterDescription,
-    int                                      partitionId,
-    const AppInfos&                          appIdKeyPairs,
-    mqbi::Domain*                            domain)
+void StorageUtil::registerQueue(const mqbi::Cluster*           cluster,
+                                mqbi::Dispatcher*              dispatcher,
+                                StorageSpMap*                  storageMap,
+                                bslmt::Mutex*                  storagesLock,
+                                mqbs::FileStore*               fs,
+                                AppKeys*                       appKeys,
+                                bslmt::Mutex*                  appKeysLock,
+                                bmqma::CountingAllocatorStore* allocators,
+                                const bmqt::Uri&               uri,
+                                const mqbu::StorageKey&        queueKey,
+                                const bsl::string& clusterDescription,
+                                int                partitionId,
+                                const AppInfos&    appIdKeyPairs,
+                                mqbi::Domain*      domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -2286,6 +2282,8 @@ void StorageUtil::registerQueue(
         partitionId <
             cluster->clusterConfig()->partitionConfig().numPartitions());
     BSLS_ASSERT_SAFE(domain);
+
+    const int processor = fs->processorId();
 
     // StorageMgr is either aware of the queue (the 'uri') or it isn't.  If it
     // is already aware, either this queue was registered earlier or it was
@@ -2386,7 +2384,6 @@ void StorageUtil::registerQueue(
                 .setType(mqbi::DispatcherEventType::e_DISPATCHER)
                 .setCallback(bdlf::BindUtil::bind(
                     updateQueuePrimaryDispatched,
-                    bdlf::PlaceHolders::_1,  // processor
                     storageSp.get(),
                     storagesLock,
                     fs,
@@ -2499,7 +2496,6 @@ void StorageUtil::registerQueue(
     (*queueEvent)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(bdlf::BindUtil::bind(&registerQueueDispatched,
-                                          bdlf::PlaceHolders::_1,  // processor
                                           fs,
                                           storageSp.get(),
                                           clusterDescription,
@@ -2509,15 +2505,13 @@ void StorageUtil::registerQueue(
     fs->dispatchEvent(queueEvent);
 }
 
-void StorageUtil::unregisterQueueDispatched(
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    mqbs::FileStore*                                                fs,
-    StorageSpMap*                                                   storageMap,
-    bslmt::Mutex*        storagesLock,
-    const ClusterData*   clusterData,
-    int                  partitionId,
-    const PartitionInfo& pinfo,
-    const bmqt::Uri&     uri)
+void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
+                                            StorageSpMap*        storageMap,
+                                            bslmt::Mutex*        storagesLock,
+                                            const ClusterData*   clusterData,
+                                            int                  partitionId,
+                                            const PartitionInfo& pinfo,
+                                            const bmqt::Uri&     uri)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2890,7 +2884,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     const mqbu::StorageKey& appKey,
     bool                    isCSLMode)
 {
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'processorId'
+    // executed by *QUEUE_DISPATCHER* thread associated with `partitionId`
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs);
@@ -3128,14 +3122,12 @@ void StorageUtil::updateQueueReplicaDispatched(
     }
 }
 
-void StorageUtil::setQueueDispatched(
-    StorageSpMap*                storageMap,
-    bslmt::Mutex*                storagesLock,
-    BSLS_ANNOTATION_UNUSED const mqbi::Dispatcher::ProcessorHandle& processor,
-    const bsl::string& clusterDescription,
-    int                partitionId,
-    const bmqt::Uri&   uri,
-    mqbi::Queue*       queue)
+void StorageUtil::setQueueDispatched(StorageSpMap*      storageMap,
+                                     bslmt::Mutex*      storagesLock,
+                                     const bsl::string& clusterDescription,
+                                     int                partitionId,
+                                     const bmqt::Uri&   uri,
+                                     mqbi::Queue*       queue)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
