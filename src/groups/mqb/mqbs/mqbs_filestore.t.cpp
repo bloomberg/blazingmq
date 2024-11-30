@@ -35,6 +35,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
+#include <bmqu_printutil.h>
 
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
@@ -62,6 +63,7 @@
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_platform.h>
 #include <bsls_systemclocktype.h>
+#include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 // CONVENIENCE
@@ -137,6 +139,186 @@ void recoveredQueuesCb(
 }
 
 // CLASSES
+
+// ===================
+// struct RecordWriter
+// ===================
+class RecordWriter {
+  private:
+    // DATA
+    const bsl::string d_uriBase;
+
+    mqbs::FileStore* d_fs;
+
+    bdlbb::PooledBlobBufferFactory d_bufferFactory;
+
+    bsl::unordered_map<bsl::string, bsl::vector<bsl::shared_ptr<Record> > >
+        d_records;
+
+    bsl::vector<bsl::string> d_queues;
+
+    mqbu::StorageKey generateQueueKey() const
+    {
+        // This generator works with assumption that the binary size of a
+        // StorageKey is 5
+        BSLS_ASSERT_SAFE(5 == mqbu::StorageKey::e_KEY_LENGTH_BINARY);
+
+        char           buff[mqbu::StorageKey::e_KEY_LENGTH_BINARY];
+        bsl::uint32_t* pt = (bsl::uint32_t*)buff;
+        // Fill 4 bytes with a number of queues
+        pt[0] = static_cast<bsl::uint32_t>(d_records.size());
+
+        // Fill the remaining byte with random value
+        buff[4] = rand() % 256;
+
+        return mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                buff);
+    }
+
+    bool writeOpenQueueRecord()
+    {
+        // Write a queue creation record.
+        bmqu::MemOutStream osstr(s_allocator_p);
+        osstr << d_uriBase << "queue" << d_records.size();
+
+        bmqt::Uri        uri(osstr.str(), s_allocator_p);
+        mqbu::StorageKey queueKey = generateQueueKey();
+
+        d_queues.push_back(osstr.str());
+
+        bsl::shared_ptr<Record> rec;
+        rec.createInplace(s_allocator_p);
+        rec->d_recordType  = mqbs::RecordType::e_QUEUE_OP;
+        rec->d_queueOpType = mqbs::QueueOpType::e_CREATION;
+        rec->d_uri         = osstr.str();
+        rec->d_queueKey    = queueKey;
+        rec->d_timestamp   = bdlt::EpochUtil::convertToTimeT64(
+            bdlt::CurrentTime::utc());
+
+        mqbs::DataStoreRecordHandle handle;
+        const int rc = d_fs->writeQueueCreationRecord(&handle,
+                                                      uri,
+                                                      rec->d_queueKey,
+                                                      AppInfos(),
+                                                      rec->d_timestamp,
+                                                      true);  // isNewQueue
+
+        if (0 != rc) {
+            bsl::cout << "Error writing QueueCreationRecord, rc: " << rc
+                      << bsl::endl;
+            return false;  // RETURN
+        }
+
+        d_records[osstr.str()].push_back(rec);
+        // ++(*seqNum);
+        // ++(*numRecordsWritten);
+
+        // Add this queue uri/key to the list of valid pairs.
+
+        // queueKeyUriMap[rec.d_queueKey] = rec.d_uri;
+        return true;
+    }
+
+    bool writeMessageRecord()
+    {
+        // Write a message record.  Randomly choose a queue uri/key
+        // pair from 'queueUriKeyPairs', and write a message record for
+        // that pair.  Also update 'queueIndexGuidsMap' entry for that
+        // pair by adding guid to the list of guids associated with
+        // that pair.
+
+        size_t             offset = rand() % d_queues.size();
+        const bsl::string& uri    = d_queues[offset];
+        bsl::vector<bsl::shared_ptr<Record> >& records = d_records[uri];
+        BSLS_ASSERT_OPT(records.size() > 0);
+
+        bmqp::MessagePropertiesInfo messagePropertiesInfo =
+            (0 == records.size() % 2)
+                ? bmqp::MessagePropertiesInfo::makeNoSchema()
+                : bmqp::MessagePropertiesInfo();
+
+        bsl::shared_ptr<Record> rec;
+        rec.createInplace(s_allocator_p);
+        rec->d_recordType = mqbs::RecordType::e_MESSAGE;
+        rec->d_queueKey   = records.front()->d_queueKey;
+
+        rec->d_msgAttributes = mqbi::StorageMessageAttributes(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            records.size() % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
+            messagePropertiesInfo,
+            bmqt::CompressionAlgorithmType::e_NONE,
+            bsl::numeric_limits<unsigned int>::max() / records.size());
+        // crc value
+        mqbu::MessageGUIDUtil::generateGUID(&rec->d_guid);
+        rec->d_appData_sp.createInplace(s_allocator_p,
+                                        &d_bufferFactory,
+                                        s_allocator_p);
+        bsl::string payloadStr(700 + (records.size() % 5) * 10,
+                               'x',
+                               s_allocator_p);
+        bdlbb::BlobUtil::append(rec->d_appData_sp.get(),
+                                payloadStr.c_str(),
+                                payloadStr.length());
+
+        mqbs::DataStoreRecordHandle handle;
+        const int rc = d_fs->writeMessageRecord(&rec->d_msgAttributes,
+                                                &handle,
+                                                rec->d_guid,
+                                                rec->d_appData_sp,
+                                                rec->d_options_sp,
+                                                rec->d_queueKey);
+
+        if (0 != rc) {
+            bsl::cout << "Error writing MessageRecord, rc: " << rc
+                      << bsl::endl;
+            return false;  // RETURN
+        }
+
+        records.push_back(rec);
+        // ++(*seqNum);
+        // ++(*numRecordsWritten);
+
+        // Add the guid to the list of valid guids for the queue key,
+        // so that we can later use this guid to confirm.  Note that
+        // the choice of using operator[] on the 'queueKeyGuidsMap' is
+        // deliberate, as an entry for the queue key may or may not
+        // exist.
+
+        // queueKeyGuidsMap[rec.d_queueKey].push_back(rec.d_guid);
+        return true;
+    }
+
+  public:
+    RecordWriter(mqbs::FileStore* fs)
+    : d_uriBase("bmq://si.amw.bmq.stats/", s_allocator_p)
+    , d_fs(fs)
+    , d_bufferFactory(1024, s_allocator_p)
+    , d_queues(s_allocator_p)
+    {
+    }
+
+    bool writeRecords(bsls::Types::Uint64 numRecords)
+    {
+        for (bsls::Types::Uint64 i = 0; i < numRecords; ++i) {
+            size_t recType = i % 2;
+            switch (recType) {
+            case 0: {
+                if (!writeOpenQueueRecord()) {
+                    return false;
+                }
+            } break;
+            case 1: {
+                if (!writeMessageRecord()) {
+                    return false;
+                }
+            } break;
+            }
+        }
+
+        return true;
+    }
+};
+
 // =============
 // struct Tester
 // =============
@@ -198,9 +380,9 @@ struct Tester {
         bdls::FilesystemUtil::createDirectories(d_clusterArchiveLocation,
                                                 true);
 
-        d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
-        d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
-        d_partitionCfg.maxJournalFileSize()  = 1 * 1024 * 1024;
+        d_partitionCfg.maxDataFileSize()     = 16ULL * 1024 * 1024 * 1024;
+        d_partitionCfg.maxQlistFileSize()    = 1024ULL * 1024 * 1024;
+        d_partitionCfg.maxJournalFileSize()  = 1024ULL * 1 * 1024 * 1024;
         d_partitionCfg.location()            = d_clusterLocation;
         d_partitionCfg.archiveLocation()     = d_clusterArchiveLocation;
         d_partitionCfg.numPartitions()       = 1;
@@ -264,6 +446,10 @@ struct Tester {
                                   1,  // numPartitions
                                   d_clusterStatsRootContext_sp.get(),
                                   s_allocator_p);
+        int rc = d_miscWorkThreadPool.start();
+        ASSERT(0 == rc);
+        d_miscWorkThreadPool.enable();
+
         d_fs_mp.load(new (*s_allocator_p)
                          mqbs::FileStore(d_dsCfg,
                                          0,  // processorId
@@ -300,16 +486,21 @@ struct Tester {
         // OrderedHashMap(Guid->list(Handles))'.  This will be useful while
         // deleting a record and purging the queue.
 
-        typedef bsl::map<mqbu::StorageKey, bsl::string> QueueKeyUriMap;
+        typedef bsl::unordered_map<mqbu::StorageKey,
+                                   bsl::string,
+                                   bslh::Hash<mqbu::StorageKeyHashAlgo> >
+                                                        QueueKeyUriMap;
         typedef QueueKeyUriMap::iterator                QueueKeyUriMapIter;
         typedef bsl::vector<bmqt::MessageGUID>          Guids;
-        typedef bsl::map<mqbu::StorageKey, Guids>       QueueKeyGuidsMap;
+        typedef bsl::unordered_map<mqbu::StorageKey,
+                                   Guids,
+                                   bslh::Hash<mqbu::StorageKeyHashAlgo> >
+                                                        QueueKeyGuidsMap;
         typedef QueueKeyGuidsMap::iterator              QueueKeyGuidsMapIter;
 
         QueueKeyUriMap   queueKeyUriMap(s_allocator_p);
         QueueKeyGuidsMap queueKeyGuidsMap(s_allocator_p);
         QueueKeyGuidsMap queueKeyConfGuidsMap(s_allocator_p);
-        bsl::string      uriBase("bmq://si.amw.bmq.stats/", s_allocator_p);
         const size_t     k_DIVISOR = 7;
         int              rc        = 0;
         int              seed      = 58133;
@@ -325,134 +516,7 @@ struct Tester {
 
             size_t recType = i % k_DIVISOR;
 
-            if (0 == recType) {
-                // Write a queue creation record.
-
-                bsl::string        uri(uriBase, s_allocator_p);
-                bmqu::MemOutStream osstr;
-                osstr << "queue" << i;
-                uri.append(osstr.str().data(), osstr.str().length());
-
-                osstr.reset();  // clear the stream
-
-                // Generate unique queue-key.
-                // TBD: make this uniq-ify the keys.
-
-                osstr << i;
-                for (size_t j = 0; j < mqbu::StorageKey::e_KEY_LENGTH_BINARY;
-                     ++j) {
-                    osstr << 'x';
-                }
-
-                bsl::string      queueKeyStr(osstr.str().data(),
-                                        osstr.str().length());
-                mqbu::StorageKey queueKey(
-                    mqbu::StorageKey::BinaryRepresentation(),
-                    queueKeyStr
-                        .substr(0, mqbu::StorageKey::e_KEY_LENGTH_BINARY)
-                        .c_str());
-
-                mqbs::DataStoreRecordHandle handle;
-                Record                      rec(s_allocator_p);
-                rec.d_recordType  = mqbs::RecordType::e_QUEUE_OP;
-                rec.d_queueOpType = mqbs::QueueOpType::e_CREATION;
-                rec.d_uri         = uri;
-                rec.d_queueKey    = queueKey;
-                rec.d_timestamp   = bdlt::EpochUtil::convertToTimeT64(
-                    bdlt::CurrentTime::utc());
-
-                rc = fs->writeQueueCreationRecord(&handle,
-                                                  bmqt::Uri(rec.d_uri,
-                                                            s_allocator_p),
-                                                  rec.d_queueKey,
-                                                  AppInfos(),
-                                                  rec.d_timestamp,
-                                                  true);  // isNewQueue
-
-                if (0 != rc) {
-                    bsl::cout
-                        << "Error writing QueueCreationRecord, rc: " << rc
-                        << bsl::endl;
-                    return false;  // RETURN
-                }
-
-                records->push_back(bsl::make_pair(handle, rec));
-                ++(*seqNum);
-                ++(*numRecordsWritten);
-
-                // Add this queue uri/key to the list of valid pairs.
-
-                queueKeyUriMap[rec.d_queueKey] = rec.d_uri;
-
-                continue;  // CONTINUE
-            }
-
             if (1 == recType) {
-                // Write a message record.  Randomly choose a queue uri/key
-                // pair from 'queueUriKeyPairs', and write a message record for
-                // that pair.  Also update 'queueIndexGuidsMap' entry for that
-                // pair by adding guid to the list of guids associated with
-                // that pair.
-
-                size_t offset = bdlb::Random::generate15(&seed) %
-                                queueKeyUriMap.size();
-
-                QueueKeyUriMapIter it = queueKeyUriMap.begin();
-                bsl::advance(it, offset);
-
-                BSLS_ASSERT(!it->first.isNull());
-                BSLS_ASSERT(!it->second.empty());
-
-                mqbs::DataStoreRecordHandle handle;
-                Record                      rec(s_allocator_p);
-                rec.d_recordType = mqbs::RecordType::e_MESSAGE;
-                rec.d_queueKey   = it->first;
-                bmqp::MessagePropertiesInfo messagePropertiesInfo =
-                    (0 == i % 2) ? bmqp::MessagePropertiesInfo::makeNoSchema()
-                                 : bmqp::MessagePropertiesInfo();
-
-                rec.d_msgAttributes = mqbi::StorageMessageAttributes(
-                    bdlt::EpochUtil::convertToTimeT64(
-                        bdlt::CurrentTime::utc()),
-                    i % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
-                    messagePropertiesInfo,
-                    bmqt::CompressionAlgorithmType::e_NONE,
-                    bsl::numeric_limits<unsigned int>::max() / i);
-                // crc value
-                mqbu::MessageGUIDUtil::generateGUID(&rec.d_guid);
-                rec.d_appData_sp.createInplace(s_allocator_p,
-                                               &d_bufferFactory,
-                                               s_allocator_p);
-                bsl::string payloadStr(i * 10, 'x', s_allocator_p);
-                bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
-                                        payloadStr.c_str(),
-                                        payloadStr.length());
-
-                rc = fs->writeMessageRecord(&rec.d_msgAttributes,
-                                            &handle,
-                                            rec.d_guid,
-                                            rec.d_appData_sp,
-                                            rec.d_options_sp,
-                                            rec.d_queueKey);
-
-                if (0 != rc) {
-                    bsl::cout << "Error writing MessageRecord, rc: " << rc
-                              << bsl::endl;
-                    return false;  // RETURN
-                }
-
-                records->push_back(bsl::make_pair(handle, rec));
-                ++(*seqNum);
-                ++(*numRecordsWritten);
-
-                // Add the guid to the list of valid guids for the queue key,
-                // so that we can later use this guid to confirm.  Note that
-                // the choice of using operator[] on the 'queueKeyGuidsMap' is
-                // deliberate, as an entry for the queue key may or may not
-                // exist.
-
-                queueKeyGuidsMap[rec.d_queueKey].push_back(rec.d_guid);
-
                 continue;  // CONTINUE
             }
 
@@ -522,6 +586,7 @@ struct Tester {
             }
 
             if (3 == recType) {
+                continue;
                 if (i < 20) {
                     // No need to start writing deletion records immediately.
 
@@ -626,6 +691,7 @@ struct Tester {
             }
 
             if (5 == recType) {
+                continue;
                 if (i < 100) {
                     // No need to write QueuePurge record too soon.
 
@@ -679,6 +745,7 @@ struct Tester {
             }
 
             if (6 == recType) {
+                continue;
                 if (i < 200) {
                     // No need to write QueueDeletion record too soon.
 
@@ -969,6 +1036,184 @@ static void test2_printTest()
     fs.close();
 }
 
+template <size_t BLOCK_SIZE>
+static void perfMemcpy()
+{
+    const size_t k_BUFFER_SIZE = 128 * 1024 * 1024;
+
+    bsl::vector<unsigned char> buffer1(k_BUFFER_SIZE, 0, s_allocator_p);
+    bsl::vector<unsigned char> buffer2(k_BUFFER_SIZE, 0, s_allocator_p);
+
+    const bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
+
+    for (int i = 0; i < 100; i++) {
+        size_t pos = 0;
+        for (; pos + BLOCK_SIZE < k_BUFFER_SIZE; pos += BLOCK_SIZE) {
+            bsl::memcpy(buffer2.data() + pos,
+                        buffer1.data() + pos,
+                        BLOCK_SIZE);
+        }
+        if (pos < k_BUFFER_SIZE) {
+            bsl::memcpy(buffer2.data() + pos,
+                        buffer1.data() + pos,
+                        k_BUFFER_SIZE - pos);
+        }
+    }
+    if (buffer1[0] + buffer2[0] > 128) {
+        bsl::cout << bsl::endl;
+    }
+
+    const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+    bsl::cout << "Block" << BLOCK_SIZE << ": "
+              << bmqu::PrintUtil::prettyTimeInterval(end - start) << bsl::endl;
+}
+
+static void testN1_memcpyPerformanceTest()
+// ------------------------------------------------------------------------
+// MEMCPY PERFORMANCE
+//
+// Concerns:
+//   Test different memcpy usage patterns
+//
+// Testing:
+//   memcpy
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("MEMCPY PERFORMANCE");
+
+    perfMemcpy<1023>();
+    perfMemcpy<32>();
+    perfMemcpy<64>();
+    perfMemcpy<60>();
+    perfMemcpy<128>();
+    perfMemcpy<127>();
+    perfMemcpy<512>();
+    perfMemcpy<517>();
+}
+
+static void testN2_rolloverPerformanceTest()
+// ------------------------------------------------------------------------
+// ROLLOVER PERFORMANCE TEST
+//
+// Concerns:
+//   Exercise the basic functionality of the component.
+//
+// Testing:
+//   Basic functionality
+// ------------------------------------------------------------------------
+{
+    s_ignoreCheckDefAlloc = true;
+
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-1";
+
+    Tester           tester(k_FILE_STORE_LOCATION);
+    mqbs::FileStore& fs = tester.fileStore();
+
+    int rc = fs.open();
+    ASSERT_EQ(0, rc);
+    if (rc) {
+        cout << "Failed to open partition, rc: " << rc << endl;
+        return;  // RETURN
+    }
+
+    ASSERT_EQ(true, fs.isOpen());
+    ASSERT_EQ(1U, fs.clusterSize());
+    ASSERT_EQ(0ULL, fs.numRecords());
+    ASSERT_EQ(true, fs.syncPoints().empty());
+    ASSERT_EQ(0U, fs.primaryLeaseId());
+    ASSERT_EQ(0ULL, fs.sequenceNumber());
+
+    // Temporary workaround to suppress the 'unused operator
+    // NestedTraitDeclaration' warning/error generated by clang.  TBD: figure
+    // out the right way to "fix" this.
+
+    Record dummy(s_allocator_p);
+    static_cast<void>(
+        static_cast<
+            bslmf::NestedTraitDeclaration<Record, bslma::UsesBslmaAllocator> >(
+            dummy));
+
+    // Set primary.
+    unsigned int        primaryLeaseId = 1;
+    bsls::Types::Uint64 seqNum         = 1;
+
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
+
+    ASSERT_EQ(primaryLeaseId, fs.primaryLeaseId());
+    ASSERT_EQ(seqNum, fs.sequenceNumber());
+    ASSERT_EQ(tester.node(), fs.primaryNode());
+
+    // Primary must have issued a SyncPt.  Verify it.
+
+    const bmqp_ctrlmsg::SyncPoint& sp = fs.syncPoints().front().syncPoint();
+    ASSERT_EQ(1U, fs.syncPoints().size());
+    ASSERT_EQ(primaryLeaseId, sp.primaryLeaseId());
+    ASSERT_EQ(seqNum, sp.sequenceNum());
+    ASSERT_EQ((k_SIZEOF_HEADERS_DATA_FILE / bmqp::Protocol::k_DWORD_SIZE),
+              sp.dataFileOffsetDwords());
+    ASSERT_EQ((k_SIZEOF_HEADERS_QLIST_FILE / bmqp::Protocol::k_WORD_SIZE),
+              sp.qlistFileOffsetWords());
+    ASSERT_EQ(k_SIZEOF_HEADERS_JOURNAL_FILE, fs.syncPoints().front().offset());
+
+    // Write various records to the partition and keep track of them in memory.
+    // Then close and re-open the partition, and verify that retrieved records
+    // match in-memory stuff.
+
+    SyncPointOffsetPairs          spOffsetPairs(s_allocator_p);
+    bsl::vector<HandleRecordPair> records(s_allocator_p);
+
+    // Add one SyncPt written by the primary (to both 'spOffsetPairs' and
+    // 'records').
+
+    Record rec(s_allocator_p);
+    rec.d_recordType    = mqbs::RecordType::e_JOURNAL_OP;
+    rec.d_journalOpType = mqbs::JournalOpType::e_SYNCPOINT;
+    rec.d_syncPtType    = mqbs::SyncPointType::e_REGULAR;
+
+    rec.d_syncPoint.primaryLeaseId()       = primaryLeaseId;
+    rec.d_syncPoint.sequenceNum()          = sp.sequenceNum();
+    rec.d_syncPoint.dataFileOffsetDwords() = sp.dataFileOffsetDwords();
+    rec.d_syncPoint.qlistFileOffsetWords() = sp.qlistFileOffsetWords();
+    records.push_back(bsl::make_pair(mqbs::DataStoreRecordHandle(), rec));
+    spOffsetPairs.push_back(fs.syncPoints().front());
+
+    const size_t        k_NUM_RECORDS     = 1024 * 1024;
+    bsls::Types::Uint64 numRecordsWritten = 0;
+
+    RecordWriter writer(&fs);
+    bool         success = writer.writeRecords(k_NUM_RECORDS);
+
+    ASSERT_EQ(true, success);
+    if (!success) {
+        fs.close();
+        return;  // RETURN
+    }
+
+    const SyncPointOffsetPairs& fsSpOffsetPair = fs.syncPoints();
+    ASSERT_EQ(spOffsetPairs.size(), fsSpOffsetPair.size());
+    for (size_t i = 0; i < spOffsetPairs.size(); ++i) {
+        ASSERT_EQ_D(i,
+                    spOffsetPairs[i].syncPoint(),
+                    fsSpOffsetPair[i].syncPoint());
+        ASSERT_EQ_D(i, spOffsetPairs[i].offset(), fsSpOffsetPair[i].offset());
+    }
+    // ASSERT_EQ(numRecordsWritten, fs.numRecords());
+
+    const size_t             k_NUM_ROLLOVERS = 16;
+    const bsls::Types::Int64 start           = bsls::TimeUtil::getTimer();
+    for (size_t i = 0; i < k_NUM_ROLLOVERS; i++) {
+        fs.forceRollover();
+    }
+    const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+    bsl::cout << "Rollover time avg: "
+              << bmqu::PrintUtil::prettyTimeInterval((end - start) /
+                                                     k_NUM_ROLLOVERS)
+              << " (" << k_NUM_ROLLOVERS << " iters)" << bsl::endl;
+
+    fs.close();
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -979,14 +1224,18 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize();
+    bmqt::UriParser::initialize(s_allocator_p);
+    bsls::TimeUtil::initialize();
+    bmqsys::Time::initialize(s_allocator_p);
     mqbu::MessageGUIDUtil::initialize();
-    bmqp::ProtocolUtil::initialize();
+    bmqp::ProtocolUtil::initialize(s_allocator_p);
 
     switch (_testCase) {
     case 0:
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;
+    case -1: testN1_memcpyPerformanceTest(); break;
+    case -2: testN2_rolloverPerformanceTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
