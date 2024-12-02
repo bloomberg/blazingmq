@@ -971,13 +971,21 @@ void SummaryProcessor::outputResult()
         if (totalRecordsCount < d_minRecordsPerQueue) {
             continue;
         }
-
+        
         const mqbu::StorageKey& queueKey = it->first;
+
+        // Get queue information contained in CSL file
+        const bool queueInfoPresent = d_queueMap.findInfoByKey(&queueInfo,
+                                                               queueKey);
+
         bsl::size_t appKeysCount = d_queueAppRecordsMap[queueKey].size();
 
         // Setup fields to be displayed
         bsl::vector<const char*> fields(d_allocator_p);
-        fields.push_back("Queue");
+        fields.push_back("Queue Key");
+        if (queueInfoPresent) {
+            fields.push_back("Queue URI");
+        }
         fields.push_back("Total Records");
         fields.push_back("Num Queue Op Records");
         fields.push_back("Num Message Records");
@@ -989,16 +997,12 @@ void SummaryProcessor::outputResult()
 
         bmqu::AlignedPrinter printer(d_ostream, &fields);
 
-        // Get queue information contained in CSL file
-        const bool queueInfoPresent = d_queueMap.findInfoByKey(&queueInfo,
-                                                               queueKey);
+        // Print Queue Key id: either Key or URI
+        printer << queueKey;
 
-        // Print queue id: either Key or URI
+        // Print Queue URI if it's available in CSL file
         if (queueInfoPresent) {
             printer << queueInfo.uri();
-        }
-        else {
-            printer << queueKey;
         }
 
         // Print number of records of all types related to the queue
