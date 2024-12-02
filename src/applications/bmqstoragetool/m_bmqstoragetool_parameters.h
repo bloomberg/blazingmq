@@ -124,7 +124,7 @@ struct Parameters {
     // Show only messages, confirmed by all the appId's
     bool d_partiallyConfirmed;
     // Show only messages, confirmed by some of the appId's
-    bsls::Types::Int64 d_minRecordsPerQueue;
+    bsls::Types::Uint64 d_minRecordsPerQueue;
     // Min number of records per queue for detailed info to be displayed
 
     // CREATORS
