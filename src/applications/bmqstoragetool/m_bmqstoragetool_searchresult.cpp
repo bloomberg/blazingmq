@@ -1009,7 +1009,7 @@ void SummaryProcessor::outputResult()
 
         // Print number of records per App Key/Id
         if (appKeysCount > 1U) {
-            bsl::stringstream ss;
+            bmqu::MemOutStream ss(d_allocator_p);
 
             // Sort Apps by number of records ascending
             AppsData appsData;
