@@ -971,7 +971,7 @@ void SummaryProcessor::outputResult()
         if (totalRecordsCount < d_minRecordsPerQueue) {
             continue;
         }
-        
+
         const mqbu::StorageKey& queueKey = it->first;
 
         // Get queue information contained in CSL file
