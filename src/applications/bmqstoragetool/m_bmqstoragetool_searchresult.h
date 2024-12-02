@@ -656,6 +656,11 @@ class SummaryProcessor : public SearchResult {
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
 
+    // PRIVATE MANIPULATORS
+
+    void updateTotalRecordsCounter();
+    // Update total recrods counter
+
   public:
     // CREATORS
 
@@ -708,15 +713,13 @@ class SummaryProcessor : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
-
-    void handleAnyRecordType();
 };
 
 // =================================================
 //                       INLINE FUNCTION DEFINITIONS
 // =================================================
 
-inline void SummaryProcessor::handleAnyRecordType()
+inline void SummaryProcessor::updateTotalRecordsCounter()
 {
     d_totalRecordsCount++;
 }
