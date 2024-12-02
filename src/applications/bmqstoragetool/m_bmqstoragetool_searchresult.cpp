@@ -1028,7 +1028,7 @@ void SummaryProcessor::outputResult()
                 const mqbu::StorageKey& appKey = it->second;
 
                 // Try resolve App Key to string App Id
-                bsl::string appIdStr;
+                bsl::string appIdStr(d_allocator_p);
                 if (queueInfoPresent) {
                     RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
                                                           queueInfo.appIds(),
