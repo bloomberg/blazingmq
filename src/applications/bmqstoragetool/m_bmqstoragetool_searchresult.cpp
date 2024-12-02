@@ -1012,7 +1012,7 @@ void SummaryProcessor::outputResult()
             bmqu::MemOutStream ss(d_allocator_p);
 
             // Sort Apps by number of records ascending
-            AppsData appsData;
+            AppsData appsData(d_allocator_p);
             for (QueueRecordsMap::const_iterator it =
                      d_queueAppRecordsMap[queueKey].cbegin();
                  it != d_queueAppRecordsMap[queueKey].cend();
