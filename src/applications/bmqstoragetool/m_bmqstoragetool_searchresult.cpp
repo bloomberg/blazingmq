@@ -951,8 +951,8 @@ void SummaryProcessor::outputResult()
                            d_deletedMessagesCount);
 
     d_ostream << "Total number of records: " << d_totalRecordsCount << "\n";
-    for (OtherRecordsMap::iterator it = d_otherRecordsCounts.begin();
-         it != d_otherRecordsCounts.end();
+    for (OtherRecordsMap::const_iterator it = d_otherRecordsCounts.cbegin();
+         it != d_otherRecordsCounts.cend();
          ++it) {
         d_ostream << "Number of " << it->first << " records: " << it->second
                   << "\n";
@@ -961,8 +961,8 @@ void SummaryProcessor::outputResult()
     // Print information per Queue:
     d_ostream << "Number of records per Queue:\n";
 
-    for (QueueRecordsMap::const_iterator it = d_queueRecordsMap.begin();
-         it != d_queueRecordsMap.end();
+    for (QueueRecordsMap::const_iterator it = d_queueRecordsMap.cbegin();
+         it != d_queueRecordsMap.cend();
          ++it) {
         bsls::Types::Uint64 totalRecordsCount = it->second;
 
