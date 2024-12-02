@@ -1251,6 +1251,67 @@ static void test15_timestampSearchTest()
     }
 }
 
+
+static void test16_summaryWithQueueDetailsTest()
+// ------------------------------------------------------------------------
+// OUTPUT SUMMARY TEST
+//
+// Concerns:
+//   Search messages in journal file and output summary.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 15;
+    JournalFile::RecordsListType records(s_allocator_p);
+    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
+        &records,
+        &partiallyConfirmedGUIDS);
+
+    // Configure parameters to output summary
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_summary = true;
+    params.d_minRecordsPerQueue = 0;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(journalFile),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    expectedStream
+        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
+           "partially confirmed messages: 2\n"
+           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n"
+           "Total number of records: 15\n"
+           "Number of records per Queue:\n"
+           "    Queue Key             : 6162636465\n"
+           "    Total Records         : 15\n"
+           "    Num Queue Op Records  : 0\n"
+           "    Num Message Records   : 5\n"
+           "    Num Confirm Records   : 5\n"
+           "    Num Delete Records    : 5";
+
+    bsl::string res(resultStream.str(), s_allocator_p);
+    ASSERT(res.starts_with(expectedStream.str()));
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1276,6 +1337,7 @@ int main(int argc, char* argv[])
     case 13: test13_searchMessagesWithPayloadDumpTest(); break;
     case 14: test14_summaryTest(); break;
     case 15: test15_timestampSearchTest(); break;
+    case 16: test16_summaryWithQueueDetailsTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;
