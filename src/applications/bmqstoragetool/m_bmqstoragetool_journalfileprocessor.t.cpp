@@ -185,7 +185,7 @@ static void test1_breathingTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
@@ -240,7 +240,7 @@ static void test2_searchGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
@@ -304,7 +304,7 @@ static void test3_searchNonExistingGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bmqt::MessageGUID         guid;
@@ -362,7 +362,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
 
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
@@ -444,7 +444,7 @@ static void test5_searchOutstandingMessagesTest()
         true);
 
     // Configure parameters to search outstanding messages
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_outstanding = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -505,7 +505,7 @@ static void test6_searchConfirmedMessagesTest()
         false);
 
     // Configure parameters to search confirmed messages
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_confirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -568,7 +568,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to search partially confirmed messages
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_partiallyConfirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -631,7 +631,7 @@ static void test8_searchMessagesByQueueKeyTest()
                                                   queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -696,7 +696,7 @@ static void test9_searchMessagesByQueueNameTest()
     }
     QueueMap qMap(s_allocator_p);
 
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
 
@@ -766,7 +766,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     }
     QueueMap qMap(s_allocator_p);
 
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
     params.d_queueKey.push_back(queueKey2);
@@ -821,7 +821,7 @@ static void test11_searchMessagesByTimestamp()
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_timestampGt = ts1;
     params.d_timestampLt = ts2;
     // Prepare file manager
@@ -892,7 +892,7 @@ static void test12_printMessagesDetailsTest()
         false);
 
     // Configure parameters to print message details
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_details = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1018,7 +1018,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_confirmed   = true;
     params.d_dumpPayload = true;
     // Prepare file manager
@@ -1100,7 +1100,7 @@ static void test14_summaryTest()
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to output summary
-    Parameters params(s_allocator_p);
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
     params.d_summary = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(

@@ -128,8 +128,6 @@ struct Parameters {
     // Min number of records per queue for detailed info to be displayed
 
     // CREATORS
-    /// Default constructor
-    explicit Parameters(bslma::Allocator* allocator = 0);
     /// Constructor from the specified 'aruments'
     explicit Parameters(const CommandLineArguments& aruments,
                         bslma::Allocator*           allocator = 0);
