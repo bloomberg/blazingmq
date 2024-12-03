@@ -1396,8 +1396,10 @@ static void test16_sequenceNumberLowerBoundTest()
         const Test& test = k_DATA[idx];
 
         // Simulate journal file
-        JournalFile::RecordsListType records(s_allocator_p);
-        JournalFile journalFile(test.d_numRecords, s_allocator_p);
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(test.d_numRecords,
+                                bmqtst::TestHelperUtil::allocator());
         journalFile.addMultipleTypesRecordsWithMultipleLeaseId(
             &records,
             test.d_numRecordsWithSameLeaseId);
@@ -1439,8 +1441,10 @@ static void test16_sequenceNumberLowerBoundTest()
     // Edge case: not in the range (greater then the last record)
     {
         const size_t                 k_NUM_RECORDS = 30;
-        JournalFile::RecordsListType records(s_allocator_p);
-        JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(k_NUM_RECORDS,
+                                bmqtst::TestHelperUtil::allocator());
         journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records,
                                                                k_NUM_RECORDS);
 
@@ -1484,25 +1488,27 @@ static void test17_searchMessagesBySequenceNumbersRange()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 100;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records, 10);
     const CompositeSequenceNumber seqNumGt(3, 3);
     const CompositeSequenceNumber seqNumLt(4, 6);
 
     // Configure parameters to search messages by sequence number range
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
     params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get GUIDs of messages inside sequence numbers range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1524,12 +1530,13 @@ static void test17_searchMessagesBySequenceNumbersRange()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1550,8 +1557,9 @@ static void test18_searchMessagesByOffsetsRange()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
                                  sizeof(mqbs::JournalFileHeader);
@@ -1561,18 +1569,19 @@ static void test18_searchMessagesByOffsetsRange()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by timestamps
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     params.d_range.d_type     = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get GUIDs of messages within offsets range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1594,12 +1603,13 @@ static void test18_searchMessagesByOffsetsRange()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
