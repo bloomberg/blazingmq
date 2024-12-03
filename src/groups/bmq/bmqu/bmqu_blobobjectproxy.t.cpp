@@ -104,8 +104,12 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    bdlbb::PooledBlobBufferFactory smallFactory(2, s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bigFactory(128, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory smallFactory(
+        2,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bigFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
 
     TestHeader        hdr;
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
@@ -113,7 +117,7 @@ static void test1_breathingTest()
     {
         PVV("Test reading a complete, aligned object from blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
@@ -128,7 +132,7 @@ static void test1_breathingTest()
     {
         PVV("Test reading an incomplete object from a blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(9, 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
@@ -143,7 +147,7 @@ static void test1_breathingTest()
     {
         PVV("Test 'resize'");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
@@ -164,7 +168,7 @@ static void test1_breathingTest()
     {
         PVV("Test writing out changes to the blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
@@ -203,7 +207,7 @@ static void test1_breathingTest()
         PVV("Test 'reset' with a blob shorter than specified TYPE's length");
 
         // Create a blob length 1
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob, "a", 1);
         ASSERT_EQ(1, blob.length());
 
@@ -222,7 +226,7 @@ static void test1_breathingTest()
         PVV("Test 'reset' with speicfying minimum length to read");
 
         // Create blob containing complete TestHeader
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         bmqu::BlobObjectProxy<TestHeader> pxy;
@@ -253,7 +257,7 @@ static void test1_breathingTest()
         PVV("Test 'loadEndPosition'");
 
         // Create blob containing complete TestHeader
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(1, 2, 3);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
         hdr.reset(4, 5, 6);
@@ -303,8 +307,10 @@ static void test2_usageExample1()
     // First, we initialize our blob by writing a single 'TestHeader' object to
     // it with some test values.
     //..
-    bdlbb::PooledBlobBufferFactory factory(0xFF, s_allocator_p);
-    bdlbb::Blob                    blob(&factory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory factory(
+        0xFF,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
     TestHeader hdr;
     bsl::memset(&hdr, 0, sizeof(hdr));
@@ -401,8 +407,10 @@ static void test3_usageExample2()
     // efficiently.  To do this, we need to create our blob with enough room to
     // store an instance of our 'TestHeader'.
     //..
-    bdlbb::PooledBlobBufferFactory factory(0xFF, s_allocator_p);
-    bdlbb::Blob                    blob(&factory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory factory(
+        0xFF,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
     TestHeader        hdr;
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
@@ -430,7 +438,7 @@ static void test3_usageExample2()
     //..
     // Finally, we verify that the blob contains our changes.
     //..
-    bdlbb::Blob expectedBlob(&factory, s_allocator_p);
+    bdlbb::Blob expectedBlob(&factory, bmqtst::TestHelperUtil::allocator());
 
     bsl::memset(&hdr, 0, sizeof(hdr));
     hdr.d_length  = sizeof(TestHeader);
@@ -456,7 +464,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

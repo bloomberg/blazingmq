@@ -129,9 +129,10 @@ static void test1_usageExample()
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
-    bmqsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    const bsl::string k_HEADER("Cluster (testCluster): ", s_allocator_p);
+    const bsl::string k_HEADER("Cluster (testCluster): ",
+                               bmqtst::TestHelperUtil::allocator());
 
     // Begin testing
     PV("Valued constructor");
@@ -145,7 +146,7 @@ static void test1_usageExample()
         ASSERT_GT(statRecorder.totalElapsed(), 0);
 
         // Log stats for step 1 (resets the stat recorder)
-        bmqu::MemOutStream os1(s_allocator_p);
+        bmqu::MemOutStream os1(bmqtst::TestHelperUtil::allocator());
         statRecorder.print(os1, "EXPENSIVE OPERATION - STEP 1");
         PVV(os1.str());
 
@@ -158,7 +159,7 @@ static void test1_usageExample()
                              "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             s_allocator_p),
+                             bmqtst::TestHelperUtil::allocator()),
                   true);
 
         // Perform some intensive work - step 2
@@ -166,7 +167,7 @@ static void test1_usageExample()
                3);     // duration
 
         // Log stats for step 2 (resets the stat recorder)
-        bmqu::MemOutStream os2(s_allocator_p);
+        bmqu::MemOutStream os2(bmqtst::TestHelperUtil::allocator());
         statRecorder.print(os2, "EXPENSIVE OPERATION - STEP 2");
         PVV(os2.str());
 
@@ -178,7 +179,7 @@ static void test1_usageExample()
                              "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             s_allocator_p),
+                             bmqtst::TestHelperUtil::allocator()),
                   true);
 
         // Finally, assert stats have changed
@@ -188,15 +189,16 @@ static void test1_usageExample()
     PV("Copy constructor");
     {
         bmqsys::StatMonitorSnapshotRecorder statRecorderTemp(k_HEADER);
-        bmqsys::StatMonitorSnapshotRecorder statRecorder(statRecorderTemp,
-                                                         s_allocator_p);
+        bmqsys::StatMonitorSnapshotRecorder statRecorder(
+            statRecorderTemp,
+            bmqtst::TestHelperUtil::allocator());
 
         // Perform some intensive work - step 1
         doWork(7500,  // rate
                3);    // duration
 
         // Log stats for step 1 (resets the stat recorder)
-        bmqu::MemOutStream os1(s_allocator_p);
+        bmqu::MemOutStream os1(bmqtst::TestHelperUtil::allocator());
         statRecorder.print(os1, "EXPENSIVE OPERATION - STEP 1");
         PVV(os1.str());
 
@@ -209,7 +211,7 @@ static void test1_usageExample()
                              "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             s_allocator_p),
+                             bmqtst::TestHelperUtil::allocator()),
                   true);
 
         // Perform some intensive work - step 2
@@ -217,7 +219,7 @@ static void test1_usageExample()
                3);     // duration
 
         // Log stats for step 2 (resets the stat recorder)
-        bmqu::MemOutStream os2(s_allocator_p);
+        bmqu::MemOutStream os2(bmqtst::TestHelperUtil::allocator());
         statRecorder.print(os2, "EXPENSIVE OPERATION - STEP 2");
         PVV(os2.str());
 
@@ -230,7 +232,7 @@ static void test1_usageExample()
                              "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
                              "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             s_allocator_p),
+                             bmqtst::TestHelperUtil::allocator()),
                   true);
 
         // Finally, assert stats have changed
@@ -276,7 +278,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'snapshot' in 'bmqsys::StatMonitor' passes a string using default
     // alloc.
 
@@ -286,7 +288,7 @@ int main(int argc, char* argv[])
     case 1: test1_usageExample(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

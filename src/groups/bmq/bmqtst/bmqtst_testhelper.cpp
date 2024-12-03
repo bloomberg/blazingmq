@@ -22,6 +22,9 @@
 #include <bsl_limits.h>
 
 namespace BloombergLP {
+namespace bmqtst {
+
+namespace {
 
 // ============================================================================
 //                              GLOBAL VARIABLES
@@ -33,7 +36,32 @@ bool              s_ignoreCheckGblAlloc = false;
 bslmt::QLock      s_serializePrintLock  = BSLMT_QLOCK_INITIALIZER;
 bslma::Allocator* s_allocator_p         = 0;
 
-namespace bmqtst {
+}
+
+int& bmqtst::TestHelperUtil::testStatus()
+{
+    return s_testStatus;
+}
+int& bmqtst::TestHelperUtil::verbosityLevel()
+{
+    return s_verbosityLevel;
+}
+bool& bmqtst::TestHelperUtil::ignoreCheckDefAlloc()
+{
+    return s_ignoreCheckDefAlloc;
+}
+bool& bmqtst::TestHelperUtil::ignoreCheckGblAlloc()
+{
+    return s_ignoreCheckGblAlloc;
+}
+bslmt::QLock& bmqtst::TestHelperUtil::serializePrintLock()
+{
+    return s_serializePrintLock;
+}
+bslma::Allocator*& bmqtst::TestHelperUtil::allocator()
+{
+    return s_allocator_p;
+}
 
 // -----------------
 // struct TestHelper
@@ -42,7 +70,7 @@ namespace bmqtst {
 // CLASS METHODS
 void TestHelper::printTestName(bslstl::StringRef value)
 {
-    if (s_verbosityLevel < 1) {
+    if (bmqtst::TestHelperUtil::verbosityLevel() < 1) {
         return;  // RETURN
     }
 
@@ -109,7 +137,7 @@ void runTest(int index)
 
     if (testCase < 0 || testCase >= TestHelper_Test::s_numTests) {
         bsl::cerr << "WARNING: CASE '" << testCase << "' NOT FOUND.\n";
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
 
         return;  // RETURN
     }

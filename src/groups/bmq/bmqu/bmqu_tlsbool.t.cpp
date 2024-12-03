@@ -186,7 +186,8 @@ static void test2_isValid()
     // to the application (e.g. on Darwin limit is 512 but only 509 or 510 are
     // available, ...).  Figure out what that limit is, by creating keys until
     // creation returns failure.
-    bsl::vector<bslmt::ThreadUtil::Key> keys(s_allocator_p);
+    bsl::vector<bslmt::ThreadUtil::Key> keys(
+        bmqtst::TestHelperUtil::allocator());
     keys.resize(k_PTHREAD_KEYS_MAX + 1);
 
     int createdKeysCount = 0;
@@ -265,10 +266,10 @@ static void test2_isValid()
 
 static void test3_multithread()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // TBD: Despite using bindA, the binding uses default allocator to
     //      allocate.
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // Can't ensure no global memory is allocated because
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
@@ -278,29 +279,31 @@ static void test3_multithread()
     bslmt::Barrier barrier(2);
     bmqu::TLSBool  obj;
 
-    bslmt::ThreadGroup threadGroup(s_allocator_p);
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
 
     bool t1Val[] = {false, true, true, true, false, false, true};
     bool t2Val[] = {true, true, true, false, true, false, true};
 
     bsl::vector<bool> t1Values(t1Val,
                                t1Val + sizeof(t1Val) / sizeof(bool),
-                               s_allocator_p);
+                               bmqtst::TestHelperUtil::allocator());
     bsl::vector<bool> t2Values(t2Val,
                                t2Val + sizeof(t2Val) / sizeof(bool),
-                               s_allocator_p);
+                               bmqtst::TestHelperUtil::allocator());
 
     // Create threads
-    threadGroup.addThread(bdlf::BindUtil::bindS(s_allocator_p,
-                                                &threadFunction,
-                                                &barrier,
-                                                t1Values,
-                                                &obj));
-    threadGroup.addThread(bdlf::BindUtil::bindS(s_allocator_p,
-                                                &threadFunction,
-                                                &barrier,
-                                                t2Values,
-                                                &obj));
+    threadGroup.addThread(
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &threadFunction,
+                              &barrier,
+                              t1Values,
+                              &obj));
+    threadGroup.addThread(
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &threadFunction,
+                              &barrier,
+                              t2Values,
+                              &obj));
     threadGroup.joinAll();
 }
 
@@ -319,7 +322,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

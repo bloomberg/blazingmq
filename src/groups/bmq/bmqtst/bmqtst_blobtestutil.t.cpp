@@ -51,8 +51,10 @@ static void test1_fromString()
     {
         PVV("FROM STRING - ''");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "",
+                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(blob.length(), 0);
         ASSERT_EQ(blob.numDataBuffers(), 0);
@@ -61,8 +63,10 @@ static void test1_fromString()
     {
         PVV("FROM STRING - 'a|b'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "a|b", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "a|b",
+                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(blob.length(), 2);
         ASSERT_EQ(blob.numDataBuffers(), 2);
@@ -81,8 +85,10 @@ static void test1_fromString()
     {
         PVV("FROM STRING - 'ab'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "ab", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "ab",
+                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(blob.length(), 2);
         ASSERT_EQ(blob.numDataBuffers(), 1);
@@ -94,8 +100,10 @@ static void test1_fromString()
 
     {
         PVV("FROM STRING - 'aXX'");
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "aXX", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "aXX",
+                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(blob.length(), 1);
         ASSERT_EQ(blob.numDataBuffers(), 1);
@@ -122,49 +130,57 @@ static void test2_toString()
     {
         PVV("TO STRING - 'abcdefg'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "abcdefg", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "abcdefg",
+                                         bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(blob.length() == 7);
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 1);
 
-        bsl::string out(s_allocator_p);
+        bsl::string out(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&out, blob));
     }
 
     {
         PVV("TO STRING - 'a|b'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "a|b", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "a|b",
+                                         bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(blob.length() == 2);
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 2);
 
-        bsl::string out(s_allocator_p);
+        bsl::string out(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ("a|b", bmqtst::BlobTestUtil::toString(&out, blob, true));
     }
 
     {
         PVV("TO STRING - 'a|bXXX'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "a|bXXX", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "a|bXXX",
+                                         bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(blob.length() == 2);
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 2);
         BSLS_ASSERT_OPT(blob.totalSize() == 5);
 
-        bsl::string out(s_allocator_p);
+        bsl::string out(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ("a|bXXX", bmqtst::BlobTestUtil::toString(&out, blob, true));
     }
 
     {
         PVV("TO STRING - 'abc|def|g'");
 
-        bdlbb::Blob blob(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&blob, "abc|def|g", s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&blob,
+                                         "abc|def|g",
+                                         bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(blob.length() == 7);
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 3);
 
-        bsl::string out(s_allocator_p);
+        bsl::string out(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&out, blob));
     }
 }
@@ -183,7 +199,7 @@ int main(int argc, char* argv[])
     case 1: test1_fromString(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

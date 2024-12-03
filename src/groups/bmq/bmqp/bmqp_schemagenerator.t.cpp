@@ -68,7 +68,7 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
 
     int property = bsl::rand() % length[combination];
     for (int l = 0; l < length[combination]; ++l) {
-        bsl::string name("property_", s_allocator_p);
+        bsl::string name("property_", bmqtst::TestHelperUtil::allocator());
         name += bsl::to_string(lap);
         name += "_";
         name += bsl::to_string(sequence[combination] + property);
@@ -84,8 +84,8 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
 static void test1_breathingTest()
 {
     int                         count = 0;
-    bsl::map<SchemaIdType, int> ids(s_allocator_p);
-    bmqp::SchemaGenerator       theGenerator(s_allocator_p);
+    bsl::map<SchemaIdType, int> ids(bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaGenerator theGenerator(bmqtst::TestHelperUtil::allocator());
 
     theGenerator._setCapacity(MAX_SCHEMA);
 
@@ -128,7 +128,7 @@ static void test1_breathingTest()
         for (int i = 0; i < NUM_COMBINATIONS; ++i, ++count) {
             BSLS_ASSERT_SAFE(length[i]);
 
-            bmqp::MessageProperties mps(s_allocator_p);
+            bmqp::MessageProperties mps(bmqtst::TestHelperUtil::allocator());
             // For example, given {a, b, c} properties:
             //  [a]
             //  [a, b]
@@ -157,7 +157,7 @@ static void test1_breathingTest()
     // Some number of first test combinations (65) got recycled.
     // Repeat them again and verify, they got new IDs.
     for (int i = 0; i < 33; ++i) {
-        bmqp::MessageProperties mps(s_allocator_p);
+        bmqp::MessageProperties mps(bmqtst::TestHelperUtil::allocator());
         generateMessageProperties(&mps, 0, i);
         // Sequence numbering starts from '0', schema's - from '1'
 
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

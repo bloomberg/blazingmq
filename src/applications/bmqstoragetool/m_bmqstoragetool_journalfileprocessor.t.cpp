@@ -183,28 +183,31 @@ static void test1_breathingTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of message GUIDs in Journal file
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
     bsl::size_t foundMessagesCount = 0;
@@ -238,12 +241,13 @@ static void test2_searchGuidTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
@@ -256,27 +260,30 @@ static void test2_searchGuidTest()
                 continue;  // Skip odd messages for test purposes
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            bmqu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
             ss << msg.messageGUID();
-            searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+            searchGuids.push_back(
+                bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
         }
     }
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                       expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     bsl::vector<bsl::string>::const_iterator guidIt = searchGuids.cbegin();
     for (; guidIt != searchGuids.cend(); ++guidIt) {
         expectedStream << (*guidIt) << bsl::endl;
@@ -302,38 +309,42 @@ static void test3_searchNonExistingGuidTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bmqt::MessageGUID         guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
-        bmqu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         ss << guid;
-        searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+        searchGuids.push_back(
+            bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
     }
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream << "No message GUID found." << bsl::endl;
 
     expectedStream << bsl::endl
@@ -360,12 +371,13 @@ static void test4_searchExistingAndNonExistingGuidTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
 
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
@@ -381,9 +393,10 @@ static void test4_searchExistingAndNonExistingGuidTest()
                 break;  // Take two GUIDs
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            bmqu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
             ss << msg.messageGUID();
-            searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+            searchGuids.push_back(
+                bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
         }
     }
 
@@ -391,27 +404,30 @@ static void test4_searchExistingAndNonExistingGuidTest()
     bmqt::MessageGUID guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
-        bmqu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         ss << guid;
-        searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+        searchGuids.push_back(
+            bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
     }
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream << searchGuids[0] << bsl::endl
                    << searchGuids[1] << bsl::endl;
     expectedStream << "2 message GUID(s) found." << bsl::endl;
@@ -438,33 +454,37 @@ static void test5_searchOutstandingMessagesTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  outstandingGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  outstandingGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &outstandingGUIDS,
         true);
 
     // Configure parameters to search outstanding messages
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_outstanding = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         outstandingGUIDS.cbegin();
     for (; guidIt != outstandingGUIDS.cend(); ++guidIt) {
@@ -499,33 +519,37 @@ static void test6_searchConfirmedMessagesTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  confirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &confirmedGUIDS,
         false);
 
     // Configure parameters to search confirmed messages
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_confirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         confirmedGUIDS.cbegin();
     for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
@@ -563,32 +587,36 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // k_NUM_RECORDS must be multiple 3 plus one to cover all combinations
     // (confirmed, deleted, not confirmed)
     const size_t                 k_NUM_RECORDS = 16;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
         &records,
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to search partially confirmed messages
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_partiallyConfirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         partiallyConfirmedGUIDS.cbegin();
     for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
@@ -623,35 +651,39 @@ static void test8_searchMessagesByQueueKeyTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     const char*                  queueKey1 = "ABCDE12345";
     const char*                  queueKey2 = "12345ABCDE";
-    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
                                                   queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -680,45 +712,49 @@ static void test9_searchMessagesByQueueNameTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     const char*                  queueKey1 = "ABCDE12345";
     const char*                  queueKey2 = "12345ABCDE";
-    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
                                                   queueKey2);
 
     // Configure parameters to search messages by 'queue1' name
-    bmqp_ctrlmsg::QueueInfo queueInfo(s_allocator_p);
+    bmqp_ctrlmsg::QueueInfo queueInfo(bmqtst::TestHelperUtil::allocator());
     queueInfo.uri() = "queue1";
     mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(), queueKey1);
     for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
         queueInfo.key().push_back(key.data()[i]);
     }
-    QueueMap qMap(s_allocator_p);
+    QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -748,11 +784,13 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     const char*                  queueKey1 = "ABCDE12345";
     const char*                  queueKey2 = "12345ABCDE";
-    JournalFile::GuidVectorType  queueKey1GUIDS(s_allocator_p);
+    JournalFile::GuidVectorType  queueKey1GUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithTwoQueueKeys(&records,
                                                   &queueKey1GUIDS,
                                                   queueKey1,
@@ -761,35 +799,37 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 
     // Configure parameters to search messages by 'queue1' name and queueKey2
     // key.
-    bmqp_ctrlmsg::QueueInfo queueInfo(s_allocator_p);
+    bmqp_ctrlmsg::QueueInfo queueInfo(bmqtst::TestHelperUtil::allocator());
     queueInfo.uri() = "queue1";
     mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(), queueKey1);
     for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
         queueInfo.key().push_back(key.data()[i]);
     }
-    QueueMap qMap(s_allocator_p);
+    QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
     params.d_queueKey.push_back(queueKey2);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
@@ -817,25 +857,28 @@ static void test11_searchMessagesByTimestamp()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 ts1 = 10 * journalFile.timestampIncrement();
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_timestampGt = ts1;
     params.d_range.d_timestampLt = ts2;
     params.d_range.d_type        = Parameters::Range::e_TIMESTAMP;
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get GUIDs of messages with matching timestamps and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -855,12 +898,13 @@ static void test11_searchMessagesByTimestamp()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -887,33 +931,38 @@ static void test12_printMessagesDetailsTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  confirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithOutstandingAndConfirmedMessages(
         &records,
         &confirmedGUIDS,
         false);
 
     // Configure parameters to print message details
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_details = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Check that substrings are present in resultStream in correct order
-    bsl::string resultString(resultStream.str(), s_allocator_p);
+    bsl::string resultString(resultStream.str(),
+                             bmqtst::TestHelperUtil::allocator());
     size_t      startIdx             = 0;
     const char* messageRecordCaption = "MESSAGE Record";
     const char* confirmRecordCaption = "CONFIRM Record";
@@ -926,9 +975,9 @@ static void test12_printMessagesDetailsTest()
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check GUID
-        bmqu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         outputGuidString(ss, confirmedGUIDS.at(i));
-        bsl::string guidStr(ss.str(), s_allocator_p);
+        bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         foundIdx = resultString.find(guidStr, startIdx);
         ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
         ASSERT_D(guidStr, (foundIdx >= startIdx));
@@ -995,8 +1044,9 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     FileHeader                fileHeader;
     MappedFileDescriptor      mfdData;
-    bsl::vector<unsigned int> messageOffsets(s_allocator_p);
-    char*                     pd = addDataRecords(s_allocator_p,
+    bsl::vector<unsigned int> messageOffsets(
+        bmqtst::TestHelperUtil::allocator());
+    char* pd = addDataRecords(bmqtst::TestHelperUtil::allocator(),
                               &mfdData,
                               &fileHeader,
                               MESSAGES,
@@ -1011,9 +1061,11 @@ static void test13_searchMessagesWithPayloadDumpTest()
     const size_t k_NUM_RECORDS =
         k_NUM_MSGS * 2;  // k_NUM_MSGS records + k_NUM_MSGS deletion records
 
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  confirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  confirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
         &records,
         &confirmedGUIDS,
@@ -1022,30 +1074,34 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_confirmed   = true;
     params.d_dumpPayload = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
     EXPECT_CALL(static_cast<FileManagerMock&>(*fileManager),
                 dataFileIterator())
         .WillRepeatedly(testing::Return(&dataIt));
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected data
-    bsl::string              resultString(resultStream.str(), s_allocator_p);
+    bsl::string              resultString(resultStream.str(),
+                             bmqtst::TestHelperUtil::allocator());
     size_t                   startIdx = 0;
-    bsl::vector<bsl::string> expectedPayloadSubstring(s_allocator_p);
+    bsl::vector<bsl::string> expectedPayloadSubstring(
+        bmqtst::TestHelperUtil::allocator());
     expectedPayloadSubstring.push_back("DATA_1");
     expectedPayloadSubstring.push_back("DATA_3");
     expectedPayloadSubstring.push_back("DATA_2");
@@ -1059,9 +1115,9 @@ static void test13_searchMessagesWithPayloadDumpTest()
     for (unsigned int i = 0; i < k_NUM_MSGS; i++) {
         // Check GUID
         bmqt::MessageGUID  guid = confirmedGUIDS.at(i);
-        bmqu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         outputGuidString(ss, guid);
-        bsl::string guidStr(ss.str(), s_allocator_p);
+        bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         size_t      foundIdx = resultString.find(guidStr, startIdx);
 
         ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
@@ -1078,7 +1134,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
         startIdx = foundIdx + dumpStr.length();
     }
 
-    s_allocator_p->deallocate(pd);
+    bmqtst::TestHelperUtil::allocator()->deallocate(pd);
 }
 
 static void test14_summaryTest()
@@ -1096,34 +1152,38 @@ static void test14_summaryTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
         &records,
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to output summary
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_summary = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream << "5 message(s) found.\n";
-    bsl::vector<const char*> fields(s_allocator_p);
+    bsl::vector<const char*> fields(bmqtst::TestHelperUtil::allocator());
     fields.push_back("Number of partially confirmed messages");
     fields.push_back("Number of confirmed messages");
     fields.push_back("Number of outstanding messages");
@@ -1131,7 +1191,7 @@ static void test14_summaryTest()
     printer << 3 << 2 << 2;
     expectedStream << "Outstanding ratio: 40% (2/5)\n";
 
-    bsl::string res(resultStream.str(), s_allocator_p);
+    bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
     ASSERT(res.starts_with(expectedStream.str()));
 }
 
@@ -1151,8 +1211,9 @@ static void test15_timestampSearchTest()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     struct ResultChecker {
@@ -1340,8 +1401,10 @@ static void test16_sequenceNumberLowerBoundTest()
         const Test& test = k_DATA[idx];
 
         // Simulate journal file
-        JournalFile::RecordsListType records(s_allocator_p);
-        JournalFile journalFile(test.d_numRecords, s_allocator_p);
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(test.d_numRecords,
+                                bmqtst::TestHelperUtil::allocator());
         journalFile.addMultipleTypesRecordsWithMultipleLeaseId(
             &records,
             test.d_numRecordsWithSameLeaseId);
@@ -1383,8 +1446,10 @@ static void test16_sequenceNumberLowerBoundTest()
     // Edge case: not in the range (greater then the last record)
     {
         const size_t                 k_NUM_RECORDS = 30;
-        JournalFile::RecordsListType records(s_allocator_p);
-        JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(k_NUM_RECORDS,
+                                bmqtst::TestHelperUtil::allocator());
         journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records,
                                                                k_NUM_RECORDS);
 
@@ -1428,25 +1493,27 @@ static void test17_searchMessagesBySequenceNumbersRange()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 100;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records, 10);
     const CompositeSequenceNumber seqNumGt(3, 3);
     const CompositeSequenceNumber seqNumLt(4, 6);
 
     // Configure parameters to search messages by sequence number range
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
     params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get GUIDs of messages inside sequence numbers range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1468,12 +1535,13 @@ static void test17_searchMessagesBySequenceNumbersRange()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1494,8 +1562,9 @@ static void test18_searchMessagesByOffsetsRange()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
                                  sizeof(mqbs::JournalFileHeader);
@@ -1505,18 +1574,19 @@ static void test18_searchMessagesByOffsetsRange()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by offsets
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     params.d_range.d_type     = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get GUIDs of messages within offsets range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1538,12 +1608,13 @@ static void test18_searchMessagesByOffsetsRange()
     expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1564,8 +1635,9 @@ static void test19_searchQueueOpRecords()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
                                  sizeof(mqbs::JournalFileHeader);
@@ -1575,7 +1647,7 @@ static void test19_searchQueueOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search queueOp records by offsets
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_processRecordTypes.d_message = false;
     params.d_processRecordTypes.d_queueOp = true;
     params.d_range.d_offsetGt             = offsetGt;
@@ -1583,12 +1655,13 @@ static void test19_searchQueueOpRecords()
     params.d_range.d_type                 = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get queueOp records content within offsets range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1611,12 +1684,13 @@ static void test19_searchQueueOpRecords()
     expectedStream << recCnt << " queueOp record(s) found.\n";
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1638,8 +1712,9 @@ static void test20_searchJournalOpRecords()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
                                  sizeof(mqbs::JournalFileHeader);
@@ -1649,7 +1724,7 @@ static void test20_searchJournalOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_processRecordTypes.d_message   = false;
     params.d_processRecordTypes.d_journalOp = true;
     params.d_range.d_offsetGt               = offsetGt;
@@ -1657,12 +1732,13 @@ static void test20_searchJournalOpRecords()
     params.d_range.d_type                   = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get journalOp records content within offsets range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1685,12 +1761,13 @@ static void test20_searchJournalOpRecords()
     expectedStream << recCnt << " journalOp record(s) found.\n";
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1712,8 +1789,9 @@ static void test21_searchAllTypesRecords()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
                                  sizeof(mqbs::JournalFileHeader);
@@ -1723,7 +1801,7 @@ static void test21_searchAllTypesRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_processRecordTypes.d_message   = true;
     params.d_processRecordTypes.d_queueOp   = true;
     params.d_processRecordTypes.d_journalOp = true;
@@ -1732,12 +1810,13 @@ static void test21_searchAllTypesRecords()
     params.d_range.d_type                   = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get all records content within offsets range and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1787,12 +1866,13 @@ static void test21_searchAllTypesRecords()
     expectedStream << journalOpCnt << " journalOp record(s) found.\n";
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1814,24 +1894,26 @@ static void test22_searchQueueOpRecordsByOffset()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const size_t k_HEADER_OFFSET = sizeof(mqbs::FileHeader) / 2;
 
     // Configure parameters to search queueOp records
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_processRecordTypes.d_message = false;
     params.d_processRecordTypes.d_queueOp = true;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get queueOp records content and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1857,12 +1939,13 @@ static void test22_searchQueueOpRecordsByOffset()
     expectedStream << resCnt << " queueOp record(s) found.\n";
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1885,23 +1968,25 @@ static void test23_searchJournalOpRecordsBySeqNumber()
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 50;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
 
     // Configure parameters to search journalOp
-    Parameters params(s_allocator_p);
+    Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_processRecordTypes.d_message   = false;
     params.d_processRecordTypes.d_journalOp = true;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get journalOp records content and prepare expected
     // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
@@ -1926,12 +2011,13 @@ static void test23_searchJournalOpRecordsBySeqNumber()
     expectedStream << resCnt << " journalOp record(s) found.\n";
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     ASSERT_EQ(resultStream.str(), expectedStream.str());
@@ -1972,7 +2058,7 @@ int main(int argc, char* argv[])
     case 23: test23_searchJournalOpRecordsBySeqNumber(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

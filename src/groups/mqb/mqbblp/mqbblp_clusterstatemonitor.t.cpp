@@ -134,12 +134,13 @@ struct TestHelper {
 
     // CREATORS
     TestHelper()
-    : d_bufferFactory(1024, s_allocator_p)
+    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
-    , d_nodes(s_allocator_p)
-    , d_tempDir(s_allocator_p)
+    , d_nodes(bmqtst::TestHelperUtil::allocator())
+    , d_tempDir(bmqtst::TestHelperUtil::allocator())
     {
-        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+            bmqtst::TestHelperUtil::allocator());
 
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
@@ -147,47 +148,48 @@ struct TestHelper {
             "US-EAST",
             41234,
             mqbmock::Cluster::k_LEADER_NODE_ID,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "testNode2",
             "US-EAST",
             41235,
             mqbmock::Cluster::k_LEADER_NODE_ID + 1,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "testNode3",
             "US-WEST",
             41236,
             mqbmock::Cluster::k_LEADER_NODE_ID + 2,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "testNode4",
             "US-WEST",
             41237,
             mqbmock::Cluster::k_LEADER_NODE_ID + 3,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "testNode5",
             "US-WEST",
             41238,
             mqbmock::Cluster::k_LEADER_NODE_ID + 4,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        d_cluster_mp.load(new (*s_allocator_p)
-                              mqbmock::Cluster(&d_bufferFactory,
-                                               s_allocator_p,
-                                               true,   // isClusterMember
-                                               false,  // isLeader
-                                               false,  // isCSLMode
-                                               false,  // isFSMWorkflow
-                                               clusterNodeDefs,
-                                               "testCluster",
-                                               d_tempDir.path()),
-                          s_allocator_p);
+        d_cluster_mp.load(
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbmock::Cluster(&d_bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
+                                 true,   // isClusterMember
+                                 false,  // isLeader
+                                 false,  // isCSLMode
+                                 false,  // isFSMWorkflow
+                                 clusterNodeDefs,
+                                 "testCluster",
+                                 d_tempDir.path()),
+            bmqtst::TestHelperUtil::allocator());
 
         bmqsys::Time::initialize(
             bdlf::BindUtil::bind(&mqbmock::Cluster::getTime,
@@ -273,8 +275,8 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
-                                          s_allocator_p);
-    NotificationEvaluator     notifications(s_allocator_p);
+                                          bmqtst::TestHelperUtil::allocator());
+    NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 
     TestHelper helper;
 
@@ -288,7 +290,7 @@ static void test1_breathingTest()
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
                                         &helper.d_cluster_mp->_state(),
-                                        s_allocator_p);
+                                        bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
 
     bmqu::MemOutStream dummy;
@@ -336,8 +338,8 @@ static void test2_checkAlarmsWithResetTest()
     bmqtst::TestHelper::printTestName("CHECK ALARMS WITH RESET");
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
-                                          s_allocator_p);
-    NotificationEvaluator     notifications(s_allocator_p);
+                                          bmqtst::TestHelperUtil::allocator());
+    NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 
     TestHelper helper;
 
@@ -354,7 +356,7 @@ static void test2_checkAlarmsWithResetTest()
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
                                         &helper.d_cluster_mp->_state(),
-                                        s_allocator_p);
+                                        bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
 
     bmqu::MemOutStream dummy;
@@ -555,8 +557,8 @@ static void test3_alwaysInvalidStateTest()
     bmqtst::TestHelper::printTestName("ALWAYS INVALID STATE");
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
-                                          s_allocator_p);
-    NotificationEvaluator     notifications(s_allocator_p);
+                                          bmqtst::TestHelperUtil::allocator());
+    NotificationEvaluator notifications(bmqtst::TestHelperUtil::allocator());
 
     TestHelper helper;
 
@@ -580,7 +582,7 @@ static void test3_alwaysInvalidStateTest()
 
     mqbblp::ClusterStateMonitor monitor(helper.d_cluster_mp->_clusterData(),
                                         &helper.d_cluster_mp->_state(),
-                                        s_allocator_p);
+                                        bmqtst::TestHelperUtil::allocator());
     monitor.registerObserver(&notifications);
     bmqu::MemOutStream dummy;
 
@@ -712,13 +714,15 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
-        bmqp::ProtocolUtil::initialize(s_allocator_p);
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
 
         switch (_testCase) {
         case 0:
@@ -727,7 +731,7 @@ int main(int argc, char* argv[])
         case 1: test1_breathingTest(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
 

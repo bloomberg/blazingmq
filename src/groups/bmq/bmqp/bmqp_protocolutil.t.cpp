@@ -83,10 +83,12 @@ static void test1_initializeShutdown()
     // 2. Should be able to call 'initialize()' after the instance has already
     //    started and have no effect.
     // Initialize the 'ProtocolUtil'
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::initialize(s_allocator_p));
+    ASSERT_SAFE_PASS(
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // 'initialize' should be a no-op
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::initialize(s_allocator_p));
+    ASSERT_SAFE_PASS(
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // 3. Should be able to call 'shutdown' after already calling 'shutdown'
     //    and have no effect, provided that the number of calls to 'shutdown'
@@ -102,7 +104,8 @@ static void test1_initializeShutdown()
     ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
 
     // 4. It is safe to call 'initialize' after calling 'shutdown'.
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::initialize(s_allocator_p));
+    ASSERT_SAFE_PASS(
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // Finally, shutdown the 'ProtocolUtil'
     ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
@@ -233,7 +236,7 @@ static void test3_calcNumWordsAndPadding()
 {
     bmqtst::TestHelper::printTestName("CALC NUM WORDS AND PADDING");
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int d_line;
@@ -299,7 +302,7 @@ static void test4_paddingChar()
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (char)");
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("WORD");
     {
@@ -386,13 +389,15 @@ static void test5_paddingBlob()
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (blob)");
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("blob with enough capacity in last buffer");
     {
-        bdlbb::PooledBlobBufferFactory bufferFactory(5, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            5,
+            bmqtst::TestHelperUtil::allocator());
 
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
@@ -413,9 +418,11 @@ static void test5_paddingBlob()
 
     PV("blob without enough capacity in last buffer");
     {
-        bdlbb::PooledBlobBufferFactory bufferFactory(5, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            5,
+            bmqtst::TestHelperUtil::allocator());
 
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
@@ -446,9 +453,11 @@ static void test5_paddingBlob()
 
     PV("append padding");
     {
-        bdlbb::PooledBlobBufferFactory bufferFactory(5, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            5,
+            bmqtst::TestHelperUtil::allocator());
 
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
@@ -487,7 +496,7 @@ static void test6_heartbeatAndEmptyBlobs()
 {
     bmqtst::TestHelper::printTestName("HEARTBEAT BLOBS");
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("Verifying the HeartbeatReq blob")
     {
@@ -639,28 +648,30 @@ static void test9_loadFieldValues()
 {
     bmqtst::TestHelper::printTestName("LOAD FIELD VALUES");
     // Disable check that no memory was allocated from the default allocator
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const bsl::string  field1("f1", s_allocator_p);
-    const bsl::string  val1("v1", s_allocator_p);
-    const bsl::string  val2("v2", s_allocator_p);
-    const bsl::string  val3("v3", s_allocator_p);
+    const bsl::string  field1("f1", bmqtst::TestHelperUtil::allocator());
+    const bsl::string  val1("v1", bmqtst::TestHelperUtil::allocator());
+    const bsl::string  val2("v2", bmqtst::TestHelperUtil::allocator());
+    const bsl::string  val3("v3", bmqtst::TestHelperUtil::allocator());
     const unsigned int field1NumVal = 3;
 
-    const bsl::string  field2("f2", s_allocator_p);
-    const bsl::string  val4("v4", s_allocator_p);
+    const bsl::string  field2("f2", bmqtst::TestHelperUtil::allocator());
+    const bsl::string  val4("v4", bmqtst::TestHelperUtil::allocator());
     const unsigned int field2NumVal = 1;
 
-    const bsl::string emptyField("fEmpty", s_allocator_p);
+    const bsl::string emptyField("fEmpty",
+                                 bmqtst::TestHelperUtil::allocator());
 
     const bsl::string featureSet(field1 + ":" + val1 + "," + val2 + "," +
                                      val3 + ";" + field2 + ":" + val4 + ";" +
                                      emptyField,
-                                 s_allocator_p);
+                                 bmqtst::TestHelperUtil::allocator());
 
     PV("Load valid fields");
     {
-        bsl::vector<bsl::string> field1Values(s_allocator_p);
+        bsl::vector<bsl::string> field1Values(
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field1Values,
                                                    field1,
@@ -670,7 +681,8 @@ static void test9_loadFieldValues()
         ASSERT_EQ(val2, field1Values[1]);
         ASSERT_EQ(val3, field1Values[2]);
 
-        bsl::vector<bsl::string> field2Values(s_allocator_p);
+        bsl::vector<bsl::string> field2Values(
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field2Values,
                                                    field2,
@@ -679,7 +691,8 @@ static void test9_loadFieldValues()
         ASSERT_EQ(val4, field2Values[0]);
 
         PVV("Load field with no specified value");
-        bsl::vector<bsl::string> emptyFieldValues(s_allocator_p);
+        bsl::vector<bsl::string> emptyFieldValues(
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT(bmqp::ProtocolUtil::loadFieldValues(&emptyFieldValues,
                                                    emptyField,
@@ -689,8 +702,10 @@ static void test9_loadFieldValues()
 
     PV("Load invalid field");
     {
-        bsl::vector<bsl::string> invalidFieldValues(s_allocator_p);
-        const bsl::string        invalidField("invalidField", s_allocator_p);
+        bsl::vector<bsl::string> invalidFieldValues(
+            bmqtst::TestHelperUtil::allocator());
+        const bsl::string invalidField("invalidField",
+                                       bmqtst::TestHelperUtil::allocator());
 
         ASSERT(!bmqp::ProtocolUtil::loadFieldValues(&invalidFieldValues,
                                                     invalidField,
@@ -700,8 +715,11 @@ static void test9_loadFieldValues()
 
     PV("Load from malformed feature set");
     {
-        bsl::vector<bsl::string> field1Values(s_allocator_p);
-        const bsl::string malformedFeatureSet(field1 + ":", s_allocator_p);
+        bsl::vector<bsl::string> field1Values(
+            bmqtst::TestHelperUtil::allocator());
+        const bsl::string malformedFeatureSet(
+            field1 + ":",
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT(!bmqp::ProtocolUtil::loadFieldValues(&field1Values,
                                                     field1,
@@ -714,8 +732,10 @@ template <typename E>
 static void encodeDecodeHelper(E encodingType)
 {
     bmqu::MemOutStream                 ms;
-    bdlbb::PooledBlobBufferFactory     bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                        blob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory     bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::ClusterMessage       clusterMessage;
     bmqp_ctrlmsg::LeaderAdvisoryCommit commit;
 
@@ -774,7 +794,7 @@ static void test10_encodeDecodeMessage()
 //   decodeMessage
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
     // 'loggedMessages' methods of Encoder returns a memory-aware object
     // without utilizing the parameter allocator.
@@ -834,16 +854,19 @@ static void test11_parseMessageProperties()
 //
 // ------------------------------------------------------------------------
 {
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     bmqtst::TestHelper::printTestName("TEST PARSING");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::MessageProperties        in(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
     const int             queueId = 4;
-    bmqp::PutEventBuilder peb(&bufferFactory, s_allocator_p);
-    bdlbb::Blob           payload(&bufferFactory, s_allocator_p);
+    bmqp::PutEventBuilder peb(&bufferFactory,
+                              bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     populateBlob(&payload, 2 * bmqp::Protocol::k_COMPRESSION_MIN_APPDATA_SIZE);
 
@@ -857,21 +880,25 @@ static void test11_parseMessageProperties()
 
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, builderResult);
 
-    bmqp::PutMessageIterator putIt(&bufferFactory, s_allocator_p, true);
-    bmqp::Event              rawEvent(&peb.blob(), s_allocator_p);
+    bmqp::PutMessageIterator putIt(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator(),
+                                   true);
+    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(rawEvent.isPutEvent());
     rawEvent.loadPutMessageIterator(&putIt);
 
     ASSERT_EQ(1, putIt.next());
 
-    bdlbb::Blob payloadIn(&bufferFactory, s_allocator_p);
+    bdlbb::Blob payloadIn(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     putIt.loadApplicationData(&payloadIn);
 
-    bdlbb::Blob msgPropertiesBlob(&bufferFactory, s_allocator_p);
+    bdlbb::Blob msgPropertiesBlob(&bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
     int         messagePropertiesSize = 0;
-    bdlbb::Blob payloadOut(&bufferFactory, s_allocator_p);
+    bdlbb::Blob payloadOut(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
     int         rc = bmqp::ProtocolUtil::parse(&msgPropertiesBlob,
                                        &messagePropertiesSize,
                                        &payloadOut,
@@ -883,9 +910,9 @@ static void test11_parseMessageProperties()
                                        true,  // new style
                                        peb.compressionAlgorithmType(),
                                        &bufferFactory,
-                                       s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(0, rc);
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     out.streamIn(msgPropertiesBlob, true);
 
     verify(out);
@@ -920,7 +947,7 @@ int main(int argc, char* argv[])
     case 1: test1_initializeShutdown(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

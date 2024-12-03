@@ -120,7 +120,8 @@ static void test1_Negotiator()
     bmqtst::TestHelper::printTestName("Negotiator");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<NegotiatorTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<NegotiatorTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -207,7 +208,7 @@ int main(int argc, char* argv[])
     case 1: test1_Negotiator(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

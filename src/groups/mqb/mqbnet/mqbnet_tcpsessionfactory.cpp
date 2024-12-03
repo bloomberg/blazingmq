@@ -35,10 +35,6 @@
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqp_event.h>
-#include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
-
 #include <bmqex_executionutil.h>
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channelutil.h>
@@ -46,7 +42,11 @@
 #include <bmqio_ntcchannel.h>
 #include <bmqio_ntcchannelfactory.h>
 #include <bmqio_resolveutil.h>
+#include <bmqio_statchannel.h>
 #include <bmqio_tcpendpoint.h>
+#include <bmqp_event.h>
+#include <bmqp_protocol.h>
+#include <bmqp_protocolutil.h>
 #include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
@@ -67,6 +67,7 @@
 #include <bsl_limits.h>
 #include <bsl_utility.h>
 #include <bslalg_swaputil.h>
+#include <bslmf_movableref.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_once.h>
 #include <bsls_annotation.h>
@@ -261,6 +262,24 @@ struct PortMatcher {
         return listener.port() == d_port;
     }
 };
+
+template <typename T>
+T* channelCast(bmqio::Channel* base)
+{
+    bmqio::Channel* alias = base;
+    while (alias) {
+        T* target = dynamic_cast<T*>(alias);
+        if (target) {
+            return target;
+        }
+        bmqio::DecoratingChannelPartialImp* decorated =
+            dynamic_cast<bmqio::DecoratingChannelPartialImp*>(alias);
+        if (!decorated) {
+            return NULL;
+        }
+        alias = decorated->base();
+    }
+}
 
 }  // close unnamed namespace
 
