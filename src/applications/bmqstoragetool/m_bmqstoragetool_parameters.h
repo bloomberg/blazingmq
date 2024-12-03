@@ -56,7 +56,7 @@ struct CommandLineArguments {
     // PUBLIC DATA
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
-    static const char* k_JOURNAL_TYPE;
+    static const char* k_JOURNALOP_TYPE;
     // Record types constants
     bsl::vector<bsl::string> d_recordType;
     // List of record types to process (message, journalOp, queueOp)

@@ -74,9 +74,9 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // class CommandLineArguments
 // ==========================
 
-const char* CommandLineArguments::k_MESSAGE_TYPE = "message";
-const char* CommandLineArguments::k_QUEUEOP_TYPE = "queue-op";
-const char* CommandLineArguments::k_JOURNAL_TYPE = "journal-op";
+const char* CommandLineArguments::k_MESSAGE_TYPE   = "message";
+const char* CommandLineArguments::k_QUEUEOP_TYPE   = "queue-op";
+const char* CommandLineArguments::k_JOURNALOP_TYPE = "journal-op";
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_recordType(allocator)
@@ -390,8 +390,11 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         else if (*cit == CommandLineArguments::k_QUEUEOP_TYPE) {
             d_processRecordTypes.d_queueOp = true;
         }
-        else {
+        else if (*cit == CommandLineArguments::k_JOURNALOP_TYPE) {
             d_processRecordTypes.d_journalOp = true;
+        }
+        else {
+            BSLS_ASSERT(false && "Unknown journal record type");
         }
     }
 
