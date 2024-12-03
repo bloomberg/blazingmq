@@ -5185,8 +5185,8 @@ void FileStore::flushIfNeeded(bool immediateFlush)
 {
     if (immediateFlush ||
         d_storageEventBuilder.messageCount() >= d_nagglePacketCount) {
-        dispatcherFlush(true, false);
-
+        // Should notify weak consistency queues after replicated batch
+        flushStorage();
         notifyQueuesOnReplicatedBatch();
     }
 }
@@ -5220,6 +5220,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_lastSyncPtReceived(false)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
+, d_replicationNotifications(allocator)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
 , d_lastRecoveredStrongConsistency()
@@ -5629,6 +5630,12 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                           1,  // receipt count
                                           attributes->queueHandle())));
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
+    }
+    else {
+        if (d_replicationNotifications.find(queueKey) ==
+            d_replicationNotifications.end()) {
+            d_replicationNotifications.insert(queueKey);
+        }
     }
 
     // Replicate the message.
@@ -6953,62 +6960,61 @@ void FileStore::clearPrimary()
     }
 }
 
-void FileStore::dispatcherFlush(bool storage, bool queues)
+void FileStore::flushStorage()
 {
-    // 'LocalQueue::flush' invokes 'dispaterFlush'.
-    // This means that 'dispaterFlush' will be executed more frequently on a
+    // 'LocalQueue::flush' invokes 'flushStorage'.
+    // This means that 'flushStorage' will be executed more frequently on a
     // FileStore than actually applicable.  This is ok and has no side effect.
 
-    // Note that 'RemoteQueue::dispaterFlush' will not invoke
-    // 'FileStore::dispaterFlush' because only the partition's primary node
-    // should invoke 'dispaterFlush' on the FileStore.
+    // Note that 'RemoteQueue::flush' will not invoke
+    // 'FileStore::flushStorage' because only the partition's primary node
+    // should invoke 'flushStorage' on the FileStore.
 
     BSLS_ASSERT_SAFE(d_isPrimary);
 
-    if (storage) {
-        if (d_storageEventBuilder.messageCount() != 0) {
-            BALL_LOG_TRACE << partitionDesc() << "Flushing "
-                           << d_storageEventBuilder.messageCount()
-                           << " STORAGE messages.";
-            const int maxChannelPendingItems = d_cluster_p->broadcast(
-                d_storageEventBuilder.blob());
-            if (maxChannelPendingItems > 0) {
-                if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
-                    // back off
-                    ++d_nagglePacketCount;
-                }
-            }
-            else if (d_nagglePacketCount) {
-                --d_nagglePacketCount;
-            }
-            d_storageEventBuilder.reset();
-        }
-    }
-    if (queues && d_storageEventBuilder.messageCount() == 0) {
-        // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
+    if (d_storageEventBuilder.messageCount() != 0) {
+        BALL_LOG_TRACE << partitionDesc() << "Flushing "
+                       << d_storageEventBuilder.messageCount()
+                       << " STORAGE messages.";
+        const int maxChannelPendingItems = d_cluster_p->broadcast(
+            d_storageEventBuilder.blob());
+        if (maxChannelPendingItems > 0) {
+            if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
+                // back off
+                ++d_nagglePacketCount;
             }
         }
+        else if (d_nagglePacketCount) {
+            --d_nagglePacketCount;
+        }
+        d_storageEventBuilder.reset();
     }
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()
 {
-    if (d_storageEventBuilder.messageCount() == 0) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
+            d_storageEventBuilder.messageCount() == 0)) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
+        // good time to flush weak consistency queues.
+
+        for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
+                 d_replicationNotifications.begin();
+             it != d_replicationNotifications.end();
+             it++) {
+            // TODO: possible to store ReplicatedStorage directly and have one
+            //       less lookup, but it requires to handle the case when the
+            //       storage was removed before `notifyQueuesOnReplicatedBatch`
+            //       call.
+            StoragesMap::iterator storageIt = d_storages.find(*it);
+            if (storageIt != d_storages.end()) {
+                ReplicatedStorage* rs = storageIt->second;
+                if (rs->queue()) {
+                    rs->queue()->onReplicatedBatch();
+                }
             }
         }
+        d_replicationNotifications.clear();
     }
 }
 
@@ -7083,10 +7089,10 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
     if (needToFlush) {
         // Have to explicitly flush 'd_storageEventBuilder', to make sure
         // deletion records get replicated before queue unassignement.
-        // If queues are idle, 'dispatcherFlush()' won't get called.
+        // If queues are idle, 'flushStorage()' won't get called.
         // Internal-ticket D168465018.
 
-        dispatcherFlush(true, false);
+        flushStorage();
     }
 
     return haveMore;

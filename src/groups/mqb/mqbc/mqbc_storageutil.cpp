@@ -170,7 +170,7 @@ void StorageUtil::registerQueueDispatched(
     // partition, we want to make sure that queue creation record written to
     // the partition above is sent to the replicas as soon as possible.
 
-    fs->dispatcherFlush(true, false);
+    fs->flushStorage();
 
     BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "] registered [" << storage->queueUri() << "], queueKey ["
@@ -347,7 +347,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
     // Flush the partition for records written above to reach replicas right
     // away.
-    fs->dispatcherFlush(true, false);
+    fs->flushStorage();
 
     bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
     bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
@@ -2654,7 +2654,7 @@ void StorageUtil::unregisterQueueDispatched(
     // that the partition is flushed and the QueueDeletion record reaches
     // replicas.
 
-    fs->dispatcherFlush(true, false);
+    fs->flushStorage();
 }
 
 int StorageUtil::updateQueuePrimary(StorageSpMap*           storageMap,
@@ -3210,6 +3210,8 @@ int StorageUtil::makeStorage(bsl::ostream& errorDescription,
     // Configure the storage.  Note that if a queue calls 'makeStorage' twice,
     // its storage will be configured twice as things are currently.
 
+    // Do not change consistency level of `storageSp`, use the one provided on
+    // construction instead.
     const int rc = storageSp->configure(errorDescription,
                                         storageDef.config(),
                                         storageDef.queueLimits(),
