@@ -102,7 +102,7 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(bslma::Allocator* allocator = s_allocator_p)
+    Tester(bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator())
     : d_config(allocator)
     , d_ledger_mp(0)
     , d_tempDir(allocator)
@@ -354,7 +354,8 @@ static void test4_validateLog()
                                  AdvisoryType::e_PARTITION_PRIMARY,
                                  lms1);
 
-    bdlbb::Blob record1(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record1(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record1,
         msg1,
@@ -380,7 +381,8 @@ static void test4_validateLog()
                                  AdvisoryType::e_QUEUE_ASSIGNMENT,
                                  lms2);
 
-    bdlbb::Blob record2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record2(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record2,
         msg2,
@@ -404,7 +406,8 @@ static void test4_validateLog()
     bmqp_ctrlmsg::ClusterMessage msg3;
     Tester::createClusterMessage(&msg3, AdvisoryType::e_COMMIT, lms3);
 
-    bdlbb::Blob record3(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record3(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record3,
         msg3,
@@ -428,7 +431,8 @@ static void test4_validateLog()
     PVV("offset: " << offset);
 
     // 4. Write an invalid record
-    bdlbb::Blob record4(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob                    record4(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterStateRecordHeader recordHeader;
     recordHeader
         .setHeaderWords(mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS)
@@ -486,7 +490,8 @@ static void test5_validateLog_invalidCrc32c()
                                  AdvisoryType::e_QUEUE_ASSIGNMENT,
                                  lms1);
 
-    bdlbb::Blob record1(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record1(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record1,
         msg1,
@@ -518,7 +523,8 @@ static void test5_validateLog_invalidCrc32c()
                                  AdvisoryType::e_QUEUE_ASSIGNMENT,
                                  lms2);
 
-    bdlbb::Blob record2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record2(tester.bufferFactory(),
+                        bmqtst::TestHelperUtil::allocator());
     rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record2,
         msg2,
@@ -610,7 +616,8 @@ static void test7_appendRecord()
     bmqp_ctrlmsg::ClusterMessage msg;
     Tester::createClusterMessage(&msg, AdvisoryType::e_QUEUE_ASSIGNMENT, lms);
 
-    bdlbb::Blob record(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record(tester.bufferFactory(),
+                       bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
@@ -676,7 +683,8 @@ static void test8_loadClusterMessageLedger()
     bmqp_ctrlmsg::ClusterMessage msg;
     Tester::createClusterMessage(&msg, AdvisoryType::e_QUEUE_ASSIGNMENT, lms);
 
-    bdlbb::Blob record(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record(tester.bufferFactory(),
+                       bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
@@ -751,7 +759,8 @@ static void test9_loadClusterMessageBlob()
     bmqp_ctrlmsg::ClusterMessage msg;
     Tester::createClusterMessage(&msg, AdvisoryType::e_QUEUE_ASSIGNMENT, lms);
 
-    bdlbb::Blob record(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob record(tester.bufferFactory(),
+                       bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         &record,
         msg,
@@ -832,8 +841,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -850,7 +859,7 @@ int main(int argc, char* argv[])
     case 10: test10_recordSize(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

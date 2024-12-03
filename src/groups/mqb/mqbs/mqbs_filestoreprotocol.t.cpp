@@ -586,7 +586,7 @@ static void test3_printTest()
             "[ type = MESSAGE flags = 0 primaryLeaseId = 8 sequenceNumber = 33"
             " timestamp = 123456 ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << rh;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -622,7 +622,7 @@ static void test3_printTest()
             "messageGUID = ** UNSET ** crc32c = 2333 compressionAlgorithmType "
             "= ZLIB ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << msgRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -654,7 +654,7 @@ static void test3_printTest()
             "queueKey = DEADFACE13 appKey = FACEDAFACE messageGUID = ** UNSET "
             "** ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << confRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -684,7 +684,7 @@ static void test3_printTest()
             "IMPLICIT_CONFIRM queueKey = DEADFACE13 messageGUID = "
             "** UNSET ** ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << delRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -716,7 +716,7 @@ static void test3_printTest()
             "DEADFACE13 appKey = FACEDAFACE type = CREATION "
             "queueUriRecordOffsetWords = 69 ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << qOpRec;
         ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
@@ -752,7 +752,7 @@ static void test3_printTest()
             "primaryNodeId = 1 primaryLeaseId = 8 dataFileOffsetDwords = 666 "
             "qlistFileOffsetWords = 23 ]";
 
-        bmqu::MemOutStream stream(s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << jOpRec;
         ASSERT_EQ(stream.str(), expectedOut);
         stream.reset();
@@ -780,7 +780,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

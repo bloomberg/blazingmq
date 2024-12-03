@@ -66,7 +66,7 @@ static void test1_insert()
     bmqtst::TestHelper::printTestName("HISTORY");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
 
     setup(obj, 10, timeout);
 }
@@ -90,7 +90,7 @@ static void test2_eraseMiddleToEnd()
     bmqtst::TestHelper::printTestName("ERASE_MIDDLE_TO_END");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
     size_t          TOTAL = 10;
     size_t          HALF  = TOTAL / 2;
 
@@ -144,7 +144,7 @@ static void test3_eraseMiddleToBegin()
     bmqtst::TestHelper::printTestName("ERASE_MIDDLE_TO_BEGIN");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
     size_t          TOTAL = 10;
     size_t          HALF  = TOTAL / 2;
 
@@ -199,7 +199,7 @@ static void test4_gc()
     bmqtst::TestHelper::printTestName("ERASE_AND_GC");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
     size_t          TOTAL = 10;
     size_t          HALF  = TOTAL / 2;
 
@@ -269,7 +269,7 @@ static void test5_insertAfterEnd()
     bmqtst::TestHelper::printTestName("INSERT_AFTER_END");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
     Iterator        begin = obj.begin();
     Iterator        end   = obj.end();
 
@@ -307,7 +307,7 @@ static void test6_eraseThenGc()
     bmqtst::TestHelper::printTestName("INSERT_AFTER_END");
 
     int             timeout = 1;
-    ObjectUnderTest obj(timeout, s_allocator_p);
+    ObjectUnderTest obj(timeout, bmqtst::TestHelperUtil::allocator());
     const int       BATCH_SIZE = 1000;
     const int       ADDITIONS  = 100;
 
@@ -350,7 +350,7 @@ int main(int argc, char* argv[])
     case 6: test6_eraseThenGc(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

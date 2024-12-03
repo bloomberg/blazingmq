@@ -131,7 +131,7 @@ static void test1_exitCode_toAscii()
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
 
-        bsl::string ascii(s_allocator_p);
+        bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbu::ExitCode::toAscii(mqbu::ExitCode::Enum(test.d_value));
 
         ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
@@ -245,7 +245,7 @@ static void test3_exitCode_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        bmqu::MemOutStream   out(s_allocator_p);
+        bmqu::MemOutStream   out(bmqtst::TestHelperUtil::allocator());
         mqbu::ExitCode::Enum obj(
             static_cast<mqbu::ExitCode::Enum>(test.d_value));
 
@@ -254,7 +254,7 @@ static void test3_exitCode_print()
 
         PVV(test.d_line << ": '" << out.str());
 
-        bsl::string expected(s_allocator_p);
+        bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
         ASSERT_EQ_D(test.d_line, out.str(), expected);
@@ -385,8 +385,8 @@ static void test5_exit_shutdown()
 //   'ExitUtil::shutdown'
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // For an unknown reason, this test case fails the default allocator
     // check, and whenever main sets '_da.setAllocationLimit(0)', it
     // suddenly passes the default allocator check.
@@ -480,7 +480,7 @@ int main(int argc, char* argv[])
     case 1: test1_exitCode_toAscii(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -101,7 +101,7 @@ static void test3_lockThenProcess()
     bslmt::ThreadUtil::createWithAllocator(
         &threadHandle,
         bdlf::BindUtil::bind(&threadFn, &result2, &state, &semaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     // wait for the thread to arrive at the start
     semaphore.wait();
 
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
     case 4: test4_lockThenCancelThenProcess(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

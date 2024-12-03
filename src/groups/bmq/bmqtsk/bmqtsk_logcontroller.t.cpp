@@ -54,54 +54,62 @@ static void test1_logControllerConfigFromDatum()
 {
     bmqtst::TestHelper::printTestName("LogControllerConfig::fromDatum Test");
 
-    bdld::DatumMapBuilder syslogBuilder(s_allocator_p);
+    bdld::DatumMapBuilder syslogBuilder(bmqtst::TestHelperUtil::allocator());
     syslogBuilder.pushBack("enabled", bdld::Datum::createBoolean(true));
-    syslogBuilder.pushBack("appName",
-                           bdld::Datum::createStringRef("testapp",
-                                                        s_allocator_p));
+    syslogBuilder.pushBack(
+        "appName",
+        bdld::Datum::createStringRef("testapp",
+                                     bmqtst::TestHelperUtil::allocator()));
     syslogBuilder.pushBack(
         "logFormat",
         bdld::Datum::createStringRef("test %d (%t) %s %F:%l %m\n\n",
-                                     s_allocator_p));
-    syslogBuilder.pushBack("verbosity",
-                           bdld::Datum::createStringRef("info",
-                                                        s_allocator_p));
+                                     bmqtst::TestHelperUtil::allocator()));
+    syslogBuilder.pushBack(
+        "verbosity",
+        bdld::Datum::createStringRef("info",
+                                     bmqtst::TestHelperUtil::allocator()));
 
-    bdld::DatumArrayBuilder categoriesBuilder(s_allocator_p);
+    bdld::DatumArrayBuilder categoriesBuilder(
+        bmqtst::TestHelperUtil::allocator());
     categoriesBuilder.pushBack(
-        bdld::Datum::copyString("category:info:red", s_allocator_p));
+        bdld::Datum::copyString("category:info:red",
+                                bmqtst::TestHelperUtil::allocator()));
 
-    bdld::DatumMapBuilder logControllerBuilder(s_allocator_p);
-    logControllerBuilder.pushBack("fileName",
-                                  bdld::Datum::copyString("fileName",
-                                                          s_allocator_p));
+    bdld::DatumMapBuilder logControllerBuilder(
+        bmqtst::TestHelperUtil::allocator());
+    logControllerBuilder.pushBack(
+        "fileName",
+        bdld::Datum::copyString("fileName",
+                                bmqtst::TestHelperUtil::allocator()));
     logControllerBuilder.pushBack("fileMaxAgeDays",
                                   bdld::Datum::createDouble(8.2));
     logControllerBuilder.pushBack("rotationBytes",
                                   bdld::Datum::createDouble(2048));
     logControllerBuilder.pushBack(
         "logfileFormat",
-        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n", s_allocator_p));
+        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n",
+                                bmqtst::TestHelperUtil::allocator()));
     logControllerBuilder.pushBack(
         "consoleFormat",
-        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n", s_allocator_p));
-    logControllerBuilder.pushBack("loggingVerbosity",
-                                  bdld::Datum::copyString("debug",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("bslsLogSeverityThreshold",
-                                  bdld::Datum::copyString("info",
-                                                          s_allocator_p));
-    logControllerBuilder.pushBack("consoleSeverityThreshold",
-                                  bdld::Datum::copyString("info",
-                                                          s_allocator_p));
+        bdld::Datum::copyString("%d (%t) %s %F:%l %m\n\n",
+                                bmqtst::TestHelperUtil::allocator()));
+    logControllerBuilder.pushBack(
+        "loggingVerbosity",
+        bdld::Datum::copyString("debug", bmqtst::TestHelperUtil::allocator()));
+    logControllerBuilder.pushBack(
+        "bslsLogSeverityThreshold",
+        bdld::Datum::copyString("info", bmqtst::TestHelperUtil::allocator()));
+    logControllerBuilder.pushBack(
+        "consoleSeverityThreshold",
+        bdld::Datum::copyString("info", bmqtst::TestHelperUtil::allocator()));
     logControllerBuilder.pushBack("categories", categoriesBuilder.commit());
     logControllerBuilder.pushBack("syslog", syslogBuilder.commit());
 
     bdld::Datum                 datum = logControllerBuilder.commit();
-    bmqtsk::LogControllerConfig config(s_allocator_p);
-    bmqu::MemOutStream          errorDesc(s_allocator_p);
+    bmqtsk::LogControllerConfig config(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream          errorDesc(bmqtst::TestHelperUtil::allocator());
     config.fromDatum(errorDesc, datum);
-    bdld::Datum::destroy(datum, s_allocator_p);
+    bdld::Datum::destroy(datum, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_D(errorDesc.str(), errorDesc.str().empty());
 
@@ -128,7 +136,7 @@ int main(int argc, char* argv[])
     case 1: test1_logControllerConfigFromDatum(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

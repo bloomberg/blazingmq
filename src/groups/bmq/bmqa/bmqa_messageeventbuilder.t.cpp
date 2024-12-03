@@ -33,7 +33,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -45,7 +45,7 @@ static void test1_breathingTest()
 
 static void test2_testMessageEventSizeCount()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -54,8 +54,9 @@ static void test2_testMessageEventSizeCount()
 
     // Stage 1: preparation
     // Start a session and open a queue
-    bmqa::MockSession session(bmqt::SessionOptions(s_allocator_p),
-                              s_allocator_p);
+    bmqa::MockSession session(
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Start session
@@ -64,18 +65,19 @@ static void test2_testMessageEventSizeCount()
         ASSERT_EQ(rc, 0);
     }
 
-    bmqt::Uri uri(s_allocator_p);
+    bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
 
     {
         // Parse uri
-        bsl::string error(s_allocator_p);
-        bsl::string input("bmq://my.domain/queue", s_allocator_p);
+        bsl::string error(bmqtst::TestHelperUtil::allocator());
+        bsl::string input("bmq://my.domain/queue",
+                          bmqtst::TestHelperUtil::allocator());
         const int   rc = bmqt::UriParser::parse(&uri, &error, input);
         ASSERT_EQ(rc, 0);
     }
 
     bmqt::CorrelationId queueCId = bmqt::CorrelationId::autoValue();
-    bmqa::QueueId       queueId(queueCId, s_allocator_p);
+    bmqa::QueueId       queueId(queueCId, bmqtst::TestHelperUtil::allocator());
 
     {
         // Open queue
@@ -96,7 +98,8 @@ static void test2_testMessageEventSizeCount()
     ASSERT(builder.messageEventSize() > 0);
     ASSERT_EQ(0, builder.messageCount());
 
-    const bsl::string payload("test payload", s_allocator_p);
+    const bsl::string payload("test payload",
+                              bmqtst::TestHelperUtil::allocator());
 
     // Pack some messages
     for (int i = 1; i <= 5; i++) {
@@ -172,7 +175,7 @@ int main(int argc, char* argv[])
     case 2: test2_testMessageEventSizeCount(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

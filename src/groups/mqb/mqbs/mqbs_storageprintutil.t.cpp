@@ -127,9 +127,9 @@ struct Tester {
   public:
     // CREATORS
     Tester()
-    : d_bufferFactory(1024, s_allocator_p)
-    , d_guids(s_allocator_p)
-    , d_capacityMeter("test", s_allocator_p)
+    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
+    , d_guids(bmqtst::TestHelperUtil::allocator())
+    , d_capacityMeter("test", bmqtst::TestHelperUtil::allocator())
     {
         d_capacityMeter.setLimits(k_INT64_MAX, k_INT64_MAX);
 
@@ -138,16 +138,18 @@ struct Tester {
         domainCfg.messageTtl()          = k_INT64_MAX;
 
         const bsl::string uri("my.domain/myqueue");
-        d_storage_mp.load(new (*s_allocator_p) mqbs::InMemoryStorage(
-                              bmqt::Uri(uri, s_allocator_p),
-                              k_QUEUE_KEY,
-                              0,
-                              domainCfg,
-                              &d_capacityMeter,
-                              s_allocator_p),
-                          s_allocator_p);
+        d_storage_mp.load(
+            new (*bmqtst::TestHelperUtil::allocator()) mqbs::InMemoryStorage(
+                bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
+                k_QUEUE_KEY,
+                0,
+                domainCfg,
+                &d_capacityMeter,
+                bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
 
-        bmqu::MemOutStream errorDescription(s_allocator_p);
+        bmqu::MemOutStream errorDescription(
+            bmqtst::TestHelperUtil::allocator());
         d_storage_mp->addVirtualStorage(errorDescription,
                                         k_APP_ID1,
                                         k_APP_KEY1);
@@ -180,9 +182,10 @@ struct Tester {
             mqbu::MessageGUIDUtil::generateGUID(&guid);
 
             bsl::shared_ptr<bdlbb::Blob> appDataPtr(
-                new (*s_allocator_p)
-                    bdlbb::Blob(&d_bufferFactory, s_allocator_p),
-                s_allocator_p);
+                new (*bmqtst::TestHelperUtil::allocator())
+                    bdlbb::Blob(&d_bufferFactory,
+                                bmqtst::TestHelperUtil::allocator()),
+                bmqtst::TestHelperUtil::allocator());
             appDataPtr->setLength(i * 10);
 
             mqbi::StorageMessageAttributes attributes;
@@ -286,7 +289,8 @@ static void test2_listMessages()
     for (int idx = 0; idx < k_NUM_DATA; ++idx) {
         const TestData& test = k_DATA[idx];
 
-        mqbcmd::QueueContents queueContents(s_allocator_p);
+        mqbcmd::QueueContents queueContents(
+            bmqtst::TestHelperUtil::allocator());
         mqbs::StoragePrintUtil::listMessages(&queueContents,
                                              test.d_appId,
                                              test.d_offset,
@@ -304,7 +308,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -312,7 +316,7 @@ int main(int argc, char* argv[])
     case 1: test1_listMessage(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

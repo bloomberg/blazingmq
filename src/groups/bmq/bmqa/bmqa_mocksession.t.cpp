@@ -123,7 +123,7 @@ struct EventHandler : public bmqa::SessionEventHandler {
                 queueId->correlationId(),
                 0,
                 "",
-                s_allocator_p));
+                bmqtst::TestHelperUtil::allocator()));
 
         BMQA_EXPECT_CALL(mockSession,
                          openQueueAsync(0,  // Dont care about queueId
@@ -148,8 +148,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
         // opted to just compare the streams of the two messageEvents which is
         // markedly a weak test, but serves us well enough for basic testing.
 
-        bmqu::MemOutStream lstr(s_allocator_p);
-        bmqu::MemOutStream rstr(s_allocator_p);
+        bmqu::MemOutStream lstr(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream rstr(bmqtst::TestHelperUtil::allocator());
 
         lhs.print(lstr);
         rhs.print(rstr);
@@ -266,7 +266,9 @@ static void test1_staticMethods()
 
     bmqtst::TestHelper::printTestName("STATIC METHODS");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         PVV("Create Session Event");
@@ -276,7 +278,7 @@ static void test1_staticMethods()
             bmqt::CorrelationId(1),
             0,
             errorDescription,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         bmqa::SessionEvent sessionEvent = event.sessionEvent();
 
         ASSERT_EQ(sessionEvent.type(), bmqt::SessionEventType::e_CONNECTED);
@@ -293,7 +295,7 @@ static void test1_staticMethods()
             bmqt::CorrelationId(1),
             0,
             "",
-            s_allocator_p));
+            bmqtst::TestHelperUtil::allocator()));
     }
 
     {
@@ -307,13 +309,14 @@ static void test1_staticMethods()
         bmqt::MessageGUID guid;
         guid.fromHex(guidHex);
 
-        bsl::vector<bmqa::MockSessionUtil::AckParams> acks(s_allocator_p);
+        bsl::vector<bmqa::MockSessionUtil::AckParams> acks(
+            bmqtst::TestHelperUtil::allocator());
         acks.emplace_back(bmqt::AckResult::e_SUCCESS, corrId, guid, queueId);
 
         bmqa::Event event = bmqa::MockSessionUtil::createAckEvent(
             acks,
             &bufferFactory,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         bmqa::MessageEvent ackEvent = event.messageEvent();
         ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
@@ -338,7 +341,7 @@ static void test1_staticMethods()
             corrId,
             0,
             "",
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         bmqa::SessionEvent openQueueEvent = event.sessionEvent();
         ASSERT_EQ(openQueueEvent.type(),
@@ -354,8 +357,9 @@ static void test1_staticMethods()
         bmqa::QueueId queueId(1);
 
         bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
-            s_allocator_p);
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&payload, "hello", 6);
 
         const char        guidHex[] = "00000000000000000000000000000001";
@@ -370,7 +374,7 @@ static void test1_staticMethods()
         bmqa::Event event = bmqa::MockSessionUtil::createPushEvent(
             pushMsgs,
             &bufferFactory,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         bmqa::MessageEvent pushMsgEvt = event.messageEvent();
 
@@ -399,9 +403,10 @@ static void test2_call()
 
     bsl::shared_ptr<bmqa::MockSession> mockSession_sp;
 
-    mockSession_sp.createInplace(s_allocator_p,
-                                 bmqt::SessionOptions(s_allocator_p),
-                                 s_allocator_p);
+    mockSession_sp.createInplace(
+        bmqtst::TestHelperUtil::allocator(),
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     bmqa::MockSession& mockSession = *mockSession_sp;
 
@@ -430,7 +435,7 @@ static void test2_call()
         PVV("Custom callback with non empty expect call queue");
 
         // Only used for the custom callback
-        EventHandler eventHandler(s_allocator_p);
+        EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
         mockSession.setFailureCallback(
             bdlf::BindUtil::bind(&EventHandler::incrementAsserts,
@@ -455,20 +460,23 @@ static void test3_queueManagement()
 {
     bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT");
 
-    EventHandler eventHandler(s_allocator_p);
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 
-    bmqa::MockSession mockSession(handlerMp,
-                                  bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    bsl::string error(s_allocator_p);
-    bsl::string input1("bmq://my.domain/queue1", s_allocator_p);
-    bsl::string input2("bmq://my.domain/queue2", s_allocator_p);
-    bmqt::Uri   uri1(s_allocator_p);
-    bmqt::Uri   uri2(s_allocator_p);
+    bsl::string error(bmqtst::TestHelperUtil::allocator());
+    bsl::string input1("bmq://my.domain/queue1",
+                       bmqtst::TestHelperUtil::allocator());
+    bsl::string input2("bmq://my.domain/queue2",
+                       bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri   uri1(bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri   uri2(bmqtst::TestHelperUtil::allocator());
     bmqt::UriParser::parse(&uri1, &error, input1);
     bmqt::UriParser::parse(&uri2, &error, input2);
 
@@ -477,8 +485,8 @@ static void test3_queueManagement()
     bmqt::CorrelationId corrId1(nextCorrId++);
     bmqt::CorrelationId corrId2(nextCorrId++);
 
-    bmqa::QueueId queueId1(corrId1, s_allocator_p);
-    bmqa::QueueId queueId2(corrId2, s_allocator_p);
+    bmqa::QueueId queueId1(corrId1, bmqtst::TestHelperUtil::allocator());
+    bmqa::QueueId queueId2(corrId2, bmqtst::TestHelperUtil::allocator());
 
     bmqa::MockSession::OpenQueueCallback openQueueCallback =
         bdlf::MemFnUtil::memFn(&EventHandler::onOpenQueueStatus,
@@ -502,7 +510,7 @@ static void test3_queueManagement()
                     queueId1,
                     bmqt::OpenQueueResult::e_UNKNOWN,
                     "",
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
             BMQA_EXPECT_CALL(mockSession,
                              openQueueAsync(&queueId1,
                                             uri1,
@@ -546,7 +554,7 @@ static void test3_queueManagement()
                     queueId1,
                     bmqt::OpenQueueResult::e_SUCCESS,
                     "",
-                    s_allocator_p));
+                    bmqtst::TestHelperUtil::allocator()));
 
             mockSession.openQueueAsync(&queueId1,
                                        uri1,
@@ -580,21 +588,21 @@ static void test3_queueManagement()
 
         {
             PVVV("Valid queue by uri");
-            bmqa::QueueId queueIdFound(s_allocator_p);
+            bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
             ASSERT_EQ(queueIdFound, queueId1);
         }
 
         {
             PVVV("Valid queue by uri");
-            bmqa::QueueId queueIdFound(s_allocator_p);
+            bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1), 0);
             ASSERT_EQ(queueIdFound, queueId1);
         }
 
         {
             PVVV("Registered but unused queue");
-            bmqa::QueueId queueIdFound(s_allocator_p);
+            bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri2), -1);
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId2), -1);
         }
@@ -607,7 +615,7 @@ static void test3_queueManagement()
                     queueId1,
                     bmqt::CloseQueueResult::e_SUCCESS,
                     "",
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
 
             // Close queue and then attempt to get queue
             BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
@@ -617,7 +625,7 @@ static void test3_queueManagement()
             ASSERT_EQ(closeResult1.result(),
                       bmqt::CloseQueueResult::e_SUCCESS);
 
-            bmqa::QueueId queueIdFound(s_allocator_p);
+            bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), -1);
             ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1), -1);
 
@@ -627,7 +635,7 @@ static void test3_queueManagement()
                     queueId1,
                     bmqt::CloseQueueResult::e_SUCCESS,
                     "",
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
 
             BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
                 .returning(closeResult2);
@@ -646,17 +654,18 @@ static void test3_queueManagement()
                 queueId1,
                 bmqt::OpenQueueResult::e_SUCCESS,
                 "",
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
         // Generate a new queueId with the same correlationId.  The underlying
         // impl is different so the queueIds are different.  Ensure correct
         // behaviour with new queueId.
 
         // Save the original queueId to compare.
-        bmqa::QueueId savedQueueId(queueId1, s_allocator_p);
+        bmqa::QueueId savedQueueId(queueId1,
+                                   bmqtst::TestHelperUtil::allocator());
 
         // Overwrite the queueId we are going to use.
-        queueId1 = bmqa::QueueId(corrId1, s_allocator_p);
+        queueId1 = bmqa::QueueId(corrId1, bmqtst::TestHelperUtil::allocator());
 
         BMQA_EXPECT_CALL(
             mockSession,
@@ -675,7 +684,7 @@ static void test3_queueManagement()
         ASSERT_EQ(implPtr->correlationId(), corrId1);
         ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
 
-        bmqa::QueueId queueIdFound(s_allocator_p);
+        bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
 
         ASSERT(queueId1 == queueIdFound);
@@ -686,7 +695,7 @@ static void test3_queueManagement()
                 queueId1,
                 bmqt::CloseQueueResult::e_SUCCESS,
                 "",
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
 
         // Close queue and then attempt to get queue
         BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
@@ -699,13 +708,14 @@ static void test4_queueManagementSync()
 {
     bmqtst::TestHelper::printTestName("QUEUE MANAGEMENT SYNC MODE");
 
-    bmqa::MockSession mockSession(bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     bsl::string input1 = "bmq://my.domain/queue1";
     bsl::string input2 = "bmq://my.domain/queue2";
-    bmqt::Uri   uri1(s_allocator_p);
-    bmqt::Uri   uri2(s_allocator_p);
+    bmqt::Uri   uri1(bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri   uri2(bmqtst::TestHelperUtil::allocator());
     bsl::string error;
 
     bmqt::UriParser::parse(&uri1, &error, input1);
@@ -730,7 +740,7 @@ static void test4_queueManagementSync()
                 queueId1.correlationId(),
                 1,
                 "",
-                s_allocator_p));
+                bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
@@ -763,7 +773,7 @@ static void test4_queueManagementSync()
                 queueId1.correlationId(),
                 0,
                 "",
-                s_allocator_p));
+                bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
@@ -789,16 +799,19 @@ static void test5_confirmingMessages()
 {
     bmqtst::TestHelper::printTestName("CONSUME AND CONFIRM");
 
-    EventHandler eventHandler(s_allocator_p);
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 
-    bmqa::MockSession mockSession(handlerMp,
-                                  bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
 
     bmqt::CorrelationId corrId(1);
     bmqa::QueueId       queueId(corrId);
@@ -810,7 +823,7 @@ static void test5_confirmingMessages()
     implPtr->setState(bmqimp::QueueState::e_OPENED);
     implPtr->setId(1);  // arbitrary id for queue
 
-    bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, "hello", 6);
 
     const char        guidHex1[] = "00000000000000000000000000000001";
@@ -829,15 +842,15 @@ static void test5_confirmingMessages()
     mockSession.loadMessageProperties(&properties);
 
     bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     pushMsgs.emplace_back(payload, queueId, guid1, properties);
     pushMsgs.emplace_back(payload, queueId, guid2, properties);
     pushMsgs.emplace_back(payload, queueId, guid3, properties);
 
-    mockSession.enqueueEvent(
-        bmqa::MockSessionUtil::createPushEvent(pushMsgs,
-                                               &bufferFactory,
-                                               s_allocator_p));
+    mockSession.enqueueEvent(bmqa::MockSessionUtil::createPushEvent(
+        pushMsgs,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(mockSession.emitEvent(), true);
 
@@ -857,13 +870,14 @@ static void test5_confirmingMessages()
             invalidGUID.fromHex(invalidGuidHex);
 
             bsl::vector<bmqa::MockSessionUtil::PushMessageParams> invalidMsg(
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
             invalidMsg.emplace_back(payload, queueId, invalidGUID, properties);
 
             bmqa::MessageEvent invalidEvent =
-                bmqa::MockSessionUtil ::createPushEvent(invalidMsg,
-                                                        &bufferFactory,
-                                                        s_allocator_p)
+                bmqa::MockSessionUtil ::createPushEvent(
+                    invalidMsg,
+                    &bufferFactory,
+                    bmqtst::TestHelperUtil::allocator())
                     .messageEvent();
 
             bmqa::ConfirmEventBuilder confirmBuilder;
@@ -960,20 +974,23 @@ static void test6_runThrough()
 {
     bmqtst::TestHelper::printTestName("RUN THROUGH");
 
-    EventHandler eventHandler(s_allocator_p);
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 
-    bmqa::MockSession mockSession(handlerMp,
-                                  bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqt::CorrelationId            corrId(1);
     bmqa::QueueId                  queueId(corrId);
     bsl::string                    input = "bmq://my.domain/queue";
-    bmqt::Uri                      uri(s_allocator_p);
+    bmqt::Uri                      uri(bmqtst::TestHelperUtil::allocator());
     bsl::string                    error;
     bmqt::UriParser::parse(&uri, &error, input);
 
@@ -983,28 +1000,28 @@ static void test6_runThrough()
         bmqt::CorrelationId(1),
         0,
         "",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
 
     bmqa::OpenQueueStatus testOpenQueueResult =
         bmqa::MockSessionUtil::createOpenQueueStatus(
             queueId,
             bmqt::OpenQueueResult::e_SUCCESS,
             "",
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
     bmqa::ConfigureQueueStatus testConfigureQueueResult =
         bmqa::MockSessionUtil::createConfigureQueueStatus(
             queueId,
             bmqt::ConfigureQueueResult::e_SUCCESS,
             "",
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
     bmqa::CloseQueueStatus testCloseQueueResult =
         bmqa::MockSessionUtil::createCloseQueueStatus(
             queueId,
             bmqt::CloseQueueResult::e_SUCCESS,
             "",
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
     // Callback setup
     bmqa::MockSession::OpenQueueCallback openQueueCallback =
@@ -1140,7 +1157,8 @@ static void test6_runThrough()
         messageGUID.fromHex(msgGUIDHex);
 
         // Create payload
-        bdlbb::Blob payload(&bufferFactory, s_allocator_p);
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&payload, "hello", 6);
 
         // Quickly make a valid queue available.
@@ -1152,16 +1170,17 @@ static void test6_runThrough()
 
         // Now create params to build push message
         bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushParams(
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         pushParams.emplace_back(payload,
                                 queueId,
                                 messageGUID,
                                 bmqa::MessageProperties());
-        bmqa::MessageEvent pushMsgEvt = bmqa::MockSessionUtil::createPushEvent(
-                                            pushParams,
-                                            &bufferFactory,
-                                            s_allocator_p)
-                                            .messageEvent();
+        bmqa::MessageEvent pushMsgEvt =
+            bmqa::MockSessionUtil::createPushEvent(
+                pushParams,
+                &bufferFactory,
+                bmqtst::TestHelperUtil::allocator())
+                .messageEvent();
 
         bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();
 
@@ -1215,17 +1234,18 @@ static void test7_postAndAccess()
 {
     bmqtst::TestHelper::printTestName("POST AND ACCESS");
 
-    EventHandler eventHandler(s_allocator_p);
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 
-    bmqa::MockSession mockSession(handlerMp,
-                                  bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     bsl::string input = "bmq://my.domain/queue";
-    bmqt::Uri   uri(s_allocator_p);
+    bmqt::Uri   uri(bmqtst::TestHelperUtil::allocator());
     bsl::string error;
 
     bmqt::UriParser::parse(&uri, &error, input);
@@ -1236,11 +1256,13 @@ static void test7_postAndAccess()
     EventHandler::openQueue(&mockSession, &queueId, uri);
 
     // Build payloads
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
-    bdlbb::Blob                    payload1(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    payload2(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    payload3(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    payload4(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload1(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bdlbb::BlobUtil::append(&payload1, "hello!", 7);
     bdlbb::BlobUtil::append(&payload2, "hola!", 6);
@@ -1335,17 +1357,18 @@ static void test8_postBlockedToSuspendedQueue()
 {
     bmqtst::TestHelper::printTestName("POST BLOCKED TO SUSPENDED QUEUE");
 
-    EventHandler eventHandler(s_allocator_p);
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 
-    bmqa::MockSession mockSession(handlerMp,
-                                  bmqt::SessionOptions(s_allocator_p),
-                                  s_allocator_p);
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     bsl::string input = "bmq://my.domain/queue";
-    bmqt::Uri   uri(s_allocator_p);
+    bmqt::Uri   uri(bmqtst::TestHelperUtil::allocator());
     bsl::string error;
 
     bmqt::UriParser::parse(&uri, &error, input);
@@ -1361,8 +1384,10 @@ static void test8_postBlockedToSuspendedQueue()
     implPtr->setIsSuspended(true);
 
     // Build payload
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
-    bdlbb::Blob                    payload(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, "hello!", 7);
 
     bmqa::MessageEventBuilder builder;
@@ -1392,7 +1417,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1406,7 +1431,7 @@ int main(int argc, char* argv[])
     case 1: test1_staticMethods(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

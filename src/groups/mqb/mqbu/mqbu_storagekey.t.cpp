@@ -185,7 +185,7 @@ void test1_breathingTest()
     s5.loadHex(s);
     ASSERT_EQ(0, memcmp(k_VALID_HEX, s, mqbu::StorageKey::e_KEY_LENGTH_HEX));
 
-    bsl::vector<char> binBuf(s_allocator_p);
+    bsl::vector<char> binBuf(bmqtst::TestHelperUtil::allocator());
     s5.loadBinary(&binBuf);
     ASSERT_EQ(0,
               memcmp(k_VALID_BIN,
@@ -199,7 +199,8 @@ void test1_breathingTest()
     ASSERT_EQ(true, s4 != s6);
 
     PV("Checking default hashing and less than operator");
-    bsl::map<mqbu::StorageKey, int> storageMap(s_allocator_p);
+    bsl::map<mqbu::StorageKey, int> storageMap(
+        bmqtst::TestHelperUtil::allocator());
     storageMap.insert(bsl::make_pair(s2, 1));
     storageMap.insert(bsl::make_pair(s4, 2));
     storageMap.insert(bsl::make_pair(s6, 3));
@@ -210,7 +211,7 @@ void test1_breathingTest()
     ASSERT_EQ(2, it->second);
 
     bsl::unordered_map<mqbu::StorageKey, int> unorderedStorageMap(
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     unorderedStorageMap.insert(bsl::make_pair(s2, 1));
     unorderedStorageMap.insert(bsl::make_pair(s4, 2));
     unorderedStorageMap.insert(bsl::make_pair(s6, 3));
@@ -228,7 +229,7 @@ void test1_breathingTest()
     bsl::unordered_map<mqbu::StorageKey,
                        int,
                        bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        myMap(s_allocator_p);
+        myMap(bmqtst::TestHelperUtil::allocator());
 
     myMap.insert(bsl::make_pair(s6, 2));
 
@@ -244,10 +245,10 @@ void test2_streamout()
 
     mqbu::StorageKey s1(mqbu::StorageKey::HexRepresentation(), k_HEX);
 
-    bmqu::MemOutStream osstr(s_allocator_p);
+    bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
     osstr << s1;
 
-    bsl::string storageKeyStr(k_HEX, s_allocator_p);
+    bsl::string storageKeyStr(k_HEX, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(storageKeyStr, osstr.str());
 
@@ -272,7 +273,7 @@ void test3_defaultHashUniqueness()
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -285,8 +286,10 @@ void test3_defaultHashUniqueness()
     typedef bsl::vector<mqbu::StorageKey>                        StorageKeys;
 
     // hash -> vector of corresponding StorageKeys
-    bsl::unordered_map<size_t, StorageKeys> hashes(s_allocator_p);
-    bsl::unordered_set<mqbu::StorageKey>    keySet(s_allocator_p);
+    bsl::unordered_map<size_t, StorageKeys> hashes(
+        bmqtst::TestHelperUtil::allocator());
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     hashes.reserve(k_NUM_ELEMS);
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -357,7 +360,7 @@ void test4_customHashUniqueness()
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -368,8 +371,10 @@ void test4_customHashUniqueness()
     typedef bsl::vector<mqbu::StorageKey>                        StorageKeys;
 
     // hash -> vector of corresponding StorageKeys
-    bsl::unordered_map<size_t, StorageKeys> hashes(s_allocator_p);
-    bsl::unordered_set<mqbu::StorageKey>    keySet(s_allocator_p);
+    bsl::unordered_map<size_t, StorageKeys> hashes(
+        bmqtst::TestHelperUtil::allocator());
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     hashes.reserve(k_NUM_ELEMS);
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -531,8 +536,11 @@ void testN3_hashTableWithDefaultHashBenchmark()
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                                 k_NUM_ELEMS = 10000;  // 10K
-    bsl::unordered_set<mqbu::StorageKey>         keySet(s_allocator_p);
-    bsl::unordered_map<mqbu::StorageKey, size_t> ht(16843, s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey>         keySet(
+        bmqtst::TestHelperUtil::allocator());
+    bsl::unordered_map<mqbu::StorageKey, size_t> ht(
+        16843,
+        bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -574,11 +582,12 @@ void testN4_hashTableWithCustomHashBenchmark()
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = 10000;  // 10K
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
     bsl::unordered_map<mqbu::StorageKey,
                        size_t,
                        bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        ht(16843, s_allocator_p);
+        ht(16843, bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
@@ -620,11 +629,14 @@ void testN5_orderedMapWithDefaultHashBenchmark()
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = 10000;  // 10K
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
-    bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(16843, s_allocator_p);
+    bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(
+        16843,
+        bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
@@ -671,14 +683,15 @@ void testN6_orderedMapWithCustomHashBenchmark()
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = 10000;  // 10K
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
     bmqc::OrderedHashMap<mqbu::StorageKey,
                          size_t,
                          bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        ht(16843, s_allocator_p);
+        ht(16843, bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
@@ -792,8 +805,11 @@ static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                                 k_NUM_ELEMS = state.range(0);
-    bsl::unordered_set<mqbu::StorageKey>         keySet(s_allocator_p);
-    bsl::unordered_map<mqbu::StorageKey, size_t> ht(16843, s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey>         keySet(
+        bmqtst::TestHelperUtil::allocator());
+    bsl::unordered_map<mqbu::StorageKey, size_t> ht(
+        16843,
+        bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -825,11 +841,12 @@ static void testN4_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = state.range(0);
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
     bsl::unordered_map<mqbu::StorageKey,
                        size_t,
                        bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        ht(16843, s_allocator_p);
+        ht(16843, bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
@@ -860,11 +877,14 @@ static void testN5_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = state.range(0);
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
-    bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(16843, s_allocator_p);
+    bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(
+        16843,
+        bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
@@ -900,14 +920,15 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     typedef bsl::unordered_set<mqbu::StorageKey>::const_iterator CITER;
 
     const size_t                         k_NUM_ELEMS = state.range(0);
-    bsl::unordered_set<mqbu::StorageKey> keySet(s_allocator_p);
+    bsl::unordered_set<mqbu::StorageKey> keySet(
+        bmqtst::TestHelperUtil::allocator());
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
     bmqc::OrderedHashMap<mqbu::StorageKey,
                          size_t,
                          bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        ht(16843, s_allocator_p);
+        ht(16843, bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
@@ -982,7 +1003,7 @@ int main(int argc, char* argv[])
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 #ifdef BSLS_PLATFORM_OS_LINUX

@@ -50,7 +50,7 @@ static void test1_breathingTest()
 
     const unsigned int k_FIFTY = 50;
 
-    bmqu::MemOutStream obj(s_allocator_p);
+    bmqu::MemOutStream obj(bmqtst::TestHelperUtil::allocator());
     {
         bmqu::OutStreamFormatSaver fmtSaver(obj);
 
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

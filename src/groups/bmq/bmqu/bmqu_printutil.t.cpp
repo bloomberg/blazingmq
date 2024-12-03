@@ -85,7 +85,7 @@ static void test1_prettyNumberInt64()
                             << ", separator: '" << test.d_separator
                             << "', function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             bmqu::PrintUtil::prettyNumber(buf,
                                           test.d_value,
                                           test.d_groupSize,
@@ -100,7 +100,7 @@ static void test1_prettyNumberInt64()
                             << ", separator: '" << test.d_separator
                             << "', manipulator)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyNumber(test.d_value,
                                                  test.d_groupSize,
                                                  test.d_separator);
@@ -167,7 +167,7 @@ static void test2_prettyNumberDouble()
                             << ", separator: '" << test.d_separator
                             << "', function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             bmqu::PrintUtil::prettyNumber(buf,
                                           test.d_value,
                                           test.d_precision,
@@ -184,7 +184,7 @@ static void test2_prettyNumberDouble()
                             << ", separator: '" << test.d_separator
                             << "', manipulator)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyNumber(test.d_value,
                                                  test.d_precision,
                                                  test.d_groupSize,
@@ -272,7 +272,7 @@ static void test3_prettyBytes()
                             << " (precision: " << test.d_precision
                             << ", function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             bmqu::PrintUtil::prettyBytes(buf, test.d_value, test.d_precision);
             ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
@@ -283,7 +283,7 @@ static void test3_prettyBytes()
                             << " (precision: " << test.d_precision
                             << ", function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyBytes(test.d_value,
                                                 test.d_precision);
             ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
@@ -354,7 +354,7 @@ static void test4_prettyTimeInterval()
                             << " (precision: " << test.d_precision
                             << ", function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             bmqu::PrintUtil::prettyTimeInterval(buf,
                                                 test.d_value,
                                                 test.d_precision);
@@ -367,7 +367,7 @@ static void test4_prettyTimeInterval()
                             << " (precision: " << test.d_precision
                             << ", function)");
 
-            bmqu::MemOutStream buf(s_allocator_p);
+            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyTimeInterval(test.d_value,
                                                        test.d_precision);
             ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
@@ -391,7 +391,7 @@ int main(int argc, char* argv[])
     case 1: test1_prettyNumberInt64(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

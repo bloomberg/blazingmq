@@ -44,14 +44,23 @@ static void test1_partitionIdExtractor()
 //    PartitionIdExtractor
 // ------------------------------------------------------------------------
 {
-    mqbc::ClusterState::PartitionIdExtractor extractor(s_allocator_p);
+    mqbc::ClusterState::PartitionIdExtractor extractor(
+        bmqtst::TestHelperUtil::allocator());
 
-    TestData testData(s_allocator_p);
-    testData.emplace(bsl::string("test", s_allocator_p), -1);
-    testData.emplace(bsl::string("123", s_allocator_p), -1);
-    testData.emplace(bsl::string("test.123.test", s_allocator_p), -1);
-    testData.emplace(bsl::string("test.123.test.test", s_allocator_p), 123);
-    testData.emplace(bsl::string("test.-1.test.test", s_allocator_p), -1);
+    TestData testData(bmqtst::TestHelperUtil::allocator());
+    testData.emplace(bsl::string("test", bmqtst::TestHelperUtil::allocator()),
+                     -1);
+    testData.emplace(bsl::string("123", bmqtst::TestHelperUtil::allocator()),
+                     -1);
+    testData.emplace(bsl::string("test.123.test",
+                                 bmqtst::TestHelperUtil::allocator()),
+                     -1);
+    testData.emplace(bsl::string("test.123.test.test",
+                                 bmqtst::TestHelperUtil::allocator()),
+                     123);
+    testData.emplace(bsl::string("test.-1.test.test",
+                                 bmqtst::TestHelperUtil::allocator()),
+                     -1);
 
     TestData::const_iterator cIt = testData.begin();
     for (; cIt != testData.end(); ++cIt) {
@@ -73,7 +82,7 @@ int main(int argc, char* argv[])
     case 1: test1_partitionIdExtractor(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
