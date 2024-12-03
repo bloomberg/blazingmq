@@ -77,7 +77,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123-456", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("123-456",
+                                bmqtst::TestHelperUtil::allocator());
 
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT(compositeSeqNum.isSet());
@@ -90,7 +91,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("00123-000456", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("00123-000456",
+                                bmqtst::TestHelperUtil::allocator());
 
         compositeSeqNum.fromString(errorDescription, inputString);
         ASSERT(compositeSeqNum.isSet());
@@ -129,7 +131,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123_456", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("123_456",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
@@ -143,7 +146,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("1a23-456", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("1a23-456",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
@@ -157,7 +161,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123-45a6", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("123-45a6",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
@@ -200,7 +205,8 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         // Simulate unsigned int overflow
-        bsl::string inputString("11111111111-123", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("11111111111-123",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
@@ -215,7 +221,8 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         // Simulate bsls::Types::Uint64 overflow
-        bsl::string inputString("123-111111111111111111111", bmqtst::TestHelperUtil::allocator());
+        bsl::string inputString("123-111111111111111111111",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);
