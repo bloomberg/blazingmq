@@ -1197,32 +1197,6 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
     queueAssigningCb(uri, false);  // processingPendingRequests
 }
 
-void ClusterUtil::populateAppInfos(AppInfos*                  appInfos,
-                                   const mqbconfm::QueueMode& domainConfig)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(appInfos && appInfos->empty());
-
-    if (domainConfig.isFanoutValue()) {
-        const bsl::vector<bsl::string>& cfgAppIds =
-            domainConfig.fanout().appIDs();
-        bsl::unordered_set<mqbu::StorageKey> appKeys;
-
-        for (bsl::vector<bsl::string>::const_iterator cit = cfgAppIds.begin();
-             cit != cfgAppIds.end();
-             ++cit) {
-            mqbu::StorageKey appKey;
-            mqbs::StorageUtil::generateStorageKey(&appKey, &appKeys, *cit);
-
-            appInfos->insert(AppInfo(*cit, appKey));
-        }
-    }
-    else {
-        appInfos->insert(AppInfo(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                                 mqbi::QueueEngine::k_DEFAULT_APP_KEY));
-    }
-}
-
 void ClusterUtil::populateAppInfos(
     bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appInfos,
     const mqbconfm::QueueMode&            domainConfig)

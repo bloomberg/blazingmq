@@ -408,15 +408,12 @@ void StorageManager::queueCreationCb(int*                    status,
         status,
         &d_storages[partitionId],
         &d_storagesLock,
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_domainFactory_p,
         d_clusterData_p->identity().description(),
         partitionId,
         uri,
         queueKey,
-        appIdKeyPairs,
-        d_cluster_p->isCSLModeEnabled());
+        appIdKeyPairs);
 }
 
 void StorageManager::queueDeletionCb(int*                    status,
@@ -446,8 +443,6 @@ void StorageManager::queueDeletionCb(int*                    status,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_clusterData_p->identity().description(),
         partitionId,
         uri,
@@ -479,8 +474,6 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_domainFactory_p,
         &d_unrecognizedDomainsLock,
         &d_unrecognizedDomains[partitionId],
@@ -1002,8 +995,6 @@ StorageManager::StorageManager(
 , d_partitionPrimaryStatusCb(partitionPrimaryStatusCb)
 , d_storagesLock()
 , d_storages(allocator)
-, d_appKeysLock()
-, d_appKeysVec(allocator)
 , d_storageMonitorEventHandle()
 , d_gcMessagesEventHandle()
 , d_recoveredPrimaryLeaseIds(allocator)
@@ -1025,7 +1016,6 @@ StorageManager::StorageManager(
     d_storages.resize(partitionCfg.numPartitions());
     d_recoveredPrimaryLeaseIds.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
-    d_appKeysVec.resize(partitionCfg.numPartitions());
 
     d_minimumRequiredDiskSpace = mqbc::StorageUtil::findMinReqDiskSpace(
         partitionCfg);
@@ -1066,8 +1056,6 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                                      &d_storages[partitionId],
                                      &d_storagesLock,
                                      d_fileStores[partitionId].get(),
-                                     &d_appKeysVec[partitionId],
-                                     &d_appKeysLock,
                                      &d_allocators,
                                      processorForPartition(partitionId),
                                      uri,
@@ -1123,15 +1111,12 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_clusterData_p->identity().description(),
         uri,
         queueKey,
         partitionId,
         addedIdKeyPairs,
-        removedIdKeyPairs,
-        d_cluster_p->isCSLModeEnabled());
+        removedIdKeyPairs);
 }
 
 void StorageManager::registerQueueReplica(int                     partitionId,
@@ -1211,8 +1196,6 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
-            &d_appKeysVec[partitionId],
-            &d_appKeysLock,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
@@ -1256,15 +1239,12 @@ void StorageManager::updateQueueReplica(int                     partitionId,
             static_cast<int*>(0),
             &d_storages[partitionId],
             &d_storagesLock,
-            &d_appKeysVec[partitionId],
-            &d_appKeysLock,
             d_domainFactory_p,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
             queueKey,
             appIdKeyPairs,
-            d_cluster_p->isCSLModeEnabled(),
             domain,
             allowDuplicate));
 
