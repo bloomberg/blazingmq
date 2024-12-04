@@ -59,9 +59,9 @@ void closeLedger(mqbsl::Ledger* ledger)
 
 }  // close unnamed namespace
 
-// ==============================
-// class FileManager::FileHandler
-// ==============================
+// =================
+// class FileManager
+// =================
 
 FileManager::~FileManager()
 {
@@ -76,13 +76,17 @@ FileManager::~FileManager()
 
 FileManagerImpl::FileManagerImpl(const bsl::string& journalFile,
                                  const bsl::string& dataFile,
+                                 const bsl::string& cslFile,
+                                 bool               cslFromBegin,
                                  bslma::Allocator*  allocator)
 : d_journalFile(journalFile, allocator)
 , d_dataFile(dataFile, allocator)
+, d_cslFile(cslFile, cslFromBegin, allocator)
 {
     bmqu::MemOutStream ss(allocator);
     if ((!d_journalFile.path().empty() && !d_journalFile.resetIterator(ss)) ||
-        (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss))) {
+        (!d_dataFile.path().empty() && !d_dataFile.resetIterator(ss)) ||
+        (!d_cslFile.path().empty() && !d_cslFile.resetIterator(ss))) {
         throw bsl::runtime_error(ss.str());  // THROW
     }
 }
@@ -97,6 +101,11 @@ mqbs::JournalFileIterator* FileManagerImpl::journalFileIterator()
 mqbs::DataFileIterator* FileManagerImpl::dataFileIterator()
 {
     return d_dataFile.iterator();
+}
+
+mqbc::ClusterStateLedgerIterator* FileManagerImpl::cslFileIterator()
+{
+    return d_cslFile.iterator();
 }
 
 // PUBLIC FUNCTIONS
@@ -173,7 +182,14 @@ QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
             // Save snapshot iterator
             lastSnapshotIt = cslIt;
         }
+        // bsl::cout << cslIt << '\n';
+        // ClusterMessage clusterMessage;
+        // cslIt.loadClusterMessage(&clusterMessage);
+        // bsl::cout << clusterMessage << "\n\n";
     }
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // return d_queueMap;
 
     // Process last snapshot
     ClusterMessage clusterMessage;
@@ -274,7 +290,46 @@ bool FileManagerImpl::FileHandler<ITER>::resetIterator(
     }
 
     BSLS_ASSERT_OPT(d_iter.isValid());
-    return true;  // RETURN
+    return true;
+}
+
+// =====================================
+// class FileManagerImpl::FileCslHandler
+// =====================================
+
+FileManagerImpl::CslFileHandler::CslFileHandler(const bsl::string& path,
+                                                bool              cslFromBegin,
+                                                bslma::Allocator* allocator)
+: d_path(path)
+, d_ledger_p()
+, d_cslFromBegin(cslFromBegin)
+, d_allocator(allocator)
+{
+    // NOTHING
+}
+
+FileManagerImpl::CslFileHandler::~CslFileHandler()
+{
+    const int rc = d_ledger_p->close();
+    BSLS_ASSERT(rc == 0);
+    (void)rc;  // Compiler happiness
+}
+
+bool FileManagerImpl::CslFileHandler::resetIterator(
+    bsl::ostream& errorDescription)
+{
+    return true;
+}
+
+mqbc::IncoreClusterStateLedgerIterator*
+FileManagerImpl::CslFileHandler::iterator()
+{
+    return 0;
+}
+
+inline const bsl::string& FileManagerImpl::CslFileHandler::path() const
+{
+    return d_path;
 }
 
 }  // close package namespace

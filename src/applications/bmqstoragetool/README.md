@@ -2,11 +2,16 @@ BMQStorageTool
 ==============
 
 BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
-files. It allows to search records in `journal` file with set of different 
-filters and output found results in the short or detail form.
-As input, a `journal` file (*.bmq_journal) is *always* required. To dump 
-payload, `data` file (*.bmq_data) is required. To filter by queue Uri, cluster
-state ledger (CSL) file (*.bmq_csl) is required.
+files. It allows to search records in:
+- `journal` file (.bmq_journal) with the set of different filters and output found results in 
+    the short or detail form;
+- cluster state ledger (CSL) file (*.bmq_csl) with the set of different filters and output 
+    found results in the short or detail form;  
+    NOTE: For this mode, `journal` file (.bmq_journal) **must not** be passed.
+
+As an input, either a `journal` file (*.bmq_journal) or cluster state ledger 
+(CSL) file (*.bmq_csl) is **always** required. To dump payload, `data` file (*.bmq_data) 
+is required. To filter by queue Uri, cluster state ledger (CSL) file (*.bmq_csl) is required.
 
 The tool can be found under your `CMAKE` build directory after making 
 the project. From the command-line, there are a few options you can use when
@@ -14,10 +19,12 @@ invoking the tool.
 
 ```bash
 Usage:   bmqstoragetool [-r|record-type <record type>]*
+                        [--csl-record-type <csl record type>]*
                         [--journal-path <journal path>]
                         [--journal-file <journal file>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
+                        [--csl-from-begin]
                         [--guid <guid>]*
                         [--seqnum <seqnum>]*
                         [--offset <offset>]*
@@ -39,7 +46,9 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [-h|help]
 Where:
   -r | --record-type          <record type>
-          record type to search {message|queue-op|journal-op} (default: message)
+          record type to search {<message>|queue-op|journal-op} (default: message)
+       --csl-record-type      <csl record type>
+          CSL record type to search {<snapshot>|update|commit|ack} (default: snapshot)
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
@@ -49,6 +58,8 @@ Where:
           path to a .bmq_data file
        --csl-file             <csl file>
           path to a .bmq_csl file
+       --csl-from-begin
+          force to iterate CSL file from the beginning. By default: iterate from the latest snapshot
        --guid                 <guid>
           message guid
        --seqnum               <seqnum>

@@ -48,18 +48,25 @@ namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
-// ================
-// class Parameters
-// ================
+// ==========================
+// class CommandLineArguments
+// ==========================
 
-struct CommandLineArguments {
+class CommandLineArguments {
+  public:
     // PUBLIC DATA
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
-    static const char* k_JOURNAL_TYPE;
+    static const char* k_JOURNALOP_TYPE;
+    static const char* k_CSL_SNAPSHOT_TYPE;
+    static const char* k_CSL_UPDATE_TYPE;
+    static const char* k_CSL_COMMIT_TYPE;
+    static const char* k_CSL_ACK_TYPE;
     // Record types constants
     bsl::vector<bsl::string> d_recordType;
     // List of record types to process (message, journalOp, queueOp)
+    bsl::vector<bsl::string> d_cslRecordType;
+    // List of CSL record types to process (snapshot, update, commit, ack)
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
@@ -80,6 +87,9 @@ struct CommandLineArguments {
     // Path to read data files from
     bsl::string d_cslFile;
     // Path to read CSL files from
+    bool d_cslFromBegin;
+    // If true force to iterate CSL file from the beginning, otherwise iterate
+    // from the latest snapshot
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_seqNum;
@@ -110,20 +120,48 @@ struct CommandLineArguments {
 
     // MANIPULATORS
     /// Validate the consistency of all settings.
-    bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
+    bool validate(bsl::string* error_p, bslma::Allocator* allocator = 0);
 
+  private:
+    // PRIVATE MANIPULATORS
+
+    void validateJournalModeArgs(bsl::ostream&     stream,
+                                 bslma::Allocator* allocator = 0);
+    // Validate journal mode arguments. Write validation error into the
+    // specified `stream`.
+
+    // PRIVATE ACCESSORS
+    void validateCslModeArgs(bsl::ostream&     stream,
+                             bslma::Allocator* allocator = 0);
+    // Validate CSL mode arguments. Write validation error into the specified
+    // `stream`.
+    bool validateRangeArgs(bsl::ostream&     error,
+                           bslma::Allocator* allocator) const;
+    // Validate range args. Return true if at least one range argument passed,
+    // false otherwise.
+
+  public:
     // CLASS METHODS
     /// Return true if the specified `recordType` is valid, false otherwise.
     /// Error message is written into the specified `stream` if `recordType` is
     /// invalid.
     static bool isValidRecordType(const bsl::string* recordType,
                                   bsl::ostream&      stream);
+    /// Return true if the specified `cslRecordType` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `cslRecordType`
+    /// is invalid.
+    static bool isValidCslRecordType(const bsl::string* cslRecordType,
+                                     bsl::ostream&      stream);
     /// Return true if the specified `fileName` is valid (file exists), false
     /// otherwise. Error message is written into the specified `stream` if
     /// `fileName` is invalid.
     static bool isValidFileName(const bsl::string* fileName,
                                 bsl::ostream&      stream);
 };
+
+// ================
+// struct Parameters
+// ================
 
 struct Parameters {
     // PUBLIC TYPES
@@ -169,16 +207,39 @@ struct Parameters {
         // Flag to process records of type journalOp
 
         // CREATORS
-        explicit ProcessRecordTypes(bool enableDefault = true);
+        explicit ProcessRecordTypes();
+    };
+
+    // VST representing CSL record types to process
+    struct ProcessCslRecordTypes {
+        // PUBLIC DATA
+        bool d_snapshot;
+        // Flag to process CSL records of type snapshot
+        bool d_update;
+        // Flag to process CSL records of type d_update
+        bool d_commit;
+        // Flag to process CSL records of type commit
+        bool d_ack;
+        // Flag to process CSL records of type ack
+
+        // CREATORS
+        explicit ProcessCslRecordTypes();
     };
 
     // PUBLIC DATA
+    bool d_cslMode;
+    // Flag to process CSL file instead of Journal one
     ProcessRecordTypes d_processRecordTypes;
     // Record types to process
+    ProcessCslRecordTypes d_processCslRecordTypes;
+    // CSL record types to process
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
     Range d_range;
     // Range parameters for filtering
+    bool d_cslFromBegin;
+    // If true force to iterate CSL file from the beginning, otherwise iterate
+    // from the latest snapshot
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<CompositeSequenceNumber> d_seqNum;

@@ -16,7 +16,8 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 #define INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 
-//@PURPOSE: Provide a factory to create an instance of command processor.
+//@PURPOSE: Provide access to journal, data and cluster state ledger file
+//interators.
 //
 //@CLASSES:
 //  m_bmqstoragetool::FileManager                 : an interface class
@@ -36,6 +37,7 @@
 // MQB
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
+// #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbmock_logidgenerator.h>
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
@@ -51,8 +53,9 @@ namespace m_bmqstoragetool {
 class FileManager {
   public:
     // MANIPULATORS
-    virtual mqbs::JournalFileIterator* journalFileIterator() = 0;
-    virtual mqbs::DataFileIterator*    dataFileIterator()    = 0;
+    virtual mqbs::JournalFileIterator*        journalFileIterator() = 0;
+    virtual mqbs::DataFileIterator*           dataFileIterator()    = 0;
+    virtual mqbc::ClusterStateLedgerIterator* cslFileIterator()     = 0;
 
     virtual ~FileManager();
 };
@@ -62,7 +65,7 @@ class FileManagerImpl : public FileManager {
     // PRIVATE TYPES
     template <typename ITER>
     class FileHandler {
-      public:
+      private:
         const bsl::string          d_path;
         ITER                       d_iter;
         mqbs::MappedFileDescriptor d_mfd;
@@ -89,6 +92,35 @@ class FileManagerImpl : public FileManager {
         mqbs::MappedFileDescriptor& mappedFileDescriptor();
     };
 
+    class CslFileHandler {
+      private:
+        // PRIVATE DATA
+        const bsl::string d_path;
+        // mqbc::IncoreClusterStateLedgerIterator  d_iter;
+        bslma::ManagedPtr<mqbsl::Ledger> d_ledger_p;
+        bool                             d_cslFromBegin;
+        bslma::Allocator*                d_allocator;
+
+      public:
+        // CREATORS
+        explicit CslFileHandler(const bsl::string& path,
+                                bool               cslFromBegin,
+                                bslma::Allocator*  allocator = 0);
+
+        ~CslFileHandler();
+
+        // MANIPULATORS
+        /// iterator resetter
+        bool resetIterator(bsl::ostream& errorDescription);
+
+        /// Incore cluster state ledger iterator
+        mqbc::IncoreClusterStateLedgerIterator* iterator();
+
+        // ACCESSORS
+        /// File path
+        const bsl::string& path() const;
+    };
+
     // PRIVATE DATA
     FileHandler<mqbs::JournalFileIterator> d_journalFile;
     // Handler of journal file
@@ -96,16 +128,22 @@ class FileManagerImpl : public FileManager {
     FileHandler<mqbs::DataFileIterator> d_dataFile;
     // Handler of data file
 
+    CslFileHandler d_cslFile;
+    // Handler of CSL file
+
   public:
     // CREATORS
     /// Default constructor
     explicit FileManagerImpl(const bsl::string& journalFile,
                              const bsl::string& dataFile,
+                             const bsl::string& cslFile,
+                             bool               cslFromBegin,
                              bslma::Allocator*  allocator = 0);
 
     // MANIPULATORS
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
     mqbs::DataFileIterator*    dataFileIterator() BSLS_KEYWORD_OVERRIDE;
+    mqbc::ClusterStateLedgerIterator* cslFileIterator() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC FUNCTIONS
     static QueueMap buildQueueMap(const bsl::string& cslFile,
@@ -116,6 +154,10 @@ class FileManagerImpl : public FileManager {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+// ==================================
+// class FileManagerImpl::FileHandler
+// ==================================
 
 template <typename ITER>
 inline FileManagerImpl::FileHandler<ITER>::FileHandler(
