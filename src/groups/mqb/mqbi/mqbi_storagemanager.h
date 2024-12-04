@@ -167,7 +167,6 @@ class StorageManagerIterator {
 class StorageManager {
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo   AppInfo;
     typedef mqbi::Storage::AppInfos  AppInfos;
     typedef AppInfos::const_iterator AppInfosCIter;
 

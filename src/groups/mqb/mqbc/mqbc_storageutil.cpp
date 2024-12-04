@@ -75,6 +75,86 @@ void optionalSemaphorePost(bslmt::Semaphore* semaphore)
 // ------------------
 
 // PRIVATE FUNCTIONS
+
+bool StorageUtil::loadDifference(mqbi::Storage::AppInfos*       result,
+                                 const mqbi::Storage::AppInfos& baseSet,
+                                 const mqbi::Storage::AppInfos& subtractionSet,
+                                 bool                           findConflicts)
+{
+    bool noConflicts = true;
+    for (mqbi::Storage::AppInfos::const_iterator cit = baseSet.cbegin();
+         cit != baseSet.cend();
+         ++cit) {
+        mqbi::Storage::AppInfos::const_iterator match = subtractionSet.find(
+            cit->first);
+
+        if (subtractionSet.end() == match) {
+            result->emplace(cit->first, cit->second);
+        }
+        else if (findConflicts && match->second != cit->second) {
+            BALL_LOG_ERROR << "appId [" << cit->first
+                           << "] has conflicting appKeys [" << cit->second
+                           << " vs " << match->second << "].  Ignoring ["
+                           << cit->second << "]";
+            noConflicts = false;
+        }
+    }
+
+    return noConflicts;
+}
+
+void StorageUtil::loadDifference(
+    bsl::unordered_set<bsl::string>*       result,
+    const bsl::unordered_set<bsl::string>& baseSet,
+    const bsl::unordered_set<bsl::string>& subtractionSet)
+{
+    for (bsl::unordered_set<bsl::string>::const_iterator cit =
+             baseSet.cbegin();
+         cit != baseSet.cend();
+         ++cit) {
+        if (subtractionSet.end() == subtractionSet.find(*cit)) {
+            result->emplace(*cit);
+        }
+    }
+}
+
+bool StorageUtil::loadAddedAndRemovedEntries(
+    mqbi::Storage::AppInfos*       addedEntries,
+    mqbi::Storage::AppInfos*       removedEntries,
+    const mqbi::Storage::AppInfos& existingEntries,
+    const mqbi::Storage::AppInfos& newEntries)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(addedEntries);
+    BSLS_ASSERT_SAFE(removedEntries);
+
+    // Find newly added entries.
+    bool noConflicts =
+        loadDifference(addedEntries, newEntries, existingEntries, true);
+
+    // Find removed entries.
+    loadDifference(removedEntries, existingEntries, newEntries, false);
+
+    return noConflicts;
+}
+
+void StorageUtil::loadAddedAndRemovedEntries(
+    bsl::unordered_set<bsl::string>*       addedEntries,
+    bsl::unordered_set<bsl::string>*       removedEntries,
+    const bsl::unordered_set<bsl::string>& existingEntries,
+    const bsl::unordered_set<bsl::string>& newEntries)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(addedEntries);
+    BSLS_ASSERT_SAFE(removedEntries);
+
+    // Find newly added entries.
+    loadDifference(addedEntries, newEntries, existingEntries);
+
+    // Find removed entries.
+    loadDifference(removedEntries, existingEntries, newEntries);
+}
+
 bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
                                       AppInfos* removedAppInfos,
                                       const mqbs::ReplicatedStorage& storage,
@@ -108,6 +188,9 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
                                removedAppInfos,
                                existingAppInfos,
                                newAppInfos);
+
+    // TEMPORARY: if duplicate AppKey values exist for the same AppId, ignore
+    // the one in 'newAppInfos'.
 
     if (addedAppInfos->empty() && removedAppInfos->empty()) {
         // No appIds to add or remove.
@@ -184,8 +267,7 @@ void StorageUtil::updateQueuePrimaryDispatched(
     mqbs::FileStore*   fs,
     const bsl::string& clusterDescription,
     int                partitionId,
-    const AppInfos&    addedIdKeyPairs,
-    const AppInfos&    removedIdKeyPairs,
+    const AppInfos&    appIdKeyPairs,
     bool               isFanout)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
@@ -198,13 +280,33 @@ void StorageUtil::updateQueuePrimaryDispatched(
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
+    AppInfos existingAppInfos;
+    storage->loadVirtualStorageDetails(&existingAppInfos);
+
+    bmqu::Printer<AppInfos> printer2(&existingAppInfos);
+
+    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
+                  << "]: Existing queue '" << storage->queueUri()
+                  << "', queueKey: '" << storage->queueKey() << "' "
+                  << printer2 << " in the storage.";
+
+    AppInfos addedAppInfos, removedAppInfos;
+
+    bool hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
+                                         &removedAppInfos,
+                                         *storage,
+                                         appIdKeyPairs);
+    if (!hasUpdate) {
+        // No update needed for AppId/Key pairs.
+        return;  // RETURN
+    }
     // Simply forward to 'updateQueuePrimaryRaw'.
     updateQueuePrimaryRaw(storage,
                           fs,
                           clusterDescription,
                           partitionId,
-                          addedIdKeyPairs,
-                          removedIdKeyPairs,
+                          addedAppInfos,
+                          removedAppInfos,
                           isFanout);
 }
 
@@ -1401,9 +1503,7 @@ void StorageUtil::recoveredQueuesCb(
             for (AppInfos::const_iterator cit = qinfo.appIdKeyPairs().cbegin();
                  cit != qinfo.appIdKeyPairs().cend();
                  ++cit) {
-                const AppInfo& p = *cit;
-
-                AppIdsInsertRc appIdsIrc = appIds.insert(p.first);
+                AppIdsInsertRc appIdsIrc = appIds.insert(cit->first);
                 if (false == appIdsIrc.second) {
                     // Duplicate AppId.
 
@@ -1413,7 +1513,7 @@ void StorageUtil::recoveredQueuesCb(
                         << "encountered a duplicate AppId while processing "
                         << "recovered queue [" << uri << "], " << "queueKey ["
                         << qit->first << "]. AppId [" << *(appIdsIrc.first)
-                        << "]. AppKey [" << p.second << "]."
+                        << "]. AppKey [" << cit->second << "]."
                         << BMQTSK_ALARMLOG_END;
                     mqbu::ExitUtil::terminate(
                         mqbu::ExitCode::e_RECOVERY_FAILURE);
@@ -2225,6 +2325,12 @@ void StorageUtil::registerQueue(
     const mqbconfm::StorageDefinition& storageDef = domain->config().storage();
     const mqbconfm::QueueMode&         queueMode  = domain->config().mode();
 
+    bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
+
+    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
+                  << "]: Registering queue '" << uri << "', queueKey: '"
+                  << queueKey << "' " << printer1 << " to the storage.";
+
     if (queueMode.isUndefinedValue()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
             << "Partition [" << partitionId
@@ -2280,18 +2386,7 @@ void StorageUtil::registerQueue(
             // to be added or removed (see comments at the beginning of this
             // routine for explanation).
 
-            AppInfos addedAppInfos, removedAppInfos;
-
-            bool hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
-                                                 &removedAppInfos,
-                                                 *storageSp.get(),
-                                                 appIdKeyPairs);
-            if (!hasUpdate) {
-                // No update needed for AppId/Key pairs.
-                return;  // RETURN
-            }
-
-            // Some AppId/Key pairs need to be updated.  Invoke
+            // Invoke
             // 'updateQueuePrimaryDispatched' in the right thread to carry out
             // the addition/removal of those pairs.
 
@@ -2308,8 +2403,7 @@ void StorageUtil::registerQueue(
                     fs,
                     clusterDescription,
                     partitionId,
-                    addedAppInfos,
-                    removedAppInfos,
+                    appIdKeyPairs,
                     domain->config().mode().isFanoutValue()));
 
             dispatcher->dispatchEvent(queueEvent,
