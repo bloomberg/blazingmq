@@ -101,7 +101,6 @@ struct StorageUtil {
 
   private:
     // TYPES
-    typedef mqbi::StorageManager::AppInfo       AppInfo;
     typedef mqbi::StorageManager::AppInfos      AppInfos;
     typedef mqbi::StorageManager::AppInfosCIter AppInfosCIter;
 
@@ -172,11 +171,21 @@ struct StorageUtil {
     // PRIVATE FUNCTIONS
 
     /// Load into the specified `result` the list of elements present in
+    /// `baseSet` which are not present in `subtractionSet`.  If the specified
+    /// `findConflicts` is `true`, detect appKey mismatch between the same
+    /// appId in the `baseSet` and `subtractionSet` and return `false` if
+    /// appKey values do not match.  Otherwise, return `true`.
+    static bool loadDifference(mqbi::Storage::AppInfos*       result,
+                               const mqbi::Storage::AppInfos& baseSet,
+                               const mqbi::Storage::AppInfos& subtractionSet,
+                               bool                           findConflicts);
+
+    /// Load into the specified `result` the list of elements present in
     /// `baseSet` which are not present in `subtractionSet`.
-    template <typename T>
-    static void loadDifference(bsl::unordered_set<T>*       result,
-                               const bsl::unordered_set<T>& baseSet,
-                               const bsl::unordered_set<T>& subtractionSet);
+    static void
+    loadDifference(bsl::unordered_set<bsl::string>*       result,
+                   const bsl::unordered_set<bsl::string>& baseSet,
+                   const bsl::unordered_set<bsl::string>& subtractionSet);
 
     /// Load into the specified `addedAppInfos` and
     /// `removedAppInfos` the appId/key pairs which have been added and
@@ -207,8 +216,7 @@ struct StorageUtil {
         mqbs::FileStore*                         fs,
         const bsl::string&                       clusterDescription,
         int                                      partitionId,
-        const AppInfos&                          addedIdKeyPairs,
-        const AppInfos&                          removedIdKeyPairs,
+        const AppInfos&                          appIdKeyPairs,
         bool                                     isFanout);
 
     /// StorageManager's storages lock must be locked before calling this
@@ -362,13 +370,24 @@ struct StorageUtil {
     /// Load into the specified `addedEntries` the list of entries which are
     /// present in `newEntries` but not in `existingEntries`.  Similarly, load
     /// into the specified `removedEntries` the list of entries which are
+    /// present in `existingEntries` but not in `newEntries`.  Return `false`
+    /// if appKey values do not match for the same appId in the `newEntries`
+    /// and the `existingEntries`.  Otherwise, return `true`.
+    static bool
+    loadAddedAndRemovedEntries(mqbi::Storage::AppInfos*       addedEntries,
+                               mqbi::Storage::AppInfos*       removedEntries,
+                               const mqbi::Storage::AppInfos& existingEntries,
+                               const mqbi::Storage::AppInfos& newEntries);
+
+    /// Load into the specified `addedEntries` the list of entries which are
+    /// present in `newEntries` but not in `existingEntries`.  Similarly, load
+    /// into the specified `removedEntries` the list of entries which are
     /// present in `existingEntries` but not in `newEntries`.
-    template <typename T>
-    static void
-    loadAddedAndRemovedEntries(bsl::unordered_set<T>*       addedEntries,
-                               bsl::unordered_set<T>*       removedEntries,
-                               const bsl::unordered_set<T>& existingEntries,
-                               const bsl::unordered_set<T>& newEntries);
+    static void loadAddedAndRemovedEntries(
+        bsl::unordered_set<bsl::string>*       addedEntries,
+        bsl::unordered_set<bsl::string>*       removedEntries,
+        const bsl::unordered_set<bsl::string>& existingEntries,
+        const bsl::unordered_set<bsl::string>& newEntries);
 
     /// Return true if the queue having specified `uri` and assigned to the
     /// specified `partitionId` has no messages in the specified
@@ -785,41 +804,6 @@ unsigned int StorageUtil::extractPartitionId<true>(const bmqp::Event& event);
 // ------------------
 // struct StorageUtil
 // ------------------
-
-template <typename T>
-void StorageUtil::loadDifference(bsl::unordered_set<T>*       result,
-                                 const bsl::unordered_set<T>& baseSet,
-                                 const bsl::unordered_set<T>& subtractionSet)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(result);
-
-    typedef typename bsl::unordered_set<T>::const_iterator CIter;
-
-    for (CIter it = baseSet.cbegin(); it != baseSet.cend(); ++it) {
-        if (subtractionSet.end() == subtractionSet.find(*it)) {
-            result->emplace(*it);
-        }
-    }
-}
-
-template <typename T>
-void StorageUtil::loadAddedAndRemovedEntries(
-    bsl::unordered_set<T>*       addedEntries,
-    bsl::unordered_set<T>*       removedEntries,
-    const bsl::unordered_set<T>& existingEntries,
-    const bsl::unordered_set<T>& newEntries)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(addedEntries);
-    BSLS_ASSERT_SAFE(removedEntries);
-
-    // Find newly added entries.
-    loadDifference(addedEntries, newEntries, existingEntries);
-
-    // Find removed entries.
-    loadDifference(removedEntries, existingEntries, newEntries);
-}
 
 template <bool IS_RECOVERY>
 unsigned int StorageUtil::extractPartitionId(const bmqp::Event& event)

@@ -3639,7 +3639,7 @@ void StorageManager::initializeQueueKeyInfoMap(
             for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
                  appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppInfo(*appIdCit);
+                qinfo.addAppInfo(appIdCit);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
@@ -3650,12 +3650,11 @@ void StorageManager::initializeQueueKeyInfoMap(
     d_isQueueKeyInfoMapVecInitialized = true;
 }
 
-void StorageManager::registerQueue(
-    const bmqt::Uri&                   uri,
-    const mqbu::StorageKey&            queueKey,
-    int                                partitionId,
-    const bsl::unordered_set<AppInfo>& appIdKeyPairs,
-    mqbi::Domain*                      domain)
+void StorageManager::registerQueue(const bmqt::Uri&        uri,
+                                   const mqbu::StorageKey& queueKey,
+                                   int                     partitionId,
+                                   const AppInfos&         appIdKeyPairs,
+                                   mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
