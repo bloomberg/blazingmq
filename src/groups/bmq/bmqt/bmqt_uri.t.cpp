@@ -54,13 +54,13 @@ static void threadFunction(int                                      threadId,
     barrier->wait();
 
     for (int i = 0; i < numIterations; ++i) {
-        bmqu::MemOutStream osstrDomain(s_allocator_p);
-        bmqu::MemOutStream osstrQueue(s_allocator_p);
+        bmqu::MemOutStream osstrDomain(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream osstrQueue(bmqtst::TestHelperUtil::allocator());
         osstrDomain << "my.domain." << threadId << "." << i;
         osstrQueue << "queue-foo-bar-" << threadId << "-" << i;
 
-        bmqt::Uri        qualifiedUri(s_allocator_p);
-        bmqt::UriBuilder builder(s_allocator_p);
+        bmqt::Uri        qualifiedUri(bmqtst::TestHelperUtil::allocator());
+        bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
         builder.setDomain(osstrDomain.str());
         builder.setQueue(osstrQueue.str());
 
@@ -96,31 +96,32 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     int         rc = 0;
-    bsl::string error(s_allocator_p);
+    bsl::string error(bmqtst::TestHelperUtil::allocator());
 
     PV("Test constructors");
     {
-        bsl::string uriStr("bmq://my.domain/queue-foo-bar", s_allocator_p);
-        bmqt::Uri   obj1(uriStr, s_allocator_p);
+        bsl::string uriStr("bmq://my.domain/queue-foo-bar",
+                           bmqtst::TestHelperUtil::allocator());
+        bmqt::Uri   obj1(uriStr, bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj1.isValid(), true);
 
         const bslstl::StringRef& uriStrRef = uriStr;
-        bmqt::Uri                obj2(uriStrRef, s_allocator_p);
+        bmqt::Uri obj2(uriStrRef, bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj2.isValid(), true);
         ASSERT_EQ(obj1, obj2);
 
         const char* uriRaw = uriStr.data();
-        bmqt::Uri   obj3(uriRaw, s_allocator_p);
+        bmqt::Uri   obj3(uriRaw, bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj3.isValid(), true);
         ASSERT_EQ(obj2, obj3);
 
-        bmqt::Uri obj4(obj3, s_allocator_p);
+        bmqt::Uri obj4(obj3, bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj4.isValid(), true);
         ASSERT_EQ(obj3, obj4);
@@ -128,12 +129,13 @@ static void test1_breathingTest()
 
     PV("Test basic parsing");
     {
-        bmqt::Uri obj(s_allocator_p);
+        bmqt::Uri obj(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.isValid(), false);
         {
             // Scope input to ensure it gets deleted after (and so validate the
             // string ref are correctly pointing to the right values).
-            bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+            bsl::string uri("bmq://my.domain/queue-foo-bar",
+                            bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, uri);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -154,12 +156,12 @@ static void test1_breathingTest()
     PV("Test assignment operator")
     {
         const char k_URI[] = "bmq://my.domain.~tst/queue";
-        bmqt::Uri  objCopy(s_allocator_p);
+        bmqt::Uri  objCopy(bmqtst::TestHelperUtil::allocator());
 
         {
             // Scope the original URI, so that it will be destroyed before we
             // check the copy.
-            bmqt::Uri objOriginal(s_allocator_p);
+            bmqt::Uri objOriginal(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&objOriginal, &error, k_URI);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -181,14 +183,14 @@ static void test1_breathingTest()
     PV("Testing comparison operators")
     {
         const char k_URI[] = "bmq://my.domain/queue";
-        bmqt::Uri  obj1(s_allocator_p);
+        bmqt::Uri  obj1(bmqtst::TestHelperUtil::allocator());
 
         bmqt::UriParser::parse(&obj1, &error, k_URI);
 
-        bmqt::Uri obj2(obj1, s_allocator_p);
+        bmqt::Uri obj2(obj1, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj1, obj2);
 
-        bmqt::Uri obj3(s_allocator_p);
+        bmqt::Uri obj3(bmqtst::TestHelperUtil::allocator());
         ASSERT_NE(obj1, obj3);
 
         obj3 = obj2;
@@ -199,7 +201,7 @@ static void test1_breathingTest()
     {
         {
             const char k_URI[] = "bmq://ts.trades.myapp/my.queue";
-            bmqt::Uri  obj(s_allocator_p);
+            bmqt::Uri  obj(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, k_URI);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -214,7 +216,7 @@ static void test1_breathingTest()
         }
         {
             const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
-            bmqt::Uri  obj(s_allocator_p);
+            bmqt::Uri  obj(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, k_URI);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -228,7 +230,7 @@ static void test1_breathingTest()
         }
         {
             const char k_URI[] = "bmq://ts.trades.myapp.~tst/my.queue";
-            bmqt::Uri  obj(s_allocator_p);
+            bmqt::Uri  obj(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, k_URI);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -245,7 +247,7 @@ static void test1_breathingTest()
         }
         {
             const char k_URI[] = "bmq://ts.trades.myapp.~lcl-fooBar/my.queue";
-            bmqt::Uri  obj(s_allocator_p);
+            bmqt::Uri  obj(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, k_URI);
             ASSERT_EQ(rc, 0);
             ASSERT_EQ(error, "");
@@ -297,7 +299,7 @@ static void test1_breathingTest()
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
 
-            bmqt::Uri obj(s_allocator_p);
+            bmqt::Uri obj(bmqtst::TestHelperUtil::allocator());
             rc = bmqt::UriParser::parse(&obj, &error, test.d_input);
             ASSERT_EQ_D(test.d_line, rc, test.d_rc);
             ASSERT_EQ_D(test.d_line, obj.isValid(), false);
@@ -316,12 +318,12 @@ static void test2_URIBuilder()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::UriBuilder builder(s_allocator_p);
+    bmqt::UriBuilder builder(bmqtst::TestHelperUtil::allocator());
 
     {
-        bmqt::Uri uri(s_allocator_p);
+        bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
         builder.reset();
 
         builder.setDomain("si.uics.tester").setQueue("siqueue");
@@ -331,7 +333,7 @@ static void test2_URIBuilder()
     }
 
     {
-        bmqt::Uri uri(s_allocator_p);
+        bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
         builder.reset();
 
         builder.setDomain("bmq.tutorial").setQueue("worker").setId("myApp");
@@ -346,7 +348,7 @@ static void test2_URIBuilder()
     }
 
     {
-        bmqt::Uri uri(s_allocator_p);
+        bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
         builder.reset();
 
         builder.setDomain("bmq.tutorial").setTier("tst").setQueue("myQueue");
@@ -361,7 +363,7 @@ static void test2_URIBuilder()
 
     PV("domain/tier/qualifiedDomain correlation")
     {
-        bmqt::Uri uri(s_allocator_p);
+        bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
         builder.reset();
 
         builder.setQualifiedDomain("bmq.tutorial.~lcl").setQueue("myQueue");
@@ -399,8 +401,8 @@ static void test2_URIBuilder()
 
     PV("Test error case");
     {
-        bmqt::Uri   uri(s_allocator_p);
-        bsl::string errorMessage(s_allocator_p);
+        bmqt::Uri   uri(bmqtst::TestHelperUtil::allocator());
+        bsl::string errorMessage(bmqtst::TestHelperUtil::allocator());
         builder.reset();
 
         ASSERT_EQ(builder.uri(&uri, &errorMessage), -3);  // -3: MISSING DOMAIN
@@ -418,9 +420,10 @@ static void test2_URIBuilder()
 
     PV("Test creating a builder by copy of a Uri");
     {
-        bmqt::Uri        uri("bmq://my.domain/myQueue", s_allocator_p);
-        bmqt::Uri        tmpUri(s_allocator_p);
-        bmqt::UriBuilder uriBuilder(uri, s_allocator_p);
+        bmqt::Uri        uri("bmq://my.domain/myQueue",
+                      bmqtst::TestHelperUtil::allocator());
+        bmqt::Uri        tmpUri(bmqtst::TestHelperUtil::allocator());
+        bmqt::UriBuilder uriBuilder(uri, bmqtst::TestHelperUtil::allocator());
 
         // Validate the uri in builder is the same
         ASSERT_EQ(uriBuilder.uri(&tmpUri, 0), 0);
@@ -444,19 +447,19 @@ static void test2_URIBuilder()
 /// from multiple threads.
 static void test3_URIBuilderMultiThreaded()
 {
-    s_ignoreCheckGblAlloc = true;
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no global memory is allocated because
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
     bmqtst::TestHelper::printTestName("MULTI-THREADED URI BUILDER TEST");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     const int          k_NUM_THREADS    = 6;
     const int          k_NUM_ITERATIONS = 10000;
-    bslmt::ThreadGroup threadGroup(s_allocator_p);
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
 
     // Barrier to get each thread to start at the same time; `+1` for this
     // (main) thread.
@@ -464,7 +467,8 @@ static void test3_URIBuilderMultiThreaded()
 
     typedef bsl::pair<bmqt::Uri, int> Result;
 
-    bsl::vector<bsl::vector<Result> > threadsData(s_allocator_p);
+    bsl::vector<bsl::vector<Result> > threadsData(
+        bmqtst::TestHelperUtil::allocator());
     threadsData.resize(k_NUM_THREADS);
 
     for (int i = 0; i < k_NUM_THREADS; ++i) {
@@ -492,10 +496,12 @@ static void test3_URIBuilderMultiThreaded()
                         threadResults[j].second,
                         0);  // builder rc
 
-            bmqu::MemOutStream expectedUriStr(s_allocator_p);
+            bmqu::MemOutStream expectedUriStr(
+                bmqtst::TestHelperUtil::allocator());
             expectedUriStr << "bmq://my.domain." << i << "." << j
                            << "/queue-foo-bar-" << i << "-" << j;
-            bmqt::Uri expectedUri(expectedUriStr.str(), s_allocator_p);
+            bmqt::Uri expectedUri(expectedUriStr.str(),
+                                  bmqtst::TestHelperUtil::allocator());
 
             ASSERT_EQ_D(i << ", " << j, threadResults[j].first, expectedUri);
         }
@@ -522,10 +528,10 @@ static void test4_initializeShutdown()
     bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
 
     // Initialize the 'UriParser'.
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     // Initialize should be a no-op.
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     // Shutdown the parser is a no-op.
     bmqt::UriParser::shutdown();
@@ -542,12 +548,13 @@ static void test5_testPrint()
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("Testing print");
 
-    bmqu::MemOutStream stream(s_allocator_p);
-    bmqt::Uri          obj("bmq://my.domain/myQueue", s_allocator_p);
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri          obj("bmq://my.domain/myQueue",
+                  bmqtst::TestHelperUtil::allocator());
 
     // Test stream output without line feed
     stream << obj;
@@ -588,14 +595,15 @@ static void test6_hashAppend()
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     PV("HASH FUNCTION DETERMINISTIC");
 
     int         rc = 0;
-    bsl::string error(s_allocator_p);
-    bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
-    bmqt::Uri   obj(s_allocator_p);
+    bsl::string error(bmqtst::TestHelperUtil::allocator());
+    bsl::string uri("bmq://my.domain/queue-foo-bar",
+                    bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri   obj(bmqtst::TestHelperUtil::allocator());
 
     rc = bmqt::UriParser::parse(&obj, &error, uri);
 
@@ -619,7 +627,7 @@ static void test6_hashAppend()
 
 static void test7_testLongUri()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Disable the default allocator check. When 'bmqt::Uri'
     // is created from a long uri string error message is
     // logged via 'BALL_LOG_ERROR' which allocates using
@@ -627,19 +635,21 @@ static void test7_testLongUri()
 
     bmqtst::TestHelper::printTestName("LONG URI TEST");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::WARN, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::WARN,
+                                       bmqtst::TestHelperUtil::allocator());
 
-    bsl::string domainStr("bmq://my.domain/", s_allocator_p);
+    bsl::string domainStr("bmq://my.domain/",
+                          bmqtst::TestHelperUtil::allocator());
     bsl::string pathStr(bmqt::Uri::k_QUEUENAME_MAX_LENGTH + 1,
                         'q',
-                        s_allocator_p);
+                        bmqtst::TestHelperUtil::allocator());
 
-    bmqu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
     stream << domainStr << pathStr;
 
-    bmqt::Uri obj(stream.str(), s_allocator_p);
+    bmqt::Uri obj(stream.str(), bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(observer.records().size(), 1U);
 
@@ -649,7 +659,7 @@ static void test7_testLongUri()
     ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         observer.records()[0],
         pathStr.data(),
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.isValid(), true);
 
@@ -675,7 +685,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -107,11 +107,11 @@ static void test2_postDispatch()
 //   bmqex::BdlmtMultiQueueThreadPoolExecutor::dispatch
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // MultiQueueThreadPool_Queue::executeFront() creates a vector on the
     // stack, so uses the default allocator.
 
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // MultiQueueThreadPool::start() implementation uses the global
     // allocator.
 
@@ -409,7 +409,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

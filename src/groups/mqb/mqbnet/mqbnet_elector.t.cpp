@@ -196,7 +196,7 @@ static void test1_breathingTest()
     ExpectedState exState;
 
     // Default construct the state machine
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(false, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
@@ -248,7 +248,7 @@ static void test2()
 //     wait time, then becomes leader.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -262,7 +262,7 @@ static void test2()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -401,7 +401,7 @@ static void test3()
 //     wait time, then becomes leader.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -415,7 +415,7 @@ static void test3()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -541,7 +541,7 @@ static void test4()
 //     and goes back to being a follower (this occurs 2-3 times).
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -558,7 +558,7 @@ static void test4()
     s_electorClock->reset();
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -846,7 +846,7 @@ static void test5()
 //     beat with higher term and sends leadership cession event.
 // -------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -860,7 +860,7 @@ static void test5()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -996,7 +996,7 @@ static void test6()
 //     all 3 cases.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1010,7 +1010,7 @@ static void test6()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1183,7 +1183,7 @@ static void test7()
 //     becomes unavailable) and emits a leadership cession event.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1197,7 +1197,7 @@ static void test7()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1335,7 +1335,7 @@ static void test8()
 //     from a follower and emits a leadership cession event.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1349,7 +1349,7 @@ static void test8()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1485,7 +1485,7 @@ static void test9()
 //     leader.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1499,7 +1499,7 @@ static void test9()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1561,7 +1561,7 @@ static void test10()
 //   ends up getting election response from its peers.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1575,7 +1575,7 @@ static void test10()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1646,7 +1646,7 @@ static void test11()
 //   * Quorum == 3
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1664,7 +1664,7 @@ static void test11()
     s_electorClock->reset();
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1814,7 +1814,7 @@ static void test12()
 // leader.  The node must send out voting support event to the leader.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1827,7 +1827,7 @@ static void test12()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1871,7 +1871,7 @@ static void test13()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1884,7 +1884,7 @@ static void test13()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -1948,7 +1948,7 @@ static void test14()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -1961,7 +1961,7 @@ static void test14()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -2060,7 +2060,7 @@ static void test15()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2073,7 +2073,7 @@ static void test15()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64       age = 0;
-    ElectorStateMachine       sm(s_allocator_p);
+    ElectorStateMachine       sm(bmqtst::TestHelperUtil::allocator());
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
@@ -2147,7 +2147,7 @@ static void test16()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2160,7 +2160,7 @@ static void test16()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64       age = 0;
-    ElectorStateMachine       sm(s_allocator_p);
+    ElectorStateMachine       sm(bmqtst::TestHelperUtil::allocator());
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
@@ -2251,7 +2251,7 @@ static void test17()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2264,7 +2264,7 @@ static void test17()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64       age = 0;
-    ElectorStateMachine       sm(s_allocator_p);
+    ElectorStateMachine       sm(bmqtst::TestHelperUtil::allocator());
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
@@ -2355,7 +2355,7 @@ static void test18()
 //   receives heartbeat from it (follower submits to leader).
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2368,7 +2368,7 @@ static void test18()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -2449,7 +2449,7 @@ static void test19()
 //   following the leader).
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2462,7 +2462,7 @@ static void test19()
     const int k_INVALID_NODE       = ElectorStateMachine::k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -2524,7 +2524,7 @@ static void test20()
 //     heartbeat in return so that sender node can follow self.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -2538,7 +2538,7 @@ static void test20()
     const int k_INACTIVITY_INTV_MS = 6 * bdlt::TimeUnitRatio::k_MS_PER_S;
 
     bsls::Types::Uint64 age = 0;
-    ElectorStateMachine sm(s_allocator_p);
+    ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
@@ -2670,7 +2670,8 @@ int main(int argc, char* argv[])
     using namespace mqbnet;
 
     // Setup the test clock (once per task)
-    s_electorClock = new (*s_allocator_p) bmqsys::MockTime;
+    s_electorClock = new (*bmqtst::TestHelperUtil::allocator())
+        bmqsys::MockTime;
 
     switch (_testCase) {
     case 0:
@@ -2696,11 +2697,11 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
-    s_allocator_p->deallocate(s_electorClock);
+    bmqtst::TestHelperUtil::allocator()->deallocate(s_electorClock);
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }

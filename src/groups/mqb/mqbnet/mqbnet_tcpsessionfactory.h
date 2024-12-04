@@ -272,12 +272,12 @@ class TCPSessionFactory {
 
     typedef TCPSessionFactory_OperationContext OperationContext;
 
-    typedef bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> OpHandleMp;
+    typedef bsl::shared_ptr<bmqio::ChannelFactory::OpHandle> OpHandleSp;
 
     typedef bsl::unordered_map<bmqio::Channel*, bsls::Types::Int64>
         TimestampMap;
 
-    typedef bsl::unordered_map<int, OpHandleMp> ListeningHandleMap;
+    typedef bsl::unordered_map<int, OpHandleSp> ListeningHandleMap;
 
   private:
     // DATA

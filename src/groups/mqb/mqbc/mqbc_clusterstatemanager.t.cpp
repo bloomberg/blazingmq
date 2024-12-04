@@ -96,55 +96,57 @@ struct Tester {
   public:
     // CREATORS
     Tester(bool isLeader)
-    : d_bufferFactory(1024, s_allocator_p)
-    , d_tempDir(s_allocator_p)
+    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
+    , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
     , d_clusterStateLedger_p(0)
     , d_clusterStateManager_mp(0)
     , d_storageManager()
     {
         // Create the cluster
-        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E1",
             "US-EAST",
             41234,
             mqbmock::Cluster::k_LEADER_NODE_ID,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E2",
             "US-EAST",
             41235,
             mqbmock::Cluster::k_LEADER_NODE_ID + 1,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W1",
             "US-WEST",
             41236,
             mqbmock::Cluster::k_LEADER_NODE_ID + 2,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W2",
             "US-WEST",
             41237,
             mqbmock::Cluster::k_LEADER_NODE_ID + 3,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        d_cluster_mp.load(new (*s_allocator_p)
-                              mqbmock::Cluster(&d_bufferFactory,
-                                               s_allocator_p,
-                                               true,  // isClusterMember
-                                               isLeader,
-                                               true,  // isCSLMode
-                                               true,  // isFSMWorkflow
-                                               clusterNodeDefs,
-                                               "testCluster",
-                                               d_tempDir.path()),
-                          s_allocator_p);
+        d_cluster_mp.load(
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbmock::Cluster(&d_bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
+                                 true,  // isClusterMember
+                                 isLeader,
+                                 true,  // isCSLMode
+                                 true,  // isFSMWorkflow
+                                 clusterNodeDefs,
+                                 "testCluster",
+                                 d_tempDir.path()),
+            bmqtst::TestHelperUtil::allocator());
 
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
         BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
@@ -153,28 +155,29 @@ struct Tester {
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&Tester::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&Tester::highResolutionTimer, this),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Create the cluster state ledger
         ClusterStateLedgerMp clusterStateLedger_mp(
-            new (*s_allocator_p)
-                mqbmock::ClusterStateLedger(d_cluster_mp->_clusterData(),
-                                            s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbmock::ClusterStateLedger(
+                    d_cluster_mp->_clusterData(),
+                    bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         d_clusterStateLedger_p = dynamic_cast<mqbmock::ClusterStateLedger*>(
             clusterStateLedger_mp.get());
 
         // Create the cluster state manager
         d_clusterStateManager_mp.load(
-            new (*s_allocator_p)
+            new (*bmqtst::TestHelperUtil::allocator())
                 mqbc::ClusterStateManager(d_cluster_mp->_clusterDefinition(),
                                           d_cluster_mp.get(),
                                           d_cluster_mp->_clusterData(),
                                           &d_cluster_mp->_state(),
                                           clusterStateLedger_mp,
                                           k_WATCHDOG_TIMEOUT_DURATION,
-                                          s_allocator_p),
-            s_allocator_p);
+                                          bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         d_clusterStateManager_mp->setStorageManager(&d_storageManager);
 
         // Start the cluster and the cluster state manager
@@ -303,7 +306,7 @@ struct Tester {
             mqbc::ClusterUtil::extractMessage(
                 &message,
                 cit->second->writeCalls()[0].d_blob,
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
         }
     }
@@ -335,7 +338,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, expectedMessage);
             }
             else {
@@ -366,7 +369,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, expectedMessage);
             }
             else {
@@ -403,7 +406,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
             }
             else {
@@ -436,7 +439,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, expectedMessage);
             }
             else {
@@ -487,7 +490,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 BSLS_ASSERT_OPT(message.choice().clusterMessage() ==
                                 expectedFollowerClusterStateRequest);
             }
@@ -531,7 +534,7 @@ struct Tester {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, expectedMessage);
             }
             else {
@@ -2590,7 +2593,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -2622,7 +2625,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTestLeader(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -165,7 +165,7 @@ struct Tester {
     // CREATORS
     Tester(bool               keepOldLogs = true,
            bsls::Types::Int64 maxLogSize  = k_LOG_MAX_SIZE,
-           bslma::Allocator*  allocator   = s_allocator_p)
+           bslma::Allocator*  allocator = bmqtst::TestHelperUtil::allocator())
     : d_config(allocator)
     , d_ledger_mp(0)
     , d_tempDir(allocator)
@@ -405,7 +405,8 @@ static void test3_openMultipleLogsNoKeep()
 
     LedgerRecordId obsoleteRecordId(obsoleteLogId, 0);
     char           entry[Tester::k_OLD_LOG_LEN];
-    bdlbb::Blob    blobEntry(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob    blobEntry(tester.bufferFactory(),
+                          bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(ledger->updateOutstandingNumBytes(obsoleteLogId, 100),
               LedgerOpResult::e_LOG_NOT_FOUND);
     ASSERT_EQ(ledger->setOutstandingNumBytes(obsoleteLogId, 100),
@@ -737,7 +738,8 @@ static void test7_writeRecordBlob()
                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     // 1. Write a list of records.
-    bdlbb::Blob    blob(tester.miniBufferFactory(), s_allocator_p);
+    bdlbb::Blob    blob(tester.miniBufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
@@ -764,7 +766,8 @@ static void test7_writeRecordBlob()
     BSLS_ASSERT_OPT(ledger->outstandingNumBytes() == Tester::k_OLD_LOG_LEN);
 
     // 3. Write a long record.
-    bdlbb::Blob blob2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob2(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob2,
@@ -783,7 +786,8 @@ static void test7_writeRecordBlob()
 
     // 4. Write a record that would trigger rollover and would be written to a
     //    new log.
-    bdlbb::Blob blob3(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob3(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob3,
@@ -813,7 +817,8 @@ static void test7_writeRecordBlob()
               newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
 
     // 5. Write one more record.
-    bdlbb::Blob blob4(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob4(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
     ASSERT_EQ(ledger->writeRecord(&recordId,
                                   blob4,
@@ -893,7 +898,8 @@ static void test8_writeRecordBlobSection()
                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     // 1. Write a list of records.
-    bdlbb::Blob    blob(tester.miniBufferFactory(), s_allocator_p);
+    bdlbb::Blob    blob(tester.miniBufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
@@ -922,7 +928,8 @@ static void test8_writeRecordBlobSection()
     BSLS_ASSERT_OPT(ledger->outstandingNumBytes() == Tester::k_OLD_LOG_LEN);
 
     // 3. Write a long record.
-    bdlbb::Blob blob2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob2(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
 
     bmqu::BlobPosition start2(0, k_LONG_ENTRY_OFFSET);
@@ -942,7 +949,8 @@ static void test8_writeRecordBlobSection()
 
     // 4. Write a record that would trigger rollover and would be written to a
     //    new log.
-    bdlbb::Blob blob3(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob3(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
 
     bmqu::BlobPosition start3;
@@ -973,7 +981,8 @@ static void test8_writeRecordBlobSection()
               newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
 
     // 5. Write one more record.
-    bdlbb::Blob blob4(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob4(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
 
     bmqu::BlobPosition start4;
@@ -1194,7 +1203,8 @@ static void test10_readRecordBlob()
     BSLS_ASSERT_OPT(ledger->totalNumBytes(logId3) == k_EXTRA_ENTRY_LEN * 2);
 
     // 1. Read each record in Log 1
-    bdlbb::Blob blob(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob(tester.bufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     char        entry[k_DUMMY_LOG_MESSAGE_LEN];
 
     // Skip the log ID written at the beginning of the log
@@ -1523,7 +1533,8 @@ static void test12_aliasRecordBlob()
     BSLS_ASSERT_OPT(ledger->totalNumBytes(logId3) == k_EXTRA_ENTRY_LEN * 2);
 
     // 1. Read each record in Log 1
-    bdlbb::Blob blob(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob(tester.bufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     char        entry[k_DUMMY_LOG_MESSAGE_LEN];
 
     // Skip the log ID written at the beginning of the log
@@ -1662,7 +1673,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
         switch (_testCase) {
@@ -1681,7 +1692,7 @@ int main(int argc, char* argv[])
         case 12: test12_aliasRecordBlob(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
     }

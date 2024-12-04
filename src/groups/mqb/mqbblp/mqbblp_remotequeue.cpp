@@ -124,6 +124,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
+    storageMp->setConsistency(domainCfg.consistency());
     int rc = storageMp->configure(errorDescription,
                                   config,
                                   limits,
@@ -152,7 +153,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
             RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
         d_allocator_p);
 
-    rc = d_queueEngine_mp->configure(errorDescription);
+    rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
@@ -243,6 +244,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             d_allocator_p);
     }
     else {
+        d_state_p->storage()->setConsistency(domainCfg.consistency());
         rc = d_state_p->storage()->configure(
             errorDescription,
             domainCfg.storage().config(),
@@ -256,7 +258,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
 
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    errorDesc(&localAllocator);
-    rc = d_queueEngine_mp->configure(errorDesc);
+    rc = d_queueEngine_mp->configure(errorDesc, isReconfigure);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_state_p->domain()->cluster()->name() << ": Partition ["

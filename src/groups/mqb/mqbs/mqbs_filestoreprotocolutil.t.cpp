@@ -66,14 +66,15 @@ static void test1_hasBmqHeader()
     {
         // Sufficient minimum bytes for header but magic mismatch
         char* p = static_cast<char*>(
-            s_allocator_p->allocate(FileHeader::k_MIN_HEADER_SIZE + 3));
+            bmqtst::TestHelperUtil::allocator()->allocate(
+                FileHeader::k_MIN_HEADER_SIZE + 3));
         bsl::memset(p, 0, FileHeader::k_MIN_HEADER_SIZE + 3);
         MemoryBlock          block(p, FileHeader::k_MIN_HEADER_SIZE + 3);
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
         mfd.setFileSize(FileHeader::k_MIN_HEADER_SIZE + 3);
         ASSERT_EQ(-2, FileStoreProtocolUtil::hasBmqHeader(mfd));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -81,7 +82,7 @@ static void test1_hasBmqHeader()
         // header.headerWords()
 
         char* p = static_cast<char*>(
-            s_allocator_p->allocate(sizeof(FileHeader)));
+            bmqtst::TestHelperUtil::allocator()->allocate(sizeof(FileHeader)));
         MemoryBlock          block(p, sizeof(FileHeader));
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
@@ -94,13 +95,14 @@ static void test1_hasBmqHeader()
         fh->setHeaderWords(block.size() / 4 + 10);
 
         ASSERT_EQ(-4, FileStoreProtocolUtil::hasBmqHeader(mfd));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
         // All good
         char* p = static_cast<char*>(
-            s_allocator_p->allocate(sizeof(FileHeader) + 100));
+            bmqtst::TestHelperUtil::allocator()->allocate(sizeof(FileHeader) +
+                                                          100));
         MemoryBlock          block(p, sizeof(FileHeader) + 100);
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
@@ -110,7 +112,7 @@ static void test1_hasBmqHeader()
         new (fh.get()) FileHeader();
         fh->setFileType(FileType::e_JOURNAL);
         ASSERT_EQ(0, FileStoreProtocolUtil::hasBmqHeader(mfd));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
 
@@ -131,7 +133,8 @@ static void test2_lastJournalRecord()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             (numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -171,7 +174,7 @@ static void test2_lastJournalRecord()
                       *jfh,
                       0));  // last journal sync point
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -182,7 +185,8 @@ static void test2_lastJournalRecord()
             lastJournalSyncPoint +
             (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE) - 1;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -197,7 +201,7 @@ static void test2_lastJournalRecord()
                                                      fh,
                                                      jfh,
                                                      lastJournalSyncPoint));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -215,7 +219,8 @@ static void test2_lastJournalRecord()
         bsls::Types::Uint64 lastValidRecordPos =
             blockSize - FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -240,7 +245,7 @@ static void test2_lastJournalRecord()
 
         ASSERT_EQ(lastValidRecordPos, result);
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -250,7 +255,8 @@ static void test2_lastJournalRecord()
         bsls::Types::Uint64 blockSize = sizeof(FileHeader) +
                                         sizeof(JournalFileHeader);
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -270,7 +276,7 @@ static void test2_lastJournalRecord()
             FileStoreProtocolUtil::lastJournalRecord(mfd, *fh, *jfh, 0);
         ASSERT_EQ(0ULL, result);
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
 
@@ -291,7 +297,8 @@ static void test3_lastJournalSyncPoint()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -315,7 +322,7 @@ static void test3_lastJournalSyncPoint()
 
         ASSERT_EQ(0ULL,
                   FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -326,7 +333,8 @@ static void test3_lastJournalSyncPoint()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -344,7 +352,7 @@ static void test3_lastJournalSyncPoint()
 
         ASSERT_EQ(0ULL,
                   FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -356,7 +364,8 @@ static void test3_lastJournalSyncPoint()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -404,7 +413,7 @@ static void test3_lastJournalSyncPoint()
 
         ASSERT_EQ(syncPointPos,
                   FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -416,7 +425,8 @@ static void test3_lastJournalSyncPoint()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -442,7 +452,7 @@ static void test3_lastJournalSyncPoint()
 
         ASSERT_EQ(0ULL,
                   FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -454,7 +464,8 @@ static void test3_lastJournalSyncPoint()
             sizeof(FileHeader) + sizeof(JournalFileHeader) +
             numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-        char* p = static_cast<char*>(s_allocator_p->allocate(blockSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(blockSize));
 
         MemoryBlock          block(p, blockSize);
         MappedFileDescriptor mfd;
@@ -491,7 +502,7 @@ static void test3_lastJournalSyncPoint()
 
         ASSERT_EQ(syncPointPos,
                   FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
 
@@ -507,9 +518,10 @@ static void test4_loadAppInfos()
     {
         // No appIds.
 
-        char*             p = static_cast<char*>(s_allocator_p->allocate(1));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(1));
         mqbs::MemoryBlock mb(p, 1);
-        AppInfos          appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -517,7 +529,7 @@ static void test4_loadAppInfos()
 
         ASSERT_EQ(0u, appIdKeyPairs.size());
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -528,7 +540,8 @@ static void test4_loadAppInfos()
         const size_t numPaddingBytes = 3;
         const size_t totalSize = sizeof(mqbs::AppIdHeader) + paddedAppIdLen +
                                  mqbs::FileStoreProtocol::k_HASH_LENGTH;
-        char*  p      = static_cast<char*>(s_allocator_p->allocate(totalSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
         size_t offset = 0;
 
         // Append AppIdHeader.
@@ -540,7 +553,7 @@ static void test4_loadAppInfos()
         offset += sizeof(mqbs::AppIdHeader);
 
         // Append AppId.
-        bsl::string appId(appIdLen, 'g', s_allocator_p);
+        bsl::string appId(appIdLen, 'g', bmqtst::TestHelperUtil::allocator());
         bsl::memcpy(p + offset, appId.c_str(), appIdLen);
         offset += appIdLen;
 
@@ -563,7 +576,7 @@ static void test4_loadAppInfos()
 
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppInfos          appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -573,7 +586,7 @@ static void test4_loadAppInfos()
         ASSERT_EQ(appId, appIdKeyPairs.begin()->first);
         ASSERT_EQ(appKey, appIdKeyPairs.begin()->second);
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
     {
@@ -581,9 +594,11 @@ static void test4_loadAppInfos()
         const int numAppIds = 6;
         size_t    totalSize = 0;
 
-        bsl::vector<size_t> appIdLenVec(s_allocator_p);
-        bsl::vector<size_t> paddedAppIdLenVec(s_allocator_p);
-        bsl::vector<size_t> numPaddingBytesVec(s_allocator_p);
+        bsl::vector<size_t> appIdLenVec(bmqtst::TestHelperUtil::allocator());
+        bsl::vector<size_t> paddedAppIdLenVec(
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<size_t> numPaddingBytesVec(
+            bmqtst::TestHelperUtil::allocator());
 
         for (int n = 0; n < numAppIds; ++n) {
             size_t appIdLen = (n + 1) * 9 + 3;
@@ -601,9 +616,10 @@ static void test4_loadAppInfos()
                          mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
 
-        char*    p = static_cast<char*>(s_allocator_p->allocate(totalSize));
+        char* p = static_cast<char*>(
+            bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
         size_t   offset = 0;
-        AppInfos expectedAppInfos(s_allocator_p);
+        AppInfos expectedAppInfos(bmqtst::TestHelperUtil::allocator());
 
         for (int n = 0; n < numAppIds; ++n) {
             // Append AppIdHeader.
@@ -620,7 +636,7 @@ static void test4_loadAppInfos()
 
             bsl::string appId(appIdLenVec[n],
                               static_cast<char>(n + 1),
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
             bsl::memcpy(p + offset, appId.c_str(), appIdLenVec[n]);
             offset += appIdLenVec[n];
 
@@ -645,13 +661,14 @@ static void test4_loadAppInfos()
                         appHash,
                         mqbs::FileStoreProtocol::k_HASH_LENGTH);
 
-            expectedAppInfos.emplace(
-                AppInfo(bsl::string(appId, s_allocator_p), appKey));
+            expectedAppInfos.emplace(AppInfo(
+                bsl::string(appId, bmqtst::TestHelperUtil::allocator()),
+                appKey));
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
         // Test.
         mqbs::MemoryBlock mb(p, totalSize);
-        AppInfos          appIdKeyPairs(s_allocator_p);
+        AppInfos          appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
 
         mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                   mb,
@@ -660,7 +677,7 @@ static void test4_loadAppInfos()
         ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
         ASSERT_EQ(appIdKeyPairs, expectedAppInfos);
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
 
@@ -696,7 +713,9 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
 // used to start all the jobs simultaneously in the different threads.
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory factory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory factory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqu::BlobPosition             startPos;
 
     barrier->wait();
@@ -704,10 +723,11 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
         for (ResultsIt r = testData->begin(); r != testData->end(); ++r) {
             const bsl::string& source = r->first;
             const bsl::string& hex    = r->second;
-            bsl::string        expected(s_allocator_p);
+            bsl::string        expected(bmqtst::TestHelperUtil::allocator());
             bytesFromHex(&expected, hex);
 
-            bdlbb::Blob localBlob(&factory, s_allocator_p);
+            bdlbb::Blob localBlob(&factory,
+                                  bmqtst::TestHelperUtil::allocator());
             localBlob.setLength(source.size());
             bsl::memcpy(localBlob.buffer(0).data(),
                         source.c_str(),
@@ -723,7 +743,7 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
             ASSERT_EQ(0, rc);
             bsl::string result(buffer.buffer(),
                                MD5_DIGEST_BYTES,
-                               s_allocator_p);
+                               bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(result, expected);
         }
     }
@@ -739,14 +759,18 @@ static void test5_calculateMd5Digest()
 {
     bmqtst::TestHelper::printTestName("CALCULATE MD5 DIGEST");
 
-    bsl::string data("12345678901234567890", s_allocator_p);
-    bsl::string md5("fd85e62d9beb45428771ec688418b271", s_allocator_p);
-    bsl::string md5b(s_allocator_p);
+    bsl::string data("12345678901234567890",
+                     bmqtst::TestHelperUtil::allocator());
+    bsl::string md5("fd85e62d9beb45428771ec688418b271",
+                    bmqtst::TestHelperUtil::allocator());
+    bsl::string md5b(bmqtst::TestHelperUtil::allocator());
     bytesFromHex(&md5b, md5);
 
     bmqu::BlobPosition             startPos;
-    bdlbb::PooledBlobBufferFactory myFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&myFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory myFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&myFactory, bmqtst::TestHelperUtil::allocator());
     blob.setLength(data.size());
     bsl::memcpy(blob.buffer(0).data(), data.c_str(), data.size());
 
@@ -765,7 +789,7 @@ static void test5_calculateMd5Digest()
 
         int rc = mqbs::FileStoreProtocolUtil::calculateMd5Digest(
             &buffer,
-            bdlbb::Blob(&myFactory, s_allocator_p),
+            bdlbb::Blob(&myFactory, bmqtst::TestHelperUtil::allocator()),
             startPos,
             data.size());
         ASSERT_NE(0, rc);
@@ -820,7 +844,9 @@ static void test5_calculateMd5Digest()
                                                                  startPos,
                                                                  data.size());
         ASSERT_EQ(0, rc);
-        bsl::string result(buffer.buffer(), MD5_DIGEST_BYTES, s_allocator_p);
+        bsl::string result(buffer.buffer(),
+                           MD5_DIGEST_BYTES,
+                           bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(result, md5b);
     }
 
@@ -831,9 +857,11 @@ static void test5_calculateMd5Digest()
         if (data.size() % bufferSize > 0) {
             ++expected_num;
         }
-        bdlbb::PooledBlobBufferFactory myLittleFactory(bufferSize,
-                                                       s_allocator_p);
-        bdlbb::Blob chunkedBlob(&myLittleFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory myLittleFactory(
+            bufferSize,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob chunkedBlob(&myLittleFactory,
+                                bmqtst::TestHelperUtil::allocator());
         chunkedBlob.setLength(data.size());
         const int num = chunkedBlob.numBuffers();
 
@@ -852,36 +880,43 @@ static void test5_calculateMd5Digest()
                                                                  startPos,
                                                                  data.size());
         ASSERT_EQ(0, rc);
-        bsl::string result(buffer.buffer(), MD5_DIGEST_BYTES, s_allocator_p);
+        bsl::string result(buffer.buffer(),
+                           MD5_DIGEST_BYTES,
+                           bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(result, md5b);
     }
 
     {
         // Concurrency
-        Results correctMd5s(s_allocator_p);
-        correctMd5s.emplace(bsl::string("12345678901234567890", s_allocator_p),
+        Results correctMd5s(bmqtst::TestHelperUtil::allocator());
+        correctMd5s.emplace(bsl::string("12345678901234567890",
+                                        bmqtst::TestHelperUtil::allocator()),
                             bsl::string("fd85e62d9beb45428771ec688418b271",
-                                        s_allocator_p));
-        correctMd5s.emplace(bsl::string("15646546656965165468", s_allocator_p),
+                                        bmqtst::TestHelperUtil::allocator()));
+        correctMd5s.emplace(bsl::string("15646546656965165468",
+                                        bmqtst::TestHelperUtil::allocator()),
                             bsl::string("858d54d19e406ddf8442ece8340b41b9",
-                                        s_allocator_p));
-        correctMd5s.emplace(bsl::string("87849898267587856598", s_allocator_p),
+                                        bmqtst::TestHelperUtil::allocator()));
+        correctMd5s.emplace(bsl::string("87849898267587856598",
+                                        bmqtst::TestHelperUtil::allocator()),
                             bsl::string("dca72b4fe4319fdd40ae2153dac62c51",
-                                        s_allocator_p));
-        correctMd5s.emplace(bsl::string("77777777777777777777", s_allocator_p),
+                                        bmqtst::TestHelperUtil::allocator()));
+        correctMd5s.emplace(bsl::string("77777777777777777777",
+                                        bmqtst::TestHelperUtil::allocator()),
                             bsl::string("11f733c0934d3ec1977bf99eceaecdbb",
-                                        s_allocator_p));
-        correctMd5s.emplace(bsl::string("asdfdasfg456456d4489", s_allocator_p),
+                                        bmqtst::TestHelperUtil::allocator()));
+        correctMd5s.emplace(bsl::string("asdfdasfg456456d4489",
+                                        bmqtst::TestHelperUtil::allocator()),
                             bsl::string("a5e05fd2340789b7ecf2c469e9e6fec7",
-                                        s_allocator_p));
+                                        bmqtst::TestHelperUtil::allocator()));
         const bsl::size_t numThreads = correctMd5s.size();
 
-        bslmt::ThreadGroup threadGroup(s_allocator_p);
+        bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
         bslmt::Barrier     barrier(numThreads + 1);
 
         for (bsl::size_t i = 0; i < numThreads; ++i) {
             int rc = threadGroup.addThread(
-                bdlf::BindUtil::bindS(s_allocator_p,
+                bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                       &jobForThreadPool,
                                       &correctMd5s,
                                       &barrier));
@@ -912,7 +947,7 @@ int main(int argc, char* argv[])
     case 1: test1_hasBmqHeader(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

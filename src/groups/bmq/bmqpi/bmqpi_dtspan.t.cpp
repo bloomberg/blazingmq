@@ -71,7 +71,7 @@ static void test1_breathingTest()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
     // 'markDone' methods of AbstractSession may sometimes return a
     // memory-aware object without utilizing the parameter allocator.
@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

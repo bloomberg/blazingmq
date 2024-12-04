@@ -119,8 +119,9 @@ static void test1_defaultResolutionFn()
 //  b) If resolution succeeds, the correct string is returned
 // ------------------------------------------------------------------------
 {
-    bsl::vector<bsl::string>     retHosts(s_allocator_p);
-    bsl::vector<ntsa::IpAddress> expectedAddresses(s_allocator_p);
+    bsl::vector<bsl::string>     retHosts(bmqtst::TestHelperUtil::allocator());
+    bsl::vector<ntsa::IpAddress> expectedAddresses(
+        bmqtst::TestHelperUtil::allocator());
 
     using namespace bdlf::PlaceHolders;
     ResolvingChannelFactoryUtil::ResolveFn resolveFn = bdlf::BindUtil::bind(
@@ -130,8 +131,8 @@ static void test1_defaultResolutionFn()
         &retHosts,
         &expectedAddresses);
 
-    bmqio::TestChannel base(s_allocator_p);
-    bsl::string        ret(s_allocator_p);
+    bmqio::TestChannel base(bmqtst::TestHelperUtil::allocator());
+    bsl::string        ret(bmqtst::TestHelperUtil::allocator());
 
     // No ':'
     base.setPeerUri("127.0.0.1");
@@ -184,10 +185,11 @@ static void test2_channelFactory()
 //     can safely execute.
 // ------------------------------------------------------------------------
 {
-    TestChannelFactory baseFactory(s_allocator_p);
+    TestChannelFactory baseFactory(bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<bsl::string>     retHosts(s_allocator_p);
-    bsl::vector<ntsa::IpAddress> expectedAddresses(s_allocator_p);
+    bsl::vector<bsl::string>     retHosts(bmqtst::TestHelperUtil::allocator());
+    bsl::vector<ntsa::IpAddress> expectedAddresses(
+        bmqtst::TestHelperUtil::allocator());
 
     using namespace bdlf::PlaceHolders;
     ResolvingChannelFactoryUtil::ResolveFn resolveFn = bdlf::BindUtil::bind(
@@ -197,13 +199,13 @@ static void test2_channelFactory()
         &retHosts,
         &expectedAddresses);
 
-    TestExecutor::Store execStore(s_allocator_p);
+    TestExecutor::Store execStore(bmqtst::TestHelperUtil::allocator());
 
     ResolvingChannelFactoryConfig cfg(
         &baseFactory,
         bmqex::ExecutionPolicyUtil::oneWay().neverBlocking().useExecutor(
             TestExecutor(&execStore)),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     cfg.resolutionFn(
         bdlf::BindUtil::bind(&ResolvingChannelFactoryUtil::defaultResolutionFn,
                              _1,
@@ -211,7 +213,9 @@ static void test2_channelFactory()
                              resolveFn,
                              false));
     bsl::shared_ptr<ResolvingChannelFactory> obj;
-    obj.createInplace(s_allocator_p, cfg, s_allocator_p);
+    obj.createInplace(bmqtst::TestHelperUtil::allocator(),
+                      cfg,
+                      bmqtst::TestHelperUtil::allocator());
 
     bsl::deque<bsl::shared_ptr<Channel> > channels;
 
@@ -222,7 +226,8 @@ static void test2_channelFactory()
         bdlf::BindUtil::bind(&testResultCallback, &channels, _1, _2, _3));
 
     bsl::shared_ptr<TestChannel> channel;
-    channel.createInplace(s_allocator_p, s_allocator_p);
+    channel.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
 
     // Create a Channel and observe its peerUri get updated
     channel->setPeerUri("1.2.3.4:567");
@@ -279,7 +284,7 @@ int main(int argc, char* argv[])
     case 1: test1_defaultResolutionFn(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

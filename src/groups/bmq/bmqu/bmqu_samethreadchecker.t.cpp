@@ -62,7 +62,7 @@ static void test1_breathingTest()
         &thread,
         bdlf::MemFnUtil::memFn(&bmqu::SameThreadChecker::inSameThread,
                                &sameThreadChecker),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(rc == 0);
 
     rc = bslmt::ThreadUtil::join(thread);
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

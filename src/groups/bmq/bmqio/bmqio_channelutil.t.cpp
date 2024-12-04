@@ -81,7 +81,7 @@ void appendToInputBlob(bdlbb::Blob* out, size_t length, size_t blobSize)
                             sizeof(unsigned int));
 
     // Finally, append some random bytes
-    bsl::string randomStr(s_allocator_p);
+    bsl::string randomStr(bmqtst::TestHelperUtil::allocator());
     generateRandomString(&randomStr, blobSize - k_MINIMUM_PACKET_LENGTH);
     bdlbb::BlobUtil::append(out,
                             randomStr.data(),
@@ -100,9 +100,12 @@ static void test1_handleRead_singlePacket()
 
     {
         PVV("INVALID BLOB - NO HEADER");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    packet(&bufferFactory, s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob packet(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
@@ -116,9 +119,12 @@ static void test1_handleRead_singlePacket()
 
     {
         PVV("INVALID BLOB - BOGUS HEADER PACKET TOO SMALL");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    packet(&bufferFactory, s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob packet(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -134,9 +140,12 @@ static void test1_handleRead_singlePacket()
 
     {
         PVV("VALID BLOB - INCOMPLETE INPUT BLOB");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    packet(&bufferFactory, s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob packet(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -152,9 +161,12 @@ static void test1_handleRead_singlePacket()
 
     {
         PVV("VALID BLOB - HEADER IN ONE BUFFER");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    packet(&bufferFactory, s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob packet(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -170,9 +182,12 @@ static void test1_handleRead_singlePacket()
 
     {
         PVV("VALID BLOB - HEADER IN MULTIPLE BUFFERS");
-        bdlbb::PooledBlobBufferFactory bufferFactory(2, s_allocator_p);
-        bdlbb::Blob                    packet(&bufferFactory, s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            2,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob packet(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -193,9 +208,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("INVALID BLOB - NO HEADER");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -212,9 +229,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("INVALID BLOB - BOGUS HEADER PACKET LENGTH TOO SMALL");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -232,9 +251,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("VALID BLOB - INCOMPLETE INPUT BLOB");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -252,9 +273,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("VALID BLOB - HEADER IN ONE BUFFER");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -275,9 +298,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("VALID BLOB - HEADER IN MULTIPLE BUFFERS");
-        bdlbb::PooledBlobBufferFactory bufferFactory(2, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            2,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -296,9 +321,11 @@ static void test2_handleRead_multiplePackets()
 
     {
         PVV("VALID BLOB - LEFTOVER BYTES");
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bsl::vector<bdlbb::Blob>       packets(s_allocator_p);
-        bdlbb::Blob                    input(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         int                            numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
@@ -321,7 +348,7 @@ static void test3_isLocalHost()
 
     // bmqio::ChannelUtil::isLocalHost(const ntsa::IpAddress&) internally uses
     // default allocator
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     {
         PVV("'LOCALHOST' - TRUE");
@@ -334,7 +361,8 @@ static void test3_isLocalHost()
 
     {
         PVV("'LOCAL IP ADDRESSES' - TRUE");
-        bsl::vector<ntsa::IpAddress> localIPs(s_allocator_p);
+        bsl::vector<ntsa::IpAddress> localIPs(
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(bmqio::ResolveUtil::getLocalIpAddress(&localIPs).code(),
                   ntsa::Error::e_OK);
@@ -362,7 +390,7 @@ int main(int argc, char* argv[])
     case 1: test1_handleRead_singlePacket(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

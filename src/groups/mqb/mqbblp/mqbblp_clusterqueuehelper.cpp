@@ -139,29 +139,27 @@ void createQueueUriKey(bmqt::Uri*        out,
 }
 
 void afterAppIdRegisteredDispatched(
-    mqbi::Queue*                                queue,
-    const mqbc::ClusterStateQueueInfo::AppInfo& appIdInfo)
+    mqbi::Queue*                                 queue,
+    const mqbc::ClusterStateQueueInfo::AppInfos& appInfos)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
 
-    queue->queueEngine()->afterAppIdRegistered(
-        mqbi::Storage::AppInfo(appIdInfo.first, appIdInfo.second));
+    queue->queueEngine()->afterAppIdRegistered(appInfos);
 }
 
 void afterAppIdUnregisteredDispatched(
-    mqbi::Queue*                                queue,
-    const mqbc::ClusterStateQueueInfo::AppInfo& appIdInfo)
+    mqbi::Queue*                                 queue,
+    const mqbc::ClusterStateQueueInfo::AppInfos& appInfos)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queue->dispatcher()->inDispatcherThread(queue));
 
-    queue->queueEngine()->afterAppIdUnregistered(
-        mqbi::Storage::AppInfo(appIdInfo.first, appIdInfo.second));
+    queue->queueEngine()->afterAppIdUnregistered(appInfos);
 }
 
 void handleHolderDummy(const bsl::shared_ptr<mqbi::QueueHandle>& handle)
@@ -4375,10 +4373,6 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
 
-    if (!d_cluster_p->isCSLModeEnabled()) {
-        return;  // RETURN
-    }
-
     if (!uri.isValid()) {
         // This is an appID update for the entire domain, instead of any
         // individual queue. Nothing to do for the queue helper.
@@ -4394,53 +4388,51 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
     const int      partitionId = qiter->second->partitionId();
     BSLS_ASSERT_SAFE(partitionId != mqbs::DataStore::k_INVALID_PARTITION_ID);
 
-    for (AppInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
-         ++cit) {
+    if (d_cluster_p->isCSLModeEnabled()) {
         if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
             // Note: In non-CSL mode, the queue creation callback is
             // invoked at replica nodes when they receive a queue creation
             // record from the primary in the partition stream.
 
-            mqbi::Storage::AppInfos one(1, d_allocator_p);
-            one.emplace(*cit);
-
             d_storageManager_p->updateQueueReplica(
                 partitionId,
                 uri,
                 qiter->second->key(),
-                one,
+                addedAppIds,
                 d_clusterState_p->domainStates()
                     .at(uri.qualifiedDomain())
                     ->domain());
         }
-        if (queue) {
-            d_cluster_p->dispatcher()->execute(
-                bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
-                                     queue,
-                                     *cit),
-                queue);
+
+        for (AppInfosCIter cit = removedAppIds.cbegin();
+             cit != removedAppIds.cend();
+             ++cit) {
+            if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
+                // Note: In non-CSL mode, the queue deletion callback is
+                // invoked at replica nodes when they receive a queue deletion
+                // record from the primary in the partition stream.
+                d_storageManager_p->unregisterQueueReplica(
+                    partitionId,
+                    uri,
+                    qiter->second->key(),
+                    cit->second);
+            }
         }
     }
 
-    for (AppInfosCIter cit = removedAppIds.cbegin();
-         cit != removedAppIds.cend();
-         ++cit) {
-        if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
-            // Note: In non-CSL mode, the queue deletion callback is
-            // invoked at replica nodes when they receive a queue deletion
-            // record from the primary in the partition stream.
-            d_storageManager_p->unregisterQueueReplica(partitionId,
-                                                       uri,
-                                                       qiter->second->key(),
-                                                       cit->second);
-        }
-        if (queue) {
-            d_cluster_p->dispatcher()->execute(
-                bdlf::BindUtil::bind(afterAppIdUnregisteredDispatched,
-                                     queue,
-                                     *cit),
-                queue);
-        }
+    if (queue) {
+        // TODO: replace with one call
+        d_cluster_p->dispatcher()->execute(
+            bdlf::BindUtil::bind(afterAppIdRegisteredDispatched,
+                                 queue,
+                                 addedAppIds),
+            queue);
+
+        d_cluster_p->dispatcher()->execute(
+            bdlf::BindUtil::bind(afterAppIdUnregisteredDispatched,
+                                 queue,
+                                 removedAppIds),
+            queue);
     }
 
     bmqu::Printer<AppInfos> printer1(&addedAppIds);

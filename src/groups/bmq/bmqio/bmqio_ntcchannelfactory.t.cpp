@@ -649,13 +649,13 @@ void Tester::connect(int                          line,
                      const bmqio::ConnectOptions& options,
                      StatusCategory::Enum         resultStatus)
 {
-    bsl::string handleNameStr(handleName, s_allocator_p);
+    bsl::string handleNameStr(handleName, bmqtst::TestHelperUtil::allocator());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     HandleInfo& info = d_handleMap[handleNameStr];
 
-    ConnectOptions reqOptions(options, s_allocator_p);
+    ConnectOptions reqOptions(options, bmqtst::TestHelperUtil::allocator());
 
     reqOptions.setAttemptInterval(bsls::TimeInterval(
         0,
@@ -775,7 +775,8 @@ void Tester::writeChannel(int                      line,
                           bsls::Types::Int64       highWatermark,
                           StatusCategory::Enum     statusCategory)
 {
-    bdlbb::Blob writeData(&d_blobBufferFactory, s_allocator_p);
+    bdlbb::Blob writeData(&d_blobBufferFactory,
+                          bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&writeData, data.data(), data.length());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
@@ -786,7 +787,7 @@ void Tester::writeChannel(int                      line,
         return;  // RETURN
     }
 
-    Status writeStatus(s_allocator_p);
+    Status writeStatus(bmqtst::TestHelperUtil::allocator());
     info.d_channel->write(&writeStatus, writeData, highWatermark);
     ASSERT_EQ_D(line, writeStatus.category(), statusCategory);
 }
@@ -817,7 +818,7 @@ void Tester::readChannel(int                      line,
         return;  // RETURN
     }
 
-    bsl::string readString(s_allocator_p);
+    bsl::string readString(bmqtst::TestHelperUtil::allocator());
     readString.resize(data.length(), '7');
     bmqu::BlobUtil::readNBytes(&readString.front(),
                                info.d_readData,
@@ -886,14 +887,14 @@ void Tester::checkResultCallback(int                       line,
 
         Channel::ReadCallback readCb(
             bsl::allocator_arg_t(),
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             bdlf::BindUtil::bind(&Tester::channelReadCb,
                                  this,
                                  channelName,
                                  bdlf::PlaceHolders::_1,
                                  bdlf::PlaceHolders::_2,
                                  bdlf::PlaceHolders::_3));
-        Status readStatus(s_allocator_p);
+        Status readStatus(bmqtst::TestHelperUtil::allocator());
         cbInfo.d_channel->read(&readStatus, 1, readCb);
         if (readStatus) {
             // If the read succeeds, then the channel isn't down yet
@@ -1004,10 +1005,12 @@ void Tester::checkChannelUri(int                      line,
 
 void Tester::startFilteringLogs(const bsl::string& messageSubstring)
 {
-    d_ballObserver.createInplace(s_allocator_p, &bsl::cout, s_allocator_p);
+    d_ballObserver.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                 &bsl::cout,
+                                 bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<ball::FilteringObserver> filtObserver;
-    filtObserver.createInplace(s_allocator_p,
+    filtObserver.createInplace(bmqtst::TestHelperUtil::allocator(),
                                d_ballObserver,
                                bdlf::BindUtil::bind(&ballFilter,
                                                     messageSubstring,
@@ -1053,7 +1056,7 @@ static void test6_preCreationCbTest()
 {
     bmqtst::TestHelper::printTestName("Pre Creation Cb Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concern 'a'
     t.setPreCreateCb(true);
@@ -1088,7 +1091,7 @@ static void test5_visitChannelsTest()
 {
     bmqtst::TestHelper::printTestName("Cancel Handle Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concerns 'a'
     t.init(L_);
@@ -1146,7 +1149,7 @@ static void test3_watermarkTest()
 {
     bmqtst::TestHelper::printTestName("Watermark Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concern 'a'
     t.init(L_);
@@ -1157,7 +1160,9 @@ static void test3_watermarkTest()
     t.checkResultCallback(L_, "listenHandle", "listenChannel");
     t.checkResultCallback(L_, "connectHandle", "connectChannel");
 
-    bsl::string largeMsg(10 * 1024 * 1024, 'a', s_allocator_p);
+    bsl::string largeMsg(10 * 1024 * 1024,
+                         'a',
+                         bmqtst::TestHelperUtil::allocator());
 
     // Block the IO thread to make sure our first write doesn't finish
     // before we get to the second one
@@ -1184,7 +1189,7 @@ static void test2_connectListenFailTest()
 {
     bmqtst::TestHelper::printTestName("Connect Listen Fail Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
     t.init(L_);
 
     // Concern 'a'
@@ -1235,7 +1240,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
     t.init(L_);
 
     // Listen and connect work
@@ -1288,7 +1293,7 @@ int main(int argc, char* argv[])
     case 6: test6_preCreationCbTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

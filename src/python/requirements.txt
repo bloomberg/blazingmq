@@ -1,3 +1,4 @@
+black @ git+https://github.com/psf/black
 boofuzz
 crc32c
 docker
@@ -10,4 +11,3 @@ pytest-xdist
 pyyaml
 termcolor
 xsdata
-xsdata[cli]

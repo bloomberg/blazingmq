@@ -291,7 +291,7 @@ struct ClusterUtil {
     ///         dispatcher thread.
     static void registerAppId(ClusterData*        clusterData,
                               ClusterStateLedger* ledger,
-                              const ClusterState& clusterState,
+                              ClusterState&       clusterState,
                               const bsl::string&  appId,
                               const mqbi::Domain* domain,
                               bslma::Allocator*   allocator);
@@ -305,7 +305,7 @@ struct ClusterUtil {
     ///         dispatcher thread.
     static void unregisterAppId(ClusterData*        clusterData,
                                 ClusterStateLedger* ledger,
-                                const ClusterState& clusterState,
+                                ClusterState&       clusterState,
                                 const bsl::string&  appId,
                                 const mqbi::Domain* domain,
                                 bslma::Allocator*   allocator);
@@ -416,6 +416,10 @@ struct ClusterUtil {
     static void parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
                                const bmqp_ctrlmsg::QueueInfo&       queueInfo,
                                bslma::Allocator*                    allocator);
+    static void
+    parseQueueInfo(mqbi::ClusterStateManager::AppInfos*        out,
+                   const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& apps,
+                   bslma::Allocator*                           allocator);
 };
 
 // ============================================================================

@@ -170,22 +170,18 @@ QueueConsumptionMonitor::setMaxIdleTime(bsls::Types::Int64 value)
     return *this;
 }
 
-void QueueConsumptionMonitor::registerSubStream(const mqbu::StorageKey& key)
+void QueueConsumptionMonitor::registerSubStream(const bsl::string& id)
 {
     // Should always be called from the queue thread, but will be invoked from
     // the cluster thread once upon queue creation.
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(key != mqbu::StorageKey::k_NULL_KEY ||
-                     d_subStreamInfos.empty());
-    BSLS_ASSERT_SAFE(d_subStreamInfos.find(mqbu::StorageKey::k_NULL_KEY) ==
-                     d_subStreamInfos.end());
-    BSLS_ASSERT_SAFE(d_subStreamInfos.find(key) == d_subStreamInfos.end());
+    BSLS_ASSERT_SAFE(d_subStreamInfos.find(id) == d_subStreamInfos.end());
 
-    d_subStreamInfos.insert(bsl::make_pair(key, SubStreamInfo()));
+    d_subStreamInfos.insert(bsl::make_pair(id, SubStreamInfo()));
 }
 
-void QueueConsumptionMonitor::unregisterSubStream(const mqbu::StorageKey& key)
+void QueueConsumptionMonitor::unregisterSubStream(const bsl::string& id)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -193,7 +189,7 @@ void QueueConsumptionMonitor::unregisterSubStream(const mqbu::StorageKey& key)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(key);
+    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(id);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
     d_subStreamInfos.erase(iter);
 }
@@ -231,7 +227,7 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
          iter != last;
          ++iter) {
         SubStreamInfo&          info   = iter->second;
-        const mqbu::StorageKey& appKey = iter->first;
+        const bsl::string&      id     = iter->first;
         if (info.d_messageSent) {
             // Queue is 'alive' because at least one message was sent
             // since the last 'timer'.
@@ -241,7 +237,7 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
 
             if (info.d_state == State::e_IDLE) {
                 // object was in idle state
-                onTransitionToAlive(&info, appKey);
+                onTransitionToAlive(&info, id);
                 continue;  // CONTINUE
             }
 
@@ -253,7 +249,7 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
             // No delivered messages in the last 'maxIdleTime'.
 
             // Call callback to log alarm if there are undelivered messages.
-            const bool haveUndelivered = d_loggingCb(appKey,
+            const bool haveUndelivered = d_loggingCb(id,
                                                      info.d_state ==
                                                          State::e_ALIVE);
 
@@ -269,16 +265,15 @@ void QueueConsumptionMonitor::onTimer(bsls::Types::Int64 currentTimer)
                 // so transition to alive.
                 if (info.d_state == State::e_IDLE) {
                     info.d_lastKnownGoodTimer = d_currentTimer;
-                    onTransitionToAlive(&info, appKey);
+                    onTransitionToAlive(&info, id);
                 }
             }
         }
     }
 }
 
-void QueueConsumptionMonitor::onTransitionToAlive(
-    SubStreamInfo*          subStreamInfo,
-    const mqbu::StorageKey& appKey)
+void QueueConsumptionMonitor::onTransitionToAlive(SubStreamInfo* subStreamInfo,
+                                                  const bsl::string& id)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -291,12 +286,7 @@ void QueueConsumptionMonitor::onTransitionToAlive(
     bdlma::LocalSequentialAllocator<2048> localAllocator(0);
 
     bmqt::UriBuilder uriBuilder(d_queueState_p->uri(), &localAllocator);
-    bsl::string      appId;
-
-    if (!appKey.isNull() &&
-        d_queueState_p->storage()->hasVirtualStorage(appKey, &appId)) {
-        uriBuilder.setId(appId);
-    }
+    uriBuilder.setId(id);
 
     bmqt::Uri uri(&localAllocator);
     uriBuilder.uri(&uri);

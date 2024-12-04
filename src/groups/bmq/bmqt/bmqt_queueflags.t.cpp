@@ -60,7 +60,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqu::MemOutStream  errorOs(s_allocator_p);
+    bmqu::MemOutStream  errorOs(bmqtst::TestHelperUtil::allocator());
     int                 rc;
     bsls::Types::Uint64 flags1 = 0;
     bsls::Types::Uint64 flags2 = 0;
@@ -84,7 +84,7 @@ static void test1_breathingTest()
     errorOs.reset();
 
     PV("Testing prettyPrint");
-    bmqu::MemOutStream osPrint(s_allocator_p);
+    bmqu::MemOutStream osPrint(bmqtst::TestHelperUtil::allocator());
     bmqt::QueueFlagsUtil::prettyPrint(osPrint, flags2);
     ASSERT_EQ(osPrint.str(), "");
 
@@ -103,7 +103,8 @@ static void test1_breathingTest()
     ASSERT(bmqt::QueueFlagsUtil::isReader(flags2));
     ASSERT(!bmqt::QueueFlagsUtil::isWriter(flags2));
 
-    bsl::string flagsStr("WRITE,INVALID,READ,INVALID2", s_allocator_p);
+    bsl::string flagsStr("WRITE,INVALID,READ,INVALID2",
+                         bmqtst::TestHelperUtil::allocator());
     rc = bmqt::QueueFlagsUtil::fromString(errorOs, &flags2, flagsStr);
     ASSERT_NE(rc, 0);
     ASSERT_EQ(errorOs.str(), "Invalid flag(s) 'INVALID','INVALID2'");
@@ -188,8 +189,8 @@ static void test3_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        bmqu::MemOutStream out(s_allocator_p);
-        bmqu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
         expected << test.d_expected;
 
@@ -344,7 +345,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -82,7 +82,7 @@
 //
 //  // 15 seconds later - T + 60s
 //  // consume first message
-//  monitor.onMessageSent(mqbu::StorageKey::k_NULL_KEY);
+//  monitor.onMessageSent(id);
 //
 //  // 15 seconds later - T + 75s
 //  monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
@@ -95,7 +95,7 @@
 //
 //  // 15 seconds later - T + 120s
 //  // consume second message
-//  monitor.onMessageSent(mqbu::StorageKey::k_NULL_KEY);
+//  monitor.onMessageSent(id);
 //
 //  // 15 seconds later - T + 135s
 //  monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
@@ -105,7 +105,6 @@
 
 #include <mqbblp_queuestate.h>
 #include <mqbi_queue.h>
-#include <mqbu_storagekey.h>
 
 // BDE
 #include <ball_log.h>
@@ -211,10 +210,10 @@ class QueueConsumptionMonitor {
     };
 
     /// Callback function to log alarm info when queue state transitions to
-    /// idle. First argument is the app key, second argument is a boolean flag
+    /// idle. First argument is the app id, second argument is a boolean flag
     /// to enable logging. If `enableLog` is `false`, logging is skipped.
     /// Return `true` if there are un-delivered messages and `false` otherwise.
-    typedef bsl::function<bool(const mqbu::StorageKey& appKey, bool enableLog)>
+    typedef bsl::function<bool(const bsl::string& id, bool enableLog)>
         LoggingCb;
 
   private:
@@ -239,10 +238,7 @@ class QueueConsumptionMonitor {
         State::Enum d_state;  // The current state.
     };
 
-    typedef bsl::unordered_map<mqbu::StorageKey,
-                               SubStreamInfo,
-                               bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        SubStreamInfoMap;
+    typedef bsl::unordered_map<bsl::string, SubStreamInfo> SubStreamInfoMap;
 
     typedef SubStreamInfoMap::iterator SubStreamInfoMapIter;
 
@@ -273,20 +269,20 @@ class QueueConsumptionMonitor {
 
     // ACCESSORS
 
-    /// Return the `SubStreamInfo` corresponding to the specified `key`.
-    const SubStreamInfo& subStreamInfo(const mqbu::StorageKey& key) const;
+    /// Return the `SubStreamInfo` corresponding to the specified `id`.
+    const SubStreamInfo& subStreamInfo(const bsl::string& id) const;
 
-    /// Return the `SubStreamInfo` corresponding to the specified `key`.  It
-    /// is an error to specify a `key` that has not been previously
+    /// Return the `SubStreamInfo` corresponding to the specified `id`.  It
+    /// is an error to specify an `id` that has not been previously
     /// registered via `registerSubStream`.
-    SubStreamInfo& subStreamInfo(const mqbu::StorageKey& key);
+    SubStreamInfo& subStreamInfo(const bsl::string& id);
 
     // MANIPULATORS
 
     /// Update the specified `subStreamInfo`, associated to the specified
-    /// `appKey`, and write log, upon transition to alive state.
-    void onTransitionToAlive(SubStreamInfo*          subStreamInfo,
-                             const mqbu::StorageKey& appKey);
+    /// `id`, and write log, upon transition to alive state.
+    void onTransitionToAlive(SubStreamInfo*     subStreamInfo,
+                             const bsl::string& id);
 
   public:
     // TRAITS
@@ -317,15 +313,12 @@ class QueueConsumptionMonitor {
     /// this object.
     QueueConsumptionMonitor& setMaxIdleTime(bsls::Types::Int64 value);
 
-    /// Register the substream identified by the specified `key`.
-    /// `key` may be `StorageKey::k_NULL_KEY`, in which case no other key may
-    /// be registered via this function. It is illegal to register the same
-    /// substream more than once.
-    void registerSubStream(const mqbu::StorageKey& key);
+    /// Register the substream identified by the specified `id`.
+    void registerSubStream(const bsl::string& id);
 
-    /// Stop monitoring the substream identified by the specified `key`.
-    /// `key` must have been previously registered via `registerSubStream`.
-    void unregisterSubStream(const mqbu::StorageKey& key);
+    /// Stop monitoring the substream identified by the specified `id`.
+    /// `id` must have been previously registered via `registerSubStream`.
+    void unregisterSubStream(const bsl::string& id);
 
     /// Put the object back in construction state.
     void reset();
@@ -337,17 +330,17 @@ class QueueConsumptionMonitor {
     void onTimer(bsls::Types::Int64 currentTimer);
 
     /// Notify the monitor that one or more messages were sent during the
-    /// current time period for the substream specified by `key`.  It is an
-    /// error to specify a `key` that has not been previously registered via
+    /// current time period for the substream specified by `id`.  It is an
+    /// error to specify an `id` that has not been previously registered via
     /// `registerSubStream`.
-    void onMessageSent(const mqbu::StorageKey& key);
+    void onMessageSent(const bsl::string& id);
 
     // ACCESSORS
 
     /// Return the current activity status for the monitored queue for the
-    /// substream specified by `key`.  It is an error to specify a `key`
+    /// substream specified by `id`.  It is an error to specify a `id`
     /// that has not been previously registered via `registerSubStream`.
-    State::Enum state(const mqbu::StorageKey& key) const;
+    State::Enum state(const bsl::string& id) const;
 };
 
 // FREE OPERATORS
@@ -383,7 +376,7 @@ bsl::ostream& operator<<(bsl::ostream&                             stream,
 // -----------------------------
 
 inline QueueConsumptionMonitor::SubStreamInfo&
-QueueConsumptionMonitor::subStreamInfo(const mqbu::StorageKey& key)
+QueueConsumptionMonitor::subStreamInfo(const bsl::string& id)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -391,13 +384,13 @@ QueueConsumptionMonitor::subStreamInfo(const mqbu::StorageKey& key)
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    SubStreamInfoMapIter iter = d_subStreamInfos.find(key);
+    SubStreamInfoMapIter iter = d_subStreamInfos.find(id);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
     return iter->second;
 }
 
 inline const QueueConsumptionMonitor::SubStreamInfo&
-QueueConsumptionMonitor::subStreamInfo(const mqbu::StorageKey& key) const
+QueueConsumptionMonitor::subStreamInfo(const bsl::string& id) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -405,12 +398,12 @@ QueueConsumptionMonitor::subStreamInfo(const mqbu::StorageKey& key) const
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(key);
+    SubStreamInfoMapConstIter iter = d_subStreamInfos.find(id);
     BSLS_ASSERT_SAFE(iter != d_subStreamInfos.end());
     return iter->second;
 }
 
-inline void QueueConsumptionMonitor::onMessageSent(const mqbu::StorageKey& key)
+inline void QueueConsumptionMonitor::onMessageSent(const bsl::string& id)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -424,11 +417,11 @@ inline void QueueConsumptionMonitor::onMessageSent(const mqbu::StorageKey& key)
         return;  // RETURN
     }
 
-    subStreamInfo(key).d_messageSent = true;
+    subStreamInfo(id).d_messageSent = true;
 }
 
 inline QueueConsumptionMonitor::State::Enum
-QueueConsumptionMonitor::state(const mqbu::StorageKey& key) const
+QueueConsumptionMonitor::state(const bsl::string& id) const
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -436,7 +429,7 @@ QueueConsumptionMonitor::state(const mqbu::StorageKey& key) const
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    return subStreamInfo(key).d_state;
+    return subStreamInfo(id).d_state;
 }
 
 }  // close package namespace

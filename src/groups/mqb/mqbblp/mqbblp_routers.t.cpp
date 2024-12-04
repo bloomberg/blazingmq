@@ -167,7 +167,7 @@ static void test1_registry()
 {
     typedef mqbblp::Routers::Registry<int, Item> Registry;
 
-    Registry registry(s_allocator_p);
+    Registry registry(bmqtst::TestHelperUtil::allocator());
     Item     value13(13);
     Item     value14(14);
     int      key12 = 12;
@@ -196,27 +196,31 @@ static void test2_priority()
 // reference to Consumer.
 // ------------------------------------------------------------------------
 {
-    mqbblp::Routers::Expressions expressions(s_allocator_p);
+    mqbblp::Routers::Expressions expressions(
+        bmqtst::TestHelperUtil::allocator());
 
-    expressions.record(bmqp_ctrlmsg::Expression(s_allocator_p),
-                       mqbblp::Routers::Expression());
+    expressions.record(
+        bmqp_ctrlmsg::Expression(bmqtst::TestHelperUtil::allocator()),
+        mqbblp::Routers::Expression());
 
     mqbi::QueueHandle* handle = 0;
     ++handle;
-    const bmqp_ctrlmsg::StreamParameters   streamParameters(s_allocator_p);
-    mqbblp::Routers::Consumers             consumers(s_allocator_p);
+    const bmqp_ctrlmsg::StreamParameters streamParameters(
+        bmqtst::TestHelperUtil::allocator());
+    mqbblp::Routers::Consumers consumers(bmqtst::TestHelperUtil::allocator());
     const unsigned int                     subQueueId = 13;
     mqbblp::Routers::Consumers::SharedItem consumer   = consumers.record(
         handle,
         mqbblp::Routers::Consumer(streamParameters,
                                   subQueueId,
-                                  s_allocator_p));
+                                  bmqtst::TestHelperUtil::allocator()));
 
-    mqbblp::Routers::Priority priority(s_allocator_p);
+    mqbblp::Routers::Priority priority(bmqtst::TestHelperUtil::allocator());
 
-    priority.d_subscribers.record(handle,
-                                  mqbblp::Routers::Subscriber(consumer,
-                                                              s_allocator_p));
+    priority.d_subscribers.record(
+        handle,
+        mqbblp::Routers::Subscriber(consumer,
+                                    bmqtst::TestHelperUtil::allocator()));
 }
 
 static void test3_parse()
@@ -230,18 +234,21 @@ static void test3_parse()
 //     different priorities.
 // ------------------------------------------------------------------------
 {
-    bmqp_ctrlmsg::StreamParameters       streamParams(s_allocator_p);
-    bmqp::SchemaLearner                  schemaLearner(s_allocator_p);
-    mqbblp::Routers::QueueRoutingContext queueContext(schemaLearner,
-                                                      s_allocator_p);
+    bmqp_ctrlmsg::StreamParameters streamParams(
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner schemaLearner(bmqtst::TestHelperUtil::allocator());
+    mqbblp::Routers::QueueRoutingContext queueContext(
+        schemaLearner,
+        bmqtst::TestHelperUtil::allocator());
     unsigned int                         subQueueId = 13;
-    TestStorage                          storage(subQueueId, s_allocator_p);
+    TestStorage storage(subQueueId, bmqtst::TestHelperUtil::allocator());
 
     mqbmock::QueueHandle handle1 = storage.getHandle();
 
-    bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo1(s_allocator_p);
+    bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo1(
+        bmqtst::TestHelperUtil::allocator());
 
-    bsl::string  appId("foo", s_allocator_p);
+    bsl::string  appId("foo", bmqtst::TestHelperUtil::allocator());
     unsigned int upstreamSubQueueId = 1;
     subStreamInfo1.appId()          = appId;
     subStreamInfo1.subId()          = subQueueId;
@@ -278,9 +285,11 @@ static void test3_parse()
 
         // One consumer with one subscription
         {
-            mqbblp::Routers::AppContext appContext(queueContext,
-                                                   s_allocator_p);
-            bmqu::MemOutStream          errorStream(s_allocator_p);
+            mqbblp::Routers::AppContext appContext(
+                queueContext,
+                bmqtst::TestHelperUtil::allocator());
+            bmqu::MemOutStream errorStream(
+                bmqtst::TestHelperUtil::allocator());
             appContext.load(&handle1,
                             &errorStream,
                             subStreamInfo1.subId(),
@@ -313,9 +322,11 @@ static void test3_parse()
         }
         handle1.setStreamParameters(streamParams);
         {
-            mqbblp::Routers::AppContext appContext(queueContext,
-                                                   s_allocator_p);
-            bmqu::MemOutStream          errorStream(s_allocator_p);
+            mqbblp::Routers::AppContext appContext(
+                queueContext,
+                bmqtst::TestHelperUtil::allocator());
+            bmqu::MemOutStream errorStream(
+                bmqtst::TestHelperUtil::allocator());
 
             appContext.load(&handle1,
                             &errorStream,
@@ -341,7 +352,8 @@ static void test3_parse()
         }
         // Two consumers with two subscriptions
         mqbmock::QueueHandle         handle2 = storage.getHandle();
-        bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo2(s_allocator_p);
+        bmqp_ctrlmsg::SubQueueIdInfo subStreamInfo2(
+            bmqtst::TestHelperUtil::allocator());
 
         subStreamInfo2.appId() = appId;
         subStreamInfo2.subId() = 14;
@@ -353,9 +365,11 @@ static void test3_parse()
         handle2.setStreamParameters(streamParams);
 
         {
-            mqbblp::Routers::AppContext appContext(queueContext,
-                                                   s_allocator_p);
-            bmqu::MemOutStream          errorStream(s_allocator_p);
+            mqbblp::Routers::AppContext appContext(
+                queueContext,
+                bmqtst::TestHelperUtil::allocator());
+            bmqu::MemOutStream errorStream(
+                bmqtst::TestHelperUtil::allocator());
 
             mqbblp::Routers::RoundRobin router(appContext.d_priorities);
 
@@ -437,15 +451,18 @@ static void test4_generate()
 // accumulated consumers.
 // ------------------------------------------------------------------------
 {
-    bmqp_ctrlmsg::StreamParameters       in(s_allocator_p);
-    bmqp::SchemaLearner                  schemaLearner(s_allocator_p);
-    mqbblp::Routers::QueueRoutingContext queueContext(schemaLearner,
-                                                      s_allocator_p);
+    bmqp_ctrlmsg::StreamParameters in(bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner schemaLearner(bmqtst::TestHelperUtil::allocator());
+    mqbblp::Routers::QueueRoutingContext queueContext(
+        schemaLearner,
+        bmqtst::TestHelperUtil::allocator());
     unsigned int                         upstreamSubQueueId = 1;
-    mqbblp::Routers::AppContext appContext(queueContext, s_allocator_p);
-    bmqu::MemOutStream          errorStream(s_allocator_p);
+    mqbblp::Routers::AppContext          appContext(
+        queueContext,
+        bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());
 
-    bsl::string           appId("foo", s_allocator_p);
+    bsl::string           appId("foo", bmqtst::TestHelperUtil::allocator());
     int                   priorityCount = 2;
     int                   priority      = 2;
     mqbmock::QueueHandle* handle        = 0;
@@ -484,7 +501,7 @@ static void test4_generate()
     ASSERT_EQ(errorStream.str(), "");
     ASSERT_EQ(appContext.finalize(), 2 * size_t(priorityCount));
 
-    bmqp_ctrlmsg::StreamParameters out(s_allocator_p);
+    bmqp_ctrlmsg::StreamParameters out(bmqtst::TestHelperUtil::allocator());
     appContext.generate(&out);
 
     ASSERT_EQ(out.subscriptions().size(), size_t(1));
@@ -516,10 +533,10 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
-    mqbcfg::AppConfig brokerConfig(s_allocator_p);
+    mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
     mqbcfg::BrokerConfig::set(brokerConfig);
     // expect BALL_LOG_ERROR
     switch (_testCase) {
@@ -530,7 +547,7 @@ int main(int argc, char* argv[])
     case 4: test4_generate(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

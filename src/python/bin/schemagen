@@ -1,16 +1,60 @@
 #! /usr/bin/env bash
 
+# This script generates Python classes corresponding to 'mqbcfg.xsd' and
+# 'mqbconf.xsd'
+
 set -e
 
 this=$(dirname "$0")
 python_root=$(realpath "${this}"/..)
 blazingmq_root=$(realpath "${python_root}/../..")
 
-if [ ! "$(which xsdata)" ]; then
-    echo "'xsdata' is required"
+if ! command -v xsdata; then
+    cat <<ERROR
+This script requires 'xsdata[cli]', which is not listed in
+src/python/requirements.txt because it depends on Rust, which may not be
+available in certain environments. Please install 'xsdata[cli]' manually with:
+
+    pip install 'xsdata[cli]'
+
+...and try again.
+ERROR
     exit 1
 fi
 
+copyright=$(cat <<COPYRIGHT
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+COPYRIGHT
+)
+
 cd "${python_root}"
-xsdata generate --package blazingmq.schemas "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd"
-xsdata generate --package blazingmq.schemas "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd"
+
+
+function copyright_black {
+    echo "$copyright
+
+$(cat "$1")" > "$1"
+    black -q "$1"
+}
+
+function generate {
+    xsdata generate --package blazingmq.schemas "$1"
+    copyright_black "$2"
+}
+
+generate "${blazingmq_root}/src/groups/mqb/mqbcfg/mqbcfg.xsd" blazingmq/schemas/mqbcfg.py
+generate "${blazingmq_root}/src/groups/mqb/mqbconfm/mqbconf.xsd" blazingmq/schemas/mqbconf.py
+copyright_black blazingmq/schemas/__init__.py

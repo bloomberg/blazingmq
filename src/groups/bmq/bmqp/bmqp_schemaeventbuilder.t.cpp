@@ -55,7 +55,9 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     int                            rc;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                      d_line;
@@ -73,14 +75,15 @@ static void test1_breathingTest()
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
         bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     s_allocator_p,
+                                     bmqtst::TestHelperUtil::allocator(),
                                      test.d_encodingType);
 
         PVV(test.d_line << ": Verifying accessors");
         ASSERT_EQ(obj.blob().length(), 0);
 
         PVV(test.d_line << ": Create a message");
-        bmqp_ctrlmsg::ControlMessage message(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage message(
+            bmqtst::TestHelperUtil::allocator());
         bmqp_ctrlmsg::Status&        status = message.choice().makeStatus();
         status.code()                       = 123;
         status.message()                    = "Test";
@@ -92,12 +95,13 @@ static void test1_breathingTest()
         ASSERT_EQ(obj.blob().length() % 4, 0);
 
         PVV(test.d_line << ": Decode and compare message");
-        bmqp::Event event(&obj.blob(), s_allocator_p);
+        bmqp::Event event(&obj.blob(), bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(event.isValid(), true);
         ASSERT_EQ(event.isControlEvent(), true);
 
-        bmqp_ctrlmsg::ControlMessage decoded(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage decoded(
+            bmqtst::TestHelperUtil::allocator());
         rc = event.loadControlEvent(&decoded);
         ASSERT_EQ(rc, 0);
 
@@ -131,7 +135,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
     ASSERT_EQ(rc, 0);
     ASSERT_NE(obj->blob().length(), 0);
 
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     bdlb::Guid         guid = bdlb::GuidUtil::generate();
 
     os << "msg_control_" << typeString << "_" << guid << ".bin" << bsl::ends;
@@ -172,15 +176,15 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
 
     bsl::shared_ptr<char> dataBufferSp(buf,
                                        bslstl::SharedPtrNilDeleter(),
-                                       s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, blobLen);
-    bdlbb::Blob           blb(bufferFactory, s_allocator_p);
+    bdlbb::Blob blb(bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     blb.appendDataBuffer(dataBlobBuffer);
     blb.setLength(blobLen);
 
     PVVV("Decode event");
-    bmqp::Event event(&blb, s_allocator_p);
+    bmqp::Event event(&blb, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(event.isValid(), true);
     ASSERT_EQ(event.isControlEvent(), true);
@@ -215,7 +219,7 @@ static void test2_bestEncodingSupported()
 
     PV("Remote feature set only supports one encoding");
     {
-        bsl::string features1(s_allocator_p);
+        bsl::string features1(bmqtst::TestHelperUtil::allocator());
         features1.append(bmqp::EncodingFeature::k_FIELD_NAME)
             .append(":")
             .append(bmqp::EncodingFeature::k_ENCODING_BER);
@@ -224,7 +228,7 @@ static void test2_bestEncodingSupported()
             bmqp::EncodingType::e_BER,
             bmqp::SchemaEventBuilderUtil::bestEncodingSupported(features1));
 
-        bsl::string features2(s_allocator_p);
+        bsl::string features2(bmqtst::TestHelperUtil::allocator());
         features2.append(bmqp::EncodingFeature::k_FIELD_NAME)
             .append(":")
             .append(bmqp::EncodingFeature::k_ENCODING_JSON);
@@ -236,7 +240,7 @@ static void test2_bestEncodingSupported()
 
     PV("Remote feature set supports all encodings");
     {
-        bsl::string features(s_allocator_p);
+        bsl::string features(bmqtst::TestHelperUtil::allocator());
         features.append(bmqp::EncodingFeature::k_FIELD_NAME)
             .append(":")
             .append(bmqp::EncodingFeature::k_ENCODING_BER)
@@ -274,7 +278,9 @@ static void testN1_decodeFromFile()
     bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     const int                      k_SIZE = 512;
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_SIZE, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_SIZE,
+        bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                      d_line;
@@ -292,13 +298,15 @@ static void testN1_decodeFromFile()
         PVV(test.d_line << ": Testing " << test.d_encodingType << " encoding");
 
         bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     s_allocator_p,
+                                     bmqtst::TestHelperUtil::allocator(),
                                      test.d_encodingType);
 
         PVV(test.d_line << ": Status message");
         {
-            bmqp_ctrlmsg::ControlMessage message(s_allocator_p);
-            bmqp_ctrlmsg::ControlMessage decoded(s_allocator_p);
+            bmqp_ctrlmsg::ControlMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::ControlMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::Status& status = message.choice().makeStatus();
             status.code()                = 123;
             status.message()             = "Test";
@@ -316,8 +324,10 @@ static void testN1_decodeFromFile()
 
         PVV(test.d_line << ": Negotiation message - ClientIdentity");
         {
-            bmqp_ctrlmsg::NegotiationMessage message(s_allocator_p);
-            bmqp_ctrlmsg::NegotiationMessage decoded(s_allocator_p);
+            bmqp_ctrlmsg::NegotiationMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::NegotiationMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::ClientIdentity&    ci = message.makeClientIdentity();
 
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
@@ -364,8 +374,10 @@ static void testN1_decodeFromFile()
 
         PVV(test.d_line << ": Negotiation message - ClientIdentity (GUIDS)");
         {
-            bmqp_ctrlmsg::NegotiationMessage message(s_allocator_p);
-            bmqp_ctrlmsg::NegotiationMessage decoded(s_allocator_p);
+            bmqp_ctrlmsg::NegotiationMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::NegotiationMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::ClientIdentity&    ci = message.makeClientIdentity();
 
             ci.protocolVersion() = bmqp::Protocol::k_VERSION;
@@ -412,8 +424,10 @@ static void testN1_decodeFromFile()
         PVV(test.d_line << ": Negotiation message - BrokerResponse");
         {
             const int                        k_BROKER_VERSION = 3;
-            bmqp_ctrlmsg::NegotiationMessage message(s_allocator_p);
-            bmqp_ctrlmsg::NegotiationMessage decoded(s_allocator_p);
+            bmqp_ctrlmsg::NegotiationMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::NegotiationMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::BrokerResponse&    br = message.makeBrokerResponse();
             br.protocolVersion()                = bmqp::Protocol::k_VERSION;
             br.brokerVersion()                  = k_BROKER_VERSION;
@@ -465,12 +479,15 @@ static void testN1_decodeFromFile()
 
         PVV(test.d_line << ": OpenQueue message");
         {
-            bmqp_ctrlmsg::ControlMessage message(s_allocator_p);
-            bmqp_ctrlmsg::ControlMessage decoded(s_allocator_p);
+            bmqp_ctrlmsg::ControlMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::ControlMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::OpenQueue&     openQueue =
                 message.choice().makeOpenQueue();
 
-            bmqp_ctrlmsg::QueueHandleParameters params(s_allocator_p);
+            bmqp_ctrlmsg::QueueHandleParameters params(
+                bmqtst::TestHelperUtil::allocator());
             bsls::Types::Uint64                 flags = 0;
 
             bmqt::QueueFlagsUtil::setWriter(&flags);
@@ -501,14 +518,17 @@ static void testN1_decodeFromFile()
 
         PVV(test.d_line << ": OpenQueueResponse message");
         {
-            bmqp_ctrlmsg::ControlMessage     message(s_allocator_p);
-            bmqp_ctrlmsg::ControlMessage     decoded(s_allocator_p);
+            bmqp_ctrlmsg::ControlMessage message(
+                bmqtst::TestHelperUtil::allocator());
+            bmqp_ctrlmsg::ControlMessage decoded(
+                bmqtst::TestHelperUtil::allocator());
             bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse =
                 message.choice().makeOpenQueueResponse();
             bmqp_ctrlmsg::OpenQueue& openQueue =
                 openQueueResponse.originalRequest();
 
-            bmqp_ctrlmsg::QueueHandleParameters params(s_allocator_p);
+            bmqp_ctrlmsg::QueueHandleParameters params(
+                bmqtst::TestHelperUtil::allocator());
             bsls::Types::Uint64                 flags = 0;
 
             bmqt::QueueFlagsUtil::setWriter(&flags);
@@ -549,7 +569,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -558,7 +578,7 @@ int main(int argc, char* argv[])
     case -1: testN1_decodeFromFile(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

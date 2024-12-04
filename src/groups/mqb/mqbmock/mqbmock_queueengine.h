@@ -83,10 +83,11 @@ class QueueEngine : public mqbi::QueueEngine {
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
 
-    /// Configure this instance.  Return zero on success, non-zero value
+    /// Configure this instance.  The specified `isReconfigure` flag indicate
+    /// if queue is being reconfigured. Return zero on success, non-zero value
     /// otherwise and populate the specified `errorDescription`.
-    virtual int
-    configure(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
+    virtual int configure(bsl::ostream& errorDescription,
+                          bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs

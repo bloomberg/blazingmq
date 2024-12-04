@@ -216,11 +216,11 @@ static void test2_atomicValidatorMultiThreaded()
         int ret = bslmt::ThreadUtil::createWithAllocator(
             &handles[i],
             bmqsys::ThreadUtil::defaultAttributes(),
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &acquireReleaseThread,
                                   &validator,
                                   &numRunningThreads),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(ret, 0);
     }
 
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

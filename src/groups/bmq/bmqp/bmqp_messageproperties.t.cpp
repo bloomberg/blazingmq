@@ -164,7 +164,7 @@ void populateProperties(bmqp::MessageProperties* properties,
 
     for (size_t i = 1; i < (numProps + 1); ++i) {
         size_t             remainder = i % numPropTypes;
-        bmqu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
 
         switch (remainder) {
         case 0: {
@@ -250,7 +250,9 @@ void populateProperties(bmqp::MessageProperties* properties,
 
         case 5: {
             osstr << "stringPropName" << i << bsl::ends;
-            const bsl::string value(i, 'x', s_allocator_p);
+            const bsl::string value(i,
+                                    'x',
+                                    bmqtst::TestHelperUtil::allocator());
 
             ASSERT_EQ_D(i, 0, p.setPropertyAsString(osstr.str(), value));
 
@@ -265,7 +267,9 @@ void populateProperties(bmqp::MessageProperties* properties,
 
         case 6: {
             osstr << "binaryPropName" << i << bsl::ends;
-            const bsl::vector<char> value(i, 'x', s_allocator_p);
+            const bsl::vector<char> value(i,
+                                          'x',
+                                          bmqtst::TestHelperUtil::allocator());
 
             ASSERT_EQ_D(i, 0, p.setPropertyAsBinary(osstr.str(), value));
 
@@ -463,8 +467,10 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Testing MessageProperties");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     int                            totalLen = 0;
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
@@ -540,9 +546,13 @@ static void test1_breathingTest()
     ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
 
     // Test 'Or' flavor.
-    const bsl::string       dummyName("blahblah", s_allocator_p);
-    const bsl::string       defaultVal("defval", s_allocator_p);
-    const bsl::vector<char> defaultBin(1024, 'F', s_allocator_p);
+    const bsl::string       dummyName("blahblah",
+                                bmqtst::TestHelperUtil::allocator());
+    const bsl::string       defaultVal("defval",
+                                 bmqtst::TestHelperUtil::allocator());
+    const bsl::vector<char> defaultBin(1024,
+                                       'F',
+                                       bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(p.getPropertyAsStringOr(dummyName, defaultVal), defaultVal);
     ASSERT_EQ(p.getPropertyAsInt32Or(dummyName, 42), 42);
@@ -574,15 +584,22 @@ static void test2_setPropertyTest()
 
     {
         // Test all flavors of 'setPropertyAs*'.
-        bmqp::MessageProperties obj(s_allocator_p);
+        bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
 
-        const bsl::string boolN("boolPropName", s_allocator_p);
-        const bsl::string charN("charPropName", s_allocator_p);
-        const bsl::string shortN("shortPropName", s_allocator_p);
-        const bsl::string intN("intPropName", s_allocator_p);
-        const bsl::string int64N("int64PropName", s_allocator_p);
-        const bsl::string stringN("stringPropName", s_allocator_p);
-        const bsl::string binaryN("binaryPropName", s_allocator_p);
+        const bsl::string boolN("boolPropName",
+                                bmqtst::TestHelperUtil::allocator());
+        const bsl::string charN("charPropName",
+                                bmqtst::TestHelperUtil::allocator());
+        const bsl::string shortN("shortPropName",
+                                 bmqtst::TestHelperUtil::allocator());
+        const bsl::string intN("intPropName",
+                               bmqtst::TestHelperUtil::allocator());
+        const bsl::string int64N("int64PropName",
+                                 bmqtst::TestHelperUtil::allocator());
+        const bsl::string stringN("stringPropName",
+                                  bmqtst::TestHelperUtil::allocator());
+        const bsl::string binaryN("binaryPropName",
+                                  bmqtst::TestHelperUtil::allocator());
 
         bool               boolV  = true;
         char               charV  = bsl::numeric_limits<char>::max();
@@ -591,8 +608,10 @@ static void test2_setPropertyTest()
         bsls::Types::Int64 int64V =
             bsl::numeric_limits<bsls::Types::Int64>::max();
 
-        bsl::string       stringV(42, 'x', s_allocator_p);
-        bsl::vector<char> binaryV(84, 250, s_allocator_p);
+        bsl::string stringV(42, 'x', bmqtst::TestHelperUtil::allocator());
+        bsl::vector<char> binaryV(84,
+                                  250,
+                                  bmqtst::TestHelperUtil::allocator());
 
         ASSERT_NE(0, obj.setPropertyAsBool("", boolV));
         ASSERT_NE(0, obj.setPropertyAsChar("", charV));
@@ -666,8 +685,10 @@ static void test2_setPropertyTest()
         shortV  = 17;
         intV    = 987;
         int64V  = 123456LL;
-        stringV = bsl::string(42, 'z', s_allocator_p);
-        binaryV = bsl::vector<char>(29, 170, s_allocator_p);
+        stringV = bsl::string(42, 'z', bmqtst::TestHelperUtil::allocator());
+        binaryV = bsl::vector<char>(29,
+                                    170,
+                                    bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(0, obj.setPropertyAsBool(boolN, boolV));
         ASSERT_EQ(0, obj.setPropertyAsChar(charN, charV));
@@ -688,15 +709,17 @@ static void test2_setPropertyTest()
 
     {
         // Test 'setPropertyAs*' to return error.
-        bmqp::MessageProperties p(s_allocator_p);
+        bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
 
         // Invalid property name.
         // ---------------------
-        const bsl::string invalidPropName1("#MyPropName", s_allocator_p);
+        const bsl::string invalidPropName1(
+            "#MyPropName",
+            bmqtst::TestHelperUtil::allocator());
         const bsl::string invalidPropName2(
             bmqp::MessageProperties::k_MAX_PROPERTY_NAME_LENGTH + 1,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
                   p.setPropertyAsChar(invalidPropName1, 'A'));
@@ -708,7 +731,7 @@ static void test2_setPropertyTest()
         const bsl::string invalidValue(
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH + 1,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
                   p.setPropertyAsString("dummy", invalidValue));
@@ -725,14 +748,14 @@ static void test2_setPropertyTest()
         const bsl::string bigValue(
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         const int numProp =
             bmqp::MessageProperties::k_MAX_PROPERTIES_AREA_LENGTH /
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH;
 
         for (int i = 0; i < numProp; ++i) {
-            bmqu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << "propName" << i << bsl::ends;
             ASSERT_EQ(0, p.setPropertyAsString(osstr.str(), bigValue));
         }
@@ -746,7 +769,7 @@ static void test2_setPropertyTest()
 
         for (int i = 0; i < bmqp::MessageProperties::k_MAX_NUM_PROPERTIES;
              ++i) {
-            bmqu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << "propName" << i << bsl::ends;
             ASSERT_EQ(0, p.setPropertyAsInt32(osstr.str(), i));
         }
@@ -761,14 +784,19 @@ static void test3_binaryPropertyTest()
     // Ensure that a binary property is set and retrieved correctly.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
 
     const size_t      length   = 2080;
     const char        binValue = bsl::numeric_limits<char>::max();
-    bsl::vector<char> binaryV(length, binValue, s_allocator_p);
-    const bsl::string binaryN("binPropName", s_allocator_p);
+    bsl::vector<char> binaryV(length,
+                              binValue,
+                              bmqtst::TestHelperUtil::allocator());
+    const bsl::string binaryN("binPropName",
+                              bmqtst::TestHelperUtil::allocator());
 
-    bmqp::MessageProperties p(s_allocator_p);
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(0, p.setPropertyAsBinary(binaryN, binaryV));
 
     bmqt::PropertyType::Enum ptype = bmqt::PropertyType::e_UNDEFINED;
@@ -783,10 +811,12 @@ static void test4_iteratorTest()
     // Ensure iterator's functionality is correct.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     const size_t                   numProps = 157;
-    PropertyMap                    pmap(s_allocator_p);
+    PropertyMap                    pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate 'p' instance with various properties.
     populateProperties(&p, &pmap, numProps);
@@ -806,9 +836,11 @@ static void test5_streamInTest()
     // Ensure 'streamIn' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamIn' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
     // Empty rep.
@@ -818,13 +850,13 @@ static void test5_streamInTest()
 
     // Real stuff.
     const size_t numProps = 207;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate with various properties.
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
@@ -855,9 +887,11 @@ static void test6_streamOutTest()
     // Ensure 'streamOut' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamOut' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
 
@@ -867,7 +901,7 @@ static void test6_streamOutTest()
 
     // Non empty.
     const size_t numProps = 187;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&p, &pmap, numProps);
 
@@ -879,8 +913,10 @@ static void test6_streamOutTest()
 
     const bdlbb::Blob& out2 = p.streamOut(&bufferFactory, logic);
 
-    bdlbb::PooledBlobBufferFactory bigBufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    buffer(&bigBufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bigBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob buffer(&bigBufferFactory, bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0,
               bmqp::ProtocolUtil::convertToOld(
@@ -888,7 +924,7 @@ static void test6_streamOutTest()
                   &out2,
                   bmqt::CompressionAlgorithmType::e_NONE,
                   &bufferFactory,
-                  s_allocator_p));
+                  bmqtst::TestHelperUtil::allocator()));
     // 'streamOut' encodes in the new style, 'encode' - in the old
     ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, buffer));
 
@@ -898,7 +934,7 @@ static void test6_streamOutTest()
                   &out2,
                   bmqt::CompressionAlgorithmType::e_NONE,
                   &bufferFactory,
-                  s_allocator_p));
+                  bmqtst::TestHelperUtil::allocator()));
     // 'streamOut' encodes in the new style, 'encode' - in the old
     ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out2));
 }
@@ -910,21 +946,23 @@ static void test7_streamInOutMixTest()
 
     bmqtst::TestHelper::printTestName("'streamIn/Out Mix' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
     // First stream in a valid wire-representation in an instance.
     const size_t numProps = 37;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate with various properties.
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
@@ -952,7 +990,7 @@ static void test7_streamInOutMixTest()
     // 'wireRep' has now been correctly streamed into 'p'.
 
     // Add another property in 'p' so that internal wire rep becomes dirty.
-    bsl::string newPropName("1111111111", s_allocator_p);
+    bsl::string newPropName("1111111111", bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0, p.setPropertyAsBool(newPropName, false));
     ASSERT_EQ(static_cast<int>(numProps + 1), p.numProperties());
@@ -997,21 +1035,27 @@ static void test8_printTest()
     BSLMF_ASSERT(bmqt::PropertyType::e_BINARY ==
                  bmqt::PropertyType::k_HIGHEST_SUPPORTED_PROPERTY_TYPE);
 
-    const bsl::string boolN("boolPropName", s_allocator_p);
-    const bsl::string charN("charPropName", s_allocator_p);
-    const bsl::string shortN("shortPropName", s_allocator_p);
-    const bsl::string intN("intPropName", s_allocator_p);
-    const bsl::string int64N("int64PropName", s_allocator_p);
-    const bsl::string stringN("stringPropName", s_allocator_p);
-    const bsl::string binaryN("binaryPropName", s_allocator_p);
+    const bsl::string boolN("boolPropName",
+                            bmqtst::TestHelperUtil::allocator());
+    const bsl::string charN("charPropName",
+                            bmqtst::TestHelperUtil::allocator());
+    const bsl::string shortN("shortPropName",
+                             bmqtst::TestHelperUtil::allocator());
+    const bsl::string intN("intPropName", bmqtst::TestHelperUtil::allocator());
+    const bsl::string int64N("int64PropName",
+                             bmqtst::TestHelperUtil::allocator());
+    const bsl::string stringN("stringPropName",
+                              bmqtst::TestHelperUtil::allocator());
+    const bsl::string binaryN("binaryPropName",
+                              bmqtst::TestHelperUtil::allocator());
 
     bool               boolV  = true;
     char               charV  = 63;
     short              shortV = 500;
     int                intV   = 333;
     bsls::Types::Int64 int64V = 123LL;
-    bsl::string        stringV(3, 'A', s_allocator_p);
-    bsl::vector<char>  binaryV(15, 255, s_allocator_p);
+    bsl::string        stringV(3, 'A', bmqtst::TestHelperUtil::allocator());
+    bsl::vector<char>  binaryV(15, 255, bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         bmqt::PropertyType::Enum d_type;
@@ -1033,9 +1077,9 @@ static void test8_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&             test = k_DATA[idx];
-        bmqp::MessageProperties obj(s_allocator_p);
-        bmqu::MemOutStream      out(s_allocator_p);
-        bmqu::MemOutStream      expected(s_allocator_p);
+        bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream      out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream      expected(bmqtst::TestHelperUtil::allocator());
 
         switch (test.d_type) {
         case bmqt::PropertyType::e_BOOL: {
@@ -1104,10 +1148,12 @@ static void test9_copyAssignTest()
 {
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        obj(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    PropertyMap                    pmap(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    PropertyMap pmap(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
@@ -1118,7 +1164,7 @@ static void test9_copyAssignTest()
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
@@ -1159,9 +1205,11 @@ static void test10_empty()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic(true, 1, true);
 
     // Empty rep.
@@ -1183,7 +1231,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1199,7 +1247,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

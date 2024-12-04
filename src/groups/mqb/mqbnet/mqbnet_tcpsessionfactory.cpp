@@ -35,10 +35,6 @@
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqp_event.h>
-#include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
-
 #include <bmqex_executionutil.h>
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channelutil.h>
@@ -46,7 +42,11 @@
 #include <bmqio_ntcchannel.h>
 #include <bmqio_ntcchannelfactory.h>
 #include <bmqio_resolveutil.h>
+#include <bmqio_statchannel.h>
 #include <bmqio_tcpendpoint.h>
+#include <bmqp_event.h>
+#include <bmqp_protocol.h>
+#include <bmqp_protocolutil.h>
 #include <bmqsys_threadutil.h>
 #include <bmqsys_time.h>
 #include <bmqu_blob.h>
@@ -67,6 +67,7 @@
 #include <bsl_limits.h>
 #include <bsl_utility.h>
 #include <bslalg_swaputil.h>
+#include <bslmf_movableref.h>
 #include <bslmt_lockguard.h>
 #include <bslmt_once.h>
 #include <bsls_annotation.h>
@@ -261,6 +262,24 @@ struct PortMatcher {
         return listener.port() == d_port;
     }
 };
+
+template <typename T>
+T* channelCast(bmqio::Channel* base)
+{
+    bmqio::Channel* alias = base;
+    while (alias) {
+        T* target = dynamic_cast<T*>(alias);
+        if (target) {
+            return target;
+        }
+        bmqio::DecoratingChannelPartialImp* decorated =
+            dynamic_cast<bmqio::DecoratingChannelPartialImp*>(alias);
+        if (!decorated) {
+            return NULL;
+        }
+        alias = decorated->base();
+    }
+}
 
 }  // close unnamed namespace
 
@@ -972,8 +991,8 @@ TCPSessionFactory::TCPSessionFactory(
 , d_initialMissedHeartbeatCounter(calculateInitialMissedHbCounter(config))
 , d_listeningHandles(allocator)
 , d_isListening(false)
-, d_timestampMap(allocator)
 , d_listenContexts(allocator)
+, d_timestampMap(allocator)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1392,6 +1411,8 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     const int port = listener.port();
 
     BSLS_ASSERT_SAFE(d_listenContexts.find(port) == d_listenContexts.cend());
+    BSLS_ASSERT_SAFE(d_listeningHandles.find(port) ==
+                     d_listeningHandles.cend());
 
     // Maintain ownership of 'OperationContext' instead of passing it to
     // 'ChannelFactory::listen' because it may delete the context
@@ -1411,12 +1432,11 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     bmqio::ListenOptions listenOptions;
     listenOptions.setEndpoint(endpoint.str());
 
-    OpHandleMp& listeningHandle = d_listeningHandles[port];
-
+    bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> listeningHandle_mp;
     bmqio::Status status;
     d_statChannelFactory_mp->listen(
         &status,
-        &listeningHandle,
+        &listeningHandle_mp,
         listenOptions,
         bdlf::BindUtil::bind(&TCPSessionFactory::channelStateCallback,
                              this,
@@ -1433,7 +1453,11 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
         return status.category();  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(listeningHandle);
+    BSLS_ASSERT_SAFE(listeningHandle_mp);
+
+    OpHandleSp listeningHandle_sp(listeningHandle_mp, d_allocator_p);
+    d_listeningHandles.emplace(port, listeningHandle_sp);
+
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
                   << "successfully listening to '" << endpoint.str() << "'";
 

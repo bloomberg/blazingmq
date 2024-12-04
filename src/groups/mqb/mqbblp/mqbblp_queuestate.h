@@ -62,9 +62,6 @@ namespace mqbcmd {
 class QueueState;
 }
 namespace mqbi {
-class AppKeyGenerator;
-}
-namespace mqbi {
 class Storage;
 }
 namespace mqbi {
@@ -148,9 +145,6 @@ class QueueState {
     mqbi::StorageManager* d_storageManager_p;
     // Storage manager to use.
 
-    mqbi::AppKeyGenerator* d_appKeyGenerator_p;
-    // App key generator to use.
-
     const mqbi::ClusterResources d_resources;
 
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
@@ -221,7 +215,6 @@ class QueueState {
     QueueState& setPartitionId(int value);
     QueueState& setStorage(StorageMp& value);
     QueueState& setStorageManager(mqbi::StorageManager* value);
-    QueueState& setAppKeyGenerator(mqbi::AppKeyGenerator* value);
     QueueState&
     setRoutingConfig(const bmqp_ctrlmsg::RoutingConfiguration& routingConfig);
     QueueState& setMessageThrottleConfig(
@@ -306,8 +299,6 @@ class QueueState {
     mqbi::Queue*                              queue() const;
     mqbi::Storage*                            storage() const;
     mqbi::StorageManager*                     storageManager() const;
-    mqbi::AppKeyGenerator*                    appKeyGenerator() const;
-    bool                                      isCSLModeEnabled() const;
     const bmqp_ctrlmsg::RoutingConfiguration& routingConfig() const;
     const mqbcfg::MessageThrottleConfig&      messageThrottleConfig() const;
     const bmqt::Uri&                          uri() const;
@@ -401,12 +392,6 @@ inline QueueState& QueueState::setStorage(StorageMp& value)
 inline QueueState& QueueState::setStorageManager(mqbi::StorageManager* value)
 {
     d_storageManager_p = value;
-    return *this;
-}
-
-inline QueueState& QueueState::setAppKeyGenerator(mqbi::AppKeyGenerator* value)
-{
-    d_appKeyGenerator_p = value;
     return *this;
 }
 
@@ -598,11 +583,6 @@ inline mqbi::StorageManager* QueueState::storageManager() const
     return d_storageManager_p;
 }
 
-inline mqbi::AppKeyGenerator* QueueState::appKeyGenerator() const
-{
-    return d_appKeyGenerator_p;
-}
-
 inline const bmqp_ctrlmsg::RoutingConfiguration&
 QueueState::routingConfig() const
 {
@@ -618,11 +598,6 @@ QueueState::messageThrottleConfig() const
 inline const bmqt::Uri& QueueState::uri() const
 {
     return d_uri;
-}
-
-inline bool QueueState::isCSLModeEnabled() const
-{
-    return d_domain_p->cluster()->isCSLModeEnabled();
 }
 
 inline const QueueState::SubQueues& QueueState::subQueues() const

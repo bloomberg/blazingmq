@@ -114,28 +114,28 @@ static void test1_breathingTest()
 
     // Printing
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << a;
-        bsl::string str(s_allocator_p);
+        bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 0 minor = 0 ]");
     }
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << b;
-        bsl::string str(s_allocator_p);
+        bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 1 minor = 2 ]");
     }
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << c;
-        bsl::string str(s_allocator_p);
+        bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
         ASSERT_EQ(str, "[ major = 4 minor = 3 ]");
     }
     {
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         a.print(out, 0, -1);
         ASSERT_EQ(out.str(), "");
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

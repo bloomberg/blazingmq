@@ -35,7 +35,6 @@
 #include <mqbc_storageutil.h>
 #include <mqbcfg_messages.h>
 #include <mqbconfm_messages.h>
-#include <mqbi_appkeygenerator.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_domain.h>
 #include <mqbi_storagemanager.h>
@@ -566,13 +565,6 @@ class StorageManager : public mqbi::StorageManager {
                        const AppInfos&         appIdKeyPairs,
                        mqbi::Domain*           domain = 0,
                        bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
-
-    /// Return a unique appKey for the specified `appId` for a queue
-    /// assigned to the specified `partitionId`.  This routine can be
-    /// invoked by any thread.
-    virtual mqbu::StorageKey
-    generateAppKey(const bsl::string& appId,
-                   int                partitionId) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the

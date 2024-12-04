@@ -220,7 +220,8 @@ static void test1_ClusterObserver()
     bmqtst::TestHelper::printTestName("ClusterObserver");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<ClusterObserverTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<ClusterObserverTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     // NOTE: 'ClusterObserver' is purposely not a pure protocol, each method
     //       has a default no-op implementation.
@@ -287,7 +288,8 @@ static void test2_ClusterNode()
     bmqtst::TestHelper::printTestName("ClusterNode");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<ClusterNodeTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<ClusterNodeTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -368,7 +370,8 @@ static void test3_Cluster()
     bmqtst::TestHelper::printTestName("Cluster");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<ClusterTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<ClusterTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -435,7 +438,7 @@ int main(int argc, char* argv[])
     case 1: test1_ClusterObserver(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

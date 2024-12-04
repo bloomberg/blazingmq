@@ -98,7 +98,7 @@ static void test1_messageOnStackIsInvalid()
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -156,18 +156,22 @@ static void test2_validPushMessagePrint()
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
     typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
     bmqa::Event                    event;
 
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-    implPtr = bsl::make_shared<bmqimp::Event>(&bufferFactory, s_allocator_p);
+    implPtr              = bsl::make_shared<bmqimp::Event>(
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     const int               queueId = 4321;
     const bmqt::MessageGUID guid;
@@ -176,14 +180,16 @@ static void test2_validPushMessagePrint()
     const int               numSubQueueInfos =
         bmqp::Protocol::SubQueueInfosArray::static_size + 4;
 
-    bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
-    bdlbb::Blob                        payload(&bufferFactory, s_allocator_p);
+    bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
     ASSERT_EQ(static_cast<unsigned int>(payload.length()),
               bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&bufferFactory, s_allocator_p);
+    bmqp::PushEventBuilder peb(&bufferFactory,
+                               bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(peb.eventSize()));
     ASSERT_EQ(sizeof(bmqp::EventHeader),
               static_cast<size_t>(peb.blob().length()));
@@ -209,7 +215,9 @@ static void test2_validPushMessagePrint()
     ASSERT_LT(payload.length(), peb.eventSize());
     ASSERT_EQ(1, peb.messageCount());
 
-    bmqp::Event bmqpEvent(&peb.blob(), s_allocator_p, true);
+    bmqp::Event bmqpEvent(&peb.blob(),
+                          bmqtst::TestHelperUtil::allocator(),
+                          true);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     implPtr->addCorrelationId(bmqt::CorrelationId());
@@ -234,25 +242,28 @@ static void test3_messageProperties()
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
 
     const int               queueId = 4321;
     const bmqt::MessageGUID guid;
     const char*             buffer = "abcdefghijklmnopqrstuvwxyz";
     const int               flags  = 0;
 
-    bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
-    bdlbb::Blob                        payload(&bufferFactory, s_allocator_p);
+    bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int subQueueId = 1234;
     subQueueInfos.push_back(bmqp::SubQueueInfo(subQueueId));
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
     const char                  x[]   = "x";
     const char                  y[]   = "y";
@@ -269,7 +280,8 @@ static void test3_messageProperties()
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&bufferFactory, s_allocator_p);
+    bmqp::PushEventBuilder peb(&bufferFactory,
+                               bmqtst::TestHelperUtil::allocator());
 
     // Add SubQueueInfo option
     bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
@@ -291,15 +303,20 @@ static void test3_messageProperties()
     bsl::shared_ptr<bmqimp::Event>& implPtr =
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
 
-    implPtr = bsl::make_shared<bmqimp::Event>(&bufferFactory, s_allocator_p);
+    implPtr = bsl::make_shared<bmqimp::Event>(
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     // For the ScheamLearner
     bsl::shared_ptr<bmqimp::Queue> queue =
-        bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(s_allocator_p);
+        bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(
+            bmqtst::TestHelperUtil::allocator());
     queue->setId(queueId);
     implPtr->insertQueue(subQueueId, queue);
 
-    bmqp::Event bmqpEvent(&peb.blob(), s_allocator_p, true);
+    bmqp::Event bmqpEvent(&peb.blob(),
+                          bmqtst::TestHelperUtil::allocator(),
+                          true);
 
     implPtr->configureAsMessageEvent(bmqpEvent);
     implPtr->addCorrelationId(bmqt::CorrelationId());
@@ -309,12 +326,12 @@ static void test3_messageProperties()
     mIter.nextMessage();
     bmqa::Message message = mIter.message();
 
-    bmqa::MessageProperties out1(s_allocator_p);
+    bmqa::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(0, message.loadProperties(&out1));
 
     // 1st setProperty w/o getProperty and then getProperty
     {
-        bmqa::MessageProperties out2(s_allocator_p);
+        bmqa::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
         // The second read is/was optimized (only one MPS header)
         ASSERT_EQ(0, message.loadProperties(&out2));
@@ -328,7 +345,7 @@ static void test3_messageProperties()
 
     // 2nd getProperty, setProperty and then load all
     {
-        bmqa::MessageProperties out3(s_allocator_p);
+        bmqa::MessageProperties out3(bmqtst::TestHelperUtil::allocator());
 
         // The third read is/was optimized (only one MPS header)
         ASSERT_EQ(0, message.loadProperties(&out3));
@@ -336,7 +353,7 @@ static void test3_messageProperties()
         ASSERT_EQ(y, out3.getPropertyAsString("y"));
         ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         out3.print(os, 0, -1);
 
         PV(os.str());
@@ -353,7 +370,7 @@ static void test3_messageProperties()
 
     // 3rd getProperty, setProperty and then getProperty
     {
-        bmqa::MessageProperties out4(s_allocator_p);
+        bmqa::MessageProperties out4(bmqtst::TestHelperUtil::allocator());
 
         // The fourth read is/was optimized (only one MPS header)
         ASSERT_EQ(0, message.loadProperties(&out4));
@@ -382,7 +399,7 @@ static void test4_subscriptionHandle()
 //   and PUT messages
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -401,9 +418,11 @@ static void test4_subscriptionHandle()
     const bmqt::CorrelationId cId(queueId);
 
     bsl::shared_ptr<bmqimp::Queue> queueSp = bsl::make_shared<bmqimp::Queue>(
-        s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, s_allocator_p);
-    bdlbb::Blob                    payload(&bufferFactory, s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4 * 1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     queueSp->setId(queueId);
 
@@ -417,14 +436,17 @@ static void test4_subscriptionHandle()
         const unsigned int             sId = sHandle.id();
 
         bmqa::Event                        event;
-        bmqp::Protocol::SubQueueInfosArray subQueueInfos(s_allocator_p);
+        bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
 
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-        implPtr              = bsl::make_shared<bmqimp::Event>(&bufferFactory,
-                                                  s_allocator_p);
+        implPtr              = bsl::make_shared<bmqimp::Event>(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create PushEventBuilder
-        bmqp::PushEventBuilder peb(&bufferFactory, s_allocator_p);
+        bmqp::PushEventBuilder peb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, peb.messageCount());
 
         // Add SubQueueInfo option (subscription Id)
@@ -451,7 +473,9 @@ static void test4_subscriptionHandle()
         ASSERT_LT(payload.length(), peb.eventSize());
         ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(&peb.blob(), s_allocator_p, true);
+        bmqp::Event bmqpEvent(&peb.blob(),
+                              bmqtst::TestHelperUtil::allocator(),
+                              true);
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(sId, queueSp);
@@ -481,11 +505,13 @@ static void test4_subscriptionHandle()
         bmqa::Event event;
 
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-        implPtr              = bsl::make_shared<bmqimp::Event>(&bufferFactory,
-                                                  s_allocator_p);
+        implPtr              = bsl::make_shared<bmqimp::Event>(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create PushEventBuilder
-        bmqp::PushEventBuilder peb(&bufferFactory, s_allocator_p);
+        bmqp::PushEventBuilder peb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, peb.messageCount());
 
         // Add message
@@ -500,7 +526,9 @@ static void test4_subscriptionHandle()
         ASSERT_LT(payload.length(), peb.eventSize());
         ASSERT_EQ(1, peb.messageCount());
 
-        bmqp::Event bmqpEvent(&peb.blob(), s_allocator_p, true);
+        bmqp::Event bmqpEvent(&peb.blob(),
+                              bmqtst::TestHelperUtil::allocator(),
+                              true);
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(defaultSubscriptionId, queueSp);
@@ -525,11 +553,13 @@ static void test4_subscriptionHandle()
         bmqa::Event event;
 
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-        implPtr              = bsl::make_shared<bmqimp::Event>(&bufferFactory,
-                                                  s_allocator_p);
+        implPtr              = bsl::make_shared<bmqimp::Event>(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder builder(&bufferFactory, s_allocator_p);
+        bmqp::PutEventBuilder builder(&bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, builder.messageCount());
 
         // Add message
@@ -542,7 +572,8 @@ static void test4_subscriptionHandle()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
         ASSERT_EQ(1, builder.messageCount());
 
-        bmqp::Event bmqpEvent(&builder.blob(), s_allocator_p);
+        bmqp::Event bmqpEvent(&builder.blob(),
+                              bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(queueSp);
@@ -563,11 +594,13 @@ static void test4_subscriptionHandle()
         bmqa::Event event;
 
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
-        implPtr              = bsl::make_shared<bmqimp::Event>(&bufferFactory,
-                                                  s_allocator_p);
+        implPtr              = bsl::make_shared<bmqimp::Event>(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create AckEventBuilder
-        bmqp::AckEventBuilder builder(&bufferFactory, s_allocator_p);
+        bmqp::AckEventBuilder builder(&bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(0, builder.messageCount());
 
         bmqt::EventBuilderResult::Enum rc =
@@ -576,7 +609,8 @@ static void test4_subscriptionHandle()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
         ASSERT_EQ(1, builder.messageCount());
 
-        bmqp::Event bmqpEvent(&builder.blob(), s_allocator_p);
+        bmqp::Event bmqpEvent(&builder.blob(),
+                              bmqtst::TestHelperUtil::allocator());
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(queueSp);
@@ -600,7 +634,7 @@ static void test4_subscriptionHandle()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     switch (_testCase) {
     case 0:
     case 1: test1_messageOnStackIsInvalid(); break;
@@ -609,7 +643,7 @@ int main(int argc, char* argv[])
     case 4: test4_subscriptionHandle(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
     bmqp::ProtocolUtil::shutdown();

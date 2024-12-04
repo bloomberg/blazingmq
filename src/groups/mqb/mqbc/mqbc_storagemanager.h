@@ -904,13 +904,6 @@ class StorageManager
                        mqbi::Domain*           domain = 0,
                        bool allowDuplicate = false) BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a unique appKey for the specified `appId` for a queue
-    /// assigned to the specified `partitionId`.  This routine can be
-    /// invoked by any thread.
-    virtual mqbu::StorageKey
-    generateAppKey(const bsl::string& appId,
-                   int                partitionId) BSLS_KEYWORD_OVERRIDE;
-
     /// Set the queue instance associated with the file-backed storage for
     /// the specified `uri` mapped to the specified `partitionId` to the
     /// specified `queue` value.  Note that this method *does* *not*

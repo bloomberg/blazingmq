@@ -580,8 +580,6 @@ void RelayQueueEngine::deliverMessages()
     //   1. End of storage; or
     //   2. All subStreams return 'e_NO_CAPACITY_ALL'
 
-    d_appsDeliveryContext.start();
-
     while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
         // Assume, all Apps need to deliver (some may be at capacity)
         unsigned int numApps = d_storageIter_mp->numApps();
@@ -604,14 +602,13 @@ void RelayQueueEngine::deliverMessages()
 
                 d_storageIter_mp->removeCurrentElement();
             }
-
-            if (d_appsDeliveryContext.processApp(*app, i)) {
+            else if (d_appsDeliveryContext.processApp(*app, i)) {
                 // The current element has made it either to delivery or
-                // putAside or resumerPoint and it can be removed
+                // putAside and it can be removed
                 d_storageIter_mp->removeCurrentElement();
             }
-            // Else, the current element has made it to resumerPoint and
-            // it cannot be removed
+            // Else, the current element has made it to resumePoint and it
+            // cannot be removed.
         }
         d_appsDeliveryContext.deliverMessage();
     }
@@ -929,7 +926,8 @@ RelayQueueEngine::~RelayQueueEngine()
 
 // MANIPULATORS
 int RelayQueueEngine::configure(
-    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription)
+    BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
+    BSLS_ANNOTATION_UNUSED bool          isReconfigure)
 {
     return 0;
 }
@@ -1918,14 +1916,22 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
 void RelayQueueEngine::beforeOneAppRemoved(unsigned int upstreamSubQueueId)
 {
     while (!d_storageIter_mp->atEnd()) {
-        if (d_storageIter_mp->numApps() > 1) {
+        const int numApps = d_storageIter_mp->numApps();
+        if (numApps > 1) {
             // Removal of App's elements will not invalidate 'd_storageIter_mp'
             break;
         }
+        if (numApps == 1) {
+            const PushStream::Element* element = d_storageIter_mp->element(0);
+            if (element->app().d_app->upstreamSubQueueId() !=
+                upstreamSubQueueId) {
+                break;
+            }
+        }
+        else {
+            BSLS_ASSERT_SAFE(numApps == 0);
 
-        const PushStream::Element* element = d_storageIter_mp->element(0);
-        if (element->app().d_app->upstreamSubQueueId() != upstreamSubQueueId) {
-            break;
+            // The case when 'advance' does not follow 'removeCurrentElement'
         }
 
         d_storageIter_mp->advance();

@@ -50,8 +50,9 @@
 // }
 //
 // MockPropertiesReader reader(s_allocator_p);
-// EvaluationContext evaluationContext(&reader, s_allocator_p);
-// bool result = evaluator.evaluate(evaluationContext);
+// EvaluationContext evaluationContext(&reader,
+// bmqtst::TestHelperUtil::allocator()); bool result =
+// evaluator.evaluate(evaluationContext);
 //..
 
 // BDE
