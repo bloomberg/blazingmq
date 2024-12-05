@@ -130,7 +130,7 @@ struct FileStore_AliasedBufferDeleter {
 
 /// Mechanism to store BlazingMQ messages in file. This component is
 /// *const-thread* safe.
-class FileStore : public DataStore {
+class FileStore BSLS_KEYWORD_FINAL : public DataStore {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.FILESTORE");

@@ -121,21 +121,20 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual int next() BSLS_KEYWORD_OVERRIDE;
+    int next() BSLS_KEYWORD_OVERRIDE;
 
     /// Assign self to be a copy of the specified `other`.  This uses the
     /// assignment operator under the hood, but circumvents object slicing.
     /// Behavior is undefined unless `other` and this object have the same
     /// type.
-    virtual void
-    copy(const ClusterStateLedgerIterator& other) BSLS_KEYWORD_OVERRIDE;
+    void copy(const ClusterStateLedgerIterator& other) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual mqbc::ClusterStateLedgerIterator)
 
     /// Return a new `ClusterStateLedgerIterator`, which is a clone of self,
     /// using the specified `allocator`.
-    virtual bslma::ManagedPtr<ClusterStateLedgerIterator>
+    bslma::ManagedPtr<ClusterStateLedgerIterator>
     clone(bslma::Allocator* allocator) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if this iterator is initialized and valid, and the
@@ -143,7 +142,7 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual bool isValid() const BSLS_KEYWORD_OVERRIDE;
+    bool isValid() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a const reference to the `ClusterStateRecordHeader` at the
     /// iterator position.  Behavior is undefined unless `isValid()` returns
@@ -151,8 +150,7 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual const ClusterStateRecordHeader&
-    header() const BSLS_KEYWORD_OVERRIDE;
+    const ClusterStateRecordHeader& header() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load the cluster message recorded at the iterator position to the
     /// specified `message`.  Return 0 on success or a non-zero error value
@@ -160,7 +158,7 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual int loadClusterMessage(bmqp_ctrlmsg::ClusterMessage* message) const
+    int loadClusterMessage(bmqp_ctrlmsg::ClusterMessage* message) const
         BSLS_KEYWORD_OVERRIDE;
 
     /// Format this object to the specified output `stream` at the (absolute
@@ -176,10 +174,9 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual bsl::ostream&
-    print(bsl::ostream& stream,
-          int           level          = 0,
-          int           spacesPerLevel = 4) const BSLS_KEYWORD_OVERRIDE;
+    bsl::ostream& print(bsl::ostream& stream,
+                        int           level = 0,
+                        int spacesPerLevel  = 4) const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
