@@ -17,39 +17,39 @@
 #ifndef INCLUDED_MQBA_DISPATCHER
 #define INCLUDED_MQBA_DISPATCHER
 
-//@PURPOSE: Provide an event dispatcher at the core of BlazingMQ broker.
-//
-//@CLASSES:
-//  mqba::Dispatcher: Event dispatcher.
-//
-//@SEE_ALSO:
-//  mqbi::Dispatcher: Protocol implemented by this dispatcher
-//
-//@DESCRIPTION: 'mqba::Dispatcher' is an implementation of the
-// 'mqbi::Dispatcher' protocol, using the bmqc::MultiQueueThreadPool. This
-// dispatcher supports three types of isolated independent pools of threads and
-// queues: one for the client sessions, one for the queues, and one for
-// clusters.
-//
-/// Thread Safety
-///-------------
-// 'mqba::Dispatcher' is thread safe.
-//
-/// Executors support
-///-----------------
-// As required by the 'mqbi::Dispatcher' protocol, this implementation provides
-// two types of executors, each available through the dispatcher's 'executor'
-// and 'clientExecutor' member functions respectively.  Provided executors
-// compares equal only if they refer to the same processor (for executors
-// returned by 'executor'), or if they refer to the same client (for executors
-// returned by 'clientExecutor').  A call to 'dispatch' on such executors
-// performed from within the executor's associated processor thread results in
-// the submitted functor to be executed in-place.  A call to 'dispatch' from
-// outside of the executor's associated processor thread is equivalent to a
-// call to 'post'.
+/// @file mqba_dispatcher.h
+///
+/// @brief Provide an event dispatcher at the core of BlazingMQ broker.
+///
+/// @bbref{mqba::Dispatcher} is an implementation of the
+/// @bbref{mqbi::Dispatcher} protocol, using
+/// @bbref{bmqc::MultiQueueThreadPool}.  This dispatcher supports three types
+/// of isolated independent pools of threads and queues: one for the client
+/// sessions, one for the queues, and one for clusters.
+///
+/// @see @bbref{mqba::Dispatcher}:
+///      Protocol implemented by this dispatcher.
+///
+/// Thread Safety                                     {#mqba_dispatcher_thread}
+/// =============
+///
+/// @bbref{mqba::Dispatcher} is thread-safe.
+///
+/// Executors support                              {#mqba_dispatcher_executors}
+/// =================
+///
+/// As required by the @bbref{mqbi::Dispatcher} protocol, this implementation
+/// provides two types of executors, each available through the dispatcher's
+/// `executor` and `clientExecutor` member functions respectively.  Provided
+/// executors compares equal only if they refer to the same processor (for
+/// executors returned by `executor`), or if they refer to the same client (for
+/// executors returned by `clientExecutor`).  A call to `dispatch` on such
+/// executors performed from within the executor's associated processor thread
+/// results in the submitted functor to be executed in-place.  A call to
+/// `dispatch` from outside of the executor's associated processor thread is
+/// equivalent to a call to `post`.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbu_loadbalancer.h>
@@ -233,27 +233,20 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
       public:
         // PUBLIC DATA
+
+        /// Thread pool to use.
         ThreadPoolMp d_threadPool_mp;
-        // Thread Pool to use
 
+        /// Processor pool to use.
         ProcessorPoolMp d_processorPool_mp;
-        // Processor Pool to use
 
+        /// The object responsible for distributing clients across processors.
         mqbu::LoadBalancer<mqbi::DispatcherClient> d_loadBalancer;
-        // The object responsible
-        // for distributing clients
-        // across processors
 
+        /// Vector of vector of pointers to `DispatcherClients` with the
+        /// clients for which a flush needs to be called.  The first index of
+        /// the vector corresponds to the processor.
         bsl::vector<DispatcherClientPtrVector> d_flushList;
-        // Vector of vector of
-        // pointers to
-        // DispatcherClients, with
-        // the clients for which a
-        // flush needs to be
-        // called.  The first index
-        // of the vector
-        // corresponds to the
-        // processor.
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(DispatcherContext,
@@ -276,21 +269,21 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
 
   private:
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// True if this component is started.
     bool d_isStarted;
-    // True if this component is started
 
+    /// Configuration for the dispatcher.
     mqbcfg::DispatcherConfig d_config;
-    // Configuration for the dispatcher
 
+    /// Event scheduler to use.
     bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler to use
 
+    /// The various contexts, one for each `ClientType`.
     bsl::vector<DispatcherContextSp> d_contexts;
-    // The various context, one for each
-    // ClientType
 
     // FRIENDS
     friend class Dispatcher_ClientExecutor;
@@ -299,10 +292,10 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Start the dispatcher context associated to clients of the specified
-    /// `type`, using the specified `config` and return 0 on success, or
-    /// return a non-zero value and populate the specified
-    /// `errorDescription` on error.
+    /// Start the dispatcher context associated with clients of the specified
+    /// `type`, using the specified `config` and return 0 on success, or return
+    /// a non-zero value and populate the specified `errorDescription` on
+    /// error.
     int startContext(bsl::ostream&                            errorDescription,
                      mqbi::DispatcherClientType::Enum         type,
                      const mqbcfg::DispatcherProcessorConfig& config);
@@ -320,8 +313,8 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
                  bslma::Allocator*                            allocator);
 
     /// Callback when a new object in the specified `event` and having the
-    /// associated specified `context` is dispatched for the queue in charge
-    /// of dispatcher client of the specified `type`, having the specified
+    /// specified associated `context` is dispatched for the queue in charge of
+    /// dispatcher client of the specified `type`, having the specified
     /// `processorId`.
     void queueEventCb(mqbi::DispatcherClientType::Enum type,
                       int                              processorId,
@@ -333,7 +326,7 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     void flushClients(mqbi::DispatcherClientType::Enum type, int processorId);
 
     /// This method is invoked when a new client of the specified `type` is
-    /// registered to the dispatcher, from the thread associated to that new
+    /// registered to the dispatcher, from the thread associated with that new
     /// client that is mapped to the specified `processorId`.
     void onNewClient(mqbi::DispatcherClientType::Enum type, int processorId);
 
@@ -363,17 +356,16 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
     /// Stop the `Dispatcher`.
     void stop();
 
-    /// Based on the specified `type`, associate the specified `client` to
-    /// one of the processors of the dispatcher if the optionally specified
+    /// Based on the specified `type`, associate the specified `client` to one
+    /// of the processors of the dispatcher if the optionally specified
     /// `handle` is invalid, or to the provided `handle` if it is valid, and
     /// fill in the `processorHandle` and `dispatcherClientType` in the
-    /// client's `dispatcherClientData` member.  This operation is a no-op
-    /// if the `client` is already associated with a processor *and*
-    /// `handle` is invalid.  If `handle` is valid, behavior is undefined
-    /// unless `client` is not associated with any processor.  Note that
-    /// specifying a valid `handle` is useful when BlazingMQ broker requires
-    /// a client to be associated to same processor across it's (broker's)
-    /// instantiations.
+    /// client's `dispatcherClientData` member.  This operation is a no-op if
+    /// the `client` is already associated with a processor *and* `handle` is
+    /// invalid.  If `handle` is valid, behavior is undefined unless `client`
+    /// is not associated with any processor.  Note that specifying a valid
+    /// `handle` is useful when BlazingMQ broker requires a client to be
+    /// associated with same processor across it's (broker's) instantiations.
     mqbi::Dispatcher::ProcessorHandle
     registerClient(mqbi::DispatcherClient*           client,
                    mqbi::DispatcherClientType::Enum  type,
@@ -381,36 +373,36 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
                        mqbi::Dispatcher::k_INVALID_PROCESSOR_HANDLE)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Remove the association of the specified `client` from its
-    /// processor.  If the `client` is not associated with any processor,
-    /// this method has no effect.
+    /// Remove the association of the specified `client` from its processor.
+    /// If the `client` is not associated with any processor, this method has
+    /// no effect.
     void
     unregisterClient(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
+    /// Retrieve an event from the pool to send to a client of the specified
+    /// `type`.  This event *must* be enqueued by calling `dispatchEvent`;
+    /// otherwise it will be leaked.
     mqbi::DispatcherEvent*
     getEvent(mqbi::DispatcherClientType::Enum type) BSLS_KEYWORD_OVERRIDE;
-    // Retrieve an event from the pool to send to a client of the specified
-    // 'type'.  This event *must* be enqueued by calling 'dispatchEvent',
-    // otherwise it will be leaked.
 
+    /// Retrieve an event from the pool to send to the specified `client`.
+    /// This event *must* be enqueued by calling `dispatchEvent`; otherwise it
+    /// will be leaked.
     mqbi::DispatcherEvent*
     getEvent(const mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
-    // Retrieve an event from the pool to send to the specified 'client'.
-    // This event *must* be enqueued by calling 'dispatchEvent' otherwise
-    // it will be leaked.
 
+    /// Dispatch the specified `event` to the specified `destination`.
     void
     dispatchEvent(mqbi::DispatcherEvent*  event,
                   mqbi::DispatcherClient* destination) BSLS_KEYWORD_OVERRIDE;
-    // Dispatch the specified 'event' to the specified 'destination'.
 
+    /// Dispatch the specified `event` to the queue associated with the
+    /// specified `type` and `handle`.  The behavior is undefined unless the
+    /// `event` was obtained by a call to `getEvent`.
     void dispatchEvent(mqbi::DispatcherEvent*            event,
                        mqbi::DispatcherClientType::Enum  type,
                        mqbi::Dispatcher::ProcessorHandle handle)
         BSLS_KEYWORD_OVERRIDE;
-    // Dispatch the specified 'event' to the queue associated with the
-    // specified 'type' and 'handle'.  The behavior is undefined unless the
-    // 'event' was obtained by a call to 'getEvent'.
 
     /// Execute the specified `functor` in the processors in charge of
     /// clients of the specified `type`, and invoke the optionally specified
@@ -421,50 +413,55 @@ class Dispatcher BSLS_CPP11_FINAL : public mqbi::Dispatcher {
                  const mqbi::Dispatcher::VoidFunctor&      doneCallback =
                      mqbi::Dispatcher::VoidFunctor()) BSLS_KEYWORD_OVERRIDE;
 
+    /// Execute the specified `functor`, using the specified dispatcher `type`,
+    /// in the processor associated with the specified `client`.  The behavior
+    /// is undefined unless `type` is `e_DISPATCHER` or `e_CALLBACK`.
     void execute(const mqbi::Dispatcher::VoidFunctor& functor,
                  mqbi::DispatcherClient*              client,
                  mqbi::DispatcherEventType::Enum type) BSLS_KEYWORD_OVERRIDE;
-    // Execute the specified 'functor', using the specified dispatcher
-    // 'type', in the processor associated to the specified 'client'.  The
-    // behavior is undefined unless 'type' is 'e_DISPATCHER' or
-    // 'e_CALLBACK'.
 
+    /// Execute the specified `functor` using the `e_DISPATCHER` event type, in
+    /// the processor associated with the specified `client`.
     void
     execute(const mqbi::Dispatcher::VoidFunctor& functor,
             const mqbi::DispatcherClientData&    client) BSLS_KEYWORD_OVERRIDE;
-    // Execute the specified 'functor', using the 'e_DISPATCHER' event
-    // type, in the processor associated to the specified 'client'.
 
+    /// Enqueue an event to the processor associated with the specified
+    /// `client` and block until this event gets dequeued.  This is typically
+    /// used by a `dispatcherClient`, in its destructor, to drain the
+    /// dispatcher's queue and ensure no more events are to be expected for
+    /// that `client`.  The behavior is undefined if `synchronize` is being
+    /// invoked from the `client`s thread.
     void synchronize(mqbi::DispatcherClient* client) BSLS_KEYWORD_OVERRIDE;
 
-    /// Enqueue an event to the processor associated to the specified
-    /// `client` or pair of the specified `type` and `handle` and block
-    /// until this event gets dequeued.  This is typically used by a
-    /// `dispatcherClient`, in its destructor, to drain the dispatcher's
-    /// queue and ensure no more events are to be expected for that
-    /// `client`.  The behavior is undefined if `synchronize` is being
+    /// Enqueue an event to the processor associated with the specified pair of
+    /// `type` and `handle` and block until this event gets dequeued.  This is
+    /// typically used by a `dispatcherClient`, in its destructor, to drain the
+    /// dispatcher's queue and ensure no more events are to be expected for
+    /// that `client`.  The behavior is undefined if `synchronize` is being
     /// invoked from the `client`s thread.
     void synchronize(mqbi::DispatcherClientType::Enum  type,
                      mqbi::Dispatcher::ProcessorHandle handle)
         BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
+
+    /// Return number of processors dedicated for dispatching clients of the
+    /// specified `type`.
     int numProcessors(mqbi::DispatcherClientType::Enum type) const
         BSLS_KEYWORD_OVERRIDE;
-    // Return number of processors dedicated for dispatching clients of the
-    // specified 'type'.
 
+    /// Return whether the current thread is the dispatcher thread associated
+    /// with the specified `client`.  This is useful for precondition assert
+    /// validation.
     bool inDispatcherThread(const mqbi::DispatcherClient* client) const
         BSLS_KEYWORD_OVERRIDE;
-    // Return whether the current thread is the dispatcher thread
-    // associated to the specified 'client'.  This is usefull for
-    // preconditions assert validation.
 
+    /// Return whether the current thread is the dispatcher thread associated
+    /// with the specified dispatcher client `data`.  This is useful for
+    /// precondition assert validation.
     bool inDispatcherThread(const mqbi::DispatcherClientData* data) const
         BSLS_KEYWORD_OVERRIDE;
-    // Return whether the current thread is the dispatcher thread
-    // associated to the specified dispatcher client 'data'.  This is
-    // useful for preconditions assert validation.
 
     /// Return an executor object suitable for executing function objects on
     /// the processor in charge of the specified `client`.  The behavior is
