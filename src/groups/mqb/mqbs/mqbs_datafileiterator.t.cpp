@@ -172,7 +172,7 @@ static void test1_breathingTest()
         // No records
         FileHeader           fh;
         MappedFileDescriptor mfd;
-        char*                p = addRecords(s_allocator_p,
+        char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
                              &mfd,
                              &fh,
                              NULL,  // No messages
@@ -182,13 +182,13 @@ static void test1_breathingTest()
         ASSERT_EQ(true, it.isValid());
         ASSERT_EQ(-2, it.nextRecord());
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
     {
         // No records - reset
         FileHeader           fh;
         MappedFileDescriptor mfd;
-        char*                p = addRecords(s_allocator_p,
+        char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
                              &mfd,
                              &fh,
                              NULL,  // No messages
@@ -202,7 +202,7 @@ static void test1_breathingTest()
         ASSERT_EQ(true, it.isValid());
         ASSERT_EQ(-2, it.nextRecord());
 
-        s_allocator_p->deallocate(p);
+        bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
 
@@ -237,8 +237,11 @@ static void test2_forwardIteration()
 
     FileHeader           fileHeader;
     MappedFileDescriptor mfd;
-    char*                p =
-        addRecords(s_allocator_p, &mfd, &fileHeader, MESSAGES, k_NUM_MSGS);
+    char*                p = addRecords(bmqtst::TestHelperUtil::allocator(),
+                         &mfd,
+                         &fileHeader,
+                         MESSAGES,
+                         k_NUM_MSGS);
 
     ASSERT(p != 0);
     ASSERT_GT(mfd.fileSize(), 0ULL);
@@ -280,7 +283,7 @@ static void test2_forwardIteration()
     ASSERT(it.nextRecord() != 1);
     ASSERT(!it.isValid());
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 static void test3_reverseIteration()
@@ -314,8 +317,11 @@ static void test3_reverseIteration()
 
     FileHeader           fileHeader;
     MappedFileDescriptor mfd;
-    char*                p =
-        addRecords(s_allocator_p, &mfd, &fileHeader, MESSAGES, k_NUM_MSGS);
+    char*                p = addRecords(bmqtst::TestHelperUtil::allocator(),
+                         &mfd,
+                         &fileHeader,
+                         MESSAGES,
+                         k_NUM_MSGS);
 
     ASSERT(p != 0);
     ASSERT_GT(mfd.fileSize(), 0ULL);
@@ -381,7 +387,7 @@ static void test3_reverseIteration()
     ASSERT_EQ(i, k_NUM_MSGS - 1);
     ASSERT_EQ(it.isValid(), false);
 
-    s_allocator_p->deallocate(p);
+    bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
 
 // ============================================================================
@@ -399,7 +405,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

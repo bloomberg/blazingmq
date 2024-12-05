@@ -140,12 +140,13 @@ static void test1_breathingTest()
     {
         PV("Basic accessors and manipulators");
 
-        ObjType        obj(s_allocator_p);
+        ObjType        obj(bmqtst::TestHelperUtil::allocator());
         const ObjType& constObj = obj;
 
         ASSERT_EQ(true, obj.empty());
         ASSERT_EQ(0UL, obj.size());
-        ASSERT_EQ(s_allocator_p, obj.get_allocator().mechanism());
+        ASSERT_EQ(bmqtst::TestHelperUtil::allocator(),
+                  obj.get_allocator().mechanism());
         ASSERT_EQ(true, obj.begin() == obj.end());
         ASSERT_EQ(true, constObj.begin() == constObj.end());
     }
@@ -153,12 +154,12 @@ static void test1_breathingTest()
     {
         PV("'push_back' and iteration via 'begin' & 'end'");
 
-        ObjType        obj(s_allocator_p);
+        ObjType        obj(bmqtst::TestHelperUtil::allocator());
         const ObjType& constObj = obj;
 
         const int k_NB_ITEMS = 50;
         for (int i = 1; i <= k_NB_ITEMS; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         ASSERT_EQ(false, obj.empty());
@@ -187,11 +188,11 @@ static void test1_breathingTest()
     {
         PV("Random access iterator");
 
-        ObjType obj(s_allocator_p);
+        ObjType obj(bmqtst::TestHelperUtil::allocator());
 
         const int k_NB_ITEMS = 50;
         for (int i = 1; i <= k_NB_ITEMS; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         // Iterator operator+=
@@ -269,12 +270,16 @@ static void test1_breathingTest()
 
         const int k_NB_ITEMS = 100;
 
-        ObjType obj(k_NB_ITEMS, TestType(1, s_allocator_p), s_allocator_p);
+        ObjType obj(k_NB_ITEMS,
+                    TestType(1, bmqtst::TestHelperUtil::allocator()),
+                    bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(false, obj.empty());
         ASSERT_EQ(static_cast<size_t>(k_NB_ITEMS), obj.size());
         ASSERT_EQ(
             k_NB_ITEMS,
-            bsl::count(obj.begin(), obj.end(), TestType(1, s_allocator_p)));
+            bsl::count(obj.begin(),
+                       obj.end(),
+                       TestType(1, bmqtst::TestHelperUtil::allocator())));
     }
 
     {
@@ -282,29 +287,32 @@ static void test1_breathingTest()
 
         const int             k_NB_ITEMS = 100;
         bsl::vector<TestType> v(k_NB_ITEMS,
-                                TestType(1, s_allocator_p),
-                                s_allocator_p);
+                                TestType(1,
+                                         bmqtst::TestHelperUtil::allocator()),
+                                bmqtst::TestHelperUtil::allocator());
 
-        ObjType obj(v.begin(), v.end(), s_allocator_p);
+        ObjType obj(v.begin(), v.end(), bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(false, obj.empty());
         ASSERT_EQ(static_cast<size_t>(k_NB_ITEMS), obj.size());
         ASSERT_EQ(
             k_NB_ITEMS,
-            bsl::count(obj.begin(), obj.end(), TestType(1, s_allocator_p)));
+            bsl::count(obj.begin(),
+                       obj.end(),
+                       TestType(1, bmqtst::TestHelperUtil::allocator())));
     }
 
     {
         PV("Copy constructor");
 
-        ObjType obj(s_allocator_p);
+        ObjType obj(bmqtst::TestHelperUtil::allocator());
 
         const int k_NB_ITEMS = 100;
 
         for (int i = 1; i <= k_NB_ITEMS; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
-        ObjType objCopy(obj, s_allocator_p);
+        ObjType objCopy(obj, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(false, objCopy.empty());
         ASSERT_EQ(static_cast<size_t>(k_NB_ITEMS), objCopy.size());
         ASSERT_EQ(true, objCopy.begin() != objCopy.end());
@@ -327,18 +335,18 @@ static void test1_breathingTest()
     {
         PV("Assignment operator");
 
-        ObjType obj1(s_allocator_p);
-        ObjType obj2(s_allocator_p);
+        ObjType obj1(bmqtst::TestHelperUtil::allocator());
+        ObjType obj2(bmqtst::TestHelperUtil::allocator());
 
         const int k_NB_ITEMS_1 = 100;
         const int k_NB_ITEMS_2 = 500;
 
         for (int i = 1; i <= k_NB_ITEMS_1; ++i) {
-            obj1.push_back(TestType(i, s_allocator_p));
+            obj1.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         for (int i = 1; i <= k_NB_ITEMS_2; ++i) {
-            obj2.push_back(TestType(i, s_allocator_p));
+            obj2.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         ASSERT_EQ(false, obj2.empty());
@@ -361,11 +369,11 @@ static void test1_breathingTest()
     {
         PV("front() and back()");
 
-        ObjType        obj(s_allocator_p);
+        ObjType        obj(bmqtst::TestHelperUtil::allocator());
         const ObjType& constObj = obj;
 
         for (int i = 1; i <= 2 * k_STATIC_LEN; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
             ASSERT_EQ(1, obj.front().valueAsInt());
             ASSERT_EQ(i, obj.back().valueAsInt());
 
@@ -378,12 +386,13 @@ static void test1_breathingTest()
         PV("'clear', 'operator=' and 'destructor' invoke ~TYPE");
 
         {
-            ObjType obj(s_allocator_p);
+            ObjType obj(bmqtst::TestHelperUtil::allocator());
 
             const int k_NB_ITEMS = 50;
 
             for (int i = 0; i < k_NB_ITEMS; ++i) {
-                obj.push_back(TestType("a", s_allocator_p));
+                obj.push_back(
+                    TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
 
             ASSERT_EQ(k_NB_ITEMS, TestType::s_numAliveInstances);
@@ -394,15 +403,17 @@ static void test1_breathingTest()
         }
 
         {
-            ObjType obj1(s_allocator_p);
-            ObjType obj2(s_allocator_p);
+            ObjType obj1(bmqtst::TestHelperUtil::allocator());
+            ObjType obj2(bmqtst::TestHelperUtil::allocator());
 
             for (int i = 0; i < 50; ++i) {
-                obj1.push_back(TestType("a", s_allocator_p));
+                obj1.push_back(
+                    TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
 
             for (int i = 0; i < 100; ++i) {
-                obj2.push_back(TestType("b", s_allocator_p));
+                obj2.push_back(
+                    TestType("b", bmqtst::TestHelperUtil::allocator()));
             }
 
             ASSERT_EQ(150, TestType::s_numAliveInstances);
@@ -413,15 +424,17 @@ static void test1_breathingTest()
         }
 
         {
-            ObjType obj1(s_allocator_p);
-            ObjType obj2(s_allocator_p);
+            ObjType obj1(bmqtst::TestHelperUtil::allocator());
+            ObjType obj2(bmqtst::TestHelperUtil::allocator());
 
             for (int i = 0; i < 50; ++i) {
-                obj1.push_back(TestType("a", s_allocator_p));
+                obj1.push_back(
+                    TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
 
             for (int i = 0; i < 100; ++i) {
-                obj2.push_back(TestType("b", s_allocator_p));
+                obj2.push_back(
+                    TestType("b", bmqtst::TestHelperUtil::allocator()));
             }
 
             ASSERT_EQ(150, TestType::s_numAliveInstances);
@@ -432,15 +445,17 @@ static void test1_breathingTest()
         }
 
         {
-            ObjType* obj = new (*s_allocator_p) ObjType(s_allocator_p);
+            ObjType* obj = new (*bmqtst::TestHelperUtil::allocator())
+                ObjType(bmqtst::TestHelperUtil::allocator());
 
             for (int i = 0; i < 50; ++i) {
-                obj->push_back(TestType("a", s_allocator_p));
+                obj->push_back(
+                    TestType("a", bmqtst::TestHelperUtil::allocator()));
             }
 
             ASSERT_EQ(50, TestType::s_numAliveInstances);
 
-            s_allocator_p->deleteObject(obj);
+            bmqtst::TestHelperUtil::allocator()->deleteObject(obj);
 
             ASSERT_EQ(0, TestType::s_numAliveInstances);
         }
@@ -462,7 +477,7 @@ static void test2_outOfBoundValidation()
     {
         PV("front, back and []");
 
-        ObjType        obj(s_allocator_p);
+        ObjType        obj(bmqtst::TestHelperUtil::allocator());
         const ObjType& constObj = obj;
 
         // non-const
@@ -478,7 +493,7 @@ static void test2_outOfBoundValidation()
         // insert some items
         const int k_NB_ITEMS = 5;
         for (int i = 1; i <= k_NB_ITEMS; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         ASSERT_SAFE_FAIL(constObj[k_NB_ITEMS + 1]);
@@ -507,12 +522,12 @@ static void test3_noMemoryAllocation()
 
     // Add up to k_STATIC_LEN, no allocations
     for (int i = 1; i <= k_STATIC_LEN; ++i) {
-        obj.push_back(TestType(i, s_allocator_p));
+        obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(ta.numBlocksInUse(), 0);
     }
 
     // Adding one more, allocation"
-    obj.push_back(TestType(0, s_allocator_p));
+    obj.push_back(TestType(0, bmqtst::TestHelperUtil::allocator()));
     ASSERT_NE(ta.numBlocksInUse(), 0);
 }
 
@@ -539,7 +554,7 @@ static void test4_reserve()
 
     // Add up to k_CAPACITY items, no allocations
     for (int i = 1; i <= k_CAPACITY; ++i) {
-        obj.push_back(TestType(i, s_allocator_p));
+        obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
     }
     ASSERT_EQ(ta.numAllocations(), numAllocations);
 }
@@ -562,14 +577,15 @@ static void test5_resize()
     const bsls::Types::Int64 numAllocations = ta.numAllocations();
 
     // 1) Resize to static length
-    obj.resize(k_STATIC_LEN, TestType(1, s_allocator_p));
+    obj.resize(k_STATIC_LEN, TestType(1, bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.size(), static_cast<size_t>(k_STATIC_LEN));
     ASSERT_EQ(TestType::s_numAliveInstances, k_STATIC_LEN);
     ASSERT_EQ(ta.numAllocations(), numAllocations);
 
     // 2) Resize to half the static length
-    obj.resize(k_STATIC_LEN / 2, TestType(2, s_allocator_p));
+    obj.resize(k_STATIC_LEN / 2,
+               TestType(2, bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.size(), static_cast<size_t>(k_STATIC_LEN / 2));
     ASSERT_EQ(TestType::s_numAliveInstances, k_STATIC_LEN / 2);
@@ -583,7 +599,8 @@ static void test5_resize()
     const size_t k_FULL_LEN = 2 * k_STATIC_LEN;
 
     // 3) Resize to twice the static length
-    obj.resize(2 * k_STATIC_LEN, TestType(3, s_allocator_p));
+    obj.resize(2 * k_STATIC_LEN,
+               TestType(3, bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.size(), static_cast<size_t>(k_FULL_LEN));
     ASSERT_EQ(TestType::s_numAliveInstances, 2 * k_STATIC_LEN);
@@ -595,7 +612,7 @@ static void test5_resize()
     }
 
     // 4) Again resize to twice the static length (i.e. same size)
-    obj.resize(k_FULL_LEN, TestType(4, s_allocator_p));
+    obj.resize(k_FULL_LEN, TestType(4, bmqtst::TestHelperUtil::allocator()));
 
     ASSERT_EQ(obj.size(), static_cast<size_t>(k_FULL_LEN));
     ASSERT_EQ(TestType::s_numAliveInstances, 2 * k_STATIC_LEN);
@@ -607,7 +624,7 @@ static void test5_resize()
     }
 
     // 5) Resize to zero
-    obj.resize(0, TestType(5, s_allocator_p));
+    obj.resize(0, TestType(5, bmqtst::TestHelperUtil::allocator()));
 
     ASSERT(obj.empty());
     ASSERT_EQ(obj.size(), 0UL);
@@ -630,12 +647,13 @@ static void test6_assign()
 
     ObjType obj(&ta);
     for (int i = 0; i < k_STATIC_LEN + 5; ++i) {
-        obj.push_back(TestType(i, s_allocator_p));
+        obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
     }
 
-    bsl::vector<TestType> srcVec(s_allocator_p);
+    bsl::vector<TestType> srcVec(bmqtst::TestHelperUtil::allocator());
     for (int i = 0; i < 2 * k_STATIC_LEN; ++i) {
-        srcVec.push_back(TestType(10 * i, s_allocator_p));
+        srcVec.push_back(
+            TestType(10 * i, bmqtst::TestHelperUtil::allocator()));
     }
 
     // Assign to 'obj' from 'srcVec'
@@ -662,11 +680,11 @@ static void test7_algorithms()
     {
         PV("SORT");
 
-        ObjType obj(s_allocator_p);
+        ObjType obj(bmqtst::TestHelperUtil::allocator());
 
         // Populate array: {30, 29, ..., 1}
         for (int i = 30; i >= 0; --i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
 
         // Apply 'bsl::sort'
@@ -840,10 +858,10 @@ static void test10_pushBackSelfRef()
 
     {
         const int k_SIZE = k_STATIC_LEN * 2;
-        ObjType   obj(s_allocator_p);
+        ObjType   obj(bmqtst::TestHelperUtil::allocator());
         obj.reserve(k_SIZE);
         for (int i = 0; i < k_SIZE; ++i) {
-            obj.push_back(TestType(i, s_allocator_p));
+            obj.push_back(TestType(i, bmqtst::TestHelperUtil::allocator()));
         }
         ASSERT_PASS(obj.push_back(obj[k_STATIC_LEN]));
         ASSERT_EQ(k_STATIC_LEN, obj[k_STATIC_LEN].valueAsInt());
@@ -939,7 +957,7 @@ int main(int argc, char* argv[])
 #endif  // BSLS_PLATFORM_OS_LINUX
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);

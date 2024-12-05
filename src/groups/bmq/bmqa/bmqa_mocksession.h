@@ -218,7 +218,7 @@
 ///     // any case but if events need to be built outside the scope of the
 ///     // creation of 'MockSession' you will need to explicitly invoke this
 ///     // static initializer method.
-///     // bmqa::MockSession::initialize(s_allocator_p);
+///     bmqa::MockSession::initialize(s_allocator_p);
 ///
 ///     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
 ///     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);

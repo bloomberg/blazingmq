@@ -135,54 +135,56 @@ struct TestHelper {
 
     // CREATORS
     TestHelper()
-    : d_bufferFactory(1024, s_allocator_p)
+    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
-    , d_tempDir(s_allocator_p)
-    , d_tempArchiveDir(s_allocator_p)
+    , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    , d_tempArchiveDir(bmqtst::TestHelperUtil::allocator())
     {
         // Create the cluster
-        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E1",
             "US-EAST",
             41234,
             mqbmock::Cluster::k_LEADER_NODE_ID,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E2",
             "US-EAST",
             41235,
             mqbmock::Cluster::k_LEADER_NODE_ID + 1,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W1",
             "US-WEST",
             41236,
             mqbmock::Cluster::k_LEADER_NODE_ID + 2,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W2",
             "US-WEST",
             41237,
             mqbmock::Cluster::k_LEADER_NODE_ID + 3,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        d_cluster_mp.load(new (*s_allocator_p)
-                              mqbmock::Cluster(&d_bufferFactory,
-                                               s_allocator_p,
-                                               true,   // isClusterMember
-                                               false,  // isLeader
-                                               true,   // isCSLMode
-                                               true,   // isFSMWorkflow
-                                               clusterNodeDefs,
-                                               "testCluster",
-                                               d_tempDir.path(),
-                                               d_tempArchiveDir.path()),
-                          s_allocator_p);
+        d_cluster_mp.load(
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbmock::Cluster(&d_bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
+                                 true,   // isClusterMember
+                                 false,  // isLeader
+                                 true,   // isCSLMode
+                                 true,   // isFSMWorkflow
+                                 clusterNodeDefs,
+                                 "testCluster",
+                                 d_tempDir.path(),
+                                 d_tempArchiveDir.path()),
+            bmqtst::TestHelperUtil::allocator());
 
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
 
@@ -192,7 +194,7 @@ struct TestHelper {
             &bsls::SystemTime::nowRealtimeClock,
             bdlf::BindUtil::bind(&TestHelper::nowMonotonicClock, this),
             bdlf::BindUtil::bind(&TestHelper::highResolutionTimer, this),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Start the cluster
         bmqu::MemOutStream errorDescription;
@@ -248,7 +250,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
 
                 if (reqIdToNodeIdMap) {
@@ -306,15 +308,17 @@ struct TestHelper {
                 //                       - replicaCit->second.sequenceNumber();
 
                 bsl::shared_ptr<bdlbb::Blob> blob_sp;
-                blob_sp.createInplace(s_allocator_p, s_allocator_p);
+                blob_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                      bmqtst::TestHelperUtil::allocator());
                 bdlbb::BlobUtil::append(
                     blob_sp.get(),
                     cit->second->writeCalls()[1].d_blob,
                     0,
                     cit->second->writeCalls()[1].d_blob.length(),
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
 
-                bmqp::Event event(blob_sp.get(), s_allocator_p);
+                bmqp::Event event(blob_sp.get(),
+                                  bmqtst::TestHelperUtil::allocator());
                 BSLS_ASSERT_SAFE(event.isPartitionSyncEvent());
 
                 bmqp::StorageMessageIterator iter;
@@ -466,7 +470,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                        &message,
                        cit->second->writeCalls()[expectedNumDataChunks].d_blob,
-                       s_allocator_p);
+                       bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
                 */
             }
@@ -508,7 +512,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
             }
             else {
@@ -547,7 +551,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 replicaDataRequest.beginSequenceNumber() =
                     destinationReplicas.at(cit->first->nodeId());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
@@ -582,7 +586,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, failureMessage);
             }
             else {
@@ -615,7 +619,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message, failureMessage);
             }
             else {
@@ -652,7 +656,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
             }
             else {
@@ -689,7 +693,7 @@ struct TestHelper {
                 mqbc::ClusterUtil::extractMessage(
                     &message,
                     cit->second->writeCalls()[0].d_blob,
-                    s_allocator_p);
+                    bmqtst::TestHelperUtil::allocator());
                 ASSERT_EQ(message.choice().clusterMessage(), expectedMessage);
             }
             else {
@@ -740,7 +744,8 @@ struct TestHelper {
         // Write a queue creation record to the specified 'fs', and load the
         // record into the specified 'handle'.  Return the queue key.
 
-        bsl::string        uri("bmq://si.amw.bmq.stats/queue0", s_allocator_p);
+        bsl::string        uri("bmq://si.amw.bmq.stats/queue0",
+                        bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream osstr;
 
         // Generate queue-key.
@@ -754,7 +759,8 @@ struct TestHelper {
             queueKeyStr.substr(0, mqbu::StorageKey::e_KEY_LENGTH_BINARY)
                 .c_str());
 
-        mqbs::FileStoreTestUtil_Record rec(s_allocator_p);
+        mqbs::FileStoreTestUtil_Record rec(
+            bmqtst::TestHelperUtil::allocator());
         rec.d_recordType  = mqbs::RecordType::e_QUEUE_OP;
         rec.d_queueOpType = mqbs::QueueOpType::e_CREATION;
         rec.d_uri         = uri;
@@ -762,7 +768,7 @@ struct TestHelper {
         rec.d_timestamp   = bdlt::EpochUtil::convertToTimeT64(
             bdlt::CurrentTime::utc());
 
-        bmqt::Uri uri_t(rec.d_uri, s_allocator_p);
+        bmqt::Uri uri_t(rec.d_uri, bmqtst::TestHelperUtil::allocator());
         const int rc = fs->writeQueueCreationRecord(
             handle,
             uri_t,
@@ -787,7 +793,8 @@ struct TestHelper {
         // Write a message record.
 
         mqbs::DataStoreRecordHandle    handle;
-        mqbs::FileStoreTestUtil_Record rec(s_allocator_p);
+        mqbs::FileStoreTestUtil_Record rec(
+            bmqtst::TestHelperUtil::allocator());
         rec.d_recordType = mqbs::RecordType::e_MESSAGE;
         rec.d_queueKey   = queueKey;
         bmqp::MessagePropertiesInfo mpsInfo;
@@ -803,10 +810,12 @@ struct TestHelper {
             bsl::numeric_limits<unsigned int>::max() / recNum);
         // crc value
         mqbu::MessageGUIDUtil::generateGUID(&rec.d_guid);
-        rec.d_appData_sp.createInplace(s_allocator_p,
+        rec.d_appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
                                        &d_bufferFactory,
-                                       s_allocator_p);
-        bsl::string payloadStr(recNum * 10, 'x', s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
+        bsl::string payloadStr(recNum * 10,
+                               'x',
+                               bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
                                 payloadStr.c_str(),
                                 payloadStr.length());
@@ -865,7 +874,9 @@ struct TestHelper {
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
             .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
 
-        bdlmt::FixedThreadPool threadPool(1, 100, s_allocator_p);
+        bdlmt::FixedThreadPool threadPool(1,
+                                          100,
+                                          bmqtst::TestHelperUtil::allocator());
         threadPool.start();
 
         mqbs::FileStore fs(dsCfg,
@@ -879,7 +890,7 @@ struct TestHelper {
                            d_cluster_mp->isCSLModeEnabled(),
                            d_cluster_mp->isFSMWorkflow(),
                            1,  // replicationFactor
-                           s_allocator_p);
+                           bmqtst::TestHelperUtil::allocator());
 
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
             ._setDisableBroadcast(true);
@@ -953,7 +964,7 @@ static void test1_breathingTest()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1002,7 +1013,7 @@ static void test2_unknownDetectSelfPrimary()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1072,7 +1083,7 @@ static void test3_unknownDetectSelfReplica()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1145,7 +1156,7 @@ static void test4_primaryHealingStage1DetectSelfReplica()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1245,7 +1256,7 @@ static void test5_primaryHealingStage1ReceivesReplicaStateRqst()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1358,7 +1369,7 @@ static void test6_primaryHealingStage1ReceivesReplicaStateRspnQuorum()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1466,7 +1477,7 @@ static void test7_primaryHealingStage1ReceivesPrimaryStateRequestQuorum()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1580,7 +1591,7 @@ static void test8_primaryHealingStage1ReceivesPrimaryStateRqst()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1691,7 +1702,7 @@ static void test9_primaryHealingStage1ReceivesReplicaStateRspnNoQuorum()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1807,7 +1818,7 @@ static void test10_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -1931,7 +1942,7 @@ static void test11_primaryHealingStage2DetectSelfReplica()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2079,7 +2090,7 @@ static void test12_replicaHealingDetectSelfPrimary()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2178,7 +2189,7 @@ static void test13_replicaHealingReceivesReplicaStateRqst()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2286,7 +2297,7 @@ static void test14_replicaHealingReceivesPrimaryStateRspn()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2392,7 +2403,7 @@ static void test15_replicaHealingReceivesFailedPrimaryStateRspn()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2487,7 +2498,7 @@ static void test16_replicaHealingReceivesPrimaryStateRqst()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2611,7 +2622,7 @@ static void test17_replicaHealingReceivesReplicaDataRqstPull()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     static const int k_PARTITION_ID = 1;
 
@@ -2764,7 +2775,7 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
         k_WATCHDOG_TIMEOUT_DURATION,
         mockOnRecoveryStatus,
         mockOnPartitionPrimaryStatus,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     bmqu::MemOutStream errorDescription;
 
@@ -2889,8 +2900,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -2928,7 +2939,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -272,8 +272,7 @@ class StorageManager : public mqbi::StorageManager {
     mutable bslmt::Mutex d_storagesLock;
     // Mutex to protect access to
     // 'd_storages' and its elements.  See
-    // comments for 'd_storages' and
-    // 'd_appKeysLock' variables as well.
+    // comments for 'd_storages'.
 
     StorageSpMapVec d_storages;
     // Vector of (CanonicalQueueUri ->
@@ -287,39 +286,6 @@ class StorageManager : public mqbi::StorageManager {
     // because they are accessed from
     // partitions' dispatcher threads, as
     // well as cluster dispatcher thread.
-
-    bslmt::Mutex d_appKeysLock;
-    // Mutex to protect access to
-    // 'd_appKeysVec' and its elements.
-    // Note that when acquiring this lock,
-    // *if* 'd_storagesLock' needs to be
-    // acquired as well, 'd_storagesLock'
-    // must be acquired before
-    // 'd_appKeysLock' in order to respect
-    // hierarchy of locks and avoid
-    // deadlock.  Also note that it is not
-    // necessary to acquire one when
-    // acquiring the other.
-
-    AppKeysVec d_appKeysVec;
-    // Vector of set of AppKeys which are
-    // currently active.  Vector is indexed
-    // on the partitionId, and the inner
-    // set contains a unique list of
-    // appKeys of virtual storages of the
-    // physical storages assigned to that
-    // partition.  Contains appKeys for
-    // *both* in-memory as well as
-    // file-backed 'physical' storages.
-    // Note that the corresponding virtual
-    // storages are owned by the physical
-    // storage.  Also note that
-    // 'd_appKeysLock' must be held while
-    // accessing this container and any of
-    // its elements, because they are
-    // accessed from partitions' dispatcher
-    // threads as well as cluster
-    // dispatcher threads.
 
     RecurringEventHandle d_storageMonitorEventHandle;
 

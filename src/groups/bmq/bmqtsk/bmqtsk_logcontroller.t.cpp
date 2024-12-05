@@ -21,11 +21,6 @@
 // MQB
 #include <mqbcfg_messages.h>
 
-// BDE
-#include <bdld_datum.h>
-#include <bdld_datumarraybuilder.h>
-#include <bdld_datummapbuilder.h>
-
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
 
@@ -39,7 +34,7 @@ using namespace bsl;
 
 static void test1_logControllerConfigFromObj()
 // ------------------------------------------------------------------------
-// LOG CONTROLLER CONFIG FROM DATUM
+// LOG CONTROLLER CONFIG FROM OBJ
 //
 // Concerns:
 //   - Should be able to initialize LogControllerConfig with bdld::Datum.
@@ -57,7 +52,7 @@ static void test1_logControllerConfigFromObj()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("LogControllerConfig::fromObj Test");
-    mqbcfg::LogController lc(s_allocator_p);
+    mqbcfg::LogController lc(bmqtst::TestHelperUtil::allocator());
 
     lc.syslog().enabled()   = true;
     lc.syslog().appName()   = "testapp";
@@ -74,8 +69,8 @@ static void test1_logControllerConfigFromObj()
     lc.loggingVerbosity()         = "debug";
     lc.consoleSeverityThreshold() = "info";
 
-    bmqtsk::LogControllerConfig config(s_allocator_p);
-    bmqu::MemOutStream          errorDesc(s_allocator_p);
+    bmqtsk::LogControllerConfig config(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream          errorDesc(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(config.fromObj<mqbcfg::LogController>(errorDesc, lc), 0);
 
@@ -113,7 +108,7 @@ int main(int argc, char* argv[])
     case 1: test1_logControllerConfigFromObj(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

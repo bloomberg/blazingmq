@@ -176,15 +176,6 @@ class StorageManager {
     typedef AppIds::const_iterator          AppIdsConstIter;
     typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
 
-    typedef bsl::unordered_set<mqbu::StorageKey> AppKeys;
-    typedef AppKeys::iterator                    AppKeysIter;
-    typedef AppKeys::const_iterator              AppKeysConstIter;
-    typedef bsl::pair<AppKeysIter, bool>         AppKeysInsertRc;
-
-    typedef bsl::vector<AppKeys>       AppKeysVec;
-    typedef AppKeysVec::iterator       AppKeysVecIter;
-    typedef AppKeysVec::const_iterator AppKeysVecConstIter;
-
     typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
 
     /// Map of QueueUri -> ReplicatedStorageSp

@@ -113,7 +113,7 @@ static void testN1_SimpleEvaluator()
 
 static bsl::string makeTooManyOperators()
 {
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
     for (size_t i = 0; i < SimpleEvaluator::k_MAX_OPERATORS + 1; ++i) {
         os << "!";
@@ -126,7 +126,7 @@ static bsl::string makeTooManyOperators()
 
 static bsl::string makeTooLongExpression()
 {
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
     // Note that we want to create `k_STACK_SIZE` nested NOT objects in AST,
     // and when we call destructor chain for all these objects, we'll need
@@ -216,7 +216,8 @@ static void test1_compilationErrors()
         PV(bsl::string("TESTING ") + parameters->expression);
 
         {
-            CompilationContext compilationContext(s_allocator_p);
+            CompilationContext compilationContext(
+                bmqtst::TestHelperUtil::allocator());
             SimpleEvaluator    evaluator;
 
             evaluator.compile(parameters->expression, compilationContext);
@@ -355,7 +356,7 @@ static void test2_propertyNames()
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
-    CompilationContext compilationContext(s_allocator_p);
+    CompilationContext compilationContext(bmqtst::TestHelperUtil::allocator());
 
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
@@ -371,8 +372,9 @@ static void test2_propertyNames()
 
 static void test3_evaluation()
 {
-    MockPropertiesReader reader(s_allocator_p);
-    EvaluationContext    evaluationContext(&reader, s_allocator_p);
+    MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
+    EvaluationContext    evaluationContext(&reader,
+                                        bmqtst::TestHelperUtil::allocator());
 
     const bool runtimeErrorResult = false;
 
@@ -528,7 +530,8 @@ static void test3_evaluation()
          ++parameters) {
         PV(bsl::string("TESTING ") + parameters->expression);
 
-        CompilationContext compilationContext(s_allocator_p);
+        CompilationContext compilationContext(
+            bmqtst::TestHelperUtil::allocator());
         SimpleEvaluator    evaluator;
 
         ASSERT(!evaluator.isValid());
@@ -562,7 +565,7 @@ int main(int argc, char* argv[])
     case -1: BMQTST_BENCHMARK(testN1_SimpleEvaluator); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

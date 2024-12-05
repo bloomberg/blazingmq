@@ -114,11 +114,13 @@ static void test1_breathingTest()
     dispatcherConfig.clusters().numProcessors() = 1;
 
     bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     eventScheduler.start();
 
     {
-        mqba::Dispatcher obj(dispatcherConfig, &eventScheduler, s_allocator_p);
+        mqba::Dispatcher obj(dispatcherConfig,
+                             &eventScheduler,
+                             bmqtst::TestHelperUtil::allocator());
     }
 
     eventScheduler.stop();
@@ -184,7 +186,7 @@ static void test3_executorsSupport()
 
     // create / start a scheduler
     bdlmt::EventScheduler eventScheduler(bsls::SystemClockType::e_MONOTONIC,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     int                   rc = eventScheduler.start();
     BSLS_ASSERT_OPT(rc == 0);
 
@@ -212,23 +214,23 @@ static void test3_executorsSupport()
 
     mqba::Dispatcher dispatcher(dispatcherConfig,
                                 &eventScheduler,
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
 
     // start the dispatcher
-    bsl::stringstream startErr(s_allocator_p);
+    bsl::stringstream startErr(bmqtst::TestHelperUtil::allocator());
     rc = dispatcher.start(startErr);
     ASSERT(rc == 0);
 
     // register first client (of type 'e_SESSION')
-    mqbmock::DispatcherClient client1(s_allocator_p);
+    mqbmock::DispatcherClient client1(bmqtst::TestHelperUtil::allocator());
     dispatcher.registerClient(&client1, mqbi::DispatcherClientType::e_SESSION);
 
     // register second client (of type 'e_SESSION')
-    mqbmock::DispatcherClient client2(s_allocator_p);
+    mqbmock::DispatcherClient client2(bmqtst::TestHelperUtil::allocator());
     dispatcher.registerClient(&client2, mqbi::DispatcherClientType::e_SESSION);
 
     // register third client (of type 'e_QUEUE')
-    mqbmock::DispatcherClient client3(s_allocator_p);
+    mqbmock::DispatcherClient client3(bmqtst::TestHelperUtil::allocator());
     dispatcher.registerClient(&client3, mqbi::DispatcherClientType::e_QUEUE);
 
     // test regular executor
@@ -275,20 +277,20 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor using the
         // executor's 'post' function, and wait for the completion of submitted
         // functors
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .neverBlocking()
-                                          .useExecutor(executor1)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId1))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .neverBlocking()
+                .useExecutor(executor1)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
             .wait();
 
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .neverBlocking()
-                                          .useExecutor(executor1)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId2))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .neverBlocking()
+                .useExecutor(executor1)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
             .wait();
 
         // both functors were invoked in the same thread that is not this
@@ -312,20 +314,20 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor using the
         // executor's 'dispatch' function, and wait for the completion of
         // submitted functors
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .possiblyBlocking()
-                                          .useExecutor(executor2)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId1))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .possiblyBlocking()
+                .useExecutor(executor2)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
             .wait();
 
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .possiblyBlocking()
-                                          .useExecutor(executor2)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId2))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .possiblyBlocking()
+                .useExecutor(executor2)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
             .wait();
 
         // both functors were invoked in the same thread that is not this
@@ -344,12 +346,12 @@ static void test3_executorsSupport()
             bmqex::ExecutionPolicyUtil::oneWay()
                 .alwaysBlocking()
                 .useExecutor(executor1)
-                .useAllocator(s_allocator_p),
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bmqex::BindUtil::bindExecute(
                 bmqex::ExecutionPolicyUtil::oneWay()
                     .alwaysBlocking()
                     .useExecutor(executor3)
-                    .useAllocator(s_allocator_p),
+                    .useAllocator(bmqtst::TestHelperUtil::allocator()),
                 bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
 
         // the nested functor was invoked in-place (we know that because
@@ -398,20 +400,20 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor and by the
         // same client using the executor's 'post' function, and wait for the
         // completion of submitted functors
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .neverBlocking()
-                                          .useExecutor(executor1)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId1))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .neverBlocking()
+                .useExecutor(executor1)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
             .wait();
 
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .neverBlocking()
-                                          .useExecutor(executor1)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId2))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .neverBlocking()
+                .useExecutor(executor1)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
             .wait();
 
         // both functors were invoked in the same thread that is not this
@@ -435,20 +437,20 @@ static void test3_executorsSupport()
         // submit two functors to be executed on the same processor and by the
         // same client using the executor's 'dispatch' function, and wait for
         // the completion of submitted functors
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .possiblyBlocking()
-                                          .useExecutor(executor2)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId1))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .possiblyBlocking()
+                .useExecutor(executor2)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))
             .wait();
 
-        bmqex::ExecutionUtil::execute(bmqex::ExecutionPolicyUtil::twoWay()
-                                          .possiblyBlocking()
-                                          .useExecutor(executor2)
-                                          .useAllocator(s_allocator_p),
-                                      bdlf::BindUtil::bind(LoadSelfThreadId(),
-                                                           &threadId2))
+        bmqex::ExecutionUtil::execute(
+            bmqex::ExecutionPolicyUtil::twoWay()
+                .possiblyBlocking()
+                .useExecutor(executor2)
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
+            bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId2))
             .wait();
 
         // both functors were invoked in the same thread that is not this
@@ -463,12 +465,12 @@ static void test3_executorsSupport()
             bmqex::ExecutionPolicyUtil::oneWay()
                 .alwaysBlocking()
                 .useExecutor(executor1)
-                .useAllocator(s_allocator_p),
+                .useAllocator(bmqtst::TestHelperUtil::allocator()),
             bmqex::BindUtil::bindExecute(
                 bmqex::ExecutionPolicyUtil::oneWay()
                     .alwaysBlocking()
                     .useExecutor(executor2)
-                    .useAllocator(s_allocator_p),
+                    .useAllocator(bmqtst::TestHelperUtil::allocator()),
                 bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
 
         // the nested functor was invoked in-place (we know that because
@@ -500,7 +502,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

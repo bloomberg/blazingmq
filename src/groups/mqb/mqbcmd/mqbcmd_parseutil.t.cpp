@@ -395,7 +395,7 @@ int main(int argc, char* argv[])
     case 3: test3_parseFailsWithExtra(); break;
     default:
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND.\n";
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     }
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);

@@ -173,8 +173,8 @@ static void test1_clusterStateLedger_protocol()
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER - PROTOCOL TEST");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<ClusterStateLedgerTestImp> testObj(s_verbosityLevel >
-                                                          2);
+    bsls::ProtocolTest<ClusterStateLedgerTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -306,7 +306,7 @@ static void test3_commitStatus_toAscii()
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
 
-        bsl::string ascii(s_allocator_p);
+        bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbc::ClusterStateLedgerCommitStatus::toAscii(
             mqbc::ClusterStateLedgerCommitStatus::Enum(test.d_value));
 
@@ -353,7 +353,7 @@ static void test4_commitStatus_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        bmqu::MemOutStream                         out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterStateLedgerCommitStatus::Enum obj(
             static_cast<mqbc::ClusterStateLedgerCommitStatus::Enum>(
                 test.d_value));
@@ -363,7 +363,7 @@ static void test4_commitStatus_print()
 
         PVV(test.d_line << ": '" << out.str());
 
-        bsl::string expected(s_allocator_p);
+        bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
         ASSERT_EQ_D(test.d_line, out.str(), expected);
@@ -475,7 +475,7 @@ static void test6_clusterStateLedgerConsistency_toAscii()
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
 
-        bsl::string ascii(s_allocator_p);
+        bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbc::ClusterStateLedgerConsistency::toAscii(
             mqbc::ClusterStateLedgerConsistency::Enum(test.d_value));
 
@@ -523,7 +523,7 @@ static void test7_clusterStateLedgerConsistency_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        bmqu::MemOutStream                        out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterStateLedgerConsistency::Enum obj(
             static_cast<mqbc::ClusterStateLedgerConsistency::Enum>(
                 test.d_value));
@@ -533,7 +533,7 @@ static void test7_clusterStateLedgerConsistency_print()
 
         PVV(test.d_line << ": '" << out.str());
 
-        bsl::string expected(s_allocator_p);
+        bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
         ASSERT_EQ_D(test.d_line, out.str(), expected);
@@ -572,7 +572,7 @@ int main(int argc, char* argv[])
     case 1: test1_clusterStateLedger_protocol(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

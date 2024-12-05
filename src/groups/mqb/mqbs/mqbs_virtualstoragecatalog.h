@@ -86,7 +86,7 @@ class VirtualStorageCatalog {
     typedef bsl::shared_ptr<VirtualStorage> VirtualStorageSp;
 
     /// List of available ordinal values for Virtual Storages.
-    typedef bsl::list<Ordinal> AvailableOrdinals;
+    typedef bsl::set<Ordinal> AvailableOrdinals;
 
     /// appKey -> virtualStorage
     typedef bmqc::

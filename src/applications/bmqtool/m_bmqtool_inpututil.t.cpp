@@ -101,12 +101,17 @@ static void test1_decodeHexDumpTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bsl::istringstream input(bsl::string(test.d_hexdumpStr, s_allocator_p),
-                                 s_allocator_p);
-        bmqu::MemOutStream output(s_allocator_p);
-        bmqu::MemOutStream error(s_allocator_p);
-        const bool         rc =
-            InputUtil::decodeHexDump(&output, &error, input, s_allocator_p);
+        bsl::istringstream input(
+            bsl::string(test.d_hexdumpStr,
+                        bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream output(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        const bool         rc = InputUtil::decodeHexDump(
+            &output,
+            &error,
+            input,
+            bmqtst::TestHelperUtil::allocator());
         // Check rc
         ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
         // Check error
@@ -251,13 +256,14 @@ static void test2_loadMessageFromFileTest()
 
     // Check wrong file path
     {
-        bmqu::MemOutStream stream(s_allocator_p);
-        bmqu::MemOutStream error(s_allocator_p);
-        const bool         rc = InputUtil::loadMessageFromFile(&stream,
-                                                       &stream,
-                                                       &error,
-                                                       "wrongFilePath",
-                                                       s_allocator_p);
+        bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        const bool         rc = InputUtil::loadMessageFromFile(
+            &stream,
+            &stream,
+            &error,
+            "wrongFilePath",
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(rc, false);
         ASSERT_EQ(error.str(), "Failed to open file: wrongFilePath");
     }
@@ -267,7 +273,7 @@ static void test2_loadMessageFromFileTest()
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        bmqu::TempFile    tempFile(s_allocator_p);
+        bmqu::TempFile    tempFile(bmqtst::TestHelperUtil::allocator());
         const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
@@ -275,14 +281,15 @@ static void test2_loadMessageFromFileTest()
             ofs << test.d_fileContent;
         }
 
-        bmqu::MemOutStream payload(s_allocator_p);
-        bsl::ostringstream properties(s_allocator_p);
-        bmqu::MemOutStream error(s_allocator_p);
-        const bool         rc = InputUtil::loadMessageFromFile(&payload,
-                                                       &properties,
-                                                       &error,
-                                                       filePath,
-                                                       s_allocator_p);
+        bmqu::MemOutStream payload(bmqtst::TestHelperUtil::allocator());
+        bsl::ostringstream properties(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        const bool         rc = InputUtil::loadMessageFromFile(
+            &payload,
+            &properties,
+            &error,
+            filePath,
+            bmqtst::TestHelperUtil::allocator());
         // Check rc
         ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
         // Check error
@@ -290,9 +297,12 @@ static void test2_loadMessageFromFileTest()
         // Check payload
         ASSERT_EQ_D(test.d_line, payload.str(), test.d_expectedPayload);
         // Check properties (deserialize into properties instance)
-        bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
-        bmqa::MessageProperties        messageProperties(s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            128,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+        bmqa::MessageProperties messageProperties(
+            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob,
                                 properties.str().c_str(),
                                 static_cast<int>(properties.str().size()));
@@ -314,7 +324,7 @@ int main(int argc, char* argv[])
     case 2: test2_loadMessageFromFileTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

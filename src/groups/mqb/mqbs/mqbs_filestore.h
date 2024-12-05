@@ -330,6 +330,12 @@ class FileStore : public DataStore {
     // Ordered list of records pending
     // Receipt.
 
+    /// For weak consistency only.
+    /// The container that holds keys to storages where we put messages since
+    /// the last storage event builder flush.  Used to notify these queues on
+    /// replication complete, so they change from processing PUTs to PUSHes.
+    bsl::unordered_set<mqbu::StorageKey> d_replicationNotifications;
+
     int d_replicationFactor;
 
     NodeReceiptContexts d_nodes;
@@ -866,14 +872,14 @@ class FileStore : public DataStore {
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    void dispatcherFlush(bool storage, bool queues) BSLS_KEYWORD_OVERRIDE;
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Call `onReplicatedBatch` on all associated queues if the storage
-    /// builder is empty (just flushed).
+    /// Flush weak consistency queues that have replicated messages since the
+    /// last call.  This method has no effect if `d_storageEventBuilder` is not
+    /// empty, and must only be called after `flushStorage`.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
     void notifyQueuesOnReplicatedBatch();
 
     /// Invoke the specified `functor` with each queue associated to the

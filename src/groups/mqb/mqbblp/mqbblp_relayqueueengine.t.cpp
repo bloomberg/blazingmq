@@ -82,7 +82,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -93,7 +93,7 @@ static void test1_breathingTest()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -163,7 +163,7 @@ static void test2_aggregateDownstream()
 //   consumers
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -174,7 +174,7 @@ static void test2_aggregateDownstream()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -334,7 +334,7 @@ static void test3_reconfigure()
 //     - 'configureHandle()'
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks
     // from 'mqbi' methods print with ball, which allocates.
 
@@ -345,7 +345,7 @@ static void test3_reconfigure()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -473,7 +473,7 @@ static void test4_cannotDeliver()
 //   more highest priority consumers.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -484,7 +484,7 @@ static void test4_cannotDeliver()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -588,7 +588,7 @@ static void test5_localRedelivery()
 //   when other consumers are available and able to receive messages.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -599,7 +599,7 @@ static void test5_localRedelivery()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -668,7 +668,7 @@ static void test6_clearDeliveryStateWhenLostReaders()
 //   message lists when it loses the last consumer.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -679,7 +679,7 @@ static void test6_clearDeliveryStateWhenLostReaders()
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -738,19 +738,19 @@ static void test7_broadcastMode()
 //   RelayQueueEngine is sending to all handlers if mode is broadcast.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName("BROADCAST MODE");
 
-    mqbconfm::Domain domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makeBroadcast();
     domainConfig.storage().config().makeInMemory();
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -830,19 +830,19 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
 //   - 'beforeMessageRemoved()'
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName("BEFORE MESSAGE REMOVED - GARBAGE "
                                       "COLLECTION");
 
-    mqbconfm::Domain domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makePriority();
 
     mqbblp::QueueEngineTester tester(domainConfig,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -906,16 +906,18 @@ static void test9_releaseHandle_isDeletedFlag()
 //      const mqbi::QueueHandle::HandleReleasedCallback&  releasedCb)
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName("RELEASE HANDLE - IS-DELETED FLAG");
 
-    mqbconfm::Domain domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makePriority();
 
-    mqbblp::QueueEngineTester tester(domainConfig, false, s_allocator_p);
+    mqbblp::QueueEngineTester tester(domainConfig,
+                                     false,
+                                     bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
     // 1. Bring up a consumer C1 with writeCount=1, a consumer C2 with
@@ -969,14 +971,16 @@ static void test10_configureFanoutAppIds()
 //                  const mqbi::QueueHandle::HandleConfiguredCallback&);
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName(
         "CONFIGURING DIFFERENT APPIDs FOR UPSTREAM");
 
-    mqbblp::QueueEngineTester tester(fanoutConfig(), false, s_allocator_p);
+    mqbblp::QueueEngineTester tester(fanoutConfig(),
+                                     false,
+                                     bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
     //   1. Bring up a producer and 3 fanout consumers.
@@ -1055,7 +1059,7 @@ static void test11_roundRobinAndRedelivery()
 //   'getHandle' and 'configureHandle' for multiple distinct appIds.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1069,7 +1073,7 @@ static void test11_roundRobinAndRedelivery()
 
     mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
     // 1. Bring up a consumer C1 with appId 'a', 'b', and 'c'.
@@ -1159,16 +1163,18 @@ static void test12_redeliverAfterGc()
 //   them.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName("REDELIVERY AFTER GC");
 
-    mqbconfm::Domain domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     domainConfig.mode().makePriority();
 
-    mqbblp::QueueEngineTester tester(domainConfig, false, s_allocator_p);
+    mqbblp::QueueEngineTester tester(domainConfig,
+                                     false,
+                                     bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
     // 1)
@@ -1229,14 +1235,16 @@ static void test13_deconfigureWhenOpen()
 //                  const mqbi::QueueHandle::HandleConfiguredCallback&);
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
     bmqtst::TestHelper::printTestName(
         "DECONFIGURE IN BETWEEN OPEN AND CONFIGURE");
 
-    mqbblp::QueueEngineTester tester(fanoutConfig(), false, s_allocator_p);
+    mqbblp::QueueEngineTester tester(fanoutConfig(),
+                                     false,
+                                     bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
     //   1. Bring up 1st consumer.
@@ -1284,7 +1292,7 @@ static void test14_throttleRedeliveryPriority()
 //   rda reaches 2.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1294,7 +1302,9 @@ static void test14_throttleRedeliveryPriority()
     config.mode().makePriority();
     config.maxDeliveryAttempts() = 5;
 
-    mqbblp::TimeControlledQueueEngineTester tester(config, s_allocator_p);
+    mqbblp::TimeControlledQueueEngineTester tester(
+        config,
+        bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -1379,7 +1389,7 @@ static void test15_throttleRedeliveryFanout()
 //   rda reaches 2.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1392,7 +1402,9 @@ static void test15_throttleRedeliveryFanout()
     appIDs.push_back("c");
     config.maxDeliveryAttempts() = 5;
 
-    mqbblp::TimeControlledQueueEngineTester tester(config, s_allocator_p);
+    mqbblp::TimeControlledQueueEngineTester tester(
+        config,
+        bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -1522,7 +1534,7 @@ static void test16_throttleRedeliveryCancelledDelay()
 //   mqbblp::QueueEngine cancelThrottle on a delayed message.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1532,7 +1544,9 @@ static void test16_throttleRedeliveryCancelledDelay()
     config.mode().makePriority();
     config.maxDeliveryAttempts() = 5;
 
-    mqbblp::TimeControlledQueueEngineTester tester(config, s_allocator_p);
+    mqbblp::TimeControlledQueueEngineTester tester(
+        config,
+        bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -1615,7 +1629,7 @@ static void test17_throttleRedeliveryNewHandle()
 //   for the current message.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1625,7 +1639,9 @@ static void test17_throttleRedeliveryNewHandle()
     config.mode().makePriority();
     config.maxDeliveryAttempts() = 5;
 
-    mqbblp::TimeControlledQueueEngineTester tester(config, s_allocator_p);
+    mqbblp::TimeControlledQueueEngineTester tester(
+        config,
+        bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -1677,7 +1693,7 @@ static void test18_throttleRedeliveryNoMoreHandles()
 //   should end the delay for the current message.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'mqbblp::QueueEngine' and mocks from
     // 'mqbi' methods print with ball, which allocates.
 
@@ -1687,7 +1703,9 @@ static void test18_throttleRedeliveryNoMoreHandles()
     config.mode().makePriority();
     config.maxDeliveryAttempts() = 5;
 
-    mqbblp::TimeControlledQueueEngineTester tester(config, s_allocator_p);
+    mqbblp::TimeControlledQueueEngineTester tester(
+        config,
+        bmqtst::TestHelperUtil::allocator());
 
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
 
@@ -1747,14 +1765,16 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     {
-        bmqt::UriParser::initialize(s_allocator_p);
-        bmqp::ProtocolUtil::initialize(s_allocator_p);
+        bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
 
         switch (_testCase) {
         case 0:
@@ -1778,7 +1798,7 @@ int main(int argc, char* argv[])
         case 1: test1_breathingTest(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
 

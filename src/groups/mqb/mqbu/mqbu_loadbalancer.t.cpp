@@ -62,7 +62,8 @@ static void test1_breathingTest()
 
     const int                       k_NUM_PROCESSORS = 3;
     const int                       k_NUM_CLIENTS    = 13;
-    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS, s_allocator_p);
+    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS,
+                                        bmqtst::TestHelperUtil::allocator());
 
     // Ensure that 'numProcessors()' accessor returns the number of processors
     // set at construction; and that there are no clients.
@@ -122,7 +123,8 @@ static void test2_singleProcessorLoadBalancer()
 
     const int                       k_NUM_PROCESSORS = 1;
     const int                       k_NUM_CLIENTS    = 10;
-    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS, s_allocator_p);
+    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS,
+                                        bmqtst::TestHelperUtil::allocator());
 
     // Ensure that 'numProcessors()' accessor returns the number of processors
     // set at construction; and that there are no clients.
@@ -150,7 +152,8 @@ static void test3_loadBalancing()
     bmqtst::TestHelper::printTestName("LOAD BALANCING");
 
     const int                       k_INITIAL_CLIENTS_COUNT = 137;
-    mqbu::LoadBalancer<MyDummyType> obj(5, s_allocator_p);
+    mqbu::LoadBalancer<MyDummyType> obj(5,
+                                        bmqtst::TestHelperUtil::allocator());
 
     PV(":: Registering " << k_INITIAL_CLIENTS_COUNT << " clients");
     for (int i = 0; i < k_INITIAL_CLIENTS_COUNT; ++i) {
@@ -194,7 +197,8 @@ static void test4_forceAssociate()
     bmqtst::TestHelper::printTestName("FORCE_ASSOCIATE");
 
     const int                       k_NUM_PROCESSORS = 3;
-    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS, s_allocator_p);
+    mqbu::LoadBalancer<MyDummyType> obj(k_NUM_PROCESSORS,
+                                        bmqtst::TestHelperUtil::allocator());
 
     PV(":: Assign client '0' to processor '0'");
     obj.setProcessorForClient(reinterpret_cast<MyDummyType*>(0), 0);
@@ -243,7 +247,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

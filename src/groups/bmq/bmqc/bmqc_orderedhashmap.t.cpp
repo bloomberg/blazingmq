@@ -125,9 +125,9 @@ static void test1_breathingTest()
     typedef MyMapType::iterator                       IterType;
     typedef MyMapType::const_iterator                 ConstIterType;
 
-    const bsl::string s("foo", s_allocator_p);
+    const bsl::string s("foo", bmqtst::TestHelperUtil::allocator());
 
-    MyMapType        map(s_allocator_p);
+    MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
     ASSERT_EQ(true, map.begin() == map.end());
     ASSERT_EQ(true, cmap.begin() == cmap.end());
@@ -209,7 +209,7 @@ static void test3_insert()
     typedef MyMapType::const_iterator            ConstIterType;
     typedef bsl::pair<IterType, bool>            RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on Solaris
@@ -280,7 +280,7 @@ static void test4_rinsert()
     typedef MyMapType::const_iterator      ConstIterType;
     typedef bsl::pair<IterType, bool>      RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
     // Avoid timeout on Solaris
@@ -350,7 +350,7 @@ static void test5_insertEraseInsert()
     typedef MyMapType::const_iterator            ConstIterType;
     typedef bsl::pair<IterType, bool>            RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
 
     const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
     const size_t k_STEP         = 10;
@@ -454,7 +454,7 @@ static void test6_clear()
     typedef MyMapType::iterator            IterType;
     typedef bsl::pair<IterType, bool>      RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(true, map.empty());
     ASSERT_EQ(true, map.begin() == map.end());
     ASSERT_EQ(0U, map.size());
@@ -502,7 +502,7 @@ static void test7_erase()
     typedef bsl::pair<IterType, bool>      RcType;
 
     const int k_NUM_ELEMENTS = 100;
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -539,7 +539,7 @@ static void test8_eraseClear()
     typedef bsl::pair<IterType, bool>                        RcType;
 
     const size_t k_NUM_ELEMENTS = 100;
-    MyMapType    map(s_allocator_p);
+    MyMapType    map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -581,7 +581,7 @@ static void test9_insertFailure()
     typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 100000;
-    MyMapType    map(s_allocator_p);
+    MyMapType    map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -614,7 +614,7 @@ static void test10_erasureIterator()
     typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 10000;
-    MyMapType    map(s_allocator_p);
+    MyMapType    map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -662,7 +662,8 @@ static void test11_copyConstructor()
 
     const size_t k_NUM_ELEMENTS = 10000;
 
-    MyMapType* m1p = new (*s_allocator_p) MyMapType(s_allocator_p);
+    MyMapType* m1p = new (*bmqtst::TestHelperUtil::allocator())
+        MyMapType(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -671,7 +672,7 @@ static void test11_copyConstructor()
         ASSERT_EQ_D(i, true, rc.first != m1p->end());
     }
 
-    MyMapType m2(*m1p, s_allocator_p);
+    MyMapType m2(*m1p, bmqtst::TestHelperUtil::allocator());
 
     // Iterate and confirm
     size_t i = 0;
@@ -682,7 +683,7 @@ static void test11_copyConstructor()
     }
 
     // Delete object 1 and check object 2 again
-    s_allocator_p->deleteObject(m1p);
+    bmqtst::TestHelperUtil::allocator()->deleteObject(m1p);
 
     i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
@@ -715,7 +716,8 @@ static void test12_assignmentOperator()
 
     const size_t k_NUM_ELEMENTS = 10000;
 
-    MyMapType* m1p = new (*s_allocator_p) MyMapType(s_allocator_p);
+    MyMapType* m1p = new (*bmqtst::TestHelperUtil::allocator())
+        MyMapType(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -724,7 +726,7 @@ static void test12_assignmentOperator()
         ASSERT_EQ_D(i, true, rc.first != m1p->end());
     }
 
-    MyMapType m2(s_allocator_p);
+    MyMapType m2(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = k_NUM_ELEMENTS; i > 0; --i) {
@@ -744,7 +746,7 @@ static void test12_assignmentOperator()
     }
 
     // Delete object 1 and check object 2 again
-    s_allocator_p->deleteObject(m1p);
+    bmqtst::TestHelperUtil::allocator()->deleteObject(m1p);
     i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
         ASSERT_EQ_D(i, cit->first, i);
@@ -769,7 +771,7 @@ static void test13_previousEndIterator()
     typedef MyMapType::iterator            IterType;
     typedef MyMapType::const_iterator      ConstIterType;
 
-    MyMapType        map(s_allocator_p);
+    MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
     ASSERT_EQ(true, map.begin() == map.end());
     ASSERT_EQ(true, cmap.begin() == cmap.end());
@@ -837,7 +839,7 @@ static void test14_localIterator()
     typedef MyMapType::local_iterator                            LocalIterType;
     typedef MyMapType::const_local_iterator ConstLocalIterType;
 
-    MyMapType        map(s_allocator_p);
+    MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
 
     const size_t bucketCount = map.bucket_count();
@@ -910,7 +912,7 @@ static void test15_eraseRange()
     typedef bsl::pair<IterType, bool>            RcType;
 
     const size_t k_NUM_ELEMENTS = 100;
-    MyMapType    map(s_allocator_p);
+    MyMapType    map(bmqtst::TestHelperUtil::allocator());
 
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -964,7 +966,7 @@ static void testN1_insertPerformanceOrdered()
         // OrderedHashMap
         typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
 
-        MyMapType map(k_NUM_ELEMENTS, s_allocator_p);
+        MyMapType map(k_NUM_ELEMENTS, bmqtst::TestHelperUtil::allocator());
 
         bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -991,7 +993,7 @@ static void testN1_insertPerformanceUnordered()
         // bsl::unordered_map
         typedef bsl::unordered_map<size_t, size_t> MyMapType;
 
-        MyMapType map(s_allocator_p);
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
         map.reserve(k_NUM_ELEMENTS);
 
         bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
@@ -1022,7 +1024,7 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceOrdered()
         typedef MyMapType::iterator                  IterType;
         typedef bsl::pair<IterType, bool>            RcType;
 
-        MyMapType map(s_allocator_p);
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
         // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
@@ -1060,7 +1062,7 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceUnordered()
         typedef MyMapType::iterator                IterType;
         typedef bsl::pair<IterType, bool>          RcType;
 
-        MyMapType map(s_allocator_p);
+        MyMapType map(bmqtst::TestHelperUtil::allocator());
         // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
@@ -1092,7 +1094,7 @@ BSLA_MAYBE_UNUSED static void testN3_profile()
     const size_t k_NUM_ELEMENTS = 5000000;
 
     typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
-    MyMapType map(k_NUM_ELEMENTS, s_allocator_p);
+    MyMapType map(k_NUM_ELEMENTS, bmqtst::TestHelperUtil::allocator());
 
     // Insert elements.
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
@@ -1112,7 +1114,7 @@ testN1_insertPerformanceUnordered_GoogleBenchmark(benchmark::State& state)
     {
         // UnorderedMap
         typedef bsl::unordered_map<size_t, size_t> MyMapType;
-        MyMapType map(state.range(0), s_allocator_p);
+        MyMapType map(state.range(0), bmqtst::TestHelperUtil::allocator());
         for (auto _ : state) {
             for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
                 map.insert(bsl::make_pair(i, i));
@@ -1131,7 +1133,8 @@ testN1_insertPerformanceOrdered_GoogleBenchmark(benchmark::State& state)
         // OrderedHashMap
         typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
 
-        MyMapType map(static_cast<int>(state.range(0)), s_allocator_p);
+        MyMapType map(static_cast<int>(state.range(0)),
+                      bmqtst::TestHelperUtil::allocator());
         for (auto _ : state) {
             for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
                 map.insert(bsl::make_pair(i, i));
@@ -1148,7 +1151,7 @@ testN2_erasePerformanceUnordered_GoogleBenchmark(benchmark::State& state)
     typedef MyMapType::iterator                IterType;
     typedef bsl::pair<IterType, bool>          RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
     for (auto _ : state) {
         state.PauseTiming();
         for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
@@ -1177,7 +1180,7 @@ testN2_erasePerformanceOrdered_GoogleBenchmark(benchmark::State& state)
     typedef MyMapType::iterator                  IterType;
     typedef bsl::pair<IterType, bool>            RcType;
 
-    MyMapType map(s_allocator_p);
+    MyMapType map(bmqtst::TestHelperUtil::allocator());
     // Insert 1M elements
     for (auto _ : state) {
         state.PauseTiming();
@@ -1206,7 +1209,8 @@ static void testN3_profile_GoogleBenchmark(benchmark::State& state)
     // This case can be used to profile the component.
 
     typedef bmqc::OrderedHashMap<size_t, size_t> MyMapType;
-    MyMapType map(static_cast<int>(state.range(0)), s_allocator_p);
+    MyMapType map(static_cast<int>(state.range(0)),
+                  bmqtst::TestHelperUtil::allocator());
 
     // Insert elements.
     for (auto _ : state) {
@@ -1272,7 +1276,7 @@ int main(int argc, char* argv[])
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 #ifdef BSLS_PLATFORM_OS_LINUX
