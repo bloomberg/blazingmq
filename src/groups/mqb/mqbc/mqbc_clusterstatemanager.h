@@ -167,8 +167,6 @@ class ClusterStateManager
 
     mqbi::StorageManager* d_storageManager_p;
 
-    QueueAssigningCb d_queueAssigningCb;
-
     AfterPartitionPrimaryAssignmentCb d_afterPartitionPrimaryAssignmentCb;
 
   private:
@@ -406,14 +404,6 @@ class ClusterStateManager
     virtual void
     setStorageManager(mqbi::StorageManager* value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the queue assigning callback to the specified `value`.
-    virtual void
-    setQueueAssigningCb(const QueueAssigningCb& value) BSLS_KEYWORD_OVERRIDE;
-
-    virtual void setQueueUnassigningCb(const QueueUnassigningCb& value)
-        BSLS_KEYWORD_OVERRIDE;
-    // Set the queue unassigning callback to the specified 'value'.
-
     /// Set the after partition primary assignment callback to the specified
     /// `value`.
     virtual void setAfterPartitionPrimaryAssignmentCb(
@@ -585,7 +575,7 @@ class ClusterStateManager
         const bmqp_ctrlmsg::ControlMessage& message,
         mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified `event`.
+    /// Process the specified cluster state `event`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -762,21 +752,6 @@ inline mqbi::Dispatcher* ClusterStateManager::dispatcher()
 inline void ClusterStateManager::setStorageManager(mqbi::StorageManager* value)
 {
     d_storageManager_p = value;
-}
-
-inline void
-ClusterStateManager::setQueueAssigningCb(const QueueAssigningCb& value)
-{
-    d_queueAssigningCb = value;
-}
-
-inline void ClusterStateManager::setQueueUnassigningCb(
-    BSLS_ANNOTATION_UNUSED const QueueUnassigningCb& value)
-{
-    // Note that QueueUnassigningCb is only ever used in non-CSL mode, so we
-    // can ignore it.
-    //
-    // NOTHING
 }
 
 inline void ClusterStateManager::setAfterPartitionPrimaryAssignmentCb(

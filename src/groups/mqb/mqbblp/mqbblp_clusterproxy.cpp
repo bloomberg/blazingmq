@@ -392,6 +392,10 @@ void ClusterProxy::onActiveNodeUp(mqbnet::ClusterNode* activeNode)
         mqbnet::ElectorState::e_LEADER,
         d_clusterData.electorInfo().electorTerm() + 1,
         activeNode,
+        mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+    // It is **prohibited** to set leader status directly from e_UNDEFINED
+    // to e_ACTIVE.  Hence, we do: e_UNDEFINED -> e_PASSIVE -> e_ACTIVE
+    d_clusterData.electorInfo().setLeaderStatus(
         mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
 

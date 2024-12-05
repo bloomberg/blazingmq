@@ -165,6 +165,15 @@ class ClusterStateQueueInfo {
     typedef mqbi::ClusterStateManager::AppInfos      AppInfos;
     typedef mqbi::ClusterStateManager::AppInfosCIter AppInfosCIter;
 
+    enum State {
+        // State of Assignment
+
+        k_NONE,
+        k_ASSIGNING,
+        k_ASSIGNED,
+        k_UNASSIGNING
+    };
+
   private:
     // DATA
     bmqt::Uri d_uri;
@@ -183,9 +192,9 @@ class ClusterStateQueueInfo {
     //
     // TBD: Should also be added to mqbconfm::Domain
 
-    bool d_pendingUnassignment;
+    State d_state;
     // Flag indicating whether this queue is in the process of
-    // being unassigned.
+    // being assigned / unassigned.
 
   private:
     // NOT IMPLEMENTED
@@ -219,7 +228,7 @@ class ClusterStateQueueInfo {
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    ClusterStateQueueInfo& setPendingUnassignment(bool value);
+    bool setState(State value);
 
     /// Get a modifiable reference to this object's appIdInfos.
     AppInfos& appInfos();
@@ -236,7 +245,8 @@ class ClusterStateQueueInfo {
     const AppInfos&         appInfos() const;
 
     /// Return the value of the corresponding member of this object.
-    bool pendingUnassignment() const;
+    State state() const;
+    bool  pendingUnassignment() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -767,7 +777,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_key()
 , d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
-, d_pendingUnassignment(false)
+, d_state(k_NONE)
 {
     // NOTHING
 }
@@ -782,7 +792,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_key(key)
 , d_partitionId(partitionId)
 , d_appInfos(appIdInfos, allocator)
-, d_pendingUnassignment(false)
+, d_state(k_NONE)
 {
     // NOTHING
 }
@@ -801,11 +811,33 @@ inline ClusterStateQueueInfo& ClusterStateQueueInfo::setPartitionId(int value)
     return *this;
 }
 
-inline ClusterStateQueueInfo&
-ClusterStateQueueInfo::setPendingUnassignment(bool value)
+inline bool ClusterStateQueueInfo::setState(ClusterStateQueueInfo::State value)
 {
-    d_pendingUnassignment = value;
-    return *this;
+    //                          k_NONE
+    //                              |
+    //  ClusterUtil::assignQueue    |
+    //                              V
+    //                      k_ASSIGNING <---+
+    //                              |       |
+    //  ClusterState::assignQueue   |       |
+    //                              V       |
+    //                      k_ASSIGNED      |
+    //                              |       |
+    //                              |       | ClusterState::assignQueue
+    //                              V       |
+    //                          k_UNASSIGNING
+
+    bool result = false;
+
+    switch (d_state) {
+    case k_NONE: result = (value == k_ASSIGNING); break;
+    case k_ASSIGNING: result = (value == k_ASSIGNED); break;
+    case k_ASSIGNED: result = (value == k_UNASSIGNING); break;
+    case k_UNASSIGNING: result = (value == k_ASSIGNING); break;
+    }
+
+    d_state = value;
+    return result;
 }
 
 inline ClusterStateQueueInfo::AppInfos& ClusterStateQueueInfo::appInfos()
@@ -845,9 +877,14 @@ ClusterStateQueueInfo::appInfos() const
     return d_appInfos;
 }
 
+inline ClusterStateQueueInfo::State ClusterStateQueueInfo::state() const
+{
+    return d_state;
+}
+
 inline bool ClusterStateQueueInfo::pendingUnassignment() const
 {
-    return d_pendingUnassignment;
+    return d_state == k_UNASSIGNING;
 }
 
 // ------------------
