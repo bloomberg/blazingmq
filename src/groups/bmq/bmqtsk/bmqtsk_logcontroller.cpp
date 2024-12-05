@@ -147,7 +147,7 @@ LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 , d_syslogAppName("")
 , d_syslogVerbosity(ball::Severity::ERROR)
 , d_categories(allocator)
-, d_recordBufferSize(32768)
+, d_recordBufferSizeBytes(32 * 1024)  // 32 KB
 , d_recordingVerbosity(ball::Severity::OFF)
 , d_triggerVerbosity(ball::Severity::OFF)
 {
@@ -170,7 +170,7 @@ LogControllerConfig::LogControllerConfig(const LogControllerConfig& other,
 , d_syslogAppName(other.d_syslogAppName, allocator)
 , d_syslogVerbosity(other.d_syslogVerbosity)
 , d_categories(other.d_categories, allocator)
-, d_recordBufferSize(other.d_recordBufferSize)
+, d_recordBufferSizeBytes(other.d_recordBufferSizeBytes)
 , d_recordingVerbosity(other.d_recordingVerbosity)
 , d_triggerVerbosity(other.d_triggerVerbosity)
 {
@@ -195,7 +195,7 @@ LogControllerConfig::operator=(const LogControllerConfig& rhs)
         d_syslogAppName            = rhs.d_syslogAppName;
         d_syslogVerbosity          = rhs.d_syslogVerbosity;
         d_categories               = rhs.d_categories;
-        d_recordBufferSize         = rhs.d_recordBufferSize;
+        d_recordBufferSizeBytes    = rhs.d_recordBufferSizeBytes;
         d_recordingVerbosity       = rhs.d_recordingVerbosity;
         d_triggerVerbosity         = rhs.d_triggerVerbosity;
     }
@@ -497,7 +497,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
         bdlf::PlaceHolders::_4,
         bdlf::PlaceHolders::_5,
         '.'));
-    rc = lmc.setDefaultRecordBufferSizeIfValid(config.recordBufferSize());
+    rc = lmc.setDefaultRecordBufferSizeIfValid(config.recordBufferSizeBytes());
     if (rc != 0) {
         errorDescription << "Unable to set default record buffer size on lmc "
                          << "[rc: " << rc << "]";

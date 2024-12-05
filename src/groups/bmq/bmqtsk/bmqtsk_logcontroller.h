@@ -227,7 +227,7 @@ class LogControllerConfig {
     CategoryPropertiesMap d_categories;
     // Map of category properties
 
-    int d_recordBufferSize;
+    int d_recordBufferSizeBytes;
     // Size in bytes of the logger's record buffer
 
     ball::Severity::Level d_recordingVerbosity;
@@ -321,7 +321,7 @@ class LogControllerConfig {
     const bsl::string&      syslogFormat() const;
     const bsl::string&      syslogAppName() const;
     ball::Severity::Level   syslogVerbosity() const;
-    int                     recordBufferSize() const;
+    int                     recordBufferSizeBytes() const;
     ball::Severity::Level   recordingVerbosity() const;
     ball::Severity::Level   triggerVerbosity() const;
 
@@ -672,7 +672,7 @@ LogControllerConfig::setSyslogAppName(const bslstl::StringRef& value)
 
 inline LogControllerConfig& LogControllerConfig::setRecordBufferSize(int value)
 {
-    d_recordBufferSize = value;
+    d_recordBufferSizeBytes = value;
     return *this;
 }
 
@@ -750,9 +750,9 @@ inline ball::Severity::Level LogControllerConfig::syslogVerbosity() const
     return d_syslogVerbosity;
 }
 
-inline int LogControllerConfig::recordBufferSize() const
+inline int LogControllerConfig::recordBufferSizeBytes() const
 {
-    return d_recordBufferSize;
+    return d_recordBufferSizeBytes;
 }
 
 inline ball::Severity::Level LogControllerConfig::recordingVerbosity() const
