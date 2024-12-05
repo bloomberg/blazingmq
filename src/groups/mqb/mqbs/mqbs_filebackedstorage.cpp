@@ -248,6 +248,14 @@ int FileBackedStorage::configure(
     return 0;
 }
 
+void FileBackedStorage::setConsistency(const mqbconfm::Consistency& value)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value.isEventualValue() || value.isStrongValue());
+
+    d_hasReceipts = value.isEventualValue();
+}
+
 void FileBackedStorage::setQueue(mqbi::Queue* queue)
 {
     d_virtualStorageCatalog.setQueue(queue);
@@ -580,7 +588,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
     if (appKey.isNull()) {
         purgeCommon(appKey);  // or 'mqbu::StorageKey::k_NULL_KEY'
-        dispatcherFlush(true, false);
+        flushStorage();
         d_isEmpty.storeRelaxed(1);
 
         return mqbi::StorageResult::e_SUCCESS;  // RETURN
@@ -591,7 +599,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
     d_virtualStorageCatalog.removeAll(appKey);
     // This will call back 'releaseRef'
 
-    dispatcherFlush(true, false);
+    flushStorage();
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
@@ -606,9 +614,9 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
     return mqbi::StorageResult::e_SUCCESS;
 }
 
-void FileBackedStorage::dispatcherFlush(bool storage, bool queues)
+void FileBackedStorage::flushStorage()
 {
-    d_store_p->dispatcherFlush(storage, queues);
+    d_store_p->flushStorage();
 }
 
 int FileBackedStorage::gcExpiredMessages(
