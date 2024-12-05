@@ -1352,7 +1352,6 @@ static void test15_timestampSearchTest()
     }
 }
 
-
 static void test16_summaryWithQueueDetailsTest()
 // ------------------------------------------------------------------------
 // OUTPUT SUMMARY TEST
@@ -1364,13 +1363,16 @@ static void test16_summaryWithQueueDetailsTest()
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
+    bmqtst::TestHelper::printTestName(
+        "OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
-    JournalFile::RecordsListType records(s_allocator_p);
-    JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
-    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(s_allocator_p);
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
     journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
         &records,
         &partiallyConfirmedGUIDS);
@@ -1380,25 +1382,27 @@ static void test16_summaryWithQueueDetailsTest()
         CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
-    params.d_summary = true;
+    params.d_summary            = true;
     params.d_minRecordsPerQueue = 0;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(journalFile),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream
         << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
            "partially confirmed messages: 2\n"
@@ -1412,7 +1416,7 @@ static void test16_summaryWithQueueDetailsTest()
            "    Num Confirm Records   : 5\n"
            "    Num Delete Records    : 5";
 
-    bsl::string res(resultStream.str(), s_allocator_p);
+    bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
     ASSERT(res.starts_with(expectedStream.str()));
 }
 
