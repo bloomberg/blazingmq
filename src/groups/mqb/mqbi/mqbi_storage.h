@@ -377,10 +377,9 @@ class Storage {
 
     /// `AppInfo` is an alias for an (appId, appKey) pairing
     /// representing unique virtual storage identification.
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
 
     /// `AppInfos` is an alias for a set of pairs of appId and appKey
-    typedef bsl::unordered_set<AppInfo> AppInfos;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
 
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>

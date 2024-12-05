@@ -75,8 +75,6 @@ class VirtualStorageCatalog {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo AppInfo;
-
     typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef unsigned int Ordinal;

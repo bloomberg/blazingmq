@@ -817,12 +817,11 @@ class StorageManager
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    virtual void
-    registerQueue(const bmqt::Uri&                   uri,
-                  const mqbu::StorageKey&            queueKey,
-                  int                                partitionId,
-                  const bsl::unordered_set<AppInfo>& appIdKeyPairs,
-                  mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+    virtual void registerQueue(const bmqt::Uri&        uri,
+                               const mqbu::StorageKey& queueKey,
+                               int                     partitionId,
+                               const AppInfos&         appIdKeyPairs,
+                               mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
     /// Synchronously unregister the queue with the specified `uri` from the
     /// specified `partitionId`.

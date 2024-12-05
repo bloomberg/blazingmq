@@ -108,11 +108,10 @@ struct FileStoreProtocolUtil {
                                   const bmqu::BlobPosition& startPos,
                                   unsigned int              length);
 
-    static void
-    loadAppInfos(bsl::unordered_set<bsl::pair<bsl::string, mqbu::StorageKey> >*
-                                    appIdKeyPairs,
-                 const MemoryBlock& appIdsBlock,
-                 unsigned int       numAppIds);
+    static void loadAppInfos(
+        bsl::unordered_map<bsl::string, mqbu::StorageKey>* appIdKeyPairs,
+        const MemoryBlock&                                 appIdsBlock,
+        unsigned int                                       numAppIds);
 };
 
 }  // close package namespace

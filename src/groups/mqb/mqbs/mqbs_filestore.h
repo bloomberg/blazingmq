@@ -213,7 +213,6 @@ class FileStore : public DataStore {
     typedef DataStoreConfig::QueueKeyInfoMapConstIter QueueKeyInfoMapConstIter;
     typedef DataStoreConfig::QueueKeyInfoMapInsertRc  QueueKeyInfoMapInsertRc;
 
-    typedef mqbi::Storage::AppInfo  AppInfo;
     typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef StorageCollectionUtil::StoragesMap         StoragesMap;

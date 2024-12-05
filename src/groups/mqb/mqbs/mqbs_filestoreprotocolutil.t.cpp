@@ -512,8 +512,7 @@ static void test4_loadAppInfos()
 //   loadAppInfos()
 // ------------------------------------------------------------------------
 {
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-    typedef bsl::unordered_set<AppInfo>              AppInfos;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
 
     {
         // No appIds.
@@ -661,9 +660,9 @@ static void test4_loadAppInfos()
                         appHash,
                         mqbs::FileStoreProtocol::k_HASH_LENGTH);
 
-            expectedAppInfos.emplace(AppInfo(
+            expectedAppInfos.emplace(
                 bsl::string(appId, bmqtst::TestHelperUtil::allocator()),
-                appKey));
+                appKey);
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
         // Test.
