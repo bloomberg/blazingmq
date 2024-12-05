@@ -209,8 +209,10 @@
 /// ```
 /// void unitTest()
 /// {
+///     bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
+///
 ///     // Create an event handler
-///     EventHandler eventHandler(d_allocator_p);
+///     EventHandler eventHandler(allocator);
 ///
 ///     // The following static initializer method calls all the appropriate
 ///     // static initializers of the underlying components needed for the
@@ -218,16 +220,16 @@
 ///     // any case but if events need to be built outside the scope of the
 ///     // creation of 'MockSession' you will need to explicitly invoke this
 ///     // static initializer method.
-///     bmqa::MockSession::initialize(s_allocator_p);
+///     bmqa::MockSession::initialize(allocator);
 ///
 ///     bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
 ///     handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
 ///
 ///     bmqa::MockSession mockSession(handlerMp,
-///                                   bmqt::SessionOptions(d_allocator_p),
-///                                   d_allocator_p);
+///                                   bmqt::SessionOptions(allocator),
+///                                   allocator);
 ///
-///     bmqa::QueueId       queueId(bmqt::CorrelationId(1), d_allocator_p);
+///     bmqa::QueueId       queueId(bmqt::CorrelationId(1), allocator);
 ///     bmqt::CorrelationId corrId(1);
 ///
 ///     // Expect a call to start and the call emits an 'e_CONNECTED' event.
@@ -237,7 +239,7 @@
 ///                       bmqt::SessionEventType::e_CONNECTED,
 ///                       0,   // statusCode
 ///                       "",  // errorDescription
-///                       d_allocator_p));
+///                       allocator));
 ///
 ///     // Make a call to startAsync and emit the event that is enqueued from
 ///     // that call.
@@ -292,7 +294,7 @@
 ///                     queueId1,
 ///                     bmqt::OpenQueueResult::e_TIMEOUT,  // statusCode
 ///                     "Local Timeout",                   // errorDescription
-///                     d_allocator_p);
+///                     allocator);
 ///     mockSession.enqueueEvent(openQueueResult);
 ///
 ///     // We just enqueued a 'bmqa::OpenQueueStatus' to be emitted.  We can
@@ -321,13 +323,13 @@
 ///
 ///     // Simply creating a blob buffer factory on the stack to be used by
 ///     // 'createAckEvent'.  Typically you would have one for the component.
-///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, allocator);
 ///
 ///     // The method 'createAckEvent' takes a vector of 'AckParams' to
 ///     // specify multiple acks per event, but here we are only acknowledging
 ///     // 1 message.  Specify a positive ack with 'e_SUCCESS' here but you
 ///     // can specify any from 'bmqt::AckResult::Enum'.
-///     bsl::vector<bmqa::MockSessionUtil::AckParams> acks(d_allocator_p);
+///     bsl::vector<bmqa::MockSessionUtil::AckParams> acks(allocator);
 ///     acks.emplace_back(bmqt::AckResult::e_SUCCESS,
 ///                       bmqt::CorrelationId(1),
 ///                       bmqt::MessageGUID(), // Real GUID needed if you want
@@ -339,7 +341,7 @@
 ///     mockSession.enqueueEvent(bmqa::MockSessionUtil::createAckEvent(
 ///                                                           acks,
 ///                                                           &bufferFactory,
-///                                                           d_allocator_p));
+///                                                           allocator));
 ///
 ///     // Emit the enqueued ack event.
 ///     ASSERT_EQ(mockSession.emitEvent(), true);
@@ -365,7 +367,7 @@
 ///                                    bmqt::SessionEventType::e_DISCONNECTED,
 ///                                    0,   // statusCode
 ///                                    "",  // errorDescription
-///                                    d_allocator_p));
+///                                    allocator));
 ///     ASSERT_EQ(mockSession.emitEvent(), true);
 ///
 ///     // Our event handler internally just stores the event emitted, so pop
@@ -396,9 +398,11 @@
 /// ```
 /// void unitTest()
 /// {
+///     bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
+///
 ///     // MockSession created without an eventHandler.
-///     bmqa::MockSession mockSession(bmqt::SessionOptions(d_allocator_p),
-///                                   d_allocator_p);
+///     bmqa::MockSession mockSession(bmqt::SessionOptions(allocator),
+///                                   allocator);
 ///
 ///     // The following static initializer method calls all the appropriate
 ///     // static initializers of the underlying components needed for the
@@ -406,7 +410,7 @@
 ///     // any case but if events need to be built outside the scope of the
 ///     // creation of 'MockSession' you will need to explicitly invoke this
 ///     // static initializer method.
-///     // bmqa::MockSession::initialize(s_allocator_p);
+///     // bmqa::MockSession::initialize(allocator);
 ///
 ///     // Create simple queueIds and corrIds
 ///     bmqa::QueueId       queueId(1);
@@ -421,7 +425,7 @@
 ///
 ///     // Simply creating a blob buffer factory on the stack to be used by
 ///     // 'createAckEvent'.  Typically you would have one for the component.
-///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);
+///     bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, allocator);
 ///
 ///     // We then expect that 'nextEvent' will be called to return the
 ///     // 'e_CONNECTED' event from the broker
@@ -431,7 +435,7 @@
 ///                        bmqt::CorrelationId::autoValue(),
 ///                        0,   // errorCode
 ///                        "",  // errorDescription
-///                        d_allocator_p));
+///                        allocator));
 ///         // Note that we use an 'autoValue' for correlationId because it's
 ///         // irrelevant for a 'CONNECTED' event.
 ///
@@ -448,14 +452,14 @@
 ///                      queueId,
 ///                      bmqt::OpenQueueResult::e_SUCCESS,  // statusCode
 ///                      "",                                // errorDescription
-///                      d_allocator_p);
+///                      allocator);
 ///     BMQA_EXPECT_CALL(mockSession, openQueueSync(&queueId, uri, flags))
 ///         .returning(expectedResult);
 ///
 ///     // Build our incoming message event.
 ///     bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
-///                                                             d_allocator_p);
-///     bdlbb::Blob payload(&bufferFactory, d_allocator_p);
+///                                                                 allocator);
+///     bdlbb::Blob payload(&bufferFactory, allocator);
 ///     bdlbb::BlobUtil::append(&payload, "hello", 6);
 ///
 ///     const char        guidHex[] = "00000000000000000000000000000001";
@@ -473,7 +477,7 @@
 ///     bmqa::Event pushMsgEvent = bmqa::MockSessionUtil::createPushEvent(
 ///                                                             pushMsgs,
 ///                                                             &bufferFactory,
-///                                                             d_allocator_p);
+///                                                             allocator);
 ///     BMQA_EXPECT_CALL(mockSession, nextEvent(bsls::TimeInterval()))
 ///         .returning(pushMsgEvent);
 ///

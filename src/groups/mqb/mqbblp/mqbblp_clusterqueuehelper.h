@@ -93,9 +93,10 @@ namespace mqbblp {
 // ========================
 
 /// Mechanism to manage queues on a cluster.
-class ClusterQueueHelper : public mqbc::ClusterStateObserver,
-                           public mqbc::ClusterMembershipObserver,
-                           public mqbc::ElectorInfoObserver {
+class ClusterQueueHelper BSLS_KEYWORD_FINAL
+: public mqbc::ClusterStateObserver,
+  public mqbc::ClusterMembershipObserver,
+  public mqbc::ElectorInfoObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTERQUEUEHELPER");
@@ -954,7 +955,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     /// Callback invoked when self node's status changes to the specified
     /// `value`.
-    virtual void onSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
+    void onSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
@@ -965,8 +966,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// for the `node`, and it implies that the cluster has transitioned to
     /// a state of no leader, and in this case, `status` will be
     /// `UNDEFINED`.
-    virtual void onClusterLeader(mqbnet::ClusterNode*                node,
-                                 mqbc::ElectorInfoLeaderStatus::Enum status)
+    void onClusterLeader(mqbnet::ClusterNode*                node,
+                         mqbc::ElectorInfoLeaderStatus::Enum status)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
@@ -977,7 +978,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+    void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `info` gets
@@ -985,7 +986,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueUnassigned(const mqbc::ClusterStateQueueInfo& info)
+    void onQueueUnassigned(const mqbc::ClusterStateQueueInfo& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `uri` belonging to
@@ -995,10 +996,10 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueUpdated(const bmqt::Uri&   uri,
-                                const bsl::string& domain,
-                                const AppInfos&    addedAppIds,
-                                const AppInfos&    removedAppIds = AppInfos())
+    void onQueueUpdated(const bmqt::Uri&   uri,
+                        const bsl::string& domain,
+                        const AppInfos&    addedAppIds,
+                        const AppInfos&    removedAppIds = AppInfos())
         BSLS_KEYWORD_OVERRIDE;
 
   private:
