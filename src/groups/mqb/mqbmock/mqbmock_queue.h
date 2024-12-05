@@ -241,9 +241,6 @@ class Queue : public mqbi::Queue {
     /// Return the queue engine used by this queue.
     mqbi::QueueEngine* queueEngine() BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the stats associated with this queue.
-    bsl::shared_ptr<mqbstat::QueueStatsDomain> stats() BSLS_KEYWORD_OVERRIDE;
-
     /// Set the stats associated with this queue.
     void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
         BSLS_KEYWORD_OVERRIDE;
@@ -387,6 +384,10 @@ class Queue : public mqbi::Queue {
 
     /// Return the storage used by this queue.
     mqbi::Storage* storage() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the stats associated with this queue.
+    const bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+    stats() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the partitionId assigned to this queue.
     int partitionId() const BSLS_KEYWORD_OVERRIDE;

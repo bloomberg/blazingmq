@@ -239,12 +239,6 @@ mqbi::QueueEngine* Queue::queueEngine()
     return d_queueEngine_p;
 }
 
-bsl::shared_ptr<mqbstat::QueueStatsDomain> Queue::stats()
-{
-    BSLS_ASSERT_SAFE(d_stats_sp);
-    return d_stats_sp;
-}
-
 inline void
 Queue::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
 {
@@ -472,6 +466,12 @@ mqbi::Domain* Queue::domain() const
 mqbi::Storage* Queue::storage() const
 {
     return d_storage_p;
+}
+
+const bsl::shared_ptr<mqbstat::QueueStatsDomain>& Queue::stats() const
+{
+    BSLS_ASSERT_SAFE(d_stats_sp);
+    return d_stats_sp;
 }
 
 int Queue::partitionId() const

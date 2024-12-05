@@ -79,7 +79,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
     d_handleParameters.qId() = d_id;
 
     // Initialize stats
-    // There are niegher FileBackedStorage nor domain config on proxies
+    // There are neither FileBackedStorage nor domain config on proxies
     if (d_domain_p->cluster()->isRemote() ||
         !d_domain_p->config().storage().config().isFileBackedValue()) {
         d_stats_sp.createInplace(allocator, allocator);
