@@ -299,7 +299,7 @@ bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
                                              bsl::ostream&      stream)
 {
     if (*recordType != k_MESSAGE_TYPE && *recordType != k_QUEUEOP_TYPE &&
-        *recordType != k_JOURNAL_TYPE) {
+        *recordType != k_JOURNALOP_TYPE) {
         stream << "--record-type invalid: " << *recordType << bsl::endl;
 
         return false;  // RETURN
