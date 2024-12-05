@@ -26,7 +26,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">libbmq
-   &#160;<span id="projectnumber">94d978414b87f05587914a3960d86bdc1fc8a8f4</span>
+   &#160;<span id="projectnumber">35451ff855b5a738e1c475d2a0df757a79848157</span>
    </div>
   </td>
  </tr>
@@ -269,8 +269,10 @@ Example 1</h2>
 <dl class="section note"><dt>Note</dt><dd>As with <a class="el" href="classBloombergLP_1_1bmqa_1_1Session.html">bmqa::Session</a>, calling <code>nextEvent</code> is meaningless in asynchronous mode.</dd></dl>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> unitTest()</div>
 <div class="line">{</div>
+<div class="line">    bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();</div>
+<div class="line"> </div>
 <div class="line">    <span class="comment">// Create an event handler</span></div>
-<div class="line">    EventHandler eventHandler(d_allocator_p);</div>
+<div class="line">    EventHandler eventHandler(allocator);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// The following static initializer method calls all the appropriate</span></div>
 <div class="line">    <span class="comment">// static initializers of the underlying components needed for the</span></div>
@@ -278,16 +280,16 @@ Example 1</h2>
 <div class="line">    <span class="comment">// any case but if events need to be built outside the scope of the</span></div>
 <div class="line">    <span class="comment">// creation of &#39;MockSession&#39; you will need to explicitly invoke this</span></div>
 <div class="line">    <span class="comment">// static initializer method.</span></div>
-<div class="line">    bmqa::MockSession::initialize(s_allocator_p);</div>
+<div class="line">    bmqa::MockSession::initialize(allocator);</div>
 <div class="line"> </div>
 <div class="line">    bslma::ManagedPtr&lt;bmqa::SessionEventHandler&gt; handlerMp;</div>
 <div class="line">    handlerMp.load(&amp;eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);</div>
 <div class="line"> </div>
 <div class="line">    bmqa::MockSession mockSession(handlerMp,</div>
-<div class="line">                                  bmqt::SessionOptions(d_allocator_p),</div>
-<div class="line">                                  d_allocator_p);</div>
+<div class="line">                                  bmqt::SessionOptions(allocator),</div>
+<div class="line">                                  allocator);</div>
 <div class="line"> </div>
-<div class="line">    bmqa::QueueId       queueId(bmqt::CorrelationId(1), d_allocator_p);</div>
+<div class="line">    bmqa::QueueId       queueId(bmqt::CorrelationId(1), allocator);</div>
 <div class="line">    bmqt::CorrelationId corrId(1);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Expect a call to start and the call emits an &#39;e_CONNECTED&#39; event.</span></div>
@@ -297,7 +299,7 @@ Example 1</h2>
 <div class="line">                      bmqt::SessionEventType::e_CONNECTED,</div>
 <div class="line">                      0,   <span class="comment">// statusCode</span></div>
 <div class="line">                      <span class="stringliteral">&quot;&quot;</span>,  <span class="comment">// errorDescription</span></div>
-<div class="line">                      d_allocator_p));</div>
+<div class="line">                      allocator));</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Make a call to startAsync and emit the event that is enqueued from</span></div>
 <div class="line">    <span class="comment">// that call.</span></div>
@@ -352,7 +354,7 @@ Example 1</h2>
 <div class="line">                    queueId1,</div>
 <div class="line">                    bmqt::OpenQueueResult::e_TIMEOUT,  <span class="comment">// statusCode</span></div>
 <div class="line">                    <span class="stringliteral">&quot;Local Timeout&quot;</span>,                   <span class="comment">// errorDescription</span></div>
-<div class="line">                    d_allocator_p);</div>
+<div class="line">                    allocator);</div>
 <div class="line">    mockSession.enqueueEvent(openQueueResult);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// We just enqueued a &#39;bmqa::OpenQueueStatus&#39; to be emitted.  We can</span></div>
@@ -381,13 +383,13 @@ Example 1</h2>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Simply creating a blob buffer factory on the stack to be used by</span></div>
 <div class="line">    <span class="comment">// &#39;createAckEvent&#39;.  Typically you would have one for the component.</span></div>
-<div class="line">    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);</div>
+<div class="line">    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, allocator);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// The method &#39;createAckEvent&#39; takes a vector of &#39;AckParams&#39; to</span></div>
 <div class="line">    <span class="comment">// specify multiple acks per event, but here we are only acknowledging</span></div>
 <div class="line">    <span class="comment">// 1 message.  Specify a positive ack with &#39;e_SUCCESS&#39; here but you</span></div>
 <div class="line">    <span class="comment">// can specify any from &#39;bmqt::AckResult::Enum&#39;.</span></div>
-<div class="line">    bsl::vector&lt;bmqa::MockSessionUtil::AckParams&gt; acks(d_allocator_p);</div>
+<div class="line">    bsl::vector&lt;bmqa::MockSessionUtil::AckParams&gt; acks(allocator);</div>
 <div class="line">    acks.emplace_back(bmqt::AckResult::e_SUCCESS,</div>
 <div class="line">                      bmqt::CorrelationId(1),</div>
 <div class="line">                      bmqt::MessageGUID(), <span class="comment">// Real GUID needed if you want</span></div>
@@ -399,7 +401,7 @@ Example 1</h2>
 <div class="line">    mockSession.enqueueEvent(bmqa::MockSessionUtil::createAckEvent(</div>
 <div class="line">                                                          acks,</div>
 <div class="line">                                                          &amp;bufferFactory,</div>
-<div class="line">                                                          d_allocator_p));</div>
+<div class="line">                                                          allocator));</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Emit the enqueued ack event.</span></div>
 <div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
@@ -425,7 +427,7 @@ Example 1</h2>
 <div class="line">                                   bmqt::SessionEventType::e_DISCONNECTED,</div>
 <div class="line">                                   0,   <span class="comment">// statusCode</span></div>
 <div class="line">                                   <span class="stringliteral">&quot;&quot;</span>,  <span class="comment">// errorDescription</span></div>
-<div class="line">                                   d_allocator_p));</div>
+<div class="line">                                   allocator));</div>
 <div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Our event handler internally just stores the event emitted, so pop</span></div>
@@ -438,16 +440,18 @@ Example 1</h2>
 <div class="line">    <span class="comment">// need to be called only if &#39;initialize&#39; was explicitly called.</span></div>
 <div class="line">    <span class="comment">// bmqa::MockSession::shutdown();</span></div>
 <div class="line">}</div>
-<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition:</b> bmqa_mocksession.h:598</div></div>
+<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition:</b> bmqa_mocksession.h:602</div></div>
 </div><!-- fragment --><h2><a class="anchor" id="bmqa_mocksession_ex2"></a>
 Example 2</h2>
 <p>The folowing example shows a consumer in synchronous mode, which will start the session, generate a push message (simulating the broker), confirm the message and then stop the session. Additionally, this test case also sets all expectations up front before running the code, as this is the alternate way of writing your test driver.</p>
 <dl class="section note"><dt>Note</dt><dd>Using <code>enqueue</code> or <code>emitEvent</code> on <a class="el" href="classBloombergLP_1_1bmqa_1_1MockSession.html">bmqa::MockSession</a> or <code>emitting</code> on the <a class="el" href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a> macro in synchronous mode is meaningless.</dd></dl>
 <div class="fragment"><div class="line"><span class="keywordtype">void</span> unitTest()</div>
 <div class="line">{</div>
+<div class="line">    bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();</div>
+<div class="line"> </div>
 <div class="line">    <span class="comment">// MockSession created without an eventHandler.</span></div>
-<div class="line">    bmqa::MockSession mockSession(bmqt::SessionOptions(d_allocator_p),</div>
-<div class="line">                                  d_allocator_p);</div>
+<div class="line">    bmqa::MockSession mockSession(bmqt::SessionOptions(allocator),</div>
+<div class="line">                                  allocator);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// The following static initializer method calls all the appropriate</span></div>
 <div class="line">    <span class="comment">// static initializers of the underlying components needed for the</span></div>
@@ -455,7 +459,7 @@ Example 2</h2>
 <div class="line">    <span class="comment">// any case but if events need to be built outside the scope of the</span></div>
 <div class="line">    <span class="comment">// creation of &#39;MockSession&#39; you will need to explicitly invoke this</span></div>
 <div class="line">    <span class="comment">// static initializer method.</span></div>
-<div class="line">    <span class="comment">// bmqa::MockSession::initialize(s_allocator_p);</span></div>
+<div class="line">    <span class="comment">// bmqa::MockSession::initialize(allocator);</span></div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Create simple queueIds and corrIds</span></div>
 <div class="line">    bmqa::QueueId       queueId(1);</div>
@@ -470,7 +474,7 @@ Example 2</h2>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Simply creating a blob buffer factory on the stack to be used by</span></div>
 <div class="line">    <span class="comment">// &#39;createAckEvent&#39;.  Typically you would have one for the component.</span></div>
-<div class="line">    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, d_allocator_p);</div>
+<div class="line">    bdlbb::PooledBlobBufferFactory bufferFactory(4 * 1024, allocator);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// We then expect that &#39;nextEvent&#39; will be called to return the</span></div>
 <div class="line">    <span class="comment">// &#39;e_CONNECTED&#39; event from the broker</span></div>
@@ -480,7 +484,7 @@ Example 2</h2>
 <div class="line">                       bmqt::CorrelationId::autoValue(),</div>
 <div class="line">                       0,   <span class="comment">// errorCode</span></div>
 <div class="line">                       <span class="stringliteral">&quot;&quot;</span>,  <span class="comment">// errorDescription</span></div>
-<div class="line">                       d_allocator_p));</div>
+<div class="line">                       allocator));</div>
 <div class="line">        <span class="comment">// Note that we use an &#39;autoValue&#39; for correlationId because it&#39;s</span></div>
 <div class="line">        <span class="comment">// irrelevant for a &#39;CONNECTED&#39; event.</span></div>
 <div class="line"> </div>
@@ -497,14 +501,14 @@ Example 2</h2>
 <div class="line">                     queueId,</div>
 <div class="line">                     bmqt::OpenQueueResult::e_SUCCESS,  <span class="comment">// statusCode</span></div>
 <div class="line">                     <span class="stringliteral">&quot;&quot;</span>,                                <span class="comment">// errorDescription</span></div>
-<div class="line">                     d_allocator_p);</div>
+<div class="line">                     allocator);</div>
 <div class="line">    <a class="code" href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a>(mockSession, openQueueSync(&amp;queueId, uri, flags))</div>
 <div class="line">        .returning(expectedResult);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Build our incoming message event.</span></div>
 <div class="line">    bsl::vector&lt;bmqa::MockSessionUtil::PushMessageParams&gt; pushMsgs(</div>
-<div class="line">                                                            d_allocator_p);</div>
-<div class="line">    bdlbb::Blob payload(&amp;bufferFactory, d_allocator_p);</div>
+<div class="line">                                                                allocator);</div>
+<div class="line">    bdlbb::Blob payload(&amp;bufferFactory, allocator);</div>
 <div class="line">    bdlbb::BlobUtil::append(&amp;payload, <span class="stringliteral">&quot;hello&quot;</span>, 6);</div>
 <div class="line"> </div>
 <div class="line">    <span class="keyword">const</span> <span class="keywordtype">char</span>        guidHex[] = <span class="stringliteral">&quot;00000000000000000000000000000001&quot;</span>;</div>
@@ -522,7 +526,7 @@ Example 2</h2>
 <div class="line">    bmqa::Event pushMsgEvent = bmqa::MockSessionUtil::createPushEvent(</div>
 <div class="line">                                                            pushMsgs,</div>
 <div class="line">                                                            &amp;bufferFactory,</div>
-<div class="line">                                                            d_allocator_p);</div>
+<div class="line">                                                            allocator);</div>
 <div class="line">    <a class="code" href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a>(mockSession, nextEvent(bsls::TimeInterval()))</div>
 <div class="line">        .returning(pushMsgEvent);</div>
 <div class="line"> </div>
