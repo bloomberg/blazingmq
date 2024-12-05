@@ -158,6 +158,7 @@
 #include <mqbu_messageguidutil.h>
 
 // BMQ
+#include <bmqio_status.h>
 #include <bmqp_compression.h>
 #include <bmqp_confirmmessageiterator.h>
 #include <bmqp_controlmessageutil.h>
@@ -168,15 +169,14 @@
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 #include <bmqp_rejectmessageiterator.h>
+#include <bmqst_statcontext.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
-
-#include <bmqio_status.h>
-#include <bmqst_statcontext.h>
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
@@ -345,8 +345,6 @@ struct BuildAckOverflowFunctor {
 
 ClientSessionState::ClientSessionState(
     bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
-    BlobSpPool*                            blobSpPool,
-    bdlbb::BlobBufferFactory*              bufferFactory,
     bmqp::EncodingType::Enum               encodingType,
     bslma::Allocator*                      allocator)
 : d_allocator_p(allocator)
@@ -354,11 +352,12 @@ ClientSessionState::ClientSessionState(
 , d_unackedMessageInfos(d_allocator_p)
 , d_dispatcherClientData()
 , d_statContext_mp(clientStatContext)
-, d_bufferFactory_p(bufferFactory)
-, d_blobSpPool_p(blobSpPool)
-, d_schemaEventBuilder(bufferFactory, allocator, encodingType)
-, d_pushBuilder(bufferFactory, allocator)
-, d_ackBuilder(bufferFactory, allocator)
+, d_bufferFactory_p(
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get())
+, d_blobSpPool_p(bmqu::ResourceManager::getResource<BlobSpPool>().get())
+, d_schemaEventBuilder(d_bufferFactory_p, allocator, encodingType)
+, d_pushBuilder(d_bufferFactory_p, allocator)
+, d_ackBuilder(d_bufferFactory_p, allocator)
 , d_throttledFailedAckMessages()
 , d_throttledFailedPutMessages()
 {
@@ -2646,8 +2645,6 @@ ClientSession::ClientSession(
     mqbblp::ClusterCatalog*                 clusterCatalog,
     mqbi::DomainFactory*                    domainFactory,
     bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
-    ClientSessionState::BlobSpPool*         blobSpPool,
-    bdlbb::BlobBufferFactory*               bufferFactory,
     bdlmt::EventScheduler*                  scheduler,
     bslma::Allocator*                       allocator)
 : d_self(this)  // use default allocator
@@ -2659,8 +2656,6 @@ ClientSession::ClientSession(
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
 , d_state(clientStatContext,
-          blobSpPool,
-          bufferFactory,
           bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
               d_clientIdentity_p->features()),
           allocator)

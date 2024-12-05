@@ -25,8 +25,8 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqscm_version.h>
-
 #include <bmqsys_threadutil.h>
+#include <bmqu_resourcemanager.h>
 
 // BDE
 #include <bdls_processutil.h>
@@ -117,15 +117,17 @@ ClusterData::ClusterData(
                       cluster->isRemote(),
                       allocator))
 , d_cluster_p(cluster)
-, d_messageTransmitter(resources.bufferFactory(),
-                       cluster,
-                       transportManager,
-                       allocator)
-, d_requestManager(bmqp::EventType::e_CONTROL,
-                   resources.bufferFactory(),
-                   resources.scheduler(),
-                   false,  // lateResponseMode
-                   allocator)
+, d_messageTransmitter(
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get(),
+      cluster,
+      transportManager,
+      allocator)
+, d_requestManager(
+      bmqp::EventType::e_CONTROL,
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get(),
+      resources.scheduler(),
+      false,  // lateResponseMode
+      allocator)
 , d_multiRequestManager(&d_requestManager, allocator)
 , d_domainFactory_p(domainFactory)
 , d_transportManager_p(transportManager)

@@ -119,12 +119,6 @@ class ClusterData {
 
     /// Pool of shared pointers to Blobs
     typedef bdlcc::SharedObjectPool<
-        bdlbb::Blob,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
-
-    typedef bdlcc::SharedObjectPool<
         bmqu::AtomicState,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
@@ -237,12 +231,6 @@ class ClusterData {
     /// Get a modifiable reference to this object's event scheduler.
     bdlmt::EventScheduler& scheduler();
 
-    /// Get a modifiable reference to this object's buffer factory.
-    bdlbb::BlobBufferFactory& bufferFactory();
-
-    /// Get a modifiable reference to this object's blobSpPool.
-    BlobSpPool& blobSpPool();
-
     /// Get a modifiable reference to this object's dispatcherClientData.
     mqbi::DispatcherClientData& dispatcherClientData();
 
@@ -347,16 +335,6 @@ ClusterDataIdentity::identity() const
 inline bdlmt::EventScheduler& ClusterData::scheduler()
 {
     return *d_resources.scheduler();
-}
-
-inline bdlbb::BlobBufferFactory& ClusterData::bufferFactory()
-{
-    return *d_resources.bufferFactory();
-}
-
-inline ClusterData::BlobSpPool& ClusterData::blobSpPool()
-{
-    return *d_resources.blobSpPool();
 }
 
 inline mqbi::DispatcherClientData& ClusterData::dispatcherClientData()

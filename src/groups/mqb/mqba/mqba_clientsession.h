@@ -238,8 +238,6 @@ struct ClientSessionState {
     /// specified `allocator`.
     ClientSessionState(
         bslma::ManagedPtr<bmqst::StatContext>& clientStatContext,
-        BlobSpPool*                            blobSpPool,
-        bdlbb::BlobBufferFactory*              bufferFactory,
         bmqp::EncodingType::Enum               encodingType,
         bslma::Allocator*                      allocator);
 };
@@ -655,8 +653,6 @@ class ClientSession : public mqbnet::Session,
                   mqbblp::ClusterCatalog*                 clusterCatalog,
                   mqbi::DomainFactory*                    domainFactory,
                   bslma::ManagedPtr<bmqst::StatContext>&  clientStatContext,
-                  ClientSessionState::BlobSpPool*         blobSpPool,
-                  bdlbb::BlobBufferFactory*               bufferFactory,
                   bdlmt::EventScheduler*                  scheduler,
                   bslma::Allocator*                       allocator);
 

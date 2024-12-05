@@ -31,6 +31,7 @@
 #include <mqbstat_domainstats.h>
 #include <mqbstat_queuestats.h>
 
+// BMQ
 #include <bmqio_statchannelfactory.h>
 #include <bmqst_statcontext.h>
 #include <bmqst_statvalue.h>
@@ -39,6 +40,7 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_resourcemanager.h>
 #include <bmqu_stringutil.h>
 
 // BDE
@@ -656,7 +658,6 @@ int StatController::validateConfig(bsl::ostream& errorDescription) const
 
 StatController::StatController(const CommandProcessorFn& commandProcessor,
                                mqbplug::PluginManager*   pluginManager,
-                               bdlbb::BlobBufferFactory* bufferFactory,
                                bmqst::StatContext*       allocatorsStatContext,
                                bdlmt::EventScheduler*    eventScheduler,
                                bslma::Allocator*         allocator)
@@ -670,7 +671,8 @@ StatController::StatController(const CommandProcessorFn& commandProcessor,
 , d_statContextChannelsRemote_mp(0)
 , d_systemStatMonitor_mp(0)
 , d_pluginManager_p(pluginManager)
-, d_bufferFactory_p(bufferFactory)
+, d_bufferFactory_p(
+      bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>().get())
 , d_commandProcessorFn(bsl::allocator_arg, allocator, commandProcessor)
 , d_printer_mp(0)
 , d_jsonPrinter_mp(0)

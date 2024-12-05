@@ -48,6 +48,7 @@
 #include <bmqsys_time.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_operationchain.h>
+#include <bmqu_resourcemanager.h>
 
 // BDE
 #include <baljsn_encoder.h>
@@ -86,6 +87,37 @@ void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
                 bslma::Allocator*         allocator)
 {
     new (arena) bdlbb::Blob(bufferFactory, allocator);
+}
+
+typedef bdlcc::SharedObjectPool<
+    bdlbb::Blob,
+    bdlcc::ObjectPoolFunctors::DefaultCreator,
+    bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
+    BlobSpPool;
+
+bsl::shared_ptr<bdlbb::BlobBufferFactory>
+createBufferFactory(bslma::Allocator* allocator)
+{
+    return bsl::shared_ptr<bdlbb::BlobBufferFactory>(
+        new bdlbb::PooledBlobBufferFactory(k_BLOBBUFFER_SIZE,
+                                           bsls::BlockGrowth::BSLS_CONSTANT,
+                                           allocator),
+        allocator);
+}
+
+bsl::shared_ptr<BlobSpPool> createBlobSpPool(bslma::Allocator* allocator)
+{
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> bufferFactory_sp =
+        bmqu::ResourceManager::getResource<bdlbb::BlobBufferFactory>();
+    return bsl::shared_ptr<BlobSpPool>(
+        new BlobSpPool(
+            bdlf::BindUtil::bind(&createBlob,
+                                 bufferFactory_sp.get(),
+                                 bdlf::PlaceHolders::_1,   // arena
+                                 bdlf::PlaceHolders::_2),  // allocator
+            k_BLOB_POOL_GROWTH_STRATEGY,
+            allocator),
+        allocator);
 }
 
 }  // close unnamed namespace
@@ -149,16 +181,6 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                               1,
                               bsls::TimeInterval(120).totalMilliseconds(),
                               allocator)
-, d_bufferFactory(k_BLOBBUFFER_SIZE,
-                  bsls::BlockGrowth::BSLS_CONSTANT,
-                  d_allocators.get("BufferFactory"))
-
-, d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
-                                    &d_bufferFactory,
-                                    bdlf::PlaceHolders::_1,   // arena
-                                    bdlf::PlaceHolders::_2),  // allocator
-               k_BLOB_POOL_GROWTH_STRATEGY,
-               d_allocators.get("BlobSpPool"))
 , d_pushElementsPool(sizeof(mqbblp::PushStream::Element),
                      d_allocators.get("PushElementsPool"))
 , d_allocatorsStatContext_p(allocatorsStatContext)
@@ -257,6 +279,12 @@ int Application::start(bsl::ostream& errorDescription)
 
     int rc = rc_SUCCESS;
 
+    bmqu::ResourceManager::init(d_allocators.get("ResourceManager"));
+    bmqu::ResourceManager::registerResourceFactory<bdlbb::BlobBufferFactory>(
+        createBufferFactory);
+    bmqu::ResourceManager::registerResourceFactory<BlobSpPool>(
+        createBlobSpPool);
+
     // Start the PluginManager
     {
         d_pluginManager_mp.load(new (*d_allocator_p)
@@ -269,10 +297,7 @@ int Application::start(bsl::ostream& errorDescription)
         }
     }
 
-    mqbi::ClusterResources resources(d_scheduler_p,
-                                     &d_bufferFactory,
-                                     &d_blobSpPool,
-                                     &d_pushElementsPool);
+    mqbi::ClusterResources resources(d_scheduler_p, &d_pushElementsPool);
 
     // Start the StatController
     d_statController_mp.load(
@@ -284,7 +309,6 @@ int Application::start(bsl::ostream& errorDescription)
                                  bdlf::PlaceHolders::_3,  // os
                                  false),                  // fromReroute
             d_pluginManager_mp.get(),
-            &d_bufferFactory,
             d_allocatorsStatContext_p,
             d_scheduler_p,
             d_allocators.get("StatController")),
@@ -316,10 +340,8 @@ int Application::start(bsl::ostream& errorDescription)
 
     // Start the transport manager
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
-        SessionNegotiator(&d_bufferFactory,
-                          d_dispatcher_mp.get(),
+        SessionNegotiator(d_dispatcher_mp.get(),
                           d_statController_mp->clientsStatContext(),
-                          &d_blobSpPool,
                           d_scheduler_p,
                           d_allocators.get("SessionNegotiator"));
 
@@ -337,7 +359,6 @@ int Application::start(bsl::ostream& errorDescription)
 
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
-                                   &d_bufferFactory,
                                    negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
@@ -390,7 +411,6 @@ int Application::start(bsl::ostream& errorDescription)
     // Start the DomainManager
     d_domainManager_mp.load(new (*d_allocator_p) DomainManager(
                                 d_configProvider_mp.get(),
-                                &d_bufferFactory,
                                 d_clusterCatalog_mp.get(),
                                 d_dispatcher_mp.get(),
                                 d_statController_mp->domainsStatContext(),
@@ -529,6 +549,8 @@ void Application::stop()
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
     DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");
+
+    bmqu::ResourceManager::deinit();
 
     BALL_LOG_INFO << "BMQbrkr stopped";
 

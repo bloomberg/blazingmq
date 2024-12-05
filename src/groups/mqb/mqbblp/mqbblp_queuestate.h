@@ -108,6 +108,10 @@ class QueueState {
     mqbi::Queue* d_queue_p;
     // The queue associated to this state.
 
+    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+
+    BlobSpPool* d_blobSpPool_p;
+
     bmqt::Uri d_uri;
     // The URI of the queue associated to
     // this state.
@@ -282,9 +286,7 @@ class QueueState {
         bmqp_ctrlmsg::StreamParameters* value,
         unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) const;
 
-    bdlbb::BlobBufferFactory*                    blobBufferFactory() const;
     bdlmt::EventScheduler*                       scheduler() const;
-    mqbi::ClusterResources::BlobSpPool*          blobSpPool() const;
     const bsl::optional<bdlma::ConcurrentPool*>& pushElementsPool() const;
     bdlmt::FixedThreadPool*                      miscWorkThreadPool() const;
     const bsl::string&                           description() const;
@@ -496,7 +498,7 @@ inline Routers::QueueRoutingContext& QueueState::routingContext()
 // ACCESSORS
 inline bdlbb::BlobBufferFactory* QueueState::blobBufferFactory() const
 {
-    return d_resources.bufferFactory();
+    return d_bufferFactory_p;
 }
 
 inline bdlmt::EventScheduler* QueueState::scheduler() const
@@ -506,7 +508,7 @@ inline bdlmt::EventScheduler* QueueState::scheduler() const
 
 inline mqbi::ClusterResources::BlobSpPool* QueueState::blobSpPool() const
 {
-    return d_resources.blobSpPool();
+    return d_blobSpPool_p;
 }
 
 inline const bsl::optional<bdlma::ConcurrentPool*>&
