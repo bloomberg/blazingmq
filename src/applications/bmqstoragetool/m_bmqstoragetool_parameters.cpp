@@ -163,6 +163,11 @@ bool CommandLineArguments::validate(bsl::string* error)
         ss << "Can't search by queue name, because csl file is not "
               "specified\n";
     }
+    if (!d_printMode.empty()) {
+        if (d_printMode != "HUMAN" && d_printMode != "JSON_PRETTY" &&
+            d_printMode != "JSON_LINE")
+            ss << "Invalid print mode specified\n";
+    }
     if (d_timestampLt < 0 || d_timestampGt < 0 ||
         (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
         ss << "Invalid timestamp range specified\n";
@@ -211,6 +216,7 @@ bool CommandLineArguments::validate(bsl::string* error)
 
 Parameters::Parameters(bslma::Allocator* allocator)
 : d_queueMap(allocator)
+, d_printMode(e_HUMAN)
 , d_timestampGt(0)
 , d_timestampLt(0)
 , d_guid(allocator)
@@ -229,6 +235,7 @@ Parameters::Parameters(bslma::Allocator* allocator)
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_queueMap(allocator)
+, d_printMode(e_HUMAN)
 , d_timestampGt(arguments.d_timestampGt)
 , d_timestampLt(arguments.d_timestampLt)
 , d_guid(arguments.d_guid, allocator)
@@ -242,6 +249,12 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
+    if (arguments.d_printMode == "JSON_PRETTY") {
+        d_printMode = e_JSON_PRETTY;
+    }
+    else if (arguments.d_printMode == "JSON_LINE") {
+        d_printMode = e_JSON_LINE;
+    }
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
