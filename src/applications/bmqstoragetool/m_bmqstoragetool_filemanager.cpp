@@ -50,11 +50,35 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
     return 0;  // RETURN
 }
 
-void closeLedger(mqbsl::Ledger* ledger)
+// Iterate through each record in the cluster state ledger to find the last
+// snapshot record and set it to the specified `lastSnapshotIt_p`. If snapshot
+// record is not found, exception is thrown.
+void findLastSnapshot(mqbc::IncoreClusterStateLedgerIterator* lastSnapshotIt_p,
+                      mqbsl::Ledger*                          ledger_p)
 {
-    const int rc = ledger->close();
-    BSLS_ASSERT(rc == 0);
-    (void)rc;  // Compiler happiness
+    mqbc::IncoreClusterStateLedgerIterator cslIt(ledger_p);
+    while (true) {
+        if (cslIt.next() != 0) {
+            // End iterator reached or CSL file is corrupted or incomplete
+            if (!lastSnapshotIt_p->isValid()) {
+                throw bsl::runtime_error(
+                    "No Snapshot record found in csl file");  // THROW
+            }
+            break;  // BREAK
+        }
+
+        using namespace bmqp_ctrlmsg;
+        bsl::cout << cslIt << '\n';
+        ClusterMessage clusterMessage;
+        cslIt.loadClusterMessage(&clusterMessage);
+        bsl::cout << clusterMessage << "\n\n";
+
+        if (cslIt.header().recordType() ==
+            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            // Save snapshot iterator
+            lastSnapshotIt_p->copy(cslIt);
+        }
+    }
 }
 
 }  // close unnamed namespace
@@ -103,150 +127,16 @@ mqbs::DataFileIterator* FileManagerImpl::dataFileIterator()
     return d_dataFile.iterator();
 }
 
-mqbc::ClusterStateLedgerIterator* FileManagerImpl::cslFileIterator()
+mqbc::IncoreClusterStateLedgerIterator* FileManagerImpl::cslFileIterator()
 {
     return d_cslFile.iterator();
 }
 
-// PUBLIC FUNCTIONS
+// ACCESSORS
 
-QueueMap FileManagerImpl::buildQueueMap(const bsl::string& cslFile,
-                                        bslma::Allocator*  allocator)
+void FileManagerImpl::fillQueueMapFromCslFile(QueueMap* queueMap_p) const
 {
-    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
-
-    using namespace bmqp_ctrlmsg;
-    typedef bsl::vector<QueueInfo>     QueueInfos;
-    typedef QueueInfos::const_iterator QueueInfosIt;
-    if (cslFile.empty()) {
-        throw bsl::runtime_error("empty CSL file path");  // THROW
-    }
-    QueueMap d_queueMap(alloc);
-
-    // Required for ledger operations
-    bmqp::Crc32c::initialize();
-
-    // Instantiate ledger config
-    mqbsi::LedgerConfig                    ledgerConfig(alloc);
-    bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
-        new (*alloc) mqbmock::LogIdGenerator("bmq_csl_", alloc),
-        alloc);
-    bsl::shared_ptr<mqbsi::LogFactory> logFactory(
-        new (*alloc) mqbsl::MemoryMappedOnDiskLogFactory(alloc),
-        alloc);
-    bdls::FilesystemUtil::Offset fileSize = bdls::FilesystemUtil::getFileSize(
-        cslFile.c_str());
-    bsl::string pattern(alloc);
-    bsl::string location(alloc);
-    int         rc = bdls::PathUtil::getBasename(&pattern, cslFile);
-    BSLS_ASSERT(rc == 0);
-    rc = bdls::PathUtil::getDirname(&location, cslFile);
-    BSLS_ASSERT(rc == 0);
-    ledgerConfig.setLocation(location)
-        .setPattern(pattern)
-        .setMaxLogSize(fileSize)
-        .setReserveOnDisk(false)
-        .setPrefaultPages(false)
-        .setLogIdGenerator(logIdGenerator)
-        .setLogFactory(logFactory)
-        .setExtractLogIdCallback(&mqbc::ClusterStateLedgerUtil::extractLogId)
-        .setRolloverCallback(onRolloverCallback)
-        .setCleanupCallback(cleanupCallback)
-        .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
-
-    // Create and open the ledger
-    mqbsl::Ledger ledger(ledgerConfig, alloc);
-    rc = ledger.open(mqbsi::Ledger::e_READ_ONLY);
-    BSLS_ASSERT(rc == 0);
-    (void)rc;  // Compiler happiness
-
-    // Set guard to close the ledger
-    bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(closeLedger, &ledger));
-
-    // Iterate through each record in the ledger to find the last snapshot
-    // record
-    mqbc::IncoreClusterStateLedgerIterator cslIt(&ledger);
-    mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(&ledger);
-    while (true) {
-        if (cslIt.next() != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
-            if (!lastSnapshotIt.isValid()) {
-                throw bsl::runtime_error(
-                    "No Snapshot found in csl file");  // THROW
-            }
-            break;  // BREAK
-        }
-
-        if (cslIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
-            // Save snapshot iterator
-            lastSnapshotIt = cslIt;
-        }
-        // bsl::cout << cslIt << '\n';
-        // ClusterMessage clusterMessage;
-        // cslIt.loadClusterMessage(&clusterMessage);
-        // bsl::cout << clusterMessage << "\n\n";
-    }
-
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // return d_queueMap;
-
-    // Process last snapshot
-    ClusterMessage clusterMessage;
-    lastSnapshotIt.loadClusterMessage(&clusterMessage);
-    BSLS_ASSERT(clusterMessage.choice().selectionId() ==
-                ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
-
-    // Get queue info from snapshot (leaderAdvisory) record
-    LeaderAdvisory& leaderAdvisory = clusterMessage.choice().leaderAdvisory();
-    QueueInfos&     queuesInfo     = leaderAdvisory.queues();
-    {
-        // Fill queue map
-        QueueInfosIt it = queuesInfo.cbegin();
-        for (; it != queuesInfo.cend(); ++it) {
-            d_queueMap.insert(*it);
-        }
-    }
-
-    // Iterate from last snapshot to get updates
-    while (true) {
-        if (lastSnapshotIt.next() != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
-            break;  // BREAK
-        }
-
-        if (lastSnapshotIt.header().recordType() ==
-            mqbc::ClusterStateRecordType::e_UPDATE) {
-            lastSnapshotIt.loadClusterMessage(&clusterMessage);
-            // Process queueAssignmentAdvisory record
-            if (clusterMessage.choice().selectionId() ==
-                ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
-                QueueAssignmentAdvisory& queueAdvisory =
-                    clusterMessage.choice().queueAssignmentAdvisory();
-                const QueueInfos& updateQueuesInfo = queueAdvisory.queues();
-                QueueInfosIt      it               = updateQueuesInfo.cbegin();
-                for (; it != updateQueuesInfo.cend(); ++it) {
-                    d_queueMap.insert(*it);
-                }
-            }
-            else if (clusterMessage.choice().selectionId() ==
-                     // Process queueUpdateAdvisory record
-                     ClusterMessageChoice::
-                         SELECTION_ID_QUEUE_UPDATE_ADVISORY) {
-                QueueUpdateAdvisory queueUpdateAdvisory =
-                    clusterMessage.choice().queueUpdateAdvisory();
-                const bsl::vector<QueueInfoUpdate>& queueInfoUpdates =
-                    queueUpdateAdvisory.queueUpdates();
-                bsl::vector<QueueInfoUpdate>::const_iterator it =
-                    queueInfoUpdates.cbegin();
-                for (; it != queueInfoUpdates.cend(); ++it) {
-                    d_queueMap.update(*it);
-                }
-            }
-        }
-    }
-
-    return d_queueMap;
+    return d_cslFile.fillQueueMap(queueMap_p);
 }
 
 // ==================================
@@ -305,31 +195,171 @@ FileManagerImpl::CslFileHandler::CslFileHandler(const bsl::string& path,
 , d_cslFromBegin(cslFromBegin)
 , d_allocator(allocator)
 {
-    // NOTHING
+    // Required for ledger operations
+    bmqp::Crc32c::initialize();
 }
 
 FileManagerImpl::CslFileHandler::~CslFileHandler()
 {
-    const int rc = d_ledger_p->close();
-    BSLS_ASSERT(rc == 0);
-    (void)rc;  // Compiler happiness
+    if (d_ledger_p) {
+        const int rc = d_ledger_p->close();
+        BSLS_ASSERT(rc == 0);
+        (void)rc;  // Compiler happiness
+    }
 }
 
 bool FileManagerImpl::CslFileHandler::resetIterator(
     bsl::ostream& errorDescription)
 {
+    BSLS_ASSERT(!d_path.empty());
+
+    // Create ledger config
+    mqbsi::LedgerConfig                    ledgerConfig(d_allocator);
+    bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator(
+        new (*d_allocator) mqbmock::LogIdGenerator("bmq_csl_", d_allocator),
+        d_allocator);
+    bsl::shared_ptr<mqbsi::LogFactory> logFactory(
+        new (*d_allocator) mqbsl::MemoryMappedOnDiskLogFactory(d_allocator),
+        d_allocator);
+    bdls::FilesystemUtil::Offset fileSize = bdls::FilesystemUtil::getFileSize(
+        d_path.c_str());
+
+    bsl::string pattern(d_allocator);
+    bsl::string location(d_allocator);
+    int         rc = bdls::PathUtil::getBasename(&pattern, d_path);
+    if (rc != 0) {
+        errorDescription << "bdls::PathUtil::getBasename() failed with error: "
+                         << rc << '\n';
+        return false;  // RETURN
+    }
+    rc = bdls::PathUtil::getDirname(&location, d_path);
+    if (rc != 0) {
+        errorDescription << "bdls::PathUtil::getDirname() failed with error: "
+                         << rc << '\n';
+        return false;  // RETURN
+    }
+
+    ledgerConfig.setLocation(location)
+        .setPattern(pattern)
+        .setMaxLogSize(fileSize)
+        .setReserveOnDisk(false)
+        .setPrefaultPages(false)
+        .setLogIdGenerator(logIdGenerator)
+        .setLogFactory(logFactory)
+        .setExtractLogIdCallback(&mqbc::ClusterStateLedgerUtil::extractLogId)
+        .setRolloverCallback(onRolloverCallback)
+        .setCleanupCallback(cleanupCallback)
+        .setValidateLogCallback(mqbc::ClusterStateLedgerUtil::validateLog);
+
+    // Create and open the ledger
+    d_ledger_p.load(new (*d_allocator)
+                        mqbsl::Ledger(ledgerConfig, d_allocator),
+                    d_allocator);
+    rc = d_ledger_p->open(mqbsi::Ledger::e_READ_ONLY);
+    if (rc != 0) {
+        errorDescription << "Open ledger failed with error: " << rc << '\n';
+        return false;  // RETURN
+    }
+
+    d_iter_p.load(new (*d_allocator)
+                      mqbc::IncoreClusterStateLedgerIterator(d_ledger_p.get()),
+                  d_allocator);
+
+    if (!d_cslFromBegin) {
+        // Move iterator to the last snapshot.
+        mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(
+            d_ledger_p.get());
+        findLastSnapshot(&lastSnapshotIt, d_ledger_p.get());
+        d_iter_p->copy(lastSnapshotIt);
+    }
+
     return true;
 }
 
 mqbc::IncoreClusterStateLedgerIterator*
 FileManagerImpl::CslFileHandler::iterator()
 {
-    return 0;
+    return d_iter_p.get();
 }
 
 inline const bsl::string& FileManagerImpl::CslFileHandler::path() const
 {
     return d_path;
+}
+
+void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
+{
+    if (!d_ledger_p) {
+        return;  // RETURN
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(d_ledger_p.get());
+    if (d_cslFromBegin) {
+        // Move iterator to the last snapshot.
+        findLastSnapshot(&lastSnapshotIt, d_ledger_p.get());
+    }
+    else {
+        lastSnapshotIt.copy(*d_iter_p);
+    }
+
+    using namespace bmqp_ctrlmsg;
+    typedef bsl::vector<QueueInfo>     QueueInfos;
+    typedef QueueInfos::const_iterator QueueInfosIt;
+
+    // Process last snapshot
+    ClusterMessage clusterMessage;
+    lastSnapshotIt.loadClusterMessage(&clusterMessage);
+    BSLS_ASSERT(clusterMessage.choice().selectionId() ==
+                ClusterMessageChoice::SELECTION_ID_LEADER_ADVISORY);
+
+    // Get queue info from snapshot (leaderAdvisory) record
+    LeaderAdvisory& leaderAdvisory = clusterMessage.choice().leaderAdvisory();
+    QueueInfos&     queuesInfo     = leaderAdvisory.queues();
+    {
+        // Fill queue map
+        QueueInfosIt it = queuesInfo.cbegin();
+        for (; it != queuesInfo.cend(); ++it) {
+            queueMap_p->insert(*it);
+        }
+    }
+
+    // Iterate from last snapshot to get updates
+    while (true) {
+        if (lastSnapshotIt.next() != 0) {
+            // End iterator reached or CSL file is corrupted or incomplete
+            break;  // BREAK
+        }
+
+        if (lastSnapshotIt.header().recordType() ==
+            mqbc::ClusterStateRecordType::e_UPDATE) {
+            lastSnapshotIt.loadClusterMessage(&clusterMessage);
+            // Process queueAssignmentAdvisory record
+            if (clusterMessage.choice().selectionId() ==
+                ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                QueueAssignmentAdvisory& queueAdvisory =
+                    clusterMessage.choice().queueAssignmentAdvisory();
+                const QueueInfos& updateQueuesInfo = queueAdvisory.queues();
+                QueueInfosIt      it               = updateQueuesInfo.cbegin();
+                for (; it != updateQueuesInfo.cend(); ++it) {
+                    queueMap_p->insert(*it);
+                }
+            }
+            else if (clusterMessage.choice().selectionId() ==
+                     // Process queueUpdateAdvisory record
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UPDATE_ADVISORY) {
+                QueueUpdateAdvisory queueUpdateAdvisory =
+                    clusterMessage.choice().queueUpdateAdvisory();
+                const bsl::vector<QueueInfoUpdate>& queueInfoUpdates =
+                    queueUpdateAdvisory.queueUpdates();
+                bsl::vector<QueueInfoUpdate>::const_iterator it =
+                    queueInfoUpdates.cbegin();
+                for (; it != queueInfoUpdates.cend(); ++it) {
+                    queueMap_p->update(*it);
+                }
+            }
+        }
+    }
 }
 
 }  // close package namespace

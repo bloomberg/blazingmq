@@ -237,6 +237,7 @@ struct Parameters {
     // Queue map containing uri to key and key to info mappings
     Range d_range;
     // Range parameters for filtering
+    // TODO: do we need it here?
     bool d_cslFromBegin;
     // If true force to iterate CSL file from the beginning, otherwise iterate
     // from the latest snapshot

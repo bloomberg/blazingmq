@@ -77,6 +77,9 @@ class FileManagerMock : public FileManager {
     /// Data file iterator.
     mqbs::DataFileIterator d_dataFileIt;
 
+    /// CSL file iterator.
+    mqbc::IncoreClusterStateLedgerIterator* d_cslFileIt_p;
+
   public:
     // CREATORS
 
@@ -92,6 +95,8 @@ class FileManagerMock : public FileManager {
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
 
     MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
+    MOCK_METHOD0(cslFileIterator, mqbc::IncoreClusterStateLedgerIterator*());
+    MOCK_CONST_METHOD1(fillQueueMapFromCslFile, void(QueueMap*));
 };
 
 // ============================================================================
@@ -108,6 +113,8 @@ inline FileManagerMock::FileManagerMock()
 {
     EXPECT_CALL(*this, dataFileIterator())
         .WillRepeatedly(testing::Return(&d_dataFileIt));
+    EXPECT_CALL(*this, cslFileIterator())
+        .WillRepeatedly(testing::Return(d_cslFileIt_p));
 }
 
 inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)

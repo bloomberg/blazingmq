@@ -227,10 +227,11 @@ int main(int argc, const char* argv[])
         fileManager.load(new (*allocator)
                              FileManagerImpl(arguments.d_journalFile,
                                              arguments.d_dataFile,
+                                             arguments.d_cslFile,
+                                             arguments.d_cslFromBegin,
                                              allocator));
         if (!arguments.d_cslFile.empty()) {
-            parameters.d_queueMap =
-                FileManagerImpl::buildQueueMap(arguments.d_cslFile, allocator);
+            fileManager->fillQueueMapFromCslFile(&parameters.d_queueMap);
             parameters.validateQueueNames();
         }
     }

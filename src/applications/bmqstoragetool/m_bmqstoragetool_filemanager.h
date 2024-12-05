@@ -17,7 +17,7 @@
 #define INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 
 //@PURPOSE: Provide access to journal, data and cluster state ledger file
-//interators.
+// interators.
 //
 //@CLASSES:
 //  m_bmqstoragetool::FileManager                 : an interface class
@@ -37,7 +37,6 @@
 // MQB
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
-// #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbmock_logidgenerator.h>
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
@@ -52,12 +51,22 @@ namespace m_bmqstoragetool {
 
 class FileManager {
   public:
-    // MANIPULATORS
-    virtual mqbs::JournalFileIterator*        journalFileIterator() = 0;
-    virtual mqbs::DataFileIterator*           dataFileIterator()    = 0;
-    virtual mqbc::ClusterStateLedgerIterator* cslFileIterator()     = 0;
-
+    // CREATORS
     virtual ~FileManager();
+
+    // MANIPULATORS
+    /// Pointer to journal file iterator
+    virtual mqbs::JournalFileIterator* journalFileIterator() = 0;
+    /// Pointer to data file iterator
+    virtual mqbs::DataFileIterator* dataFileIterator() = 0;
+    /// Pointer to cluster state ledger file iterator. Note that
+    /// `IncoreClusterStateLedgerIterator` type is used instead of
+    /// `ClusterStateLedgerIterator` to get access to records offset.
+    virtual mqbc::IncoreClusterStateLedgerIterator* cslFileIterator() = 0;
+
+    // ACCESSORS
+    /// Fill the specified `queueMap_p` with data from CSL file.
+    virtual void fillQueueMapFromCslFile(QueueMap* queueMap_p) const = 0;
 };
 
 class FileManagerImpl : public FileManager {
@@ -95,11 +104,11 @@ class FileManagerImpl : public FileManager {
     class CslFileHandler {
       private:
         // PRIVATE DATA
-        const bsl::string d_path;
-        // mqbc::IncoreClusterStateLedgerIterator  d_iter;
-        bslma::ManagedPtr<mqbsl::Ledger> d_ledger_p;
-        bool                             d_cslFromBegin;
-        bslma::Allocator*                d_allocator;
+        const bsl::string                                         d_path;
+        bslma::ManagedPtr<mqbsl::Ledger>                          d_ledger_p;
+        bslma::ManagedPtr<mqbc::IncoreClusterStateLedgerIterator> d_iter_p;
+        bool              d_cslFromBegin;
+        bslma::Allocator* d_allocator;
 
       public:
         // CREATORS
@@ -119,6 +128,9 @@ class FileManagerImpl : public FileManager {
         // ACCESSORS
         /// File path
         const bsl::string& path() const;
+
+        /// Fill the specified `queueMap_p` with data from CSL file.
+        void fillQueueMap(QueueMap* queueMap_p) const;
     };
 
     // PRIVATE DATA
@@ -133,7 +145,6 @@ class FileManagerImpl : public FileManager {
 
   public:
     // CREATORS
-    /// Default constructor
     explicit FileManagerImpl(const bsl::string& journalFile,
                              const bsl::string& dataFile,
                              const bsl::string& cslFile,
@@ -143,12 +154,13 @@ class FileManagerImpl : public FileManager {
     // MANIPULATORS
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
     mqbs::DataFileIterator*    dataFileIterator() BSLS_KEYWORD_OVERRIDE;
-    mqbc::ClusterStateLedgerIterator* cslFileIterator() BSLS_KEYWORD_OVERRIDE;
+    mqbc::IncoreClusterStateLedgerIterator*
+    cslFileIterator() BSLS_KEYWORD_OVERRIDE;
 
-    // PUBLIC FUNCTIONS
-    static QueueMap buildQueueMap(const bsl::string& cslFile,
-                                  bslma::Allocator*  allocator);
-    // Build queue map from csl file.
+    // ACCESSORS
+    /// Fill the specified `queueMap_p` with data from CSL file.
+    void
+    fillQueueMapFromCslFile(QueueMap* queueMap_p) const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
