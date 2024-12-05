@@ -276,8 +276,6 @@ struct ClusterUtil {
 
     /// Generate appKeys based on the appIds in the specified `domainConfig`
     /// and populate them into the specified `appIdInfos`.
-    static void populateAppInfos(AppInfos*                  appIdInfos,
-                                 const mqbconfm::QueueMode& domainConfig);
     static void
     populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
                      const mqbconfm::QueueMode&            domainConfig);

@@ -147,7 +147,7 @@ static void test1_clusterStateLedgerIterator_protocol()
 
     PV("Creating a test object");
     bsls::ProtocolTest<ClusterStateLedgerIteratorTestImp> testObj(
-        s_verbosityLevel > 2);
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
     ASSERT(testObj.testAbstract());
@@ -162,7 +162,7 @@ static void test1_clusterStateLedgerIterator_protocol()
         PV("Verify that methods are public and virtual");
 
         mqbmock::ClusterStateLedgerIterator::LedgerRecords records(
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbmock::ClusterStateLedgerIterator cslIter(records);
         bmqp_ctrlmsg::ClusterMessage        clusterMessage;
         bmqu::MemOutStream                  os;
@@ -189,7 +189,7 @@ int main(int argc, char* argv[])
     case 1: test1_clusterStateLedgerIterator_protocol(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

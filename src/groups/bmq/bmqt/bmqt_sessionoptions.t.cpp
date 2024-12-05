@@ -37,15 +37,17 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create default sessionOptions
-    bmqt::SessionOptions sessionOptions(s_allocator_p);
+    bmqt::SessionOptions sessionOptions(bmqtst::TestHelperUtil::allocator());
 
     // Make sure 'k_BROKER_DEFAULT_PORT' and the default brokerUri are in sync
     {
         PV("CHECKING k_BROKER_DEFAULT_PORT and brokerUri()");
-        bmqu::MemOutStream ss(s_allocator_p);
+        bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         ss << "tcp://localhost:"
            << bmqt::SessionOptions::k_BROKER_DEFAULT_PORT;
-        bsl::string str(ss.str().data(), ss.str().length(), s_allocator_p);
+        bsl::string str(ss.str().data(),
+                        ss.str().length(),
+                        bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(str, sessionOptions.brokerUri());
     }
 }
@@ -63,9 +65,9 @@ static void test2_printTest()
         "hasDistributedTracing = false ]";
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
-    bmqu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
     // Create default sessionOptions
-    bmqt::SessionOptions sessionOptions(s_allocator_p);
+    bmqt::SessionOptions sessionOptions(bmqtst::TestHelperUtil::allocator());
     stream << sessionOptions;
     ASSERT_EQ(stream.str(), sampleSessionOptionsLayout);
     stream.reset();
@@ -81,7 +83,7 @@ static void test3_setterGetterAndCopyTest()
     bmqtst::TestHelper::printTestName("SETTER GETTER");
     PVV("Setter getter test");
     // Create default sessionOptions
-    bmqt::SessionOptions obj(s_allocator_p);
+    bmqt::SessionOptions obj(bmqtst::TestHelperUtil::allocator());
 
     PVV("Checking setter and getter for brokerUri");
     const char* const brokerUri = "tcp://localhost:30115";
@@ -178,7 +180,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

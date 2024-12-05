@@ -63,7 +63,7 @@ static void test1_breathingTest()
 
     PV("Default Constructor");
     {
-        bmqa::QueueId obj(s_allocator_p);
+        bmqa::QueueId obj(bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.isValid(), false);
     }
 
@@ -72,10 +72,10 @@ static void test1_breathingTest()
         const bsls::Types::Int64  id = 5;
         const bmqt::CorrelationId corrId(id);
 
-        bmqa::QueueId obj(corrId, s_allocator_p);
+        bmqa::QueueId obj(corrId, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.correlationId(), corrId);
         ASSERT_EQ(obj.flags(), bmqt::QueueFlagsUtil::empty());
-        ASSERT_EQ(obj.uri(), bmqt::Uri(s_allocator_p));
+        ASSERT_EQ(obj.uri(), bmqt::Uri(bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(obj.options(), k_NULL_OPTIONS);
         ASSERT_EQ(obj.isValid(), false);
     }
@@ -84,10 +84,10 @@ static void test1_breathingTest()
     {
         const bsls::Types::Int64 id = 5;
 
-        bmqa::QueueId obj(id, s_allocator_p);
+        bmqa::QueueId obj(id, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(id));
         ASSERT_EQ(obj.flags(), bmqt::QueueFlagsUtil::empty());
-        ASSERT_EQ(obj.uri(), bmqt::Uri(s_allocator_p));
+        ASSERT_EQ(obj.uri(), bmqt::Uri(bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(obj.options(), k_NULL_OPTIONS);
         ASSERT_EQ(obj.isValid(), false);
     }
@@ -97,10 +97,10 @@ static void test1_breathingTest()
         const char* buffer = "1234";
         void*       ptr    = static_cast<void*>(const_cast<char*>(buffer));
 
-        bmqa::QueueId obj(ptr, s_allocator_p);
+        bmqa::QueueId obj(ptr, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(ptr));
         ASSERT_EQ(obj.flags(), bmqt::QueueFlagsUtil::empty());
-        ASSERT_EQ(obj.uri(), bmqt::Uri(s_allocator_p));
+        ASSERT_EQ(obj.uri(), bmqt::Uri(bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(obj.options(), k_NULL_OPTIONS);
         ASSERT_EQ(obj.isValid(), false);
     }
@@ -110,12 +110,12 @@ static void test1_breathingTest()
         const int k_VALUE = 11;
 
         bsl::shared_ptr<int> sptr;
-        sptr.createInplace(s_allocator_p, k_VALUE);
+        sptr.createInplace(bmqtst::TestHelperUtil::allocator(), k_VALUE);
 
-        bmqa::QueueId obj(sptr, s_allocator_p);
+        bmqa::QueueId obj(sptr, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(sptr));
         ASSERT_EQ(obj.flags(), bmqt::QueueFlagsUtil::empty());
-        ASSERT_EQ(obj.uri(), bmqt::Uri(s_allocator_p));
+        ASSERT_EQ(obj.uri(), bmqt::Uri(bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(obj.options(), k_NULL_OPTIONS);
         ASSERT_EQ(obj.isValid(), false);
     }
@@ -124,8 +124,8 @@ static void test1_breathingTest()
     {
         const bsls::Types::Int64 id = 5;
 
-        bmqa::QueueId obj1(id, s_allocator_p);
-        bmqa::QueueId obj2(obj1, s_allocator_p);
+        bmqa::QueueId obj1(id, bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId obj2(obj1, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj1.correlationId(), obj2.correlationId());
         ASSERT_EQ(obj1.flags(), obj2.flags());
         ASSERT_EQ(obj1.uri(), obj2.uri());
@@ -137,8 +137,8 @@ static void test1_breathingTest()
     {
         const bsls::Types::Int64 id = 5;
 
-        bmqa::QueueId obj1(id, s_allocator_p);
-        bmqa::QueueId obj2(s_allocator_p);
+        bmqa::QueueId obj1(id, bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId obj2(bmqtst::TestHelperUtil::allocator());
         obj2 = obj1;
         ASSERT_EQ(obj1.correlationId(), obj2.correlationId());
         ASSERT_EQ(obj1.flags(), obj2.flags());
@@ -152,10 +152,10 @@ static void test1_breathingTest()
         const bsls::Types::Int64 id = 5;
         const char k_QUEUE_URL[] = "bmq://ts.trades.myapp.~bt/my.queue?id=foo";
 
-        bmqa::QueueId obj(id, s_allocator_p);
+        bmqa::QueueId obj(id, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.correlationId(), bmqt::CorrelationId(id));
         ASSERT_EQ(obj.flags(), bmqt::QueueFlagsUtil::empty());
-        ASSERT_EQ(obj.uri(), bmqt::Uri(s_allocator_p));
+        ASSERT_EQ(obj.uri(), bmqt::Uri(bmqtst::TestHelperUtil::allocator()));
         ASSERT_EQ(obj.options(), k_NULL_OPTIONS);
         ASSERT_EQ(obj.isValid(), false);
 
@@ -164,7 +164,7 @@ static void test1_breathingTest()
             reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(obj);
 
         // Set uri to impl object
-        const bmqt::Uri uri(k_QUEUE_URL, s_allocator_p);
+        const bmqt::Uri uri(k_QUEUE_URL, bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(uri.isValid(), true);
 
         queue->setUri(uri);
@@ -198,22 +198,23 @@ static void test2_comparison()
     {
         const bsls::Types::Int64 k_ID = 18;
 
-        bmqa::QueueId obj1(k_ID, s_allocator_p);
-        bmqa::QueueId obj2(k_ID, s_allocator_p);
+        bmqa::QueueId obj1(k_ID, bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId obj2(k_ID, bmqtst::TestHelperUtil::allocator());
         ASSERT_NE(obj1, obj2);
     }
 
     PV("Equality");
     {
         // Different defaults are never equal
-        ASSERT_NE(bmqa::QueueId(s_allocator_p), bmqa::QueueId(s_allocator_p));
+        ASSERT_NE(bmqa::QueueId(bmqtst::TestHelperUtil::allocator()),
+                  bmqa::QueueId(bmqtst::TestHelperUtil::allocator()));
 
         // Assignment makes equal
         const bsls::Types::Int64 k_ID1 = 5;
         const bsls::Types::Int64 k_ID2 = 11;
 
-        bmqa::QueueId obj1(k_ID1, s_allocator_p);
-        bmqa::QueueId obj2(k_ID2, s_allocator_p);
+        bmqa::QueueId obj1(k_ID1, bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId obj2(k_ID2, bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(obj1 != obj2);
 
         obj1 = obj2;
@@ -235,7 +236,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

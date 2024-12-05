@@ -53,7 +53,7 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // An object for testing pointers
-    bsl::string  foo("foo", s_allocator_p);
+    bsl::string  foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string* fooPtr = &foo;
 
     PV("Test unset correlationId");
@@ -140,7 +140,7 @@ static void test2_copyAndAssign()
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
     // An object for testing pointers
-    bsl::string  foo("foo", s_allocator_p);
+    bsl::string  foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string* fooPtr = &foo;
 
     // conversions to bmqt::CorrelationId and back
@@ -205,8 +205,8 @@ static void test3_compare()
     bsl::shared_ptr<int>    intPtr1;
     bsl::shared_ptr<int>    intPtr4;
 
-    intPtr1.createInplace(s_allocator_p, val1);
-    intPtr4.createInplace(s_allocator_p, val4);
+    intPtr1.createInplace(bmqtst::TestHelperUtil::allocator(), val1);
+    intPtr4.createInplace(bmqtst::TestHelperUtil::allocator(), val4);
 
     bmqt::CorrelationId sptrId1(intPtr1);
     bmqt::CorrelationId sptrId4(intPtr4);
@@ -266,7 +266,7 @@ static void test4_smartPointers()
     bmqt::CorrelationId smartIntCorrelation;
     {
         bsl::shared_ptr<int> intPtr;
-        intPtr.createInplace(s_allocator_p, value);
+        intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), value);
         bmqt::CorrelationId id(intPtr);
         smartIntCorrelation = id;
         ASSERT_EQ(smartIntCorrelation.isNumeric(), false);
@@ -324,14 +324,14 @@ static void test6_hashAppend()
 
     PV("HASH FUNCTION DETERMINISTIC");
 
-    bsl::string                         foo("foo", s_allocator_p);
+    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string*                        fooPtr           = &foo;
     bsls::Types::Int64                  numeric          = 0xA5A5A5A5A5A5A5A5;
     const size_t                        k_NUM_ITERATIONS = 1000;
     size_t                              t = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
-    intPtr.createInplace(s_allocator_p, numeric);
+    intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
 
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
@@ -377,18 +377,18 @@ static void test7_printTest()
 
     PV("Testing print");
 
-    bsl::string                         foo("foo", s_allocator_p);
+    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string*                        fooPtr  = &foo;
     bsls::Types::Int64                  numeric = 0x5a5a5a5a5a5a5a5a;
     size_t                              t = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
-    intPtr.createInplace(s_allocator_p, numeric);
+    intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
 
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
-        bmqu::MemOutStream  patStream(s_allocator_p);
-        bmqu::MemOutStream  objStream(s_allocator_p);
+        bmqu::MemOutStream  patStream(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream  objStream(bmqtst::TestHelperUtil::allocator());
         switch (t) {
         case bmqt::CorrelationId::e_NUMERIC: {
             obj = bmqt::CorrelationId(numeric);
@@ -432,7 +432,7 @@ static void test7_printTest()
     PV("Bad stream test");
 
     bmqt::CorrelationId obj;
-    bmqu::MemOutStream  stream(s_allocator_p);
+    bmqu::MemOutStream  stream(bmqtst::TestHelperUtil::allocator());
 
     stream << "BAD STREAM";
     stream.clear(bsl::ios_base::badbit);
@@ -460,7 +460,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

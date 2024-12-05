@@ -2398,7 +2398,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
-            bsl::string ascii(s_allocator_p);
+            bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'RUMState::toAscii("
                             << "RUMState::e_" << test.d_expected << ")';");
@@ -2433,7 +2433,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
-            bsl::string ascii(s_allocator_p);
+            bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'RUMStateTransition::toAscii("
                             << "RUMStateTransition::e_" << test.d_expected
@@ -2467,8 +2467,8 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
-            bsl::string        ascii(s_allocator_p);
-            bmqu::MemOutStream ss(s_allocator_p);
+            bsl::string        ascii(bmqtst::TestHelperUtil::allocator());
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'RUMState::print(ostream, "
                             << "RUMState::e_" << test.d_expected
@@ -2517,7 +2517,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
-            bmqu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'RUMStateTransition::print(ostream"
                             << ", RUMStateTransition::e_" << test.d_expected
@@ -2638,7 +2638,7 @@ static void test9_print()
 
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test&        test = k_DATA[idx];
-            bmqu::MemOutStream ss(s_allocator_p);
+            bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'monitor.print(ostream)'");
 
@@ -2807,7 +2807,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -1115,7 +1115,7 @@ static void test3_flagUtils()
             bmqp::PutHeaderFlagUtil::setFlag(&flags, test.d_value);
             ASSERT(bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
 
-            bmqu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PutHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
             for (int currFlagVal = 1;
@@ -1138,7 +1138,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
-            bmqu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(bmqp::PutHeaderFlagUtil::isValid(errDesc, flags),
                       test.d_isValid);
 
@@ -1180,7 +1180,7 @@ static void test3_flagUtils()
             bmqp::PushHeaderFlagUtil::setFlag(&flags, test.d_value);
             ASSERT(bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
 
-            bmqu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PushHeaderFlagUtil::prettyPrint(out, flags);
             const bslstl::StringRef& flagsString = out.str();
             for (int currFlagVal = 1;
@@ -1203,7 +1203,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
-            bmqu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(bmqp::PushHeaderFlagUtil::isValid(errDesc, flags),
                       test.d_isValid);
 
@@ -1250,7 +1250,7 @@ static void test3_flagUtils()
                 static_cast<unsigned char>(flags),
                 test.d_value));
 
-            bmqu::MemOutStream out(s_allocator_p);
+            bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::StorageHeaderFlagUtil::prettyPrint(
                 out,
                 static_cast<unsigned char>(flags));
@@ -1277,7 +1277,7 @@ static void test3_flagUtils()
 
             // 3. Verify that, with this flag set, the flags are correctly
             //    identified as 'isValid' or not 'isValid'.
-            bmqu::MemOutStream errDesc(s_allocator_p);
+            bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(
                           errDesc,
                           static_cast<unsigned char>(flags)),
@@ -1300,8 +1300,8 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         PVVV("Line [" << test.d_line << "]");
 
-        bmqu::MemOutStream out(s_allocator_p);
-        bmqu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
         typedef typename ENUM_TYPE::Enum T;
 
@@ -1574,7 +1574,7 @@ static void test5_enumIsomorphism()
         PV("Check isomorphism for " #ENUM_VAL " value of " #ENUM_TYPE         \
            " enum");                                                          \
         typedef bmqp::ENUM_TYPE T;                                            \
-        bmqu::MemOutStream      stream(s_allocator_p);                        \
+        bmqu::MemOutStream      stream(bmqtst::TestHelperUtil::allocator());  \
                                                                               \
         T::Enum     obj;                                                      \
         const char* str;                                                      \
@@ -1617,7 +1617,7 @@ static void enumFromStringHelper(FLAG_TYPE          expectedFlags,
                                  const bsl::string& incorrStr,
                                  const bsl::string& errOutput)
 {
-    bmqu::MemOutStream errStream(s_allocator_p);
+    bmqu::MemOutStream errStream(bmqtst::TestHelperUtil::allocator());
     FLAG_TYPE          outFlags;
     int                rc;
     rc = ENUM_UTIL_TYPE::fromString(errStream, &outFlags, corrStr);
@@ -1661,11 +1661,12 @@ static void test6_enumFromString()
                         bmqp::PushHeaderFlags::e_UNUSED4;
     bsl::string corrStr(
         "IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,OUT_OF_ORDER,UNUSED4",
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     bsl::string incorrStr(
         "IMPLICIT_PAYLOAD,MESSAGE_PROPERTIES,OUT_OF_ORDER,INVLD1,INVLD2",
-        s_allocator_p);
-    bsl::string errOutput("Invalid flag(s) 'INVLD1','INVLD2'", s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bsl::string errOutput("Invalid flag(s) 'INVLD1','INVLD2'",
+                          bmqtst::TestHelperUtil::allocator());
     enumFromStringHelper<bmqp::PushHeaderFlagUtil>(expectedFlags,
                                                    corrStr,
                                                    incorrStr,
@@ -1772,7 +1773,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

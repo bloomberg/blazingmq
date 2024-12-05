@@ -43,7 +43,7 @@ static void test1_multiplexingTest()
     // Two distinct sources translate the same id ('1').  The result must be
     // unique id in each case.
     //
-    bmqp::SchemaLearner          theLearner(s_allocator_p);
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context clientSession1 = theLearner.createContext();
     bmqp::SchemaLearner::Context clientSession2 = theLearner.createContext();
 
@@ -83,11 +83,13 @@ static void test2_readingTest()
     // The resulting schema must be the same until recycling is indicated.
     //
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   queueEngine(theLearner.createContext());
     bmqp::SchemaLearner::Context   clientSession(theLearner.createContext());
-    bmqp::MessageProperties        in(s_allocator_p);
+    bmqp::MessageProperties        in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    input(true, 1, false);
     bmqp::MessagePropertiesInfo    recycledInput(true, 1, true);
 
@@ -99,7 +101,7 @@ static void test2_readingTest()
     }
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0,
               theLearner.read(queueEngine,
@@ -107,7 +109,8 @@ static void test2_readingTest()
                               theLearner.multiplex(clientSession, input),
                               blob));
 
-    bmqp::MessageProperties::SchemaPtr schema1 = out.makeSchema(s_allocator_p);
+    bmqp::MessageProperties::SchemaPtr schema1 = out.makeSchema(
+        bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0,
               theLearner.read(queueEngine,
@@ -115,7 +118,7 @@ static void test2_readingTest()
                               theLearner.multiplex(clientSession, input),
                               blob));
 
-    ASSERT_EQ(schema1, out.makeSchema(s_allocator_p));
+    ASSERT_EQ(schema1, out.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     int start = bsl::rand() % num;
@@ -138,7 +141,7 @@ static void test2_readingTest()
                         blob));
 
     bmqp::MessageProperties::SchemaPtr schema2;
-    schema2 = out.makeSchema(s_allocator_p);
+    schema2 = out.makeSchema(bmqtst::TestHelperUtil::allocator());
     ASSERT_NE(schema1, schema2);
     // ...unless the input is recycled
 
@@ -168,11 +171,13 @@ static void test3_observingTest()
     // While reading the same MPs in the same context, the result must be the
     // same until observing recycling indication.
     //
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   server(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
 
     in.setPropertyAsString("z", "z");
@@ -180,21 +185,21 @@ static void test3_observingTest()
     in.setPropertyAsString("x", "x");
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
-    bmqp::MessageProperties out2(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0, theLearner.read(server, &out1, input, blob));
     ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
     bmqp::MessageProperties::SchemaPtr schema1 = out1.makeSchema(
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(schema1, out2.makeSchema(s_allocator_p));
+    ASSERT_EQ(schema1, out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
-    ASSERT_EQ(schema1, out2.makeSchema(s_allocator_p));
+    ASSERT_EQ(schema1, out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     bmqp::MessagePropertiesInfo recycledInput(true, 1, true);
@@ -203,7 +208,7 @@ static void test3_observingTest()
 
     ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
-    ASSERT_NE(schema1, out2.makeSchema(s_allocator_p));
+    ASSERT_NE(schema1, out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // ...unless the input is recycled
 }
 
@@ -212,8 +217,10 @@ static void test4_demultiplexingTest()
     // Demultiplexing (PUSH) indicates recycling first, then no recycling until
     // multiplexing (PUT) indicates recycling.
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   queueHandle(theLearner.createContext());
 
     bmqp::MessagePropertiesInfo muxIn(true, 1, false);
@@ -242,12 +249,14 @@ static void test5_emptyMPs()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     p(s_allocator_p);
-    bdlbb::Blob                 wireRep(&bufferFactory, s_allocator_p);
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic(true, 1, true);
 
     // Empty rep.
@@ -266,11 +275,13 @@ static void test6_partialRead()
 {
     // Read known schema partially.  Change one property and then continue
     // reading.
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
     const char                  x[]   = "x";
     const char                  y[]   = "y";
@@ -282,13 +293,13 @@ static void test6_partialRead()
     in.setPropertyAsString("x", x);
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
 
     // 1st setProperty w/o getProperty and then getProperty
     {
-        bmqp::MessageProperties out2(s_allocator_p);
+        bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
         // The second read is optimized (only one MPS header)
         ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
@@ -302,7 +313,7 @@ static void test6_partialRead()
 
     // 2nd getProperty, setProperty and then load all
     {
-        bmqp::MessageProperties out3(s_allocator_p);
+        bmqp::MessageProperties out3(bmqtst::TestHelperUtil::allocator());
 
         // The third read is optimized (only one MPS header)
         ASSERT_EQ(0, theLearner.read(context, &out3, input, blob));
@@ -310,7 +321,7 @@ static void test6_partialRead()
         ASSERT_EQ(y, out3.getPropertyAsString("y"));
         ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         out3.print(os, 0, -1);
 
         PV(os.str());
@@ -327,7 +338,7 @@ static void test6_partialRead()
 
     // 3rd getProperty, setProperty and then getProperty
     {
-        bmqp::MessageProperties out4(s_allocator_p);
+        bmqp::MessageProperties out4(bmqtst::TestHelperUtil::allocator());
 
         // The fourth read is optimized (only one MPS header)
         ASSERT_EQ(0, theLearner.read(context, &out4, input, blob));
@@ -345,11 +356,13 @@ static void test7_removeBeforeRead()
 {
     // Read known schema partially.  Remove one property and then continue
     // reading.
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
 
     const int   numProps       = 3;
@@ -361,14 +374,14 @@ static void test7_removeBeforeRead()
     }
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
 
     for (int iProperty = 0; iProperty < numProps; ++iProperty) {
         const char* current = name[iProperty];
         for (int iScenario = 0; iScenario < 3; ++iScenario) {
-            bmqp::MessageProperties out2(s_allocator_p);
+            bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
             // All subsequent reads are optimized (only one MPS header)
             ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
@@ -400,7 +413,7 @@ static void test7_removeBeforeRead()
                 }
             }
 
-            bmqu::MemOutStream os(s_allocator_p);
+            bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
             out2.print(os, 0, -1);
 
             PV(os.str());
@@ -448,7 +461,7 @@ static void test7_removeBeforeRead()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -461,7 +474,7 @@ int main(int argc, char* argv[])
     case 1: test1_multiplexingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

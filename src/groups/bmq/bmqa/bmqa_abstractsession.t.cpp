@@ -291,7 +291,7 @@ static void test1_breathingTest()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
     // 'markDone' methods of AbstractSession may sometimes return a
     // memory-aware object without utilizing the parameter allocator.
@@ -302,7 +302,8 @@ static void test1_breathingTest()
     bmqa::AbstractSession concreteObj;
 
     PV("Creating a test object");
-    bsls::ProtocolTest<AbstractSessionTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<AbstractSessionTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is NOT abstract");
     ASSERT(!testObj.testAbstract());
@@ -327,9 +328,11 @@ static void test1_breathingTest()
     bmqt::Uri                       dummyUri;
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus      openQueueResult(s_allocator_p);
-    bmqa::ConfigureQueueStatus configureQueueResult(s_allocator_p);
-    bmqa::CloseQueueStatus     closeQueueResult(s_allocator_p);
+    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
+    bmqa::ConfigureQueueStatus configureQueueResult(
+        bmqtst::TestHelperUtil::allocator());
+    bmqa::CloseQueueStatus closeQueueResult(
+        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
@@ -442,7 +445,7 @@ static void test2_instanceInvariants()
 //   INSTANCE INVARIANTS
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -464,12 +467,14 @@ static void test2_instanceInvariants()
     bmqa::QueueId*                  dummyQueueIdPtr             = 0;
     bmqt::CorrelationId             dummyCorrelationId;
     bmqt::QueueOptions              dummyQueueOptions;
-    bmqt::Uri                       dummyUri(s_allocator_p);
+    bmqt::Uri dummyUri(bmqtst::TestHelperUtil::allocator());
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus      openQueueResult(s_allocator_p);
-    bmqa::ConfigureQueueStatus configureQueueResult(s_allocator_p);
-    bmqa::CloseQueueStatus     closeQueueResult(s_allocator_p);
+    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
+    bmqa::ConfigureQueueStatus configureQueueResult(
+        bmqtst::TestHelperUtil::allocator());
+    bmqa::CloseQueueStatus closeQueueResult(
+        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
@@ -622,7 +627,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

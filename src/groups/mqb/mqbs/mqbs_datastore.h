@@ -684,9 +684,11 @@ class DataStore : public mqbi::DispatcherClient {
 
     /// If the specified `storage` is `true`, flush any buffered replication
     /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    virtual void dispatcherFlush(bool storage, bool queues) = 0;
+    /// all associated queues.
+
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
 
     // ACCESSORS
 

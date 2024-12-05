@@ -56,7 +56,7 @@ static void test1_toAscii()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bsl::string ascii(s_allocator_p);
+        bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = bmqt::EncodingType::toAscii(
             bmqt::EncodingType::Enum(test.d_value));
         ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
@@ -88,9 +88,10 @@ static void test2_fromAscii()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqu::MemOutStream errorDescription(s_allocator_p);
+        bmqu::MemOutStream errorDescription(
+            bmqtst::TestHelperUtil::allocator());
 
-        bsl::string str(test.d_input, s_allocator_p);
+        bsl::string str(test.d_input, bmqtst::TestHelperUtil::allocator());
         bool isValid = bmqt::EncodingType::isValid(&str, errorDescription);
         ASSERT_EQ_D(test.d_line, isValid, test.d_isValid);
 
@@ -108,7 +109,7 @@ static void test3_isomorphism()
     bmqtst::TestHelper::printTestName("ISOMORPHISM");
 
     bmqt::EncodingType::Enum obj;
-    bsl::string              str(s_allocator_p);
+    bsl::string              str(bmqtst::TestHelperUtil::allocator());
     bool                     res;
 
     PV("Testing: fromAscii(toAscii(value)) = value");
@@ -155,8 +156,8 @@ static void test4_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        bmqu::MemOutStream out(s_allocator_p);
-        bmqu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
         expected << test.d_expected;
 
@@ -193,7 +194,7 @@ int main(int argc, char* argv[])
     case 1: test1_toAscii(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

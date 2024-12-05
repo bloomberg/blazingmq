@@ -110,6 +110,17 @@ int InMemoryStorage::configure(
     return 0;
 }
 
+void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
+{
+    BALL_LOG_WARN_BLOCK
+    {
+        if (value.isStrongValue()) {
+            BALL_LOG_OUTPUT_STREAM << "Trying to configure strong consistency "
+                                   << "for in-memory storage";
+        }
+    }
+}
+
 void InMemoryStorage::setQueue(mqbi::Queue* queue)
 {
     d_virtualStorageCatalog.setQueue(queue);
@@ -412,7 +423,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     return mqbi::StorageResult::e_SUCCESS;
 }
 
-void InMemoryStorage::dispatcherFlush(bool, bool)
+void InMemoryStorage::flushStorage()
 {
     // NOTHING
 }

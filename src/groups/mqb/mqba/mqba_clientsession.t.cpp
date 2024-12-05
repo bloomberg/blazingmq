@@ -610,7 +610,8 @@ class MyMockDomain : public mqbmock::Domain {
         bmqp_ctrlmsg::Status status(d_allocator_p);
         status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
 
-        bmqp_ctrlmsg::OpenQueueResponse openQueueResponse(s_allocator_p);
+        bmqp_ctrlmsg::OpenQueueResponse openQueueResponse(
+            bmqtst::TestHelperUtil::allocator());
         openQueueResponse.routingConfiguration() = d_routingConfiguration;
 
         callback(status,
@@ -704,11 +705,13 @@ class TestBench {
             //
             // TBD: figure out the right way to "fix" this.
 
-            bmqp_ctrlmsg::QueueHandleParameters dummyParameters(s_allocator_p);
+            bmqp_ctrlmsg::QueueHandleParameters dummyParameters(
+                bmqtst::TestHelperUtil::allocator());
             bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext(
-                new (*s_allocator_p)
-                    mqbi::QueueHandleRequesterContext(s_allocator_p),
-                s_allocator_p);
+                new (*bmqtst::TestHelperUtil::allocator())
+                    mqbi::QueueHandleRequesterContext(
+                        bmqtst::TestHelperUtil::allocator()),
+                bmqtst::TestHelperUtil::allocator());
             clientContext->setClient(0);
 
             bsl::shared_ptr<mqbi::Queue> queue(
@@ -719,7 +722,7 @@ class TestBench {
                                     clientContext,
                                     static_cast<mqbstat::QueueStatsDomain*>(0),
                                     dummyParameters,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
             // NOTE: use '1' to fool the assert of d_queue_sp in
             //       MockQueueHandle constructor.
             static_cast<void>(
@@ -873,7 +876,8 @@ class TestBench {
 
         // Internal-ticket D167598037.
         // Verify that PutMessageIterator does not change the input.
-        bmqp::Event rawEvent(eventBlob.get(), s_allocator_p);
+        bmqp::Event rawEvent(eventBlob.get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT(rawEvent.isValid());
         BSLS_ASSERT(rawEvent.isPutEvent());
@@ -931,7 +935,8 @@ class TestBench {
     {
         ASSERT(d_channel->waitFor(1, false));  // isFinal = false
         ConstWriteCall& openQueueCall = d_channel->writeCalls()[0];
-        bmqp::Event     openQueueEvent(&openQueueCall.d_blob, s_allocator_p);
+        bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
+                                   bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
         ASSERT(openQueueEvent.isControlEvent());
     }
@@ -967,7 +972,8 @@ class TestBench {
         ASSERT(d_channel->waitFor(eventIndex + 1, isFinal));
 
         ConstWriteCall& ackCall = d_channel->writeCalls()[eventIndex];
-        bmqp::Event     ackEvent(&ackCall.d_blob, s_allocator_p);
+        bmqp::Event     ackEvent(&ackCall.d_blob,
+                             bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
         ASSERT(ackEvent.isAckEvent());
 
@@ -1012,7 +1018,7 @@ class TestBench {
         ASSERT(d_channel->waitFor(last + 1, false));
 
         bmqp::Event pushEvent(&d_channel->writeCalls()[last].d_blob,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
         ASSERT(pushEvent.isPushEvent());
 
@@ -1074,14 +1080,15 @@ void test(ClientType   clientType,
     const Spec spec =
         findSpec(clientType, atMostOnce, putAction, ackRequested, ackSuccess);
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId       = 4;  // A queue number
     int               correlationId = 0;  // A correlation id
     bmqt::MessageGUID guid;               // Unset
 
     TestBench tb(client(clientType),
                  atMostOnce == e_AtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1168,14 +1175,15 @@ void testInvalidPut(ClientType   clientType,
     const InvalidPutSpec spec =
         findInvalidPutSpec(clientType, atMostOnce, ackRequested, invalidPut);
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     int               queueId       = 4;  // A queue number
     int               correlationId = 0;  // A correlation id
     bmqt::MessageGUID guid;               // Unset
 
     TestBench tb(client(clientType),
                  atMostOnce == e_AtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1242,7 +1250,8 @@ void testGuidCollision(ClientType   clientType,
                                                          atMostOnce,
                                                          ackRequested);
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId       = 4;  // A queue number
     int               correlationId = 0;  // A correlation id
     bmqt::MessageGUID guid1;              // Unset
@@ -1250,7 +1259,7 @@ void testGuidCollision(ClientType   clientType,
 
     TestBench tb(client(clientType),
                  atMostOnce == e_AtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1354,14 +1363,15 @@ void testFirstHopUnsetGUID(AtMostOnce atMostOnce, AckRequested ackRequested)
        << " atMostOnce: " << atMostOnce
        << " and ackRequested: " << ackRequested);
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         correlationId = 0;  // A correlation id
     const int         queueId       = 4;  // A queue number
     bmqt::MessageGUID guid;               // Unset
 
     TestBench tb(client(e_FirstHop),
                  atMostOnce == e_AtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1558,7 +1568,8 @@ static void test4_ackRequestedNullCorrelationId()
     bmqtst::TestHelper::printTestName(
         "TESTS ACK REQUESTED NULL CORRELATION ID");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId        = 4;  // A queue number
     const int         correlationId  = 0;  // A correlation id
     const bool        isAtMostOnce   = false;
@@ -1567,7 +1578,7 @@ static void test4_ackRequestedNullCorrelationId()
 
     TestBench tb(client(e_FirstHopCorrelationIds),
                  isAtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1622,7 +1633,8 @@ static void test5_ackNotRequestedNotNullCorrelationId()
     bmqtst::TestHelper::printTestName(
         "TESTS ACK NOT REQUESTED NOT NULL CORRELATION ID");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId        = 4;  // A queue number
     const int         correlationId  = 2;  // A correlation id
     const bool        isAtMostOnce   = false;
@@ -1631,7 +1643,7 @@ static void test5_ackNotRequestedNotNullCorrelationId()
 
     TestBench tb(client(e_FirstHopCorrelationIds),
                  isAtMostOnce,
-                 s_allocator_p);
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1715,14 +1727,17 @@ static void test7_oldStylePut()
 {
     bmqtst::TestHelper::printTestName("TESTS CONVERSION FROM OLD STYLE PUT");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId        = 4;  // A queue number
     const int         correlationId  = 2;  // A correlation id
     const bool        isAtMostOnce   = false;
     const bool        isAckRequested = false;
     bmqt::MessageGUID guid;  // Unset
 
-    TestBench tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+    TestBench tb(client(e_FirstHop),
+                 isAtMostOnce,
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1732,7 +1747,7 @@ static void test7_oldStylePut()
     tb.assertOpenQueueResponse();
 
     // Send PUT.
-    bmqp::MessageProperties in(s_allocator_p);
+    bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
     tb.sendOldPut(queueId, guid, correlationId, isAckRequested, in);
@@ -1745,7 +1760,7 @@ static void test7_oldStylePut()
         postMessages[0].d_putHeader.flags(),
         bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES));
 
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     const bdlbb::Blob*      payloadBlob = postMessages[0].d_appData.get();
     const bmqp::MessagePropertiesInfo& logic(postMessages[0].d_putHeader);
     ASSERT_EQ(0, out.streamIn(*payloadBlob, logic.isExtended()));
@@ -1789,14 +1804,17 @@ static void test8_oldStyleCompressedPut()
     bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId        = 4;  // A queue number
     const int         correlationId  = 2;  // A correlation id
     const bool        isAtMostOnce   = false;
     const bool        isAckRequested = false;
     bmqt::MessageGUID guid;  // Unset
 
-    TestBench tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+    TestBench tb(client(e_FirstHop),
+                 isAtMostOnce,
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1806,7 +1824,7 @@ static void test8_oldStyleCompressedPut()
     tb.assertOpenQueueResponse();
 
     // Send PUT.
-    bmqp::MessageProperties in(s_allocator_p);
+    bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
     tb.sendOldPut(queueId,
@@ -1827,7 +1845,7 @@ static void test8_oldStyleCompressedPut()
     ASSERT_EQ(postMessages[0].d_putHeader.compressionAlgorithmType(),
               bmqt::CompressionAlgorithmType::e_NONE);
 
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     const bdlbb::Blob*      payloadBlob = postMessages[0].d_appData.get();
     const bmqp::MessagePropertiesInfo& logic(postMessages[0].d_putHeader);
 
@@ -1869,12 +1887,15 @@ static void test9_newStylePush()
     bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId      = 4;  // A queue number
     const bool        isAtMostOnce = false;
     bmqt::MessageGUID guid         = bmqp::MessageGUIDGenerator::testGUID();
 
-    TestBench tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+    TestBench tb(client(e_FirstHop),
+                 isAtMostOnce,
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1884,11 +1905,13 @@ static void test9_newStylePush()
     tb.assertOpenQueueResponse();
 
     // Send PUT.
-    bmqp::MessageProperties in(s_allocator_p);
+    bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory, s_allocator_p);
-    bdlbb::Blob           payload(&tb.d_bufferFactory, s_allocator_p);
+    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+                              bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob           payload(&tb.d_bufferFactory,
+                        bmqtst::TestHelperUtil::allocator());
 
     bmqp::PutTester::populateBlob(&payload, 99);
 
@@ -1903,18 +1926,21 @@ static void test9_newStylePush()
 
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(s_allocator_p);
-    bmqp::Event           rawEvent(&peb.blob(), s_allocator_p);
+    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
 
-    bmqp::PutMessageIterator putIt(&tb.d_bufferFactory, s_allocator_p);
+    bmqp::PutMessageIterator putIt(&tb.d_bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
     bsl::shared_ptr<bdlbb::Blob> blobSp;
-    blobSp.createInplace(s_allocator_p, &tb.d_bufferFactory, s_allocator_p);
+    blobSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         &tb.d_bufferFactory,
+                         bmqtst::TestHelperUtil::allocator());
     *blobSp = peb.blob();
 
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
@@ -1937,7 +1963,7 @@ static void test9_newStylePush()
     ASSERT_EQ(postMessages[0].d_putHeader.compressionAlgorithmType(),
               bmqt::CompressionAlgorithmType::e_NONE);
 
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     const bdlbb::Blob*      payloadBlob = postMessages[0].d_appData.get();
     const bmqp::MessagePropertiesInfo& logic(postMessages[0].d_putHeader);
     ASSERT_EQ(0, out.streamIn(*payloadBlob, logic.isExtended()));
@@ -1976,12 +2002,15 @@ static void test10_newStyleCompressedPush()
     bmqtst::TestHelper::printTestName(
         "TESTS OLD STYLE COMPRESSED PUT CONVERSION");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
     const int         queueId      = 4;  // A queue number
     const bool        isAtMostOnce = false;
     bmqt::MessageGUID guid         = bmqp::MessageGUIDGenerator::testGUID();
 
-    TestBench tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+    TestBench tb(client(e_FirstHop),
+                 isAtMostOnce,
+                 bmqtst::TestHelperUtil::allocator());
 
     // Send an 'OpenQueue` request.
     tb.openQueue(uri, queueId);
@@ -1991,11 +2020,13 @@ static void test10_newStyleCompressedPush()
     tb.assertOpenQueueResponse();
 
     // Send PUT.
-    bmqp::MessageProperties in(s_allocator_p);
+    bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory, s_allocator_p);
-    bdlbb::Blob           payload(&tb.d_bufferFactory, s_allocator_p);
+    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+                              bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob           payload(&tb.d_bufferFactory,
+                        bmqtst::TestHelperUtil::allocator());
 
     bmqp::PutTester::populateBlob(
         &payload,
@@ -2011,18 +2042,21 @@ static void test10_newStyleCompressedPush()
 
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    mqbi::DispatcherEvent putEvent(s_allocator_p);
-    bmqp::Event           rawEvent(&peb.blob(), s_allocator_p);
+    mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
 
-    bmqp::PutMessageIterator putIt(&tb.d_bufferFactory, s_allocator_p);
+    bmqp::PutMessageIterator putIt(&tb.d_bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
     bsl::shared_ptr<bdlbb::Blob> blobSp;
-    blobSp.createInplace(s_allocator_p, &tb.d_bufferFactory, s_allocator_p);
+    blobSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         &tb.d_bufferFactory,
+                         bmqtst::TestHelperUtil::allocator());
     *blobSp = peb.blob();
 
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
@@ -2046,7 +2080,7 @@ static void test10_newStyleCompressedPush()
     ASSERT_EQ(postMessages[0].d_putHeader.compressionAlgorithmType(),
               bmqt::CompressionAlgorithmType::e_ZLIB);
 
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     const bdlbb::Blob*      payloadBlob = postMessages[0].d_appData.get();
     const bmqp::MessagePropertiesInfo& logic(postMessages[0].d_putHeader);
 
@@ -2082,7 +2116,8 @@ static void test11_initiateShutdown()
 {
     bmqtst::TestHelper::printTestName("TESTS SHUTTING DOWN");
 
-    const bsl::string uri("bmq://my.domain/queue-foo-bar", s_allocator_p);
+    const bsl::string uri("bmq://my.domain/queue-foo-bar",
+                          bmqtst::TestHelperUtil::allocator());
 
     const int                queueId          = 4;  // A queue number
     const bool               isAtMostOnce     = false;
@@ -2093,7 +2128,7 @@ static void test11_initiateShutdown()
     bslmt::TimedSemaphore semaphore;
     bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
     mqbi::StorageMessageAttributes messageAttributes;
-    bmqp::Protocol::MsgGroupId     msgGroupId(s_allocator_p);
+    bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int             subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
     const unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
@@ -2101,12 +2136,14 @@ static void test11_initiateShutdown()
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
         bmqp::SubQueueInfo(subscriptionId),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bdlbb::Blob> blob;
 
     PV("Shutdown without unconfirmed messages");
     {
-        TestBench       tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+        TestBench       tb(client(e_FirstHop),
+                     isAtMostOnce,
+                     bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2139,7 +2176,9 @@ static void test11_initiateShutdown()
 
     PV("Shutdown with unconfirmed messages and timeout");
     {
-        TestBench       tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+        TestBench       tb(client(e_FirstHop),
+                     isAtMostOnce,
+                     bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2194,7 +2233,9 @@ static void test11_initiateShutdown()
 
     PV("Confirm a messsage while shutting down");
     {
-        TestBench       tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+        TestBench       tb(client(e_FirstHop),
+                     isAtMostOnce,
+                     bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
 
         // Send an 'OpenQueue` request.
@@ -2256,9 +2297,12 @@ static void test11_initiateShutdown()
     PV("Confirm multiple messsages while shutting down");
     {
         const int       NUM_MESSAGES = 5;
-        TestBench       tb(client(e_FirstHop), isAtMostOnce, s_allocator_p);
+        TestBench                      tb(client(e_FirstHop),
+                     isAtMostOnce,
+                     bmqtst::TestHelperUtil::allocator());
         bsls::AtomicInt callbackCounter(0);
-        bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+        bsl::vector<bmqt::MessageGUID> guids(
+            bmqtst::TestHelperUtil::allocator());
         guids.reserve(NUM_MESSAGES);
 
         // Send an 'OpenQueue` request.
@@ -2578,21 +2622,23 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     {
-        bmqp::ProtocolUtil::initialize(s_allocator_p);
-        bmqsys::Time::initialize(s_allocator_p);
+        bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
+        bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         brokerConfig.brokerVersion() = 999999;  // required for test case 8
                                                 // to convert msg properties
                                                 // from v1 to v2
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
 
         mqbu::MessageGUIDUtil::initialize();
 
@@ -2614,7 +2660,7 @@ int main(int argc, char* argv[])
         case -3: testN3_guidCollisionConfiguration(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
 

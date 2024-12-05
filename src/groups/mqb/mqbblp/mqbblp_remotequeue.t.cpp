@@ -468,14 +468,17 @@ static void test1_fanoutBasic()
 {
     bmqtst::TestHelper::printTestName("basic tests using fanout");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
-        mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+        mqbstat::BrokerStatsUtil::initializeStatContext(
+            30,
+            bmqtst::TestHelperUtil::allocator());
 
-    TestBench theBench(s_allocator_p);
+    TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::Uri uri("bmq://bmq.test.local/test_queue", s_allocator_p);
+    bmqt::Uri                          uri("bmq://bmq.test.local/test_queue",
+                  bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
@@ -486,8 +489,10 @@ static void test1_fanoutBasic()
                                         routingConfig);
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     TestQueueHandle x(theQueue.d_queue_sp, theBench, clientContext_sp);
     TestQueueHandle y(theQueue.d_queue_sp, theBench, clientContext_sp);
@@ -610,14 +615,17 @@ static void test2_broadcastBasic()
 {
     bmqtst::TestHelper::printTestName("basic tests using broadcast");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
-        mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+        mqbstat::BrokerStatsUtil::initializeStatContext(
+            30,
+            bmqtst::TestHelperUtil::allocator());
 
-    TestBench theBench(s_allocator_p);
+    TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::Uri uri("bmq://bmq.test.local/test_queue", s_allocator_p);
+    bmqt::Uri                          uri("bmq://bmq.test.local/test_queue",
+                  bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
 
     bmqp::RoutingConfigurationUtils::setAtMostOnce(&routingConfig);
@@ -631,8 +639,10 @@ static void test2_broadcastBasic()
                                         routingConfig);
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     theQueue.d_queue_sp->_setAtMostOnce(true);
 
@@ -898,14 +908,17 @@ static void test3_close()
 {
     bmqtst::TestHelper::printTestName("close queue with pending messages");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
-        mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+        mqbstat::BrokerStatsUtil::initializeStatContext(
+            30,
+            bmqtst::TestHelperUtil::allocator());
 
-    TestBench theBench(s_allocator_p);
+    TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::Uri uri("bmq://bmq.test.local/test_queue", s_allocator_p);
+    bmqt::Uri                          uri("bmq://bmq.test.local/test_queue",
+                  bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
@@ -916,8 +929,10 @@ static void test3_close()
                                         routingConfig);
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     TestQueueHandle x(theQueue.d_queue_sp, theBench, clientContext_sp);
     TestQueueHandle y(theQueue.d_queue_sp, theBench, clientContext_sp);
@@ -953,14 +968,17 @@ static void test4_buffering()
 {
     bmqtst::TestHelper::printTestName("buffering");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
-        mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+        mqbstat::BrokerStatsUtil::initializeStatContext(
+            30,
+            bmqtst::TestHelperUtil::allocator());
 
-    TestBench theBench(s_allocator_p);
+    TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::Uri uri("bmq://bmq.test.local/test_queue", s_allocator_p);
+    bmqt::Uri                          uri("bmq://bmq.test.local/test_queue",
+                  bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
@@ -971,8 +989,10 @@ static void test4_buffering()
                                         routingConfig);
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     TestQueueHandle x(theQueue.d_queue_sp, theBench, clientContext_sp);
     TestQueueHandle y(theQueue.d_queue_sp, theBench, clientContext_sp);
@@ -1050,14 +1070,17 @@ static void test5_reopen_failure()
 {
     bmqtst::TestHelper::printTestName("buffering");
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
-        mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+        mqbstat::BrokerStatsUtil::initializeStatContext(
+            30,
+            bmqtst::TestHelperUtil::allocator());
 
-    TestBench theBench(s_allocator_p);
+    TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
-    bmqt::Uri uri("bmq://bmq.test.local/test_queue", s_allocator_p);
+    bmqt::Uri                          uri("bmq://bmq.test.local/test_queue",
+                  bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
@@ -1068,8 +1091,10 @@ static void test5_reopen_failure()
                                         routingConfig);
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
-        new (*s_allocator_p) mqbi::QueueHandleRequesterContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            mqbi::QueueHandleRequesterContext(
+                bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     TestQueueHandle x(theQueue.d_queue_sp, theBench, clientContext_sp);
     TestQueueHandle y(theQueue.d_queue_sp, theBench, clientContext_sp);
@@ -1136,7 +1161,7 @@ int main(int argc, char* argv[])
     case 5: test5_reopen_failure(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
