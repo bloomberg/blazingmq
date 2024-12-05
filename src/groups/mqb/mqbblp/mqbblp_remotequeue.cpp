@@ -124,6 +124,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
+    storageMp->setConsistency(domainCfg.consistency());
     int rc = storageMp->configure(errorDescription,
                                   config,
                                   limits,
@@ -243,6 +244,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             d_allocator_p);
     }
     else {
+        d_state_p->storage()->setConsistency(domainCfg.consistency());
         rc = d_state_p->storage()->configure(
             errorDescription,
             domainCfg.storage().config(),

@@ -81,8 +81,10 @@ static void test1_breathingTest()
         const int BUFFER_SIZE = 10;
         const int BLOB_LENGTH = 124;
 
-        bdlbb::PooledBlobBufferFactory factory(BUFFER_SIZE, s_allocator_p);
-        bdlbb::Blob                    blob(&factory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory factory(
+            BUFFER_SIZE,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
         blob.setLength(BLOB_LENGTH);
 
         bmqu::BlobIterator obj(&blob, bmqu::BlobPosition(12, 0), 4, true);
@@ -157,8 +159,10 @@ static void test2_advance()
     for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
         const TestData& data = DATA[dataIdx];
 
-        bdlbb::PooledBlobBufferFactory factory(BUFFER_SIZE, s_allocator_p);
-        bdlbb::Blob                    blob(&factory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory factory(
+            BUFFER_SIZE,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
         blob.setLength(BLOB_LENGTH);
 
         bmqu::BlobPosition startPos(data.d_startBuffer, data.d_startByte);
@@ -245,8 +249,10 @@ static void test3_forwardIterator()
     for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
         const TestData& data = DATA[dataIdx];
 
-        bdlbb::PooledBlobBufferFactory factory(BUFFER_SIZE, s_allocator_p);
-        bdlbb::Blob                    blob(&factory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory factory(
+            BUFFER_SIZE,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
         blob.setLength(BLOB_LENGTH);
         bmqu::BlobIterator iter(&blob,
                                 bmqu::BlobPosition(data.d_startBuffer,
@@ -306,7 +312,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -204,57 +204,61 @@ struct Tester {
   public:
     // CREATORS
     Tester(bool isLeader = true, const bslstl::StringRef& location = "")
-    : d_bufferFactory(1024, s_allocator_p)
+    : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_consistencyLevel(mqbc::ClusterStateLedgerConsistency::e_EVENTUAL)
-    , d_tempDir(s_allocator_p)
-    , d_location(!location.empty() ? bsl::string(location, s_allocator_p)
-                                   : d_tempDir.path())
+    , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    , d_location(
+          !location.empty()
+              ? bsl::string(location, bmqtst::TestHelperUtil::allocator())
+              : d_tempDir.path())
     , d_cluster_mp(0)
     , d_clusterStateLedger_mp(0)
-    , d_committedMessages(s_allocator_p)
+    , d_committedMessages(bmqtst::TestHelperUtil::allocator())
     , d_commitCounter(0)
     {
-        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+        mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E1",
             "US-EAST",
             41234,
             mqbmock::Cluster::k_LEADER_NODE_ID,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "E2",
             "US-EAST",
             41235,
             mqbmock::Cluster::k_LEADER_NODE_ID + 1,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W1",
             "US-WEST",
             41236,
             mqbmock::Cluster::k_LEADER_NODE_ID + 2,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
             "W2",
             "US-WEST",
             41237,
             mqbmock::Cluster::k_LEADER_NODE_ID + 3,
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        d_cluster_mp.load(new (*s_allocator_p)
-                              mqbmock::Cluster(&d_bufferFactory,
-                                               s_allocator_p,
-                                               true,  // isClusterMember
-                                               isLeader,
-                                               true,   // isCSLMode
-                                               false,  // isFSMWorkflow
-                                               clusterNodeDefs,
-                                               "testCluster",
-                                               d_location),
-                          s_allocator_p);
+        d_cluster_mp.load(
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbmock::Cluster(&d_bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
+                                 true,  // isClusterMember
+                                 isLeader,
+                                 true,   // isCSLMode
+                                 false,  // isFSMWorkflow
+                                 clusterNodeDefs,
+                                 "testCluster",
+                                 d_location),
+            bmqtst::TestHelperUtil::allocator());
 
         // Set cluster state's leader node: One node is selected to serve as
         // leader (1st among the nodes of the cluster)
@@ -282,14 +286,15 @@ struct Tester {
         }
 
         d_clusterStateLedger_mp.load(
-            new (*s_allocator_p) mqbc::IncoreClusterStateLedger(
-                d_cluster_mp->_clusterDefinition(),
-                d_consistencyLevel,
-                d_cluster_mp->_clusterData(),
-                &d_cluster_mp->_state(),
-                d_cluster_mp->_bufferFactory(),
-                s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                mqbc::IncoreClusterStateLedger(
+                    d_cluster_mp->_clusterDefinition(),
+                    d_consistencyLevel,
+                    d_cluster_mp->_clusterData(),
+                    &d_cluster_mp->_state(),
+                    d_cluster_mp->_bufferFactory(),
+                    bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         d_clusterStateLedger_mp->setCommitCb(
             bdlf::BindUtil::bind(&Tester::onCommitCb,
                                  this,
@@ -334,7 +339,8 @@ struct Tester {
         BSLS_ASSERT_OPT(event);
 
         // Create ledger record
-        bdlbb::Blob record(d_cluster_mp->_bufferFactory(), s_allocator_p);
+        bdlbb::Blob record(d_cluster_mp->_bufferFactory(),
+                           bmqtst::TestHelperUtil::allocator());
         BSLS_ASSERT_OPT(
             mqbc::ClusterStateLedgerUtil::appendRecord(&record,
                                                        clusterMessage,
@@ -434,7 +440,8 @@ struct Tester {
             }
         }
 
-        bdlbb::Blob record(d_cluster_mp->_bufferFactory(), s_allocator_p);
+        bdlbb::Blob record(d_cluster_mp->_bufferFactory(),
+                           bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&record, *blob, sizeof(bmqp::EventHeader));
 
         bmqp_ctrlmsg::ControlMessage  controlMessage;
@@ -455,12 +462,12 @@ struct Tester {
 
     ~Tester()
     {
-        bsl::string pattern(s_allocator_p);
+        bsl::string pattern(bmqtst::TestHelperUtil::allocator());
         pattern.append(
             d_cluster_mp->_clusterDefinition().partitionConfig().location());
         pattern.append("bmq_cs_*.bmq");
 
-        bsl::vector<bsl::string> files(s_allocator_p);
+        bsl::vector<bsl::string> files(bmqtst::TestHelperUtil::allocator());
         bdls::FilesystemUtil::findMatchingPaths(&files, pattern.c_str());
         for (size_t i = 0; i < files.size(); ++i) {
             bsl::remove(files[i].c_str());
@@ -792,7 +799,7 @@ static void test7_apply_ClusterStateRecord()
     updateMessage.choice().makePartitionPrimaryAdvisory(pmAdvisory);
 
     bdlbb::Blob updateEvent(tester.d_cluster_mp->_bufferFactory(),
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&updateEvent,
                               updateMessage,
                               pmAdvisory.sequenceNumber(),
@@ -840,7 +847,7 @@ static void test7_apply_ClusterStateRecord()
     snapshotMessage.choice().makeLeaderAdvisory(leaderAdvisory);
 
     bdlbb::Blob snapshotEvent(tester.d_cluster_mp->_bufferFactory(),
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&snapshotEvent,
                               snapshotMessage,
                               leaderAdvisory.sequenceNumber(),
@@ -922,7 +929,8 @@ static void test8_apply_ClusterStateRecordAck()
     bmqp_ctrlmsg::ClusterMessage message;
     message.choice().makeLeaderAdvisoryAck(ack);
 
-    bdlbb::Blob ackEvent(tester.d_cluster_mp->_bufferFactory(), s_allocator_p);
+    bdlbb::Blob ackEvent(tester.d_cluster_mp->_bufferFactory(),
+                         bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&ackEvent,
                               message,
                               ack.sequenceNumberAcked(),
@@ -972,7 +980,7 @@ static void test9_apply_ClusterStateRecordCommit()
     advisoryMessage.choice().makePartitionPrimaryAdvisory(advisory);
 
     bdlbb::Blob advisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&advisoryEvent,
                               advisoryMessage,
                               advisory.sequenceNumber(),
@@ -998,7 +1006,7 @@ static void test9_apply_ClusterStateRecordCommit()
     commitMessage.choice().makeLeaderAdvisoryCommit(commit);
 
     bdlbb::Blob commitEvent(tester.d_cluster_mp->_bufferFactory(),
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&commitEvent,
                               commitMessage,
                               commit.sequenceNumber(),
@@ -1298,7 +1306,7 @@ static void test11_persistanceFollower()
         .nextLeaderMessageSequence(&pmAdvisory.sequenceNumber());
 
     bdlbb::Blob pmAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&pmAdvisoryEvent,
                               pmAdvisoryMsg,
                               pmAdvisory.sequenceNumber(),
@@ -1327,7 +1335,7 @@ static void test11_persistanceFollower()
     qAssignAdvisory.queues().push_back(qinfo);
 
     bdlbb::Blob qAssignAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&qAssignAdvisoryEvent,
                               qAssignAdvisoryMsg,
                               qAssignAdvisory.sequenceNumber(),
@@ -1349,7 +1357,7 @@ static void test11_persistanceFollower()
     qUnassignedAdvisory.queues().push_back(qinfo);
 
     bdlbb::Blob qUnassignedAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&qUnassignedAdvisoryEvent,
                               qUnassignedAdvisoryMsg,
                               qUnassignedAdvisory.sequenceNumber(),
@@ -1394,7 +1402,7 @@ static void test11_persistanceFollower()
     qUpdateAdvisory.queueUpdates().push_back(qupdate);
 
     bdlbb::Blob qUpdateAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&qUpdateAdvisoryEvent,
                               qUpdateAdvisoryMsg,
                               qUpdateAdvisory.sequenceNumber(),
@@ -1428,7 +1436,7 @@ static void test11_persistanceFollower()
         .nextLeaderMessageSequence(&leaderAdvisory.sequenceNumber());
 
     bdlbb::Blob leaderAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&leaderAdvisoryEvent,
                               leaderAdvisoryMsg,
                               leaderAdvisory.sequenceNumber(),
@@ -1449,7 +1457,7 @@ static void test11_persistanceFollower()
     commit.sequenceNumberCommitted() = leaderAdvisory.sequenceNumber();
 
     bdlbb::Blob commitEvent(tester.d_cluster_mp->_bufferFactory(),
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&commitEvent,
                               commitMsg,
                               commit.sequenceNumber(),
@@ -1581,7 +1589,7 @@ static void test12_persistanceAcrossRollover()
     // Build 'QueueAssignmentAdvisory'
     bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
     for (size_t i = 0; i < 50; ++i) {
-        bmqu::MemOutStream uriStream(s_allocator_p);
+        bmqu::MemOutStream uriStream(bmqtst::TestHelperUtil::allocator());
         uriStream << "bmq://bmq.test.mmap.priority/q" << i;
 
         bmqp_ctrlmsg::QueueInfo qinfo;
@@ -1629,7 +1637,8 @@ static void test12_persistanceAcrossRollover()
     sleep(1);
 
     // 2. Apply some more advisories and "save" them in a list
-    bsl::vector<AdvisoryInfo> lastAdvisories(s_allocator_p);
+    bsl::vector<AdvisoryInfo> lastAdvisories(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqp_ctrlmsg::ControlMessage advisoryToCauseRollover;
     advisoryToCauseRollover.choice()
@@ -1830,7 +1839,8 @@ static void test13_rolloverUncommittedAdvisories()
     ASSERT_EQ(obj->ledger()->numLogs(), 1U);
 
     // 1. Apply some advisory to remain uncommitted
-    bsl::vector<AdvisoryInfo> uncommittedAdvisories(s_allocator_p);
+    bsl::vector<AdvisoryInfo> uncommittedAdvisories(
+        bmqtst::TestHelperUtil::allocator());
 
     // Apply 'PartitionPrimaryAdvisory'
     bmqp_ctrlmsg::PartitionPrimaryInfo pinfo;
@@ -1847,7 +1857,7 @@ static void test13_rolloverUncommittedAdvisories()
         .nextLeaderMessageSequence(&pmAdvisory.sequenceNumber());
 
     bdlbb::Blob pmAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&pmAdvisoryEvent,
                               pmAdvisoryMsg,
                               pmAdvisory.sequenceNumber(),
@@ -1889,7 +1899,7 @@ static void test13_rolloverUncommittedAdvisories()
     qUnassignedAdvisory.queues().push_back(qinfo);
 
     bdlbb::Blob qUnassignedAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&qUnassignedAdvisoryEvent,
                               qUnassignedAdvisoryMsg,
                               qUnassignedAdvisory.sequenceNumber(),
@@ -1936,7 +1946,7 @@ static void test13_rolloverUncommittedAdvisories()
         .nextLeaderMessageSequence(&leaderAdvisory.sequenceNumber());
 
     bdlbb::Blob leaderAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&leaderAdvisoryEvent,
                               leaderAdvisoryMsg,
                               leaderAdvisory.sequenceNumber(),
@@ -1967,7 +1977,7 @@ static void test13_rolloverUncommittedAdvisories()
     bmqp_ctrlmsg::QueueAssignmentAdvisory& qAssignAdvisory =
         qAssignAdvisoryMsg.choice().makeQueueAssignmentAdvisory();
     for (size_t i = 0; i < 50; ++i) {
-        bmqu::MemOutStream uriStream(s_allocator_p);
+        bmqu::MemOutStream uriStream(bmqtst::TestHelperUtil::allocator());
         uriStream << "bmq://bmq.test.mmap.priority/q" << i;
 
         bmqp_ctrlmsg::QueueInfo queueInfo;
@@ -1998,7 +2008,7 @@ static void test13_rolloverUncommittedAdvisories()
             .nextLeaderMessageSequence(&qAssignAdvisory.sequenceNumber());
 
         bdlbb::Blob qAssignAdvisoryEvent(tester.d_cluster_mp->_bufferFactory(),
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
         tester.constructEventBlob(&qAssignAdvisoryEvent,
                                   qAssignAdvisoryMsg,
                                   qAssignAdvisory.sequenceNumber(),
@@ -2016,7 +2026,7 @@ static void test13_rolloverUncommittedAdvisories()
         commit.sequenceNumberCommitted() = qAssignAdvisory.sequenceNumber();
 
         bdlbb::Blob commitEvent(tester.d_cluster_mp->_bufferFactory(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
         tester.constructEventBlob(&commitEvent,
                                   commitMsg,
                                   commit.sequenceNumber(),
@@ -2127,10 +2137,10 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -2149,7 +2159,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

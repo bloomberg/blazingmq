@@ -68,8 +68,8 @@ static void test1_breathingTest()
     bmqimp::QueueState::Enum  k_STATE = bmqimp::QueueState::e_CLOSED;
     const bmqt::CorrelationId k_CORID;
     const unsigned int        k_SQID = 0U;
-    bmqimp::Queue             obj(s_allocator_p);
-    bmqt::QueueOptions        options(s_allocator_p);
+    bmqimp::Queue             obj(bmqtst::TestHelperUtil::allocator());
+    bmqt::QueueOptions        options(bmqtst::TestHelperUtil::allocator());
 
     options.setMaxUnconfirmedMessages(0)
         .setMaxUnconfirmedBytes(0)
@@ -119,12 +119,12 @@ static void test2_settersTest()
 {
     bmqtst::TestHelper::printTestName("SETTERS TEST");
 
-    bmqimp::Queue obj(s_allocator_p);
+    bmqimp::Queue obj(bmqtst::TestHelperUtil::allocator());
 
     // Check setters
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
     const unsigned int        k_ID         = 12345;
@@ -137,7 +137,7 @@ static void test2_settersTest()
     bmqt::QueueFlagsUtil::setWriter(&flags);
     bmqt::QueueFlagsUtil::setAdmin(&flags);
 
-    bmqt::QueueOptions options(s_allocator_p);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
     options.setMaxUnconfirmedBytes(123);
 
     obj.setUri(uri)
@@ -228,8 +228,8 @@ static void test3_printQueueStateTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&        test = k_DATA[idx];
-        bmqu::MemOutStream out(s_allocator_p);
-        bmqu::MemOutStream expected(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
         expected << test.d_expected << "\n";
 
@@ -281,7 +281,7 @@ static void test4_printTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
     const unsigned int        k_ID         = 12345;
@@ -294,12 +294,12 @@ static void test4_printTest()
     bmqt::QueueFlagsUtil::setReader(&flags);
     bmqt::QueueFlagsUtil::setWriter(&flags);
 
-    bmqt::QueueOptions options(s_allocator_p);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
     options.setMaxUnconfirmedBytes(123);
     options.setMaxUnconfirmedMessages(5);
     options.setConsumerPriority(3);
 
-    bmqimp::Queue obj(s_allocator_p);
+    bmqimp::Queue obj(bmqtst::TestHelperUtil::allocator());
     obj.setUri(uri)
         .setSubQueueId(k_SQID)
         .setState(k_STATE)
@@ -322,8 +322,8 @@ static void test4_printTest()
         "pendingConfigureId = 65432 requestGroupId = 4091 isSuspended = false "
         "isSuspendedWithBroker = false ]";
 
-    bmqu::MemOutStream out(s_allocator_p);
-    bmqu::MemOutStream expected(s_allocator_p);
+    bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
 
     expected << k_PATTERN;
 
@@ -363,15 +363,15 @@ static void test5_comparisionTest()
 {
     bmqtst::TestHelper::printTestName("COMPARISION TEST");
 
-    bmqimp::Queue obj1(s_allocator_p);
-    bmqimp::Queue obj2(s_allocator_p);
+    bmqimp::Queue obj1(bmqtst::TestHelperUtil::allocator());
+    bmqimp::Queue obj2(bmqtst::TestHelperUtil::allocator());
 
     ASSERT(obj1 == obj2);
 
     // Check setters
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
 
     const unsigned int        k_SQID       = 2U;
     const unsigned int        k_ID         = 12345;
@@ -382,7 +382,7 @@ static void test5_comparisionTest()
     bsls::Types::Uint64 flags = 0;
     bmqt::QueueFlagsUtil::setReader(&flags);
 
-    bmqt::QueueOptions options(s_allocator_p);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
     options.setMaxUnconfirmedBytes(123);
 
     obj1.setUri(uri)
@@ -419,7 +419,7 @@ static void test6_statTest()
 //   bmqimp::QueueStatsUtil and bmqimp::Queue statistic manipulators
 // --------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Check for default allocator is explicitly disabled as
     // 'bmqst::TableSchema::addColumn' used in
     // 'bmqimp::QueueStatsUtil::initializeStats' may allocate
@@ -429,15 +429,18 @@ static void test6_statTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri                uri(k_URI, s_allocator_p);
+    bmqt::Uri                uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueState::Enum k_STATE = bmqimp::QueueState::e_OPENED;
-    bmqimp::Queue            obj(s_allocator_p);
+    bmqimp::Queue            obj(bmqtst::TestHelperUtil::allocator());
 
-    bmqst::StatContextConfiguration config("stats", s_allocator_p);
+    bmqst::StatContextConfiguration config(
+        "stats",
+        bmqtst::TestHelperUtil::allocator());
 
     config.defaultHistorySize(1);
 
-    bmqst::StatContext rootStatContext(config, s_allocator_p);
+    bmqst::StatContext rootStatContext(config,
+                                       bmqtst::TestHelperUtil::allocator());
 
     bmqst::StatValue::SnapshotLocation start;
     bmqst::StatValue::SnapshotLocation end;
@@ -445,12 +448,13 @@ static void test6_statTest()
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
 
-    bmqimp::Stat queuesStats(s_allocator_p);
-    bmqimp::QueueStatsUtil::initializeStats(&queuesStats,
-                                            &rootStatContext,
-                                            start,
-                                            end,
-                                            s_allocator_p);
+    bmqimp::Stat queuesStats(bmqtst::TestHelperUtil::allocator());
+    bmqimp::QueueStatsUtil::initializeStats(
+        &queuesStats,
+        &rootStatContext,
+        start,
+        end,
+        bmqtst::TestHelperUtil::allocator());
 
     bmqst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
 
@@ -521,7 +525,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -533,7 +537,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

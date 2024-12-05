@@ -41,7 +41,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("RESOLVE UTILITIES - BREATHING TEST");
 
-    bsl::string       hostname(s_allocator_p);
+    bsl::string       hostname(bmqtst::TestHelperUtil::allocator());
     ntsa::Ipv4Address hostIp;
 
     ASSERT(hostname.empty());
@@ -72,7 +72,7 @@ static void test1_breathingTest()
     {
         PVV("GET DOMAIN NAME");
 
-        bsl::string domainName(s_allocator_p);
+        bsl::string domainName(bmqtst::TestHelperUtil::allocator());
         ntsa::Error error = bmqio::ResolveUtil::getDomainName(
             &domainName,
             ntsa::IpAddress(hostIp));
@@ -85,7 +85,8 @@ static void test1_breathingTest()
     {
         PVV("GET ADDRESSES")
 
-        bsl::vector<ntsa::IpAddress> addresses(s_allocator_p);
+        bsl::vector<ntsa::IpAddress> addresses(
+            bmqtst::TestHelperUtil::allocator());
         ntsa::Error                  error =
             bmqio::ResolveUtil::getIpAddress(&addresses, "www.wikipedia.org");
 
@@ -103,7 +104,8 @@ static void test1_breathingTest()
     {
         PVV("GET LOCAL ADDRESSES")
 
-        bsl::vector<ntsa::IpAddress> addresses(s_allocator_p);
+        bsl::vector<ntsa::IpAddress> addresses(
+            bmqtst::TestHelperUtil::allocator());
         ntsa::Error error = bmqio::ResolveUtil::getLocalIpAddress(&addresses);
 
         ASSERT_EQ(error.code(), ntsa::Error::e_OK);
@@ -139,7 +141,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

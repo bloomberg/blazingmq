@@ -130,9 +130,8 @@ void PushStreamIterator::removeCurrentElement()
     d_currentElement = d_currentElement->next();
     ++d_currentOrdinal;
 
-    d_owner_p->remove(del);
-    d_owner_p->destroy(del, true);
-    // doKeepGuid because of the d_iterator
+    d_owner_p->remove(del, false);
+    // cannot erase the GUID because of the d_iterator
 
     if (d_iterator->second.numElements() == 0) {
         BSLS_ASSERT_SAFE(d_currentElement == 0);
@@ -291,9 +290,8 @@ bool VirtualPushStreamIterator::advance()
 
     d_currentElement = d_currentElement->nextInApp();
 
-    d_owner_p->remove(del);
-    d_owner_p->destroy(del, false);
-    // do not keep Guid
+    d_owner_p->remove(del, true);
+    // can erase GUID
 
     if (atEnd()) {
         return false;

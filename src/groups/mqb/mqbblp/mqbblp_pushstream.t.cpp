@@ -39,10 +39,12 @@ static void test1_basic()
 {
     bmqtst::TestHelper::printTestName("PushStream basic test");
 
-    bdlma::ConcurrentPool pushElementsPool(sizeof(mqbblp::PushStream::Element),
-                                           s_allocator_p);
+    bdlma::ConcurrentPool pushElementsPool(
+        sizeof(mqbblp::PushStream::Element),
+        bmqtst::TestHelperUtil::allocator());
 
-    mqbblp::PushStream ps(&pushElementsPool, s_allocator_p);
+    mqbblp::PushStream                                 ps(&pushElementsPool,
+                          bmqtst::TestHelperUtil::allocator());
     unsigned int       subQueueId = 0;
     bsl::shared_ptr<mqbblp::RelayQueueEngine_AppState> app;  // unused
     bmqp::SubQueueInfo                                 subscription;
@@ -58,8 +60,7 @@ static void test1_basic()
                                                      itApp);
 
     ps.add(element);
-    ps.remove(element);
-    ps.destroy(element, false);
+    ps.remove(element, true);
 }
 
 static void test2_iterations()
@@ -69,7 +70,7 @@ static void test2_iterations()
     // Imitate {m1, a1}, {m2, a2}, {m1, a2}, {m2, a1}
 
     mqbblp::PushStream ps(bsl::optional<bdlma::ConcurrentPool*>(),
-                          s_allocator_p);
+                          bmqtst::TestHelperUtil::allocator());
     unsigned int       subQueueId1 = 1;
     unsigned int       subQueueId2 = 2;
 
@@ -114,16 +115,18 @@ static void test2_iterations()
 
     ps.add(element4);
 
-    mqbu::CapacityMeter dummyCapacityMeter("dummy", s_allocator_p);
-    bmqt::Uri           dummyUri("dummy", s_allocator_p);
-    mqbconfm::Domain    dummyDomain(s_allocator_p);
+    mqbu::CapacityMeter dummyCapacityMeter(
+        "dummy",
+        bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri        dummyUri("dummy", bmqtst::TestHelperUtil::allocator());
+    mqbconfm::Domain dummyDomain(bmqtst::TestHelperUtil::allocator());
 
     mqbs::InMemoryStorage dummyStorage(dummyUri,
                                        mqbu::StorageKey::k_NULL_KEY,
                                        mqbs::DataStore::k_INVALID_PARTITION_ID,
                                        dummyDomain,
                                        &dummyCapacityMeter,
-                                       s_allocator_p);
+                                       bmqtst::TestHelperUtil::allocator());
 
     mqbconfm::Storage config;
     mqbconfm::Limits  limits;
@@ -133,7 +136,7 @@ static void test2_iterations()
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    bmqu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
     dummyStorage.configure(errorDescription,
                            config,
                            limits,
@@ -183,10 +186,8 @@ static void test2_iterations()
         ASSERT(vit.atEnd());
     }
 
-    ps.remove(element2);
-    ps.destroy(element2, false);
-    ps.remove(element3);
-    ps.destroy(element3, false);
+    ps.remove(element2, true);
+    ps.remove(element3, true);
 }
 
 // ============================================================================
@@ -197,7 +198,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -205,7 +206,7 @@ int main(int argc, char* argv[])
     case 2: test2_iterations(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

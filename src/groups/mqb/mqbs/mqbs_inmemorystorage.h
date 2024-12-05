@@ -270,6 +270,11 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                           const bsls::Types::Int64 messageTtl,
                           const int maxDeliveryAttempts) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the consistency level associated to this storage to the specified
+    /// `value`.
+    void
+    setConsistency(const mqbconfm::Consistency& value) BSLS_KEYWORD_OVERRIDE;
+
     virtual void setQueue(mqbi::Queue* queue) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this storage.
@@ -368,12 +373,9 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     virtual mqbi::StorageResult::Enum
     removeAll(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    virtual void dispatcherFlush(bool storage,
-                                 bool queues) BSLS_KEYWORD_OVERRIDE;
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;

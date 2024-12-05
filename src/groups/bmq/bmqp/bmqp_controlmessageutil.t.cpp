@@ -78,7 +78,8 @@ static void test1_validate()
                         << ", choiceSelection: " << test.d_choiceSelection
                         << "}) == " << test.d_expectedRc);
 
-        bmqp_ctrlmsg::ControlMessage controlMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage controlMessage(
+            bmqtst::TestHelperUtil::allocator());
         controlMessage.rId().makeValue(test.d_id);
         controlMessage.choice().makeSelection(test.d_choiceSelection);
 
@@ -88,7 +89,8 @@ static void test1_validate()
     }
 
     // Edge case #1: 'id.isNull()'
-    bmqp_ctrlmsg::ControlMessage controlMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage controlMessage(
+        bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), -1);
     // rc_INVALID_ID
 
@@ -134,13 +136,14 @@ static void test2_makeStatusControlMessage()
             << "{category: " << test.d_category << ", code: " << test.d_code
             << ", message: " << test.d_message << "});");
 
-        bmqp_ctrlmsg::ControlMessage expected(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage expected(
+            bmqtst::TestHelperUtil::allocator());
         expected.choice().makeStatus();
         expected.choice().status().category() = test.d_category;
         expected.choice().status().code()     = test.d_code;
         expected.choice().status().message()  = test.d_message;
 
-        bmqp_ctrlmsg::ControlMessage obj(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage obj(bmqtst::TestHelperUtil::allocator());
         bmqp::ControlMessageUtil::makeStatus(&obj,
                                              test.d_category,
                                              test.d_code,
@@ -164,7 +167,7 @@ int main(int argc, char* argv[])
     case 1: test1_validate(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

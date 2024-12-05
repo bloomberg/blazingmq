@@ -213,7 +213,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
     const mqbc::ClusterStateRecordType::Enum recordType =
         createClusterMessage(&msg, advisoryType, sequenceNumber);
 
-    bdlbb::Blob record(bufferFactory, s_allocator_p);
+    bdlbb::Blob record(bufferFactory, bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(&record,
                                                         msg,
                                                         sequenceNumber,
@@ -249,7 +249,7 @@ struct Tester {
   public:
     // CREATORS
     Tester(bsls::Types::Int64 maxLogSize = k_LOG_MAX_SIZE,
-           bslma::Allocator*  allocator  = s_allocator_p)
+           bslma::Allocator*  allocator  = bmqtst::TestHelperUtil::allocator())
     : d_logIdGenerator_sp(0)
     , d_logFactory_sp(0)
     , d_tempDir(allocator)
@@ -454,8 +454,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -463,7 +463,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

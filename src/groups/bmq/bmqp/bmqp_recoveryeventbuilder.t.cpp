@@ -112,7 +112,9 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     const char*                    CHUNK = "abcdefghijklmnopqrstuvwx";
 
     // Note that chunk must be word aligned per RecoveryEventBuilder's
@@ -124,7 +126,8 @@ static void test1_breathingTest()
 
     // Create RecoveryEventBuilder.
 
-    bmqp::RecoveryEventBuilder reb(&bufferFactory, s_allocator_p);
+    bmqp::RecoveryEventBuilder reb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(reb.eventSize()));
     ASSERT_EQ(reb.messageCount(), 0);
 
@@ -148,7 +151,7 @@ static void test1_breathingTest()
     // them.
 
     const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -200,9 +203,12 @@ static void test2_multipleMessagesTest()
 {
     bmqtst::TestHelper::printTestName("MULTIPLE MESSAGES TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
-    bsl::vector<Data>              data(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RecoveryEventBuilder     reb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
+    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
     data.reserve(NUM_MSGS);
 
@@ -216,7 +222,7 @@ static void test2_multipleMessagesTest()
 
     // Iterate and check
     const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -277,9 +283,12 @@ static void test3_eventTooBigTest()
 {
     bmqtst::TestHelper::printTestName("EVENT TOO BIG TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
-    bsl::string                    bigChunk(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RecoveryEventBuilder reb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
+    bsl::string                bigChunk(bmqtst::TestHelperUtil::allocator());
     bigChunk.resize(bmqp::RecoveryHeader::k_MAX_PAYLOAD_SIZE_SOFT + 4, 'a');
     // Note that chunk's size must be word aligned.
 
@@ -322,7 +331,7 @@ static void test3_eventTooBigTest()
     ASSERT_EQ(reb.messageCount(), 1);
 
     const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -366,8 +375,11 @@ static void test4_emptyPayloadTest()
 {
     bmqtst::TestHelper::printTestName("EMPTY PAYLOAD TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::RecoveryEventBuilder     reb(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::RecoveryEventBuilder reb(&bufferFactory,
+                                   bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<char> chunkBufferSp(
         reinterpret_cast<char*>(&reb),  // dummy
@@ -388,7 +400,7 @@ static void test4_emptyPayloadTest()
     ASSERT_EQ(reb.messageCount(), 1);
 
     const bdlbb::Blob& eventBlob = reb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isRecoveryEvent());
@@ -427,7 +439,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

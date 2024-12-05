@@ -48,7 +48,8 @@
 // threshold for capturing log records (in this case, 'ball::Severity::ERROR').
 //..
 //  BALL_LOG_SET_CATEGORY("TEST");
-//  bmqtst::ScopedLogObserver observer(ball::Severity::ERROR, s_allocator_p);
+//  bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+//  bmqtst::TestHelperUtil::allocator());
 //..
 // Next, publish a log using the BALL logging infrastructure.  Note that the
 // severity threshold should be at or above that of the observer for the log
@@ -63,7 +64,7 @@
 //  BSLS_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
 //                                                       observer.records()[0],
 //                                                       ".*Sample.*",
-//                                                       s_allocator_p));
+//                                                       bmqtst::TestHelperUtil::allocator()));
 //..
 
 // BDE

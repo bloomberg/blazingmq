@@ -408,7 +408,7 @@ class MockDataStore : public mqbs::DataStore {
 
     void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
 
-    void dispatcherFlush(bool, bool) BSLS_KEYWORD_OVERRIDE {}
+    void flushStorage() BSLS_KEYWORD_OVERRIDE {}
 
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
 
@@ -510,16 +510,16 @@ struct Tester {
         domainCfg.deduplicationTimeMs() = 0;  // No history
         domainCfg.messageTtl()          = ttlSeconds;
 
-        bmqu::MemOutStream errDescription(s_allocator_p);
+        bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
         d_mockDomain.configure(errDescription, domainCfg);
 
         d_replicatedStorage_mp.load(
-            new (*d_allocator_p)
-                mqbs::FileBackedStorage(&d_dataStore,
-                                        bmqt::Uri(uri, s_allocator_p),
-                                        queueKey,
-                                        &d_mockDomain,
-                                        d_allocator_p),
+            new (*d_allocator_p) mqbs::FileBackedStorage(
+                &d_dataStore,
+                bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
+                queueKey,
+                &d_mockDomain,
+                d_allocator_p),
             d_allocator_p);
 
         d_replicatedStorage_mp->setQueue(&d_mockQueue);
@@ -552,7 +552,7 @@ struct Tester {
         limits.bytes()                  = byteCapacity;
         limits.bytesWatermarkRatio()    = byteWatermarkRatio;
 
-        bmqu::MemOutStream errDescription(s_allocator_p);
+        bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
         return d_replicatedStorage_mp->configure(errDescription,
                                                  config,
                                                  limits,
@@ -607,9 +607,10 @@ struct Tester {
                 bmqt::CompressionAlgorithmType::e_NONE);
 
             const bsl::shared_ptr<bdlbb::Blob> appDataPtr(
-                new (*s_allocator_p)
-                    bdlbb::Blob(&d_bufferFactory, s_allocator_p),
-                s_allocator_p);
+                new (*bmqtst::TestHelperUtil::allocator())
+                    bdlbb::Blob(&d_bufferFactory,
+                                bmqtst::TestHelperUtil::allocator()),
+                bmqtst::TestHelperUtil::allocator());
 
             bdlbb::BlobUtil::append(&(*appDataPtr),
                                     reinterpret_cast<const char*>(&data),
@@ -675,7 +676,7 @@ struct Test : bmqtst::Test {
 // -----------
 // CREATORS
 Test::Test()
-: d_tester(s_allocator_p,
+: d_tester(bmqtst::TestHelperUtil::allocator(),
            k_PARTITION_ID,
            k_URI_STR,
            k_QUEUE_KEY,
@@ -711,7 +712,7 @@ TEST(breathingTest)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     mqbs::ReplicatedStorage& storage = tester.storage();
 
@@ -726,7 +727,7 @@ TEST(breathingTest)
     ASSERT_NE(storage.queue(), static_cast<mqbi::Queue*>(0));
     // Queue has been set via call to 'setQueue'
 
-    ASSERT_PASS(storage.dispatcherFlush(true, false));
+    ASSERT_PASS(storage.flushStorage());
     // Does nothing, at the time of this writing
 
     ASSERT_EQ(storage.queueOpRecordHandles().empty(), true);
@@ -748,7 +749,7 @@ TEST(configure)
 {
     bmqtst::TestHelper::printTestName("CONFIGURE");
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG, k_DEFAULT_BYTES) == 0);
 
@@ -844,7 +845,7 @@ TEST_F(Test, put_noVirtualStorage)
 {
     bmqtst::TestHelper::printTestName("PUT - WITH NO VIRTUAL STORAGES");
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     const int k_MSG_COUNT = 10;
 
@@ -881,7 +882,7 @@ TEST_F(Test, getMessageSize)
 {
     bmqtst::TestHelper::printTestName("GET MESSAGE SIZE");
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     const int k_MSG_COUNT = 10;
 
@@ -919,7 +920,7 @@ TEST_F(Test, get_noVirtualStorages)
 {
     bmqtst::TestHelper::printTestName("GET - WITH NO VIRTUAL STORAGES");
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     const int k_MSG_COUNT = 5;
 
@@ -1006,7 +1007,7 @@ TEST_F(Test, removeMessage)
 
     const int k_MSG_COUNT = 10;
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Check 'put' - To physical storage (StorageKeys = NULL)
     BSLS_ASSERT_OPT(d_tester.addMessages(&guids, k_MSG_COUNT) ==
@@ -1042,8 +1043,8 @@ TEST_F(Test, addVirtualStorage)
 {
     bmqtst::TestHelper::printTestName("ADD VIRTUAL STORAGE");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
-    bsl::string        dummyAppId(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+    bsl::string        dummyAppId(bmqtst::TestHelperUtil::allocator());
     mqbu::StorageKey   dummyAppKey;
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
@@ -1069,8 +1070,8 @@ TEST_F(Test, hasVirtualStorage)
 {
     bmqtst::TestHelper::printTestName("HAS VIRTUAL STORAGE");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
-    bsl::string        dummyAppId(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+    bsl::string        dummyAppId(bmqtst::TestHelperUtil::allocator());
     mqbu::StorageKey   dummyAppKey;
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
@@ -1107,8 +1108,8 @@ TEST_F(Test, removeVirtualStorage)
 {
     bmqtst::TestHelper::printTestName("REMOVE VIRTUAL STORAGE");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
-    bsl::string        dummyAppId(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+    bsl::string        dummyAppId(bmqtst::TestHelperUtil::allocator());
 
     mqbs::ReplicatedStorage& storage = d_tester.storage();
 
@@ -1144,9 +1145,9 @@ TEST(put_withVirtualStorages)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1166,7 +1167,7 @@ TEST(put_withVirtualStorages)
     const bsls::Types::Int64 k_BYTE_PER_MSG = static_cast<bsls::Types::Int64>(
         sizeof(int));
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Check 'put'- To physical storage (StorageKeys = NULL)
     ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
@@ -1210,12 +1211,12 @@ TEST(removeAllMessages_appKeyNotFound)
     bmqtst::TestHelper::printTestName("REMOVE ALL MESSAGES "
                                       "- APPKEY NOT FOUND");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1234,7 +1235,7 @@ TEST(removeAllMessages_appKeyNotFound)
     const bsls::Types::Int64 k_BYTE_PER_MSG = static_cast<bsls::Types::Int64>(
         sizeof(int));
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
     tester.addMessages(&guids, k_MSG_COUNT);
 
     // Verify 'removeAll' operation
@@ -1260,12 +1261,12 @@ TEST(removeAllMessages)
 {
     bmqtst::TestHelper::printTestName("Remove All Messages Test");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1285,7 +1286,7 @@ TEST(removeAllMessages)
     const bsls::Types::Int64 k_BYTE_PER_MSG = static_cast<bsls::Types::Int64>(
         sizeof(int));
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
               mqbi::StorageResult::e_SUCCESS);
@@ -1324,12 +1325,12 @@ TEST(get_withVirtualStorages)
 {
     bmqtst::TestHelper::printTestName("Get - with Virtual Storage Test");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1340,7 +1341,7 @@ TEST(get_withVirtualStorages)
     // Scenario
     // Single Virtual Storages
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Check 'put'- To physical storage (StorageKeys = NULL)
     ASSERT_EQ(tester.addMessages(&guids, 20), mqbi::StorageResult::e_SUCCESS);
@@ -1385,9 +1386,9 @@ TEST(confirm)
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1408,7 +1409,7 @@ TEST(confirm)
     const bsls::Types::Int64 k_BYTE_PER_MSG = static_cast<bsls::Types::Int64>(
         sizeof(int));
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Check 'put': To physical storage (StorageKeys = NULL)
     ASSERT_EQ(tester.addMessages(&guids,
@@ -1467,7 +1468,7 @@ TEST_F(Test, getIterator_noVirtualStorages)
 
     const int k_MSG_COUNT = 10;
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Put to physical storage: StorageKeys NULL
     ASSERT_EQ(d_tester.addMessages(&guids, k_MSG_COUNT),
@@ -1536,12 +1537,12 @@ TEST(getIterator_withVirtualStorages)
 {
     bmqtst::TestHelper::printTestName("Iterator Test- In presence of Virtual");
 
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
     const bsls::Types::Int64 k_MSG_LIMIT   = 80;
     const bsls::Types::Int64 k_BYTES_LIMIT = 2048;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
@@ -1554,7 +1555,7 @@ TEST(getIterator_withVirtualStorages)
     // Two Virtual Storages
     // Try iterator for physical storage as well as both of these storages.
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Check 'put': To physical storage (StorageKeys = NULL)
     ASSERT_EQ(tester.addMessages(&guids, 20), mqbi::StorageResult::e_SUCCESS);
@@ -1638,7 +1639,7 @@ TEST_F(Test, capacityMeter_limitMessages)
 {
     bmqtst::TestHelper::printTestName("Capacity Meter- Limit Messages");
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Put to physical storage: StorageKeys NULL
     ASSERT_EQ(d_tester.addMessages(&guids, k_DEFAULT_MSG),
@@ -1683,11 +1684,11 @@ TEST(capacityMeter_limitBytes)
     const bsls::Types::Int64 k_MSG_LIMIT   = 30;
     const bsls::Types::Int64 k_BYTES_LIMIT = 80;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_MSG_LIMIT, k_BYTES_LIMIT) == 0);
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     // Insert Max messages possible in 80bytes
     const int k_MSG_COUNT = 20;
@@ -1726,7 +1727,7 @@ TEST(garbageCollect)
     // input
     const int k_TTL = 20;
 
-    Tester tester(s_allocator_p, k_PROXY_PARTITION_ID);
+    Tester tester(bmqtst::TestHelperUtil::allocator(), k_PROXY_PARTITION_ID);
 
     BSLS_ASSERT_OPT(tester.configure(k_DEFAULT_MSG,
                                      k_DEFAULT_BYTES,
@@ -1734,7 +1735,7 @@ TEST(garbageCollect)
                                      k_BYTE_WATERMARK_RATIO,
                                      k_TTL) == 0);
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     int k_MSG_COUNT = 10;
 
@@ -1807,7 +1808,7 @@ TEST_F(Test, doNotRecordLastConfirmInPriorityMode)
         "Do Not Record Last Confirm In Priority Mode");
 
     const int                      k_MSG_COUNT = 1;
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     const MockDataStore&     data_store = d_tester.dataStore();
     mqbs::ReplicatedStorage& storage    = d_tester.storage();
@@ -1835,7 +1836,7 @@ TEST_F(Test, doNotRecordLastConfirmInFanoutMode)
 {
     bmqtst::TestHelper::printTestName(
         "Do Not Record Last Confirm in Fanout Mode");
-    bmqu::MemOutStream errDescription(s_allocator_p);
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
 
     const MockDataStore&     data_store = d_tester.dataStore();
     mqbs::ReplicatedStorage& storage    = d_tester.storage();
@@ -1851,7 +1852,7 @@ TEST_F(Test, doNotRecordLastConfirmInFanoutMode)
     const int                      dataOffset      = 0;
     const bool                     useSameGuids    = false;
     const int                      defaultRefCount = 3;
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(data_store.getMessageCounter(), 0ULL);
     ASSERT_EQ(data_store.getConfirmCounter(), 0ULL);
@@ -1904,17 +1905,19 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 
-    bmqt::UriParser::initialize(s_allocator_p);
-    bmqsys::Time::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     mqbu::MessageGUIDUtil::initialize();
 
     {
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
 
         bmqtst::runTest(_testCase);
     }

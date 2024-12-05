@@ -724,23 +724,37 @@ static void test1_write()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::PushEventBuilder> push(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::AckEventBuilder>  ack(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
-                                              bufferFactory,
-                                              s_allocator_p);
-    Tester<bmqp::RejectEventBuilder>  reject(channel,
-                                            bufferFactory,
-                                            s_allocator_p);
+    Tester<bmqp::PutEventBuilder>     put(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::PushEventBuilder>    push(channel,
+                                        bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::AckEventBuilder>     ack(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::ConfirmEventBuilder> confirm(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::RejectEventBuilder> reject(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
 
@@ -790,24 +804,40 @@ static void test2_highWatermark()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::PushEventBuilder> push(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::AckEventBuilder>  ack(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
-                                              bufferFactory,
-                                              s_allocator_p);
-    Tester<PseudoBuilder> control(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::RejectEventBuilder> reject(channel,
-                                            bufferFactory,
-                                            s_allocator_p);
+    Tester<bmqp::PutEventBuilder>     put(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::PushEventBuilder>    push(channel,
+                                        bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::AckEventBuilder>     ack(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::ConfirmEventBuilder> confirm(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    Tester<PseudoBuilder>            control(channel,
+                                  bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::RejectEventBuilder> reject(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     bslmt::Barrier phase1(6 + 1);
     bslmt::Barrier phase2(6 + 1);
@@ -880,23 +910,37 @@ static void test3_highWatermarkInWriteCb()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::PushEventBuilder> push(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::AckEventBuilder>  ack(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
-                                              bufferFactory,
-                                              s_allocator_p);
-    Tester<bmqp::RejectEventBuilder>  reject(channel,
-                                            bufferFactory,
-                                            s_allocator_p);
+    Tester<bmqp::PutEventBuilder>     put(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::PushEventBuilder>    push(channel,
+                                        bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::AckEventBuilder>     ack(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::ConfirmEventBuilder> confirm(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::RejectEventBuilder> reject(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     bslmt::Barrier phase1(5 + 1);
     bslmt::Barrier phase2(5 + 1);
@@ -970,23 +1014,37 @@ static void test4_controlBlob()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
-    Tester<bmqp::PutEventBuilder>  put(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::PushEventBuilder> push(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::AckEventBuilder>  ack(channel, bufferFactory, s_allocator_p);
-    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
-                                              bufferFactory,
-                                              s_allocator_p);
-    Tester<bmqp::RejectEventBuilder>  reject(channel,
-                                            bufferFactory,
-                                            s_allocator_p);
+    Tester<bmqp::PutEventBuilder>     put(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::PushEventBuilder>    push(channel,
+                                        bufferFactory,
+                                        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::AckEventBuilder>     ack(channel,
+                                      bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::ConfirmEventBuilder> confirm(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+    Tester<bmqp::RejectEventBuilder> reject(
+        channel,
+        bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
@@ -998,7 +1056,8 @@ static void test4_controlBlob()
 
     // cannot assert 'writeCalls().size() == 0' because of auto-flushing
 
-    bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
+    bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory,
+                                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobBuffer blobBuffer;
 
     bufferFactory.allocate(&blobBuffer);
@@ -1039,18 +1098,25 @@ static void test5_reconnect()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
     {
-        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobBuffer blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
@@ -1070,7 +1136,8 @@ static void test5_reconnect()
     testChannel->setWriteStatus(bmqio::StatusCategory::e_CONNECTION);
 
     {
-        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobBuffer blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
@@ -1089,7 +1156,8 @@ static void test5_reconnect()
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
 
     {
-        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob       payload = bdlbb::Blob(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobBuffer blobBuffer;
 
         bufferFactory.allocate(&blobBuffer);
@@ -1118,13 +1186,19 @@ static void test6_weakData()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(k_BUFFER_SIZE, s_allocator_p);
-    mqbnet::Channel channel(&bufferFactory, "test", s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::Channel channel(&bufferFactory,
+                            "test",
+                            bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*s_allocator_p)
-            bmqio::TestChannelEx(channel, &bufferFactory, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            bmqio::TestChannelEx(channel,
+                                 &bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
@@ -1133,12 +1207,14 @@ static void test6_weakData()
 
     {
         bsl::shared_ptr<bdlbb::Blob> payload(
-            new (*s_allocator_p) bdlbb::Blob(&bufferFactory, s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                bdlbb::Blob(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobBuffer                  blobBuffer;
-        bsl::shared_ptr<bmqu::AtomicState> state(new (*s_allocator_p)
-                                                     bmqu::AtomicState,
-                                                 s_allocator_p);
+        bsl::shared_ptr<bmqu::AtomicState> state(
+            new (*bmqtst::TestHelperUtil::allocator()) bmqu::AtomicState,
+            bmqtst::TestHelperUtil::allocator());
         bmqp::PutHeader                    ph;
 
         bufferFactory.allocate(&blobBuffer);
@@ -1156,12 +1232,14 @@ static void test6_weakData()
     // Next write
     {
         bsl::shared_ptr<bdlbb::Blob> payload(
-            new (*s_allocator_p) bdlbb::Blob(&bufferFactory, s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                bdlbb::Blob(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobBuffer                  blobBuffer;
-        bsl::shared_ptr<bmqu::AtomicState> state(new (*s_allocator_p)
-                                                     bmqu::AtomicState,
-                                                 s_allocator_p);
+        bsl::shared_ptr<bmqu::AtomicState> state(
+            new (*bmqtst::TestHelperUtil::allocator()) bmqu::AtomicState,
+            bmqtst::TestHelperUtil::allocator());
         bmqp::PutHeader                    ph;
 
         bufferFactory.allocate(&blobBuffer);
@@ -1192,7 +1270,7 @@ int main(int argc, char* argv[])
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     // expect BALL_LOG_ERROR
     switch (_testCase) {
     case 0:
@@ -1204,7 +1282,7 @@ int main(int argc, char* argv[])
     case 6: test6_weakData(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

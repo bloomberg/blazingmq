@@ -406,7 +406,7 @@ TestContext::generateNodeDefs(int nodesCount, bslma::Allocator* allocator)
     ASSERT_GT(nodesCount, 0);
     mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(allocator);
     for (int i = 0; i < nodesCount; ++i) {
-        bsl::ostringstream nodeName(s_allocator_p);
+        bsl::ostringstream nodeName(bmqtst::TestHelperUtil::allocator());
         nodeName << "testNode" << i;
         mqbc::ClusterUtil::appendClusterNode(
             &clusterNodeDefs,
@@ -429,7 +429,8 @@ void TestContext::populateRequest(const ReqSp&        request,
 {
     bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
 
-    bmqp_ctrlmsg::QueueHandleParameters params(s_allocator_p);
+    bmqp_ctrlmsg::QueueHandleParameters params(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqt::QueueFlagsUtil::setWriter(&flags);
     bmqt::QueueFlagsUtil::setAck(&flags);
@@ -458,19 +459,23 @@ static void test1_contextTest()
 
     {
         ReqContextSp reqContext;
-        ASSERT_PASS(
-            reqContext = bsl::make_shared<ReqContextType>(s_allocator_p));
+        ASSERT_PASS(reqContext = bsl::make_shared<ReqContextType>(
+                        bmqtst::TestHelperUtil::allocator()));
 
-        ReqSp request = bsl::make_shared<Req>(s_allocator_p);
+        ReqSp request = bsl::make_shared<Req>(
+            bmqtst::TestHelperUtil::allocator());
         TestContext::populateRequest(request);
         ASSERT_PASS(reqContext->request() = request->request());
 
-        mqbmock::Cluster::ClusterNodeDefs defs =
-            TestContext::generateNodeDefs(5, s_allocator_p);
-        bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
-        bmqu::TempDirectory            tempDir(s_allocator_p);
-        mqbmock::Cluster               cluster(&blobBufferFactory,
-                                 s_allocator_p,
+        mqbmock::Cluster::ClusterNodeDefs defs = TestContext::generateNodeDefs(
+            5,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::PooledBlobBufferFactory blobBufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bmqu::TempDirectory tempDir(bmqtst::TestHelperUtil::allocator());
+        mqbmock::Cluster    cluster(&blobBufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
                                  false,  // isLeader
                                  false,  // isCSLMode
@@ -478,7 +483,9 @@ static void test1_contextTest()
                                  defs,
                                  "testCluster",
                                  tempDir.path());
-        Nodes nodes = TestContext::clusterNodes(&cluster, s_allocator_p);
+        Nodes               nodes = TestContext::clusterNodes(
+            &cluster,
+            bmqtst::TestHelperUtil::allocator());
         ASSERT_PASS(reqContext->setDestinationNodes(nodes));
         NodeResponses responses = reqContext->response();
         ASSERT_EQ(nodes.size(), responses.size());
@@ -492,7 +499,8 @@ static void test1_contextTest()
         reqContext->clear();
         // Check that the MultiRequestManagerRequestContext object returned to
         // the default state
-        ASSERT_EQ(reqContext->request(), Mes(s_allocator_p));
+        ASSERT_EQ(reqContext->request(),
+                  Mes(bmqtst::TestHelperUtil::allocator()));
         ASSERT(reqContext->response().empty());
     }
 }
@@ -507,14 +515,15 @@ static void test2_creatorsTest()
 
     {
         // Null RequestManager pointer
-        ASSERT_SAFE_FAIL(MultiReqManagerType(NULL, s_allocator_p));
+        ASSERT_SAFE_FAIL(
+            MultiReqManagerType(NULL, bmqtst::TestHelperUtil::allocator()));
     }
 
     {
         // Success creation
-        TestContext context(5, s_allocator_p);
-        ASSERT_PASS(
-            MultiReqManagerType(context.manager().get(), s_allocator_p));
+        TestContext context(5, bmqtst::TestHelperUtil::allocator());
+        ASSERT_PASS(MultiReqManagerType(context.manager().get(),
+                                        bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -528,7 +537,7 @@ static void test3_sendRequestTest()
 
     {
         // Send one request and check it was delivered
-        TestContext context(5, s_allocator_p);
+        TestContext context(5, bmqtst::TestHelperUtil::allocator());
 
         ReqSp req = context.createRequest();
         context.populateRequest(req);
@@ -556,7 +565,7 @@ static void test4_handleResponseTest()
 
     {
         // Successfully receive responses from all the nodes
-        TestContext context(5, s_allocator_p);
+        TestContext context(5, bmqtst::TestHelperUtil::allocator());
         ReqSp       req = context.createRequest();
         context.populateRequest(req);
         bool called = false;
@@ -565,7 +574,7 @@ static void test4_handleResponseTest()
                                                    bdlf::PlaceHolders::_1));
         context.sendRequest(req);
 
-        bsl::vector<Mes> responses(s_allocator_p);
+        bsl::vector<Mes> responses(bmqtst::TestHelperUtil::allocator());
         responses.reserve(context.nodes().size());
         NodesIt it = context.nodes().begin();
         for (; it != context.nodes().end(); ++it) {
@@ -596,7 +605,7 @@ static void test4_handleResponseTest()
 
     {
         // No responses from the nodes
-        TestContext context(5, s_allocator_p);
+        TestContext context(5, bmqtst::TestHelperUtil::allocator());
         ReqSp       req = context.createRequest();
         context.populateRequest(req);
         bool called = false;
@@ -614,10 +623,10 @@ static void test4_handleResponseTest()
         // Concurrency test.  Create a lot of nodes and process their responses
         // from different threads.
         bslmt::Mutex       responsesLock;
-        MesQue             responses(s_allocator_p);
+        MesQue             responses(bmqtst::TestHelperUtil::allocator());
         const int          nodesCount   = 500;
         const int          threadsCount = 10;
-        bslmt::ThreadGroup threadGroup(s_allocator_p);
+        bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
         bslmt::Barrier     barrier(threadsCount + 1);
 
         /// Take one response from the specified `responses` queue and
@@ -653,7 +662,7 @@ static void test4_handleResponseTest()
             }
         };
 
-        TestContext context(nodesCount, s_allocator_p);
+        TestContext context(nodesCount, bmqtst::TestHelperUtil::allocator());
         ReqSp       req = context.createRequest();
         context.populateRequest(req);
         bool called = false;
@@ -699,8 +708,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -710,7 +719,7 @@ int main(int argc, char* argv[])
     case 1: test1_contextTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -539,6 +539,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
+    storage_p->setConsistency(domainConfig.consistency());
     rc = storage_p->configure(errorDescription,
                               config,
                               limits,

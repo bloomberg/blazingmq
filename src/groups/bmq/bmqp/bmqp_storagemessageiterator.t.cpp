@@ -107,7 +107,7 @@ void populateBlob(bdlbb::Blob*       blob,
 
     for (size_t i = 0; i < numMsgs; ++i) {
         int  msgSize = 0;
-        Data data(s_allocator_p);
+        Data data(bmqtst::TestHelperUtil::allocator());
         data.d_flags              = 1;
         data.d_spv                = 1;
         data.d_pid                = i % 100;
@@ -250,7 +250,9 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Create invalid iter
@@ -280,7 +282,7 @@ static void test1_breathingTest()
 
     {
         // Create valid iter
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         const int          flags = 2;
@@ -365,10 +367,12 @@ static void test2_storageEventHavingMultipleMessages()
     bmqtst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
                                       " MESSAGES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     const size_t      NUM_MSGS = 5000;
 
@@ -449,8 +453,10 @@ static void test3_corruptedStorageEvent_part1()
 {
     bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 1");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     const char*                    p    = "abcdefgh";
     unsigned int                   pLen = bsl::strlen(p);
 
@@ -526,8 +532,10 @@ static void test4_corruptedStorageEvent_part2()
 {
     bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 2");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // BUILD the event blob ...
     // EventHeader
@@ -551,7 +559,7 @@ static void test4_corruptedStorageEvent_part2()
                             reinterpret_cast<const char*>(&shd1),
                             sizeof(bmqp::StorageHeader));
 
-    bsl::string confirmRecord(s_allocator_p);
+    bsl::string confirmRecord(bmqtst::TestHelperUtil::allocator());
     confirmRecord.resize(k_RECORD_SIZE, 'a');
 
     bdlbb::BlobUtil::append(&eventBlob, confirmRecord.c_str(), k_RECORD_SIZE);
@@ -609,7 +617,7 @@ static void test5_corruptedStorageEvent_part3()
     bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 3");
 
     // Populate blob
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     // Next method. No recovery header. Less then min header size.
     {
@@ -618,8 +626,10 @@ static void test5_corruptedStorageEvent_part3()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, &data, 1);
@@ -651,17 +661,19 @@ static void test6_resetMethod()
     bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Populate blob
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     // Reset method. Invalid event header case.
     {
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create buffer factory and blob
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob, &eventHeader, &data, 1);
@@ -704,10 +716,12 @@ static void test7_dumpBlob()
 
     // Test iterator dump contains expected value
     bmqp::EventHeader              eventHeader;
-    bsl::vector<Data>              data(s_allocator_p);
-    bmqu::MemOutStream             stream(s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob, &eventHeader, &data, 1);
@@ -719,7 +733,7 @@ static void test7_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
         bsl::string str2("     0:   00000044 48020000 0800000F 13010000     "
                          "|...DH...........|\n"
                          "    16:   00000005 00000000 00000000 00000000     "
@@ -730,7 +744,7 @@ static void test7_dumpBlob()
                          "|................|\n"
                          "    64:   00000000                                "
                          "|....            |\n",
-                         s_allocator_p);
+                         bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
         ASSERT_EQ(str1, str2);
@@ -742,8 +756,8 @@ static void test7_dumpBlob()
         bmqp::StorageMessageIterator iter;
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
-        bsl::string str2("/no blob/", s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
+        bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
         ASSERT_EQ(str1, str2);
@@ -761,7 +775,7 @@ int main(int argc, char* argv[])
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.  TBD: figure
     // out the right way to "fix" this.
-    Data dummy(s_allocator_p);
+    Data dummy(bmqtst::TestHelperUtil::allocator());
     static_cast<void>(
         static_cast<
             bslmf::NestedTraitDeclaration<Data, bslma::UsesBslmaAllocator> >(
@@ -778,7 +792,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 
