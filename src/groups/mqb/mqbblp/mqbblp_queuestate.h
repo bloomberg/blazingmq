@@ -160,7 +160,7 @@ class QueueState {
     // Dispatcher Client Data of the queue
     // associated to this state.
 
-    mqbstat::QueueStatsDomain d_stats;
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_stats_sp;
     // Statistics of the queue associated
     // to this state.
 
@@ -238,9 +238,8 @@ class QueueState {
     bool removeUpstreamParameters(
         unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    /// Return a reference offering modifiable access to the corresponding
-    /// attribute.
-    mqbstat::QueueStatsDomain& stats();
+    /// Set the corresponding attribute to the specified `stats`.
+    void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats);
 
     /// Add read, write, and admin counters from the specified `params` to
     /// cumulative values per queue and per appId.
@@ -302,6 +301,10 @@ class QueueState {
     const bmqp_ctrlmsg::RoutingConfiguration& routingConfig() const;
     const mqbcfg::MessageThrottleConfig&      messageThrottleConfig() const;
     const bmqt::Uri&                          uri() const;
+
+    /// Return a reference offering non-modifiable access to the shared pointer
+    /// to the QueueStatsDomain.
+    const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats() const;
 
     /// Print to the specified `out` object the internal details about this
     /// queue state.
@@ -459,9 +462,10 @@ QueueState::getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,
     return true;
 }
 
-inline mqbstat::QueueStatsDomain& QueueState::stats()
+inline void
+QueueState::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
 {
-    return d_stats;
+    d_stats_sp = stats;
 }
 
 inline void
@@ -598,6 +602,13 @@ QueueState::messageThrottleConfig() const
 inline const bmqt::Uri& QueueState::uri() const
 {
     return d_uri;
+}
+
+inline const bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+QueueState::stats() const
+{
+    BSLS_ASSERT_SAFE(d_stats_sp);
+    return d_stats_sp;
 }
 
 inline const QueueState::SubQueues& QueueState::subQueues() const
