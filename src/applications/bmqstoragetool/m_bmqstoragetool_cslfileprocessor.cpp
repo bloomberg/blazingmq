@@ -53,18 +53,87 @@ CslFileProcessor::CslFileProcessor(
 , d_fileManager(fileManager)
 , d_ostream(ostream)
 // , d_searchResult_p(searchResult_p)
-, d_allocator_p(bslma::Default::allocator(allocator))
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
 
 void CslFileProcessor::process()
 {
+    using namespace bmqp_ctrlmsg;
+
     Filters filters(d_parameters->d_queueKey,
                     d_parameters->d_queueName,
                     d_parameters->d_queueMap,
                     d_parameters->d_range,
                     d_allocator_p);
+
+    bool stopSearch = false;
+    // bool needMoveToLowerBound = d_parameters->d_range.d_timestampGt > 0 ||
+    //                             d_parameters->d_range.d_offsetGt > 0 ||
+    //                             d_parameters->d_range.d_seqNumGt.isSet();
+
+    // Iterator points either to first record or to the last snapshot record
+    // depending on `parameters->d_cslFromBegin`
+    mqbc::IncoreClusterStateLedgerIterator* iter =
+        d_fileManager->cslFileIterator();
+    BSLS_ASSERT(iter->isValid());
+    ClusterMessage clusterMessage;
+
+    // Iterate through all cluster state ledger file records
+    while (true) {
+        iter->loadClusterMessage(&clusterMessage);
+
+        if (iter->header().recordType() ==
+            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            if (d_parameters->d_processCslRecordTypes.d_snapshot) {
+                d_ostream << *iter << '\n';
+                // d_ostream << iter->header() << '\n';
+                d_ostream << clusterMessage << '\n';
+            }
+        }
+        else if (iter->header().recordType() ==
+                 mqbc::ClusterStateRecordType::e_UPDATE) {
+            if (d_parameters->d_processCslRecordTypes.d_update) {
+                d_ostream << *iter << '\n';
+                // d_ostream << iter->header() << '\n';
+                d_ostream << clusterMessage << '\n';
+            }
+        }
+        else if (iter->header().recordType() ==
+                 mqbc::ClusterStateRecordType::e_COMMIT) {
+            if (d_parameters->d_processCslRecordTypes.d_commit) {
+                d_ostream << *iter << '\n';
+                // d_ostream << iter->header() << '\n';
+                d_ostream << clusterMessage << '\n';
+            }
+        }
+        else if (iter->header().recordType() ==
+                 mqbc::ClusterStateRecordType::e_ACK) {
+            if (d_parameters->d_processCslRecordTypes.d_ack) {
+                d_ostream << *iter << '\n';
+                // d_ostream << iter->header() << '\n';
+                d_ostream << clusterMessage << '\n';
+            }
+        }
+        else {
+            BSLS_ASSERT(false && "Unknown record type");
+        }
+
+        // Move to the next record
+        const int rc = iter->next();
+        if (stopSearch || rc == 1) {
+            // stopSearch is set or end iterator reached
+            // d_searchResult_p->outputResult();
+            return;  // RETURN
+        }
+        if (rc < 0) {
+            d_ostream << "CSL file is corrupted or incomplete. Iteration "
+                         "aborted (rc="
+                      << rc << ").";
+            return;  // RETURN
+        }
+    }
 }
 
 }  // close package namespace

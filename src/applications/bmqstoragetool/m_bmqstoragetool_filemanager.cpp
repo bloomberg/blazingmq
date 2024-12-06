@@ -51,27 +51,29 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
 }
 
 // Iterate through each record in the cluster state ledger to find the last
-// snapshot record and set it to the specified `lastSnapshotIt_p`. If snapshot
-// record is not found, exception is thrown.
-void findLastSnapshot(mqbc::IncoreClusterStateLedgerIterator* lastSnapshotIt_p,
+// snapshot record and set it to the specified `lastSnapshotIt_p`. Return false
+// if snapshot record is not found or error occurred, true otherwise.
+bool findLastSnapshot(bsl::ostream&                           errorDescription,
+                      mqbc::IncoreClusterStateLedgerIterator* lastSnapshotIt_p,
                       mqbsl::Ledger*                          ledger_p)
 {
     mqbc::IncoreClusterStateLedgerIterator cslIt(ledger_p);
+
     while (true) {
-        if (cslIt.next() != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
+        const int rc = cslIt.next();
+        if (rc == 1) {
+            // End iterator reached
             if (!lastSnapshotIt_p->isValid()) {
-                throw bsl::runtime_error(
-                    "No Snapshot record found in csl file");  // THROW
+                errorDescription << "No Snapshot record found in csl file\n";
+                return false;
             }
             break;  // BREAK
         }
-
-        using namespace bmqp_ctrlmsg;
-        bsl::cout << cslIt << '\n';
-        ClusterMessage clusterMessage;
-        cslIt.loadClusterMessage(&clusterMessage);
-        bsl::cout << clusterMessage << "\n\n";
+        if (rc < 0) {
+            errorDescription
+                << "CSL file is corrupted or incomplete: rc=" << rc << '\n';
+            return false;  // RETURN
+        }
 
         if (cslIt.header().recordType() ==
             mqbc::ClusterStateRecordType::e_SNAPSHOT) {
@@ -79,6 +81,8 @@ void findLastSnapshot(mqbc::IncoreClusterStateLedgerIterator* lastSnapshotIt_p,
             lastSnapshotIt_p->copy(cslIt);
         }
     }
+
+    return true;
 }
 
 }  // close unnamed namespace
@@ -265,11 +269,24 @@ bool FileManagerImpl::CslFileHandler::resetIterator(
                       mqbc::IncoreClusterStateLedgerIterator(d_ledger_p.get()),
                   d_allocator);
 
-    if (!d_cslFromBegin) {
+    if (d_cslFromBegin) {
+        // Move iterator to the first record.
+        const int rc = d_iter_p->next();
+        if (rc != 0) {
+            errorDescription << "CSL file either empty or corrupted: rc="
+                             << rc;
+            return false;  // RETURN
+        }
+    }
+    else {
         // Move iterator to the last snapshot.
         mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(
             d_ledger_p.get());
-        findLastSnapshot(&lastSnapshotIt, d_ledger_p.get());
+        if (!findLastSnapshot(errorDescription,
+                              &lastSnapshotIt,
+                              d_ledger_p.get())) {
+            return false;  // RETURN
+        }
         d_iter_p->copy(lastSnapshotIt);
     }
 
@@ -296,7 +313,10 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
     mqbc::IncoreClusterStateLedgerIterator lastSnapshotIt(d_ledger_p.get());
     if (d_cslFromBegin) {
         // Move iterator to the last snapshot.
-        findLastSnapshot(&lastSnapshotIt, d_ledger_p.get());
+        bmqu::MemOutStream errorDescr(d_allocator);
+        if (!findLastSnapshot(errorDescr, &lastSnapshotIt, d_ledger_p.get())) {
+            throw bsl::runtime_error(errorDescr.str());  // THROW
+        }
     }
     else {
         lastSnapshotIt.copy(*d_iter_p);
@@ -325,9 +345,15 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
 
     // Iterate from last snapshot to get updates
     while (true) {
-        if (lastSnapshotIt.next() != 0) {
-            // End iterator reached or CSL file is corrupted or incomplete
+        const int rc = lastSnapshotIt.next();
+        if (rc == 1) {
+            // End iterator reached
             break;  // BREAK
+        }
+        if (rc < 0) {
+            bmqu::MemOutStream errorDescr(d_allocator);
+            errorDescr << "CSL file is corrupted or incomplete: rc=" << rc;
+            throw bsl::runtime_error(errorDescr.str());  // THROW
         }
 
         if (lastSnapshotIt.header().recordType() ==

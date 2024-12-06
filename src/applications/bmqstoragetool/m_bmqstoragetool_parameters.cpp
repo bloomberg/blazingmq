@@ -572,8 +572,8 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         }
         else {
             for (bsl::vector<bsl::string>::const_iterator cit =
-                     arguments.d_recordType.begin();
-                 cit != arguments.d_recordType.end();
+                     arguments.d_cslRecordType.begin();
+                 cit != arguments.d_cslRecordType.end();
                  ++cit) {
                 if (*cit == CommandLineArguments::k_CSL_SNAPSHOT_TYPE) {
                     d_processCslRecordTypes.d_snapshot = true;

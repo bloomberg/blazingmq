@@ -151,7 +151,7 @@ JournalFileProcessor::JournalFileProcessor(
 , d_fileManager(fileManager)
 , d_ostream(ostream)
 , d_searchResult_p(searchResult_p)
-, d_allocator_p(bslma::Default::allocator(allocator))
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
