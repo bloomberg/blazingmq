@@ -97,6 +97,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
             new (*alloc) SummaryProcessor(ostream,
                                           fileManager->journalFileIterator(),
                                           fileManager->dataFileIterator(),
+                                          params->d_queueMap,
+                                          params->d_minRecordsPerQueue,
                                           alloc),
             alloc);
     }
