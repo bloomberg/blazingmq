@@ -3342,7 +3342,6 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(&clusterData->blobSpPool())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_cluster_p(cluster)
@@ -3500,7 +3499,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         d_dispatcher_p,
         partitionCfg,
         &d_fileStores,
-        d_blobSpPool_p,
+        &d_clusterData_p->blobSpPool(),
         &d_allocators,
         errorDescription,
         d_replicationFactor,
@@ -3527,12 +3526,11 @@ int StorageManager::start(bsl::ostream& errorDescription)
     bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
         "RecoveryManager");
 
-    d_recoveryManager_mp.load(new (*recoveryManagerAllocator) RecoveryManager(
-                                  &d_clusterData_p->bufferFactory(),
-                                  d_clusterConfig,
-                                  *d_clusterData_p,
-                                  dsCfg,
-                                  recoveryManagerAllocator),
+    d_recoveryManager_mp.load(new (*recoveryManagerAllocator)
+                                  RecoveryManager(d_clusterConfig,
+                                                  *d_clusterData_p,
+                                                  dsCfg,
+                                                  recoveryManagerAllocator),
                               recoveryManagerAllocator);
 
     rc = d_recoveryManager_mp->start(errorDescription);

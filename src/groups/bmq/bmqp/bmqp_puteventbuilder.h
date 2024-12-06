@@ -40,8 +40,10 @@
 /// Usage
 ///-----
 //..
-//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
-//  bmqp::PutEventBuilder builder(&bufferFactory, d_allocator_p);
+//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+//  bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+//        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, s_allocator_p));
+//  bmqp::PutEventBuilder builder(&blobSpPool, d_allocator_p);
 //
 //  // Append multiple messages
 //  // (Error handling omitted below for brevity)
@@ -51,16 +53,19 @@
 //
 //  // Repeat above steps if adding more messages to this event is desired.
 //
-//  const bdlbb::Blob& eventBlob = builder.blob();
+//  const bsl::shared_ptr<bdlbb::Blob>& eventBlob = builder.blob();
 //  // Send the blob ...
 //
 //  // We can reset the builder to reuse it; note that this invalidates the
-//  // 'eventBlob' retrieved above
+//  // 'eventBlob' shared pointer reference retrieved above.  To keep the
+//  // bdlbb::Blob valid the shared pointer should be copied, and the copy
+//  // should be passed and kept in IO components.
 //  builder.reset();
 //..
 //
 
 // BMQ
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
 #include <bmqt_compressionalgorithmtype.h>
@@ -90,6 +95,8 @@ class PutEventBuilder {
     // TYPES
     typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
 
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // TYPES
     /// Mechanism to automatically reset PutEventBuilder on a built message
@@ -104,14 +111,15 @@ class PutEventBuilder {
     };
 
     // DATA
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
-    mutable bdlbb::Blob d_blob;
-    // blob being built by this
-    // PutEventBuilder.
-    // This has been done mutable to be able to
-    // skip writing the length until the blob
-    // is retrieved.
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
     bool d_msgStarted;
     // has startMessage been called
@@ -170,8 +178,6 @@ class PutEventBuilder {
 
     MessagePropertiesInfo d_messagePropertiesInfo;
 
-    bslma::Allocator* d_allocator_p;
-
   private:
     // NOT IMPLEMENTED
     PutEventBuilder(const PutEventBuilder&) BSLS_CPP11_DELETED;
@@ -194,10 +200,11 @@ class PutEventBuilder {
   public:
     // CREATORS
 
-    /// Create a new `PutEventBuilder` using the specified `bufferFactory`
-    /// and `allocator` for the blob.
-    PutEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
-                    bslma::Allocator*         allocator);
+    /// Create a new `PutEventBuilder` using the specified `blobSpPool_p` and
+    /// `allocator` for the blob.  We require BlobSpPool to build Blobs with
+    /// set BlobBufferFactory since we might want to expand the built Blob
+    /// dynamically.
+    PutEventBuilder(BlobSpPool* blobSpPool_p, bslma::Allocator* allocator);
 
     // MANIPULATORS
 
@@ -336,10 +343,13 @@ class PutEventBuilder {
     /// message was not compressed, a value of 1 is returned.
     double lastPackedMesageCompressionRatio() const;
 
-    /// Return a reference not offering modifiable access to the blob built
-    /// by this event.  If no messages were added, this will return a blob
-    /// composed only of an `EventHeader`.
-    const bdlbb::Blob& blob() const;
+    /// Return a reference to the shared pointer to the built Blob.  If no
+    /// messages were added, the Blob object under this reference will be
+    /// empty.
+    /// Note that this accessor exposes an internal shared pointer object, and
+    /// it is the user's responsibility to make a copy of it if it needs to be
+    /// passed and kept in another thread while this builder object is used.
+    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 
     const bmqp::MessageProperties* messageProperties() const;
 };
@@ -500,7 +510,7 @@ inline const bmqt::MessageGUID& PutEventBuilder::messageGUID() const
 
 inline int PutEventBuilder::eventSize() const
 {
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int PutEventBuilder::unpackedMessageSize() const

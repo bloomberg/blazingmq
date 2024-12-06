@@ -251,8 +251,12 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqp::PushEventBuilder pushEventBuilder(
-        &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
     int                    payloadLength    = 0;
@@ -307,7 +311,7 @@ static void test1_breathingTest()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -317,6 +321,7 @@ static void test1_breathingTest()
         &eventInfos,
         event,
         &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 1u);
@@ -449,8 +454,12 @@ static void test2_flattenExplodesEvent()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqp::PushEventBuilder pushEventBuilder(
-        &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>      data(bmqtst::TestHelperUtil::allocator());
     int                    payloadLength  = 0;
@@ -478,7 +487,7 @@ static void test2_flattenExplodesEvent()
 
     // Create event
     appendMessages(&pushEventBuilder, data);
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event
@@ -488,6 +497,7 @@ static void test2_flattenExplodesEvent()
         &eventInfos,
         event,
         &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 2u);
@@ -672,10 +682,14 @@ static void test3_flattenWithMessageProperties()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqp::MessageProperties msgProperties(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob             appData(bmqtst::TestHelperUtil::allocator());
     bmqp::PushEventBuilder  pushEventBuilder(
-        &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     bmqt::EventBuilderResult::Enum result;
     int                            payloadLength    = 0;
@@ -746,7 +760,7 @@ static void test3_flattenWithMessageProperties()
                                           logic);
     BSLS_ASSERT_OPT(result == bmqt::EventBuilderResult::e_SUCCESS);
 
-    bmqp::Event event(&(pushEventBuilder.blob()),
+    bmqp::Event event(pushEventBuilder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
     // 2) Flatten the event.
@@ -756,6 +770,7 @@ static void test3_flattenWithMessageProperties()
         &eventInfos,
         event,
         &bufferFactory,
+        &blobSpPool,
         bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(rc, 0);
     ASSERT_EQ(eventInfos.size(), 1U);

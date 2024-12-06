@@ -140,6 +140,9 @@ struct Tester BSLS_CPP11_FINAL {
     // Buffer factory provided to the
     // various builders
 
+    /// Blob shared pointer pool used in event builders.
+    bmqp::BlobPoolUtil::BlobSpPool d_blobSpPool;
+
     bmqp::PushEventBuilder d_pushEventBuilder;
     // PUSH event builder
 
@@ -333,10 +336,11 @@ Tester::Tester(bslma::Allocator* allocator)
 , d_nextCorrelationId(0)
 , d_time(0, 0)
 , d_bufferFactory(1024, allocator)
-, d_pushEventBuilder(&d_bufferFactory, allocator)
-, d_ackEventBuilder(&d_bufferFactory, allocator)
-, d_putEventBuilder(&d_bufferFactory, allocator)
-, d_confirmEventBuilder(&d_bufferFactory, allocator)
+, d_blobSpPool(bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
+, d_pushEventBuilder(&d_blobSpPool, allocator)
+, d_ackEventBuilder(&d_blobSpPool, allocator)
+, d_putEventBuilder(&d_blobSpPool, allocator)
+, d_confirmEventBuilder(&d_blobSpPool, allocator)
 , d_allocator_p(allocator)
 {
     bmqsys::Time::initialize(
@@ -653,7 +657,7 @@ bmqp::Event& Tester::pushEvent(bmqp::Event* event) const
     // PRECONDITIONS
     BSLS_ASSERT_OPT(event && "'event' must be provided");
 
-    event->reset(&d_pushEventBuilder.blob(), true);
+    event->reset(d_pushEventBuilder.blob().get(), true);
 
     return *event;
 }
@@ -663,7 +667,7 @@ bmqp::Event& Tester::ackEvent(bmqp::Event* event) const
     // PRECONDITIONS
     BSLS_ASSERT_OPT(event && "'event' must be provided");
 
-    event->reset(&d_ackEventBuilder.blob(), true);
+    event->reset(d_ackEventBuilder.blob().get(), true);
 
     return *event;
 }
@@ -673,7 +677,7 @@ bmqp::Event& Tester::putEvent(bmqp::Event* event) const
     // PRECONDITIONS
     BSLS_ASSERT_OPT(event && "'event' must be provided");
 
-    event->reset(&d_putEventBuilder.blob(), true);
+    event->reset(d_putEventBuilder.blob().get(), true);
 
     return *event;
 }
@@ -683,7 +687,7 @@ bmqp::Event& Tester::confirmEvent(bmqp::Event* event) const
     // PRECONDITIONS
     BSLS_ASSERT_OPT(event && "'event' must be provided");
 
-    event->reset(&d_confirmEventBuilder.blob(), true);
+    event->reset(d_confirmEventBuilder.blob().get(), true);
 
     return *event;
 }

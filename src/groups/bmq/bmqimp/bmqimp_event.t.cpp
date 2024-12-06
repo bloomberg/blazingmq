@@ -767,6 +767,10 @@ static void test6_comparisonOperatorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqimp::Event obj1(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqt::SessionEventType::Enum   sessionType =
@@ -807,8 +811,8 @@ static void test6_comparisonOperatorTest()
     PV("Configure as MesageEvent");
     bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj3.configureAsMessageEvent(&bufferFactory);
-    obj4.configureAsMessageEvent(&bufferFactory);
+    obj3.configureAsMessageEvent(&blobSpPool);
+    obj4.configureAsMessageEvent(&blobSpPool);
 
     // NOTE: Message event can not be equal. Is it expected?
     ASSERT(obj3 != obj4);
@@ -1101,6 +1105,10 @@ static void test8_putEventBuilder()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
         "gid:0",
@@ -1129,7 +1137,7 @@ static void test8_putEventBuilder()
 
     // Create PutEventBuilder
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj.configureAsMessageEvent(&bufferFactory);
+    obj.configureAsMessageEvent(&blobSpPool);
     bmqp::PutEventBuilder& builder = *(obj.putEventBuilder());
 
     builder.startMessage();
@@ -1201,8 +1209,8 @@ static void test8_putEventBuilder()
     // Get blob and use bmqp iterator to test.  Note that bmqp event and
     // bmqp iterators are lower than bmqp builders, and thus, can be used
     // to test them.
-    const bdlbb::Blob& eventBlob = builder.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     ASSERT(rawEvent.isValid());
     ASSERT(rawEvent.isPutEvent());
@@ -1551,12 +1559,16 @@ static void test12_upgradeDowngradeMessageEvent()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     // 1. Create session event
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // 2. Configure event as message event in WRITE mode.
-    obj.configureAsMessageEvent(&bufferFactory);
+    obj.configureAsMessageEvent(&blobSpPool);
     ASSERT_EQ(bmqimp::Event::MessageEventMode::e_WRITE,
               obj.messageEventMode());
 

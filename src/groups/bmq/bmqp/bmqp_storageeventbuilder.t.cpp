@@ -187,6 +187,10 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     const char*                    PAYLOAD     = "abcdefghijklmnopqrstuvwx";
     const unsigned int             PAYLOAD_LEN = bsl::strlen(PAYLOAD);  // 24
     const char*                    JOURNAL_REC = "12345678";
@@ -198,7 +202,7 @@ static void test1_breathingTest()
     // Create StorageEventBuilder
     bmqp::StorageEventBuilder seb(1,  // storage protocol version
                                   bmqp::EventType::e_STORAGE,
-                                  &bufferFactory,
+                                  &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
     ASSERT_EQ(seb.messageCount(), 0);
@@ -230,7 +234,7 @@ static void test1_breathingTest()
     // Get blob and use bmqp iterator to test
     // Note that bmqp event and bmqp iterators are lower than bmqp builders,
     // and thus, can be used to test them.
-    const bdlbb::Blob& eventBlob = seb.blob();
+    const bdlbb::Blob& eventBlob = *seb.blob();
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
@@ -290,9 +294,14 @@ static void test2_storageEventHavingMultipleMessages()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+
     bmqp::StorageEventBuilder      seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &bufferFactory,
+                                  &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
@@ -308,7 +317,7 @@ static void test2_storageEventHavingMultipleMessages()
     }
 
     // Iterate and check
-    const bdlbb::Blob& eventBlob = seb.blob();
+    const bdlbb::Blob& eventBlob = *seb.blob();
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
@@ -380,6 +389,10 @@ static void test3_packMessage_payloadTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     const int          k_SPV               = 1;  // Storage proto version
     const char*        PAYLOAD             = "abcdefghijklmnopqrstuvwx";
@@ -390,7 +403,7 @@ static void test3_packMessage_payloadTooBig()
 
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &bufferFactory,
+                                  &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::string               bigPayload(bmqtst::TestHelperUtil::allocator());
     bigPayload.resize(bmqp::StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT + 4, 'a');
@@ -446,7 +459,7 @@ static void test3_packMessage_payloadTooBig()
               static_cast<unsigned int>(seb.eventSize()));
     ASSERT_EQ(seb.messageCount(), 1);
 
-    const bdlbb::Blob& eventBlob = seb.blob();
+    const bdlbb::Blob& eventBlob = *seb.blob();
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
@@ -515,9 +528,13 @@ static void test4_packMessageRaw()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqp::StorageEventBuilder      sebA(k_SPV,
                                    bmqp::EventType::e_STORAGE,
-                                   &bufferFactory,
+                                   &blobSpPool,
                                    bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
@@ -532,7 +549,7 @@ static void test4_packMessageRaw()
         ASSERT_EQ_D(dataIdx, rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
-    const bdlbb::Blob& eventA = sebA.blob();
+    const bdlbb::Blob& eventA = *sebA.blob();
     bmqp::Event        rawEventA(&eventA, bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT(rawEventA.isValid() == true);
     BSLS_ASSERT(rawEventA.isStorageEvent() == true);
@@ -546,7 +563,7 @@ static void test4_packMessageRaw()
     // Iterate over event 'A', and create event 'B' using 'packMessageRaw'.
     bmqp::StorageEventBuilder sebB(k_SPV,
                                    bmqp::EventType::e_STORAGE,
-                                   &bufferFactory,
+                                   &blobSpPool,
                                    bmqtst::TestHelperUtil::allocator());
 
     while (1 == iterA.next() && dataIndex < NUM_MSGS) {
@@ -568,7 +585,7 @@ static void test4_packMessageRaw()
     ASSERT_EQ(iterA.isValid(), false);
 
     // Finally, iterate over event 'B' and verify.
-    const bdlbb::Blob& eventB = sebB.blob();
+    const bdlbb::Blob& eventB = *sebB.blob();
     bmqp::Event        rawEventB(&eventB, bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEventB.isValid());
@@ -648,9 +665,13 @@ static void test5_packMessageRaw_emptyMessage()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &bufferFactory,
+                                  &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
     bdlbb::Blob emptyBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -662,7 +683,7 @@ static void test5_packMessageRaw_emptyMessage()
     // Above we packMessageRaw with 'length' of 10 because we need an
     // arbitrary 'length > 0' to not trigger an assert and at the same time
     // ensure that packing an empty blob succeeds.
-    ASSERT_EQ(bdlbb::BlobUtil::compare(seb.blob(), emptyBlob), 0);
+    ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), emptyBlob), 0);
     ASSERT_EQ(seb.messageCount(), 0);
     ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
 }
@@ -689,11 +710,15 @@ static void test6_packMessageRaw_invalidPosition()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bdlbb::Blob               k_EMPTY_BLOB(&bufferFactory,
                              bmqtst::TestHelperUtil::allocator());
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &bufferFactory,
+                                  &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
     // 1.
@@ -709,7 +734,7 @@ static void test6_packMessageRaw_invalidPosition()
     bmqu::BlobPosition invalidPosition(-1, -1);
     ASSERT_NE(seb.packMessageRaw(message, invalidPosition, message.length()),
               bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_EQ(bdlbb::BlobUtil::compare(seb.blob(), k_EMPTY_BLOB), 0);
+    ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), k_EMPTY_BLOB), 0);
     ASSERT_EQ(seb.messageCount(), 0);
     ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
 }

@@ -117,12 +117,12 @@ ClusterData::ClusterData(
                       cluster->isRemote(),
                       allocator))
 , d_cluster_p(cluster)
-, d_messageTransmitter(resources.bufferFactory(),
+, d_messageTransmitter(resources.blobSpPool(),
                        cluster,
                        transportManager,
                        allocator)
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   resources.bufferFactory(),
+                   resources.blobSpPool(),
                    resources.scheduler(),
                    false,  // lateResponseMode
                    allocator)

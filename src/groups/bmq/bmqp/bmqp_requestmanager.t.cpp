@@ -111,6 +111,9 @@ struct TestClock {
 class TestContext {
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
 
+    /// Blob pool used to provide blobs to event builders.
+    bmqp::BlobPoolUtil::BlobSpPool d_blobSpPool;
+
     TestClock d_testClock;
     // Pointer to struct to initialize system time
 
@@ -201,11 +204,13 @@ class TestContext {
 
 TestContext::TestContext(bool lateResponseMode, bslma::Allocator* allocator)
 : d_blobBufferFactory(1024, allocator)
+, d_blobSpPool(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
 , d_testClock(allocator)
 , d_scheduler(d_testClock.d_scheduler)
 , d_testChannel(allocator)
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   &d_blobBufferFactory,
+                   &d_blobSpPool,
                    &d_scheduler,
                    lateResponseMode,
                    allocator)
@@ -381,6 +386,10 @@ static void test1_creatorsTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         4096,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     {
         // Wrong clock type
@@ -388,7 +397,7 @@ static void test1_creatorsTest()
                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_SAFE_FAIL(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                        &blobBufferFactory,
+                                        &blobSpPool,
                                         &scheduler,
                                         false,  // late response mode is off
                                         bmqtst::TestHelperUtil::allocator()));
@@ -400,20 +409,20 @@ static void test1_creatorsTest()
                                         bmqtst::TestHelperUtil::allocator());
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobBufferFactory,
+                                   &blobSpPool,
                                    &scheduler,
                                    false,  // late response mode is off
                                    bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobBufferFactory,
+                                   &blobSpPool,
                                    &scheduler,
                                    false,  // late response mode is off
                                    bmqex::SystemExecutor(),
                                    bmqtst::TestHelperUtil::allocator()));
 
         ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobBufferFactory,
+                                   &blobSpPool,
                                    &scheduler,
                                    false,  // late response mode is off
                                    bmqex::SystemExecutor(),
@@ -465,10 +474,12 @@ static void test4_sendRequestTest()
     /// specified `request`, and set the specified `called` flag to true
     struct Caller {
         static bmqt::GenericResult::Enum
-        sendFn(bool* called, const bdlbb::Blob& blob, const ReqSp& request)
+        sendFn(bool*                               called,
+               const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+               const ReqSp&                        request)
         {
             *called = true;
-            bmqp::Event ev(&blob, bmqtst::TestHelperUtil::allocator());
+            bmqp::Event ev(blob_sp.get(), bmqtst::TestHelperUtil::allocator());
             ASSERT(ev.isControlEvent());
             Mes controlMessage(bmqtst::TestHelperUtil::allocator());
             ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));

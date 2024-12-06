@@ -129,14 +129,10 @@ class Cluster : public mqbi::Cluster {
     typedef bsl::shared_ptr<bmqst::StatContext> StatContextSp;
     typedef mqbc::ClusterData::StatContextsMap  StatContextsMap;
 
-    typedef bdlcc::SharedObjectPool<
-        bdlbb::Blob,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
-
   public:
     // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
     typedef bsl::vector<mqbcfg::ClusterNode> ClusterNodeDefs;
 
     typedef bsl::shared_ptr<bmqio::TestChannel> TestChannelSp;
@@ -420,6 +416,9 @@ class Cluster : public mqbi::Cluster {
     /// Get a modifiable reference to this object's buffer factory.
     bdlbb::BlobBufferFactory* _bufferFactory();
 
+    /// Get a modifiable reference to this object's blob shared pointer pool.
+    BlobSpPool* _blobSpPool();
+
     /// Get a modifiable reference to this object's _scheduler.
     bdlmt::EventScheduler& _scheduler();
 
@@ -567,6 +566,11 @@ inline void Cluster::_setEventProcessor(const EventProcessor& processor)
 inline bdlbb::BlobBufferFactory* Cluster::_bufferFactory()
 {
     return d_bufferFactory_p;
+}
+
+inline Cluster::BlobSpPool* Cluster::_blobSpPool()
+{
+    return &d_blobSpPool;
 }
 
 inline bdlmt::EventScheduler& Cluster::_scheduler()
