@@ -113,7 +113,7 @@ class CommandRouter {
     class RoutingMode {
       public:
         RoutingMode();
-        virtual ~RoutingMode() = 0;
+        virtual ~RoutingMode();
 
         /// Populates the given `routeMembers` struct with the proper nodes to
         /// route to from the given `cluster`. Returns 0 on success or a

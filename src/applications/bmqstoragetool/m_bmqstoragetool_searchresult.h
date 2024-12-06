@@ -153,8 +153,6 @@ class SearchShortResult : public SearchResult {
     // Map to store guid and list iterator, for fast searching by guid.
     bsl::list<GuidData> d_guidList;
     // List to store ordered guid data to preserve messages order for output.
-    bslma::Allocator* d_allocator_p;
-    // Allocator used inside the class.
 
     // PRIVATE MANIPULATORS
 
@@ -179,6 +177,10 @@ class SearchShortResult : public SearchResult {
                                bool              eraseDeleted     = false,
                                bool              printOnDelete    = false,
                                bslma::Allocator* allocator        = 0);
+
+    // ACCESSORS
+
+    bslma::Allocator* allocator() const;
 
     // MANIPULATORS
 
