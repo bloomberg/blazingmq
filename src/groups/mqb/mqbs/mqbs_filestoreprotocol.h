@@ -59,12 +59,15 @@
 //       Max JournalFileHeader size.....................: 1020 bytes
 //       Max QlistFileHeader size.......................: 1020 bytes
 //       Max QueueRecordHeader size.....................: 1020 bytes
-//       Max Data file size.............................: 32GB
-//                               (courtesy MessageRecord.d_messageOffsetDwords)
-//       Max Journal file size..........................: 16GB
-//                          (courtesy bmqp::StorageHeader.d_journalOffsetWords)
-//       Max Qlist file size............................: 16GB
-//                         (courtesy QueueOpRecord.d_queueUriRecordOffsetWords)
+//       Max Data file size.............................: 34359738360 bytes
+//                                                        or 32GB - 8B
+//               (See also: mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD)
+//       Max Journal file size..........................: 17179869180 bytes
+//                                                        or 16GB - 8B
+//            (See also: mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD)
+//       Max Qlist file size............................: 17179869180 bytes
+//                                                        or 16GB - 8B
+//              (See also: mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD)
 //       Max Journal Record size........................: 1020 bytes
 //       Max Journal Record types.......................: 15
 //
@@ -159,6 +162,21 @@ struct FileStoreProtocol {
 
     static const int k_NUM_FILES_PER_PARTITION = 3;
     // Number of files per partition (data, journal & qlist)
+
+    /// The unsigned 32-bit `mqbs::MessageRecord::d_messageOffsetDwords` allows
+    /// to address at most `((2 ^ 32) - 1) * 8` byte offset
+    static const bsls::Types::Uint64 k_MAX_DATA_FILE_SIZE_HARD =
+        34359738360ULL;
+
+    /// The unsigned 32-bit `bmqp::StorageHeader::d_journalOffsetWords` allows
+    /// to address at most `((2 ^ 32) - 1) * 4` byte offset
+    static const bsls::Types::Uint64 k_MAX_JOURNAL_FILE_SIZE_HARD =
+        17179869180ULL;
+
+    /// The unsigned 32-bit `mqbs::QueueOpRecord::d_queueUriRecordOffsetWords`
+    /// allows to address at most `((2 ^ 32) - 1) * 4` byte offset
+    static const bsls::Types::Uint64 k_MAX_QLIST_FILE_SIZE_HARD =
+        17179869180ULL;
 
     static const char* k_DATA_FILE_EXTENSION;
 

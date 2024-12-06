@@ -27,6 +27,7 @@
 // a 'mqbs::FileStore' and some associated attributes.
 
 // MQB
+#include <mqbs_filestoreprotocol.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -74,28 +75,28 @@ class FileStoreSet BSLS_CPP11_FINAL {
 
     // MANIPULATORS
     // FileStoreSet& operator=(const FileStoreSet&);
-    FileStoreSet& setDataFile(const bsl::string& value);
-    FileStoreSet& setDataFileSize(bsls::Types::Int64 value);
-    FileStoreSet& setJournalFile(const bsl::string& value);
-    FileStoreSet& setJournalFileSize(bsls::Types::Int64 value);
-    FileStoreSet& setQlistFile(const bsl::string& value);
 
     /// Set the corresponding attribute to the specified `value` and return
     /// a reference offering modifiable access to this object.
-    FileStoreSet& setQlistFileSize(bsls::Types::Int64 value);
+    FileStoreSet& setDataFile(const bsl::string& value);
+    FileStoreSet& setDataFileSize(bsls::Types::Uint64 value);
+    FileStoreSet& setJournalFile(const bsl::string& value);
+    FileStoreSet& setJournalFileSize(bsls::Types::Uint64 value);
+    FileStoreSet& setQlistFile(const bsl::string& value);
+    FileStoreSet& setQlistFileSize(bsls::Types::Uint64 value);
 
     /// Reset the members of this object.
     void reset();
 
     // ACCESSORS
-    const bsl::string& dataFile() const;
-    bsls::Types::Int64 dataFileSize() const;
-    const bsl::string& journalFile() const;
-    bsls::Types::Int64 journalFileSize() const;
-    const bsl::string& qlistFile() const;
 
     /// Get the value of the corresponding attribute.
-    bsls::Types::Int64 qlistFileSize() const;
+    const bsl::string& dataFile() const;
+    bsls::Types::Uint64 dataFileSize() const;
+    const bsl::string& journalFile() const;
+    bsls::Types::Uint64 journalFileSize() const;
+    const bsl::string& qlistFile() const;
+    bsls::Types::Uint64 qlistFileSize() const;
 
     /// Write a human-readable string representation of this object to the
     /// specified output `stream`, and return a reference to `stream`.
@@ -156,8 +157,12 @@ inline FileStoreSet& FileStoreSet::setDataFile(const bsl::string& value)
     return *this;
 }
 
-inline FileStoreSet& FileStoreSet::setDataFileSize(bsls::Types::Int64 value)
+inline FileStoreSet& FileStoreSet::setDataFileSize(bsls::Types::Uint64 value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value <=
+                     mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD);
+
     d_dataFileSize = value;
     return *this;
 }
@@ -168,8 +173,13 @@ inline FileStoreSet& FileStoreSet::setJournalFile(const bsl::string& value)
     return *this;
 }
 
-inline FileStoreSet& FileStoreSet::setJournalFileSize(bsls::Types::Int64 value)
+inline FileStoreSet&
+FileStoreSet::setJournalFileSize(bsls::Types::Uint64 value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value <=
+                     mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD);
+
     d_journalFileSize = value;
     return *this;
 }
@@ -180,8 +190,12 @@ inline FileStoreSet& FileStoreSet::setQlistFile(const bsl::string& value)
     return *this;
 }
 
-inline FileStoreSet& FileStoreSet::setQlistFileSize(bsls::Types::Int64 value)
+inline FileStoreSet& FileStoreSet::setQlistFileSize(bsls::Types::Uint64 value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value <=
+                     mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD);
+
     d_qlistFileSize = value;
     return *this;
 }
@@ -192,7 +206,7 @@ inline const bsl::string& FileStoreSet::dataFile() const
     return d_dataFile;
 }
 
-inline bsls::Types::Int64 FileStoreSet::dataFileSize() const
+inline bsls::Types::Uint64 FileStoreSet::dataFileSize() const
 {
     return d_dataFileSize;
 }
@@ -202,7 +216,7 @@ inline const bsl::string& FileStoreSet::journalFile() const
     return d_journalFile;
 }
 
-inline bsls::Types::Int64 FileStoreSet::journalFileSize() const
+inline bsls::Types::Uint64 FileStoreSet::journalFileSize() const
 {
     return d_journalFileSize;
 }
@@ -212,7 +226,7 @@ inline const bsl::string& FileStoreSet::qlistFile() const
     return d_qlistFile;
 }
 
-inline bsls::Types::Int64 FileStoreSet::qlistFileSize() const
+inline bsls::Types::Uint64 FileStoreSet::qlistFileSize() const
 {
     return d_qlistFileSize;
 }
