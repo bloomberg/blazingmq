@@ -98,33 +98,6 @@ class FileManagerMock : public FileManager {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// =====================
-// class FileManagerMock
-// =====================
-
-inline FileManagerMock::FileManagerMock()
-: d_journalFileIt()
-, d_dataFileIt()
-{
-    EXPECT_CALL(*this, dataFileIterator())
-        .WillRepeatedly(testing::Return(&d_dataFileIt));
-}
-
-inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)
-: d_journalFileIt(&journalFile.mappedFileDescriptor(),
-                  journalFile.fileHeader(),
-                  false)
-, d_dataFileIt()
-{
-    EXPECT_CALL(*this, dataFileIterator())
-        .WillRepeatedly(testing::Return(&d_dataFileIt));
-}
-
-inline mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
-{
-    return &d_journalFileIt;
-}
-
 }  // close package namespace
 
 }  // close enterprise namespace
