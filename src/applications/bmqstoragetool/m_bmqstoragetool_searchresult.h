@@ -28,6 +28,10 @@
 //  search processor.
 // m_bmqstoragetool::SearchResultTimestampDecorator:
 //  provides decorator to handle timestamps.
+// m_bmqstoragetool::SearchResultOffsetDecorator:
+//  provides decorator to handle offsets.
+// m_bmqstoragetool::SearchResultSequenceNumberDecorator:
+//  provides decorator to handle composite sequence numbers.
 // m_bmqstoragetool::SearchAllDecorator: provides decorator to handle all
 //  messages.
 // m_bmqstoragetool::SearchOutstandingDecorator: provides decorator
@@ -36,6 +40,10 @@
 //  handle partially confirmed messages.
 // m_bmqstoragetool::SearchGuidDecorator:
 //  provides decorator to handle search of given GUIDs.
+// m_bmqstoragetool::SearchOffsetDecorator:
+//  provides decorator to handle search of given offsets.
+// m_bmqstoragetool::SearchSequenceNumberDecorator:
+//  provides decorator to handle search of given composite sequence numbers.
 // m_bmqstoragetool::SummaryProcessor: provides logic to collect summary of
 //  journal file.
 //
@@ -43,6 +51,7 @@
 // a logic of search and output results.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
@@ -77,11 +86,6 @@ class SearchResult {
         GuidsMap;
     // Hash map of message guids to iterators of GuidsList.
 
-    virtual bool hasCache() const { return false; }
-    // Return `false` if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return `true` to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -109,6 +113,11 @@ class SearchResult {
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
     virtual void outputResult(const GuidsList& guidFilter) = 0;
+
+    /// Return `false` if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return `true` to indicate that
+    /// there is incomplete data.
+    virtual bool hasCache() const { return false; }
 };
 
 // =======================
@@ -161,13 +170,6 @@ class SearchShortResult : public SearchResult {
     void outputGuidData(const GuidData& guidData);
     // Output result in short format (only GUIDs).
 
-    // PRIVATE ACCESSORS
-
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
-    // Return 'false' if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return 'true' to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -204,6 +206,13 @@ class SearchShortResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return 'false' if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return 'true' to indicate that
+    /// there is incomplete data.
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -263,13 +272,6 @@ class SearchDetailResult : public SearchResult {
     void outputMessageDetails(const MessageDetails& messageDetails);
     // Output message details with the specified 'messageDetails'.
 
-    // PRIVATE ACCESSORS
-
-    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
-    // Return 'false' if all required data is processed, e.g. all given GUIDs
-    // are output and search could be stopped. Return 'true' to indicate that
-    // there is incomplete data.
-
   public:
     // CREATORS
 
@@ -307,6 +309,13 @@ class SearchDetailResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return 'false' if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return 'true' to indicate that
+    /// there is incomplete data.
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -353,6 +362,13 @@ class SearchResultDecorator : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return 'false' if all required data is processed, e.g. all given GUIDs
+    /// are output and search could be stopped. Return 'true' to indicate that
+    /// there is incomplete data.
+    bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -367,8 +383,8 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 
     // ACCESSORS
 
-    bool stop(bsls::Types::Uint64 timestamp) const;
-    // Return 'true' if the specified 'timestamp' is greated than
+    bool stop(const bsls::Types::Uint64 timestamp) const;
+    // Return 'true' if the specified 'timestamp' is greater than
     // 'd_timestampLt' and internal cache is empty.
 
   public:
@@ -379,6 +395,101 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
     SearchResultTimestampDecorator(
         const bsl::shared_ptr<SearchResult>& component,
         const bsls::Types::Uint64            timestampLt,
+        bslma::Allocator*                    allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// =================================
+// class SearchResultOffsetDecorator
+// =================================
+
+/// This class provides decorator to handle offsets.
+class SearchResultOffsetDecorator : public SearchResultDecorator {
+  private:
+    const bsls::Types::Uint64 d_offsetLt;
+    // Higher bound offset.
+
+    // ACCESSORS
+
+    bool stop(const bsls::Types::Uint64 offset) const;
+    // Return 'true' if the specified 'offset' is greater than
+    // 'd_offsetLt' and internal cache is empty.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `offsetLt` and
+    /// `allocator`.
+    SearchResultOffsetDecorator(const bsl::shared_ptr<SearchResult>& component,
+                                const bsls::Types::Uint64            offsetLt,
+                                bslma::Allocator* allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `confirm` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processConfirmRecord(const mqbs::ConfirmRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+};
+
+// =========================================
+// class SearchResultSequenceNumberDecorator
+// =========================================
+
+/// This class provides decorator to handle composite sequence numbers.
+class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
+  private:
+    const CompositeSequenceNumber sequenceNumberLt;
+    // Higher bound sequence number.
+
+    // ACCESSORS
+
+    bool stop(const CompositeSequenceNumber& sequenceNumber) const;
+    // Return 'true' if the specified 'sequenceNumber' is greater than
+    // 'sequenceNumberLt' and internal cache is empty.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `seqNumberLt` and
+    /// `allocator`.
+    SearchResultSequenceNumberDecorator(
+        const bsl::shared_ptr<SearchResult>& component,
+        const CompositeSequenceNumber&       seqNumberLt,
         bslma::Allocator*                    allocator);
 
     // MANIPULATORS
@@ -556,6 +667,96 @@ class SearchGuidDecorator : public SearchResultDecorator {
                         bsl::ostream&                        ostream,
                         bool                                 withDetails,
                         bslma::Allocator*                    allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
+    void outputResult() BSLS_KEYWORD_OVERRIDE;
+};
+
+// ===========================
+// class SearchOffsetDecorator
+// ===========================
+
+/// This class provides decorator to handle search of given offsets.
+class SearchOffsetDecorator : public SearchResultDecorator {
+  private:
+    // PRIVATE DATA
+    bsl::vector<bsls::Types::Int64> d_offsets;
+    // List of offsets to search for.
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    bool d_withDetails;
+    // If 'true', output detailed result, output short one otherwise.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `offsets`, `ostream`,
+    /// `withDetails` and `allocator`.
+    SearchOffsetDecorator(const bsl::shared_ptr<SearchResult>&   component,
+                          const bsl::vector<bsls::Types::Int64>& offsets,
+                          bsl::ostream&                          ostream,
+                          bool                                   withDetails,
+                          bslma::Allocator*                      allocator);
+
+    // MANIPULATORS
+
+    /// Process `message` record with the specified `record`, `recordIndex` and
+    /// `recordOffset`.
+    bool processMessageRecord(const mqbs::MessageRecord& record,
+                              bsls::Types::Uint64        recordIndex,
+                              bsls::Types::Uint64        recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Process `deletion` record with the specified `record`, `recordIndex`
+    /// and `recordOffset`.
+    bool processDeletionRecord(const mqbs::DeletionRecord& record,
+                               bsls::Types::Uint64         recordIndex,
+                               bsls::Types::Uint64         recordOffset)
+        BSLS_KEYWORD_OVERRIDE;
+    /// Output result of a search.
+    void outputResult() BSLS_KEYWORD_OVERRIDE;
+};
+
+// ===================================
+// class SearchSequenceNumberDecorator
+// ===================================
+
+/// This class provides decorator to handle search of given composite sequence
+/// numbers.
+class SearchSequenceNumberDecorator : public SearchResultDecorator {
+  private:
+    // PRIVATE DATA
+    bsl::vector<CompositeSequenceNumber> d_seqNums;
+    // List of composite sequence numbers to search for.
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+    bool d_withDetails;
+    // If 'true', output detailed result, output short one otherwise.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `seqNums`, `ostream`,
+    /// `withDetails` and `allocator`.
+    SearchSequenceNumberDecorator(
+        const bsl::shared_ptr<SearchResult>&        component,
+        const bsl::vector<CompositeSequenceNumber>& seqNums,
+        bsl::ostream&                               ostream,
+        bool                                        withDetails,
+        bslma::Allocator*                           allocator);
 
     // MANIPULATORS
 

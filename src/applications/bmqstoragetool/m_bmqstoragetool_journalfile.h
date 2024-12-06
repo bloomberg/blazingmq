@@ -157,6 +157,13 @@ class JournalFile {
         GuidVectorType*            expectedGUIDs,
         size_t                     numMessages,
         bsl::vector<unsigned int>& messageOffsets);
+
+    /// Generate sequence of multiple types of records. Increase Primary Lease
+    /// Id after the specified `numRecordsWithSameLeaseId` records. Store list
+    /// of created records in the specified `records`.
+    void addMultipleTypesRecordsWithMultipleLeaseId(
+        RecordsListType* records,
+        size_t           numRecordsWithSameLeaseId);
 };
 
 // ============================================================================
