@@ -59,7 +59,7 @@ static void test1_toAscii()
         bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = bmqt::EncodingType::toAscii(
             bmqt::EncodingType::Enum(test.d_value));
-        ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
 
@@ -93,13 +93,13 @@ static void test2_fromAscii()
 
         bsl::string str(test.d_input, bmqtst::TestHelperUtil::allocator());
         bool isValid = bmqt::EncodingType::isValid(&str, errorDescription);
-        ASSERT_EQ_D(test.d_line, isValid, test.d_isValid);
+        BMQTST_ASSERT_EQ_D(test.d_line, isValid, test.d_isValid);
 
         bmqt::EncodingType::Enum obj;
         isValid = bmqt::EncodingType::fromAscii(&obj, test.d_input);
-        ASSERT_EQ_D(test.d_line, isValid, test.d_isValid);
+        BMQTST_ASSERT_EQ_D(test.d_line, isValid, test.d_isValid);
         if (isValid) {
-            ASSERT_EQ_D(test.d_line, obj, test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, obj, test.d_expected);
         }
     }
 }
@@ -116,14 +116,14 @@ static void test3_isomorphism()
     res = bmqt::EncodingType::fromAscii(
         &obj,
         bmqt::EncodingType::toAscii(bmqt::EncodingType::e_TEXT));
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::EncodingType::e_TEXT);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::EncodingType::e_TEXT);
 
     PV("Testing: toAscii(fromAscii(value)) = value");
     res = bmqt::EncodingType::fromAscii(&obj, "MULTIPARTS");
-    ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(res, true);
     str = bmqt::EncodingType::toAscii(obj);
-    ASSERT_EQ(str, "MULTIPARTS");
+    BMQTST_ASSERT_EQ(str, "MULTIPARTS");
 }
 
 static void test4_printTest()
@@ -164,17 +164,17 @@ static void test4_printTest()
         out.setstate(bsl::ios_base::badbit);
         bmqt::EncodingType::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         bmqt::EncodingType::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << test.d_type;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 

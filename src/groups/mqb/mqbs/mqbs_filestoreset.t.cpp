@@ -57,9 +57,9 @@ static void test1_breathingTest()
     PV("Default constructor");
     mqbs::FileStoreSet obj1(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj1.dataFile(), "");
-    ASSERT_EQ(obj1.journalFile(), "");
-    ASSERT_EQ(obj1.qlistFile(), "");
+    BMQTST_ASSERT_EQ(obj1.dataFile(), "");
+    BMQTST_ASSERT_EQ(obj1.journalFile(), "");
+    BMQTST_ASSERT_EQ(obj1.qlistFile(), "");
 
     // Set some values
     obj1.setDataFile(k_DATA_FILE)
@@ -69,41 +69,41 @@ static void test1_breathingTest()
         .setQlistFile(k_QLIST_FILE)
         .setQlistFileSize(k_QLIST_FILE_SIZE);
 
-    ASSERT_EQ(obj1.dataFile(), k_DATA_FILE);
-    ASSERT_EQ(obj1.dataFileSize(), k_DATA_FILE_SIZE);
-    ASSERT_EQ(obj1.journalFile(), k_JOURNAL_FILE);
-    ASSERT_EQ(obj1.journalFileSize(), k_JOURNAL_FILE_SIZE);
-    ASSERT_EQ(obj1.qlistFile(), k_QLIST_FILE);
-    ASSERT_EQ(obj1.qlistFileSize(), k_QLIST_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj1.dataFile(), k_DATA_FILE);
+    BMQTST_ASSERT_EQ(obj1.dataFileSize(), k_DATA_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj1.journalFile(), k_JOURNAL_FILE);
+    BMQTST_ASSERT_EQ(obj1.journalFileSize(), k_JOURNAL_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj1.qlistFile(), k_QLIST_FILE);
+    BMQTST_ASSERT_EQ(obj1.qlistFileSize(), k_QLIST_FILE_SIZE);
 
     // Copy constructor
     PV("Copy constructor");
     mqbs::FileStoreSet obj2(obj1, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj1.dataFile(), obj2.dataFile());
-    ASSERT_EQ(obj1.dataFileSize(), obj2.dataFileSize());
-    ASSERT_EQ(obj1.journalFile(), obj2.journalFile());
-    ASSERT_EQ(obj1.journalFileSize(), obj2.journalFileSize());
-    ASSERT_EQ(obj1.qlistFile(), obj2.qlistFile());
-    ASSERT_EQ(obj1.qlistFileSize(), obj2.qlistFileSize());
+    BMQTST_ASSERT_EQ(obj1.dataFile(), obj2.dataFile());
+    BMQTST_ASSERT_EQ(obj1.dataFileSize(), obj2.dataFileSize());
+    BMQTST_ASSERT_EQ(obj1.journalFile(), obj2.journalFile());
+    BMQTST_ASSERT_EQ(obj1.journalFileSize(), obj2.journalFileSize());
+    BMQTST_ASSERT_EQ(obj1.qlistFile(), obj2.qlistFile());
+    BMQTST_ASSERT_EQ(obj1.qlistFileSize(), obj2.qlistFileSize());
 
     // Reset 'obj1'
     PV("reset");
     obj1.reset();
 
-    ASSERT_EQ(obj1.dataFile(), "");
-    ASSERT_EQ(obj1.dataFileSize(), 0LL)
-    ASSERT_EQ(obj1.journalFile(), "");
-    ASSERT_EQ(obj1.journalFileSize(), 0LL)
-    ASSERT_EQ(obj1.qlistFile(), "");
-    ASSERT_EQ(obj1.qlistFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.dataFile(), "");
+    BMQTST_ASSERT_EQ(obj1.dataFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.journalFile(), "");
+    BMQTST_ASSERT_EQ(obj1.journalFileSize(), 0LL)
+    BMQTST_ASSERT_EQ(obj1.qlistFile(), "");
+    BMQTST_ASSERT_EQ(obj1.qlistFileSize(), 0LL)
 
-    ASSERT_EQ(obj2.dataFile(), k_DATA_FILE);
-    ASSERT_EQ(obj2.dataFileSize(), k_DATA_FILE_SIZE);
-    ASSERT_EQ(obj2.journalFile(), k_JOURNAL_FILE);
-    ASSERT_EQ(obj2.journalFileSize(), k_JOURNAL_FILE_SIZE);
-    ASSERT_EQ(obj2.qlistFile(), k_QLIST_FILE);
-    ASSERT_EQ(obj2.qlistFileSize(), k_QLIST_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj2.dataFile(), k_DATA_FILE);
+    BMQTST_ASSERT_EQ(obj2.dataFileSize(), k_DATA_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj2.journalFile(), k_JOURNAL_FILE);
+    BMQTST_ASSERT_EQ(obj2.journalFileSize(), k_JOURNAL_FILE_SIZE);
+    BMQTST_ASSERT_EQ(obj2.qlistFile(), k_QLIST_FILE);
+    BMQTST_ASSERT_EQ(obj2.qlistFileSize(), k_QLIST_FILE_SIZE);
 
     // Print
     PV("Print");
@@ -118,14 +118,14 @@ static void test1_breathingTest()
         PVV("Print (print function)");
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         obj2.print(out, 0, -1);
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (stream operator)");
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out << obj2;
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 
     {
@@ -133,7 +133,7 @@ static void test1_breathingTest()
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         obj2.print(out, 0, -1);
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
 

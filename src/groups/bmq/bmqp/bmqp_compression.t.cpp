@@ -270,14 +270,16 @@ static void eZlibCompressDecompressHelper(
                                          bmqtst::TestHelperUtil::allocator());
     *compressionTime             = bsls::TimeUtil::getTimer() - startTime;
 
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     // get compressed data and compare with expected_compressed
     BSLS_ASSERT_SAFE(compressed.numDataBuffers() == 1);
     int   bufferSize     = bmqu::BlobUtil::bufferSize(compressed, 0);
     char* receivedBuffer = compressed.buffer(0).data();
 
-    ASSERT_EQ(bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize), 0);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
+        0);
 
     startTime          = bsls::TimeUtil::getTimer();
     rc                 = bmqp::Compression::decompress(&decompressed,
@@ -288,8 +290,8 @@ static void eZlibCompressDecompressHelper(
                                        bmqtst::TestHelperUtil::allocator());
     *decompressionTime = bsls::TimeUtil::getTimer() - startTime;
 
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
 template <typename D>
@@ -320,7 +322,7 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
         bmqtst::TestHelperUtil::allocator());
     *compressionTime      = bsls::TimeUtil::getTimer() - startTime;
 
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     startTime          = bsls::TimeUtil::getTimer();
     rc                 = bmqp::Compression_Impl::decompressZlib(
@@ -331,8 +333,8 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
         bmqtst::TestHelperUtil::allocator());
     *decompressionTime = bsls::TimeUtil::getTimer() - startTime;
 
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
 template <typename D>
@@ -361,7 +363,7 @@ static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
         level,
         &error,
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
     *compressedSize = compressed.length();
 
     rc = bmqp::Compression_Impl::decompressZlib(
@@ -370,8 +372,8 @@ static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
         compressed,
         &error,
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
 }
 
 }  // close unnamed namespace
@@ -520,15 +522,16 @@ static void test1_breathingTest()
             -1,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // get compressed data and compare with expected_compressed
         BSLS_ASSERT_SAFE(compressed.numDataBuffers() == 1);
         int   bufferSize     = bmqu::BlobUtil::bufferSize(compressed, 0);
         char* receivedBuffer = compressed.buffer(0).data();
 
-        ASSERT_EQ(bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
-                  0);
+        BMQTST_ASSERT_EQ(
+            bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
+            0);
 
         rc = bmqp::Compression_Impl::decompressZlib(
             &decompressed,
@@ -536,8 +539,8 @@ static void test1_breathingTest()
             compressed,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
     }
 
     {
@@ -588,15 +591,16 @@ static void test1_breathingTest()
             -1,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // get compressed data and compare with expected_compressed
         BSLS_ASSERT_SAFE(compressed.numDataBuffers() == 1);
         int   bufferSize     = bmqu::BlobUtil::bufferSize(compressed, 0);
         char* receivedBuffer = compressed.buffer(0).data();
 
-        ASSERT_EQ(bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
-                  0);
+        BMQTST_ASSERT_EQ(
+            bsl::memcmp(expectedCompressed, receivedBuffer, bufferSize),
+            0);
 
         rc = bmqp::Compression_Impl::decompressZlib(
             &decompressed,
@@ -604,8 +608,8 @@ static void test1_breathingTest()
             compressed,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
     }
 }
 
@@ -663,7 +667,7 @@ static void test2_compression_cluster_message()
             clusterMessage,
             bmqp::EncodingType::e_JSON,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         bsl::cout << "Input size: " << input.length() << endl;
 
@@ -674,7 +678,7 @@ static void test2_compression_cluster_message()
             -1,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
         bsl::cout << "Compressed size: " << compressed.length() << endl;
 
         rc = bmqp::Compression_Impl::decompressZlib(
@@ -683,8 +687,8 @@ static void test2_compression_cluster_message()
             compressed,
             &error,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
         bsl::cout << "Decompressed size: " << decompressed.length() << endl;
     }
 }

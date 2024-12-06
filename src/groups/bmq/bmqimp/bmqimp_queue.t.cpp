@@ -76,28 +76,28 @@ static void test1_breathingTest()
         .setConsumerPriority(bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
 
     // Verify default state
-    ASSERT_EQ(obj.isValid(), false);
-    ASSERT_EQ(obj.id(), k_INVALID_QUEUE_ID);
-    ASSERT_EQ(obj.pendingConfigureId(), k_INVALID_CONFIGURE_ID);
-    ASSERT_EQ(obj.flags(), 0u);
+    BMQTST_ASSERT_EQ(obj.isValid(), false);
+    BMQTST_ASSERT_EQ(obj.id(), k_INVALID_QUEUE_ID);
+    BMQTST_ASSERT_EQ(obj.pendingConfigureId(), k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT_EQ(obj.flags(), 0u);
 
-    ASSERT(obj.hasDefaultSubQueueId());
+    BMQTST_ASSERT(obj.hasDefaultSubQueueId());
 
-    ASSERT_EQ(obj.uri(), "");
-    ASSERT_EQ(obj.state(), k_STATE);
-    ASSERT_EQ(obj.subQueueId(), k_SQID);
-    ASSERT_EQ(obj.correlationId(), k_CORID);
-    ASSERT_EQ(obj.options(), options);
-    ASSERT_EQ(obj.atMostOnce(), false);
+    BMQTST_ASSERT_EQ(obj.uri(), "");
+    BMQTST_ASSERT_EQ(obj.state(), k_STATE);
+    BMQTST_ASSERT_EQ(obj.subQueueId(), k_SQID);
+    BMQTST_ASSERT_EQ(obj.correlationId(), k_CORID);
+    BMQTST_ASSERT_EQ(obj.options(), options);
+    BMQTST_ASSERT_EQ(obj.atMostOnce(), false);
 
-    ASSERT_EQ(obj.handleParameters().qId(),
-              static_cast<unsigned int>(k_INVALID_QUEUE_ID));
+    BMQTST_ASSERT_EQ(obj.handleParameters().qId(),
+                     static_cast<unsigned int>(k_INVALID_QUEUE_ID));
 
-    ASSERT_EQ(obj.hasMultipleSubStreams(), false);
-    ASSERT_EQ(obj.handleParameters().uri(), "")
-    ASSERT_EQ(obj.handleParameters().writeCount(), 0);
-    ASSERT_EQ(obj.handleParameters().readCount(), 0);
-    ASSERT_EQ(obj.handleParameters().adminCount(), 0);
+    BMQTST_ASSERT_EQ(obj.hasMultipleSubStreams(), false);
+    BMQTST_ASSERT_EQ(obj.handleParameters().uri(), "")
+    BMQTST_ASSERT_EQ(obj.handleParameters().writeCount(), 0);
+    BMQTST_ASSERT_EQ(obj.handleParameters().readCount(), 0);
+    BMQTST_ASSERT_EQ(obj.handleParameters().adminCount(), 0);
 }
 
 static void test2_settersTest()
@@ -151,25 +151,25 @@ static void test2_settersTest()
         .setOptions(options)
         .setPendingConfigureId(k_PENDING_ID);
 
-    ASSERT_EQ(obj.uri(), uri);
-    ASSERT_EQ(obj.state(), k_STATE);
-    ASSERT_EQ(obj.subQueueId(), k_SQID);
-    ASSERT_EQ(obj.correlationId(), k_CORID);
-    ASSERT_EQ(obj.flags(), flags);
-    ASSERT_EQ(obj.options(), options);
-    ASSERT_EQ(obj.isValid(), true);
-    ASSERT_EQ(obj.atMostOnce(), true);
-    ASSERT_EQ(obj.id(), static_cast<int>(k_ID));
+    BMQTST_ASSERT_EQ(obj.uri(), uri);
+    BMQTST_ASSERT_EQ(obj.state(), k_STATE);
+    BMQTST_ASSERT_EQ(obj.subQueueId(), k_SQID);
+    BMQTST_ASSERT_EQ(obj.correlationId(), k_CORID);
+    BMQTST_ASSERT_EQ(obj.flags(), flags);
+    BMQTST_ASSERT_EQ(obj.options(), options);
+    BMQTST_ASSERT_EQ(obj.isValid(), true);
+    BMQTST_ASSERT_EQ(obj.atMostOnce(), true);
+    BMQTST_ASSERT_EQ(obj.id(), static_cast<int>(k_ID));
 
-    ASSERT_EQ(obj.hasMultipleSubStreams(), true);
-    ASSERT_EQ(obj.pendingConfigureId(), k_PENDING_ID);
-    ASSERT_EQ(obj.handleParameters().qId(), k_ID);
-    ASSERT_EQ(obj.handleParameters().uri(), uri.asString())
-    ASSERT_EQ(obj.handleParameters().writeCount(), 1);
-    ASSERT_EQ(obj.handleParameters().readCount(), 1);
-    ASSERT_EQ(obj.handleParameters().adminCount(), 1);
+    BMQTST_ASSERT_EQ(obj.hasMultipleSubStreams(), true);
+    BMQTST_ASSERT_EQ(obj.pendingConfigureId(), k_PENDING_ID);
+    BMQTST_ASSERT_EQ(obj.handleParameters().qId(), k_ID);
+    BMQTST_ASSERT_EQ(obj.handleParameters().uri(), uri.asString())
+    BMQTST_ASSERT_EQ(obj.handleParameters().writeCount(), 1);
+    BMQTST_ASSERT_EQ(obj.handleParameters().readCount(), 1);
+    BMQTST_ASSERT_EQ(obj.handleParameters().adminCount(), 1);
 
-    ASSERT(!obj.hasDefaultSubQueueId());
+    BMQTST_ASSERT(!obj.hasDefaultSubQueueId());
 }
 
 static void test3_printQueueStateTest()
@@ -236,12 +236,12 @@ static void test3_printQueueStateTest()
         out.setstate(bsl::ios_base::badbit);
         bmqimp::QueueState::print(out, test.d_type, 0, 0);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         bmqimp::QueueState::print(out, test.d_type, 0, 0);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << test.d_type;
@@ -249,7 +249,7 @@ static void test3_printQueueStateTest()
         expected.reset();
         expected << test.d_expected;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 
@@ -330,17 +330,17 @@ static void test4_printTest()
     out.setstate(bsl::ios_base::badbit);
     obj.print(out, 0, -1);
 
-    ASSERT_EQ(out.str(), "");
+    BMQTST_ASSERT_EQ(out.str(), "");
 
     out.clear();
     obj.print(out, 0, -1);
 
-    ASSERT_EQ(out.str(), expected.str());
+    BMQTST_ASSERT_EQ(out.str(), expected.str());
 
     out.reset();
     out << obj;
 
-    ASSERT_EQ(out.str(), expected.str());
+    BMQTST_ASSERT_EQ(out.str(), expected.str());
 }
 
 static void test5_comparisionTest()
@@ -366,7 +366,7 @@ static void test5_comparisionTest()
     bmqimp::Queue obj1(bmqtst::TestHelperUtil::allocator());
     bmqimp::Queue obj2(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT(obj1 == obj2);
+    BMQTST_ASSERT(obj1 == obj2);
 
     // Check setters
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
@@ -396,12 +396,12 @@ static void test5_comparisionTest()
         .setOptions(options)
         .setPendingConfigureId(k_PENDING_ID);
 
-    ASSERT(obj1 != obj2);
+    BMQTST_ASSERT(obj1 != obj2);
 
     obj2.setUri(uri).setState(k_STATE).setCorrelationId(k_CORID).setFlags(
         flags);
 
-    ASSERT(obj1 == obj2);
+    BMQTST_ASSERT(obj1 == obj2);
 }
 
 static void test6_statTest()
@@ -458,34 +458,34 @@ static void test6_statTest()
 
     bmqst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
 
-    ASSERT(pStatContext != 0);
+    BMQTST_ASSERT(pStatContext != 0);
 
-    ASSERT_SAFE_FAIL(obj.registerStatContext(pStatContext));
-    ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
-    ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
+    BMQTST_ASSERT_SAFE_FAIL(obj.registerStatContext(pStatContext));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
 
     obj.setUri(uri);
 
-    ASSERT_SAFE_FAIL(obj.registerStatContext(pStatContext));
-    ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
-    ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
+    BMQTST_ASSERT_SAFE_FAIL(obj.registerStatContext(pStatContext));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
 
     obj.setState(k_STATE);
     obj.registerStatContext(pStatContext);
 
     rootStatContext.snapshot();
 
-    ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
+    BMQTST_ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
 
     const char                k_STAT_NAME[] = "queues";
     const bmqst::StatContext* k_pSubContext = rootStatContext.getSubcontext(
         k_STAT_NAME);
 
-    ASSERT(k_pSubContext != 0);
-    ASSERT_EQ(k_pSubContext->numValues(), 3);
-    ASSERT_EQ(k_pSubContext->valueName(0), "in");
-    ASSERT_EQ(k_pSubContext->valueName(1), "out");
-    ASSERT_EQ(k_pSubContext->valueName(2), "compression_ratio");
+    BMQTST_ASSERT(k_pSubContext != 0);
+    BMQTST_ASSERT_EQ(k_pSubContext->numValues(), 3);
+    BMQTST_ASSERT_EQ(k_pSubContext->valueName(0), "in");
+    BMQTST_ASSERT_EQ(k_pSubContext->valueName(1), "out");
+    BMQTST_ASSERT_EQ(k_pSubContext->valueName(2), "compression_ratio");
 
     const bmqst::StatValue& k_IN_VALUE =
         k_pSubContext->value(bmqst::StatContext::e_TOTAL_VALUE, 0);
@@ -498,21 +498,22 @@ static void test6_statTest()
 
     const int k_NEW_OUT_VALUE = 1024;
 
-    ASSERT_EQ(k_IN_VALUE.max(), 0);
-    ASSERT_EQ(k_OUT_VALUE.max(), 0);
-    ASSERT_EQ(k_STAT_COMPRESSION_RATIO.max(), 0);
+    BMQTST_ASSERT_EQ(k_IN_VALUE.max(), 0);
+    BMQTST_ASSERT_EQ(k_OUT_VALUE.max(), 0);
+    BMQTST_ASSERT_EQ(k_STAT_COMPRESSION_RATIO.max(), 0);
 
     obj.statUpdateOnMessage(k_NEW_OUT_VALUE, true);
     obj.statReportCompressionRatio(2);
     rootStatContext.snapshot();
 
-    ASSERT_EQ(k_IN_VALUE.max(), 0);
-    ASSERT_EQ(k_OUT_VALUE.max(), k_NEW_OUT_VALUE);
-    ASSERT_EQ(k_STAT_COMPRESSION_RATIO.max(), 2 * 10000);  // scaling factor
+    BMQTST_ASSERT_EQ(k_IN_VALUE.max(), 0);
+    BMQTST_ASSERT_EQ(k_OUT_VALUE.max(), k_NEW_OUT_VALUE);
+    BMQTST_ASSERT_EQ(k_STAT_COMPRESSION_RATIO.max(),
+                     2 * 10000);  // scaling factor
 
     obj.clearStatContext();
-    ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
-    ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statUpdateOnMessage(1, true));
+    BMQTST_ASSERT_SAFE_FAIL(obj.statReportCompressionRatio(2));
 }
 
 }  // close unnamed namespace

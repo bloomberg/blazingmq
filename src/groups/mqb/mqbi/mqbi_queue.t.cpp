@@ -100,7 +100,7 @@ static void test1_hashAppendSubQueueIdInfo()
             bsl::hash<bmqp_ctrlmsg::SubQueueIdInfo>::result_type currHash =
                 algo.computeHash();
             PVV("[" << i << "] hash: " << currHash);
-            ASSERT_EQ_D(i, currHash, firstHash);
+            BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
     }
 
@@ -124,24 +124,24 @@ static void test1_hashAppendSubQueueIdInfo()
             bmqtst::TestHelperUtil::allocator());
 
         infos.insert(obj1);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
 
         infos.insert(obj2);  // failure
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
 
         infos.insert(obj3);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
 
         infos.erase(obj2);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(0));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(0));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
     }
 }
 

@@ -93,28 +93,32 @@ static void test1_breathingTest()
     PV("Testing real time clock");
     {
         testClock.d_realtimeClock.setTotalSeconds(5);
-        ASSERT_EQ(bsls::TimeInterval(5, 0), bmqsys::Time::nowRealtimeClock());
+        BMQTST_ASSERT_EQ(bsls::TimeInterval(5, 0),
+                         bmqsys::Time::nowRealtimeClock());
 
         testClock.d_realtimeClock.setTotalSeconds(0);
-        ASSERT_EQ(bsls::TimeInterval(0, 0), bmqsys::Time::nowRealtimeClock());
+        BMQTST_ASSERT_EQ(bsls::TimeInterval(0, 0),
+                         bmqsys::Time::nowRealtimeClock());
     }
 
     PV("Testing monotonic clock");
     {
         testClock.d_monotonicClock.setTotalSeconds(5);
-        ASSERT_EQ(bsls::TimeInterval(5, 0), bmqsys::Time::nowMonotonicClock());
+        BMQTST_ASSERT_EQ(bsls::TimeInterval(5, 0),
+                         bmqsys::Time::nowMonotonicClock());
 
         testClock.d_monotonicClock.setTotalSeconds(0);
-        ASSERT_EQ(bsls::TimeInterval(0, 0), bmqsys::Time::nowMonotonicClock());
+        BMQTST_ASSERT_EQ(bsls::TimeInterval(0, 0),
+                         bmqsys::Time::nowMonotonicClock());
     }
 
     PV("Testing high resolution timer");
     {
         testClock.d_highResTimer = 1000000;
-        ASSERT_EQ(1000000, bmqsys::Time::highResolutionTimer());
+        BMQTST_ASSERT_EQ(1000000, bmqsys::Time::highResolutionTimer());
 
         testClock.d_highResTimer = 0;
-        ASSERT_EQ(0, bmqsys::Time::highResolutionTimer());
+        BMQTST_ASSERT_EQ(0, bmqsys::Time::highResolutionTimer());
     }
 
     bmqsys::Time::shutdown();
@@ -139,19 +143,19 @@ static void test2_defaultInitializeShutdown()
     bmqtst::TestHelper::printTestName("DEFAULT INITIALIZE & SHUTDOWN");
 
     // Initialize the 'Time'.
-    ASSERT_SAFE_PASS(bmqsys::Time::initialize());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::initialize());
 
     // Initialize should be a no-op.
-    ASSERT_SAFE_PASS(bmqsys::Time::initialize());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::initialize());
 
     // Shutdown the Time is a no-op.
-    ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
 
     // Shutdown the Time.
-    ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
 
     // Shutdown again should assert
-    ASSERT_SAFE_FAIL(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_FAIL(bmqsys::Time::shutdown());
 }
 
 static void test3_customInitializeShutdown()
@@ -175,25 +179,25 @@ static void test3_customInitializeShutdown()
     TestClock testClock;
 
     // Initialize the 'Time'.
-    ASSERT_SAFE_PASS(bmqsys::Time::initialize(
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &testClock)));
 
     // Initialize should be a no-op.
-    ASSERT_SAFE_PASS(bmqsys::Time::initialize(
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::initialize(
         bdlf::BindUtil::bind(&TestClock::realtimeClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::monotonicClock, &testClock),
         bdlf::BindUtil::bind(&TestClock::highResTimer, &testClock)));
 
     // Shutdown the Time is a no-op.
-    ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
 
     // Shutdown the Time.
-    ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqsys::Time::shutdown());
 
     // Shutdown again should assert
-    ASSERT_SAFE_FAIL(bmqsys::Time::shutdown());
+    BMQTST_ASSERT_SAFE_FAIL(bmqsys::Time::shutdown());
 }
 
 // ============================================================================

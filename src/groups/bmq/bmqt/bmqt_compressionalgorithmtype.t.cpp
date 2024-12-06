@@ -65,17 +65,17 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
         out.setstate(bsl::ios_base::badbit);
         ENUM_TYPE::print(out, obj, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         ENUM_TYPE::print(out, obj, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << obj;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 

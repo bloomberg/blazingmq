@@ -220,7 +220,7 @@ static void test1_breathingTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test2_searchGuidTest()
@@ -288,7 +288,7 @@ static void test2_searchGuidTest()
     expectedStream << searchGuids.size() << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test3_searchNonExistingGuidTest()
@@ -349,7 +349,7 @@ static void test3_searchNonExistingGuidTest()
     expectedStream << searchGuids[0] << bsl::endl
                    << searchGuids[1] << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test4_searchExistingAndNonExistingGuidTest()
@@ -433,7 +433,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     expectedStream << searchGuids[2] << bsl::endl
                    << searchGuids[3] << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test5_searchOutstandingMessagesTest()
@@ -498,7 +498,7 @@ static void test5_searchOutstandingMessagesTest()
                    << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test6_searchConfirmedMessagesTest()
@@ -562,7 +562,7 @@ static void test6_searchConfirmedMessagesTest()
                    << (messageCount - confirmedGUIDS.size()) << "/"
                    << messageCount << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test7_searchPartiallyConfirmedMessagesTest()
@@ -629,7 +629,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
                    << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
                    << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test8_searchMessagesByQueueKeyTest()
@@ -690,7 +690,7 @@ static void test8_searchMessagesByQueueKeyTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test9_searchMessagesByQueueNameTest()
@@ -761,7 +761,7 @@ static void test9_searchMessagesByQueueNameTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test10_searchMessagesByQueueNameAndQueueKeyTest()
@@ -836,7 +836,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test11_searchMessagesByTimestamp()
@@ -902,7 +902,7 @@ static void test11_searchMessagesByTimestamp()
             bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test12_printMessagesDetailsTest()
@@ -965,8 +965,8 @@ static void test12_printMessagesDetailsTest()
     for (size_t i = 0; i < confirmedGUIDS.size(); i++) {
         // Check Message type
         size_t foundIdx = resultString.find(messageRecordCaption, startIdx);
-        ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check GUID
@@ -974,20 +974,20 @@ static void test12_printMessagesDetailsTest()
         outputGuidString(ss, confirmedGUIDS.at(i));
         bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         foundIdx = resultString.find(guidStr, startIdx);
-        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
         startIdx = foundIdx + guidStr.length();
 
         // Check Confirm type
         foundIdx = resultString.find(confirmRecordCaption, startIdx);
-        ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check Delete type
         foundIdx = resultString.find(deleteRecordCaption, startIdx);
-        ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
     }
 }
@@ -1047,8 +1047,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
                               MESSAGES,
                               k_NUM_MSGS,
                               messageOffsets);
-    ASSERT(pd != 0);
-    ASSERT_GT(mfdData.fileSize(), 0ULL);
+    BMQTST_ASSERT(pd != 0);
+    BMQTST_ASSERT_GT(mfdData.fileSize(), 0ULL);
     // Create data file iterator
     DataFileIterator dataIt(&mfdData, fileHeader);
 
@@ -1115,8 +1115,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
         bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         size_t      foundIdx = resultString.find(guidStr, startIdx);
 
-        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
 
         startIdx = foundIdx + guidStr.length();
 
@@ -1124,8 +1124,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
         bsl::string dumpStr = expectedPayloadSubstring[i];
         foundIdx            = resultString.find(dumpStr, startIdx);
 
-        ASSERT_D(dumpStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(dumpStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
         startIdx = foundIdx + dumpStr.length();
     }
 
@@ -1183,7 +1183,7 @@ static void test14_summaryTest()
            "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
 
     bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
-    ASSERT(res.starts_with(expectedStream.str()));
+    BMQTST_ASSERT(res.starts_with(expectedStream.str()));
 }
 
 static void test15_timestampSearchTest()
@@ -1211,15 +1211,15 @@ static void test15_timestampSearchTest()
         static void check(mqbs::JournalFileIterator& it,
                           const bsls::Types::Uint64& ts)
         {
-            ASSERT_GT(it.recordHeader().timestamp(), ts);
-            ASSERT(!it.isReverseMode());
+            BMQTST_ASSERT_GT(it.recordHeader().timestamp(), ts);
+            BMQTST_ASSERT(!it.isReverseMode());
             // Check previous record
             it.flipDirection();
-            ASSERT_EQ(it.nextRecord(), 1);
-            ASSERT_LE(it.recordHeader().timestamp(), ts);
+            BMQTST_ASSERT_EQ(it.nextRecord(), 1);
+            BMQTST_ASSERT_LE(it.recordHeader().timestamp(), ts);
             // Set 'it' to its original state
             it.flipDirection();
-            ASSERT_EQ(it.nextRecord(), 1);
+            BMQTST_ASSERT_EQ(it.nextRecord(), 1);
         }
     };
 
@@ -1232,8 +1232,10 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts),
+                         1);
         ResultChecker::check(journalFileIt, ts);
     }
 
@@ -1247,35 +1249,43 @@ static void test15_timestampSearchTest()
             false);
 
         // Move the iterator to the center of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(journalFileIt.advance(k_NUM_RECORDS / 2), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.advance(k_NUM_RECORDS / 2), 1);
 
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially forward
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts1),
+                         1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially forward
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts2),
+                         1);
         ResultChecker::check(journalFileIt, ts2);
 
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially backward
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
         journalFileIt.flipDirection();
-        ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        BMQTST_ASSERT(journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts1),
+                         1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially backward
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
         journalFileIt.flipDirection();
-        ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        BMQTST_ASSERT(journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts2),
+                         1);
         ResultChecker::check(journalFileIt, ts2);
     }
 
@@ -1288,11 +1298,13 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 0);
-        ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
-        ASSERT(!journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts),
+                         0);
+        BMQTST_ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
+        BMQTST_ASSERT(!journalFileIt.isReverseMode());
     }
 
     {
@@ -1303,11 +1315,13 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
-        ASSERT_EQ(journalFileIt.recordIndex(), 0U);
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
-        ASSERT(!journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                                            ts),
+                         1);
+        BMQTST_ASSERT_EQ(journalFileIt.recordIndex(), 0U);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
+        BMQTST_ASSERT(!journalFileIt.isReverseMode());
     }
 }
 

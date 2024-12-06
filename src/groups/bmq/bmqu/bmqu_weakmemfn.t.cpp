@@ -93,34 +93,38 @@ static void test1_weakMemFn_resultType()
     typedef Empty C;
 
     // void -> bmqu::WeakMemFnResult<void>
-    ASSERT((bsl::is_same<bmqu::WeakMemFnResult<void>,
-                         bmqu::WeakMemFn<void (C::*)()>::ResultType>::value));
+    BMQTST_ASSERT(
+        (bsl::is_same<bmqu::WeakMemFnResult<void>,
+                      bmqu::WeakMemFn<void (C::*)()>::ResultType>::value));
 
     // R -> bmqu::WeakMemFnResult<R>
-    ASSERT((bsl::is_same<bmqu::WeakMemFnResult<R>,
-                         bmqu::WeakMemFn<R (C::*)()>::ResultType>::value));
+    BMQTST_ASSERT(
+        (bsl::is_same<bmqu::WeakMemFnResult<R>,
+                      bmqu::WeakMemFn<R (C::*)()>::ResultType>::value));
 
     // const R -> bmqu::WeakMemFnResult<const R>
-    ASSERT(
+    BMQTST_ASSERT(
         (bsl::is_same<bmqu::WeakMemFnResult<const R>,
                       bmqu::WeakMemFn<const R (C::*)()>::ResultType>::value));
 
     // R& -> bmqu::WeakMemFnResult<R&>
-    ASSERT((bsl::is_same<bmqu::WeakMemFnResult<R&>,
-                         bmqu::WeakMemFn<R& (C::*)()>::ResultType>::value));
+    BMQTST_ASSERT(
+        (bsl::is_same<bmqu::WeakMemFnResult<R&>,
+                      bmqu::WeakMemFn<R& (C::*)()>::ResultType>::value));
 
     // const R& -> bmqu::WeakMemFnResult<const R&>
-    ASSERT(
+    BMQTST_ASSERT(
         (bsl::is_same<bmqu::WeakMemFnResult<const R&>,
                       bmqu::WeakMemFn<const R& (C::*)()>::ResultType>::value));
 
     // volatile R& -> bmqu::WeakMemFnResult<volatile R&>
-    ASSERT((bsl::is_same<
-            bmqu::WeakMemFnResult<volatile R&>,
-            bmqu::WeakMemFn<volatile R& (C::*)()>::ResultType>::value));
+    BMQTST_ASSERT((bsl::is_same<
+                   bmqu::WeakMemFnResult<volatile R&>,
+                   bmqu::WeakMemFn<volatile R& (C::*)()>::ResultType>::value));
 
     // const volatile R& -> bmqu::WeakMemFnResult<const volatile R&>
-    ASSERT((bsl::is_same<
+    BMQTST_ASSERT(
+        (bsl::is_same<
             bmqu::WeakMemFnResult<const volatile R&>,
             bmqu::WeakMemFn<const volatile R& (C::*)()>::ResultType>::value));
 }
@@ -171,29 +175,29 @@ static void test2_weakMemFn_callOperator()
 
     GetFn             getFn(&Int::get);
     GetFn::ResultType getRes = getFn(weakIntPtr);
-    ASSERT_EQ(getRes.isNull(), false);
-    ASSERT_EQ(getRes.value(), 10);
+    BMQTST_ASSERT_EQ(getRes.isNull(), false);
+    BMQTST_ASSERT_EQ(getRes.value(), 10);
 
     SetFn             setFn(&Int::set);
     SetFn::ResultType setRes = setFn(weakIntPtr, 42);
-    ASSERT_EQ(setRes.isNull(), false);
-    ASSERT_EQ(setRes.value().get(), 42);
+    BMQTST_ASSERT_EQ(setRes.isNull(), false);
+    BMQTST_ASSERT_EQ(setRes.value().get(), 42);
 
     ResetFn             resetFn(&Int::reset);
     ResetFn::ResultType resetRes = resetFn(weakIntPtr);
-    ASSERT_EQ(resetRes.isNull(), false);
-    ASSERT_EQ(intPtr->get(), 0);
+    BMQTST_ASSERT_EQ(resetRes.isNull(), false);
+    BMQTST_ASSERT_EQ(intPtr->get(), 0);
 
     intPtr.reset();
 
     getRes = getFn(weakIntPtr);
-    ASSERT_EQ(getRes.isNull(), true);
+    BMQTST_ASSERT_EQ(getRes.isNull(), true);
 
     setRes = setFn(weakIntPtr, 42);
-    ASSERT_EQ(setRes.isNull(), true);
+    BMQTST_ASSERT_EQ(setRes.isNull(), true);
 
     resetRes = resetFn(weakIntPtr);
-    ASSERT_EQ(resetRes.isNull(), true);
+    BMQTST_ASSERT_EQ(resetRes.isNull(), true);
 }
 
 static void test3_weakMemFnInstance_resultType()
@@ -220,39 +224,42 @@ static void test3_weakMemFnInstance_resultType()
     typedef Empty C;
 
     // void -> bmqu::WeakMemFnResult<void>
-    ASSERT((bsl::is_same<
+    BMQTST_ASSERT(
+        (bsl::is_same<
             bmqu::WeakMemFnResult<void>,
             bmqu::WeakMemFnInstance<void (C::*)()>::ResultType>::value));
 
     // R -> bmqu::WeakMemFnResult<R>
-    ASSERT((
+    BMQTST_ASSERT((
         bsl::is_same<bmqu::WeakMemFnResult<R>,
                      bmqu::WeakMemFnInstance<R (C::*)()>::ResultType>::value));
 
     // const R -> bmqu::WeakMemFnResult<const R>
-    ASSERT((bsl::is_same<
+    BMQTST_ASSERT(
+        (bsl::is_same<
             bmqu::WeakMemFnResult<const R>,
             bmqu::WeakMemFnInstance<const R (C::*)()>::ResultType>::value));
 
     // R& -> bmqu::WeakMemFnResult<R&>
-    ASSERT((bsl::is_same<
-            bmqu::WeakMemFnResult<R&>,
-            bmqu::WeakMemFnInstance<R& (C::*)()>::ResultType>::value));
+    BMQTST_ASSERT((bsl::is_same<
+                   bmqu::WeakMemFnResult<R&>,
+                   bmqu::WeakMemFnInstance<R& (C::*)()>::ResultType>::value));
 
     // const R& -> bmqu::WeakMemFnResult<const R&>
-    ASSERT((bsl::is_same<
+    BMQTST_ASSERT(
+        (bsl::is_same<
             bmqu::WeakMemFnResult<const R&>,
             bmqu::WeakMemFnInstance<const R& (C::*)()>::ResultType>::value));
 
     // volatile R& -> bmqu::WeakMemFnResult<volatile R&>
-    ASSERT((bsl::is_same<bmqu::WeakMemFnResult<volatile R&>,
-                         bmqu::WeakMemFnInstance<volatile R& (
-                             C::*)()>::ResultType>::value));
+    BMQTST_ASSERT((bsl::is_same<bmqu::WeakMemFnResult<volatile R&>,
+                                bmqu::WeakMemFnInstance<volatile R& (
+                                    C::*)()>::ResultType>::value));
 
     // const volatile R& -> bmqu::WeakMemFnResult<const volatile R&>
-    ASSERT((bsl::is_same<bmqu::WeakMemFnResult<const volatile R&>,
-                         bmqu::WeakMemFnInstance<const volatile R& (
-                             C::*)()>::ResultType>::value));
+    BMQTST_ASSERT((bsl::is_same<bmqu::WeakMemFnResult<const volatile R&>,
+                                bmqu::WeakMemFnInstance<const volatile R& (
+                                    C::*)()>::ResultType>::value));
 }
 
 static void test4_weakMemFnInstance_callOperator()
@@ -304,29 +311,29 @@ static void test4_weakMemFnInstance_callOperator()
 
     GetFn             getFn(&Int::get, weakIntPtr);
     GetFn::ResultType getRes = getFn();
-    ASSERT_EQ(getRes.isNull(), false);
-    ASSERT_EQ(getRes.value(), 10);
+    BMQTST_ASSERT_EQ(getRes.isNull(), false);
+    BMQTST_ASSERT_EQ(getRes.value(), 10);
 
     SetFn             setFn(&Int::set, weakIntPtr);
     SetFn::ResultType setRes = setFn(42);
-    ASSERT_EQ(setRes.isNull(), false);
-    ASSERT_EQ(setRes.value().get(), 42);
+    BMQTST_ASSERT_EQ(setRes.isNull(), false);
+    BMQTST_ASSERT_EQ(setRes.value().get(), 42);
 
     ResetFn             resetFn(&Int::reset, weakIntPtr);
     ResetFn::ResultType resetRes = resetFn();
-    ASSERT_EQ(resetRes.isNull(), false);
-    ASSERT_EQ(intPtr->get(), 0);
+    BMQTST_ASSERT_EQ(resetRes.isNull(), false);
+    BMQTST_ASSERT_EQ(intPtr->get(), 0);
 
     intPtr.reset();
 
     getRes = getFn();
-    ASSERT_EQ(getRes.isNull(), true);
+    BMQTST_ASSERT_EQ(getRes.isNull(), true);
 
     setRes = setFn(42);
-    ASSERT_EQ(setRes.isNull(), true);
+    BMQTST_ASSERT_EQ(setRes.isNull(), true);
 
     resetRes = resetFn();
-    ASSERT_EQ(resetRes.isNull(), true);
+    BMQTST_ASSERT_EQ(resetRes.isNull(), true);
 }
 
 // ============================================================================

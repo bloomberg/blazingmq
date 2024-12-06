@@ -91,13 +91,13 @@ static void test1_breathingTest()
     bsls::ProtocolTest<DTTracerTestImp> tracer;
 
     PV("Verify that the protocol is abstract");
-    ASSERT(tracer.testAbstract());
+    BMQTST_ASSERT(tracer.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(tracer.testNoDataMembers());
+    BMQTST_ASSERT(tracer.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(tracer.testVirtualDestructor());
+    BMQTST_ASSERT(tracer.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
     bmqpi::DTSpan::Baggage empty;

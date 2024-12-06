@@ -34,31 +34,31 @@ static void test1_basicFunctionality()
     bmqsys::MockTime obj;
 
     PV("Default constructed state");
-    ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(0));
-    ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(0));
-    ASSERT_EQ(obj.highResTimer(), 0);
+    BMQTST_ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(0));
+    BMQTST_ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(0));
+    BMQTST_ASSERT_EQ(obj.highResTimer(), 0);
 
     PV("Set");
     obj.setRealTimeClock(bsls::TimeInterval(1))
         .setMonotonicClock(bsls::TimeInterval(3))
         .setHighResTimer(5);
-    ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(1));
-    ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(3));
-    ASSERT_EQ(obj.highResTimer(), 5);
+    BMQTST_ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(1));
+    BMQTST_ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(3));
+    BMQTST_ASSERT_EQ(obj.highResTimer(), 5);
 
     PV("Advance");
     obj.advanceRealTimeClock(bsls::TimeInterval(7))
         .advanceMonotonicClock(bsls::TimeInterval(11))
         .advanceHighResTimer(15);
-    ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(8));
-    ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(14));
-    ASSERT_EQ(obj.highResTimer(), 20);
+    BMQTST_ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(8));
+    BMQTST_ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(14));
+    BMQTST_ASSERT_EQ(obj.highResTimer(), 20);
 
     PV("RESET");
     obj.reset();
-    ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(0));
-    ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(0));
-    ASSERT_EQ(obj.highResTimer(), 0);
+    BMQTST_ASSERT_EQ(obj.realtimeClock(), bsls::TimeInterval(0));
+    BMQTST_ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(0));
+    BMQTST_ASSERT_EQ(obj.highResTimer(), 0);
 }
 
 // ============================================================================

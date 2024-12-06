@@ -44,8 +44,8 @@ static void test1_breathingTest()
     {
         PV("DefaultContructor");
         mqbs::MemoryBlock obj;
-        ASSERT_EQ(obj.size(), 0U);
-        ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
+        BMQTST_ASSERT_EQ(obj.size(), 0U);
+        BMQTST_ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
     }
 
     {
@@ -53,13 +53,13 @@ static void test1_breathingTest()
         char                      base = 'a';
         const bsls::Types::Uint64 size = 9876;
         mqbs::MemoryBlock         obj(&base, size);
-        ASSERT_EQ(obj.base(), &base);
-        ASSERT_EQ(obj.size(), size);
+        BMQTST_ASSERT_EQ(obj.base(), &base);
+        BMQTST_ASSERT_EQ(obj.size(), size);
 
         PV("clear");
         obj.clear();
-        ASSERT_EQ(obj.size(), 0U);
-        ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
+        BMQTST_ASSERT_EQ(obj.size(), 0U);
+        BMQTST_ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
     }
 }
 
@@ -82,16 +82,16 @@ static void test2_operations()
     mqbs::MemoryBlock obj(&base, size);
 
     // 'size()' should reflect the size used in constructor
-    ASSERT_EQ(obj.base(), &base);
-    ASSERT_EQ(obj.size(), size);
+    BMQTST_ASSERT_EQ(obj.base(), &base);
+    BMQTST_ASSERT_EQ(obj.size(), size);
 
     // 'setSize()' should change the size to the new expected size.
     obj.setSize(newSize);
-    ASSERT_EQ(obj.size(), newSize);
+    BMQTST_ASSERT_EQ(obj.size(), newSize);
 
     // 'setBase()' should change the base to the new expected address.
     obj.setBase(&newBase);
-    ASSERT_EQ(obj.base(), &newBase);
+    BMQTST_ASSERT_EQ(obj.base(), &newBase);
 }
 
 static void test3_reset()
@@ -106,8 +106,8 @@ static void test3_reset()
     bmqtst::TestHelper::printTestName("reset operation");
 
     mqbs::MemoryBlock obj;
-    ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
-    ASSERT_EQ(obj.size(), 0U);
+    BMQTST_ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
+    BMQTST_ASSERT_EQ(obj.size(), 0U);
     obj.clear();
 
     char                      dummy = 1;
@@ -115,8 +115,8 @@ static void test3_reset()
 
     // 'reset()' should set the size and base to the expected values.
     obj.reset(&dummy, size);
-    ASSERT_EQ(obj.size(), size);
-    ASSERT_EQ(obj.base(), &dummy);
+    BMQTST_ASSERT_EQ(obj.size(), size);
+    BMQTST_ASSERT_EQ(obj.base(), &dummy);
 }
 
 // ============================================================================

@@ -83,20 +83,20 @@ static void test1_validate()
         controlMessage.rId().makeValue(test.d_id);
         controlMessage.choice().makeSelection(test.d_choiceSelection);
 
-        ASSERT_EQ_D(test.d_line,
-                    bmqp::ControlMessageUtil::validate(controlMessage),
-                    test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           bmqp::ControlMessageUtil::validate(controlMessage),
+                           test.d_expectedRc);
     }
 
     // Edge case #1: 'id.isNull()'
     bmqp_ctrlmsg::ControlMessage controlMessage(
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), -1);
+    BMQTST_ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), -1);
     // rc_INVALID_ID
 
     // Edge case #2: 'id.isNull()' in a ClusterMessage
     controlMessage.choice().makeClusterMessage();
-    ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), 0);
+    BMQTST_ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), 0);
     // rc_SUCCESS
 }
 
@@ -149,7 +149,7 @@ static void test2_makeStatusControlMessage()
                                              test.d_code,
                                              test.d_message);
 
-        ASSERT_EQ_D(test.d_line, obj, expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, obj, expected);
     }
 }
 

@@ -62,7 +62,7 @@ static void test1_breathingTest()
     mqbs::OffsetPtr<char>   offsetPtrObj(memoryBlockObj, offset);
 
     // Verify the correctness of offset.
-    ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + offset);
+    BMQTST_ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + offset);
 }
 
 static void test2_operations()
@@ -89,7 +89,7 @@ static void test2_operations()
     mqbs::OffsetPtr<TestObj> offsetPtrObj(memoryBlockObj, offset);
     new (offsetPtrObj.get()) TestObj();
     *offsetPtrObj = testObj;
-    ASSERT_EQ(offsetPtrObj->d_dummy, value);
+    BMQTST_ASSERT_EQ(offsetPtrObj->d_dummy, value);
 }
 
 static void test3_reset()
@@ -108,11 +108,11 @@ static void test3_reset()
     const mqbs::MemoryBlock memoryBlockObj(&base[0], sizeof(base));
 
     mqbs::OffsetPtr<char> offsetPtrObj(memoryBlockObj, offset);
-    ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + offset);
+    BMQTST_ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + offset);
 
     // Verify correctness of offset after a 'reset()'
     offsetPtrObj.reset(memoryBlockObj, newOffset);
-    ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + newOffset);
+    BMQTST_ASSERT_EQ(offsetPtrObj.get(), memoryBlockObj.base() + newOffset);
 }
 
 // ============================================================================

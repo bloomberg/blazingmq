@@ -54,7 +54,8 @@ static void test1_breathingTest()
             fileManager,
             bsl::cout,
             bmqtst::TestHelperUtil::allocator());
-    ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) != 0);
+    BMQTST_ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) !=
+                  0);
 }
 
 // ============================================================================

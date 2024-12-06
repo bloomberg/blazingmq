@@ -224,7 +224,7 @@ TestContext::TestContext(bool lateResponseMode, bslma::Allocator* allocator)
         d_allocator_p);
 
     int rc = d_scheduler.start();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 }
 
 TestContext::~TestContext()
@@ -302,12 +302,12 @@ Mes TestContext::createResponseCancel()
 
 Mes TestContext::getNextRequest()
 {
-    ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
-    ASSERT(ev.isControlEvent());
+    BMQTST_ASSERT(ev.isControlEvent());
     Mes controlMessage(d_allocator_p);
-    ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
+    BMQTST_ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
     return controlMessage;
 }
 
@@ -345,7 +345,7 @@ void TestContext::sendCallbackRequest(const ReqSp&                  request,
         sendFn,
         bsl::string("foo", d_allocator_p),
         SEND_REQUEST_TIMEOUT);
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 }
 
 void TestContext::sendChannelRequest(const ReqSp& request)
@@ -356,7 +356,7 @@ void TestContext::sendChannelRequest(const ReqSp& request)
         bsl::string("foo", d_allocator_p),
         SEND_REQUEST_TIMEOUT,
         WATERMARK);
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 }
 
 /// Check that the specified `request` is the same request as the
@@ -367,7 +367,7 @@ struct Caller {
     callback(bool* called, const ReqSp& request, const ReqSp* expected)
     {
         *called = true;
-        ASSERT_EQ(request->request(), (*expected)->request());
+        BMQTST_ASSERT_EQ(request->request(), (*expected)->request());
     }
 };
 
@@ -396,11 +396,12 @@ static void test1_creatorsTest()
         bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_REALTIME,
                                         bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_SAFE_FAIL(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                        &blobSpPool,
-                                        &scheduler,
-                                        false,  // late response mode is off
-                                        bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_SAFE_FAIL(
+            ReqManagerType(bmqp::EventType::e_CONTROL,
+                           &blobSpPool,
+                           &scheduler,
+                           false,  // late response mode is off
+                           bmqtst::TestHelperUtil::allocator()));
     }
 
     {
@@ -408,26 +409,29 @@ static void test1_creatorsTest()
         bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                         bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobSpPool,
-                                   &scheduler,
-                                   false,  // late response mode is off
-                                   bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(
+            ReqManagerType(bmqp::EventType::e_CONTROL,
+                           &blobSpPool,
+                           &scheduler,
+                           false,  // late response mode is off
+                           bmqtst::TestHelperUtil::allocator()));
 
-        ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobSpPool,
-                                   &scheduler,
-                                   false,  // late response mode is off
-                                   bmqex::SystemExecutor(),
-                                   bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(
+            ReqManagerType(bmqp::EventType::e_CONTROL,
+                           &blobSpPool,
+                           &scheduler,
+                           false,  // late response mode is off
+                           bmqex::SystemExecutor(),
+                           bmqtst::TestHelperUtil::allocator()));
 
-        ASSERT_PASS(ReqManagerType(bmqp::EventType::e_CONTROL,
-                                   &blobSpPool,
-                                   &scheduler,
-                                   false,  // late response mode is off
-                                   bmqex::SystemExecutor(),
-                                   ReqManagerType::DTContextSp(),
-                                   bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(
+            ReqManagerType(bmqp::EventType::e_CONTROL,
+                           &blobSpPool,
+                           &scheduler,
+                           false,  // late response mode is off
+                           bmqex::SystemExecutor(),
+                           ReqManagerType::DTContextSp(),
+                           bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -442,7 +446,8 @@ static void test2_setExecutorTest()
     {
         // set SystemExecutor
         TestContext context(false, bmqtst::TestHelperUtil::allocator());
-        ASSERT_PASS(context.manager().setExecutor(bmqex::SystemExecutor()));
+        BMQTST_ASSERT_PASS(
+            context.manager().setExecutor(bmqex::SystemExecutor()));
     }
 }
 
@@ -458,7 +463,7 @@ static void test3_createRequestTest()
         // Check that RequestManager really creates request
         TestContext context(false, bmqtst::TestHelperUtil::allocator());
         ReqSp       request = context.createRequest();
-        ASSERT(request);
+        BMQTST_ASSERT(request);
     }
 }
 
@@ -480,10 +485,10 @@ static void test4_sendRequestTest()
         {
             *called = true;
             bmqp::Event ev(blob_sp.get(), bmqtst::TestHelperUtil::allocator());
-            ASSERT(ev.isControlEvent());
+            BMQTST_ASSERT(ev.isControlEvent());
             Mes controlMessage(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
-            ASSERT_EQ(request->request(), controlMessage);
+            BMQTST_ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
+            BMQTST_ASSERT_EQ(request->request(), controlMessage);
             return bmqt::GenericResult::e_SUCCESS;
         }
     };
@@ -496,9 +501,9 @@ static void test4_sendRequestTest()
         context.sendChannelRequest(request);
 
         // checking, RequestManager has really sent the request to testChannel
-        ASSERT(request->request().rId().has_value());
+        BMQTST_ASSERT(request->request().rId().has_value());
         Mes controlMessage = context.getNextRequest();
-        ASSERT_EQ(request->request(), controlMessage);
+        BMQTST_ASSERT_EQ(request->request(), controlMessage);
     }
 
     {
@@ -527,8 +532,8 @@ static void test4_sendRequestTest()
             // to testChannel
             const ReqSp& request        = requests[i];
             Mes          controlMessage = context.getNextRequest();
-            ASSERT_EQ(request->request().rId(), controlMessage.rId());
-            ASSERT_EQ(request->request(), controlMessage);
+            BMQTST_ASSERT_EQ(request->request().rId(), controlMessage.rId());
+            BMQTST_ASSERT_EQ(request->request(), controlMessage);
         }
     }
 
@@ -545,7 +550,7 @@ static void test4_sendRequestTest()
                                  &called,
                                  bdlf::PlaceHolders::_1,
                                  request));
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -599,7 +604,7 @@ static void test4_sendRequestTest()
                                      requestsGroup,
                                      &barrier,
                                      &context));
-            ASSERT_EQ(0, rc);
+            BMQTST_ASSERT_EQ(0, rc);
         }
 
         barrier.wait();
@@ -607,20 +612,20 @@ static void test4_sendRequestTest()
 
         // checking if RequestManager has really sent all the requests to
         // testChannel
-        ASSERT_EQ(context.channel().writeCalls().size(),
-                  requestsWithoutId.size());
+        BMQTST_ASSERT_EQ(context.channel().writeCalls().size(),
+                         requestsWithoutId.size());
         while (!context.channel().writeCalls().empty()) {
             Mes                    controlMes = context.getNextRequest();
             ReqChoice&             choice     = controlMes.choice();
             ReqChoiceSet::iterator it         = requestsWithoutId.find(choice);
-            ASSERT(it != requestsWithoutId.end());
+            BMQTST_ASSERT(it != requestsWithoutId.end());
             if (it != requestsWithoutId.end()) {
-                ASSERT_EQ(choice, *it);
+                BMQTST_ASSERT_EQ(choice, *it);
                 requestsWithoutId.erase(it);
             }
         }
 
-        ASSERT(requestsWithoutId.empty());
+        BMQTST_ASSERT(requestsWithoutId.empty());
     }
 }
 
@@ -642,12 +647,12 @@ static void test5_processResponseTest()
         Mes response = context.createResponse(
             request->request().rId().value());
 
-        ASSERT_EQ(context.manager().processResponse(response), 0);
+        BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
         request->wait();
 
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
-        ASSERT_EQ(request->response().rId(), request->request().rId());
-        ASSERT_EQ(request->response(), response);
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(request->response().rId(), request->request().rId());
+        BMQTST_ASSERT_EQ(request->response(), response);
     }
 
     {
@@ -660,11 +665,11 @@ static void test5_processResponseTest()
 
         Mes response = context.createResponse(222);
 
-        ASSERT_NE(context.manager().processResponse(response), 0);
+        BMQTST_ASSERT_NE(context.manager().processResponse(response), 0);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
         request->wait();
 
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_TIMEOUT);
     }
 
     {
@@ -681,11 +686,11 @@ static void test5_processResponseTest()
         context.sendChannelRequest(request);
         Mes response = context.createResponse(
             request->request().rId().value());
-        ASSERT_EQ(context.manager().processResponse(response), 0);
+        BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
 
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -706,9 +711,9 @@ static void test5_processResponseTest()
         Mes response = context.createResponse(
             request->request().rId().value());
 
-        ASSERT_NE(context.manager().processResponse(response), 0);
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_TIMEOUT);
-        ASSERT(called);
+        BMQTST_ASSERT_NE(context.manager().processResponse(response), 0);
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_TIMEOUT);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -729,9 +734,9 @@ static void test5_processResponseTest()
         Mes response = context.createResponse(
             request->request().rId().value());
 
-        ASSERT_EQ(context.manager().processResponse(response), 0);
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
-        ASSERT(called);
+        BMQTST_ASSERT_EQ(context.manager().processResponse(response), 0);
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -753,7 +758,7 @@ static void test5_processResponseTest()
                                  const ReqSp&      request,
                                  const ReqSp*      expected)
             {
-                ASSERT_EQ((*expected)->request(), request->request());
+                BMQTST_ASSERT_EQ((*expected)->request(), request->request());
                 ++(*callsCounter);
             }
 
@@ -780,7 +785,7 @@ static void test5_processResponseTest()
                     if (response.has_value()) {
                         int rc = context->manager().processResponse(
                             response.value());
-                        ASSERT_EQ(rc, 0);
+                        BMQTST_ASSERT_EQ(rc, 0);
                     }
                     else {
                         break;
@@ -825,13 +830,13 @@ static void test5_processResponseTest()
                                      &responsesLock,
                                      &barrier,
                                      &context));
-            ASSERT_EQ(0, rc);
+            BMQTST_ASSERT_EQ(0, rc);
         }
 
         barrier.wait();
         threadGroup.joinAll();
 
-        ASSERT_EQ(callsCounter, numRequests);
+        BMQTST_ASSERT_EQ(callsCounter, numRequests);
     }
 }
 
@@ -852,9 +857,9 @@ static void test6_cancelAllRequestsTest()
 
         Mes reason = context.createResponseCancel();
         context.manager().cancelAllRequests(reason);
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_CANCELED);
-        ASSERT_EQ(request->response().choice().status(),
-                  reason.choice().status());
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_CANCELED);
+        BMQTST_ASSERT_EQ(request->response().choice().status(),
+                         reason.choice().status());
     }
 
     {
@@ -882,9 +887,10 @@ static void test6_cancelAllRequestsTest()
 
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp request = requests[i];
-            ASSERT_EQ(request->result(), bmqt::GenericResult::e_CANCELED);
-            ASSERT_EQ(request->response().choice().status(),
-                      reason.choice().status());
+            BMQTST_ASSERT_EQ(request->result(),
+                             bmqt::GenericResult::e_CANCELED);
+            BMQTST_ASSERT_EQ(request->response().choice().status(),
+                             reason.choice().status());
         }
     }
 
@@ -911,12 +917,14 @@ static void test6_cancelAllRequestsTest()
         for (bsl::size_t i = 0; i < numRequests; ++i) {
             ReqSp request = requests[i];
             if (request->groupId() == 1) {
-                ASSERT_EQ(request->result(), bmqt::GenericResult::e_CANCELED);
-                ASSERT_EQ(request->response().choice().status(),
-                          reason.choice().status());
+                BMQTST_ASSERT_EQ(request->result(),
+                                 bmqt::GenericResult::e_CANCELED);
+                BMQTST_ASSERT_EQ(request->response().choice().status(),
+                                 reason.choice().status());
             }
             else {
-                ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
+                BMQTST_ASSERT_EQ(request->result(),
+                                 bmqt::GenericResult::e_SUCCESS);
             }
         }
     }
@@ -933,24 +941,24 @@ static void test7_requestBreathingTest()
     {
         // Create request and check its initial state
         ReqSp request;
-        ASSERT_PASS(
+        BMQTST_ASSERT_PASS(
             request.createInplace(bmqtst::TestHelperUtil::allocator(),
                                   bmqtst::TestHelperUtil::allocator()));
-        ASSERT(request);
-        ASSERT(!request->isLateResponse());
-        ASSERT(!request->isLocalTimeout());
-        ASSERT(!request->isError());
-        ASSERT(typeid(request->request()) == typeid(Mes));
+        BMQTST_ASSERT(request);
+        BMQTST_ASSERT(!request->isLateResponse());
+        BMQTST_ASSERT(!request->isLocalTimeout());
+        BMQTST_ASSERT(!request->isError());
+        BMQTST_ASSERT(typeid(request->request()) == typeid(Mes));
         Mes& req = request->request();
-        ASSERT(!req.rId().has_value());
-        ASSERT(typeid(request->response()) == typeid(Mes));
+        BMQTST_ASSERT(!req.rId().has_value());
+        BMQTST_ASSERT(typeid(request->response()) == typeid(Mes));
         Mes& res = request->response();
-        ASSERT(!res.rId().has_value());
-        ASSERT(!static_cast<bool>(request->responseCb()));
-        ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
-        ASSERT(request->nodeDescription().empty());
-        ASSERT_EQ(request->groupId(), -1);  // Req::k_NO_GROUP_ID
-        ASSERT(request->userData().isNull());
+        BMQTST_ASSERT(!res.rId().has_value());
+        BMQTST_ASSERT(!static_cast<bool>(request->responseCb()));
+        BMQTST_ASSERT_EQ(request->result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT(request->nodeDescription().empty());
+        BMQTST_ASSERT_EQ(request->groupId(), -1);  // Req::k_NO_GROUP_ID
+        BMQTST_ASSERT(request->userData().isNull());
     }
 
     {
@@ -967,7 +975,7 @@ static void test7_requestBreathingTest()
                                   &request));
         request->responseCb()(request);
 
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -982,7 +990,7 @@ static void test7_requestBreathingTest()
                                   bdlf::PlaceHolders::_1,
                                   &request));
         request->signal();
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -992,7 +1000,7 @@ static void test7_requestBreathingTest()
                               bmqtst::TestHelperUtil::allocator());
         int expected = 666;
         request->setGroupId(expected);
-        ASSERT_EQ(request->groupId(), expected);
+        BMQTST_ASSERT_EQ(request->groupId(), expected);
     }
 
     {
@@ -1006,8 +1014,8 @@ static void test7_requestBreathingTest()
                               bmqtst::TestHelperUtil::allocator());
         request->adoptUserData(datum);
         const bdld::Datum& new_datum = request->userData();
-        ASSERT(new_datum.isString());
-        ASSERT_EQ(test, new_datum.theString());
+        BMQTST_ASSERT(new_datum.isString());
+        BMQTST_ASSERT_EQ(test, new_datum.theString());
     }
 }
 
@@ -1034,7 +1042,7 @@ static void test8_requestSignalWaitTest()
         // Wait for signal in separate thread
         bool  worked = false;
         ReqSp request;
-        ASSERT_PASS(
+        BMQTST_ASSERT_PASS(
             request.createInplace(bmqtst::TestHelperUtil::allocator(),
                                   bmqtst::TestHelperUtil::allocator()));
 
@@ -1047,15 +1055,15 @@ static void test8_requestSignalWaitTest()
                                   &worked,
                                   &request),
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
         bslmt::ThreadUtil::yield();
-        ASSERT(!worked);
+        BMQTST_ASSERT(!worked);
         request->signal();
         // Here we don't know if 'wait()' is already executing in the separate
         // thread or not.  But we can guarantee that it is not finished yet.
         rc = bslmt::ThreadUtil::join(handle);
-        ASSERT_EQ(rc, 0);
-        ASSERT(worked);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT(worked);
     }
 }
 

@@ -226,13 +226,13 @@ static void test1_ClusterObserver()
 
     // NOTE: 'ClusterObserver' is purposely not a pure protocol, each method
     //       has a default no-op implementation.
-    // ASSERT(testObj.testAbstract());
+    // BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -293,13 +293,13 @@ static void test2_ClusterNode()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -376,13 +376,13 @@ static void test3_Cluster()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -418,11 +418,11 @@ static void test3_Cluster()
     }
 
     PV("Ensure constant value");
-    ASSERT_EQ(mqbnet::Cluster::k_INVALID_NODE_ID, -1);
-    ASSERT_EQ(mqbnet::Cluster::k_ALL_NODES_ID,
-              bsl::numeric_limits<int>::min());
-    ASSERT_NE(mqbnet::Cluster::k_INVALID_NODE_ID,
-              mqbnet::Cluster::k_ALL_NODES_ID);
+    BMQTST_ASSERT_EQ(mqbnet::Cluster::k_INVALID_NODE_ID, -1);
+    BMQTST_ASSERT_EQ(mqbnet::Cluster::k_ALL_NODES_ID,
+                     bsl::numeric_limits<int>::min());
+    BMQTST_ASSERT_NE(mqbnet::Cluster::k_INVALID_NODE_ID,
+                     mqbnet::Cluster::k_ALL_NODES_ID);
 }
 
 // ============================================================================

@@ -51,15 +51,16 @@ namespace {
 void verifySubQueueInfos(const bmqp::OptionsView&               view,
                          const bsl::vector<bmqp::SubQueueInfo>& subQueueInfos)
 {
-    ASSERT(view.isValid());
-    ASSERT(view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) != view.end());
+    BMQTST_ASSERT(view.isValid());
+    BMQTST_ASSERT(view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
+                  view.end());
 
     bmqp::Protocol::SubQueueInfosArray retrievedSubQueueInfos(
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(0, view.loadSubQueueInfosOption(&retrievedSubQueueInfos));
-    ASSERT_EQ(retrievedSubQueueInfos.size(), subQueueInfos.size());
+    BMQTST_ASSERT_EQ(0, view.loadSubQueueInfosOption(&retrievedSubQueueInfos));
+    BMQTST_ASSERT_EQ(retrievedSubQueueInfos.size(), subQueueInfos.size());
     for (size_t i = 0; i < subQueueInfos.size(); ++i) {
-        ASSERT_EQ_D(i, retrievedSubQueueInfos[i], subQueueInfos[i]);
+        BMQTST_ASSERT_EQ_D(i, retrievedSubQueueInfos[i], subQueueInfos[i]);
     }
 }
 
@@ -71,28 +72,31 @@ void verifySubQueueIdsOld(
     const bmqp::OptionsView&                  view,
     const bsl::vector<bdlb::BigEndianUint32>& subQueueIdsOld)
 {
-    ASSERT(view.isValid());
-    ASSERT(view.find(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD) != view.end());
+    BMQTST_ASSERT(view.isValid());
+    BMQTST_ASSERT(view.find(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD) !=
+                  view.end());
 
     const size_t numSubQueueIds = subQueueIdsOld.size();
 
     bmqp::Protocol::SubQueueInfosArray retrievedSubQueueInfos(
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(0, view.loadSubQueueInfosOption(&retrievedSubQueueInfos));
-    ASSERT_EQ(numSubQueueIds, retrievedSubQueueInfos.size());
+    BMQTST_ASSERT_EQ(0, view.loadSubQueueInfosOption(&retrievedSubQueueInfos));
+    BMQTST_ASSERT_EQ(numSubQueueIds, retrievedSubQueueInfos.size());
     for (size_t i = 0; i < numSubQueueIds; ++i) {
-        ASSERT_EQ_D(i, subQueueIdsOld[i], retrievedSubQueueInfos[i].id());
-        ASSERT_EQ_D(i,
-                    true,
-                    retrievedSubQueueInfos[i].rdaInfo().isUnlimited());
+        BMQTST_ASSERT_EQ_D(i,
+                           subQueueIdsOld[i],
+                           retrievedSubQueueInfos[i].id());
+        BMQTST_ASSERT_EQ_D(i,
+                           true,
+                           retrievedSubQueueInfos[i].rdaInfo().isUnlimited());
     }
 
     bmqp::Protocol::SubQueueIdsArrayOld retrievedSubQueueIdsOld(
         bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(0, view.loadSubQueueIdsOption(&retrievedSubQueueIdsOld));
-    ASSERT_EQ(numSubQueueIds, retrievedSubQueueIdsOld.size());
+    BMQTST_ASSERT_EQ(0, view.loadSubQueueIdsOption(&retrievedSubQueueIdsOld));
+    BMQTST_ASSERT_EQ(numSubQueueIds, retrievedSubQueueIdsOld.size());
     for (size_t i = 0; i < numSubQueueIds; ++i) {
-        ASSERT_EQ_D(i, subQueueIdsOld[i], retrievedSubQueueIdsOld[i]);
+        BMQTST_ASSERT_EQ_D(i, subQueueIdsOld[i], retrievedSubQueueIdsOld[i]);
     }
 }
 
@@ -415,7 +419,7 @@ void test1_breathingTest()
 
         // Create invalid instance
         bmqp::OptionsView view(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
 
     {
@@ -425,7 +429,7 @@ void test1_breathingTest()
         // Create invalid instance from another invalid instance
         bmqp::OptionsView view1(bmqtst::TestHelperUtil::allocator());
         bmqp::OptionsView view2(view1, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view2.isValid());
+        BMQTST_ASSERT_EQ(false, view2.isValid());
     }
 
     {
@@ -460,39 +464,41 @@ void test1_breathingTest()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, view.isValid());
-        ASSERT_EQ(true,
-                  view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
-                      view.end());
+        BMQTST_ASSERT_EQ(true, view.isValid());
+        BMQTST_ASSERT_EQ(true,
+                         view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
+                             view.end());
 
         // Copy valid instance
         bmqp::OptionsView view2(view, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(true, view2.isValid());
-        ASSERT_EQ(true,
-                  view2.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
-                      view2.end());
+        BMQTST_ASSERT_EQ(true, view2.isValid());
+        BMQTST_ASSERT_EQ(true,
+                         view2.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
+                             view2.end());
 
         // Clear original
         view.clear();
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
 
         // Verify second instance remains valid
-        ASSERT_EQ(true, view2.isValid());
-        ASSERT_EQ(true,
-                  view2.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
-                      view2.end());
+        BMQTST_ASSERT_EQ(true, view2.isValid());
+        BMQTST_ASSERT_EQ(true,
+                         view2.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
+                             view2.end());
 
         // Copy invalid instance (original)
         bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view3.isValid());
+        BMQTST_ASSERT_EQ(false, view3.isValid());
 
         // Reset original, iterate and verify again
-        ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+        BMQTST_ASSERT_EQ(
+            0,
+            view.reset(&blob, optionsAreaPosition, optionsAreaSize));
 
-        ASSERT_EQ(true, view.isValid());
-        ASSERT_EQ(true,
-                  view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
-                      view.end());
+        BMQTST_ASSERT_EQ(true, view.isValid());
+        BMQTST_ASSERT_EQ(true,
+                         view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) ==
+                             view.end());
     }
 
     {
@@ -529,10 +535,10 @@ void test1_breathingTest()
                                                      optionsAreaSize);
 
         const unsigned int itemSize = oh->typeSpecific();
-        ASSERT_EQ(numSubQueueIds * itemSize + 1,
-                  static_cast<size_t>(oh->words()));
+        BMQTST_ASSERT_EQ(numSubQueueIds * itemSize + 1,
+                         static_cast<size_t>(oh->words()));
 
-        ASSERT_EQ(bmqp::OptionType::e_SUB_QUEUE_INFOS, oh->type());
+        BMQTST_ASSERT_EQ(bmqp::OptionType::e_SUB_QUEUE_INFOS, oh->type());
 
         // Iterate and verify
         bmqp::OptionsView view(&blob,
@@ -547,17 +553,19 @@ void test1_breathingTest()
 
         // Clear original
         view.clear();
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
 
         // Verify second instance remains valid
         verifySubQueueInfos(view2, subQueueInfos);
 
         // Copy invalid instance (original)
         bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view3.isValid());
+        BMQTST_ASSERT_EQ(false, view3.isValid());
 
         // Reset original, iterate and verify again
-        ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+        BMQTST_ASSERT_EQ(
+            0,
+            view.reset(&blob, optionsAreaPosition, optionsAreaSize));
         verifySubQueueInfos(view, subQueueInfos);
     }
 
@@ -600,18 +608,20 @@ void test1_breathingTest()
 
         // Clear original
         view.clear();
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
 
         // Verify second instance remains valid
-        ASSERT_EQ(true, view2.isValid());
+        BMQTST_ASSERT_EQ(true, view2.isValid());
         verifySubQueueInfos(view2, subQueueInfos);
 
         // Copy invalid instance (original)
         bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view3.isValid());
+        BMQTST_ASSERT_EQ(false, view3.isValid());
 
         // Reset original, iterate and verify again
-        ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+        BMQTST_ASSERT_EQ(
+            0,
+            view.reset(&blob, optionsAreaPosition, optionsAreaSize));
         verifySubQueueInfos(view, subQueueInfos);
     }
 
@@ -648,47 +658,53 @@ void test1_breathingTest()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
         verifySubQueueInfos(view, subQueueInfos);
-        ASSERT_EQ(true, !msgGroupId.isNull());
-        ASSERT_EQ(true,
-                  view.find(bmqp::OptionType::e_MSG_GROUP_ID) != view.end());
+        BMQTST_ASSERT_EQ(true, !msgGroupId.isNull());
+        BMQTST_ASSERT_EQ(true,
+                         view.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
+                             view.end());
         bmqp::Protocol::MsgGroupId readGroupId(
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, view.loadMsgGroupIdOption(&readGroupId));
-        ASSERT_EQ(readGroupId, msgGroupId.value());
+        BMQTST_ASSERT_EQ(0, view.loadMsgGroupIdOption(&readGroupId));
+        BMQTST_ASSERT_EQ(readGroupId, msgGroupId.value());
 
         // Copy valid instance, iterate and verify
         bmqp::OptionsView view2(view, bmqtst::TestHelperUtil::allocator());
         verifySubQueueInfos(view2, subQueueInfos);
-        ASSERT_EQ(true,
-                  view2.find(bmqp::OptionType::e_MSG_GROUP_ID) != view2.end());
+        BMQTST_ASSERT_EQ(true,
+                         view2.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
+                             view2.end());
         readGroupId.clear();
-        ASSERT_EQ(0, view2.loadMsgGroupIdOption(&readGroupId));
-        ASSERT_EQ(readGroupId, msgGroupId.value());
+        BMQTST_ASSERT_EQ(0, view2.loadMsgGroupIdOption(&readGroupId));
+        BMQTST_ASSERT_EQ(readGroupId, msgGroupId.value());
 
         // Clear original
         view.clear();
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
 
         // Verify second instance remains valid
         verifySubQueueInfos(view2, subQueueInfos);
-        ASSERT_EQ(true,
-                  view2.find(bmqp::OptionType::e_MSG_GROUP_ID) != view2.end());
+        BMQTST_ASSERT_EQ(true,
+                         view2.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
+                             view2.end());
         readGroupId.clear();
-        ASSERT_EQ(0, view2.loadMsgGroupIdOption(&readGroupId));
-        ASSERT_EQ(readGroupId, msgGroupId.value());
+        BMQTST_ASSERT_EQ(0, view2.loadMsgGroupIdOption(&readGroupId));
+        BMQTST_ASSERT_EQ(readGroupId, msgGroupId.value());
 
         // Copy invalid instance (original)
         bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, view3.isValid());
+        BMQTST_ASSERT_EQ(false, view3.isValid());
 
         // Reset original, iterate and verify again
-        ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+        BMQTST_ASSERT_EQ(
+            0,
+            view.reset(&blob, optionsAreaPosition, optionsAreaSize));
         verifySubQueueInfos(view, subQueueInfos);
-        ASSERT_EQ(true,
-                  view.find(bmqp::OptionType::e_MSG_GROUP_ID) != view.end());
+        BMQTST_ASSERT_EQ(true,
+                         view.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
+                             view.end());
         readGroupId.clear();
-        ASSERT_EQ(0, view.loadMsgGroupIdOption(&readGroupId));
-        ASSERT_EQ(readGroupId, msgGroupId.value());
+        BMQTST_ASSERT_EQ(0, view.loadMsgGroupIdOption(&readGroupId));
+        BMQTST_ASSERT_EQ(readGroupId, msgGroupId.value());
     }
 }
 
@@ -753,17 +769,18 @@ void test2_subQueueIdsOld()
 
     // Clear original
     view.clear();
-    ASSERT_EQ(false, view.isValid());
+    BMQTST_ASSERT_EQ(false, view.isValid());
 
     // Verify second instance remains valid
     verifySubQueueIdsOld(view2, subQueueIdsOld);
 
     // Copy invalid instance (original)
     bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(false, view3.isValid());
+    BMQTST_ASSERT_EQ(false, view3.isValid());
 
     // Reset original, iterate and verify again
-    ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+    BMQTST_ASSERT_EQ(0,
+                     view.reset(&blob, optionsAreaPosition, optionsAreaSize));
     verifySubQueueIdsOld(view, subQueueIdsOld);
 }
 
@@ -815,17 +832,18 @@ void test3_packedOptions()
 
     // Clear original
     view.clear();
-    ASSERT_EQ(false, view.isValid());
+    BMQTST_ASSERT_EQ(false, view.isValid());
 
     // Verify second instance remains valid
     verifySubQueueInfos(view2, subQueueInfos);
 
     // Copy invalid instance (original)
     bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(false, view3.isValid());
+    BMQTST_ASSERT_EQ(false, view3.isValid());
 
     // Reset original, iterate and verify again
-    ASSERT_EQ(0, view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+    BMQTST_ASSERT_EQ(0,
+                     view.reset(&blob, optionsAreaPosition, optionsAreaSize));
     verifySubQueueInfos(view, subQueueInfos);
 }
 
@@ -905,7 +923,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, view.isValid());
+        BMQTST_ASSERT_EQ(true, view.isValid());
         // The view is valid despite the inconsistency.
     }
 
@@ -934,7 +952,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
 
     {
@@ -978,7 +996,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
 
     {
@@ -1024,7 +1042,7 @@ void test4_invalidOptionsArea()
                                 optionsAreaSize,
                                 bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view1.isValid());
+        BMQTST_ASSERT_EQ(false, view1.isValid());
 
         // #2: An OptionHeader with an unsupported type
         optionType = static_cast<bmqp::OptionType::Enum>(
@@ -1043,7 +1061,7 @@ void test4_invalidOptionsArea()
                                 optionsAreaSize,
                                 bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view2.isValid());
+        BMQTST_ASSERT_EQ(false, view2.isValid());
     }
 
     {
@@ -1111,7 +1129,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
         // [6]
@@ -1131,7 +1149,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
         // [7]
@@ -1172,7 +1190,7 @@ void test4_invalidOptionsArea()
                                optionsAreaSize - 1,
                                bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, view.isValid());
+        BMQTST_ASSERT_EQ(false, view.isValid());
     }
 }
 
@@ -1229,30 +1247,30 @@ void test5_iteratorTest()
                            optionsAreaPosition,
                            optionsAreaSize,
                            bmqtst::TestHelperUtil::allocator());
-    ASSERT(view.isValid());
+    BMQTST_ASSERT(view.isValid());
 
     bmqp::OptionsView::const_iterator iter  = view.begin();
     bmqp::OptionsView::const_iterator iter2 = iter;
-    ASSERT(iter2 != view.end());
-    ASSERT(iter == iter2);
-    ASSERT(*iter == bmqp::OptionType::e_MSG_GROUP_ID);
-    ASSERT(*iter2 == bmqp::OptionType::e_MSG_GROUP_ID);
+    BMQTST_ASSERT(iter2 != view.end());
+    BMQTST_ASSERT(iter == iter2);
+    BMQTST_ASSERT(*iter == bmqp::OptionType::e_MSG_GROUP_ID);
+    BMQTST_ASSERT(*iter2 == bmqp::OptionType::e_MSG_GROUP_ID);
 
     ++iter2;
-    ASSERT(iter2 != view.end());
-    ASSERT(iter2 != iter);
-    ASSERT(*iter2 == bmqp::OptionType::e_SUB_QUEUE_INFOS);
+    BMQTST_ASSERT(iter2 != view.end());
+    BMQTST_ASSERT(iter2 != iter);
+    BMQTST_ASSERT(*iter2 == bmqp::OptionType::e_SUB_QUEUE_INFOS);
 
     ++(iter.imp());
-    ASSERT(iter == iter2);
-    ASSERT(*iter == bmqp::OptionType::e_SUB_QUEUE_INFOS);
-    ASSERT(iter != view.end());
+    BMQTST_ASSERT(iter == iter2);
+    BMQTST_ASSERT(*iter == bmqp::OptionType::e_SUB_QUEUE_INFOS);
+    BMQTST_ASSERT(iter != view.end());
 
     ++iter2;
-    ASSERT(iter2 == view.end());
+    BMQTST_ASSERT(iter2 == view.end());
 
     ++(iter.imp());
-    ASSERT(iter == view.end());
+    BMQTST_ASSERT(iter == view.end());
 }
 
 void test6_iteratorTestSubQueueIdsOld()
@@ -1309,30 +1327,30 @@ void test6_iteratorTestSubQueueIdsOld()
                            optionsAreaPosition,
                            optionsAreaSize,
                            bmqtst::TestHelperUtil::allocator());
-    ASSERT(view.isValid());
+    BMQTST_ASSERT(view.isValid());
 
     bmqp::OptionsView::const_iterator iter  = view.begin();
     bmqp::OptionsView::const_iterator iter2 = iter;
-    ASSERT(iter2 != view.end());
-    ASSERT(iter == iter2);
-    ASSERT(*iter == bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
-    ASSERT(*iter2 == bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
+    BMQTST_ASSERT(iter2 != view.end());
+    BMQTST_ASSERT(iter == iter2);
+    BMQTST_ASSERT(*iter == bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
+    BMQTST_ASSERT(*iter2 == bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
 
     ++iter2;
-    ASSERT(iter2 != view.end());
-    ASSERT(iter2 != iter);
-    ASSERT(*iter2 == bmqp::OptionType::e_MSG_GROUP_ID);
+    BMQTST_ASSERT(iter2 != view.end());
+    BMQTST_ASSERT(iter2 != iter);
+    BMQTST_ASSERT(*iter2 == bmqp::OptionType::e_MSG_GROUP_ID);
 
     ++(iter.imp());
-    ASSERT(iter == iter2);
-    ASSERT(*iter == bmqp::OptionType::e_MSG_GROUP_ID);
-    ASSERT(iter != view.end());
+    BMQTST_ASSERT(iter == iter2);
+    BMQTST_ASSERT(*iter == bmqp::OptionType::e_MSG_GROUP_ID);
+    BMQTST_ASSERT(iter != view.end());
 
     ++iter2;
-    ASSERT(iter2 == view.end());
+    BMQTST_ASSERT(iter2 == view.end());
 
     ++(iter.imp());
-    ASSERT(iter == view.end());
+    BMQTST_ASSERT(iter == view.end());
 }
 
 void test7_dumpBlob()
@@ -1408,7 +1426,7 @@ void test7_dumpBlob()
                          "|9...            |\n",
                          bmqtst::TestHelperUtil::allocator());
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -1422,7 +1440,7 @@ void test7_dumpBlob()
         bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 
@@ -1497,7 +1515,7 @@ void test8_dumpBlobSubQueueIdsOld()
                          bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 }

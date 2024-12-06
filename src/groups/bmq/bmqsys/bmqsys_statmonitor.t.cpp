@@ -256,21 +256,21 @@ static void test1_breathingTest()
         bmqsys::StatMonitor obj(k_HISTORY_SIZE,
                                 bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(obj.isStarted() == false);
-        ASSERT(obj.statContext() != 0);
-        ASSERT_SAFE_FAIL(obj.snapshot());
+        BMQTST_ASSERT(obj.isStarted() == false);
+        BMQTST_ASSERT(obj.statContext() != 0);
+        BMQTST_ASSERT_SAFE_FAIL(obj.snapshot());
 
-        ASSERT_SAFE_PASS(obj.uptime());
-        ASSERT_SAFE_FAIL(obj.cpuSystem(0));
-        ASSERT_SAFE_FAIL(obj.cpuUser(0));
-        ASSERT_SAFE_FAIL(obj.cpuAll(0));
-        ASSERT_SAFE_FAIL(obj.memResident(0));
-        ASSERT_SAFE_FAIL(obj.memVirtual(0));
-        ASSERT_SAFE_FAIL(obj.minorPageFaults(0));
-        ASSERT_SAFE_FAIL(obj.majorPageFaults(0));
-        ASSERT_SAFE_FAIL(obj.numSwaps(0));
-        ASSERT_SAFE_FAIL(obj.voluntaryContextSwitches(0));
-        ASSERT_SAFE_FAIL(obj.involuntaryContextSwitches(0));
+        BMQTST_ASSERT_SAFE_PASS(obj.uptime());
+        BMQTST_ASSERT_SAFE_FAIL(obj.cpuSystem(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.cpuUser(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.cpuAll(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.memResident(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.memVirtual(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.minorPageFaults(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.majorPageFaults(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.numSwaps(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.voluntaryContextSwitches(0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.involuntaryContextSwitches(0));
     }
 }
 
@@ -310,26 +310,26 @@ static void test2_start()
 
     // Given
     BSLS_ASSERT_OPT(obj.isStarted() == false);
-    BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(obj.snapshot());
+    BMQTST_ASSERT_SAFE_FAIL(obj.snapshot());
 
-    ASSERT_EQ(obj.start(errorDesc), 0);
-    ASSERT_EQ(obj.isStarted(), true);
-    ASSERT_SAFE_PASS(obj.snapshot());
+    BMQTST_ASSERT_EQ(obj.start(errorDesc), 0);
+    BMQTST_ASSERT_EQ(obj.isStarted(), true);
+    BMQTST_ASSERT_SAFE_PASS(obj.snapshot());
 
-    ASSERT_GE(obj.uptime(), 0);
-    ASSERT_GE(obj.cpuSystem(0), 0.0);
-    ASSERT_GE(obj.cpuUser(0), 0.0);
-    ASSERT_GE(obj.cpuAll(0), 0.0);
-    ASSERT_GE(obj.memResident(0), 0LL);
-    ASSERT_GE(obj.memVirtual(0), 0LL);
-    ASSERT_GE(obj.minorPageFaults(0), 0LL);
-    ASSERT_GE(obj.majorPageFaults(0), 0LL);
-    ASSERT_GE(obj.numSwaps(0), 0LL);
-    ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
-    ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_GE(obj.uptime(), 0);
+    BMQTST_ASSERT_GE(obj.cpuSystem(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuUser(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuAll(0), 0.0);
+    BMQTST_ASSERT_GE(obj.memResident(0), 0LL);
+    BMQTST_ASSERT_GE(obj.memVirtual(0), 0LL);
+    BMQTST_ASSERT_GE(obj.minorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.majorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.numSwaps(0), 0LL);
+    BMQTST_ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
 
     // After 'start' was called, calls to 'snapshot' should always succeed
-    ASSERT_SAFE_PASS(obj.snapshot());
+    BMQTST_ASSERT_SAFE_PASS(obj.snapshot());
 }
 
 static void test3_stop()
@@ -366,42 +366,42 @@ static void test3_stop()
     BSLS_ASSERT_OPT(obj.start(errorDesc) == 0);
     BSLS_ASSERT_OPT(obj.isStarted() == true);
     // Ensure accessors are created
-    ASSERT_SAFE_PASS(obj.snapshot());
+    BMQTST_ASSERT_SAFE_PASS(obj.snapshot());
 
-    ASSERT_GE(obj.uptime(), 0);
-    ASSERT_GE(obj.cpuSystem(0), 0.0);
-    ASSERT_GE(obj.cpuUser(0), 0.0);
-    ASSERT_GE(obj.cpuAll(0), 0.0);
-    ASSERT_GE(obj.memResident(0), 0LL);
-    ASSERT_GE(obj.memVirtual(0), 0LL);
-    ASSERT_GE(obj.minorPageFaults(0), 0LL);
-    ASSERT_GE(obj.majorPageFaults(0), 0LL);
-    ASSERT_GE(obj.numSwaps(0), 0LL);
-    ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
-    ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_GE(obj.uptime(), 0);
+    BMQTST_ASSERT_GE(obj.cpuSystem(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuUser(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuAll(0), 0.0);
+    BMQTST_ASSERT_GE(obj.memResident(0), 0LL);
+    BMQTST_ASSERT_GE(obj.memVirtual(0), 0LL);
+    BMQTST_ASSERT_GE(obj.minorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.majorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.numSwaps(0), 0LL);
+    BMQTST_ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
 
     // Stop and verify that the stats are at baseline values
     obj.stop();
 
-    ASSERT_EQ(obj.isStarted(), false);
-    ASSERT_GE(obj.uptime(), 0.0);
-    ASSERT_GE(obj.cpuSystem(0), 0.0);
-    ASSERT_GE(obj.cpuUser(0), 0.0);
-    ASSERT_GE(obj.cpuAll(0), 0.0);
-    ASSERT_GE(obj.memResident(0), 0LL);
-    ASSERT_GE(obj.memVirtual(0), 0LL);
-    ASSERT_GE(obj.minorPageFaults(0), 0LL);
-    ASSERT_GE(obj.majorPageFaults(0), 0LL);
-    ASSERT_GE(obj.numSwaps(0), 0LL);
-    ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
-    ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_EQ(obj.isStarted(), false);
+    BMQTST_ASSERT_GE(obj.uptime(), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuSystem(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuUser(0), 0.0);
+    BMQTST_ASSERT_GE(obj.cpuAll(0), 0.0);
+    BMQTST_ASSERT_GE(obj.memResident(0), 0LL);
+    BMQTST_ASSERT_GE(obj.memVirtual(0), 0LL);
+    BMQTST_ASSERT_GE(obj.minorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.majorPageFaults(0), 0LL);
+    BMQTST_ASSERT_GE(obj.numSwaps(0), 0LL);
+    BMQTST_ASSERT_GE(obj.voluntaryContextSwitches(0), 0LL);
+    BMQTST_ASSERT_GE(obj.involuntaryContextSwitches(0), 0LL);
 
     // Verify that capacity to take snapshots is disabled
-    ASSERT_SAFE_FAIL(obj.snapshot());
+    BMQTST_ASSERT_SAFE_FAIL(obj.snapshot());
 
     // Should be able to start after stopping
-    ASSERT_EQ(obj.start(errorDesc), 0);
-    ASSERT_EQ(obj.isStarted(), true);
+    BMQTST_ASSERT_EQ(obj.start(errorDesc), 0);
+    BMQTST_ASSERT_EQ(obj.isStarted(), true);
 }
 
 static void test4_snapshot()
@@ -490,23 +490,23 @@ static void test4_snapshot()
 
     // Broker Uptime
     bsls::Types::Int64 uptime1 = obj.uptime();
-    ASSERT_GE(uptime1, 0);
+    BMQTST_ASSERT_GE(uptime1, 0);
 
     // Average of CPU over last snapshot yields non-zero values
-    ASSERT_GE(obj.cpuSystem(1), 0);
-    ASSERT_GE(obj.cpuUser(1), 0);
-    ASSERT_GE(obj.cpuAll(1), 0);
+    BMQTST_ASSERT_GE(obj.cpuSystem(1), 0);
+    BMQTST_ASSERT_GE(obj.cpuUser(1), 0);
+    BMQTST_ASSERT_GE(obj.cpuAll(1), 0);
 
     // latest snapshot's memory
-    ASSERT_GT(obj.memResident(0), 0LL);
-    ASSERT_GT(obj.memVirtual(0), 0LL);
+    BMQTST_ASSERT_GT(obj.memResident(0), 0LL);
+    BMQTST_ASSERT_GT(obj.memVirtual(0), 0LL);
 
     // No relation between value(1) and value(0)
-    ASSERT_GE(obj.minorPageFaults(1), 0);
-    ASSERT_GE(obj.majorPageFaults(1), 0);
-    ASSERT_GE(obj.numSwaps(1), 0);
-    ASSERT_GE(obj.voluntaryContextSwitches(1), 0);
-    ASSERT_GE(obj.involuntaryContextSwitches(1), 0);
+    BMQTST_ASSERT_GE(obj.minorPageFaults(1), 0);
+    BMQTST_ASSERT_GE(obj.majorPageFaults(1), 0);
+    BMQTST_ASSERT_GE(obj.numSwaps(1), 0);
+    BMQTST_ASSERT_GE(obj.voluntaryContextSwitches(1), 0);
+    BMQTST_ASSERT_GE(obj.involuntaryContextSwitches(1), 0);
 
     PVV("----------------");
     PVV("  2ND SNAPSHOT  ");
@@ -523,7 +523,7 @@ static void test4_snapshot()
 
     // Make sure the broker uptime is monotonically increasing
     bsls::Types::Int64 uptime2 = obj.uptime();
-    ASSERT_GE(uptime2, uptime1);
+    BMQTST_ASSERT_GE(uptime2, uptime1);
 
     PVV_CPU_USER("-");
     PVV_CPU_SYSTEM("-");
@@ -545,7 +545,7 @@ static void test4_snapshot()
 
     // Make sure the broker uptime is monotonically increasing
     bsls::Types::Int64 uptime3 = obj.uptime();
-    ASSERT_GE(uptime3, uptime2);
+    BMQTST_ASSERT_GE(uptime3, uptime2);
 
     PVV_CPU_USER("-");
     PVV_CPU_SYSTEM("-");

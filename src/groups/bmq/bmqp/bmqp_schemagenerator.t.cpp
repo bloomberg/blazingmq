@@ -73,7 +73,7 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
         name += "_";
         name += bsl::to_string(sequence[combination] + property);
 
-        ASSERT_EQ(0, mps->setPropertyAsString(name, name));
+        BMQTST_ASSERT_EQ(0, mps->setPropertyAsString(name, name));
 
         if (++property == length[combination]) {
             property = 0;
@@ -142,16 +142,16 @@ static void test1_breathingTest()
             bmqp::MessagePropertiesInfo logic = theGenerator.getSchemaId(&mps);
             SchemaIdType                schemaId = logic.schemaId();
 
-            ASSERT_LE(schemaId, MAX_SCHEMA);
-            ASSERT_NE(schemaId, NO_SCHEMA);
+            BMQTST_ASSERT_LE(schemaId, MAX_SCHEMA);
+            BMQTST_ASSERT_NE(schemaId, NO_SCHEMA);
             ids[schemaId] = count;
 
-            ASSERT(logic.isRecycled());  // either first use or recycled
+            BMQTST_ASSERT(logic.isRecycled());  // either first use or recycled
 
             // Call 'getSchema' again
             logic = theGenerator.getSchemaId(&mps);
-            ASSERT_EQ(schemaId, logic.schemaId());
-            ASSERT(!logic.isRecycled());  // second use
+            BMQTST_ASSERT_EQ(schemaId, logic.schemaId());
+            BMQTST_ASSERT(!logic.isRecycled());  // second use
         }
     }
     // Some number of first test combinations (65) got recycled.
@@ -166,18 +166,18 @@ static void test1_breathingTest()
         // 'schema1.d_id'   is post-recycling id
         // 'ids[i + 1]'     is the last sequence referenced by 'i + 1'
 
-        ASSERT_NE(ids[i + 1], i);  // 'i + 1' was recycled
+        BMQTST_ASSERT_NE(ids[i + 1], i);  // 'i + 1' was recycled
 
         bmqp::MessagePropertiesInfo logic = theGenerator.getSchemaId(&mps);
-        ASSERT(logic.isRecycled());
+        BMQTST_ASSERT(logic.isRecycled());
         // We continue recycling
-        ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
+        BMQTST_ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
 
         // Call again to make number of hits equal to the rest (2)
         logic = theGenerator.getSchemaId(&mps);
-        ASSERT(!logic.isRecycled());
+        BMQTST_ASSERT(!logic.isRecycled());
         // We continue recycling
-        ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
+        BMQTST_ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
     }
 }
 

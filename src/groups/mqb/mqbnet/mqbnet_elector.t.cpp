@@ -71,12 +71,14 @@ struct ExpectedState {
 
     void validate(const ElectorStateMachine& sm, int line) const
     {
-        ASSERT_EQ_D(line, d_state, sm.state());
-        ASSERT_EQ_D(line, d_reason, sm.reason());
-        ASSERT_EQ_D(line, d_leaderNodeId, sm.leaderNodeId());
-        ASSERT_EQ_D(line, d_tentativeLeaderNodeId, sm.tentativeLeaderNodeId());
-        ASSERT_EQ_D(line, d_term, sm.term());
-        ASSERT_EQ_D(line, d_age, sm.age());
+        BMQTST_ASSERT_EQ_D(line, d_state, sm.state());
+        BMQTST_ASSERT_EQ_D(line, d_reason, sm.reason());
+        BMQTST_ASSERT_EQ_D(line, d_leaderNodeId, sm.leaderNodeId());
+        BMQTST_ASSERT_EQ_D(line,
+                           d_tentativeLeaderNodeId,
+                           sm.tentativeLeaderNodeId());
+        BMQTST_ASSERT_EQ_D(line, d_term, sm.term());
+        BMQTST_ASSERT_EQ_D(line, d_age, sm.age());
     }
 
     ExpectedState& bumpAge()
@@ -182,9 +184,10 @@ static void test1_breathingTest()
 
     {
         PV("Ensure constants values");
-        ASSERT_EQ(Elector::k_INVALID_NODE_ID, Elector::k_INVALID_NODE_ID);
-        ASSERT_EQ(Elector::k_ALL_NODES_ID, Elector::k_ALL_NODES_ID);
-        ASSERT_NE(Elector::k_INVALID_NODE_ID, Elector::k_ALL_NODES_ID);
+        BMQTST_ASSERT_EQ(Elector::k_INVALID_NODE_ID,
+                         Elector::k_INVALID_NODE_ID);
+        BMQTST_ASSERT_EQ(Elector::k_ALL_NODES_ID, Elector::k_ALL_NODES_ID);
+        BMQTST_ASSERT_NE(Elector::k_INVALID_NODE_ID, Elector::k_ALL_NODES_ID);
     }
 
     // ElectorStateMachine: breathing test
@@ -197,12 +200,12 @@ static void test1_breathingTest()
 
     // Default construct the state machine
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
     // Enable the state machine
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(true, sm.isEnabled());
+    BMQTST_ASSERT_EQ(true, sm.isEnabled());
 
     exState.bumpAge()
         .setElectorState(ElectorState::e_FOLLOWER)
@@ -211,12 +214,12 @@ static void test1_breathingTest()
 
     // Re-enable.. should be no-op.
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(true, sm.isEnabled());
+    BMQTST_ASSERT_EQ(true, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
     // Disable
     sm.disable();
-    ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
 
     exState.bumpAge()
         .setElectorState(ElectorState::e_DORMANT)
@@ -225,12 +228,12 @@ static void test1_breathingTest()
 
     // Disable again
     sm.disable();
-    ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
     ELECTOR_VALIDATE(exState, sm);
 
     // Enable
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(true, sm.isEnabled());
+    BMQTST_ASSERT_EQ(true, sm.isEnabled());
 
     exState.bumpAge()
         .setElectorState(ElectorState::e_FOLLOWER)
@@ -264,30 +267,32 @@ static void test2()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -296,16 +301,16 @@ static void test2()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -314,16 +319,18 @@ static void test2()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -333,16 +340,16 @@ static void test2()
                     sm.term(),      // term
                     k_SELFID + 1);  // Node
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -351,17 +358,17 @@ static void test2()
                     sm.term(),      // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply a node_available event to the leader.  Leader should emit a
     // heart beat event only for the new nodeId, with no state change.
@@ -369,26 +376,27 @@ static void test2()
                          ElectorIOEventType::e_NODE_AVAILABLE,
                          k_SELFID + 3);  // New nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(3, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(3, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Leader -L1-> Dormant
     sm.disable();
-    ASSERT_EQ(false, sm.isEnabled());
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorStateMachine::k_INVALID_NODE_ID, sm.leaderNodeId());
-    ASSERT_EQ(ElectorStateMachine::k_INVALID_NODE_ID,
-              sm.tentativeLeaderNodeId());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_INVALID_NODE_ID,
+                     sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_INVALID_NODE_ID,
+                     sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test3()
@@ -417,30 +425,32 @@ static void test3()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
 
     // Apply RANDOM_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_RANDOM_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -449,16 +459,16 @@ static void test3()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -467,16 +477,18 @@ static void test3()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -486,16 +498,16 @@ static void test3()
                     sm.term(),      // term
                     k_SELFID + 1);  // nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -504,27 +516,27 @@ static void test3()
                     sm.term(),      // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Leader -L1-> Dormant
     sm.disable();
-    ASSERT_EQ(false, sm.isEnabled());
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test4()
@@ -560,32 +572,34 @@ static void test4()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -594,16 +608,16 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -612,16 +626,18 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(1ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(1ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply leader heartbeat with same term as candidate.  Candidate should
     // transition to a follower.
@@ -630,17 +646,18 @@ static void test4()
                     ElectorIOEventType::e_LEADER_HEARTBEAT,
                     sm.term(),      // leader's term == existing 'd_term'
                     k_SELFID + 3);  // leader node id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID + 3, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(k_SELFID + 3, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID + 3, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_SELFID + 3, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Move time forward by an interval > k_INACTIVITY_INTV_MS.  Note that
     // state machine uses high resolution timer, which has nano second
@@ -651,30 +668,34 @@ static void test4()
 
     // Follower -> HeartbeatCheckTimer (No leader due to inactivity)
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(true, output.stateChangedFlag());  // no leader
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_LEADER_NO_HEARTBEAT, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());  // no leader
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_LEADER_NO_HEARTBEAT,
+                     sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply random wait timer.  Follower should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_RANDOM_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -683,16 +704,16 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -702,17 +723,18 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     term += 1;
 
@@ -721,17 +743,19 @@ static void test4()
                     ElectorIOEventType::e_ELECTION_PROPOSAL,
                     term,           // new term > existing 'd_term'
                     k_SELFID + 3);  // leader node id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_ELECTION_PREEMPTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_SELFID + 3, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(k_SELFID + 3, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_ELECTION_PREEMPTED,
+                     sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_SELFID + 3, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_SELFID + 3, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // No heartbeat received from tentative leader within stipulated time.
     // Move time forward by an interval > k_INACTIVITY_INTV_MS
@@ -741,30 +765,33 @@ static void test4()
 
     // Follower -> HeartbeatCheckTimer -> No leader
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply random wait timer.  Follower should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_RANDOM_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -773,16 +800,16 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -792,44 +819,47 @@ static void test4()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // xxx
 
     // Not election responses are received.  Apply election result timer.
     // Candidate -C6-> Follower
     sm.applyTimer(&output, ElectorTimerEventType::e_ELECTION_RESULT_TIMER);
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_QUORUM_NOT_ACHIEVED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_QUORUM_NOT_ACHIEVED,
+                     sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Follower -F1-> Dormant
     sm.disable();
-    ASSERT_EQ(false, sm.isEnabled());
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(false, sm.isEnabled());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test5()
@@ -862,32 +892,34 @@ static void test5()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -896,16 +928,16 @@ static void test5()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -914,16 +946,18 @@ static void test5()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -932,16 +966,16 @@ static void test5()
                     ElectorIOEventType::e_ELECTION_RESPONSE,
                     term,
                     k_SELFID + 1);  // nodeId
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -949,17 +983,17 @@ static void test5()
                     ElectorIOEventType::e_ELECTION_RESPONSE,
                     term,           // term
                     k_SELFID + 2);  // nodeId
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     term += 1;
 
@@ -969,21 +1003,22 @@ static void test5()
                     term,           // term > leader's term
                     k_SELFID + 2);  // new leader nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID + 2, sm.leaderNodeId());  // new
-                                                 // leader
-                                                 // nodeId
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID + 2, sm.leaderNodeId());  // new
+                                                        // leader
+                                                        // nodeId
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
 
-    ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
 
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test6()
@@ -1012,32 +1047,34 @@ static void test6()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -1046,16 +1083,16 @@ static void test6()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -1064,16 +1101,18 @@ static void test6()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -1083,16 +1122,16 @@ static void test6()
                     term,
                     k_SELFID + 1);  // nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -1101,17 +1140,17 @@ static void test6()
                     term,           // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply election proposal with smaller term from another node.  Leader
     // should ignore it.
@@ -1120,17 +1159,17 @@ static void test6()
                     sm.term() - 1,  // Smaller term
                     3);             // Different nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply election proposal with same term from another node.  Leader
     // should ignore it.
@@ -1139,17 +1178,17 @@ static void test6()
                     sm.term(),  // Same term
                     3);         // Different nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply election proposal with greater term from another node.  Leader
     // should ignore it.  This scenario tests the notion of sticky leader.
@@ -1158,17 +1197,17 @@ static void test6()
                     sm.term() + 5,  // Greater term
                     3);             // Different nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test7()
@@ -1199,32 +1238,34 @@ static void test7()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -1233,16 +1274,16 @@ static void test7()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -1251,16 +1292,18 @@ static void test7()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -1270,16 +1313,16 @@ static void test7()
                     term,
                     k_SELFID + 1);  // nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -1288,17 +1331,17 @@ static void test7()
                     term,           // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // One of the supporting node becomes unavailable.  Leader loses majority
     // and goes back to being a follower.
@@ -1307,19 +1350,21 @@ static void test7()
                          ElectorIOEventType::e_NODE_UNAVAILABLE,
                          k_SELFID + 2);  // A supporting nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_QUORUM_NOT_ACHIEVED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_QUORUM_NOT_ACHIEVED,
+                     sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
 
-    ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
 
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test8()
@@ -1351,32 +1396,34 @@ static void test8()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -1385,16 +1432,16 @@ static void test8()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -1403,16 +1450,18 @@ static void test8()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -1422,16 +1471,16 @@ static void test8()
                     term,
                     k_SELFID + 1);  // nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -1440,17 +1489,17 @@ static void test8()
                     term,           // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Leader receives a stale heartbeat response from a follower, and reverts
     // back to being a follower.
@@ -1460,19 +1509,20 @@ static void test8()
                     ++term,  // Stale heartbeat response having higher term
                     k_SELFID + 2);  // NodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_LEADER_PREEMPTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_LEADER_PREEMPTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
 
-    ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADERSHIP_CESSION, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
 
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test9()
@@ -1501,16 +1551,16 @@ static void test9()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
@@ -1520,34 +1570,35 @@ static void test9()
     // proposal and transition to candidate.
     // Follower -F2-> Candidate
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // After election result timer fires, elector will see that it has quorum
     // and will transition to leader.
     // Candidate -C5-> Leader
     sm.applyTimer(&output, ElectorTimerEventType::e_ELECTION_RESULT_TIMER);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test10()
@@ -1577,16 +1628,16 @@ static void test10()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
@@ -1596,46 +1647,47 @@ static void test10()
     // proposal and transition to candidate.
     // Follower -F2-> Candidate
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // 1st election response
     sm.applyIOEvent(&output,
                     ElectorIOEventType::e_ELECTION_RESPONSE,
                     term,
                     1);  // nodeId
-    ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
 
     // 2nd election response
     sm.applyIOEvent(&output,
                     ElectorIOEventType::e_ELECTION_RESPONSE,
                     term,
                     2);  // nodeId
-    ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
 
     // Candidate -C5-> Leader
     sm.applyTimer(&output, ElectorTimerEventType::e_ELECTION_RESULT_TIMER);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test11()
@@ -1666,16 +1718,16 @@ static void test11()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
@@ -1686,16 +1738,17 @@ static void test11()
                     term,  // new term > existing 'd_term'
                     3);    // leader node id
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(3, sm.tentativeLeaderNodeId());  // new tentative leader
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(3, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(3, sm.tentativeLeaderNodeId());  // new tentative leader
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(3, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     s_electorClock->advanceHighResTimer(10 * k_NS_PER_S);
 
@@ -1705,65 +1758,66 @@ static void test11()
                     term,  // new term > existing 'd_term'
                     3);    // leader node id
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(3, sm.leaderNodeId());  // new leader
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(3, sm.leaderNodeId());  // new leader
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // 1 second elapses
     s_electorClock->advanceHighResTimer(1 * k_NS_PER_S);
 
     // Heart beat check time fires
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());  // No state change
-    ASSERT_EQ(3, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());  // No state change
+    BMQTST_ASSERT_EQ(3, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2 seconds elapse
     s_electorClock->advanceHighResTimer(2 * k_NS_PER_S);
 
     // Heart beat check time fires
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());  // No state change
-    ASSERT_EQ(3, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());  // No state change
+    BMQTST_ASSERT_EQ(3, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2.5 seconds elapse
     s_electorClock->advanceHighResTimer(2 * k_NS_PER_S + (k_NS_PER_S / 2));
 
     // Heart beat check time fires
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());  // No state change
-    ASSERT_EQ(3, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());  // No state change
+    BMQTST_ASSERT_EQ(3, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 0.1 seconds elapse
     s_electorClock->advanceHighResTimer(k_NS_PER_S / 10);
@@ -1773,16 +1827,16 @@ static void test11()
                     ElectorIOEventType::e_LEADER_HEARTBEAT,
                     term,
                     3);                           // leader node Id
-    ASSERT_EQ(false, output.stateChangedFlag());  // No state change
-    ASSERT_EQ(3, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());  // No state change
+    BMQTST_ASSERT_EQ(3, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Time elapses by more than leader inactivity period
     s_electorClock->advanceHighResTimer(
@@ -1791,16 +1845,18 @@ static void test11()
 
     // Hearbeat timer fires
     sm.applyTimer(&output, ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER);
-    ASSERT_EQ(true, output.stateChangedFlag());  // state change
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorTransitionReason::e_LEADER_NO_HEARTBEAT, sm.reason());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());  // state change
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_LEADER_NO_HEARTBEAT,
+                     sm.reason());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test12()
@@ -1829,16 +1885,16 @@ static void test12()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       leaderTerm   = 10;
@@ -1850,16 +1906,17 @@ static void test12()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test13()
@@ -1886,16 +1943,16 @@ static void test13()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       leaderTerm   = 10;
@@ -1906,16 +1963,17 @@ static void test13()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Stale leader's heartbeat arrives.
     sm.applyIOEvent(&output,
@@ -1923,16 +1981,16 @@ static void test13()
                     leaderTerm - 1,  // Stale term
                     100);            // Stale leader's nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_HEARTBEAT_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(100, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_HEARTBEAT_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(100, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test14()
@@ -1963,16 +2021,16 @@ static void test14()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply leaader heartbeat event with a higher term.  Follower should start
     // following the leader node.
@@ -1985,16 +2043,17 @@ static void test14()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply an election proposal from different node, with lower term.
     // Follower should ignore this.
@@ -2003,16 +2062,16 @@ static void test14()
                     sm.term() - 1,      // Lower term
                     leaderNodeId + 3);  // Different from current leader
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply an election proposal from different node, with same term.
     // Follower should ignore this.
@@ -2021,16 +2080,16 @@ static void test14()
                     sm.term(),          // Same term
                     leaderNodeId + 3);  // Different from current leader
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply an election proposal from different node, with higher term.
     // Follower should ignore this.
@@ -2039,16 +2098,16 @@ static void test14()
                     sm.term() + 2,      // Higher term
                     leaderNodeId + 3);  // Different from current leader
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test15()
@@ -2077,60 +2136,63 @@ static void test15()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 1 scouting response.
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply scouting result timer while elector hasn't received scouting
     // responses from majority of the nodes.  Elector should emit a random
     // wait timer and not change state.
     sm.applyTimer(&output, ElectorTimerEventType::e_SCOUTING_RESULT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test16()
@@ -2164,45 +2226,47 @@ static void test16()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 1 scouting response.
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply election proposal from a node with higher term.  Elector should
     // remain follower and support this node (i.e., emit election response).
@@ -2211,34 +2275,35 @@ static void test16()
                     ElectorIOEventType::e_ELECTION_PROPOSAL,
                     term,           // Higher term
                     k_SELFID + 2);  // node id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_SELFID + 2, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(k_SELFID + 2, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_SELFID + 2, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_SELFID + 2, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply scouting response from another node.  Ensure that its a no-op.
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() - 1,  // Original term used in scouting request
                   k_SELFID + 3);  // node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_SELFID + 2, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_SELFID + 2, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test17()
@@ -2268,61 +2333,63 @@ static void test17()
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 0;
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 1st positive scouting response.
     sm.applyScout(&output,
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response, but a negative one.  No change expected.
     sm.applyScout(&output,
                   false,          // Won't vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 3rd scouting response, but a negative one.  Elector should not
     // transition to candidate or propose election.  It should emit random wait
@@ -2331,16 +2398,17 @@ static void test17()
                   false,          // Won't vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 3);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 static void test18()
@@ -2370,16 +2438,16 @@ static void test18()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Follower receives heartbeat from leader.
     ElectorStateMachineOutput output;
@@ -2391,32 +2459,34 @@ static void test18()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Leader becomes unavailable
     sm.applyAvailability(&output,
                          ElectorIOEventType::e_NODE_UNAVAILABLE,
                          leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Leader becomes available and follower receives heartbeat from it
     // (follower submits to leader).
@@ -2425,16 +2495,17 @@ static void test18()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test19()
@@ -2464,16 +2535,16 @@ static void test19()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Follower receives heartbeat from leader.
     ElectorStateMachineOutput output;
@@ -2485,16 +2556,17 @@ static void test19()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER, output.timer());
-    ASSERT_EQ(leaderNodeId, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(leaderNodeId, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_RESPONSE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_CHECK_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(leaderNodeId, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Leader sends leadershipCession event.
     sm.applyIOEvent(&output,
@@ -2502,16 +2574,17 @@ static void test19()
                     leaderTerm,
                     leaderNodeId);
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(leaderTerm, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(leaderTerm, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_RANDOM_WAIT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 }
 
 static void test20()
@@ -2540,32 +2613,34 @@ static void test20()
     bsls::Types::Uint64 age = 0;
     ElectorStateMachine sm(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
+    BMQTST_ASSERT_EQ(ElectorState::e_DORMANT, sm.state());
 
     // Dormant -D1-> Follower
     sm.enable(k_SELFID, k_QUORUM, k_TOTAL_NODES, k_INACTIVITY_INTV_MS);
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_STARTED, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     ElectorStateMachineOutput output;
     bsls::Types::Uint64       term = 1;
 
     // Apply INITIAL_WAIT_TIMER to follower.  It should emit scouting request.
     sm.applyTimer(&output, ElectorTimerEventType::e_INITIAL_WAIT_TIMER);
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_SCOUTING_REQUEST, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_SCOUTING_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2 scouting responses.
 
@@ -2574,16 +2649,16 @@ static void test20()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 1);  // Peer node Id
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(0ULL, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_FOLLOWER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(0ULL, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // Apply 2nd scouting response.  Quorum will be achieved, and elector will
     // transition to candidate.
@@ -2592,16 +2667,18 @@ static void test20()
                   true,           // Will vote
                   sm.term() + 1,  // Scouting happens with a higher term
                   k_SELFID + 2);  // Peer node Id
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER, output.timer());
-    ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_ELECTION_PROPOSAL, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_ELECTION_RESULT_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(ElectorStateMachine::k_ALL_NODES_ID,
+                     output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Apply 2 election responses
 
@@ -2611,16 +2688,16 @@ static void test20()
                     term,
                     k_SELFID + 1);  // nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(k_INVALID_NODE, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_CANDIDATE, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_NONE, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 
     // 2nd election response
     // Candidate -C4-> Leader
@@ -2629,17 +2706,17 @@ static void test20()
                     term,           // term
                     k_SELFID + 2);  // nodeId
 
-    ASSERT_EQ(true, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
-              output.timer());
-    ASSERT_EQ(k_ALL_NODES, output.destination());
-    ASSERT_EQ(true, output.cancelTimerEventsFlag());
-    ASSERT_EQ(++age, sm.age());
+    BMQTST_ASSERT_EQ(true, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(ElectorTransitionReason::e_NONE, sm.reason());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_HEARTBEAT_BROADCAST_TIMER,
+                     output.timer());
+    BMQTST_ASSERT_EQ(k_ALL_NODES, output.destination());
+    BMQTST_ASSERT_EQ(true, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(++age, sm.age());
 
     // Stale leader's heartbeat arrives.
     sm.applyIOEvent(&output,
@@ -2647,16 +2724,16 @@ static void test20()
                     term,  // Stale term
                     100);  // Stale leader's nodeId
 
-    ASSERT_EQ(false, output.stateChangedFlag());
-    ASSERT_EQ(ElectorState::e_LEADER, sm.state());
-    ASSERT_EQ(k_SELFID, sm.leaderNodeId());
-    ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
-    ASSERT_EQ(term, sm.term());
-    ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
-    ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
-    ASSERT_EQ(100, output.destination());
-    ASSERT_EQ(false, output.cancelTimerEventsFlag());
-    ASSERT_EQ(age, sm.age());
+    BMQTST_ASSERT_EQ(false, output.stateChangedFlag());
+    BMQTST_ASSERT_EQ(ElectorState::e_LEADER, sm.state());
+    BMQTST_ASSERT_EQ(k_SELFID, sm.leaderNodeId());
+    BMQTST_ASSERT_EQ(k_INVALID_NODE, sm.tentativeLeaderNodeId());
+    BMQTST_ASSERT_EQ(term, sm.term());
+    BMQTST_ASSERT_EQ(ElectorIOEventType::e_LEADER_HEARTBEAT, output.io());
+    BMQTST_ASSERT_EQ(ElectorTimerEventType::e_NONE, output.timer());
+    BMQTST_ASSERT_EQ(100, output.destination());
+    BMQTST_ASSERT_EQ(false, output.cancelTimerEventsFlag());
+    BMQTST_ASSERT_EQ(age, sm.age());
 }
 
 // ============================================================================

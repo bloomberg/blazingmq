@@ -177,7 +177,7 @@ bool Test::loggingCb(const bsl::string& id, const bool enableLog)
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-TEST_F(Test, doNotMonitor)
+BMQTST_TEST_F(Test, doNotMonitor)
 // ------------------------------------------------------------------------
 // Concerns:
 //   No change is reported if maxIdleTime is not set to non-zero value
@@ -193,18 +193,20 @@ TEST_F(Test, doNotMonitor)
 
     d_monitor.registerSubStream(d_id);
 
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     d_monitor.onTimer(0);
 
     d_monitor.onTimer(1000000);
 
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
-    ASSERT_EQ(observer.records().size(), 0U);
+    BMQTST_ASSERT_EQ(observer.records().size(), 0U);
 }
 
-TEST_F(Test, emptyQueue)
+BMQTST_TEST_F(Test, emptyQueue)
 // ------------------------------------------------------------------------
 // Concerns:
 //   An empty queue is considered active
@@ -223,15 +225,17 @@ TEST_F(Test, emptyQueue)
     d_monitor.registerSubStream(d_id);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 }
 
-TEST_F(Test, putAliveIdleSendAlive)
+BMQTST_TEST_F(Test, putAliveIdleSendAlive)
 // ------------------------------------------------------------------------
 // Concerns: State becomes IDLE after set period then returns to normal
 //   when message is processed - this is a typical, full scenario.
@@ -256,42 +260,49 @@ TEST_F(Test, putAliveIdleSendAlive)
     putMessage();
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
-    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "ALARM \\[QUEUE_STUCK\\]",
         bmqtst::TestHelperUtil::allocator()));
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     d_monitor.onMessageSent(d_id);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
-    ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
-    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+    BMQTST_ASSERT_EQ(logObserver.records().size(), ++expectedLogRecords);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "no longer appears to be stuck",
         bmqtst::TestHelperUtil::allocator()));
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 }
 
-TEST_F(Test, putAliveIdleEmptyAlive)
+BMQTST_TEST_F(Test, putAliveIdleEmptyAlive)
 // ------------------------------------------------------------------------
 // Concerns: Emptying the queue flips state back to 'alive'.
 //
@@ -309,18 +320,21 @@ TEST_F(Test, putAliveIdleEmptyAlive)
     putMessage();
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     d_haveUndelivered.erase(d_id);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 }
 
-TEST_F(Test, changeMaxIdleTime)
+BMQTST_TEST_F(Test, changeMaxIdleTime)
 // ------------------------------------------------------------------------
 // Concerns: setting max idle time to new value also resets monitoring.
 //
@@ -339,29 +353,35 @@ TEST_F(Test, changeMaxIdleTime)
     putMessage();
 
     d_monitor.onTimer(0);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
     d_monitor.setMaxIdleTime(k_MAX_IDLE_TIME * 2);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), 0u);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME * 2);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME * 2 + k_MAX_IDLE_TIME * 2);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME * 2 + k_MAX_IDLE_TIME * 2 + 1);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_IDLE);
 }
 
-TEST_F(Test, reset)
+BMQTST_TEST_F(Test, reset)
 // ------------------------------------------------------------------------
 // Concerns: 'reset' puts component in same state as just after
 // construction.
@@ -379,17 +399,18 @@ TEST_F(Test, reset)
     putMessage();
 
     d_monitor.onTimer(0);
-    ASSERT_EQ(d_monitor.state(d_id), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(d_id),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 
     bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
                                           bmqtst::TestHelperUtil::allocator());
 
     d_monitor.reset();
     d_monitor.onTimer(k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(logObserver.records().size(), 0u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
 }
 
-TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
+BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 // ------------------------------------------------------------------------
 // Concerns: State becomes IDLE after set period then returns to normal
 //   when message is processed - this is a typical, full scenario.
@@ -426,66 +447,82 @@ TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     putMessage(id2);
 
     d_monitor.onTimer(k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME - 1);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 1);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 2);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 2);
 
     for (int i = 0; i < 2; ++i) {
-        ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records().rbegin()[i],
             "ALARM \\[QUEUE_STUCK\\]",
             bmqtst::TestHelperUtil::allocator()));
     }
 
     d_monitor.onTimer(2 * k_MAX_IDLE_TIME + 2);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     d_monitor.onMessageSent(id1);
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_IDLE);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords);
 
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 2);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
-    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app1' no longer appears "
         "to be stuck.",
         bmqtst::TestHelperUtil::allocator()));
 
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_IDLE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_IDLE);
 
     d_monitor.onMessageSent(id2);
     d_monitor.onTimer(3 * k_MAX_IDLE_TIME + 3);
-    ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
-    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+    BMQTST_ASSERT_EQ(logObserver.records().size(), expectedLogRecords += 1);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         logObserver.records().back(),
         "Queue 'bmq://bmq.test.local/test_queue\\?id=app2' no longer appears "
         "to be stuck.",
         bmqtst::TestHelperUtil::allocator()));
-    ASSERT_EQ(d_monitor.state(id1), QueueConsumptionMonitor::State::e_ALIVE);
-    ASSERT_EQ(d_monitor.state(id2), QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id1),
+                     QueueConsumptionMonitor::State::e_ALIVE);
+    BMQTST_ASSERT_EQ(d_monitor.state(id2),
+                     QueueConsumptionMonitor::State::e_ALIVE);
 }
 
-TEST_F(Test, usage)
+BMQTST_TEST_F(Test, usage)
 // -------------------------------------------------------------------------
 // Concerns: Make sure the usage example is correct.
 //
@@ -508,33 +545,33 @@ TEST_F(Test, usage)
     bsls::Types::Int64 T = 0;
     // at time T
     monitor.onTimer(T);  // nothing is logged
-    ASSERT_EQ(logObserver.records().size(), 0u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
     // 15 seconds later - T + 15s
     monitor.onTimer(T += 15);  // nothing is logged
-    ASSERT_EQ(logObserver.records().size(), 0u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0u);
     // 15 seconds later - T + 30s
     monitor.onTimer(T += 15);  // log ALARM
-    ASSERT_EQ(logObserver.records().size(), 1u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
     // 15 seconds later - T + 45s
     monitor.onTimer(T += 15);  // nothing is logged
-    ASSERT_EQ(logObserver.records().size(), 1u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1u);
     // 15 seconds later - T + 60s - consume first message, inform monitor:
     monitor.onMessageSent(d_id);
 
     // 15 seconds later - T + 75s
     monitor.onTimer(T += 15);  // log INFO: back to active
-    ASSERT_EQ(logObserver.records().size(), 2u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 2u);
     // 15 seconds later - T + 90s
     monitor.onTimer(T += 15);  // nothing is logged
-    ASSERT_EQ(logObserver.records().size(), 2u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 2u);
     // 15 seconds later - T + 105s
     monitor.onTimer(T += 15);  // log ALARM
-    ASSERT_EQ(logObserver.records().size(), 3u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3u);
     // 15 seconds later - T + 120s
     d_haveUndelivered.erase(d_id);
 
     monitor.onTimer(T += 15);  // log INFO: back to active
-    ASSERT_EQ(logObserver.records().size(), 4u);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 4u);
 
 #undef monitor
 }

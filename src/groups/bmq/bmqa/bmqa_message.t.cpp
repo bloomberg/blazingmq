@@ -109,36 +109,36 @@ static void test1_messageOnStackIsInvalid()
 
     bmqa::Message msg;
 
-    ASSERT_SAFE_FAIL(msg.queueId());
-    ASSERT_SAFE_FAIL(msg.correlationId());
+    BMQTST_ASSERT_SAFE_FAIL(msg.queueId());
+    BMQTST_ASSERT_SAFE_FAIL(msg.correlationId());
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    ASSERT_SAFE_FAIL(msg.groupId());
+    BMQTST_ASSERT_SAFE_FAIL(msg.groupId());
 #endif
-    ASSERT_SAFE_FAIL(msg.messageGUID());
-    ASSERT_SAFE_FAIL(msg.confirmationCookie());
-    ASSERT_SAFE_FAIL(msg.ackStatus());
-    ASSERT_SAFE_FAIL(msg.dataSize());
-    ASSERT_SAFE_FAIL(msg.hasProperties());
+    BMQTST_ASSERT_SAFE_FAIL(msg.messageGUID());
+    BMQTST_ASSERT_SAFE_FAIL(msg.confirmationCookie());
+    BMQTST_ASSERT_SAFE_FAIL(msg.ackStatus());
+    BMQTST_ASSERT_SAFE_FAIL(msg.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(msg.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    ASSERT_SAFE_FAIL(msg.hasGroupId());
+    BMQTST_ASSERT_SAFE_FAIL(msg.hasGroupId());
 #endif
 
     PV("Cloned object - uninitialized");
 
     bmqa::Message clone = msg.clone();
 
-    ASSERT_SAFE_FAIL(clone.queueId());
-    ASSERT_SAFE_FAIL(clone.correlationId());
+    BMQTST_ASSERT_SAFE_FAIL(clone.queueId());
+    BMQTST_ASSERT_SAFE_FAIL(clone.correlationId());
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    ASSERT_SAFE_FAIL(clone.groupId());
+    BMQTST_ASSERT_SAFE_FAIL(clone.groupId());
 #endif
-    ASSERT_SAFE_FAIL(clone.messageGUID());
-    ASSERT_SAFE_FAIL(clone.confirmationCookie());
-    ASSERT_SAFE_FAIL(clone.ackStatus());
-    ASSERT_SAFE_FAIL(clone.dataSize());
-    ASSERT_SAFE_FAIL(clone.hasProperties());
+    BMQTST_ASSERT_SAFE_FAIL(clone.messageGUID());
+    BMQTST_ASSERT_SAFE_FAIL(clone.confirmationCookie());
+    BMQTST_ASSERT_SAFE_FAIL(clone.ackStatus());
+    BMQTST_ASSERT_SAFE_FAIL(clone.dataSize());
+    BMQTST_ASSERT_SAFE_FAIL(clone.hasProperties());
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    ASSERT_SAFE_FAIL(clone.hasGroupId());
+    BMQTST_ASSERT_SAFE_FAIL(clone.hasGroupId());
 #endif
 }
 
@@ -188,26 +188,28 @@ static void test2_validPushMessagePrint()
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
-    ASSERT_EQ(static_cast<unsigned int>(payload.length()),
-              bsl::strlen(buffer));
+    BMQTST_ASSERT_EQ(static_cast<unsigned int>(payload.length()),
+                     bsl::strlen(buffer));
 
     // Create PushEventBuilder
     bmqp::PushEventBuilder peb(&blobSpPool,
                                bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(peb.eventSize()));
-    ASSERT_EQ(sizeof(bmqp::EventHeader),
-              static_cast<size_t>(peb.blob()->length()));
-    ASSERT_EQ(0, peb.messageCount());
+    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
+                     static_cast<size_t>(peb.eventSize()));
+    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
+                     static_cast<size_t>(peb.blob()->length()));
+    BMQTST_ASSERT_EQ(0, peb.messageCount());
 
     // Add SubQueueInfo option
     generateSubQueueInfos(&subQueueInfos, numSubQueueInfos);
     bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
         subQueueInfos);
-    ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
-    ASSERT_EQ(sizeof(bmqp::EventHeader), static_cast<size_t>(peb.eventSize()));
+    BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
+    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
+                     static_cast<size_t>(peb.eventSize()));
     // 'eventSize()' excludes unpacked messages
-    ASSERT_LT(sizeof(bmqp::EventHeader),
-              static_cast<size_t>(peb.blob()->length()));
+    BMQTST_ASSERT_LT(sizeof(bmqp::EventHeader),
+                     static_cast<size_t>(peb.blob()->length()));
     // But the option is written to the underlying blob
     rc = peb.packMessage(payload,
                          queueId,
@@ -215,9 +217,9 @@ static void test2_validPushMessagePrint()
                          flags,
                          bmqt::CompressionAlgorithmType::e_NONE);
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_LT(payload.length(), peb.eventSize());
-    ASSERT_EQ(1, peb.messageCount());
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
+    BMQTST_ASSERT_EQ(1, peb.messageCount());
 
     bmqp::Event bmqpEvent(peb.blob().get(),
                           bmqtst::TestHelperUtil::allocator(),
@@ -230,8 +232,8 @@ static void test2_validPushMessagePrint()
     bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
     mIter.nextMessage();
     bmqa::Message message = mIter.message();
-    ASSERT_EQ(message.compressionAlgorithmType(),
-              bmqt::CompressionAlgorithmType::e_NONE);
+    BMQTST_ASSERT_EQ(message.compressionAlgorithmType(),
+                     bmqt::CompressionAlgorithmType::e_NONE);
 }
 
 static void test3_messageProperties()
@@ -294,7 +296,7 @@ static void test3_messageProperties()
     // Add SubQueueInfo option
     bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
         subQueueInfos);
-    ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
+    BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
     rc = peb.packMessage(payload,
                          queueId,
@@ -303,9 +305,9 @@ static void test3_messageProperties()
                          bmqt::CompressionAlgorithmType::e_NONE,
                          input);
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_LT(payload.length(), peb.eventSize());
-    ASSERT_EQ(1, peb.messageCount());
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
+    BMQTST_ASSERT_EQ(1, peb.messageCount());
 
     bmqa::Event                     event;
     bsl::shared_ptr<bmqimp::Event>& implPtr =
@@ -335,20 +337,20 @@ static void test3_messageProperties()
     bmqa::Message message = mIter.message();
 
     bmqa::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(0, message.loadProperties(&out1));
+    BMQTST_ASSERT_EQ(0, message.loadProperties(&out1));
 
     // 1st setProperty w/o getProperty and then getProperty
     {
         bmqa::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
         // The second read is/was optimized (only one MPS header)
-        ASSERT_EQ(0, message.loadProperties(&out2));
+        BMQTST_ASSERT_EQ(0, message.loadProperties(&out2));
 
-        ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
-        ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
-                  out2.totalSize());
+        BMQTST_ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+                         out2.totalSize());
 
-        ASSERT_EQ(out2.getPropertyAsString("z"), z);
+        BMQTST_ASSERT_EQ(out2.getPropertyAsString("z"), z);
     }
 
     // 2nd getProperty, setProperty and then load all
@@ -356,10 +358,10 @@ static void test3_messageProperties()
         bmqa::MessageProperties out3(bmqtst::TestHelperUtil::allocator());
 
         // The third read is/was optimized (only one MPS header)
-        ASSERT_EQ(0, message.loadProperties(&out3));
+        BMQTST_ASSERT_EQ(0, message.loadProperties(&out3));
 
-        ASSERT_EQ(y, out3.getPropertyAsString("y"));
-        ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(y, out3.getPropertyAsString("y"));
+        BMQTST_ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
         bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         out3.print(os, 0, -1);
@@ -368,12 +370,12 @@ static void test3_messageProperties()
 
         bmqa::MessagePropertiesIterator it(&out3);
 
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), x);
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), mod);
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), z);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), x);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), mod);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), z);
     }
 
     // 3rd getProperty, setProperty and then getProperty
@@ -381,14 +383,14 @@ static void test3_messageProperties()
         bmqa::MessageProperties out4(bmqtst::TestHelperUtil::allocator());
 
         // The fourth read is/was optimized (only one MPS header)
-        ASSERT_EQ(0, message.loadProperties(&out4));
+        BMQTST_ASSERT_EQ(0, message.loadProperties(&out4));
 
-        ASSERT_EQ(y, out4.getPropertyAsString("y"));
-        ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
-        ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
-                  out4.totalSize());
+        BMQTST_ASSERT_EQ(y, out4.getPropertyAsString("y"));
+        BMQTST_ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+                         out4.totalSize());
 
-        ASSERT_EQ(out4.getPropertyAsString("z"), z);
+        BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
     }
 }
 
@@ -439,8 +441,8 @@ static void test4_subscriptionHandle()
     queueSp->setId(queueId);
 
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
-    ASSERT_EQ(static_cast<unsigned int>(payload.length()),
-              bsl::strlen(buffer));
+    BMQTST_ASSERT_EQ(static_cast<unsigned int>(payload.length()),
+                     bsl::strlen(buffer));
 
     PV("PUSH MESSAGE - SUBSCRIPTION")
     {
@@ -459,19 +461,19 @@ static void test4_subscriptionHandle()
         // Create PushEventBuilder
         bmqp::PushEventBuilder peb(&blobSpPool,
                                    bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, peb.messageCount());
+        BMQTST_ASSERT_EQ(0, peb.messageCount());
 
         // Add SubQueueInfo option (subscription Id)
         subQueueInfos.push_back(bmqp::SubQueueInfo(sId));
 
         bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
             subQueueInfos);
-        ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
-        ASSERT_EQ(sizeof(bmqp::EventHeader),
-                  static_cast<size_t>(peb.eventSize()));
+        BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
+        BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
+                         static_cast<size_t>(peb.eventSize()));
         // 'eventSize()' excludes unpacked messages
-        ASSERT_LT(sizeof(bmqp::EventHeader),
-                  static_cast<size_t>(peb.blob()->length()));
+        BMQTST_ASSERT_LT(sizeof(bmqp::EventHeader),
+                         static_cast<size_t>(peb.blob()->length()));
         // But the option is written to the underlying blob
 
         // Add message
@@ -481,9 +483,9 @@ static void test4_subscriptionHandle()
                              flags,
                              bmqt::CompressionAlgorithmType::e_NONE);
 
-        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-        ASSERT_LT(payload.length(), peb.eventSize());
-        ASSERT_EQ(1, peb.messageCount());
+        BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
+        BMQTST_ASSERT_EQ(1, peb.messageCount());
 
         bmqp::Event bmqpEvent(peb.blob().get(),
                               bmqtst::TestHelperUtil::allocator(),
@@ -496,15 +498,16 @@ static void test4_subscriptionHandle()
         bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
 
-        ASSERT(mIter.nextMessage());
+        BMQTST_ASSERT(mIter.nextMessage());
         bmqa::Message message = mIter.message();
         PVVV("Message: " << message);
 
         const bmqt::SubscriptionHandle& actualHandle =
             message.subscriptionHandle();
         PVV("Non-empty subscription handle: " << actualHandle);
-        ASSERT_EQ(actualHandle.id(), sId);
-        ASSERT_EQ(actualHandle.correlationId(), sHandle.correlationId());
+        BMQTST_ASSERT_EQ(actualHandle.id(), sId);
+        BMQTST_ASSERT_EQ(actualHandle.correlationId(),
+                         sHandle.correlationId());
     }
 
     PV("PUSH MESSAGE - NO SUBSCRIPTION")
@@ -524,7 +527,7 @@ static void test4_subscriptionHandle()
         // Create PushEventBuilder
         bmqp::PushEventBuilder peb(&blobSpPool,
                                    bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, peb.messageCount());
+        BMQTST_ASSERT_EQ(0, peb.messageCount());
 
         // Add message
         bmqt::EventBuilderResult::Enum rc = peb.packMessage(
@@ -534,9 +537,9 @@ static void test4_subscriptionHandle()
             flags,
             bmqt::CompressionAlgorithmType::e_NONE);
 
-        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-        ASSERT_LT(payload.length(), peb.eventSize());
-        ASSERT_EQ(1, peb.messageCount());
+        BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
+        BMQTST_ASSERT_EQ(1, peb.messageCount());
 
         bmqp::Event bmqpEvent(peb.blob().get(),
                               bmqtst::TestHelperUtil::allocator(),
@@ -549,15 +552,15 @@ static void test4_subscriptionHandle()
         bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
 
-        ASSERT(mIter.nextMessage());
+        BMQTST_ASSERT(mIter.nextMessage());
         bmqa::Message message = mIter.message();
         PVVV("Message: " << message);
 
         const bmqt::SubscriptionHandle& actualHandle =
             message.subscriptionHandle();
         PVV("Empty subscription handle: " << actualHandle);
-        ASSERT_EQ(actualHandle.id(), defaultSubscriptionId);
-        ASSERT_EQ(actualHandle.correlationId(), emptyCorrelationId);
+        BMQTST_ASSERT_EQ(actualHandle.id(), defaultSubscriptionId);
+        BMQTST_ASSERT_EQ(actualHandle.correlationId(), emptyCorrelationId);
     }
 
     PV("PUT MESSAGE - FAIL")
@@ -572,7 +575,7 @@ static void test4_subscriptionHandle()
         // Create PutEventBuilder
         bmqp::PutEventBuilder builder(&blobSpPool,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, builder.messageCount());
+        BMQTST_ASSERT_EQ(0, builder.messageCount());
 
         // Add message
         builder.startMessage();
@@ -581,8 +584,8 @@ static void test4_subscriptionHandle()
 
         bmqt::EventBuilderResult::Enum rc = builder.packMessage(queueId);
 
-        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-        ASSERT_EQ(1, builder.messageCount());
+        BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(1, builder.messageCount());
 
         bmqp::Event bmqpEvent(builder.blob().get(),
                               bmqtst::TestHelperUtil::allocator());
@@ -594,11 +597,11 @@ static void test4_subscriptionHandle()
         bmqa::MessageEvent    putMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter     = putMsgEvt.messageIterator();
 
-        ASSERT(mIter.nextMessage());
+        BMQTST_ASSERT(mIter.nextMessage());
         bmqa::Message message = mIter.message();
         PVVV("Message: " << message);
 
-        ASSERT_OPT_FAIL(message.subscriptionHandle());
+        BMQTST_ASSERT_OPT_FAIL(message.subscriptionHandle());
     }
 
     PV("ACK MESSAGE - FAIL")
@@ -613,13 +616,13 @@ static void test4_subscriptionHandle()
         // Create AckEventBuilder
         bmqp::AckEventBuilder builder(&blobSpPool,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, builder.messageCount());
+        BMQTST_ASSERT_EQ(0, builder.messageCount());
 
         bmqt::EventBuilderResult::Enum rc =
             builder.appendMessage(0, queueId, guid, queueId);
 
-        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-        ASSERT_EQ(1, builder.messageCount());
+        BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(1, builder.messageCount());
 
         bmqp::Event bmqpEvent(builder.blob().get(),
                               bmqtst::TestHelperUtil::allocator());
@@ -631,11 +634,11 @@ static void test4_subscriptionHandle()
         bmqa::MessageEvent    ackMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter     = ackMsgEvt.messageIterator();
 
-        ASSERT(mIter.nextMessage());
+        BMQTST_ASSERT(mIter.nextMessage());
         bmqa::Message message = mIter.message();
         PVVV("Message: " << message);
 
-        ASSERT_OPT_FAIL(message.subscriptionHandle());
+        BMQTST_ASSERT_OPT_FAIL(message.subscriptionHandle());
     }
 }
 

@@ -46,11 +46,11 @@ void checkValue(int                      line,
 
     bool ret = bag.load(&bagValue, key);
     if (!ret) {
-        ASSERT_D("line " << line, false);
+        BMQTST_ASSERT_D("line " << line, false);
         return;  // RETURN
     }
 
-    ASSERT_EQ_D("line " << line, bagValue, expected);
+    BMQTST_ASSERT_EQ_D("line " << line, bagValue, expected);
 }
 
 /// Validates that the value at the specified `key` from the specified `bag`
@@ -65,17 +65,17 @@ static void checkValueSp(int                          line,
 
     bool ret = bag.load(&bagValue, key);
     if (!ret) {
-        ASSERT_D("line " << line, false);
+        BMQTST_ASSERT_D("line " << line, false);
         return;  // RETURN
     }
 
     if (!bagValue->isPtr()) {
         PRINT(*bagValue);
-        ASSERT_D("line " << line << ": Not a pointer", false);
+        BMQTST_ASSERT_D("line " << line << ": Not a pointer", false);
         return;  // RETURN
     }
 
-    ASSERT_EQ_D("lines " << line, bagValue->thePtr(), expected);
+    BMQTST_ASSERT_EQ_D("lines " << line, bagValue->thePtr(), expected);
 }
 
 // ============================================================================
@@ -92,7 +92,7 @@ static void test1_breathingTest()
 
     PropertyBag obj(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj.allocator(), bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(obj.allocator(), bmqtst::TestHelperUtil::allocator());
 
     // Set a value and read it back
     obj.set("intVal", 1)
@@ -115,38 +115,38 @@ static void test1_breathingTest()
     checkValue(L_, obj, "intVal", 3);
 
     // Check accessing an unknown property
-    ASSERT(!obj.load(static_cast<int*>(0), "dummy"));
-    ASSERT(!obj.load(static_cast<bslstl::StringRef*>(0), "dummy"));
+    BMQTST_ASSERT(!obj.load(static_cast<int*>(0), "dummy"));
+    BMQTST_ASSERT(!obj.load(static_cast<bslstl::StringRef*>(0), "dummy"));
     {
         bslma::ManagedPtr<PropertyBagValue> value;
-        ASSERT(!obj.load(&value, "dummy"));
+        BMQTST_ASSERT(!obj.load(&value, "dummy"));
     }
 
     // Check unset property
     obj.unset("intVal");
-    ASSERT(!obj.load(static_cast<int*>(0), "intVal"));
+    BMQTST_ASSERT(!obj.load(static_cast<int*>(0), "intVal"));
 
     // Unset unknown property
     obj.unset("intVal3");
 
     // Not able to load a string val into an int
-    ASSERT(!obj.load(static_cast<int*>(0), "strVal"));
+    BMQTST_ASSERT(!obj.load(static_cast<int*>(0), "strVal"));
 
     // Verify PropertyBagValue accessors
     {
         bslma::ManagedPtr<PropertyBagValue> bagValue;
 
         bool loaded = obj.load(&bagValue, "intVal2");
-        ASSERT(loaded);
-        ASSERT_EQ(bagValue->name(), "intVal2");
-        ASSERT(bagValue->isDatum());
-        ASSERT(!bagValue->isPtr());
+        BMQTST_ASSERT(loaded);
+        BMQTST_ASSERT_EQ(bagValue->name(), "intVal2");
+        BMQTST_ASSERT(bagValue->isDatum());
+        BMQTST_ASSERT(!bagValue->isPtr());
 
         loaded = obj.load(&bagValue, "ptrVal");
-        ASSERT(loaded);
-        ASSERT_EQ(bagValue->name(), "ptrVal");
-        ASSERT(!bagValue->isDatum());
-        ASSERT(bagValue->isPtr());
+        BMQTST_ASSERT(loaded);
+        BMQTST_ASSERT_EQ(bagValue->name(), "ptrVal");
+        BMQTST_ASSERT(!bagValue->isDatum());
+        BMQTST_ASSERT(bagValue->isPtr());
     }
 }
 
@@ -186,7 +186,7 @@ static void test2_copyAndAssignment()
 
         // Check "someIntVal" property got removed as part of assignment
         // operations
-        ASSERT(!obj3.load(static_cast<int*>(0), "someIntVal"));
+        BMQTST_ASSERT(!obj3.load(static_cast<int*>(0), "someIntVal"));
     }
 }
 
@@ -216,17 +216,17 @@ static void test3_print()
 
         out.setstate(bsl::ios_base::badbit);
         bagValue->print(out, 0, -1);
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         out.str("");
         bagValue->print(out, 0, -1);
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
 
         out.clear();
         out.str("");
         out << *bagValue;
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 
     {
@@ -239,17 +239,17 @@ static void test3_print()
 
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         out.str("");
         obj.print(out, 0, -1);
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
 
         out.clear();
         out.str("");
         out << obj;
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 }
 
@@ -266,7 +266,7 @@ static void test4_loadAllImport()
     bsl::vector<bslma::ManagedPtr<PropertyBagValue> > values(
         bmqtst::TestHelperUtil::allocator());
     obj.loadAll(&values);
-    ASSERT_EQ(static_cast<int>(values.size()), 2);
+    BMQTST_ASSERT_EQ(static_cast<int>(values.size()), 2);
 
     obj2.import(values);
     checkValue(L_, obj2, "int1", 1);
@@ -310,7 +310,8 @@ static void test5_propertyBagUtil()
     obj2.load(&str2, "str2");
 
     char* arenaPtr = reinterpret_cast<char*>(&arena);
-    ASSERT(str2.data() >= arenaPtr && str2.data() < arenaPtr + sizeof(arena));
+    BMQTST_ASSERT(str2.data() >= arenaPtr &&
+                  str2.data() < arenaPtr + sizeof(arena));
 }
 
 static void test6_valueOverwrite()

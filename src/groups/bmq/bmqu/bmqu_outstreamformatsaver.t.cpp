@@ -58,7 +58,7 @@ static void test1_breathingTest()
         obj << bsl::nouppercase << bsl::showbase << bsl::hex;
         obj << k_FIFTY;
 
-        ASSERT_EQ(obj.str(), "0x32");
+        BMQTST_ASSERT_EQ(obj.str(), "0x32");
 
         // Restore formatting
         fmtSaver.restore();
@@ -66,21 +66,21 @@ static void test1_breathingTest()
         obj.reset();
         obj << k_FIFTY;
 
-        ASSERT_EQ(obj.str(), "50");
+        BMQTST_ASSERT_EQ(obj.str(), "50");
 
         // Set formatting again and print
         obj.reset();
         obj << bsl::nouppercase << bsl::showbase << bsl::hex;
         obj << k_FIFTY;
 
-        ASSERT_EQ(obj.str(), "0x32");
+        BMQTST_ASSERT_EQ(obj.str(), "0x32");
     }
     // NOTE: We expect that at the end of the inner scope above, 'fmtSaver' is
     //       is destroyed and the format state of 'obj' is restored.
     obj.reset();
     obj << k_FIFTY;
 
-    ASSERT_EQ(obj.str(), "50");
+    BMQTST_ASSERT_EQ(obj.str(), "50");
 }
 
 // ============================================================================

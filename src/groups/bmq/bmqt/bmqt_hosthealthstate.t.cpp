@@ -43,27 +43,27 @@ static void test1_breathingTest()
 
     PV("Testing toAscii");
     str = bmqt::HostHealthState::toAscii(bmqt::HostHealthState::e_HEALTHY);
-    ASSERT_EQ(str, "HEALTHY");
+    BMQTST_ASSERT_EQ(str, "HEALTHY");
 
     PV("Testing fromAscii");
     res = bmqt::HostHealthState::fromAscii(&obj, "HEALTHY");
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::HostHealthState::e_HEALTHY);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::HostHealthState::e_HEALTHY);
     res = bmqt::HostHealthState::fromAscii(&obj, "invalid");
-    ASSERT_EQ(res, false);
+    BMQTST_ASSERT_EQ(res, false);
 
     PV("Testing: fromAscii(toAscii(value)) = value");
     res = bmqt::HostHealthState::fromAscii(
         &obj,
         bmqt::HostHealthState::toAscii(bmqt::HostHealthState::e_HEALTHY));
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::HostHealthState::e_HEALTHY);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::HostHealthState::e_HEALTHY);
 
     PV("Testing: toAscii(fromAscii(value)) = value");
     res = bmqt::HostHealthState::fromAscii(&obj, "UNHEALTHY");
-    ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(res, true);
     str = bmqt::HostHealthState::toAscii(obj);
-    ASSERT_EQ(str, "UNHEALTHY");
+    BMQTST_ASSERT_EQ(str, "UNHEALTHY");
 }
 
 static void test2_printTest()
@@ -93,17 +93,17 @@ static void test2_printTest()
         out.setstate(bsl::ios_base::badbit);
         bmqt::HostHealthState::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         bmqt::HostHealthState::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << test.d_type;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 

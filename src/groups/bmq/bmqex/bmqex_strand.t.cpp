@@ -423,9 +423,9 @@ static void test1_strand_creators()
         Strand strand(&alloc);
 
         // check postconditions
-        ASSERT_EQ(strand.outstandingJobs(), 0u);
-        ASSERT_EQ(strand.innerExecutor().id(), 0);
-        ASSERT_EQ(strand.allocator(), &alloc);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 0u);
+        BMQTST_ASSERT_EQ(strand.innerExecutor().id(), 0);
+        BMQTST_ASSERT_EQ(strand.allocator(), &alloc);
     }
 
     // 2. executor constructor
@@ -436,9 +436,9 @@ static void test1_strand_creators()
         Strand strand(IdentifiableExecutor(42), &alloc);
 
         // check postconditions
-        ASSERT_EQ(strand.outstandingJobs(), 0u);
-        ASSERT_EQ(strand.innerExecutor().id(), 42);
-        ASSERT_EQ(strand.allocator(), &alloc);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 0u);
+        BMQTST_ASSERT_EQ(strand.innerExecutor().id(), 42);
+        BMQTST_ASSERT_EQ(strand.allocator(), &alloc);
     }
 
     // 3. create, sumbit, destroy
@@ -463,9 +463,9 @@ static void test1_strand_creators()
         // IdentifiableExecutor
         {
             bmqex::Strand<IdentifiableExecutor> strand(&alloc);
-            ASSERT_OPT_FAIL(strand.innerExecutor().post(NoOp()));
-            ASSERT_OPT_FAIL(strand.innerExecutor().dispatch(NoOp()));
-            ASSERT(strand.innerExecutor() == strand.innerExecutor());
+            BMQTST_ASSERT_OPT_FAIL(strand.innerExecutor().post(NoOp()));
+            BMQTST_ASSERT_OPT_FAIL(strand.innerExecutor().dispatch(NoOp()));
+            BMQTST_ASSERT(strand.innerExecutor() == strand.innerExecutor());
         }
 
         {
@@ -584,7 +584,7 @@ static void test3_strand_stop()
     strand.join();
 
     // function object #2 had not been executed
-    ASSERT(!job2Executed);
+    BMQTST_ASSERT(!job2Executed);
 }
 
 static void test4_strand_join()
@@ -626,7 +626,7 @@ static void test4_strand_join()
     strand.join();
 
     // all jobs executed
-    ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
+    BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
 }
 
 static void test5_strand_dropPendingJobs()
@@ -663,12 +663,12 @@ static void test5_strand_dropPendingJobs()
         strand.executor().post(NoOp());
         strand.executor().post(NoOp());
         strand.executor().post(NoOp());
-        ASSERT_EQ(strand.outstandingJobs(), 3u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 3u);
 
         // drop all of them
         size_t jobsRemoved = strand.dropPendingJobs();
-        ASSERT_EQ(jobsRemoved, 3u);
-        ASSERT_EQ(strand.outstandingJobs(), 0u);
+        BMQTST_ASSERT_EQ(jobsRemoved, 3u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 0u);
     }
 
     // 2. drop jobs while a job is executing
@@ -682,7 +682,7 @@ static void test5_strand_dropPendingJobs()
                                                     &continueSignal));
         strand.executor().post(NoOp());
         strand.executor().post(NoOp());
-        ASSERT_EQ(strand.outstandingJobs(), 3u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 3u);
 
         // start executing the first job
         strand.start();
@@ -690,8 +690,8 @@ static void test5_strand_dropPendingJobs()
 
         // drop the other two jobs
         size_t jobsRemoved = strand.dropPendingJobs();
-        ASSERT_EQ(jobsRemoved, 2u);
-        ASSERT_EQ(strand.outstandingJobs(), 1u);
+        BMQTST_ASSERT_EQ(jobsRemoved, 2u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 1u);
 
         // synchronize
         continueSignal.post();
@@ -733,7 +733,7 @@ static void test6_strand_outstandingJobs()
     Strand               strand(ctx.executor(), &alloc);
 
     // outstanding jobs is 0
-    ASSERT_EQ(strand.outstandingJobs(), 0u);
+    BMQTST_ASSERT_EQ(strand.outstandingJobs(), 0u);
 
     // submit 'k_NUM_JOBS' function objects
     for (int i = 0; i < k_NUM_JOBS; ++i) {
@@ -743,7 +743,7 @@ static void test6_strand_outstandingJobs()
                                                     &continueSignal));
 
         // outstanding jobs increased by 1
-        ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i + 1));
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i + 1));
     }
 
     // make the context execute submitted function objects one by one
@@ -754,7 +754,7 @@ static void test6_strand_outstandingJobs()
         // the function object is currently executing
 
         // outstanding jobs not decreased yet
-        ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i));
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i));
 
         // complete the function object execution
         strand.stop();
@@ -763,7 +763,7 @@ static void test6_strand_outstandingJobs()
         // function object finished execution
 
         // outstanding jobs has decrease
-        ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i - 1));
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i - 1));
     }
 }
 
@@ -827,20 +827,21 @@ static void test7_executor_post()
         for (int i = 0; i < k_NUM_JOBS; ++i) {
             strand.executor().post(bdlf::BindUtil::bind(PushBack(), &out, i));
 
-            ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(strand.outstandingJobs(),
+                             static_cast<size_t>(i + 1));
         }
 
         // no function object executed so far
-        ASSERT(out.empty());
+        BMQTST_ASSERT(out.empty());
 
         // start the context and join it
         strand.start();
         strand.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
         for (int i = 0; i < k_NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -875,9 +876,9 @@ static void test7_executor_post()
         strand.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
         for (int i = 0; i < k_NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -892,7 +893,7 @@ static void test7_executor_post()
         // sumbit function objects #1 and #2
         strand.executor().post(NoOp());
         strand.executor().post(NoOp());
-        ASSERT_EQ(strand.outstandingJobs(), 2u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 2u);
 
         ThrowOnCopy throwOnCopy;
         bool        exceptionThrown = false;
@@ -906,15 +907,15 @@ static void test7_executor_post()
         }
 
         // exception thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // strand not affected
-        ASSERT_EQ(strand.outstandingJobs(), 2u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 2u);
 
         // strand stays usable
         strand.executor().post(NoOp());
         strand.executor().post(NoOp());
-        ASSERT_EQ(strand.outstandingJobs(), 4u);
+        BMQTST_ASSERT_EQ(strand.outstandingJobs(), 4u);
 
         // NOTE: The test allocator will check that no memory is leaked on
         //       destruction.
@@ -941,10 +942,10 @@ static void test7_executor_post()
             }
 
             // exception thrown
-            ASSERT_EQ(exceptionThrown, true);
+            BMQTST_ASSERT_EQ(exceptionThrown, true);
 
             // strand not affected
-            ASSERT_EQ(strand.outstandingJobs(), 0u);
+            BMQTST_ASSERT_EQ(strand.outstandingJobs(), 0u);
         }
 
         // NOTE: The test allocator will check that no memory is leaked on
@@ -999,20 +1000,21 @@ static void test8_executor_dispatch()
             strand.executor().dispatch(
                 bdlf::BindUtil::bind(PushBack(), &out, i));
 
-            ASSERT_EQ(strand.outstandingJobs(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(strand.outstandingJobs(),
+                             static_cast<size_t>(i + 1));
         }
 
         // no function object executed so far
-        ASSERT(out.empty());
+        BMQTST_ASSERT(out.empty());
 
         // start the context and join it
         strand.start();
         strand.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(k_NUM_JOBS));
         for (int i = 0; i < k_NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -1057,8 +1059,8 @@ static void test8_executor_dispatch()
             startedSignal.wait();
 
             // function object executed in-place
-            ASSERT_EQ(out.size(), static_cast<size_t>(i + 1));
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(out[i], i);
 
             // continue
             continueSignal.post();
@@ -1095,8 +1097,8 @@ static void test9_executor_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &strand2);
-    ASSERT_EQ(&ex2.context(), &strand1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &strand2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &strand1);
 }
 
 static void test10_executor_runningInThisThread()
@@ -1155,13 +1157,13 @@ static void test10_executor_runningInThisThread()
     strand.join();
 
     // the saved result is 'true'
-    ASSERT_EQ(result1, true);
-    ASSERT_EQ(result2, true);
-    ASSERT_EQ(result3, true);
+    BMQTST_ASSERT_EQ(result1, true);
+    BMQTST_ASSERT_EQ(result2, true);
+    BMQTST_ASSERT_EQ(result3, true);
 
     // when calling 'runningInThisThread' from "outside"t he result is
     // 'false'
-    ASSERT_EQ(ex.runningInThisThread(), false);
+    BMQTST_ASSERT_EQ(ex.runningInThisThread(), false);
 }
 
 static void test11_executor_context()
@@ -1185,10 +1187,10 @@ static void test11_executor_context()
     Strand               strand1(&alloc), strand2(&alloc);
 
     Strand::ExecutorType ex1 = strand1.executor();
-    ASSERT_EQ(&ex1.context(), &strand1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &strand1);
 
     Strand::ExecutorType ex2 = strand2.executor();
-    ASSERT_EQ(&ex2.context(), &strand2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &strand2);
 }
 
 // ============================================================================

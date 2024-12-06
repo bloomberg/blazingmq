@@ -67,7 +67,7 @@ static void test1_breathingTest()
 
     // bmqs::MemOutStream error(bmqtst::TestHelperUtil::allocator());
     // int rc = obj.start(error);
-    // ASSERT_EQ(rc, 0);
+    // BMQTST_ASSERT_EQ(rc, 0);
     // obj.stop();
     scheduler.stop();
 }

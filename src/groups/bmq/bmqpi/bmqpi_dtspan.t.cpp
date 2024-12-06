@@ -82,13 +82,13 @@ static void test1_breathingTest()
     bsls::ProtocolTest<DTSpanTestImp> span;
 
     PV("Verify that the protocol is abstract");
-    ASSERT(span.testAbstract());
+    BMQTST_ASSERT(span.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(span.testNoDataMembers());
+    BMQTST_ASSERT(span.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(span.testVirtualDestructor());
+    BMQTST_ASSERT(span.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
 

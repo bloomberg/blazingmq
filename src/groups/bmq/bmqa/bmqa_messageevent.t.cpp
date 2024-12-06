@@ -81,7 +81,7 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
                                         data.d_corrId,
                                         data.d_guid,
                                         data.d_queueId);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
         vec->push_back(data);
     }
 }
@@ -205,13 +205,13 @@ static void test2_ackMesageIteratorTest()
         while (i.nextMessage()) {
             const bmqa::Message* msg = &(i.message());
 
-            ASSERT_EQ(msg->correlationId(),
-                      bmqt::CorrelationId(messages[offset].d_corrId));
-            ASSERT_EQ(msg->messageGUID(), messages[offset].d_guid);
+            BMQTST_ASSERT_EQ(msg->correlationId(),
+                             bmqt::CorrelationId(messages[offset].d_corrId));
+            BMQTST_ASSERT_EQ(msg->messageGUID(), messages[offset].d_guid);
 
             ++offset;
         }
-        ASSERT_EQ(offset, k_NUM_MSGS);
+        BMQTST_ASSERT_EQ(offset, k_NUM_MSGS);
     }
 }
 
@@ -250,7 +250,7 @@ static void test3_putMessageIteratorTest()
             &messages,
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
     bmqp::Event rawEvent(builder.blob().get(),
@@ -281,17 +281,19 @@ static void test3_putMessageIteratorTest()
         while (i.nextMessage()) {
             const bmqa::Message* msg = &(i.message());
 
-            ASSERT_EQ(msg->correlationId(), bmqt::CorrelationId(offset));
+            BMQTST_ASSERT_EQ(msg->correlationId(),
+                             bmqt::CorrelationId(offset));
 
             bdlbb::Blob payload(&bufferFactory,
                                 bmqtst::TestHelperUtil::allocator());
             int         rc = msg->getData(&payload);
-            ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT_EQ(rc, 0);
             // Content isn't the same.  Length is.  Why?
-            ASSERT(payload.length() == messages[offset].d_payload.length());
+            BMQTST_ASSERT(payload.length() ==
+                          messages[offset].d_payload.length());
             ++offset;
         }
-        ASSERT_EQ(offset, k_NUM_MSGS);
+        BMQTST_ASSERT_EQ(offset, k_NUM_MSGS);
     }
 }
 

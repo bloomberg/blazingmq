@@ -102,9 +102,9 @@ static void test1_breathingTest()
     {
         // Create a GUID
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
         mqbu::MessageGUIDUtil::generateGUID(&guid);
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Export to binary representation
         unsigned char binaryBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
@@ -112,19 +112,20 @@ static void test1_breathingTest()
 
         bmqt::MessageGUID fromBinGUID;
         fromBinGUID.fromBinary(binaryBuffer);
-        ASSERT_EQ(fromBinGUID.isUnset(), false);
-        ASSERT_EQ(fromBinGUID, guid);
+        BMQTST_ASSERT_EQ(fromBinGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromBinGUID, guid);
 
         // Export to hex representation
         char hexBuffer[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(hexBuffer);
-        ASSERT_EQ(true,
-                  bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
+        BMQTST_ASSERT_EQ(
+            true,
+            bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
 
         bmqt::MessageGUID fromHexGUID;
         fromHexGUID.fromHex(hexBuffer);
-        ASSERT_EQ(fromHexGUID.isUnset(), false);
-        ASSERT_EQ(fromHexGUID, guid);
+        BMQTST_ASSERT_EQ(fromHexGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromHexGUID, guid);
     }
 
     {
@@ -135,7 +136,7 @@ static void test1_breathingTest()
         bmqt::MessageGUID guid2;
         mqbu::MessageGUIDUtil::generateGUID(&guid2);
 
-        ASSERT_NE(guid1, guid2);
+        BMQTST_ASSERT_NE(guid1, guid2);
     }
 
     {
@@ -150,7 +151,7 @@ static void test1_breathingTest()
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         myMap.insert(bsl::make_pair(guid, 1));
 
-        ASSERT_EQ(1u, myMap.count(guid));
+        BMQTST_ASSERT_EQ(1u, myMap.count(guid));
     }
 }
 
@@ -211,7 +212,7 @@ static void test2_multithread()
                                                             &threadsData[i],
                                                             &barrier,
                                                             k_NUM_GUIDS));
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
     barrier.wait();
@@ -222,7 +223,7 @@ static void test2_multithread()
     for (int tIt = 0; tIt < k_NUM_THREADS; ++tIt) {
         const bsl::vector<bmqt::MessageGUID>& guids = threadsData[tIt];
         for (int gIt = 0; gIt < k_NUM_GUIDS; ++gIt) {
-            ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
+            BMQTST_ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
         }
     }
 }
@@ -251,11 +252,11 @@ static void test3_print()
     PV("Testing printing an unset GUID");
     {
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbu::MessageGUIDUtil::print(out, guid);
-        ASSERT_EQ(out.str(), "** UNSET **");
+        BMQTST_ASSERT_EQ(out.str(), "** UNSET **");
     }
 
     PV("Test printing of a valid handcrafted GUID");
@@ -276,7 +277,7 @@ static void test3_print()
                                   "297593876864458, brokerId: CE04742D2E]";
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbu::MessageGUIDUtil::print(out, guid);
-        ASSERT_EQ(out.str(), k_EXPECTED);
+        BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
     }
 
     PV("Verify brokerId");
@@ -292,7 +293,8 @@ static void test3_print()
         // characters, and we skip the closing ']').
         bslstl::StringRef printedBrokerId =
             bslstl::StringRef(&out.str()[out.length() - 11], 10);
-        ASSERT_EQ(printedBrokerId, mqbu::MessageGUIDUtil::brokerIdHex());
+        BMQTST_ASSERT_EQ(printedBrokerId,
+                         mqbu::MessageGUIDUtil::brokerIdHex());
     }
 }
 
@@ -361,7 +363,7 @@ static void test4_defaultHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
@@ -449,7 +451,7 @@ static void test5_customHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
@@ -545,7 +547,7 @@ static void testN1_decode()
     // Make a GUID out of it
     bmqt::MessageGUID guid;
     guid.fromHex(hexGuid.c_str());
-    ASSERT_EQ(guid.isUnset(), false);
+    BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
     // Print it
     cout << "--------------------------------" << endl;
@@ -1010,7 +1012,7 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
         // Make a GUID out of it
         bmqt::MessageGUID guid;
         guid.fromHex(hexGuid.c_str());
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Print it
         cout << "--------------------------------" << endl;

@@ -62,7 +62,7 @@ static void test2_testMessageEventSizeCount()
         // Start session
         BMQA_EXPECT_CALL(session, start()).returning(0);
         const int rc = session.start();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
@@ -73,7 +73,7 @@ static void test2_testMessageEventSizeCount()
         bsl::string input("bmq://my.domain/queue",
                           bmqtst::TestHelperUtil::allocator());
         const int   rc = bmqt::UriParser::parse(&uri, &error, input);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     bmqt::CorrelationId queueCId = bmqt::CorrelationId::autoValue();
@@ -87,7 +87,7 @@ static void test2_testMessageEventSizeCount()
         const int rc = session.openQueue(&queueId,
                                          uri,
                                          bmqt::QueueFlags::e_WRITE);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     // Stage 2: populate MessageEventBuilder
@@ -95,8 +95,8 @@ static void test2_testMessageEventSizeCount()
     session.loadMessageEventBuilder(&builder);
 
     // Empty MessageEvent should contain at least its header
-    ASSERT(builder.messageEventSize() > 0);
-    ASSERT_EQ(0, builder.messageCount());
+    BMQTST_ASSERT(builder.messageEventSize() > 0);
+    BMQTST_ASSERT_EQ(0, builder.messageCount());
 
     const bsl::string payload("test payload",
                               bmqtst::TestHelperUtil::allocator());
@@ -112,16 +112,16 @@ static void test2_testMessageEventSizeCount()
 
         // Make sure that 'messageEventSize' and 'messageCount' remain the same
         // before packing the message
-        ASSERT_EQ(messageEventSizeBefore, builder.messageEventSize());
-        ASSERT_EQ(messageCountBefore, builder.messageCount());
+        BMQTST_ASSERT_EQ(messageEventSizeBefore, builder.messageEventSize());
+        BMQTST_ASSERT_EQ(messageCountBefore, builder.messageCount());
 
         builder.packMessage(queueId);
 
         // Make sure that 'messageEventSize' and 'messageCount' increase
         // after packing the message
-        ASSERT_LT(messageEventSizeBefore, builder.messageEventSize());
-        ASSERT_LT(messageCountBefore, builder.messageCount());
-        ASSERT_EQ(i, builder.messageCount());
+        BMQTST_ASSERT_LT(messageEventSizeBefore, builder.messageEventSize());
+        BMQTST_ASSERT_LT(messageCountBefore, builder.messageCount());
+        BMQTST_ASSERT_EQ(i, builder.messageCount());
     }
 
     // Stage 3: start a new message but do not pack
@@ -137,8 +137,8 @@ static void test2_testMessageEventSizeCount()
 
     // Make sure that 'messageEventSize' and 'messageCount' remain the same
     // since we do not pack the last started message
-    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
-    ASSERT_EQ(messageCountFinal, builder.messageCount());
+    BMQTST_ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    BMQTST_ASSERT_EQ(messageCountFinal, builder.messageCount());
 
     // Stage 4: build MessageEvent
     // MessageEventBuilder switches from WRITE mode to READ:
@@ -148,8 +148,8 @@ static void test2_testMessageEventSizeCount()
     }
 
     // We had non-packed Message before, make sure it was not added to the blob
-    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
-    ASSERT_EQ(messageCountFinal, builder.messageCount());
+    BMQTST_ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    BMQTST_ASSERT_EQ(messageCountFinal, builder.messageCount());
 
     // Stage 5: reset MessageEventBuilder
     // MessageEventBuilder switches from READ mode to WRITE:
@@ -157,8 +157,8 @@ static void test2_testMessageEventSizeCount()
 
     // Since we resetted the MessageEventBuilder, the currently built message
     // event is smaller than the populated one from the previous steps
-    ASSERT_LT(builder.messageEventSize(), messageEventSizeFinal);
-    ASSERT_EQ(0, builder.messageCount());
+    BMQTST_ASSERT_LT(builder.messageEventSize(), messageEventSizeFinal);
+    BMQTST_ASSERT_EQ(0, builder.messageCount());
 }
 
 // ============================================================================

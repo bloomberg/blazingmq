@@ -129,34 +129,34 @@ static void test1_breathingTest()
 
     MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(true, cmap.begin() == cmap.end());
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(true, cmap.begin() == cmap.end());
 
     map.clear();
 
-    ASSERT_EQ(0U, map.count(1));
-    ASSERT_EQ(0U, map.erase(1));
-    ASSERT_EQ(true, map.end() == map.find(1));
-    ASSERT_EQ(true, cmap.empty());
-    ASSERT_EQ(true, cmap.end() == cmap.find(1));
-    ASSERT_EQ(0U, cmap.count(1));
-    ASSERT_EQ(0U, cmap.size());
+    BMQTST_ASSERT_EQ(0U, map.count(1));
+    BMQTST_ASSERT_EQ(0U, map.erase(1));
+    BMQTST_ASSERT_EQ(true, map.end() == map.find(1));
+    BMQTST_ASSERT_EQ(true, cmap.empty());
+    BMQTST_ASSERT_EQ(true, cmap.end() == cmap.find(1));
+    BMQTST_ASSERT_EQ(0U, cmap.count(1));
+    BMQTST_ASSERT_EQ(0U, cmap.size());
 
     bsl::pair<IterType, bool> rc = map.insert(bsl::make_pair(1, s));
-    ASSERT_EQ(true, rc.first != map.end());
-    ASSERT_EQ(rc.second, true);
-    ASSERT_EQ(1U, rc.first->first);
-    ASSERT_EQ(s, rc.first->second);
-    ASSERT_EQ(1U, cmap.count(1));
+    BMQTST_ASSERT_EQ(true, rc.first != map.end());
+    BMQTST_ASSERT_EQ(rc.second, true);
+    BMQTST_ASSERT_EQ(1U, rc.first->first);
+    BMQTST_ASSERT_EQ(s, rc.first->second);
+    BMQTST_ASSERT_EQ(1U, cmap.count(1));
 
     ConstIterType cit = cmap.find(1);
-    ASSERT_EQ(true, cmap.end() != cit);
-    ASSERT_EQ(1U, cmap.size());
-    ASSERT_EQ(false, cmap.empty());
-    ASSERT_EQ(1U, map.erase(1));
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(true, cmap.begin() == cmap.end());
-    ASSERT_EQ(true, cmap.end() == cmap.find(1));
+    BMQTST_ASSERT_EQ(true, cmap.end() != cit);
+    BMQTST_ASSERT_EQ(1U, cmap.size());
+    BMQTST_ASSERT_EQ(false, cmap.empty());
+    BMQTST_ASSERT_EQ(1U, map.erase(1));
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(true, cmap.begin() == cmap.end());
+    BMQTST_ASSERT_EQ(true, cmap.end() == cmap.find(1));
 }
 
 static void test2_impDetails_nextPrime()
@@ -190,11 +190,11 @@ static void test2_impDetails_nextPrime()
             break;  // RETURN
         }
 
-        ASSERT_EQ(isPrime(currPrime), true);
-        ASSERT_GT(currPrime, prevPrime);
+        BMQTST_ASSERT_EQ(isPrime(currPrime), true);
+        BMQTST_ASSERT_GT(currPrime, prevPrime);
     }
 
-    ASSERT_EQ(lastPrime, 0U);
+    BMQTST_ASSERT_EQ(lastPrime, 0U);
 }
 
 static void test3_insert()
@@ -229,23 +229,23 @@ static void test3_insert()
     // Insert 1M elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
-        ASSERT_EQ_D(i, true, rc.second);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, (i + 1), rc.first->second);
-        ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
+        BMQTST_ASSERT_EQ_D(i, true, rc.second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
 
-    ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
+    BMQTST_ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
 
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
         size_t           i    = 0;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
-            ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             ++i;
         }
     }
@@ -256,14 +256,14 @@ static void test3_insert()
         size_t           i    = k_NUM_ELEMENTS - 1;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
-            ASSERT_EQ_D(i, true, i > 0);
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, true, i > 0);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             --i;
         }
-        ASSERT_EQ(true, cit == cmap.begin());
-        ASSERT_EQ(cit->first, i);
-        ASSERT_EQ(cit->second, (i + 1));
+        BMQTST_ASSERT_EQ(true, cit == cmap.begin());
+        BMQTST_ASSERT_EQ(cit->first, i);
+        BMQTST_ASSERT_EQ(cit->second, (i + 1));
     }
 }
 
@@ -300,22 +300,22 @@ static void test4_rinsert()
     // Insert 1M elements
     for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.rinsert(bsl::make_pair(i, i + 1));
-        ASSERT_EQ_D(i, true, rc.second);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, (i + 1), rc.first->second);
-        ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
+        BMQTST_ASSERT_EQ_D(i, true, rc.second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
 
-    ASSERT_EQ(map.size(), static_cast<size_t>(k_NUM_ELEMENTS));
+    BMQTST_ASSERT_EQ(map.size(), static_cast<size_t>(k_NUM_ELEMENTS));
 
     // Iterate and confirm
     {
         const MyMapType& cmap = map;
         int              i    = k_NUM_ELEMENTS - 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             --i;
         }
     }
@@ -326,14 +326,14 @@ static void test4_rinsert()
         int              i    = 0;
         ConstIterType    cit  = --(cmap.end());  // last element
         for (; cit != cmap.begin(); --cit) {
-            ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             ++i;
         }
-        ASSERT_EQ(true, cit == cmap.begin());
-        ASSERT_EQ(i, cit->first);
-        ASSERT_EQ(cit->second, (i + 1));
+        BMQTST_ASSERT_EQ(true, cit == cmap.begin());
+        BMQTST_ASSERT_EQ(i, cit->first);
+        BMQTST_ASSERT_EQ(cit->second, (i + 1));
     }
 }
 
@@ -358,10 +358,10 @@ static void test5_insertEraseInsert()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, (i + 1), rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
     }
 
     // Iterate and confirm
@@ -369,21 +369,21 @@ static void test5_insertEraseInsert()
         const MyMapType& cmap = map;
         size_t           i    = 0;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
-            ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             ++i;
         }
     }
 
     // Erase few elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; i += k_STEP) {
-        ASSERT_EQ_D(i, 1U, map.erase(i));
+        BMQTST_ASSERT_EQ_D(i, 1U, map.erase(i));
     }
 
     // Find erased elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; i += k_STEP) {
-        ASSERT_EQ_D(i, true, map.end() == map.find(i));
+        BMQTST_ASSERT_EQ_D(i, true, map.end() == map.find(i));
     }
 
     // Iterate and confirm
@@ -391,9 +391,9 @@ static void test5_insertEraseInsert()
         const MyMapType& cmap = map;
         size_t           i    = 1;
         for (ConstIterType cit = cmap.begin(); cit != cmap.end(); ++cit) {
-            ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
-            ASSERT_EQ_D(i, i, cit->first);
-            ASSERT_EQ_D(i, (i + 1), cit->second);
+            BMQTST_ASSERT_EQ_D(i, true, i < k_NUM_ELEMENTS);
+            BMQTST_ASSERT_EQ_D(i, i, cit->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), cit->second);
             ++i;
             if (i % k_STEP == 0) {
                 ++i;
@@ -404,10 +404,10 @@ static void test5_insertEraseInsert()
     // Insert elements which were erased earlier
     for (size_t i = 0; i < k_NUM_ELEMENTS; i += k_STEP) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
-        ASSERT_EQ_D(i, true, rc.second);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, (i + 1), rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
     }
 
     // Iterate and confirm
@@ -417,9 +417,9 @@ static void test5_insertEraseInsert()
 
         // Iterate over original elements
         for (; it != map.end(); ++it) {
-            ASSERT_EQ_D(i, true, it != map.end());
-            ASSERT_EQ_D(i, i, it->first);
-            ASSERT_EQ_D(i, (i + 1), it->second);
+            BMQTST_ASSERT_EQ_D(i, true, it != map.end());
+            BMQTST_ASSERT_EQ_D(i, i, it->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), it->second);
             if (it->first == (k_NUM_ELEMENTS - 1)) {
                 ++it;
                 break;
@@ -432,13 +432,13 @@ static void test5_insertEraseInsert()
 
         // Iterate ove elements inserted after erase operation
         for (i = 0; i < k_NUM_ELEMENTS; i += k_STEP) {
-            ASSERT_EQ_D(i, true, it != map.end());
-            ASSERT_EQ_D(i, i, it->first);
-            ASSERT_EQ_D(i, (i + 1), it->second);
+            BMQTST_ASSERT_EQ_D(i, true, it != map.end());
+            BMQTST_ASSERT_EQ_D(i, i, it->first);
+            BMQTST_ASSERT_EQ_D(i, (i + 1), it->second);
             ++it;
         }
 
-        ASSERT_EQ(true, it == map.end());
+        BMQTST_ASSERT_EQ(true, it == map.end());
     }
 }
 
@@ -455,37 +455,37 @@ static void test6_clear()
     typedef bsl::pair<IterType, bool>      RcType;
 
     MyMapType map(bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(true, map.empty());
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(0U, map.size());
-    ASSERT_EQ(true, map.load_factor() == 0.0);
+    BMQTST_ASSERT_EQ(true, map.empty());
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(0U, map.size());
+    BMQTST_ASSERT_EQ(true, map.load_factor() == 0.0);
 
     map.clear();
-    ASSERT_EQ(true, map.empty());
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(0U, map.size());
-    ASSERT_EQ(true, map.load_factor() == 0.0);
+    BMQTST_ASSERT_EQ(true, map.empty());
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(0U, map.size());
+    BMQTST_ASSERT_EQ(true, map.load_factor() == 0.0);
 
     const int k_NUM_ELEMENTS = 100;
 
     // Insert elements
     for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, (i + 1), rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
     }
 
-    ASSERT_EQ(false, map.empty());
-    ASSERT_EQ(true, map.begin() != map.end());
-    ASSERT_EQ(static_cast<int>(k_NUM_ELEMENTS), map.size());
+    BMQTST_ASSERT_EQ(false, map.empty());
+    BMQTST_ASSERT_EQ(true, map.begin() != map.end());
+    BMQTST_ASSERT_EQ(static_cast<int>(k_NUM_ELEMENTS), map.size());
 
     map.clear();
-    ASSERT_EQ(true, map.empty());
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(0U, map.size());
-    ASSERT_EQ(true, map.load_factor() == 0.0);
+    BMQTST_ASSERT_EQ(true, map.empty());
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(0U, map.size());
+    BMQTST_ASSERT_EQ(true, map.load_factor() == 0.0);
 }
 
 static void test7_erase()
@@ -507,10 +507,10 @@ static void test7_erase()
     // Insert elements
     for (int i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, i, rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
     }
 
     const MyMapType& cmap = map;
@@ -519,8 +519,8 @@ static void test7_erase()
         map.erase(cit++);
     }
 
-    ASSERT_EQ(0U, map.size());
-    ASSERT_EQ(true, map.empty());
+    BMQTST_ASSERT_EQ(0U, map.size());
+    BMQTST_ASSERT_EQ(true, map.empty());
 }
 
 static void test8_eraseClear()
@@ -545,11 +545,11 @@ static void test8_eraseClear()
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(
             bsl::make_pair(TestKeyType(i), TestValueType(i)));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
     }
 
-    ASSERT_EQ(k_NUM_ELEMENTS, map.size());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS, map.size());
 
     // Reset static counters
     TestKeyType::s_numDeletions   = 0;
@@ -560,8 +560,8 @@ static void test8_eraseClear()
         map.erase(it++);
     }
 
-    ASSERT_EQ(TestKeyType::s_numDeletions, k_NUM_ELEMENTS);
-    ASSERT_EQ(TestValueType::s_numDeletions, k_NUM_ELEMENTS);
+    BMQTST_ASSERT_EQ(TestKeyType::s_numDeletions, k_NUM_ELEMENTS);
+    BMQTST_ASSERT_EQ(TestValueType::s_numDeletions, k_NUM_ELEMENTS);
 }
 
 static void test9_insertFailure()
@@ -586,15 +586,15 @@ static void test9_insertFailure()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, true, rc.second);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, true, rc.second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
     }
 
     // insert same keys again
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, false);
-        ASSERT_EQ_D(i, true, rc.first == map.find(i));
+        BMQTST_ASSERT_EQ_D(i, rc.second, false);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first == map.find(i));
     }
 }
 
@@ -619,23 +619,23 @@ static void test10_erasureIterator()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
     }
 
     // Find
     IterType iter = map.find(9000);
-    ASSERT_EQ(true, iter != map.end());
-    ASSERT_EQ(iter->first, 9000U);
+    BMQTST_ASSERT_EQ(true, iter != map.end());
+    BMQTST_ASSERT_EQ(iter->first, 9000U);
 
     // erase
     IterType it = map.erase(iter);
-    ASSERT_EQ(true, it != map.end());
-    ASSERT_EQ(true, it == map.find(9001));
+    BMQTST_ASSERT_EQ(true, it != map.end());
+    BMQTST_ASSERT_EQ(true, it == map.find(9001));
 
     size_t i = 9001;
     for (; it != map.end(); ++it) {
-        ASSERT_EQ_D(i, i, it->first);
+        BMQTST_ASSERT_EQ_D(i, i, it->first);
         ++i;
     }
 }
@@ -668,8 +668,8 @@ static void test11_copyConstructor()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = m1p->insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != m1p->end());
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != m1p->end());
     }
 
     MyMapType m2(*m1p, bmqtst::TestHelperUtil::allocator());
@@ -677,8 +677,8 @@ static void test11_copyConstructor()
     // Iterate and confirm
     size_t i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
-        ASSERT_EQ_D(i, cit->first, i);
-        ASSERT_EQ_D(i, cit->second, i);
+        BMQTST_ASSERT_EQ_D(i, cit->first, i);
+        BMQTST_ASSERT_EQ_D(i, cit->second, i);
         ++i;
     }
 
@@ -687,8 +687,8 @@ static void test11_copyConstructor()
 
     i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
-        ASSERT_EQ_D(i, cit->first, i);
-        ASSERT_EQ_D(i, cit->second, i);
+        BMQTST_ASSERT_EQ_D(i, cit->first, i);
+        BMQTST_ASSERT_EQ_D(i, cit->second, i);
         ++i;
     }
 }
@@ -722,8 +722,8 @@ static void test12_assignmentOperator()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = m1p->insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != m1p->end());
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != m1p->end());
     }
 
     MyMapType m2(bmqtst::TestHelperUtil::allocator());
@@ -731,8 +731,8 @@ static void test12_assignmentOperator()
     // Insert elements
     for (size_t i = k_NUM_ELEMENTS; i > 0; --i) {
         RcType rc = m2.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != m2.end());
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != m2.end());
     }
 
     m2 = *m1p;
@@ -740,8 +740,8 @@ static void test12_assignmentOperator()
     // Iterate and confirm
     size_t i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
-        ASSERT_EQ_D(i, cit->first, i);
-        ASSERT_EQ_D(i, cit->second, i);
+        BMQTST_ASSERT_EQ_D(i, cit->first, i);
+        BMQTST_ASSERT_EQ_D(i, cit->second, i);
         ++i;
     }
 
@@ -749,8 +749,8 @@ static void test12_assignmentOperator()
     bmqtst::TestHelperUtil::allocator()->deleteObject(m1p);
     i = 0;
     for (ConstIterType cit = m2.begin(); cit != m2.end(); ++cit) {
-        ASSERT_EQ_D(i, cit->first, i);
-        ASSERT_EQ_D(i, cit->second, i);
+        BMQTST_ASSERT_EQ_D(i, cit->first, i);
+        BMQTST_ASSERT_EQ_D(i, cit->second, i);
         ++i;
     }
 }
@@ -773,9 +773,9 @@ static void test13_previousEndIterator()
 
     MyMapType        map(bmqtst::TestHelperUtil::allocator());
     const MyMapType& cmap = map;
-    ASSERT_EQ(true, map.begin() == map.end());
-    ASSERT_EQ(true, cmap.begin() == cmap.end());
-    ASSERT_EQ(true, cmap.empty());
+    BMQTST_ASSERT_EQ(true, map.begin() == map.end());
+    BMQTST_ASSERT_EQ(true, cmap.begin() == cmap.end());
+    BMQTST_ASSERT_EQ(true, cmap.empty());
 
     IterType      endIt  = map.end();
     ConstIterType endCit = cmap.end();
@@ -783,41 +783,41 @@ static void test13_previousEndIterator()
     int                       i  = 0;
     bsl::pair<IterType, bool> rc = map.insert(bsl::make_pair(i, i * i));
 
-    ASSERT_EQ(true, rc.first == endIt);
-    ASSERT_EQ(true, rc.first == endCit);
+    BMQTST_ASSERT_EQ(true, rc.first == endIt);
+    BMQTST_ASSERT_EQ(true, rc.first == endCit);
 
-    ASSERT_EQ(i, endIt->first);
-    ASSERT_EQ((i * i), endIt->second);
+    BMQTST_ASSERT_EQ(i, endIt->first);
+    BMQTST_ASSERT_EQ((i * i), endIt->second);
 
     ++i;
     for (; i < 10000; ++i) {
         endIt = map.end();
         rc    = map.insert(bsl::make_pair(i, i * i));
-        ASSERT_EQ_D(i, true, rc.first == endIt);
-        ASSERT_EQ_D(i, i, endIt->first);
-        ASSERT_EQ_D(i, (i * i), endIt->second);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first == endIt);
+        BMQTST_ASSERT_EQ_D(i, i, endIt->first);
+        BMQTST_ASSERT_EQ_D(i, (i * i), endIt->second);
     }
 
     // Erase last element
     map.erase(i - 1);
-    ASSERT_EQ((i - 2), (--map.end())->first);
+    BMQTST_ASSERT_EQ((i - 2), (--map.end())->first);
     endIt = map.end();
     ++i;
     rc = map.insert(bsl::make_pair(i, i * i));
-    ASSERT_EQ(true, rc.first == endIt);
-    ASSERT_EQ(i, endIt->first);
-    ASSERT_EQ((i * i), endIt->second);
+    BMQTST_ASSERT_EQ(true, rc.first == endIt);
+    BMQTST_ASSERT_EQ(i, endIt->first);
+    BMQTST_ASSERT_EQ((i * i), endIt->second);
 
     // rinsert an element, which doesn't affect end().
     ++i;
     endIt = map.end();
     rc    = map.rinsert(bsl::make_pair(i, i * i));
-    ASSERT_EQ(true, endIt == map.end());
+    BMQTST_ASSERT_EQ(true, endIt == map.end());
     ++i;
     rc = map.insert(bsl::make_pair(i, i * i));
-    ASSERT_EQ(true, endIt == rc.first);
-    ASSERT_EQ(i, endIt->first);
-    ASSERT_EQ((i * i), endIt->second);
+    BMQTST_ASSERT_EQ(true, endIt == rc.first);
+    BMQTST_ASSERT_EQ(i, endIt->first);
+    BMQTST_ASSERT_EQ((i * i), endIt->second);
 }
 
 static void test14_localIterator()
@@ -853,20 +853,20 @@ static void test14_localIterator()
     LocalIterType localIt    = map.begin(bucket);
     LocalIterType localEndIt = map.end(bucket);
 
-    ASSERT_EQ(false, localIt == localEndIt);
-    ASSERT_EQ(localIt->first, key);
-    ASSERT_EQ(localIt->second, key * key);
+    BMQTST_ASSERT_EQ(false, localIt == localEndIt);
+    BMQTST_ASSERT_EQ(localIt->first, key);
+    BMQTST_ASSERT_EQ(localIt->second, key * key);
     ++localIt;
-    ASSERT_EQ(true, localIt == localEndIt);
+    BMQTST_ASSERT_EQ(true, localIt == localEndIt);
 
     ConstLocalIterType cLocalIt    = cmap.begin(bucket);
     ConstLocalIterType cLocalEndIt = cmap.end(bucket);
 
-    ASSERT_EQ(false, cLocalIt == cLocalEndIt);
-    ASSERT_EQ(cLocalIt->first, key);
-    ASSERT_EQ(cLocalIt->second, key * key);
+    BMQTST_ASSERT_EQ(false, cLocalIt == cLocalEndIt);
+    BMQTST_ASSERT_EQ(cLocalIt->first, key);
+    BMQTST_ASSERT_EQ(cLocalIt->second, key * key);
     ++cLocalIt;
-    ASSERT_EQ(true, cLocalIt == cLocalEndIt);
+    BMQTST_ASSERT_EQ(true, cLocalIt == cLocalEndIt);
 
     // Add keys such that they all map to same bucket in the table, while
     // ensuring that table is not rehashed.
@@ -880,8 +880,8 @@ static void test14_localIterator()
 
     key = originalKey;
     for (; localIt != localEndIt; ++localIt, key += bucketCount) {
-        ASSERT_EQ(localIt->first, key);
-        ASSERT_EQ(localIt->second, key * key);
+        BMQTST_ASSERT_EQ(localIt->first, key);
+        BMQTST_ASSERT_EQ(localIt->second, key * key);
     }
 }
 
@@ -917,37 +917,41 @@ static void test15_eraseRange()
     // Insert elements
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i));
-        ASSERT_EQ_D(i, rc.second, true);
-        ASSERT_EQ_D(i, true, rc.first != map.end());
-        ASSERT_EQ_D(i, i, rc.first->first);
-        ASSERT_EQ_D(i, i, rc.first->second);
+        BMQTST_ASSERT_EQ_D(i, rc.second, true);
+        BMQTST_ASSERT_EQ_D(i, true, rc.first != map.end());
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+        BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
     }
 
-    ASSERT_EQ(k_NUM_ELEMENTS, map.size());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS, map.size());
 
-    ASSERT(map.erase(map.begin(), map.begin()) == map.begin());
-    ASSERT_EQ(k_NUM_ELEMENTS, map.size());
+    BMQTST_ASSERT(map.erase(map.begin(), map.begin()) == map.begin());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS, map.size());
 
-    ASSERT(map.erase(map.end(), map.end()) == map.end());
-    ASSERT_EQ(k_NUM_ELEMENTS, map.size());
+    BMQTST_ASSERT(map.erase(map.end(), map.end()) == map.end());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS, map.size());
 
     ConstIterType second = ++map.begin();
-    ASSERT(map.erase(map.begin(), second) == second);
-    ASSERT(map.begin() == second);
-    ASSERT_EQ(k_NUM_ELEMENTS - 1, map.size());
-    ASSERT_EQ_D(1, 1U, map.begin()->first);
-    ASSERT_EQ_D(1, 1U, map.begin()->second);
+    BMQTST_ASSERT(map.erase(map.begin(), second) == second);
+    BMQTST_ASSERT(map.begin() == second);
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS - 1, map.size());
+    BMQTST_ASSERT_EQ_D(1, 1U, map.begin()->first);
+    BMQTST_ASSERT_EQ_D(1, 1U, map.begin()->second);
 
-    ASSERT(map.erase(--map.end(), map.end()) == map.end());
-    ASSERT_EQ(k_NUM_ELEMENTS - 2, map.size());
-    ASSERT_EQ_D(k_NUM_ELEMENTS - 2, k_NUM_ELEMENTS - 2, (--map.end())->first);
-    ASSERT_EQ_D(k_NUM_ELEMENTS - 2, k_NUM_ELEMENTS - 2, (--map.end())->second);
+    BMQTST_ASSERT(map.erase(--map.end(), map.end()) == map.end());
+    BMQTST_ASSERT_EQ(k_NUM_ELEMENTS - 2, map.size());
+    BMQTST_ASSERT_EQ_D(k_NUM_ELEMENTS - 2,
+                       k_NUM_ELEMENTS - 2,
+                       (--map.end())->first);
+    BMQTST_ASSERT_EQ_D(k_NUM_ELEMENTS - 2,
+                       k_NUM_ELEMENTS - 2,
+                       (--map.end())->second);
 
-    ASSERT(map.erase(map.begin(), map.end()) == map.end());
+    BMQTST_ASSERT(map.erase(map.begin(), map.end()) == map.end());
 
-    ASSERT_EQ(0U, map.size());
+    BMQTST_ASSERT_EQ(0U, map.size());
 
-    ASSERT_EQ(true, map.empty());
+    BMQTST_ASSERT_EQ(true, map.empty());
 }
 
 BSLA_MAYBE_UNUSED
@@ -1028,8 +1032,8 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceOrdered()
         // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
-            ASSERT_EQ_D(i, i, rc.first->first);
-            ASSERT_EQ_D(i, i, rc.first->second);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
 
         // Iterate and erase
@@ -1066,8 +1070,8 @@ BSLA_MAYBE_UNUSED static void testN2_erasePerformanceUnordered()
         // Insert 1M elements
         for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
-            ASSERT_EQ_D(i, i, rc.first->first);
-            ASSERT_EQ_D(i, i, rc.first->second);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
 
         // Iterate and erase
@@ -1156,8 +1160,8 @@ testN2_erasePerformanceUnordered_GoogleBenchmark(benchmark::State& state)
         state.PauseTiming();
         for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
-            ASSERT_EQ_D(i, i, rc.first->first);
-            ASSERT_EQ_D(i, i, rc.first->second);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
         // Iterate and erase
         IterType it = map.begin();
@@ -1186,8 +1190,8 @@ testN2_erasePerformanceOrdered_GoogleBenchmark(benchmark::State& state)
         state.PauseTiming();
         for (size_t i = 0; i < static_cast<size_t>(state.range(0)); ++i) {
             RcType rc = map.insert(bsl::make_pair(i, i));
-            ASSERT_EQ_D(i, i, rc.first->first);
-            ASSERT_EQ_D(i, i, rc.first->second);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->first);
+            BMQTST_ASSERT_EQ_D(i, i, rc.first->second);
         }
         // Iterate and erase
         IterType it = map.begin();

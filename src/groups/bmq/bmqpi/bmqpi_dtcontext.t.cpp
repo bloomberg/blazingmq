@@ -94,13 +94,13 @@ static void test1_breathingTest()
     bsls::ProtocolTest<DTContextTestImp> context;
 
     PV("Verify that the protocol is abstract");
-    ASSERT(context.testAbstract());
+    BMQTST_ASSERT(context.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(context.testNoDataMembers());
+    BMQTST_ASSERT(context.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(context.testVirtualDestructor());
+    BMQTST_ASSERT(context.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
 

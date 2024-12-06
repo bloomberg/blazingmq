@@ -198,7 +198,7 @@ static void test0_usageExample()
     map.insert("first", 1, "Hello");
 
     // size
-    ASSERT_EQ(map.size(), 1u);
+    BMQTST_ASSERT_EQ(map.size(), 1u);
 
     bsl::pair<TestMap::iterator, TestMap::InsertResult> p =
         map.insert("second", 2, "World");
@@ -206,7 +206,7 @@ static void test0_usageExample()
     BSLS_ASSERT(p.first != map.end());
 
     // size
-    ASSERT_EQ(map.size(), 2u);
+    BMQTST_ASSERT_EQ(map.size(), 2u);
 
     // find elements using 'findByKey()' methods
     {
@@ -250,9 +250,9 @@ static void test0_usageExample()
     // clearing the map
     {
         map.clear();
-        ASSERT_EQ(map.size(), 0u);
-        ASSERT(map.begin() == map.end());
-        ASSERT(map.begin() == map.end());
+        BMQTST_ASSERT_EQ(map.size(), 0u);
+        BMQTST_ASSERT(map.begin() == map.end());
+        BMQTST_ASSERT(map.begin() == map.end());
     }
 }
 
@@ -295,12 +295,12 @@ static void test1_basicCreators()
         bmqc::TwoKeyHashMap<int, int, int, TestHasher<int>, TestHasher<int> >
             map(&alloc);
 
-        ASSERT_EQ(map.empty(), true);
-        ASSERT_EQ(map.size(), 0u);
-        ASSERT_EQ(map.begin() == map.end(), true);
-        ASSERT_EQ(map.hash1().id(), 0);
-        ASSERT_EQ(map.hash2().id(), 0);
-        ASSERT_EQ(map.allocator() == &alloc, true);
+        BMQTST_ASSERT_EQ(map.empty(), true);
+        BMQTST_ASSERT_EQ(map.size(), 0u);
+        BMQTST_ASSERT_EQ(map.begin() == map.end(), true);
+        BMQTST_ASSERT_EQ(map.hash1().id(), 0);
+        BMQTST_ASSERT_EQ(map.hash2().id(), 0);
+        BMQTST_ASSERT_EQ(map.allocator() == &alloc, true);
     }
 
     // 3. one-hasher constructor
@@ -308,12 +308,12 @@ static void test1_basicCreators()
         bmqc::TwoKeyHashMap<int, int, int, TestHasher<int>, TestHasher<int> >
             map(TestHasher<int>(1), &alloc);
 
-        ASSERT_EQ(map.empty(), true);
-        ASSERT_EQ(map.size(), 0u);
-        ASSERT_EQ(map.begin() == map.end(), true);
-        ASSERT_EQ(map.hash1().id(), 1);
-        ASSERT_EQ(map.hash2().id(), 0);
-        ASSERT_EQ(map.allocator() == &alloc, true);
+        BMQTST_ASSERT_EQ(map.empty(), true);
+        BMQTST_ASSERT_EQ(map.size(), 0u);
+        BMQTST_ASSERT_EQ(map.begin() == map.end(), true);
+        BMQTST_ASSERT_EQ(map.hash1().id(), 1);
+        BMQTST_ASSERT_EQ(map.hash2().id(), 0);
+        BMQTST_ASSERT_EQ(map.allocator() == &alloc, true);
     }
 
     // 4. two-hasher constructor
@@ -321,12 +321,12 @@ static void test1_basicCreators()
         bmqc::TwoKeyHashMap<int, int, int, TestHasher<int>, TestHasher<int> >
             map(TestHasher<int>(1), TestHasher<int>(2), &alloc);
 
-        ASSERT_EQ(map.empty(), true);
-        ASSERT_EQ(map.size(), 0u);
-        ASSERT_EQ(map.begin() == map.end(), true);
-        ASSERT_EQ(map.hash1().id(), 1);
-        ASSERT_EQ(map.hash2().id(), 2);
-        ASSERT_EQ(map.allocator() == &alloc, true);
+        BMQTST_ASSERT_EQ(map.empty(), true);
+        BMQTST_ASSERT_EQ(map.size(), 0u);
+        BMQTST_ASSERT_EQ(map.begin() == map.end(), true);
+        BMQTST_ASSERT_EQ(map.hash1().id(), 1);
+        BMQTST_ASSERT_EQ(map.hash2().id(), 2);
+        BMQTST_ASSERT_EQ(map.allocator() == &alloc, true);
     }
 }
 
@@ -374,13 +374,13 @@ static void test2_copyAndMove()
     original.insert(4, "forth", "value4");
     original.insert(5, "fifth", "value5");
 
-    ASSERT_EQ(original.size(), 5u);
-    ASSERT_EQ(original.findByKey1(1) != original.end() &&
-                  original.findByKey1(2) != original.end() &&
-                  original.findByKey1(3) != original.end() &&
-                  original.findByKey1(4) != original.end() &&
-                  original.findByKey1(5) != original.end(),
-              true);
+    BMQTST_ASSERT_EQ(original.size(), 5u);
+    BMQTST_ASSERT_EQ(original.findByKey1(1) != original.end() &&
+                         original.findByKey1(2) != original.end() &&
+                         original.findByKey1(3) != original.end() &&
+                         original.findByKey1(4) != original.end() &&
+                         original.findByKey1(5) != original.end(),
+                     true);
 
     // 1. copy construction
     {
@@ -388,27 +388,27 @@ static void test2_copyAndMove()
         Map copy(original, &alloc);
 
         // the copy's contents is identical to original's
-        ASSERT_EQ(copy.size(), 5u);
+        BMQTST_ASSERT_EQ(copy.size(), 5u);
 
-        ASSERT_EQ(copy.findByKey1(1) != copy.end() &&
-                      *original.findByKey1(1) == *copy.findByKey1(1),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(1) != copy.end() &&
+                             *original.findByKey1(1) == *copy.findByKey1(1),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(2) != copy.end() &&
-                      *original.findByKey1(2) == *copy.findByKey1(2),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(2) != copy.end() &&
+                             *original.findByKey1(2) == *copy.findByKey1(2),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(3) != copy.end() &&
-                      *original.findByKey1(3) == *copy.findByKey1(3),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(3) != copy.end() &&
+                             *original.findByKey1(3) == *copy.findByKey1(3),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(4) != copy.end() &&
-                      *original.findByKey1(4) == *copy.findByKey1(4),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(4) != copy.end() &&
+                             *original.findByKey1(4) == *copy.findByKey1(4),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(5) != copy.end() &&
-                      *original.findByKey1(5) == *copy.findByKey1(5),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(5) != copy.end() &&
+                             *original.findByKey1(5) == *copy.findByKey1(5),
+                         true);
     }
 
     // 2. move construction
@@ -420,27 +420,27 @@ static void test2_copyAndMove()
         Map movedTo(bslmf::MovableRefUtil::move(movedFrom), &alloc);
 
         // the moved-to object contents is identical to original's
-        ASSERT_EQ(movedTo.size(), 5u);
+        BMQTST_ASSERT_EQ(movedTo.size(), 5u);
 
-        ASSERT_EQ(movedTo.findByKey1(1) != movedTo.end() &&
-                      *original.findByKey1(1) == *movedTo.findByKey1(1),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(1) != movedTo.end() &&
+                             *original.findByKey1(1) == *movedTo.findByKey1(1),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(2) != movedTo.end() &&
-                      *original.findByKey1(2) == *movedTo.findByKey1(2),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(2) != movedTo.end() &&
+                             *original.findByKey1(2) == *movedTo.findByKey1(2),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(3) != movedTo.end() &&
-                      *original.findByKey1(3) == *movedTo.findByKey1(3),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(3) != movedTo.end() &&
+                             *original.findByKey1(3) == *movedTo.findByKey1(3),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(4) != movedTo.end() &&
-                      *original.findByKey1(4) == *movedTo.findByKey1(4),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(4) != movedTo.end() &&
+                             *original.findByKey1(4) == *movedTo.findByKey1(4),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(5) != movedTo.end() &&
-                      *original.findByKey1(5) == *movedTo.findByKey1(5),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(5) != movedTo.end() &&
+                             *original.findByKey1(5) == *movedTo.findByKey1(5),
+                         true);
     }
 
     // 3. copy assignment
@@ -450,33 +450,33 @@ static void test2_copyAndMove()
         // insert elements into copy
         copy.insert(1, "first", "value1");
         copy.insert(999, "999-th", "value999");
-        ASSERT_EQ(copy.size(), 2u);
+        BMQTST_ASSERT_EQ(copy.size(), 2u);
 
         // do copy
         copy = original;
 
         // the copy's contents is identical to original's
-        ASSERT_EQ(copy.size(), 5u);
+        BMQTST_ASSERT_EQ(copy.size(), 5u);
 
-        ASSERT_EQ(copy.findByKey1(1) != copy.end() &&
-                      *original.findByKey1(1) == *copy.findByKey1(1),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(1) != copy.end() &&
+                             *original.findByKey1(1) == *copy.findByKey1(1),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(2) != copy.end() &&
-                      *original.findByKey1(2) == *copy.findByKey1(2),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(2) != copy.end() &&
+                             *original.findByKey1(2) == *copy.findByKey1(2),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(3) != copy.end() &&
-                      *original.findByKey1(3) == *copy.findByKey1(3),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(3) != copy.end() &&
+                             *original.findByKey1(3) == *copy.findByKey1(3),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(4) != copy.end() &&
-                      *original.findByKey1(4) == *copy.findByKey1(4),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(4) != copy.end() &&
+                             *original.findByKey1(4) == *copy.findByKey1(4),
+                         true);
 
-        ASSERT_EQ(copy.findByKey1(5) != copy.end() &&
-                      *original.findByKey1(5) == *copy.findByKey1(5),
-                  true);
+        BMQTST_ASSERT_EQ(copy.findByKey1(5) != copy.end() &&
+                             *original.findByKey1(5) == *copy.findByKey1(5),
+                         true);
     }
 
     // 4. move assignment
@@ -489,33 +489,33 @@ static void test2_copyAndMove()
         // insert elements into 'movedTo'
         movedTo.insert(1, "first", "value1");
         movedTo.insert(999, "999-th", "value999");
-        ASSERT_EQ(movedTo.size(), 2u);
+        BMQTST_ASSERT_EQ(movedTo.size(), 2u);
 
         // do move
         movedTo = bslmf::MovableRefUtil::move(movedFrom);
 
         // the moved-to object contents is identical to original's
-        ASSERT_EQ(movedTo.size(), 5u);
+        BMQTST_ASSERT_EQ(movedTo.size(), 5u);
 
-        ASSERT_EQ(movedTo.findByKey1(1) != movedTo.end() &&
-                      *original.findByKey1(1) == *movedTo.findByKey1(1),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(1) != movedTo.end() &&
+                             *original.findByKey1(1) == *movedTo.findByKey1(1),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(2) != movedTo.end() &&
-                      *original.findByKey1(2) == *movedTo.findByKey1(2),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(2) != movedTo.end() &&
+                             *original.findByKey1(2) == *movedTo.findByKey1(2),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(3) != movedTo.end() &&
-                      *original.findByKey1(3) == *movedTo.findByKey1(3),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(3) != movedTo.end() &&
+                             *original.findByKey1(3) == *movedTo.findByKey1(3),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(4) != movedTo.end() &&
-                      *original.findByKey1(4) == *movedTo.findByKey1(4),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(4) != movedTo.end() &&
+                             *original.findByKey1(4) == *movedTo.findByKey1(4),
+                         true);
 
-        ASSERT_EQ(movedTo.findByKey1(5) != movedTo.end() &&
-                      *original.findByKey1(5) == *movedTo.findByKey1(5),
-                  true);
+        BMQTST_ASSERT_EQ(movedTo.findByKey1(5) != movedTo.end() &&
+                             *original.findByKey1(5) == *movedTo.findByKey1(5),
+                         true);
     }
 }
 
@@ -585,16 +585,16 @@ static void test3_insert()
         Map::iterator     iterator1 = pair1.first;
 
         // element inserted
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(result1, Map::e_INSERTED);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(result1, Map::e_INSERTED);
 
         // returned iterator refers to the inserted element and is bound to the
         // first key
-        ASSERT_EQ(iterator1 == map.end(), false);
-        ASSERT_EQ(iterator1.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator1->key1(), 1);
-        ASSERT_EQ(iterator1->key2(), "first");
-        ASSERT_EQ(iterator1->value(), "value1");
+        BMQTST_ASSERT_EQ(iterator1 == map.end(), false);
+        BMQTST_ASSERT_EQ(iterator1.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(iterator1->key1(), 1);
+        BMQTST_ASSERT_EQ(iterator1->key2(), "first");
+        BMQTST_ASSERT_EQ(iterator1->value(), "value1");
 
         // insert second element
         InsertPair pair2 =
@@ -604,22 +604,22 @@ static void test3_insert()
         Map::iterator     iterator2 = pair2.first;
 
         // element inserted
-        ASSERT_EQ(map.size(), 2u);
-        ASSERT_EQ(result2, Map::e_INSERTED);
+        BMQTST_ASSERT_EQ(map.size(), 2u);
+        BMQTST_ASSERT_EQ(result2, Map::e_INSERTED);
 
         // returned iterator refers to the inserted element and is bound to the
         // second key
-        ASSERT_EQ(iterator2 == map.end(), false);
-        ASSERT_EQ(iterator2.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator2->key1(), 2);
-        ASSERT_EQ(iterator2->key2(), "second");
-        ASSERT_EQ(iterator2->value(), "value2");
+        BMQTST_ASSERT_EQ(iterator2 == map.end(), false);
+        BMQTST_ASSERT_EQ(iterator2.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(iterator2->key1(), 2);
+        BMQTST_ASSERT_EQ(iterator2->key2(), "second");
+        BMQTST_ASSERT_EQ(iterator2->value(), "value2");
 
         // the first element is intact
-        ASSERT_EQ(map.size(), 2u);
-        ASSERT_EQ(iterator1->key1(), 1);
-        ASSERT_EQ(iterator1->key2(), "first");
-        ASSERT_EQ(iterator1->value(), "value1");
+        BMQTST_ASSERT_EQ(map.size(), 2u);
+        BMQTST_ASSERT_EQ(iterator1->key1(), 1);
+        BMQTST_ASSERT_EQ(iterator1->key2(), "first");
+        BMQTST_ASSERT_EQ(iterator1->value(), "value1");
     }
 
     // 2. first key already exists
@@ -636,19 +636,19 @@ static void test3_insert()
             map.insert(1, "second", "value2", Map::e_SECOND_KEY);
 
         // nothing inserted
-        ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
 
         // check returned values and that the map contents hasn't changed
         Map::InsertResult result   = pair.second;
         Map::iterator     iterator = pair.first;
 
-        ASSERT_EQ(result, Map::e_FIRST_KEY_EXISTS);
+        BMQTST_ASSERT_EQ(result, Map::e_FIRST_KEY_EXISTS);
 
-        ASSERT_EQ(iterator == map.end(), false);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator->key1(), 1);
-        ASSERT_EQ(iterator->key2(), "first");
-        ASSERT_EQ(iterator->value(), "value1");
+        BMQTST_ASSERT_EQ(iterator == map.end(), false);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(iterator->key1(), 1);
+        BMQTST_ASSERT_EQ(iterator->key2(), "first");
+        BMQTST_ASSERT_EQ(iterator->value(), "value1");
     }
 
     // 3. second key already exists
@@ -668,13 +668,13 @@ static void test3_insert()
         Map::InsertResult result   = pair.second;
         Map::iterator     iterator = pair.first;
 
-        ASSERT_EQ(result, Map::e_SECOND_KEY_EXISTS);
+        BMQTST_ASSERT_EQ(result, Map::e_SECOND_KEY_EXISTS);
 
-        ASSERT_EQ(iterator == map.end(), false);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator->key1(), 1);
-        ASSERT_EQ(iterator->key2(), "first");
-        ASSERT_EQ(iterator->value(), "value1");
+        BMQTST_ASSERT_EQ(iterator == map.end(), false);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(iterator->key1(), 1);
+        BMQTST_ASSERT_EQ(iterator->key2(), "first");
+        BMQTST_ASSERT_EQ(iterator->value(), "value1");
     }
 
     // 4. check exception safety
@@ -703,13 +703,13 @@ static void test3_insert()
         }
 
         // an exception was thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // the map state hasn't changed
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1().value(), 0);
-        ASSERT_EQ(map.begin()->key2().value(), 0);
-        ASSERT_EQ(map.begin()->value().value(), 0);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->key2().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->value().value(), 0);
 
         // try inserting another element, given that the second key copy
         // constructor throws
@@ -724,13 +724,13 @@ static void test3_insert()
         }
 
         // an exception was thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // the map state hasn't changed
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1().value(), 0);
-        ASSERT_EQ(map.begin()->key2().value(), 0);
-        ASSERT_EQ(map.begin()->value().value(), 0);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->key2().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->value().value(), 0);
 
         // try inserting another element, given that the value copy
         // constructor throws
@@ -745,13 +745,13 @@ static void test3_insert()
         }
 
         // an exception was thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // the map state hasn't changed
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1().value(), 0);
-        ASSERT_EQ(map.begin()->key2().value(), 0);
-        ASSERT_EQ(map.begin()->value().value(), 0);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->key2().value(), 0);
+        BMQTST_ASSERT_EQ(map.begin()->value().value(), 0);
     }
 }
 
@@ -812,7 +812,7 @@ static void test4_erase()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
@@ -834,9 +834,9 @@ static void test4_erase()
 
         // find element with first key equal to 3
         Map::iterator erased = map.findByKey1(3);
-        ASSERT_EQ(erased == map.end(), false)
-        ASSERT_EQ(erased->key1(), 3);
-        ASSERT_EQ(erased.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(erased == map.end(), false)
+        BMQTST_ASSERT_EQ(erased->key1(), 3);
+        BMQTST_ASSERT_EQ(erased.keyIndex(), Map::e_FIRST_KEY);
 
         const Map::value_type* erased_p = &*erased;
 
@@ -844,42 +844,52 @@ static void test4_erase()
         map.erase(erased);
 
         // element removed
-        ASSERT_EQ(map.size(), 4u);
-        ASSERT_EQ(map.findByKey1(3) == map.end(), true);
+        BMQTST_ASSERT_EQ(map.size(), 4u);
+        BMQTST_ASSERT_EQ(map.findByKey1(3) == map.end(), true);
 
         // order of remaining elements indexed by the first key hasn't changed
         it = map.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(elementsByKey1[0] == erased_p || elementsByKey1[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[0] == erased_p ||
+                             elementsByKey1[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[1] == erased_p || elementsByKey1[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[1] == erased_p ||
+                             elementsByKey1[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[2] == erased_p || elementsByKey1[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[2] == erased_p ||
+                             elementsByKey1[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[3] == erased_p || elementsByKey1[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[3] == erased_p ||
+                             elementsByKey1[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[4] == erased_p || elementsByKey1[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[4] == erased_p ||
+                             elementsByKey1[4] == &*it++,
+                         true);
 
         // order of remaining elements indexed by the second key hasn't changed
         it = map.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(elementsByKey2[0] == erased_p || elementsByKey2[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[0] == erased_p ||
+                             elementsByKey2[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[1] == erased_p || elementsByKey2[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[1] == erased_p ||
+                             elementsByKey2[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[2] == erased_p || elementsByKey2[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[2] == erased_p ||
+                             elementsByKey2[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[3] == erased_p || elementsByKey2[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[3] == erased_p ||
+                             elementsByKey2[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[4] == erased_p || elementsByKey2[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[4] == erased_p ||
+                             elementsByKey2[4] == &*it++,
+                         true);
     }
 
     // 2. erase by iterator bound to second key
@@ -893,7 +903,7 @@ static void test4_erase()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
@@ -915,9 +925,9 @@ static void test4_erase()
 
         // find element with second key equal to "third"
         Map::iterator erased = map.findByKey2("third");
-        ASSERT_EQ(erased == map.end(), false)
-        ASSERT_EQ(erased->key2(), "third");
-        ASSERT_EQ(erased.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(erased == map.end(), false)
+        BMQTST_ASSERT_EQ(erased->key2(), "third");
+        BMQTST_ASSERT_EQ(erased.keyIndex(), Map::e_SECOND_KEY);
 
         const Map::value_type* erased_p = &*erased;
 
@@ -925,42 +935,52 @@ static void test4_erase()
         map.erase(erased);
 
         // element removed
-        ASSERT_EQ(map.size(), 4u);
-        ASSERT_EQ(map.findByKey2("third") == map.end(), true);
+        BMQTST_ASSERT_EQ(map.size(), 4u);
+        BMQTST_ASSERT_EQ(map.findByKey2("third") == map.end(), true);
 
         // order of remaining elements indexed by the first key hasn't changed
         it = map.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(elementsByKey1[0] == erased_p || elementsByKey1[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[0] == erased_p ||
+                             elementsByKey1[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[1] == erased_p || elementsByKey1[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[1] == erased_p ||
+                             elementsByKey1[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[2] == erased_p || elementsByKey1[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[2] == erased_p ||
+                             elementsByKey1[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[3] == erased_p || elementsByKey1[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[3] == erased_p ||
+                             elementsByKey1[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[4] == erased_p || elementsByKey1[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[4] == erased_p ||
+                             elementsByKey1[4] == &*it++,
+                         true);
 
         // order of remaining elements indexed by the second key hasn't changed
         it = map.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(elementsByKey2[0] == erased_p || elementsByKey2[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[0] == erased_p ||
+                             elementsByKey2[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[1] == erased_p || elementsByKey2[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[1] == erased_p ||
+                             elementsByKey2[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[2] == erased_p || elementsByKey2[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[2] == erased_p ||
+                             elementsByKey2[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[3] == erased_p || elementsByKey2[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[3] == erased_p ||
+                             elementsByKey2[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[4] == erased_p || elementsByKey2[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[4] == erased_p ||
+                             elementsByKey2[4] == &*it++,
+                         true);
     }
 
     // 3. check return value when erasing by an iterator bound to the first key
@@ -974,7 +994,7 @@ static void test4_erase()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         while (!map.empty()) {
             // erase first element, as ordered by the first key
@@ -982,8 +1002,9 @@ static void test4_erase()
                 map.begin(Map::e_FIRST_KEY));
 
             // 'erase()' returned an iterator to the next element
-            ASSERT_EQ(nextAfterErased == map.begin(Map::e_FIRST_KEY), true);
-            ASSERT_EQ(nextAfterErased.keyIndex(), Map::e_FIRST_KEY);
+            BMQTST_ASSERT_EQ(nextAfterErased == map.begin(Map::e_FIRST_KEY),
+                             true);
+            BMQTST_ASSERT_EQ(nextAfterErased.keyIndex(), Map::e_FIRST_KEY);
         }
     }
 
@@ -999,7 +1020,7 @@ static void test4_erase()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         while (!map.empty()) {
             // erase first element, as ordered by the second key
@@ -1007,8 +1028,9 @@ static void test4_erase()
                 map.begin(Map::e_SECOND_KEY));
 
             // 'erase()' returned an iterator to the next element
-            ASSERT_EQ(nextAfterErased == map.begin(Map::e_SECOND_KEY), true);
-            ASSERT_EQ(nextAfterErased.keyIndex(), Map::e_SECOND_KEY);
+            BMQTST_ASSERT_EQ(nextAfterErased == map.begin(Map::e_SECOND_KEY),
+                             true);
+            BMQTST_ASSERT_EQ(nextAfterErased.keyIndex(), Map::e_SECOND_KEY);
         }
     }
 }
@@ -1056,7 +1078,7 @@ static void test5_eraseByKey1()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
@@ -1078,8 +1100,8 @@ static void test5_eraseByKey1()
 
         // find element with first key equal to 3
         Map::iterator erased = map.findByKey1(3);
-        ASSERT_EQ(erased == map.end(), false)
-        ASSERT_EQ(erased->key1(), 3);
+        BMQTST_ASSERT_EQ(erased == map.end(), false)
+        BMQTST_ASSERT_EQ(erased->key1(), 3);
 
         const Map::value_type* erased_p = &*erased;
 
@@ -1087,45 +1109,55 @@ static void test5_eraseByKey1()
         int eraseRc = map.eraseByKey1(3);
 
         // return value is 0
-        ASSERT_EQ(eraseRc, 0);
+        BMQTST_ASSERT_EQ(eraseRc, 0);
 
         // element removed
-        ASSERT_EQ(map.size(), 4u);
-        ASSERT_EQ(map.findByKey1(3) == map.end(), true);
+        BMQTST_ASSERT_EQ(map.size(), 4u);
+        BMQTST_ASSERT_EQ(map.findByKey1(3) == map.end(), true);
 
         // order of remaining elements indexed by the first key hasn't changed
         it = map.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(elementsByKey1[0] == erased_p || elementsByKey1[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[0] == erased_p ||
+                             elementsByKey1[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[1] == erased_p || elementsByKey1[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[1] == erased_p ||
+                             elementsByKey1[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[2] == erased_p || elementsByKey1[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[2] == erased_p ||
+                             elementsByKey1[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[3] == erased_p || elementsByKey1[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[3] == erased_p ||
+                             elementsByKey1[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[4] == erased_p || elementsByKey1[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[4] == erased_p ||
+                             elementsByKey1[4] == &*it++,
+                         true);
 
         // order of remaining elements indexed by the second key hasn't changed
         it = map.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(elementsByKey2[0] == erased_p || elementsByKey2[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[0] == erased_p ||
+                             elementsByKey2[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[1] == erased_p || elementsByKey2[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[1] == erased_p ||
+                             elementsByKey2[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[2] == erased_p || elementsByKey2[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[2] == erased_p ||
+                             elementsByKey2[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[3] == erased_p || elementsByKey2[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[3] == erased_p ||
+                             elementsByKey2[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[4] == erased_p || elementsByKey2[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[4] == erased_p ||
+                             elementsByKey2[4] == &*it++,
+                         true);
     }
 
     // 2. erase by first key, which doesn't exist
@@ -1136,19 +1168,19 @@ static void test5_eraseByKey1()
 
         // insert elements
         map.insert(1, "first", "value1");
-        ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
 
         // try erasing by key that doesn't exist
         int eraseRc = map.eraseByKey1(2);
 
         // returned value is non-zero
-        ASSERT_NE(eraseRc, 0);
+        BMQTST_ASSERT_NE(eraseRc, 0);
 
         // the map is intact
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1(), 1);
-        ASSERT_EQ(map.begin()->key2(), "first");
-        ASSERT_EQ(map.begin()->value(), "value1");
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1(), 1);
+        BMQTST_ASSERT_EQ(map.begin()->key2(), "first");
+        BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 
     // 3. erase by first key, which exists, but throws on comparison
@@ -1160,7 +1192,7 @@ static void test5_eraseByKey1()
 
         // insert elements
         map.insert(1, "first", "value1");
-        ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
 
         bool exceptionThrown = false;
 
@@ -1173,13 +1205,13 @@ static void test5_eraseByKey1()
         }
 
         // exception was thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // the map is intact
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1().value(), 1);
-        ASSERT_EQ(map.begin()->key2(), "first");
-        ASSERT_EQ(map.begin()->value(), "value1");
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1().value(), 1);
+        BMQTST_ASSERT_EQ(map.begin()->key2(), "first");
+        BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 }
 
@@ -1226,7 +1258,7 @@ static void test6_eraseByKey2()
         map.insert(3, "third", "value3");
         map.insert(4, "forth", "value4");
         map.insert(5, "fifth", "value5");
-        ASSERT_EQ(map.size(), 5u);
+        BMQTST_ASSERT_EQ(map.size(), 5u);
 
         // make a list of elements ordered according to the first key
         it = map.begin(Map::e_FIRST_KEY);
@@ -1248,8 +1280,8 @@ static void test6_eraseByKey2()
 
         // find element with second key equal to "third"
         Map::iterator erased = map.findByKey2("third");
-        ASSERT_EQ(erased == map.end(), false)
-        ASSERT_EQ(erased->key2(), "third");
+        BMQTST_ASSERT_EQ(erased == map.end(), false)
+        BMQTST_ASSERT_EQ(erased->key2(), "third");
 
         const Map::value_type* erased_p = &*erased;
 
@@ -1257,45 +1289,55 @@ static void test6_eraseByKey2()
         int eraseRc = map.eraseByKey2("third");
 
         // return value is 0
-        ASSERT_EQ(eraseRc, 0);
+        BMQTST_ASSERT_EQ(eraseRc, 0);
 
         // element removed
-        ASSERT_EQ(map.size(), 4u);
-        ASSERT_EQ(map.findByKey2("third") == map.end(), true);
+        BMQTST_ASSERT_EQ(map.size(), 4u);
+        BMQTST_ASSERT_EQ(map.findByKey2("third") == map.end(), true);
 
         // order of remaining elements indexed by the first key hasn't changed
         it = map.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(elementsByKey1[0] == erased_p || elementsByKey1[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[0] == erased_p ||
+                             elementsByKey1[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[1] == erased_p || elementsByKey1[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[1] == erased_p ||
+                             elementsByKey1[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[2] == erased_p || elementsByKey1[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[2] == erased_p ||
+                             elementsByKey1[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[3] == erased_p || elementsByKey1[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[3] == erased_p ||
+                             elementsByKey1[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey1[4] == erased_p || elementsByKey1[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey1[4] == erased_p ||
+                             elementsByKey1[4] == &*it++,
+                         true);
 
         // order of remaining elements indexed by the second key hasn't changed
         it = map.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(elementsByKey2[0] == erased_p || elementsByKey2[0] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[0] == erased_p ||
+                             elementsByKey2[0] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[1] == erased_p || elementsByKey2[1] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[1] == erased_p ||
+                             elementsByKey2[1] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[2] == erased_p || elementsByKey2[2] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[2] == erased_p ||
+                             elementsByKey2[2] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[3] == erased_p || elementsByKey2[3] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[3] == erased_p ||
+                             elementsByKey2[3] == &*it++,
+                         true);
 
-        ASSERT_EQ(elementsByKey2[4] == erased_p || elementsByKey2[4] == &*it++,
-                  true);
+        BMQTST_ASSERT_EQ(elementsByKey2[4] == erased_p ||
+                             elementsByKey2[4] == &*it++,
+                         true);
     }
 
     // 2. erase by second key, which doesn't exist
@@ -1306,19 +1348,19 @@ static void test6_eraseByKey2()
 
         // insert elements
         map.insert(1, "first", "value1");
-        ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
 
         // try erasing by key that doesn't exist
         int eraseRc = map.eraseByKey2("second");
 
         // returned value is non-zero
-        ASSERT_NE(eraseRc, 0);
+        BMQTST_ASSERT_NE(eraseRc, 0);
 
         // the map is intact
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1(), 1);
-        ASSERT_EQ(map.begin()->key2(), "first");
-        ASSERT_EQ(map.begin()->value(), "value1");
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1(), 1);
+        BMQTST_ASSERT_EQ(map.begin()->key2(), "first");
+        BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 
     // 3. erase by second key, which exists, but throws on comparison
@@ -1330,7 +1372,7 @@ static void test6_eraseByKey2()
 
         // insert elements
         map.insert("first", 1, "value1");
-        ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.size(), 1u);
 
         bool exceptionThrown = false;
 
@@ -1343,13 +1385,13 @@ static void test6_eraseByKey2()
         }
 
         // exception was thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // the map is intact
-        ASSERT_EQ(map.size(), 1u);
-        ASSERT_EQ(map.begin()->key1(), "first");
-        ASSERT_EQ(map.begin()->key2().value(), 1);
-        ASSERT_EQ(map.begin()->value(), "value1");
+        BMQTST_ASSERT_EQ(map.size(), 1u);
+        BMQTST_ASSERT_EQ(map.begin()->key1(), "first");
+        BMQTST_ASSERT_EQ(map.begin()->key2().value(), 1);
+        BMQTST_ASSERT_EQ(map.begin()->value(), "value1");
     }
 }
 
@@ -1378,19 +1420,19 @@ static void test7_clear()
     map.insert(1, "first", "value1");
     map.insert(2, "second", "value2");
     map.insert(3, "third", "value3");
-    ASSERT_EQ(map.size(), 3u);
+    BMQTST_ASSERT_EQ(map.size(), 3u);
 
     // do clear
     map.clear();
 
     // the map is now empty
-    ASSERT_EQ(map.empty(), true);
+    BMQTST_ASSERT_EQ(map.empty(), true);
 
     // clear again
     map.clear();
 
     // the map is still empty
-    ASSERT_EQ(map.empty(), true);
+    BMQTST_ASSERT_EQ(map.empty(), true);
 }
 
 static void test8_swap()
@@ -1417,36 +1459,36 @@ static void test8_swap()
 
     // insert 1 element to map1
     map1.insert(1, "first", "value1");
-    ASSERT_EQ(map1.size(), 1u);
+    BMQTST_ASSERT_EQ(map1.size(), 1u);
 
     // insert 2 elements to map2
     map2.insert(2, "second", "value2");
     map2.insert(3, "third", "value3");
-    ASSERT_EQ(map2.size(), 2u);
+    BMQTST_ASSERT_EQ(map2.size(), 2u);
 
     // swap maps
     swap(map1, map2);
 
     // map1 now have the contents of map2
-    ASSERT_EQ(map1.size(), 2u);
+    BMQTST_ASSERT_EQ(map1.size(), 2u);
 
-    ASSERT_EQ((it = map1.findByKey1(2)) == map1.end(), false);
-    ASSERT_EQ(it->key1(), 2);
-    ASSERT_EQ(it->key2(), "second");
-    ASSERT_EQ(it->value(), "value2");
+    BMQTST_ASSERT_EQ((it = map1.findByKey1(2)) == map1.end(), false);
+    BMQTST_ASSERT_EQ(it->key1(), 2);
+    BMQTST_ASSERT_EQ(it->key2(), "second");
+    BMQTST_ASSERT_EQ(it->value(), "value2");
 
-    ASSERT_EQ((it = map1.findByKey1(3)) == map1.end(), false);
-    ASSERT_EQ(it->key1(), 3);
-    ASSERT_EQ(it->key2(), "third");
-    ASSERT_EQ(it->value(), "value3");
+    BMQTST_ASSERT_EQ((it = map1.findByKey1(3)) == map1.end(), false);
+    BMQTST_ASSERT_EQ(it->key1(), 3);
+    BMQTST_ASSERT_EQ(it->key2(), "third");
+    BMQTST_ASSERT_EQ(it->value(), "value3");
 
     // map2 now have the contents of map1
-    ASSERT_EQ(map2.size(), 1u);
+    BMQTST_ASSERT_EQ(map2.size(), 1u);
 
-    ASSERT_EQ((it = map2.findByKey1(1)) == map2.end(), false);
-    ASSERT_EQ(it->key1(), 1);
-    ASSERT_EQ(it->key2(), "first");
-    ASSERT_EQ(it->value(), "value1");
+    BMQTST_ASSERT_EQ((it = map2.findByKey1(1)) == map2.end(), false);
+    BMQTST_ASSERT_EQ(it->key1(), 1);
+    BMQTST_ASSERT_EQ(it->key2(), "first");
+    BMQTST_ASSERT_EQ(it->value(), "value1");
 }
 
 static void test9_rangeObservers()
@@ -1478,7 +1520,7 @@ static void test9_rangeObservers()
 
     // insert 1 element to nonEmptyMap
     nonEmptyMap.insert(1, "first", "value1");
-    ASSERT_EQ(nonEmptyMap.size(), 1u);
+    BMQTST_ASSERT_EQ(nonEmptyMap.size(), 1u);
 
     const Map::value_type* element_p = &*nonEmptyMap.begin();
 
@@ -1486,164 +1528,164 @@ static void test9_rangeObservers()
     {
         // begin(), first key
         iterator = emptyMap.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator == emptyMap.end(), true);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(iterator == emptyMap.end(), true);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
 
         // begin(), second key
         iterator = emptyMap.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator == emptyMap.end(), true);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(iterator == emptyMap.end(), true);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cbegin(), first key
         constIterator = emptyMap.cbegin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == emptyMap.cend(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.cend(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cbegin(), second key
         constIterator = emptyMap.cbegin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == emptyMap.cend(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.cend(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
 
         // end(), first key
         iterator = emptyMap.end(Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
 
         // end(), second key
         iterator = emptyMap.end(Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cend(), first key
         constIterator = emptyMap.cend(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cend(), second key
         constIterator = emptyMap.cend(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
     }
 
     // non-const non-empty map
     {
         // begin(), first key
         iterator = nonEmptyMap.begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator == nonEmptyMap.end(), false);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(*iterator == *element_p, true);
+        BMQTST_ASSERT_EQ(iterator == nonEmptyMap.end(), false);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(*iterator == *element_p, true);
 
         // begin(), second key
         iterator = nonEmptyMap.begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator == nonEmptyMap.end(), false);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(*iterator == *element_p, true);
+        BMQTST_ASSERT_EQ(iterator == nonEmptyMap.end(), false);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(*iterator == *element_p, true);
 
         // cbegin(), first key
         constIterator = nonEmptyMap.cbegin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // cbegin(), second key
         constIterator = nonEmptyMap.cbegin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // end(), first key
         iterator = nonEmptyMap.end(Map::e_FIRST_KEY);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_FIRST_KEY);
 
         // end(), second key
         iterator = nonEmptyMap.end(Map::e_SECOND_KEY);
-        ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(iterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cend(), first key
         constIterator = nonEmptyMap.cend(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cend(), second key
         constIterator = nonEmptyMap.cend(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
     }
 
     // const empty map
     {
         // begin(), first key
         constIterator = bsl::cref(emptyMap).get().begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == emptyMap.end(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.end(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // begin(), second key
         constIterator = bsl::cref(emptyMap).get().begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == emptyMap.end(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.end(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cbegin(), first key
         constIterator = bsl::cref(emptyMap).get().cbegin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == emptyMap.cend(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.cend(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cbegin(), second key
         constIterator = bsl::cref(emptyMap).get().cbegin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == emptyMap.cend(), true);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator == emptyMap.cend(), true);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
 
         // end(), first key
         constIterator = bsl::cref(emptyMap).get().end(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // end(), second key
         constIterator = bsl::cref(emptyMap).get().end(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cend(), first key
         constIterator = bsl::cref(emptyMap).get().cend(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cend(), second key
         constIterator = bsl::cref(emptyMap).get().cend(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
     }
 
     // const non-empty map
     {
         // begin(), first key
         constIterator = bsl::cref(nonEmptyMap).get().begin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.end(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.end(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // begin(), second key
         constIterator = bsl::cref(nonEmptyMap).get().begin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.end(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.end(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // cbegin(), first key
         constIterator = bsl::cref(nonEmptyMap).get().cbegin(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // cbegin(), second key
         constIterator = bsl::cref(nonEmptyMap).get().cbegin(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(*constIterator == *element_p, true);
+        BMQTST_ASSERT_EQ(constIterator == nonEmptyMap.cend(), false);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(*constIterator == *element_p, true);
 
         // end(), first key
         constIterator = bsl::cref(nonEmptyMap).get().end(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // end(), second key
         constIterator = bsl::cref(nonEmptyMap).get().end(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
 
         // cend(), first key
         constIterator = bsl::cref(nonEmptyMap).get().cend(Map::e_FIRST_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_FIRST_KEY);
 
         // cend(), second key
         constIterator = bsl::cref(nonEmptyMap).get().cend(Map::e_SECOND_KEY);
-        ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(constIterator.keyIndex(), Map::e_SECOND_KEY);
     }
 }
 
@@ -1689,40 +1731,40 @@ static void test10_findByKey1()
     // insert elements
     map.insert(1, "first", "value1");
     map.insert(2, "second", "value2");
-    ASSERT_EQ(map.size(), 2u);
+    BMQTST_ASSERT_EQ(map.size(), 2u);
 
     // 1. non-const contained, key exists
     {
         Map::iterator it = map.findByKey1(1);
-        ASSERT_EQ(it == map.end(), false);
-        ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(it->key1(), 1);
-        ASSERT_EQ(it->key2(), "first");
-        ASSERT_EQ(it->value(), "value1");
+        BMQTST_ASSERT_EQ(it == map.end(), false);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(it->key1(), 1);
+        BMQTST_ASSERT_EQ(it->key2(), "first");
+        BMQTST_ASSERT_EQ(it->value(), "value1");
     }
 
     // 2. const contained, key exists
     {
         Map::const_iterator it = bsl::cref(map).get().findByKey1(2);
-        ASSERT_EQ(it == map.end(), false);
-        ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
-        ASSERT_EQ(it->key1(), 2);
-        ASSERT_EQ(it->key2(), "second");
-        ASSERT_EQ(it->value(), "value2");
+        BMQTST_ASSERT_EQ(it == map.end(), false);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(it->key1(), 2);
+        BMQTST_ASSERT_EQ(it->key2(), "second");
+        BMQTST_ASSERT_EQ(it->value(), "value2");
     }
 
     // 3. non-const contained, key doesn't exist
     {
         Map::iterator it = map.findByKey1(3);
-        ASSERT_EQ(it == map.end(), true);
-        ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(it == map.end(), true);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
     }
 
     // 4. const contained, key doesn't exist
     {
         Map::const_iterator it = bsl::cref(map).get().findByKey1(3);
-        ASSERT_EQ(it == map.end(), true);
-        ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
+        BMQTST_ASSERT_EQ(it == map.end(), true);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_FIRST_KEY);
     }
 }
 
@@ -1768,40 +1810,40 @@ static void test11_findByKey2()
     // insert elements
     map.insert(1, "first", "value1");
     map.insert(2, "second", "value2");
-    ASSERT_EQ(map.size(), 2u);
+    BMQTST_ASSERT_EQ(map.size(), 2u);
 
     // 1. non-const contained, key exists
     {
         Map::iterator it = map.findByKey2("first");
-        ASSERT_EQ(it == map.end(), false);
-        ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(it->key1(), 1);
-        ASSERT_EQ(it->key2(), "first");
-        ASSERT_EQ(it->value(), "value1");
+        BMQTST_ASSERT_EQ(it == map.end(), false);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(it->key1(), 1);
+        BMQTST_ASSERT_EQ(it->key2(), "first");
+        BMQTST_ASSERT_EQ(it->value(), "value1");
     }
 
     // 2. const contained, key exists
     {
         Map::const_iterator it = bsl::cref(map).get().findByKey2("second");
-        ASSERT_EQ(it == map.end(), false);
-        ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
-        ASSERT_EQ(it->key1(), 2);
-        ASSERT_EQ(it->key2(), "second");
-        ASSERT_EQ(it->value(), "value2");
+        BMQTST_ASSERT_EQ(it == map.end(), false);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(it->key1(), 2);
+        BMQTST_ASSERT_EQ(it->key2(), "second");
+        BMQTST_ASSERT_EQ(it->value(), "value2");
     }
 
     // 3. non-const contained, key doesn't exist
     {
         Map::iterator it = map.findByKey2("third");
-        ASSERT_EQ(it == map.end(), true);
-        ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(it == map.end(), true);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
     }
 
     // 4. const contained, key doesn't exist
     {
         Map::const_iterator it = bsl::cref(map).get().findByKey2("third");
-        ASSERT_EQ(it == map.end(), true);
-        ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
+        BMQTST_ASSERT_EQ(it == map.end(), true);
+        BMQTST_ASSERT_EQ(it.keyIndex(), Map::e_SECOND_KEY);
     }
 }
 
@@ -1826,38 +1868,38 @@ static void test12_sizeObservers()
     bslma::TestAllocator alloc;
     Map                  map(&alloc);
 
-    ASSERT_EQ(map.empty(), true);
-    ASSERT_EQ(map.size(), 0u);
+    BMQTST_ASSERT_EQ(map.empty(), true);
+    BMQTST_ASSERT_EQ(map.size(), 0u);
 
     map.insert(1, "first", "value1");
 
-    ASSERT_EQ(map.empty(), false);
-    ASSERT_EQ(map.size(), 1u);
+    BMQTST_ASSERT_EQ(map.empty(), false);
+    BMQTST_ASSERT_EQ(map.size(), 1u);
 
     map.insert(2, "second", "value2");
 
-    ASSERT_EQ(map.empty(), false);
-    ASSERT_EQ(map.size(), 2u);
+    BMQTST_ASSERT_EQ(map.empty(), false);
+    BMQTST_ASSERT_EQ(map.size(), 2u);
 
     map.insert(3, "third", "value2");
 
-    ASSERT_EQ(map.empty(), false);
-    ASSERT_EQ(map.size(), 3u);
+    BMQTST_ASSERT_EQ(map.empty(), false);
+    BMQTST_ASSERT_EQ(map.size(), 3u);
 
     map.erase(map.begin());
 
-    ASSERT_EQ(map.empty(), false);
-    ASSERT_EQ(map.size(), 2u);
+    BMQTST_ASSERT_EQ(map.empty(), false);
+    BMQTST_ASSERT_EQ(map.size(), 2u);
 
     map.erase(map.begin());
 
-    ASSERT_EQ(map.empty(), false);
-    ASSERT_EQ(map.size(), 1u);
+    BMQTST_ASSERT_EQ(map.empty(), false);
+    BMQTST_ASSERT_EQ(map.size(), 1u);
 
     map.erase(map.begin());
 
-    ASSERT_EQ(map.empty(), true);
-    ASSERT_EQ(map.size(), 0u);
+    BMQTST_ASSERT_EQ(map.empty(), true);
+    BMQTST_ASSERT_EQ(map.size(), 0u);
 }
 
 static void test13_equality()
@@ -1886,19 +1928,19 @@ static void test13_equality()
     map1.insert(3, "third", "value3");
 
     for (Map::const_iterator it = map1.cbegin(); it != map1.cend(); ++it) {
-        ASSERT(map1 != map2);
+        BMQTST_ASSERT(map1 != map2);
         map2.insert(it->key1(), it->key2(), it->value());
     }
-    ASSERT(map1 == map2);
+    BMQTST_ASSERT(map1 == map2);
     while (!map1.empty()) {
         map1.erase(map1.begin());
-        ASSERT(map1 != map2);
+        BMQTST_ASSERT(map1 != map2);
     }
     while (!map2.empty()) {
-        ASSERT(map1 != map2);
+        BMQTST_ASSERT(map1 != map2);
         map2.erase(map2.begin());
     }
-    ASSERT(map1 == map2);
+    BMQTST_ASSERT(map1 == map2);
 }
 
 //=============================================================================

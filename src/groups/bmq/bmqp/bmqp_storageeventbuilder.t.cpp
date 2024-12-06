@@ -204,8 +204,9 @@ static void test1_breathingTest()
                                   bmqp::EventType::e_STORAGE,
                                   &blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
-    ASSERT_EQ(seb.messageCount(), 0);
+    BMQTST_ASSERT_EQ(seb.eventSize(),
+                     static_cast<int>(sizeof(bmqp::EventHeader)));
+    BMQTST_ASSERT_EQ(seb.messageCount(), 0);
 
     bsl::shared_ptr<char> journalRecordBufferSp(
         const_cast<char*>(JOURNAL_REC),
@@ -227,9 +228,9 @@ static void test1_breathingTest()
         journalRecordBlobBuffer,
         dataBlobBuffer);
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_LT(PAYLOAD_LEN, static_cast<unsigned int>(seb.eventSize()));
-    ASSERT_EQ(seb.messageCount(), 1);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_LT(PAYLOAD_LEN, static_cast<unsigned int>(seb.eventSize()));
+    BMQTST_ASSERT_EQ(seb.messageCount(), 1);
 
     // Get blob and use bmqp iterator to test
     // Note that bmqp event and bmqp iterators are lower than bmqp builders,
@@ -243,33 +244,33 @@ static void test1_breathingTest()
     bmqp::StorageMessageIterator storageIter;
     rawEvent.loadStorageMessageIterator(&storageIter);
 
-    ASSERT_EQ(storageIter.isValid(), true);
-    ASSERT_EQ(storageIter.next(), 1);
+    BMQTST_ASSERT_EQ(storageIter.isValid(), true);
+    BMQTST_ASSERT_EQ(storageIter.next(), 1);
 
-    ASSERT_EQ(storageIter.header().flags(), 1);
-    ASSERT_EQ(storageIter.header().storageProtocolVersion(), 1);
-    ASSERT_EQ(storageIter.header().partitionId(), 1U);
-    ASSERT_EQ(storageIter.header().journalOffsetWords(), 5000U);
-    ASSERT_EQ(storageIter.header().messageType(),
-              bmqp::StorageMessageType::e_DATA);
+    BMQTST_ASSERT_EQ(storageIter.header().flags(), 1);
+    BMQTST_ASSERT_EQ(storageIter.header().storageProtocolVersion(), 1);
+    BMQTST_ASSERT_EQ(storageIter.header().partitionId(), 1U);
+    BMQTST_ASSERT_EQ(storageIter.header().journalOffsetWords(), 5000U);
+    BMQTST_ASSERT_EQ(storageIter.header().messageType(),
+                     bmqp::StorageMessageType::e_DATA);
 
     bmqu::BlobPosition position;
-    ASSERT_EQ(0, storageIter.loadDataPosition(&position));
+    BMQTST_ASSERT_EQ(0, storageIter.loadDataPosition(&position));
     int res, compareResult;
     res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          JOURNAL_REC,
                                          JOURNAL_REC_LEN);
-    ASSERT_EQ(res, 0);
-    ASSERT_EQ(compareResult, 0);
+    BMQTST_ASSERT_EQ(res, 0);
+    BMQTST_ASSERT_EQ(compareResult, 0);
 
     bmqu::BlobPosition dataPos;
-    ASSERT_EQ(0,
-              bmqu::BlobUtil::findOffsetSafe(&dataPos,
-                                             eventBlob,
-                                             position,
-                                             JOURNAL_REC_LEN));
+    BMQTST_ASSERT_EQ(0,
+                     bmqu::BlobUtil::findOffsetSafe(&dataPos,
+                                                    eventBlob,
+                                                    position,
+                                                    JOURNAL_REC_LEN));
 
     res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
@@ -277,7 +278,7 @@ static void test1_breathingTest()
                                          PAYLOAD,
                                          PAYLOAD_LEN);
 
-    ASSERT_EQ(0, storageIter.next());  // we added only 1 msg
+    BMQTST_ASSERT_EQ(0, storageIter.next());  // we added only 1 msg
 }
 
 static void test2_storageEventHavingMultipleMessages()
@@ -313,7 +314,7 @@ static void test2_storageEventHavingMultipleMessages()
             &seb,
             &data,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ_D(dataIdx, rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ_D(dataIdx, rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
     // Iterate and check
@@ -325,23 +326,29 @@ static void test2_storageEventHavingMultipleMessages()
 
     bmqp::StorageMessageIterator iter;
     rawEvent.loadStorageMessageIterator(&iter);
-    ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t dataIndex = 0;
 
     while (1 == iter.next() && dataIndex < NUM_MSGS) {
         const Data& D = data[dataIndex];
 
-        ASSERT_EQ_D(dataIndex, true, iter.isValid());
+        BMQTST_ASSERT_EQ_D(dataIndex, true, iter.isValid());
 
-        ASSERT_EQ_D(dataIndex, k_SPV, iter.header().storageProtocolVersion());
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           k_SPV,
+                           iter.header().storageProtocolVersion());
 
-        ASSERT_EQ_D(dataIndex, D.d_flags, iter.header().flags());
-        ASSERT_EQ_D(dataIndex, D.d_pid, iter.header().partitionId());
-        ASSERT_EQ_D(dataIndex, D.d_messageType, iter.header().messageType());
+        BMQTST_ASSERT_EQ_D(dataIndex, D.d_flags, iter.header().flags());
+        BMQTST_ASSERT_EQ_D(dataIndex, D.d_pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           D.d_messageType,
+                           iter.header().messageType());
 
         bmqu::BlobPosition recordPosition;
-        ASSERT_EQ_D(dataIndex, 0, iter.loadDataPosition(&recordPosition));
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           0,
+                           iter.loadDataPosition(&recordPosition));
 
         int res, compareResult;
         res = bmqu::BlobUtil::compareSection(&compareResult,
@@ -349,31 +356,31 @@ static void test2_storageEventHavingMultipleMessages()
                                              recordPosition,
                                              D.d_recordBuffer,
                                              k_RECORD_SIZE);
-        ASSERT_EQ_D(dataIndex, 0, res);
-        ASSERT_EQ_D(dataIndex, 0, compareResult);
+        BMQTST_ASSERT_EQ_D(dataIndex, 0, res);
+        BMQTST_ASSERT_EQ_D(dataIndex, 0, compareResult);
 
         if (bmqp::StorageMessageType::e_DATA == D.d_messageType ||
             bmqp::StorageMessageType::e_QLIST == D.d_messageType) {
             bmqu::BlobPosition payloadPos;
-            ASSERT_EQ(0,
-                      bmqu::BlobUtil::findOffsetSafe(&payloadPos,
-                                                     eventBlob,
-                                                     recordPosition,
-                                                     k_RECORD_SIZE));
+            BMQTST_ASSERT_EQ(0,
+                             bmqu::BlobUtil::findOffsetSafe(&payloadPos,
+                                                            eventBlob,
+                                                            recordPosition,
+                                                            k_RECORD_SIZE));
             res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  eventBlob,
                                                  payloadPos,
                                                  D.d_payload.c_str(),
                                                  D.d_payload.size());
-            ASSERT_EQ_D(dataIndex, 0, res);
-            ASSERT_EQ_D(dataIndex, 0, compareResult);
+            BMQTST_ASSERT_EQ_D(dataIndex, 0, res);
+            BMQTST_ASSERT_EQ_D(dataIndex, 0, compareResult);
         }
 
         ++dataIndex;
     }
 
-    ASSERT_EQ(data.size(), dataIndex);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(data.size(), dataIndex);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test3_packMessage_payloadTooBig()
@@ -430,9 +437,10 @@ static void test3_packMessage_payloadTooBig()
         journalRecordBlobBuffer,
         dataBlobBuffer);
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG);
-    ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
-    ASSERT_EQ(seb.messageCount(), 0);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG);
+    BMQTST_ASSERT_EQ(seb.eventSize(),
+                     static_cast<int>(sizeof(bmqp::EventHeader)));
+    BMQTST_ASSERT_EQ(seb.messageCount(), 0);
 
     journalRecordBufferSp.reset(const_cast<char*>(JOURNAL_REC),
                                 bslstl::SharedPtrNilDeleter(),
@@ -453,11 +461,11 @@ static void test3_packMessage_payloadTooBig()
                          journalRecordBlobBuffer,
                          dataBlobBuffer);
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_EQ(sizeof(bmqp::EventHeader) + sizeof(bmqp::StorageHeader) +
-                  JOURNAL_REC_LEN + PAYLOAD_LEN,
-              static_cast<unsigned int>(seb.eventSize()));
-    ASSERT_EQ(seb.messageCount(), 1);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader) + sizeof(bmqp::StorageHeader) +
+                         JOURNAL_REC_LEN + PAYLOAD_LEN,
+                     static_cast<unsigned int>(seb.eventSize()));
+    BMQTST_ASSERT_EQ(seb.messageCount(), 1);
 
     const bdlbb::Blob& eventBlob = *seb.blob();
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
@@ -468,33 +476,33 @@ static void test3_packMessage_payloadTooBig()
     bmqp::StorageMessageIterator storageIter;
     rawEvent.loadStorageMessageIterator(&storageIter);
 
-    ASSERT_EQ(storageIter.isValid(), true);
-    ASSERT_EQ(storageIter.next(), 1);
+    BMQTST_ASSERT_EQ(storageIter.isValid(), true);
+    BMQTST_ASSERT_EQ(storageIter.next(), 1);
 
-    ASSERT_EQ(storageIter.header().flags(), 2);
-    ASSERT_EQ(storageIter.header().storageProtocolVersion(), 1);
-    ASSERT_EQ(storageIter.header().partitionId(), 1U);
-    ASSERT_EQ(storageIter.header().journalOffsetWords(), 290U);
-    ASSERT_EQ(storageIter.header().messageType(),
-              bmqp::StorageMessageType::e_DATA);
+    BMQTST_ASSERT_EQ(storageIter.header().flags(), 2);
+    BMQTST_ASSERT_EQ(storageIter.header().storageProtocolVersion(), 1);
+    BMQTST_ASSERT_EQ(storageIter.header().partitionId(), 1U);
+    BMQTST_ASSERT_EQ(storageIter.header().journalOffsetWords(), 290U);
+    BMQTST_ASSERT_EQ(storageIter.header().messageType(),
+                     bmqp::StorageMessageType::e_DATA);
 
     bmqu::BlobPosition position;
-    ASSERT_EQ(storageIter.loadDataPosition(&position), 0);
+    BMQTST_ASSERT_EQ(storageIter.loadDataPosition(&position), 0);
     int res, compareResult;
     res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
                                          position,
                                          JOURNAL_REC,
                                          JOURNAL_REC_LEN);
-    ASSERT_EQ(0, res);
-    ASSERT_EQ(0, compareResult);
+    BMQTST_ASSERT_EQ(0, res);
+    BMQTST_ASSERT_EQ(0, compareResult);
 
     bmqu::BlobPosition dataPos;
-    ASSERT_EQ(0,
-              bmqu::BlobUtil::findOffsetSafe(&dataPos,
-                                             eventBlob,
-                                             position,
-                                             JOURNAL_REC_LEN));
+    BMQTST_ASSERT_EQ(0,
+                     bmqu::BlobUtil::findOffsetSafe(&dataPos,
+                                                    eventBlob,
+                                                    position,
+                                                    JOURNAL_REC_LEN));
 
     res = bmqu::BlobUtil::compareSection(&compareResult,
                                          eventBlob,
@@ -502,8 +510,8 @@ static void test3_packMessage_payloadTooBig()
                                          PAYLOAD,
                                          PAYLOAD_LEN);
 
-    ASSERT_EQ(0, res);
-    ASSERT_EQ(false, storageIter.next());  // we added only 1 msg
+    BMQTST_ASSERT_EQ(0, res);
+    BMQTST_ASSERT_EQ(false, storageIter.next());  // we added only 1 msg
 }
 
 static void test4_packMessageRaw()
@@ -546,7 +554,7 @@ static void test4_packMessageRaw()
             &sebA,
             &data,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ_D(dataIdx, rc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ_D(dataIdx, rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
     const bdlbb::Blob& eventA = *sebA.blob();
@@ -556,7 +564,7 @@ static void test4_packMessageRaw()
 
     bmqp::StorageMessageIterator iterA;
     rawEventA.loadStorageMessageIterator(&iterA);
-    ASSERT_EQ(iterA.isValid(), true);
+    BMQTST_ASSERT_EQ(iterA.isValid(), true);
 
     size_t dataIndex = 0;
 
@@ -567,7 +575,7 @@ static void test4_packMessageRaw()
                                    bmqtst::TestHelperUtil::allocator());
 
     while (1 == iterA.next() && dataIndex < NUM_MSGS) {
-        ASSERT_EQ_D(dataIndex, true, iterA.isValid());
+        BMQTST_ASSERT_EQ_D(dataIndex, true, iterA.isValid());
 
         const bmqp::StorageHeader& header = iterA.header();
 
@@ -576,13 +584,15 @@ static void test4_packMessageRaw()
             iterA.headerPosition(),
             header.messageWords() * bmqp::Protocol::k_WORD_SIZE);
 
-        ASSERT_EQ_D(dataIndex, buildRc, bmqt::EventBuilderResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           buildRc,
+                           bmqt::EventBuilderResult::e_SUCCESS);
 
         ++dataIndex;
     }
 
-    ASSERT_EQ(data.size(), dataIndex);
-    ASSERT_EQ(iterA.isValid(), false);
+    BMQTST_ASSERT_EQ(data.size(), dataIndex);
+    BMQTST_ASSERT_EQ(iterA.isValid(), false);
 
     // Finally, iterate over event 'B' and verify.
     const bdlbb::Blob& eventB = *sebB.blob();
@@ -593,23 +603,29 @@ static void test4_packMessageRaw()
 
     bmqp::StorageMessageIterator iterB;
     rawEventB.loadStorageMessageIterator(&iterB);
-    ASSERT_EQ(iterB.isValid(), true);
+    BMQTST_ASSERT_EQ(iterB.isValid(), true);
 
     dataIndex = 0;
 
     while (1 == iterB.next() && dataIndex < NUM_MSGS) {
         const Data& D = data[dataIndex];
 
-        ASSERT_EQ_D(dataIndex, true, iterB.isValid());
-        ASSERT_EQ_D(dataIndex, k_SPV, iterB.header().storageProtocolVersion());
+        BMQTST_ASSERT_EQ_D(dataIndex, true, iterB.isValid());
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           k_SPV,
+                           iterB.header().storageProtocolVersion());
 
-        ASSERT_EQ_D(dataIndex, D.d_flags, iterB.header().flags());
-        ASSERT_EQ_D(dataIndex, D.d_pid, iterB.header().partitionId());
+        BMQTST_ASSERT_EQ_D(dataIndex, D.d_flags, iterB.header().flags());
+        BMQTST_ASSERT_EQ_D(dataIndex, D.d_pid, iterB.header().partitionId());
 
-        ASSERT_EQ_D(dataIndex, D.d_messageType, iterB.header().messageType());
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           D.d_messageType,
+                           iterB.header().messageType());
 
         bmqu::BlobPosition recordPosition;
-        ASSERT_EQ_D(dataIndex, 0, iterB.loadDataPosition(&recordPosition));
+        BMQTST_ASSERT_EQ_D(dataIndex,
+                           0,
+                           iterB.loadDataPosition(&recordPosition));
 
         int res, compareResult;
         res = bmqu::BlobUtil::compareSection(&compareResult,
@@ -617,31 +633,31 @@ static void test4_packMessageRaw()
                                              recordPosition,
                                              D.d_recordBuffer,
                                              k_RECORD_SIZE);
-        ASSERT_EQ_D(dataIndex, 0, res);
-        ASSERT_EQ_D(dataIndex, 0, compareResult);
+        BMQTST_ASSERT_EQ_D(dataIndex, 0, res);
+        BMQTST_ASSERT_EQ_D(dataIndex, 0, compareResult);
 
         if (bmqp::StorageMessageType::e_DATA == D.d_messageType ||
             bmqp::StorageMessageType::e_QLIST == D.d_messageType) {
             bmqu::BlobPosition payloadPos;
-            ASSERT_EQ(0,
-                      bmqu::BlobUtil::findOffsetSafe(&payloadPos,
-                                                     eventB,
-                                                     recordPosition,
-                                                     k_RECORD_SIZE));
+            BMQTST_ASSERT_EQ(0,
+                             bmqu::BlobUtil::findOffsetSafe(&payloadPos,
+                                                            eventB,
+                                                            recordPosition,
+                                                            k_RECORD_SIZE));
             res = bmqu::BlobUtil::compareSection(&compareResult,
                                                  eventB,
                                                  payloadPos,
                                                  D.d_payload.c_str(),
                                                  D.d_payload.size());
-            ASSERT_EQ_D(dataIndex, 0, res);
-            ASSERT_EQ_D(dataIndex, 0, compareResult);
+            BMQTST_ASSERT_EQ_D(dataIndex, 0, res);
+            BMQTST_ASSERT_EQ_D(dataIndex, 0, compareResult);
         }
 
         ++dataIndex;
     }
 
-    ASSERT_EQ(data.size(), dataIndex);
-    ASSERT_EQ(iterB.isValid(), false);
+    BMQTST_ASSERT_EQ(data.size(), dataIndex);
+    BMQTST_ASSERT_EQ(iterB.isValid(), false);
 }
 
 static void test5_packMessageRaw_emptyMessage()
@@ -676,16 +692,18 @@ static void test5_packMessageRaw_emptyMessage()
 
     bdlbb::Blob emptyBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(emptyBlob.length() == 0);
-    ASSERT_SAFE_FAIL(
+    BMQTST_ASSERT_SAFE_FAIL(
         seb.packMessageRaw(emptyBlob, bmqu::BlobPosition(0, 0), 0));
-    ASSERT_EQ(seb.packMessageRaw(emptyBlob, bmqu::BlobPosition(0, 0), 10),
-              bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        seb.packMessageRaw(emptyBlob, bmqu::BlobPosition(0, 0), 10),
+        bmqt::EventBuilderResult::e_SUCCESS);
     // Above we packMessageRaw with 'length' of 10 because we need an
     // arbitrary 'length > 0' to not trigger an assert and at the same time
     // ensure that packing an empty blob succeeds.
-    ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), emptyBlob), 0);
-    ASSERT_EQ(seb.messageCount(), 0);
-    ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), emptyBlob), 0);
+    BMQTST_ASSERT_EQ(seb.messageCount(), 0);
+    BMQTST_ASSERT_EQ(seb.eventSize(),
+                     static_cast<int>(sizeof(bmqp::EventHeader)));
 }
 
 static void test6_packMessageRaw_invalidPosition()
@@ -732,11 +750,13 @@ static void test6_packMessageRaw_invalidPosition()
     message.appendDataBuffer(dataBlobBuffer);
 
     bmqu::BlobPosition invalidPosition(-1, -1);
-    ASSERT_NE(seb.packMessageRaw(message, invalidPosition, message.length()),
-              bmqt::EventBuilderResult::e_SUCCESS);
-    ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), k_EMPTY_BLOB), 0);
-    ASSERT_EQ(seb.messageCount(), 0);
-    ASSERT_EQ(seb.eventSize(), static_cast<int>(sizeof(bmqp::EventHeader)));
+    BMQTST_ASSERT_NE(
+        seb.packMessageRaw(message, invalidPosition, message.length()),
+        bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*seb.blob(), k_EMPTY_BLOB), 0);
+    BMQTST_ASSERT_EQ(seb.messageCount(), 0);
+    BMQTST_ASSERT_EQ(seb.eventSize(),
+                     static_cast<int>(sizeof(bmqp::EventHeader)));
 }
 
 // ============================================================================

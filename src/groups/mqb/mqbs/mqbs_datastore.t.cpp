@@ -60,13 +60,13 @@ static void test1_breathingTest()
 
         // Default constructor
         mqbs::DataStoreRecordKey keyDefault;
-        ASSERT_EQ(keyDefault.d_sequenceNum, 0U);
-        ASSERT_EQ(keyDefault.d_primaryLeaseId, 0U);
+        BMQTST_ASSERT_EQ(keyDefault.d_sequenceNum, 0U);
+        BMQTST_ASSERT_EQ(keyDefault.d_primaryLeaseId, 0U);
 
         // Valued constructor
         mqbs::DataStoreRecordKey keyValued(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
-        ASSERT_EQ(keyValued.d_sequenceNum, k_SEQUENCE_NUM);
-        ASSERT_EQ(keyValued.d_primaryLeaseId, k_PRIMARY_LEASE_ID);
+        BMQTST_ASSERT_EQ(keyValued.d_sequenceNum, k_SEQUENCE_NUM);
+        BMQTST_ASSERT_EQ(keyValued.d_primaryLeaseId, k_PRIMARY_LEASE_ID);
     }
 
     {
@@ -79,33 +79,37 @@ static void test1_breathingTest()
 
         // Default constructor
         mqbs::DataStoreRecord recordDefault;
-        ASSERT_EQ(recordDefault.d_recordOffset, 0U);
-        ASSERT_EQ(recordDefault.d_messageOffset, 0U);
-        ASSERT_EQ(recordDefault.d_appDataUnpaddedLen, 0U);
-        ASSERT_EQ(recordDefault.d_dataOrQlistRecordPaddedLen, 0U);
-        ASSERT_EQ(recordDefault.d_recordType, mqbs::RecordType::e_UNDEFINED);
-        ASSERT_EQ(recordDefault.d_messagePropertiesInfo.isPresent(), false);
+        BMQTST_ASSERT_EQ(recordDefault.d_recordOffset, 0U);
+        BMQTST_ASSERT_EQ(recordDefault.d_messageOffset, 0U);
+        BMQTST_ASSERT_EQ(recordDefault.d_appDataUnpaddedLen, 0U);
+        BMQTST_ASSERT_EQ(recordDefault.d_dataOrQlistRecordPaddedLen, 0U);
+        BMQTST_ASSERT_EQ(recordDefault.d_recordType,
+                         mqbs::RecordType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(recordDefault.d_messagePropertiesInfo.isPresent(),
+                         false);
 
         // Valued constructor 1
         mqbs::DataStoreRecord recordValued1(k_RECORD_TYPE, k_RECORD_OFFSET);
-        ASSERT_EQ(recordValued1.d_recordOffset, k_RECORD_OFFSET);
-        ASSERT_EQ(recordValued1.d_messageOffset, 0U);
-        ASSERT_EQ(recordValued1.d_appDataUnpaddedLen, 0U);
-        ASSERT_EQ(recordValued1.d_dataOrQlistRecordPaddedLen, 0U);
-        ASSERT_EQ(recordValued1.d_recordType, k_RECORD_TYPE);
-        ASSERT_EQ(recordValued1.d_messagePropertiesInfo.isPresent(), false);
+        BMQTST_ASSERT_EQ(recordValued1.d_recordOffset, k_RECORD_OFFSET);
+        BMQTST_ASSERT_EQ(recordValued1.d_messageOffset, 0U);
+        BMQTST_ASSERT_EQ(recordValued1.d_appDataUnpaddedLen, 0U);
+        BMQTST_ASSERT_EQ(recordValued1.d_dataOrQlistRecordPaddedLen, 0U);
+        BMQTST_ASSERT_EQ(recordValued1.d_recordType, k_RECORD_TYPE);
+        BMQTST_ASSERT_EQ(recordValued1.d_messagePropertiesInfo.isPresent(),
+                         false);
 
         // Valued constructor 2
         mqbs::DataStoreRecord recordValued2(k_RECORD_TYPE,
                                             k_RECORD_OFFSET,
                                             k_DATA_OR_QLIST_RECORD_PADDED_LEN);
-        ASSERT_EQ(recordValued2.d_recordOffset, k_RECORD_OFFSET);
-        ASSERT_EQ(recordValued2.d_messageOffset, 0U);
-        ASSERT_EQ(recordValued2.d_appDataUnpaddedLen, 0U);
-        ASSERT_EQ(recordValued2.d_dataOrQlistRecordPaddedLen,
-                  k_DATA_OR_QLIST_RECORD_PADDED_LEN);
-        ASSERT_EQ(recordValued2.d_recordType, k_RECORD_TYPE);
-        ASSERT_EQ(recordValued2.d_messagePropertiesInfo.isPresent(), false);
+        BMQTST_ASSERT_EQ(recordValued2.d_recordOffset, k_RECORD_OFFSET);
+        BMQTST_ASSERT_EQ(recordValued2.d_messageOffset, 0U);
+        BMQTST_ASSERT_EQ(recordValued2.d_appDataUnpaddedLen, 0U);
+        BMQTST_ASSERT_EQ(recordValued2.d_dataOrQlistRecordPaddedLen,
+                         k_DATA_OR_QLIST_RECORD_PADDED_LEN);
+        BMQTST_ASSERT_EQ(recordValued2.d_recordType, k_RECORD_TYPE);
+        BMQTST_ASSERT_EQ(recordValued2.d_messagePropertiesInfo.isPresent(),
+                         false);
     }
 }
 
@@ -178,7 +182,7 @@ static void test2_defaultHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
         maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
@@ -264,7 +268,7 @@ static void test3_customHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
         maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {

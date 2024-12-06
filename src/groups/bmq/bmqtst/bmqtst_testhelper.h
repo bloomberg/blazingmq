@@ -66,27 +66,28 @@
 ///----------
 // The following macros are provided to perform checks:
 //: o Comparison macros
-//:   o !ASSERT(X)!:       'X'
-//:   o !ASSERT_EQ(X, Y)!: 'X == Y'
-//:   o !ASSERT_NE(X, Y)!: 'X != Y'
-//:   o !ASSERT_LT(X, Y)!: 'X <  Y'
-//:   o !ASSERT_LE(X, Y)!: 'X <= Y'
-//:   o !ASSERT_GT(X, Y)!: 'X  > Y'
-//:   o !ASSERT_GE(X, Y)!: 'X >= Y'
-//:   o !ASSERT_EQF(X, Y)!: 'X == Y' (fuzzy)
-//:   o !ASSERT_NEF(X, Y)!: 'X != Y' (fuzzy)
+//:   o !BMQTST_ASSERT(X)!:       'X'
+//:   o !BMQTST_ASSERT_EQ(X, Y)!: 'X == Y'
+//:   o !BMQTST_ASSERT_NE(X, Y)!: 'X != Y'
+//:   o !BMQTST_ASSERT_LT(X, Y)!: 'X <  Y'
+//:   o !BMQTST_ASSERT_LE(X, Y)!: 'X <= Y'
+//:   o !BMQTST_ASSERT_GT(X, Y)!: 'X  > Y'
+//:   o !BMQTST_ASSERT_GE(X, Y)!: 'X >= Y'
+//:   o !BMQTST_ASSERT_EQF(X, Y)!: 'X == Y' (fuzzy)
+//:   o !BMQTST_ASSERT_NEF(X, Y)!: 'X != Y' (fuzzy)
 //
-// Each of the above macros have a '_D' variant (for example 'ASSERT_EQ_D')
-// which takes an additional first parameter, 'description', that will be
-// printed in case the assertion fails (but always evaluated upfront).
+// Each of the above macros have a '_D' variant (for example
+// 'BMQTST_ASSERT_EQ_D') which takes an additional first parameter,
+// 'description', that will be printed in case the assertion fails (but always
+// evaluated upfront).
 //
 //: o Negative testing macros
-//:   o !ASSERT_SAFE_PASS(E)!: no assertion in safe mode is expected
-//:   o !ASSERT_SAFE_FAIL(E)!: an assertion in safe mode is expected
-//:   o !ASSERT_PASS(E)!:      no assertion in default mode is expected
-//:   o !ASSERT_FAIL(E)!:      an assertion in default mode is expected
-//:   o !ASSERT_OPT_PASS(E)!:  no assertion in opt mode is expected
-//:   o !ASSERT_OPT_FAIL(E)!:  an assertion in opt mode is expected
+//:   o !BMQTST_ASSERT_SAFE_PASS(E)!: no assertion in safe mode is expected
+//:   o !BMQTST_ASSERT_SAFE_FAIL(E)!: an assertion in safe mode is expected
+//:   o !BMQTST_ASSERT_PASS(E)!:      no assertion in default mode is expected
+//:   o !BMQTST_ASSERT_FAIL(E)!:      an assertion in default mode is expected
+//:   o !BMQTST_ASSERT_OPT_PASS(E)!:  no assertion in opt mode is expected
+//:   o !BMQTST_ASSERT_OPT_FAIL(E)!:  an assertion in opt mode is expected
 //
 /// PRINTING
 ///--------
@@ -140,18 +141,18 @@
 // in 'main'.
 //
 // Two macros are provided for creating tests:
-//: o TEST(TEST_NAME)             { TEST_CODE }
-//: o TEST_F(FIXTURE, TEST_NAME)  { TEST_CODE }
-// Both macros register the code in the following block as a test.  'TEST_F'
-// takes an extra argument, a "fixture", which is a class that provides an
-// environment in which one or several tests can be conveniently executed.
-// Most tests require a context for execution: objects and mocks (and sometimes
-// directories or other resources) need to be created and initialized.  This is
-// the role of a fixture class: it is instantiated and the test code is run as
-// an instance member function of the fixture class.  Thus all the objects and
-// methods supplied by the fixture class are available in the test code.  This
-// approach has two advantages over simply writing the setup code at the
-// beginning of the test (and cleanup at the end):
+//: o BMQTST_TEST(BMQTST_TEST_NAME)             { BMQTST_TEST_CODE }
+//: o BMQTST_TEST_F(FIXTURE, TEST_NAME)  { TEST_CODE }
+// Both macros register the code in the following block as a test.
+// 'BMQTST_TEST_F' takes an extra argument, a "fixture", which is a class that
+// provides an environment in which one or several tests can be conveniently
+// executed. Most tests require a context for execution: objects and mocks (and
+// sometimes directories or other resources) need to be created and
+// initialized.  This is the role of a fixture class: it is instantiated and
+// the test code is run as an instance member function of the fixture class.
+// Thus all the objects and methods supplied by the fixture class are available
+// in the test code.  This approach has two advantages over simply writing the
+// setup code at the beginning of the test (and cleanup at the end):
 //: o If the test exits prematurely (for example on a test failure), the
 //: cleanup
 //:   code is executed as per the RAII idiom.
@@ -164,7 +165,7 @@
 //: o If no fixture is specified (i.e. test was created with 'TEST'):
 //:   o Execute the test code
 //: o If an explicit fixture is specified (i.e. test was created with
-//: 'TEST_F'):
+//: 'BMQTST_TEST_F'):
 //:   o Instantiate a fixture object (execute the ctor)
 //:   o Call the SetUp() method on the fixture object
 //:   o Execute the test code as a (non-static) member function of the fixture
@@ -200,8 +201,8 @@
 //      bmqtst::TestHelper::printTestName("BREATHING TEST");
 //
 //      grppkg::MyComponent myComponent("name", TestHelperUtil::allocator());
-//      ASSERT(myComponent.isValid());
-//      ASSERT_EQ(myComponent.name(), "name");
+//      BMQTST_ASSERT(myComponent.isValid());
+//      BMQTST_ASSERT_EQ(myComponent.name(), "name");
 //  }
 //
 //  // ========================================================================
@@ -256,11 +257,11 @@
 //      }
 //  };
 //
-//  TEST_F(FunctionalTest, breathingTest)
+//  BMQTST_TEST_F(FunctionalTest, breathingTest)
 //  {
 //      grppkg::MyComponent myComponent("name", config, mock,
-//      TestHelperUtil::allocator()); ASSERT(myComponent.isValid());
-//      ASSERT_EQ(myComponent.name(), "name");
+//      TestHelperUtil::allocator()); BMQTST_ASSERT(myComponent.isValid());
+//      BMQTST_ASSERT_EQ(myComponent.name(), "name");
 //  }
 //
 //  // ========================================================================
@@ -358,34 +359,37 @@
         }                                                                     \
     }
 
-#define ASSERT_EQ(X, Y)                                                       \
+// An alias to the required BDE ASSERT macro
+#define BMQTST_ASSERT(X) ASSERT(X)
+
+#define BMQTST_ASSERT_EQ(X, Y)                                                \
     {                                                                         \
         _assertCompareEquals("", X, Y, #X, #Y, __FILE__, __LINE__);           \
     }
-#define ASSERT_NE(X, Y)                                                       \
+#define BMQTST_ASSERT_NE(X, Y)                                                \
     {                                                                         \
         _assertCompareNotEquals("", X, Y, #X, #Y, __FILE__, __LINE__);        \
     }
-#define ASSERT_LT(X, Y)                                                       \
+#define BMQTST_ASSERT_LT(X, Y)                                                \
     {                                                                         \
         _assertCompareLess("", X, Y, #X, #Y, __FILE__, __LINE__);             \
     }
-#define ASSERT_LE(X, Y)                                                       \
+#define BMQTST_ASSERT_LE(X, Y)                                                \
     {                                                                         \
         _assertCompareLessEquals("", X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
-#define ASSERT_GT(X, Y)                                                       \
+#define BMQTST_ASSERT_GT(X, Y)                                                \
     {                                                                         \
         _assertCompareGreater("", X, Y, #X, #Y, __FILE__, __LINE__);          \
     }
-#define ASSERT_GE(X, Y)                                                       \
+#define BMQTST_ASSERT_GE(X, Y)                                                \
     {                                                                         \
         _assertCompareGreaterEquals("", X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
 
 // '_D' variants, allowing to specify a 'description' that will be printed in
 // case of failure.
-#define ASSERT_D(D, X)                                                        \
+#define BMQTST_ASSERT_D(D, X)                                                 \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -395,7 +399,7 @@
             BloombergLP::_assert(false, _osStr.data(), __FILE__, __LINE__);   \
         }                                                                     \
     }
-#define ASSERT_EQ_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_EQ_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -403,7 +407,7 @@
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
-#define ASSERT_NE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_NE_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -411,7 +415,7 @@
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareNotEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
-#define ASSERT_LT_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_LT_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -419,7 +423,7 @@
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareLess(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);         \
     }
-#define ASSERT_LE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_LE_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -427,7 +431,7 @@
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareLessEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);   \
     }
-#define ASSERT_GT_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_GT_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -435,7 +439,7 @@
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareGreater(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);      \
     }
-#define ASSERT_GE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_GE_D(D, X, Y)                                           \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
@@ -451,7 +455,7 @@
     }
 
 // Assertions using fuzzy comparisons
-#define ASSERT_EQF(X, Y)                                                      \
+#define BMQTST_ASSERT_EQF(X, Y)                                               \
     {                                                                         \
         if (!(bmqtst::TestHelper::areFuzzyEqual((X), (Y)))) {                 \
             bsl::cout << "Error " << __FILE__ << "(" << __LINE__              \
@@ -464,7 +468,7 @@
         }                                                                     \
     }
 
-#define ASSERT_NEF(X, Y)                                                      \
+#define BMQTST_ASSERT_NEF(X, Y)                                               \
     {                                                                         \
         if (bmqtst::TestHelper : areFuzzyEqual((X), (Y))) {                   \
             bsl::cout << "Error " << __FILE__ << "(" << __LINE__              \
@@ -480,12 +484,12 @@
 // ============================================================================
 //                     NEGATIVE-TEST MACROS ABBREVIATIONS
 // ----------------------------------------------------------------------------
-#define ASSERT_SAFE_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_PASS(EXPR)
-#define ASSERT_SAFE_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(EXPR)
-#define ASSERT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_PASS(EXPR)
-#define ASSERT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_FAIL(EXPR)
-#define ASSERT_OPT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_PASS(EXPR)
-#define ASSERT_OPT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_FAIL(EXPR)
+#define BMQTST_ASSERT_SAFE_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_PASS(EXPR)
+#define BMQTST_ASSERT_SAFE_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(EXPR)
+#define BMQTST_ASSERT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_PASS(EXPR)
+#define BMQTST_ASSERT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_FAIL(EXPR)
+#define BMQTST_ASSERT_OPT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_PASS(EXPR)
+#define BMQTST_ASSERT_OPT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_FAIL(EXPR)
 
 // ============================================================================
 //                                PRINT MACROS
@@ -656,18 +660,18 @@
     }                                                                         \
                                                                               \
     /* Ensure no memory leak from the component under test */                 \
-    ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                                \
+    BMQTST_ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                         \
                                                                               \
     /* Verify no default allocator usage */                                   \
     if (F & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                          \
         !bmqtst::TestHelperUtil::ignoreCheckDefAlloc()) {                     \
-        ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                             \
+        BMQTST_ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* Verify no global allocator usage */                                    \
     if (F & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                          \
         !bmqtst::TestHelperUtil::ignoreCheckGblAlloc()) {                     \
-        ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                             \
+        BMQTST_ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* shutdown log observers */                                              \
@@ -684,7 +688,7 @@
         0; /* clang-tidy warning silencing */                                 \
     return bmqtst::TestHelperUtil::testStatus();
 
-#define TEST_F(FIXTURE, NAME)                                                 \
+#define BMQTST_TEST_F(FIXTURE, NAME)                                          \
     struct FIXTURE##NAME : FIXTURE {                                          \
         void body() BSLS_KEYWORD_OVERRIDE;                                    \
                                                                               \
@@ -704,7 +708,7 @@
         FIXTURE##NAME ::run);                                                 \
     void FIXTURE##NAME ::body()
 
-#define TEST(NAME)                                                            \
+#define BMQTST_TEST(NAME)                                                     \
     struct Test##NAME : ::BloombergLP::bmqtst::Test {                         \
         void body() BSLS_KEYWORD_OVERRIDE;                                    \
                                                                               \

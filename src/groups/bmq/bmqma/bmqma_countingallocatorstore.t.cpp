@@ -74,14 +74,14 @@ static void test1_breathingTest()
                                           bmqtst::TestHelperUtil::allocator());
     bmqma::CountingAllocatorStore allocatorStore(&topAllocator);
 
-    ASSERT_EQ(allocatorStore.baseAllocator(), &topAllocator);
+    BMQTST_ASSERT_EQ(allocatorStore.baseAllocator(), &topAllocator);
 
     bslma::Allocator* allocatorA = allocatorStore.get("a");
     bslma::Allocator* allocatorB = allocatorStore.get("b");
     bslma::Allocator* allocatorC = allocatorStore.get("a");
 
-    ASSERT_EQ(allocatorA, allocatorC);
-    ASSERT_NE(allocatorA, allocatorB);
+    BMQTST_ASSERT_EQ(allocatorA, allocatorC);
+    BMQTST_ASSERT_NE(allocatorA, allocatorB);
 }
 
 static void test2_ancestorNotCountingAllocator()
@@ -115,13 +115,13 @@ static void test2_ancestorNotCountingAllocator()
     bslma::Allocator* topAllocator_p = bmqtst::TestHelperUtil::allocator();
     bmqma::CountingAllocatorStore allocatorStore(topAllocator_p);
 
-    ASSERT_EQ(allocatorStore.baseAllocator(), topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorStore.baseAllocator(), topAllocator_p);
 
     bslma::Allocator* allocatorA = allocatorStore.get("a");
     bslma::Allocator* allocatorB = allocatorStore.get("b");
 
-    ASSERT_EQ(allocatorA, topAllocator_p);
-    ASSERT_EQ(allocatorB, topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorA, topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorB, topAllocator_p);
 }
 
 //=============================================================================

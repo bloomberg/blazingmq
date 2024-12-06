@@ -49,10 +49,10 @@ static void test1_breathingTest()
     bmqu::SameThreadChecker sameThreadChecker;
 
     // set the checker's thread to be this thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), true);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), true);
 
     // we are in the checker's thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), true);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), true);
 
     // reset the checker's thread to be another thread
     sameThreadChecker.reset();
@@ -69,7 +69,7 @@ static void test1_breathingTest()
     BSLS_ASSERT_OPT(rc == 0);
 
     // we are not in the checker's thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), false);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), false);
 }
 
 // ============================================================================

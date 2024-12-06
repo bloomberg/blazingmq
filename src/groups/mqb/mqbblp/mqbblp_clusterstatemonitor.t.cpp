@@ -299,25 +299,25 @@ static void test1_breathingTest()
     monitor.start();
 
     // False by default
-    ASSERT_EQ(monitor.isHealthy(), false);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
 
     helper.d_cluster_mp->advanceTime(1);
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
 
     helper.d_cluster_mp->stop();
     monitor.stop();
     monitor.unregisterObserver(&notifications);
 
     // No alarms emitted
-    ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
 }
 
 static void test2_checkAlarmsWithResetTest()
@@ -365,16 +365,16 @@ static void test2_checkAlarmsWithResetTest()
     monitor.start();
 
     // False by default
-    ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
 
     // T: 1
     helper.d_cluster_mp->advanceTime(1);
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
 
     // [T = 1]: Set 1 partition(3) to inactive primary and wait for alarm
     helper.setPartition(3, helper.d_nodes[3], !k_IS_ACTIVE);
@@ -384,15 +384,15 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 bad state alarm
     helper.d_cluster_mp->advanceTime(config.maxTimeMaster());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 1U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[0], 3U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[0], 3U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 
     // False if any state goes bad
-    ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
 
     // [T = 121]: Set leader to inactive
     helper.setLeader(helper.d_nodes[0], !k_IS_ACTIVE);
@@ -401,11 +401,11 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 leader passive notification
     helper.d_cluster_mp->advanceTime(config.thresholdLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 1U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 
     helper.setLeader(helper.d_nodes[0], !k_IS_ACTIVE);
 
@@ -414,12 +414,12 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 partition orphan notification
     helper.d_cluster_mp->advanceTime(config.thresholdLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[1], 3U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 2U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[1], 3U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 
     // [T = 181] set node to false
     helper.setNode(helper.d_nodes[0], !k_IS_ACTIVE);
@@ -431,13 +431,14 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 bad state alarm
     helper.d_cluster_mp->advanceTime(config.thresholdNode());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 3U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[2], 3U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 1U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds[0], helper.d_nodes[0]);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 3U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[2], 3U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds[0],
+                     helper.d_nodes[0]);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 3U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 2U);
 
     // T: 301
     // - 1 partition orphan notification
@@ -446,13 +447,14 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 bad state alarm
     helper.d_cluster_mp->advanceTime(config.thresholdNode());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[3], 3U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds[1], helper.d_nodes[0]);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[3], 3U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds[1],
+                     helper.d_nodes[0]);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3U);
 
     // [T = 301] Reset leader, partition, failover state, and node to good
     //           state and things should go back to good state immediately
@@ -465,15 +467,15 @@ static void test2_checkAlarmsWithResetTest()
     // - No more thresholds or bad state notifications emitted
     helper.d_cluster_mp->advanceTime(config.maxTimeMaster());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[3], 3U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[3], 3U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3U);
 
     // Back to healthy
-    ASSERT_EQ(monitor.isHealthy(), true);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), true);
 
     // [T = 421] We are in clean state here, change a partition primary to only
     // a short time and assert that a threshold notification is emitted
@@ -483,12 +485,12 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 partition orphan notification
     helper.d_cluster_mp->advanceTime(config.thresholdMaster());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3U);
 
     // [T = 481] Restore partition to valid
     helper.setPartition(2, helper.d_nodes[1], k_IS_ACTIVE);
@@ -500,12 +502,12 @@ static void test2_checkAlarmsWithResetTest()
     // - 1 failover threshold notification
     helper.d_cluster_mp->advanceTime(config.thresholdFailover());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
-    ASSERT_EQ(logObserver.records().size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3U);
 
     // T: 721
     // - 1 failover threshold notification
@@ -513,12 +515,12 @@ static void test2_checkAlarmsWithResetTest()
     helper.d_cluster_mp->advanceTime(config.maxTimeFailover() -
                                      config.thresholdFailover());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
-    ASSERT_EQ(logObserver.records().size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 4U);
 
     // [T = 721] Restore 'isRestoring' to false (good state)
     helper.d_cluster_mp->_setIsRestoringState(false);
@@ -526,12 +528,12 @@ static void test2_checkAlarmsWithResetTest()
     // - No more thresholds or bad state notifications emitted
     helper.d_cluster_mp->advanceTime(config.maxTimeMaster());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
-    ASSERT_EQ(logObserver.records().size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 5U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds[4], 2U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 4U);
 
     helper.d_cluster_mp->stop();
     monitor.stop();
@@ -587,7 +589,7 @@ static void test3_alwaysInvalidStateTest()
     bmqu::MemOutStream dummy;
 
     // No state is ever valid so always not healthy
-    ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
 
     helper.d_cluster_mp->start(dummy);
     monitor.start();
@@ -596,11 +598,11 @@ static void test3_alwaysInvalidStateTest()
     // - 1 leader passive notification
     helper.d_cluster_mp->advanceTime(config.thresholdLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
 
     // T: 59
     // - Nothing (advancing by a time interval which is just smaller than the
@@ -608,11 +610,11 @@ static void test3_alwaysInvalidStateTest()
     helper.d_cluster_mp->advanceTime(config.maxTimeLeader() -
                                      config.thresholdLeader() - 1);
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 0U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 1U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
 
     // T: 61
     // - 4 partition orphan notifications (1 for each partition)
@@ -621,11 +623,11 @@ static void test3_alwaysInvalidStateTest()
     // - 1 bad state alarm (triggered by leader's bad state)
     helper.d_cluster_mp->advanceTime(2);
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 5U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 2U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
-    ASSERT_EQ(logObserver.records().size(), 1U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 5U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 2U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 0U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 
     // T: 121
     // - 4 partition orphan notifications (1 for each partition)
@@ -635,11 +637,11 @@ static void test3_alwaysInvalidStateTest()
     // - 1 bad state alarm (triggered by leader's bad state)
     helper.d_cluster_mp->advanceTime(config.maxTimeLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 8U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 10U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 3U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
-    ASSERT_EQ(logObserver.records().size(), 2U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 8U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 10U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 3U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 2U);
 
     // T: 181
     // - 4 partition orphan notifications (1 for each partition)
@@ -648,11 +650,11 @@ static void test3_alwaysInvalidStateTest()
     // - 1 bad state alarm (triggered by leader's bad state)
     helper.d_cluster_mp->advanceTime(config.maxTimeLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 12U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 15U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
-    ASSERT_EQ(logObserver.records().size(), 3U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 12U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 15U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 4U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 1U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 3U);
 
     // T: 241
     // - 4 partition orphan notifications (1 for each partition)
@@ -662,14 +664,14 @@ static void test3_alwaysInvalidStateTest()
     // - 1 bad state alarm (triggered by leader's bad state)
     helper.d_cluster_mp->advanceTime(config.maxTimeLeader());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 16U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 20U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 5U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
-    ASSERT_EQ(logObserver.records().size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 16U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 20U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 5U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 4U);
 
     // All partitions are in bad state
-    ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
 
     // set all to true and ensure resets are invoked
     helper.setPartition(0, helper.d_nodes[0], k_IS_ACTIVE);
@@ -685,20 +687,20 @@ static void test3_alwaysInvalidStateTest()
     helper.d_cluster_mp->_setIsRestoringState(false);
 
     // Cluster should still be viewed as unhealthy
-    ASSERT_EQ(monitor.isHealthy(), false);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), false);
 
     // T: 481
     // - nothing new
     helper.d_cluster_mp->advanceTime(config.maxTimeFailover());
     helper.d_cluster_mp->waitForScheduler();
-    ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 16U);
-    ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 20U);
-    ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 5U);
-    ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
-    ASSERT_EQ(logObserver.records().size(), 4U);
+    BMQTST_ASSERT_EQ(notifications.d_partitionOrphanThresholds.size(), 16U);
+    BMQTST_ASSERT_EQ(notifications.d_nodeUnavailableThresholds.size(), 20U);
+    BMQTST_ASSERT_EQ(notifications.d_numLeaderPassiveThresholds, 5U);
+    BMQTST_ASSERT_EQ(notifications.d_numFailoverThresholds, 2U);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 4U);
 
     // All valid states so should be good
-    ASSERT_EQ(monitor.isHealthy(), true);
+    BMQTST_ASSERT_EQ(monitor.isHealthy(), true);
 
     helper.d_cluster_mp->stop();
     monitor.stop();

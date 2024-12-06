@@ -80,14 +80,14 @@ static void test1_createQueueIdFromHandleParameters()
             bmqp::QueueUtil::createQueueIdFromHandleParameters(handleParams);
 
         if (test.d_hasSubId) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        result,
-                        bmqp::QueueId(test.d_id, test.d_subId));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               result,
+                               bmqp::QueueId(test.d_id, test.d_subId));
         }
         else {
-            ASSERT_EQ_D("line " << test.d_line,
-                        result,
-                        bmqp::QueueId(test.d_id));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               result,
+                               bmqp::QueueId(test.d_id));
         }
     }
 }
@@ -137,20 +137,24 @@ static void test2_extractSubQueueId()
                         << handleParams);
 
         if (test.d_hasSubId) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(streamParams),
-                        test.d_subId);
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(handleParams),
-                        test.d_subId);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(streamParams),
+                test.d_subId);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(handleParams),
+                test.d_subId);
         }
         else {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(streamParams),
-                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(handleParams),
-                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(streamParams),
+                bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(handleParams),
+                bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         }
     }
 }
@@ -269,13 +273,13 @@ static void test3_extractCanonicalHandleParameters()
                                         test.d_uri);
         BSLS_ASSERT_OPT(rc == 0);
 
-        ASSERT_EQ(result.flags(), test.d_flags);
-        ASSERT_EQ(result.uri(), expectedUri.canonical());
+        BMQTST_ASSERT_EQ(result.flags(), test.d_flags);
+        BMQTST_ASSERT_EQ(result.uri(), expectedUri.canonical());
 
-        ASSERT_EQ(result.subIdInfo().isNull(), true);
-        ASSERT_EQ(result.readCount(), test.d_readCount);
-        ASSERT_EQ(result.writeCount(), test.d_writeCount);
-        ASSERT_EQ(result.adminCount(), test.d_adminCount);
+        BMQTST_ASSERT_EQ(result.subIdInfo().isNull(), true);
+        BMQTST_ASSERT_EQ(result.readCount(), test.d_readCount);
+        BMQTST_ASSERT_EQ(result.writeCount(), test.d_writeCount);
+        BMQTST_ASSERT_EQ(result.adminCount(), test.d_adminCount);
     }
 }
 
@@ -358,7 +362,8 @@ static void test4_isEmpty()
                         << bsl::boolalpha << test.d_expected << "',"
                         << " handleParameters: " << handleParams);
 
-        ASSERT_EQ(bmqp::QueueUtil::isEmpty(handleParams), test.d_expected);
+        BMQTST_ASSERT_EQ(bmqp::QueueUtil::isEmpty(handleParams),
+                         test.d_expected);
     }
 }
 
@@ -368,16 +373,16 @@ static void test5_isValidFanoutConsumerSubId()
 
     using namespace bmqp;
 
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_RESERVED_SUBQUEUE_ID));
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID));
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID));
 
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(123));
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(99999));
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(987654321));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(123));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(99999));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(987654321));
 }
 
 // ============================================================================

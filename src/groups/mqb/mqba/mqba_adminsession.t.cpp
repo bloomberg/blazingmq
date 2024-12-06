@@ -189,7 +189,7 @@ class TestBench {
             d_allocator_p);
 
         int rc = d_scheduler.start();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     /// Destructor
@@ -255,7 +255,7 @@ static void test1_watermark()
                                      tb.d_allocator_p);
 
     int rc = builder.setMessage(admin, bmqp::EventType::e_CONTROL);
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     bmqp::Event adminEvent(builder.blob().get(),
                            bmqtst::TestHelperUtil::allocator());
@@ -276,7 +276,7 @@ static void test1_watermark()
     // Check if callback loop delivered admin commands execution results back
     // to the admin session and it writes the needed number of responses to the
     // test channel
-    ASSERT_EQ(tb.d_channel->writeCalls().size(), numMessages);
+    BMQTST_ASSERT_EQ(tb.d_channel->writeCalls().size(), numMessages);
 
     // Sanity check for the first admin response
     bmqp::Event adminResponseEvent(&tb.d_channel->writeCalls().at(0).d_blob,
@@ -286,10 +286,10 @@ static void test1_watermark()
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     rc = adminResponseEvent.loadControlEvent(&response);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(response.rId(), rId);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(response.rId(), rId);
     BSLS_ASSERT(response.choice().isAdminCommandResponseValue());
-    ASSERT_EQ(response.choice().adminCommandResponse().text(), command);
+    BMQTST_ASSERT_EQ(response.choice().adminCommandResponse().text(), command);
 }
 
 // ============================================================================

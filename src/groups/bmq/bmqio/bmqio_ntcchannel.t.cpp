@@ -74,14 +74,14 @@ ntca::InterfaceConfig ntcCreateInterfaceConfig(bslma::Allocator* allocator)
 
 void doFail()
 {
-    ASSERT(false && "Must not be invoked");
+    BMQTST_ASSERT(false && "Must not be invoked");
 }
 
 void executeOnClosedChannelFunc(bmqio::NtcChannel* channel,
                                 const Status&      status)
 {
     // PRECONDITIONS
-    ASSERT(channel);
+    BMQTST_ASSERT(channel);
 
     BSLA_MAYBE_UNUSED bslma::Allocator* alloc     = channel->allocator();
     BSLA_MAYBE_UNUSED int               id        = channel->channelId();
@@ -245,7 +245,7 @@ void Tester::onAcceptConnection(
                               bdlf::PlaceHolders::_1,
                               bdlf::PlaceHolders::_2,
                               bdlf::PlaceHolders::_3));
-    ASSERT_EQ(error, ntsa::Error::e_OK);
+    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
     d_listenChannels.push_back(channel);
     d_semaphore.post();
@@ -274,7 +274,7 @@ void Tester::init()
                                                    d_blobBufferFactory_sp,
                                                    d_allocator_p);
     ntsa::Error error = d_interface_sp->start();
-    ASSERT_EQ(error, ntsa::Error::e_OK);
+    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
     // 3. Start listener
     const int backlog = 10;
@@ -289,17 +289,17 @@ void Tester::init()
 
     d_listener_sp = d_interface_sp->createListenerSocket(listenerSocketOptions,
                                                          d_allocator_p);
-    ASSERT(d_listener_sp);
+    BMQTST_ASSERT(d_listener_sp);
 
     error = d_listener_sp->open();
-    ASSERT_EQ(error, ntsa::Error::e_OK);
+    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
     error = d_listener_sp->listen(backlog);
-    ASSERT_EQ(error, ntsa::Error::e_OK);
+    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
     const ntsa::Endpoint endpoint = d_listener_sp->sourceEndpoint();
-    ASSERT(endpoint.isIp());
-    ASSERT(endpoint.ip().host().isV4());
+    BMQTST_ASSERT(endpoint.isIp());
+    BMQTST_ASSERT(endpoint.ip().host().isV4());
 }
 
 bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
@@ -316,8 +316,8 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
         .setNumAttempts(1)
         .setAttemptInterval(bsls::TimeInterval(1));
     const int rc = channel->connect(&status, options);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
 
     ntci::AcceptCallback acceptCallback = d_listener_sp->createAcceptCallback(
         bdlf::BindUtil::bindS(d_allocator_p,
@@ -330,7 +330,7 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
 
     ntsa::Error error = d_listener_sp->accept(ntca::AcceptOptions(),
                                               acceptCallback);
-    ASSERT_EQ(error, ntsa::Error::e_OK);
+    BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);
 
     d_semaphore.wait();
 
@@ -374,7 +374,7 @@ static void test1_breathingTest()
     blob.appendDataBuffer(buffer);
     bmqio::Status status(bmqtst::TestHelperUtil::allocator());
     channel->write(&status, blob);
-    ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
+    BMQTST_ASSERT_EQ(status.category(), bmqio::StatusCategory::e_SUCCESS);
 
     bmqio::Channel::CloseFn closeCb = bdlf::BindUtil::bindS(
         bmqtst::TestHelperUtil::allocator(),

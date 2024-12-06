@@ -111,9 +111,9 @@ const bsls::Types::Int64 WATERMARK = 64 * 1024 * 1024;
 struct Caller {
     static void callback(bool* called, const ReqContextSp& context)
     {
-        ASSERT(!*called);
+        BMQTST_ASSERT(!*called);
         *called = true;
-        ASSERT(context);
+        BMQTST_ASSERT(context);
     }
 };
 
@@ -286,7 +286,7 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
                              d_cluster_mp.get()));
 
     int rc = d_cluster_mp->_scheduler().start();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 }
 
 /// Set dummy callback to prevent bad_function_call for case if it has not
@@ -370,12 +370,12 @@ Mes TestContext::createResponseCancel()
 
 Mes TestContext::getNextRequest(const ChannelSp& channel)
 {
-    ASSERT(channel->waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(channel->waitFor(1, true, bsls::TimeInterval(1)));
     bmqio::TestChannel::WriteCall wc = channel->popWriteCall();
     bmqp::Event                   ev(&wc.d_blob, d_allocator_p);
-    ASSERT(ev.isControlEvent());
+    BMQTST_ASSERT(ev.isControlEvent());
     Mes controlMessage(d_allocator_p);
-    ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
+    BMQTST_ASSERT_EQ(0, ev.loadControlEvent(&controlMessage));
     return controlMessage;
 }
 
@@ -409,7 +409,7 @@ Nodes TestContext::clusterNodes(mqbmock::Cluster* cluster,
 mqbmock::Cluster::ClusterNodeDefs
 TestContext::generateNodeDefs(int nodesCount, bslma::Allocator* allocator)
 {
-    ASSERT_GT(nodesCount, 0);
+    BMQTST_ASSERT_GT(nodesCount, 0);
     mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(allocator);
     for (int i = 0; i < nodesCount; ++i) {
         bsl::ostringstream nodeName(bmqtst::TestHelperUtil::allocator());
@@ -465,13 +465,13 @@ static void test1_contextTest()
 
     {
         ReqContextSp reqContext;
-        ASSERT_PASS(reqContext = bsl::make_shared<ReqContextType>(
-                        bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(reqContext = bsl::make_shared<ReqContextType>(
+                               bmqtst::TestHelperUtil::allocator()));
 
         ReqSp request = bsl::make_shared<Req>(
             bmqtst::TestHelperUtil::allocator());
         TestContext::populateRequest(request);
-        ASSERT_PASS(reqContext->request() = request->request());
+        BMQTST_ASSERT_PASS(reqContext->request() = request->request());
 
         mqbmock::Cluster::ClusterNodeDefs defs = TestContext::generateNodeDefs(
             5,
@@ -492,22 +492,22 @@ static void test1_contextTest()
         Nodes               nodes = TestContext::clusterNodes(
             &cluster,
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_PASS(reqContext->setDestinationNodes(nodes));
+        BMQTST_ASSERT_PASS(reqContext->setDestinationNodes(nodes));
         NodeResponses responses = reqContext->response();
-        ASSERT_EQ(nodes.size(), responses.size());
+        BMQTST_ASSERT_EQ(nodes.size(), responses.size());
         NodesIt         nodesIt     = nodes.begin();
         NodeResponsesIt responsesIt = responses.begin();
         for (; nodesIt != nodes.end() && responsesIt != responses.end();
              ++nodesIt, ++responsesIt) {
-            ASSERT_EQ(*nodesIt, responsesIt->first);
+            BMQTST_ASSERT_EQ(*nodesIt, responsesIt->first);
         }
 
         reqContext->clear();
         // Check that the MultiRequestManagerRequestContext object returned to
         // the default state
-        ASSERT_EQ(reqContext->request(),
-                  Mes(bmqtst::TestHelperUtil::allocator()));
-        ASSERT(reqContext->response().empty());
+        BMQTST_ASSERT_EQ(reqContext->request(),
+                         Mes(bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT(reqContext->response().empty());
     }
 }
 
@@ -521,15 +521,16 @@ static void test2_creatorsTest()
 
     {
         // Null RequestManager pointer
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             MultiReqManagerType(NULL, bmqtst::TestHelperUtil::allocator()));
     }
 
     {
         // Success creation
         TestContext context(5, bmqtst::TestHelperUtil::allocator());
-        ASSERT_PASS(MultiReqManagerType(context.manager().get(),
-                                        bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(
+            MultiReqManagerType(context.manager().get(),
+                                bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -553,10 +554,10 @@ static void test3_sendRequestTest()
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
-            ASSERT(ch);
+            BMQTST_ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
             Mes controlMessage = context.getNextRequest(ch);
-            ASSERT_EQ(req->request().choice(), controlMessage.choice());
+            BMQTST_ASSERT_EQ(req->request().choice(), controlMessage.choice());
         }
     }
 }
@@ -586,26 +587,26 @@ static void test4_handleResponseTest()
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
-            ASSERT(ch);
+            BMQTST_ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
             Mes controlMessage = context.getNextRequest(ch);
             responses.emplace_back(
                 context.createResponse(controlMessage.rId().value()));
         }
 
-        ASSERT(!called);
+        BMQTST_ASSERT(!called);
         bsl::vector<Mes>::const_iterator rIt = responses.begin();
         for (; rIt != responses.end(); ++rIt) {
             context.manager()->processResponse(*rIt);
         }
-        ASSERT(called);
+        BMQTST_ASSERT(called);
 
         const NodeResponses& nodeResponses = context.context()->response();
         NodeResponsesIt      nodeIt        = nodeResponses.begin();
         rIt                                = responses.begin();
         for (; nodeIt != nodeResponses.end() && rIt != responses.end();
              ++nodeIt, ++rIt) {
-            ASSERT_EQ(nodeIt->second, *rIt);
+            BMQTST_ASSERT_EQ(nodeIt->second, *rIt);
         }
     }
 
@@ -620,9 +621,9 @@ static void test4_handleResponseTest()
                                                    bdlf::PlaceHolders::_1));
         context.sendRequest(req);
 
-        ASSERT(!called);
+        BMQTST_ASSERT(!called);
         context.advanceTime(SEND_REQUEST_TIMEOUT);
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 
     {
@@ -659,7 +660,7 @@ static void test4_handleResponseTest()
                     if (response.has_value()) {
                         int rc = context->manager()->processResponse(
                             response.value());
-                        ASSERT_EQ(rc, 0);
+                        BMQTST_ASSERT_EQ(rc, 0);
                     }
                     else {
                         break;
@@ -681,7 +682,7 @@ static void test4_handleResponseTest()
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
-            ASSERT(ch);
+            BMQTST_ASSERT(ch);
             // checking that MultiRequestManager has really sent the requests
             Mes controlMessage = context.getNextRequest(ch);
             responses.emplace(
@@ -696,13 +697,13 @@ static void test4_handleResponseTest()
                                      &responsesLock,
                                      &barrier,
                                      &context));
-            ASSERT_EQ(0, rc);
+            BMQTST_ASSERT_EQ(0, rc);
         }
 
-        ASSERT(!called);
+        BMQTST_ASSERT(!called);
         barrier.wait();
         threadGroup.joinAll();
-        ASSERT(called);
+        BMQTST_ASSERT(called);
     }
 }
 

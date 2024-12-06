@@ -90,21 +90,22 @@ static void test2_startStopTest()
     // Stop without previous start
     obj.stop();
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     int rc = obj.start(bsls::TimeInterval(0.1));
 
-    ASSERT_EQ(rc, bmqt::GenericResult::e_TIMEOUT);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     obj.stop();
 
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
 
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
 }
 
 static void test3_startStopAsyncTest()
@@ -145,32 +146,34 @@ static void test3_startStopAsyncTest()
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
 
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     int rc = obj.startAsync(bsls::TimeInterval(0.1));
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     // Expect CONNECTION_TIMEOUT event
     event = obj.brokerSession().nextEvent(bsls::TimeInterval(1));
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(),
-              bmqt::SessionEventType::e_CONNECTION_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_CONNECTION_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     // Interrupted start
     rc = obj.startAsync(bsls::TimeInterval(0.5));
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     obj.stop();
 
     event = obj.brokerSession().nextEvent(bsls::TimeInterval(1));
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(!obj.isStarted());
 }
 
 // ============================================================================

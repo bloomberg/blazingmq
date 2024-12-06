@@ -53,48 +53,48 @@ static void test1_breathingTest()
         obj << 2;
         obj << ":hello world";
 
-        ASSERT_EQ(obj.str(), "2:hello world");
-        ASSERT_EQ(alloc.numBlocksInUse(), 1);
-        ASSERT_EQ(obj.isEmpty(), false);
-        ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(13));
+        BMQTST_ASSERT_EQ(obj.str(), "2:hello world");
+        BMQTST_ASSERT_EQ(alloc.numBlocksInUse(), 1);
+        BMQTST_ASSERT_EQ(obj.isEmpty(), false);
+        BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(13));
     }
 
     {
         PV("Test reset");
         obj.reset();
-        ASSERT(obj.str().isEmpty());
-        ASSERT_EQ(alloc.numBlocksInUse(), 0);
-        ASSERT_EQ(obj.isEmpty(), true);
-        ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(0));
+        BMQTST_ASSERT(obj.str().isEmpty());
+        BMQTST_ASSERT_EQ(alloc.numBlocksInUse(), 0);
+        BMQTST_ASSERT_EQ(obj.isEmpty(), true);
+        BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(0));
     }
 
     {
         PV("Test reserving");
 
         obj.reserveCapacity(3);
-        ASSERT_EQ(alloc.numBlocksInUse(), 1);
-        ASSERT_EQ(alloc.numBytesInUse(), 3);
-        ASSERT_EQ(obj.isEmpty(), true);
-        ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(0));
+        BMQTST_ASSERT_EQ(alloc.numBlocksInUse(), 1);
+        BMQTST_ASSERT_EQ(alloc.numBytesInUse(), 3);
+        BMQTST_ASSERT_EQ(obj.isEmpty(), true);
+        BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(0));
 
         obj << "123";  // This should take 3 chars, we don't do C-strings
-        ASSERT_EQ(obj.str(), "123");
-        ASSERT_EQ(alloc.numBlocksInUse(), 1);
-        ASSERT_EQ(alloc.numBytesInUse(), 3);
-        ASSERT_EQ(obj.isEmpty(), false);
-        ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(3));
+        BMQTST_ASSERT_EQ(obj.str(), "123");
+        BMQTST_ASSERT_EQ(alloc.numBlocksInUse(), 1);
+        BMQTST_ASSERT_EQ(alloc.numBytesInUse(), 3);
+        BMQTST_ASSERT_EQ(obj.isEmpty(), false);
+        BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(3));
 
         // Did not allocate more than 2 blocks at any time
-        ASSERT_LE(alloc.numBlocksMax(), 2);
+        BMQTST_ASSERT_LE(alloc.numBlocksMax(), 2);
 
         // Make it allocate some more memory
         obj << "456";
-        ASSERT_EQ(obj.str(), "123456");
-        ASSERT_EQ(alloc.numBlocksInUse(), 1);
-        ASSERT_EQ(alloc.numBytesInUse(), 6);
-        ASSERT_LE(alloc.numBlocksMax(), 2);
-        ASSERT_EQ(obj.isEmpty(), false);
-        ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(6));
+        BMQTST_ASSERT_EQ(obj.str(), "123456");
+        BMQTST_ASSERT_EQ(alloc.numBlocksInUse(), 1);
+        BMQTST_ASSERT_EQ(alloc.numBytesInUse(), 6);
+        BMQTST_ASSERT_LE(alloc.numBlocksMax(), 2);
+        BMQTST_ASSERT_EQ(obj.isEmpty(), false);
+        BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(6));
     }
 }
 
@@ -108,7 +108,7 @@ static void test2_usageExample()
 
     bmqu::MemOutStream obj(30, bmqtst::TestHelperUtil::allocator());
     obj << "hello world";
-    ASSERT_EQ(obj.str(), "hello world");
+    BMQTST_ASSERT_EQ(obj.str(), "hello world");
 }
 
 // ============================================================================

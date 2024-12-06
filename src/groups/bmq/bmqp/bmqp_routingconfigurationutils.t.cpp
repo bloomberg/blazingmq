@@ -79,93 +79,93 @@ static void test1_breathingTest()
         PV("clear / isClear");
         bmqp_ctrlmsg::RoutingConfiguration config;
 
-        ASSERT_EQ(obj::isClear(config), true);
+        BMQTST_ASSERT_EQ(obj::isClear(config), true);
 
         setAllFlags(&config);
-        ASSERT_EQ(obj::isClear(config), false);
+        BMQTST_ASSERT_EQ(obj::isClear(config), false);
 
         obj::clear(&config);
-        ASSERT_EQ(obj::isClear(config), true);
+        BMQTST_ASSERT_EQ(obj::isClear(config), true);
     }
 
     {
         PV("atMostOnce (isSet, set, unset)");
         bmqp_ctrlmsg::RoutingConfiguration config;
 
-        ASSERT_EQ(obj::isAtMostOnce(config), false);
+        BMQTST_ASSERT_EQ(obj::isAtMostOnce(config), false);
 
         obj::setAtMostOnce(&config);
-        ASSERT_EQ(obj::isAtMostOnce(config), true);
-        ASSERT_EQ(numFlagsSet(config), 1);
+        BMQTST_ASSERT_EQ(obj::isAtMostOnce(config), true);
+        BMQTST_ASSERT_EQ(numFlagsSet(config), 1);
 
         obj::unsetAtMostOnce(&config);
-        ASSERT_EQ(obj::isAtMostOnce(config), false);
+        BMQTST_ASSERT_EQ(obj::isAtMostOnce(config), false);
 
         setAllFlags(&config);
-        ASSERT_EQ(obj::isAtMostOnce(config), true);
+        BMQTST_ASSERT_EQ(obj::isAtMostOnce(config), true);
 
         obj::unsetAtMostOnce(&config);
-        ASSERT_EQ(numFlagsUnset(config), 1);
+        BMQTST_ASSERT_EQ(numFlagsUnset(config), 1);
     }
 
     {
         PV("deliverAll (isSet, set, unset)");
         bmqp_ctrlmsg::RoutingConfiguration config;
 
-        ASSERT_EQ(obj::isDeliverAll(config), false);
+        BMQTST_ASSERT_EQ(obj::isDeliverAll(config), false);
 
         obj::setDeliverAll(&config);
-        ASSERT_EQ(obj::isDeliverAll(config), true);
-        ASSERT_EQ(numFlagsSet(config), 1);
+        BMQTST_ASSERT_EQ(obj::isDeliverAll(config), true);
+        BMQTST_ASSERT_EQ(numFlagsSet(config), 1);
 
         obj::unsetDeliverAll(&config);
-        ASSERT_EQ(obj::isDeliverAll(config), false);
+        BMQTST_ASSERT_EQ(obj::isDeliverAll(config), false);
 
         setAllFlags(&config);
-        ASSERT_EQ(obj::isDeliverAll(config), true);
+        BMQTST_ASSERT_EQ(obj::isDeliverAll(config), true);
 
         obj::unsetDeliverAll(&config);
-        ASSERT_EQ(numFlagsUnset(config), 1);
+        BMQTST_ASSERT_EQ(numFlagsUnset(config), 1);
     }
 
     {
         PV("deliverConsumerPriority (isSet, set, unset)");
         bmqp_ctrlmsg::RoutingConfiguration config;
 
-        ASSERT_EQ(obj::isDeliverConsumerPriority(config), false);
+        BMQTST_ASSERT_EQ(obj::isDeliverConsumerPriority(config), false);
 
         obj::setDeliverConsumerPriority(&config);
-        ASSERT_EQ(obj::isDeliverConsumerPriority(config), true);
-        ASSERT_EQ(numFlagsSet(config), 1);
+        BMQTST_ASSERT_EQ(obj::isDeliverConsumerPriority(config), true);
+        BMQTST_ASSERT_EQ(numFlagsSet(config), 1);
 
         obj::unsetDeliverConsumerPriority(&config);
-        ASSERT_EQ(obj::isDeliverConsumerPriority(config), false);
+        BMQTST_ASSERT_EQ(obj::isDeliverConsumerPriority(config), false);
 
         setAllFlags(&config);
-        ASSERT_EQ(obj::isDeliverConsumerPriority(config), true);
+        BMQTST_ASSERT_EQ(obj::isDeliverConsumerPriority(config), true);
 
         obj::unsetDeliverConsumerPriority(&config);
-        ASSERT_EQ(numFlagsUnset(config), 1);
+        BMQTST_ASSERT_EQ(numFlagsUnset(config), 1);
     }
 
     {
         PV("hasMultipleSubStreams (isSet, set, unset)");
         bmqp_ctrlmsg::RoutingConfiguration config;
 
-        ASSERT_EQ(obj::hasMultipleSubStreams(config), false);
+        BMQTST_ASSERT_EQ(obj::hasMultipleSubStreams(config), false);
 
         obj::setHasMultipleSubStreams(&config);
-        ASSERT_EQ(obj::hasMultipleSubStreams(config), true);
-        ASSERT_EQ(numFlagsSet(config), 1);
+        BMQTST_ASSERT_EQ(obj::hasMultipleSubStreams(config), true);
+        BMQTST_ASSERT_EQ(numFlagsSet(config), 1);
 
         obj::unsetHasMultipleSubStreams(&config);
-        ASSERT_EQ(obj::hasMultipleSubStreams(config), false);
+        BMQTST_ASSERT_EQ(obj::hasMultipleSubStreams(config), false);
 
         setAllFlags(&config);
-        ASSERT_EQ(obj::hasMultipleSubStreams(config), true);
+        BMQTST_ASSERT_EQ(obj::hasMultipleSubStreams(config), true);
 
         obj::unsetHasMultipleSubStreams(&config);
-        ASSERT_EQ(numFlagsUnset(config), 1);
+        BMQTST_ASSERT_EQ(numFlagsUnset(config), 1);
     }
 }
 
