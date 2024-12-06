@@ -3487,7 +3487,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
                        << ") exceeds the protocol limit ("
                        << mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD
                        << ")";
-        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;
+        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;  // RETURN
     }
 
     if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
@@ -3497,7 +3497,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
                        << ") exceeds the protocol limit ("
                        << mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD
                        << ")";
-        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;
+        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;  // RETURN
     }
 
     if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
@@ -3507,7 +3507,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
                        << ") exceeds the protocol limit ("
                        << mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD
                        << ")";
-        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;
+        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;  // RETURN
     }
 
     int rc = StorageUtil::validatePartitionDirectory(partitionCfg,
