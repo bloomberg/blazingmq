@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// bmqstoragetool
 #include <m_bmqstoragetool_filters.h>
 
 namespace BloombergLP {
@@ -25,12 +26,10 @@ namespace m_bmqstoragetool {
 Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
                  const bsl::vector<bsl::string>& queueUris,
                  const QueueMap&                 queueMap,
-                 const bsls::Types::Int64        timestampGt,
-                 const bsls::Types::Int64        timestampLt,
+                 const Parameters::Range&        range,
                  bslma::Allocator*               allocator)
 : d_queueKeys(allocator)
-, d_timestampGt(static_cast<bsls::Types::Uint64>(timestampGt))
-, d_timestampLt(static_cast<bsls::Types::Uint64>(timestampLt))
+, d_range(range)
 {
     // Fill internal structures
     if (!queueKeys.empty()) {
@@ -52,25 +51,65 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     }
 }
 
-bool Filters::apply(const mqbs::MessageRecord& record)
+bool Filters::apply(const mqbs::RecordHeader& recordHeader,
+                    bsls::Types::Uint64       recordOffset,
+                    const mqbu::StorageKey&   queueKey,
+                    bool*                     highBoundReached_p) const
 {
-    if (!d_queueKeys.empty()) {
+    if (highBoundReached_p) {
+        *highBoundReached_p = false;  // by default
+    }
+
+    // Apply `queue key` filter
+    if (queueKey != mqbu::StorageKey::k_NULL_KEY && !d_queueKeys.empty()) {
         // Match by queueKey
-        bsl::unordered_set<mqbu::StorageKey>::const_iterator it = bsl::find(
-            d_queueKeys.cbegin(),
-            d_queueKeys.cend(),
-            record.queueKey());
+        bsl::unordered_set<mqbu::StorageKey>::const_iterator it =
+            bsl::find(d_queueKeys.cbegin(), d_queueKeys.cend(), queueKey);
         if (it == d_queueKeys.cend()) {
             // Not matched
             return false;  // RETURN
         }
     }
-    const bsls::Types::Uint64& ts = record.header().timestamp();
-    if ((d_timestampGt > 0 && ts <= d_timestampGt) ||
-        (d_timestampLt > 0 && ts >= d_timestampLt)) {
-        // Match by timestamp
+
+    // Apply `range` filter
+    bsls::Types::Uint64 value, valueGt, valueLt;
+    switch (d_range.d_type) {
+    case Parameters::Range::e_TIMESTAMP:
+        value   = recordHeader.timestamp();
+        valueGt = d_range.d_timestampGt;
+        valueLt = d_range.d_timestampLt;
+        break;
+    case Parameters::Range::e_OFFSET:
+        value   = recordOffset;
+        valueGt = d_range.d_offsetGt;
+        valueLt = d_range.d_offsetLt;
+        break;
+    case Parameters::Range::e_SEQUENCE_NUM: {
+        CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
+                                       recordHeader.sequenceNumber());
+        const bool greaterOrEqualToHigherBound = d_range.d_seqNumLt.isSet() &&
+                                                 d_range.d_seqNumLt <= seqNum;
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+
+        return !(
+            (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
+            greaterOrEqualToHigherBound);  // RETURN
+    } break;
+    default:
+        // No range filter defined
+        return true;  // RETURN
+    }
+    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
+    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+        // Not inside range
         return false;  // RETURN
     }
+
     return true;
 }
 

@@ -26,6 +26,7 @@
 // command-line parameters for the 'bmqtool' program.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_queuemap.h>
 
 // MQB
@@ -53,10 +54,24 @@ namespace m_bmqstoragetool {
 
 struct CommandLineArguments {
     // PUBLIC DATA
+    static const char* k_MESSAGE_TYPE;
+    static const char* k_QUEUEOP_TYPE;
+    static const char* k_JOURNALOP_TYPE;
+    // Record types constants
+    bsl::vector<bsl::string> d_recordType;
+    // List of record types to process (message, journalOp, queueOp)
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;
     // Filter messages by maximum timestamp
+    bsl::string d_seqNumGt;
+    // Filter messages by minimum record composite sequence number
+    bsl::string d_seqNumLt;
+    // Filter messages by maximum record composite sequence number
+    bsls::Types::Int64 d_offsetGt;
+    // Filter messages by minimum record offset
+    bsls::Types::Int64 d_offsetLt;
+    // Filter messages by maximum record offset
     bsl::string d_journalPath;
     // Path to find all files from
     bsl::string d_journalFile;
@@ -67,6 +82,10 @@ struct CommandLineArguments {
     // Path to read CSL files from
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
+    bsl::vector<bsl::string> d_seqNum;
+    // Filter messages by record composite sequence numbers
+    bsl::vector<bsls::Types::Int64> d_offset;
+    // Filter messages by record offsets
     bsl::vector<bsl::string> d_queueKey;
     // Filter messages by queue keys
     bsl::vector<bsl::string> d_queueName;
@@ -91,19 +110,81 @@ struct CommandLineArguments {
 
     // MANIPULATORS
     /// Validate the consistency of all settings.
-    bool validate(bsl::string* error);
+    bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
+
+    // CLASS METHODS
+    /// Return true if the specified `recordType` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `recordType` is
+    /// invalid.
+    static bool isValidRecordType(const bsl::string* recordType,
+                                  bsl::ostream&      stream);
+    /// Return true if the specified `fileName` is valid (file exists), false
+    /// otherwise. Error message is written into the specified `stream` if
+    /// `fileName` is invalid.
+    static bool isValidFileName(const bsl::string* fileName,
+                                bsl::ostream&      stream);
 };
 
 struct Parameters {
+    // PUBLIC TYPES
+
+    // VST representing search range parameters
+    struct Range {
+        // PUBLIC TYPES
+        enum Type {
+            e_NONE         = 0,
+            e_TIMESTAMP    = 1,
+            e_SEQUENCE_NUM = 2,
+            e_OFFSET       = 3
+        };
+
+        // PUBLIC DATA
+        Type d_type;
+        /// Range type
+        bsls::Types::Uint64 d_timestampGt;
+        // Filter messages greater than timestamp value
+        bsls::Types::Uint64 d_timestampLt;
+        // Filter messages less than timestamp value
+        bsls::Types::Uint64 d_offsetGt;
+        // Filter messages greater than offset value
+        bsls::Types::Uint64 d_offsetLt;
+        // Filter messages less than offset value
+        CompositeSequenceNumber d_seqNumGt;
+        // Filter messages greater than sequence number
+        CompositeSequenceNumber d_seqNumLt;
+        // Filter messages less than sequence number
+
+        // CREATORS
+        explicit Range();
+    };
+
+    // VST representing record types to process
+    struct ProcessRecordTypes {
+        // PUBLIC DATA
+        bool d_message;
+        // Flag to process records of type message
+        bool d_queueOp;
+        // Flag to process records of type queueOp
+        bool d_journalOp;
+        // Flag to process records of type journalOp
+
+        // CREATORS
+        explicit ProcessRecordTypes(bool enableDefault = true);
+    };
+
     // PUBLIC DATA
+    ProcessRecordTypes d_processRecordTypes;
+    // Record types to process
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
-    bsls::Types::Int64 d_timestampGt;
-    // Filter messages by minimum timestamp
-    bsls::Types::Int64 d_timestampLt;
-    // Filter messages by maximum timestamp
+    Range d_range;
+    // Range parameters for filtering
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
+    bsl::vector<CompositeSequenceNumber> d_seqNum;
+    // Filter messages by message sequence number
+    bsl::vector<bsls::Types::Int64> d_offset;
+    // Filter messages by message offsets
     bsl::vector<bsl::string> d_queueKey;
     // Filter messages by queue keys
     bsl::vector<bsl::string> d_queueName;

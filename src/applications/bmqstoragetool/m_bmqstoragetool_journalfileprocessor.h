@@ -40,8 +40,33 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+// ==========================
+// class LessThanLowerBoundFn
+// ==========================
+
+// Functor to perform comparison with range lower bound.
+class LessThanLowerBoundFn {
+  private:
+    // PRIVATE DATA
+    const Parameters::Range d_range;
+
+  public:
+    // CREATORS
+
+    explicit LessThanLowerBoundFn(const Parameters::Range& range);
+
+    // ACCESSORS
+
+    bool operator()(const mqbs::JournalFileIterator* jit,
+                    bool inverseOrder = false) const;
+    // Return true if value specified by `jit` is less than range lower bound
+    // when the specified `inverseOrder` is false, false otherwise.
+    // Return true if range lower bound is less than value specified by `jit`
+    // when the specified `inverseOrder` is true, false otherwise.
+};
+
 int moveToLowerBound(mqbs::JournalFileIterator* jit,
-                     const bsls::Types::Uint64& timestamp);
+                     LessThanLowerBoundFn&      lessThanLowerBoundFn);
 
 // ==========================
 // class JournalFileProcessor

@@ -27,6 +27,7 @@
 #include <m_bmqstoragetool_parameters.h>
 
 // MQB
+#include <mqbs_filestoreprotocol.h>
 #include <mqbu_storagekey.h>
 
 // BDE
@@ -43,8 +44,7 @@ class Filters {
   private:
     // DATA
     bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
-    const bsls::Types::Uint64            d_timestampGt;
-    const bsls::Types::Uint64            d_timestampLt;
+    const Parameters::Range              d_range;
 
   public:
     // CREATORS
@@ -53,15 +53,20 @@ class Filters {
     explicit Filters(const bsl::vector<bsl::string>& queueKeys,
                      const bsl::vector<bsl::string>& queueUris,
                      const QueueMap&                 queueMap,
-                     const bsls::Types::Int64        timestampGt,
-                     const bsls::Types::Int64        timestampLt,
+                     const Parameters::Range&        range,
                      bslma::Allocator*               allocator);
 
-    // MANIPULATORS
+    // ACCESSORS
 
-    /// Apply filters at specified 'record' and return true if all filters
-    /// are matched, false otherwise.
-    bool apply(const mqbs::MessageRecord& record);
+    /// Apply filters at the record with the specified `recordHeader`,
+    /// `recordOffset` and `queueKey`. Return true if all filters are matched,
+    /// false otherwise. If the specified `highBoundReached_p` pointer is
+    /// present, pointed value is set to true if higher bound value is reached,
+    /// false otherwise.
+    bool apply(const mqbs::RecordHeader& recordHeader,
+               bsls::Types::Uint64       recordOffset,
+               const mqbu::StorageKey&   queueKey,
+               bool*                     highBoundReached_p = 0) const;
 };
 
 }  // close package namespace
