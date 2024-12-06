@@ -67,7 +67,7 @@ static void test1_promise_creators()
         bmqex::Promise<int> promise(&alloc);
 
         // has a shared state
-        ASSERT(promise.future().isValid());
+        BMQTST_ASSERT(promise.future().isValid());
     }
 
     // 2. clock constructor
@@ -75,7 +75,7 @@ static void test1_promise_creators()
         bmqex::Promise<int> promise(bsls::SystemClockType::e_REALTIME, &alloc);
 
         // has a shared state
-        ASSERT(promise.future().isValid());
+        BMQTST_ASSERT(promise.future().isValid());
     }
 
     // 3. move constructor
@@ -89,8 +89,8 @@ static void test1_promise_creators()
             bslmf::MovableRefUtil::move(movedFromPromise));
 
         // moved-to promise contains the shared state of the moved-from promise
-        ASSERT_EQ(movedToPromise.future().isValid(), true);
-        ASSERT_EQ(movedToPromise.future().get(), 42);
+        BMQTST_ASSERT_EQ(movedToPromise.future().isValid(), true);
+        BMQTST_ASSERT_EQ(movedToPromise.future().get(), 42);
     }
 
     // 4. destructor
@@ -103,7 +103,7 @@ static void test1_promise_creators()
         }
 
         // the shared state is ready
-        ASSERT(future.isReady());
+        BMQTST_ASSERT(future.isReady());
 
         // the shared state contains a 'bmqex::PromiseBroken' exception
         bool exceptionThrown = false;
@@ -114,7 +114,7 @@ static void test1_promise_creators()
             exceptionThrown = true;
         }
 
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
     }
 }
 
@@ -144,8 +144,8 @@ static void test2_promise_cassignment()
     movedToPromise = bslmf::MovableRefUtil::move(movedFromPromise);
 
     // moved-to promise contains the shared state of the moved-from promise
-    ASSERT_EQ(movedToPromise.future().isValid(), true);
-    ASSERT_EQ(movedToPromise.future().get(), 42);
+    BMQTST_ASSERT_EQ(movedToPromise.future().isValid(), true);
+    BMQTST_ASSERT_EQ(movedToPromise.future().get(), 42);
 }
 
 static void test3_promise_cswap()
@@ -175,8 +175,8 @@ static void test3_promise_cswap()
     promise1.swap(promise2);
 
     // check
-    ASSERT_EQ(promise1.future().get(), 2);
-    ASSERT_EQ(promise2.future().get(), 1);
+    BMQTST_ASSERT_EQ(promise1.future().get(), 2);
+    BMQTST_ASSERT_EQ(promise2.future().get(), 1);
 }
 
 static void test4_promise_cfuture()
@@ -204,8 +204,8 @@ static void test4_promise_cfuture()
     bmqex::Future<int> future = promise.future();
 
     // the future refers to the promise's shared state
-    ASSERT_EQ(future.isValid(), true);
-    ASSERT_EQ(future.get(), 42);
+    BMQTST_ASSERT_EQ(future.isValid(), true);
+    BMQTST_ASSERT_EQ(future.get(), 42);
 }
 
 static void test5_promiseBroken_what()
@@ -224,7 +224,7 @@ static void test5_promiseBroken_what()
 {
     bmqex::PromiseBroken promiseBroken;
 
-    ASSERT(bsl::strcmp(promiseBroken.what(), "PromiseBroken") == 0);
+    BMQTST_ASSERT(bsl::strcmp(promiseBroken.what(), "PromiseBroken") == 0);
 }
 
 // ============================================================================

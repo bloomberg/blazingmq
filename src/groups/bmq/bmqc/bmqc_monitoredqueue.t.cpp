@@ -87,7 +87,7 @@ static void test1_MonitoredQueueState_toAscii()
         ascii = bmqc::MonitoredQueueState::toAscii(
             bmqc::MonitoredQueueState::Enum(test.d_value));
 
-        ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
 
@@ -145,20 +145,20 @@ static void test2_MonitoredQueueState_print()
         bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
-        ASSERT_EQ_D(test.d_line, out.str(), expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), expected);
 
         // operator<<
         out.reset();
         out << obj;
 
-        ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
 
         // 2. 'badbit' set
         out.reset();
         out.setstate(bsl::ios_base::badbit);
         bmqc::MonitoredQueueState::print(out, obj, 0, -1);
 
-        ASSERT_EQ_D(test.d_line, out.str(), "");
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
 }
 

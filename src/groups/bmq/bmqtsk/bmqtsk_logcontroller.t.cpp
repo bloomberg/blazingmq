@@ -72,27 +72,28 @@ static void test1_logControllerConfigFromObj()
     bmqtsk::LogControllerConfig config(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream          errorDesc(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(config.fromObj<mqbcfg::LogController>(errorDesc, lc), 0);
+    BMQTST_ASSERT_EQ(config.fromObj<mqbcfg::LogController>(errorDesc, lc), 0);
 
-    ASSERT_D(errorDesc.str(), errorDesc.str().empty());
+    BMQTST_ASSERT_D(errorDesc.str(), errorDesc.str().empty());
 
-    ASSERT_EQ(config.fileName(), "fileName");
-    ASSERT_EQ(config.fileMaxAgeDays(), 8);
-    ASSERT_EQ(config.rotationBytes(), 2048);
-    ASSERT_EQ(config.logfileFormat(), "%d (%t) %s %F:%l %m\n\n");
-    ASSERT_EQ(config.consoleFormat(), "%d (%t) %s %F:%l %m\n\n");
-    ASSERT_EQ(config.loggingVerbosity(), ball::Severity::DEBUG);
-    ASSERT_EQ(config.bslsLogSeverityThreshold(), bsls::LogSeverity::e_ERROR);
-    ASSERT_EQ(config.consoleSeverityThreshold(), ball::Severity::INFO);
+    BMQTST_ASSERT_EQ(config.fileName(), "fileName");
+    BMQTST_ASSERT_EQ(config.fileMaxAgeDays(), 8);
+    BMQTST_ASSERT_EQ(config.rotationBytes(), 2048);
+    BMQTST_ASSERT_EQ(config.logfileFormat(), "%d (%t) %s %F:%l %m\n\n");
+    BMQTST_ASSERT_EQ(config.consoleFormat(), "%d (%t) %s %F:%l %m\n\n");
+    BMQTST_ASSERT_EQ(config.loggingVerbosity(), ball::Severity::DEBUG);
+    BMQTST_ASSERT_EQ(config.bslsLogSeverityThreshold(),
+                     bsls::LogSeverity::e_ERROR);
+    BMQTST_ASSERT_EQ(config.consoleSeverityThreshold(), ball::Severity::INFO);
 
-    ASSERT_EQ(config.syslogEnabled(), true);
-    ASSERT_EQ(config.syslogFormat(), "test %d (%t) %s %F:%l %m\n\n");
-    ASSERT_EQ(config.syslogAppName(), "testapp");
-    ASSERT_EQ(config.syslogVerbosity(), ball::Severity::INFO);
+    BMQTST_ASSERT_EQ(config.syslogEnabled(), true);
+    BMQTST_ASSERT_EQ(config.syslogFormat(), "test %d (%t) %s %F:%l %m\n\n");
+    BMQTST_ASSERT_EQ(config.syslogAppName(), "testapp");
+    BMQTST_ASSERT_EQ(config.syslogVerbosity(), ball::Severity::INFO);
 
-    ASSERT_EQ(config.recordBufferSizeBytes(), 32768);
-    ASSERT_EQ(config.recordingVerbosity(), ball::Severity::OFF);
-    ASSERT_EQ(config.triggerVerbosity(), ball::Severity::OFF);
+    BMQTST_ASSERT_EQ(config.recordBufferSizeBytes(), 32768);
+    BMQTST_ASSERT_EQ(config.recordingVerbosity(), ball::Severity::OFF);
+    BMQTST_ASSERT_EQ(config.triggerVerbosity(), ball::Severity::OFF);
 }
 
 // ============================================================================

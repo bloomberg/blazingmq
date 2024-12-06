@@ -474,9 +474,9 @@ static void test1_breathingTest()
     {
         // Create a GUID
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
         generator.generateGUID(&guid);
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Export to binary representation
         unsigned char binaryBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
@@ -484,19 +484,20 @@ static void test1_breathingTest()
 
         bmqt::MessageGUID fromBinGUID;
         fromBinGUID.fromBinary(binaryBuffer);
-        ASSERT_EQ(fromBinGUID.isUnset(), false);
-        ASSERT_EQ(fromBinGUID, guid);
+        BMQTST_ASSERT_EQ(fromBinGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromBinGUID, guid);
 
         // Export to hex representation
         char hexBuffer[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(hexBuffer);
-        ASSERT_EQ(true,
-                  bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
+        BMQTST_ASSERT_EQ(
+            true,
+            bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
 
         bmqt::MessageGUID fromHexGUID;
         fromHexGUID.fromHex(hexBuffer);
-        ASSERT_EQ(fromHexGUID.isUnset(), false);
-        ASSERT_EQ(fromHexGUID, guid);
+        BMQTST_ASSERT_EQ(fromHexGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromHexGUID, guid);
     }
 
     {
@@ -507,7 +508,7 @@ static void test1_breathingTest()
         bmqt::MessageGUID guid2;
         generator.generateGUID(&guid2);
 
-        ASSERT_NE(guid1, guid2);
+        BMQTST_ASSERT_NE(guid1, guid2);
     }
 
     {
@@ -522,7 +523,7 @@ static void test1_breathingTest()
         generator.generateGUID(&guid);
         myMap.insert(bsl::make_pair(guid, 1));
 
-        ASSERT_EQ(1u, myMap.count(guid));
+        BMQTST_ASSERT_EQ(1u, myMap.count(guid));
     }
 }
 
@@ -532,7 +533,7 @@ static void test2_extract()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
-        true;  // Implicit string conversion in ASSERT_EQ
+        true;  // Implicit string conversion in BMQTST_ASSERT_EQ
 
     bmqtst::TestHelper::printTestName("EXTRACT");
 
@@ -558,11 +559,11 @@ static void test2_extract()
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 0u);
-        ASSERT_EQ(timerTick, 0);
-        ASSERT_EQ(clientId, "000000000000");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 0u);
+        BMQTST_ASSERT_EQ(timerTick, 0);
+        BMQTST_ASSERT_EQ(clientId, "000000000000");
     }
 
     {
@@ -587,11 +588,11 @@ static void test2_extract()
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 4194303u);
-        ASSERT_EQ(timerTick, 72057594037927935);
-        ASSERT_EQ(clientId, "FFFFFFFFFFFF");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 4194303u);
+        BMQTST_ASSERT_EQ(timerTick, 72057594037927935);
+        BMQTST_ASSERT_EQ(clientId, "FFFFFFFFFFFF");
     }
 
     {
@@ -616,11 +617,11 @@ static void test2_extract()
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 2964169u);
-        ASSERT_EQ(timerTick, 297593876864458);
-        ASSERT_EQ(clientId, "0DCE04742D2E");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 2964169u);
+        BMQTST_ASSERT_EQ(timerTick, 297593876864458);
+        BMQTST_ASSERT_EQ(clientId, "0DCE04742D2E");
     }
 }
 
@@ -694,7 +695,7 @@ static void test3_multithreadUseIP()
                                                             &barrier,
                                                             &generator,
                                                             k_NUM_GUIDS));
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
     barrier.wait();
@@ -705,7 +706,7 @@ static void test3_multithreadUseIP()
     for (int tIt = 0; tIt < k_NUM_THREADS; ++tIt) {
         const bsl::vector<bmqt::MessageGUID>& guids = threadsData[tIt];
         for (int gIt = 0; gIt < k_NUM_GUIDS; ++gIt) {
-            ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
+            BMQTST_ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
         }
     }
 }
@@ -774,7 +775,7 @@ static void test4_multithreadUseHostname()
                                                             &barrier,
                                                             &generator,
                                                             k_NUM_GUIDS));
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
     barrier.wait();
@@ -785,7 +786,7 @@ static void test4_multithreadUseHostname()
     for (int tIt = 0; tIt < k_NUM_THREADS; ++tIt) {
         const bsl::vector<bmqt::MessageGUID>& guids = threadsData[tIt];
         for (int gIt = 0; gIt < k_NUM_GUIDS; ++gIt) {
-            ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
+            BMQTST_ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
         }
     }
 }
@@ -818,11 +819,11 @@ static void test5_print()
     PV("Testing printing an unset GUID");
     {
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
 
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), "** UNSET **");
+        BMQTST_ASSERT_EQ(out.str(), "** UNSET **");
     }
 
     PV("Test printing of a valid handcrafted GUID (version 1)");
@@ -842,7 +843,7 @@ static void test5_print()
         const char k_EXPECTED[] = "1-2964169-297593876864458-0DCE04742D2E";
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), k_EXPECTED);
+        BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
     }
 
     PV("Test printing of an unsupported handcrafted GUID (version 0)");
@@ -862,7 +863,7 @@ static void test5_print()
         const char         k_EXPECTED[] = "[Unsupported GUID version 0]";
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), k_EXPECTED);
+        BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
     }
 
     PV("Verify clientId");
@@ -878,7 +879,7 @@ static void test5_print()
         // characters.
         bslstl::StringRef printedClientId =
             bslstl::StringRef(&out.str()[out.length() - 12], 12);
-        ASSERT_EQ(printedClientId, generator.clientIdHex());
+        BMQTST_ASSERT_EQ(printedClientId, generator.clientIdHex());
     }
 
     PV("Test printing of a test-only GUID");
@@ -886,8 +887,8 @@ static void test5_print()
         bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
         bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
 
-        ASSERT(!guid1.isUnset());
-        ASSERT(!guid2.isUnset());
+        BMQTST_ASSERT(!guid1.isUnset());
+        BMQTST_ASSERT(!guid2.isUnset());
 
         // Print and compare
         const char         k_EXPECTED_1[] = "1-0-0-000000000001";
@@ -897,8 +898,8 @@ static void test5_print()
         bmqp::MessageGUIDGenerator::print(out1, guid1);
         bmqp::MessageGUIDGenerator::print(out2, guid2);
 
-        ASSERT_EQ(out1.str(), k_EXPECTED_1);
-        ASSERT_EQ(out2.str(), k_EXPECTED_2);
+        BMQTST_ASSERT_EQ(out1.str(), k_EXPECTED_1);
+        BMQTST_ASSERT_EQ(out2.str(), k_EXPECTED_2);
     }
 }
 
@@ -970,7 +971,7 @@ static void test6_defaultHashUniqueness()
     // this test, so we allow 1+1=2 max expected duplicates per a hash.
     const size_t k_MAX_EXPECTED_DUPLICATES = 2;
 
-    ASSERT_LT(maxDuplicates, k_MAX_EXPECTED_DUPLICATES);
+    BMQTST_ASSERT_LT(maxDuplicates, k_MAX_EXPECTED_DUPLICATES);
 
     if (maxDuplicates >= k_MAX_EXPECTED_DUPLICATES) {
         cout << "Hash duplicates percentage..........: "
@@ -1060,7 +1061,7 @@ static void test7_customHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
@@ -1147,7 +1148,7 @@ static void testN1_decode()
     // Make a GUID out of it
     bmqt::MessageGUID guid;
     guid.fromHex(hexGuid.c_str());
-    ASSERT_EQ(guid.isUnset(), false);
+    BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
     // Print it
     cout << "--------------------------------" << endl;
@@ -1919,7 +1920,7 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
         // Make a GUID out of it
         bmqt::MessageGUID guid;
         guid.fromHex(hexGuid.c_str());
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Print it
         cout << "--------------------------------" << endl;

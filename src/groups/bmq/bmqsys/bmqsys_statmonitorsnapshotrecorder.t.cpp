@@ -143,24 +143,24 @@ static void test1_usageExample()
         doWork(7500,  // rate
                3);    // duration
 
-        ASSERT_GT(statRecorder.totalElapsed(), 0);
+        BMQTST_ASSERT_GT(statRecorder.totalElapsed(), 0);
 
         // Log stats for step 1 (resets the stat recorder)
         bmqu::MemOutStream os1(bmqtst::TestHelperUtil::allocator());
         statRecorder.print(os1, "EXPENSIVE OPERATION - STEP 1");
         PVV(os1.str());
 
-        ASSERT_EQ(regexMatch(os1.str(),
-                             "Cluster \\(testCluster\\): "
-                             "'EXPENSIVE OPERATION - STEP 1'.*"
-                             "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
-                             "WALL TIME.*: \\d+\\.?\\d*.*"
-                             "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             bmqtst::TestHelperUtil::allocator()),
-                  true);
+        BMQTST_ASSERT_EQ(regexMatch(os1.str(),
+                                    "Cluster \\(testCluster\\): "
+                                    "'EXPENSIVE OPERATION - STEP 1'.*"
+                                    "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
+                                    "WALL TIME.*: \\d+\\.?\\d*.*"
+                                    "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
+                                    bmqtst::TestHelperUtil::allocator()),
+                         true);
 
         // Perform some intensive work - step 2
         doWork(10000,  // rate
@@ -171,19 +171,19 @@ static void test1_usageExample()
         statRecorder.print(os2, "EXPENSIVE OPERATION - STEP 2");
         PVV(os2.str());
 
-        ASSERT_EQ(regexMatch(os2.str(),
-                             "Cluster \\(testCluster\\): "
-                             "'EXPENSIVE OPERATION - STEP 2'.*"
-                             "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
-                             "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             bmqtst::TestHelperUtil::allocator()),
-                  true);
+        BMQTST_ASSERT_EQ(regexMatch(os2.str(),
+                                    "Cluster \\(testCluster\\): "
+                                    "'EXPENSIVE OPERATION - STEP 2'.*"
+                                    "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
+                                    "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
+                                    bmqtst::TestHelperUtil::allocator()),
+                         true);
 
         // Finally, assert stats have changed
-        ASSERT_NE(os1.str(), os2.str());
+        BMQTST_ASSERT_NE(os1.str(), os2.str());
     }
 
     PV("Copy constructor");
@@ -202,17 +202,17 @@ static void test1_usageExample()
         statRecorder.print(os1, "EXPENSIVE OPERATION - STEP 1");
         PVV(os1.str());
 
-        ASSERT_EQ(regexMatch(os1.str(),
-                             "Cluster \\(testCluster\\): "
-                             "'EXPENSIVE OPERATION - STEP 1'.*"
-                             "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
-                             "WALL TIME.*: \\d+\\.\\d+.*.*"
-                             "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             bmqtst::TestHelperUtil::allocator()),
-                  true);
+        BMQTST_ASSERT_EQ(regexMatch(os1.str(),
+                                    "Cluster \\(testCluster\\): "
+                                    "'EXPENSIVE OPERATION - STEP 1'.*"
+                                    "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
+                                    "WALL TIME.*: \\d+\\.\\d+.*.*"
+                                    "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
+                                    bmqtst::TestHelperUtil::allocator()),
+                         true);
 
         // Perform some intensive work - step 2
         doWork(10000,  // rate
@@ -223,20 +223,20 @@ static void test1_usageExample()
         statRecorder.print(os2, "EXPENSIVE OPERATION - STEP 2");
         PVV(os2.str());
 
-        ASSERT_EQ(regexMatch(os2.str(),
-                             "Cluster \\(testCluster\\): "
-                             "'EXPENSIVE OPERATION - STEP 2'.*"
-                             "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
-                             "WALL TIME.*: \\d+\\.\\d+.*.*"
-                             "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
-                             "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
-                             bmqtst::TestHelperUtil::allocator()),
-                  true);
+        BMQTST_ASSERT_EQ(regexMatch(os2.str(),
+                                    "Cluster \\(testCluster\\): "
+                                    "'EXPENSIVE OPERATION - STEP 2'.*"
+                                    "\\(Total elapsed: \\d+\\.\\d+.*\\).*"
+                                    "WALL TIME.*: \\d+\\.\\d+.*.*"
+                                    "CPU USER AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU SYSTEM AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "CPU ALL AVG.*: (0|\\d+\\.?\\d*.*) %.*"
+                                    "VOLUNTARY CONTEXT SWITCHES.*: \\d+.*",
+                                    bmqtst::TestHelperUtil::allocator()),
+                         true);
 
         // Finally, assert stats have changed
-        ASSERT_NE(os1.str(), os2.str());
+        BMQTST_ASSERT_NE(os1.str(), os2.str());
     }
 
     bmqsys::Time::shutdown();
@@ -262,12 +262,12 @@ static void test2_totalElapsed()
 
     bmqsys::StatMonitorSnapshotRecorder obj("HEADER");
 
-    ASSERT_EQ(obj.totalElapsed(), 0);
+    BMQTST_ASSERT_EQ(obj.totalElapsed(), 0);
 
     // 'advance' time
     mockTime.advanceHighResTimer(123);
 
-    ASSERT_EQ(obj.totalElapsed(), 123);
+    BMQTST_ASSERT_EQ(obj.totalElapsed(), 123);
 }
 
 // ============================================================================

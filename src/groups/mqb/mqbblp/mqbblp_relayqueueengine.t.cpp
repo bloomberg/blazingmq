@@ -119,10 +119,10 @@ static void test1_breathingTest()
 
     // TODO: For each message, verify that it was delivered once to exactly
     //       one handle (and one handle only!)
-    // ASSERT(tester.wasDeliveredOnce("a,b,c"));
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 1);
-    ASSERT_EQ(C3->_numMessages(), 1);
+    // BMQTST_ASSERT(tester.wasDeliveredOnce("a,b,c"));
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 1);
 
     // Confirm
     tester.confirm("C1",
@@ -196,9 +196,9 @@ static void test2_aggregateDownstream()
     tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 2);
-    ASSERT_EQ(C3->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 1);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -222,9 +222,9 @@ static void test2_aggregateDownstream()
     tester.post("5,6,7,8,9,10", guard.engine());
     tester.afterNewMessage(6);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 2);
-    ASSERT_EQ(C3->_numMessages(), 3);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 3);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -246,9 +246,9 @@ static void test2_aggregateDownstream()
     tester.post("11,12,13,14,15", guard.engine());
     tester.afterNewMessage(5);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 2);
-    ASSERT_EQ(C3->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -270,9 +270,9 @@ static void test2_aggregateDownstream()
     tester.post("16,17,18,19", guard.engine());
     tester.afterNewMessage(4);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 1);
-    ASSERT_EQ(C3->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -293,9 +293,9 @@ static void test2_aggregateDownstream()
     tester.post("20,21,22,23,24,25", guard.engine());
     tester.afterNewMessage(6);
 
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C2->_numMessages(), 0);
-    ASSERT_EQ(C3->_numMessages(), 4);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 4);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -361,8 +361,8 @@ static void test3_reconfigure()
     tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -379,8 +379,8 @@ static void test3_reconfigure()
     tester.post("3,4", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     tester.confirm("C2",
                    mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
@@ -394,8 +394,8 @@ static void test3_reconfigure()
     tester.post("5,6,7,8", guard.engine());
     tester.afterNewMessage(4);
 
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -414,9 +414,9 @@ static void test3_reconfigure()
     tester.post("9,10", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C2->_numMessages(), 0);
-    ASSERT_EQ(C3->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
     tester.confirm("C3",
                    mqbblp::QueueEngineTestUtil::getMessages(C3->_messages(),
@@ -432,9 +432,9 @@ static void test3_reconfigure()
     tester.post("11,12,13,14,15,16,17,18", guard.engine());
     tester.afterNewMessage(8);
 
-    ASSERT_EQ(C1->_numMessages(), 4);
-    ASSERT_EQ(C2->_numMessages(), 2);
-    ASSERT_EQ(C3->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 4);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -500,8 +500,8 @@ static void test4_cannotDeliver()
     tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -518,8 +518,8 @@ static void test4_cannotDeliver()
     tester.post("3,4", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     tester.confirm("C2",
                    mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
@@ -533,14 +533,14 @@ static void test4_cannotDeliver()
     tester.post("5", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
     // 4) C1: Can deliver
     C1->_setCanDeliver(true);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -549,16 +549,16 @@ static void test4_cannotDeliver()
     // 5) C2: Can deliver
     C2->_setCanDeliver(true);
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
     // C1: 1
     // C2: 1
     tester.post("6,7,8,9", guard.engine());
     tester.afterNewMessage(4);
 
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -615,8 +615,8 @@ static void test5_localRedelivery()
     tester.post("1,2,3,4", guard.engine());
     tester.afterNewMessage(4);
 
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     tester.confirm("C1",
                    mqbblp::QueueEngineTestUtil::getMessages(C1->_messages(),
@@ -635,9 +635,10 @@ static void test5_localRedelivery()
 
     PVV(L_ << ": C2 Messages: " << C2->_messages());
 
-    ASSERT_EQ(C2->_numMessages(), 3);
-    ASSERT_EQ(unconfirmedMessage,
-              mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(), "2"));
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 3);
+    BMQTST_ASSERT_EQ(unconfirmedMessage,
+                     mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
+                                                              "2"));
 
     tester.confirm("C2",
                    mqbblp::QueueEngineTestUtil::getMessages(C2->_messages(),
@@ -691,8 +692,8 @@ static void test6_clearDeliveryStateWhenLostReaders()
     tester.post("1,2", guard.engine());
     tester.afterNewMessage(2);
 
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C1->_messages(), "1,2");
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_messages(), "1,2");
 
     tester.confirm("C1", "1");
 
@@ -703,8 +704,8 @@ static void test6_clearDeliveryStateWhenLostReaders()
     tester.post("3", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C1->_numMessages(), 1);
-    ASSERT_EQ(C1->_messages(), "2");
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C1->_messages(), "2");
 
     // 3)
     tester.configureHandle("C1 consumerPriority=-2147483648"
@@ -714,8 +715,8 @@ static void test6_clearDeliveryStateWhenLostReaders()
     C1 = tester.getHandle("C1 readCount=1");
     tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
 
-    ASSERT_EQ(C1->_numMessages(), 0);
-    ASSERT_EQ(C1->_messages(), "");
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_messages(), "");
 }
 
 static void test7_broadcastMode()
@@ -767,8 +768,8 @@ static void test7_broadcastMode()
     tester.post("2", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C1->_messages(), "1,2");
-    ASSERT_EQ(C2->_messages(), "1,2");
+    BMQTST_ASSERT_EQ(C1->_messages(), "1,2");
+    BMQTST_ASSERT_EQ(C2->_messages(), "1,2");
     C1->_resetUnconfirmed();
     C2->_resetUnconfirmed();
 
@@ -778,8 +779,8 @@ static void test7_broadcastMode()
     tester.post("3", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C1->_messages(), "");
-    ASSERT_EQ(C2->_messages(), "3");
+    BMQTST_ASSERT_EQ(C1->_messages(), "");
+    BMQTST_ASSERT_EQ(C2->_messages(), "3");
     C1->_resetUnconfirmed();
     C2->_resetUnconfirmed();
 
@@ -789,8 +790,8 @@ static void test7_broadcastMode()
     tester.post("4", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C1->_messages(), "4");
-    ASSERT_EQ(C2->_messages(), "4");
+    BMQTST_ASSERT_EQ(C1->_messages(), "4");
+    BMQTST_ASSERT_EQ(C2->_messages(), "4");
     C1->_resetUnconfirmed();
     C2->_resetUnconfirmed();
 
@@ -800,7 +801,7 @@ static void test7_broadcastMode()
     tester.post("5", guard.engine());
     tester.afterNewMessage(1);
 
-    ASSERT_EQ(C2->_messages(), "5");
+    BMQTST_ASSERT_EQ(C2->_messages(), "5");
     C2->_resetUnconfirmed();
 }
 
@@ -854,7 +855,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     tester.post("1,2,3,4", guard.engine());
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
-    ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
 
     // 2) Simulate queue garbage collection (e.g., TTL expiration) of the first
     //    2 messages (this involves invoking 'beforeMessageRemoved(msgGUID)'
@@ -864,7 +865,7 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     tester.garbageCollectMessages(2);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
-    ASSERT_EQ(C1->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 0);
 
     // 3) Invoke message delivery in the engine and verify that only the last 2
     //    messages were delivered to C1.
@@ -872,8 +873,8 @@ static void test8_priority_beforeMessageRemoved_garbageCollection()
     tester.afterNewMessage(2);
 
     PV(L_ << ": C1 Messages: " << C1->_messages());
-    ASSERT_EQ(C1->_numMessages(), 2);
-    ASSERT_EQ(C1->_messages(), "3,4");
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C1->_messages(), "3,4");
 }
 
 static void test9_releaseHandle_isDeletedFlag()
@@ -932,22 +933,24 @@ static void test9_releaseHandle_isDeletedFlag()
 
     // 2. Release from C2 one reader but pass 'isFinal=true' and verify that
     //    C2 was fully deleted.
-    ASSERT_EQ(tester.releaseHandle("C2 readCount=1 isFinal=true", &isDeleted),
-              0);
-    ASSERT_EQ(isDeleted, true);
+    BMQTST_ASSERT_EQ(tester.releaseHandle("C2 readCount=1 isFinal=true",
+                                          &isDeleted),
+                     0);
+    BMQTST_ASSERT_EQ(isDeleted, true);
 
     // 3. Release from C1 one writer but pass 'isFinal=false' and verify that
     //    C1 was fully deleted.
-    ASSERT_EQ(tester.releaseHandle("C1 writeCount=1 isFinal=false",
-                                   &isDeleted),
-              0);
-    ASSERT_EQ(isDeleted, true);
+    BMQTST_ASSERT_EQ(tester.releaseHandle("C1 writeCount=1 isFinal=false",
+                                          &isDeleted),
+                     0);
+    BMQTST_ASSERT_EQ(isDeleted, true);
 
     // 4. Release from C3 two readers and pass 'isFinal=true' (i.e. correct
     //    scenario) and verify that C3 was fully deleted.
-    ASSERT_EQ(tester.releaseHandle("C3 readCount=2 isFinal=true", &isDeleted),
-              0);
-    ASSERT_EQ(isDeleted, true);
+    BMQTST_ASSERT_EQ(tester.releaseHandle("C3 readCount=2 isFinal=true",
+                                          &isDeleted),
+                     0);
+    BMQTST_ASSERT_EQ(isDeleted, true);
 }
 
 static void test10_configureFanoutAppIds()
@@ -989,23 +992,23 @@ static void test10_configureFanoutAppIds()
     mqbmock::QueueHandle* C2 = tester.getHandle("C1@b readCount=1");
     mqbmock::QueueHandle* C3 = tester.getHandle("C1@c readCount=1");
 
-    ASSERT_EQ(P1, C1);
-    ASSERT_EQ(C1, C2);
-    ASSERT_EQ(C2, C3);
+    BMQTST_ASSERT_EQ(P1, C1);
+    BMQTST_ASSERT_EQ(C1, C2);
+    BMQTST_ASSERT_EQ(C2, C3);
 
     //   2. Configure each with different maxUnconfirmedMessages.
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@a consumerPriority=1 maxUnconfirmedMessages=1"),
-              0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@a consumerPriority=1 maxUnconfirmedMessages=1"),
+                     0);
 
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@b consumerPriority=1 maxUnconfirmedMessages=2"),
-              0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@b consumerPriority=1 maxUnconfirmedMessages=2"),
+                     0);
     // this test verifies that 'a' is not overwritten by 'b' at this point
 
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@c consumerPriority=1 maxUnconfirmedMessages=3"),
-              0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@c consumerPriority=1 maxUnconfirmedMessages=3"),
+                     0);
 
     //   3. Verify that the parameters cached in the queue state have been
     //      configured with the streamParameters requested, and that these did
@@ -1032,12 +1035,12 @@ static void test10_configureFanoutAppIds()
     PVV(L_ << ": upstream2: " << upstream2);
     PVV(L_ << ": upstream3: " << upstream3);
 
-    ASSERT_EQ(a, upstream1);
-    ASSERT_EQ(b, upstream2);
-    ASSERT_EQ(c, upstream3);
+    BMQTST_ASSERT_EQ(a, upstream1);
+    BMQTST_ASSERT_EQ(b, upstream2);
+    BMQTST_ASSERT_EQ(c, upstream3);
 
     // Release the handle and verify it succeeds
-    // ASSERT_EQ(tester.releaseHandle("C1@a readCount=1"), 0);
+    // BMQTST_ASSERT_EQ(tester.releaseHandle("C1@a readCount=1"), 0);
 }
 
 static void test11_roundRobinAndRedelivery()
@@ -1078,34 +1081,34 @@ static void test11_roundRobinAndRedelivery()
 
     // 1. Bring up a consumer C1 with appId 'a', 'b', and 'c'.
     mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
-    ASSERT_NE(C1, k_nullHandle_p);
-    ASSERT_EQ(C1, tester.getHandle("C1@b readCount=2"));
-    ASSERT_EQ(C1, tester.getHandle("C1@c readCount=1"));
+    BMQTST_ASSERT_NE(C1, k_nullHandle_p);
+    BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@b readCount=2"));
+    BMQTST_ASSERT_EQ(C1, tester.getHandle("C1@c readCount=1"));
 
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@a consumerPriority=2 consumerPriorityCount=2"),
-              0);
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@b consumerPriority=2 consumerPriorityCount=1"),
-              0);
-    ASSERT_EQ(tester.configureHandle(
-                  "C1@c consumerPriority=2 consumerPriorityCount=1"),
-              0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@a consumerPriority=2 consumerPriorityCount=2"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@b consumerPriority=2 consumerPriorityCount=1"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C1@c consumerPriority=2 consumerPriorityCount=1"),
+                     0);
 
     mqbmock::QueueHandle* C2 = tester.getHandle("C2@a readCount=1");
-    ASSERT_NE(C2, k_nullHandle_p);
-    ASSERT_EQ(C2, tester.getHandle("C2@b readCount=2"));
-    ASSERT_EQ(C2, tester.getHandle("C2@c readCount=1"));
+    BMQTST_ASSERT_NE(C2, k_nullHandle_p);
+    BMQTST_ASSERT_EQ(C2, tester.getHandle("C2@b readCount=2"));
+    BMQTST_ASSERT_EQ(C2, tester.getHandle("C2@c readCount=1"));
 
-    ASSERT_EQ(tester.configureHandle(
-                  "C2@a consumerPriority=2 consumerPriorityCount=1"),
-              0);
-    ASSERT_EQ(tester.configureHandle(
-                  "C2@b consumerPriority=2 consumerPriorityCount=2"),
-              0);
-    ASSERT_EQ(tester.configureHandle(
-                  "C2@c consumerPriority=1 consumerPriorityCount=1"),
-              0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C2@a consumerPriority=2 consumerPriorityCount=1"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C2@b consumerPriority=2 consumerPriorityCount=2"),
+                     0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(
+                         "C2@c consumerPriority=1 consumerPriorityCount=1"),
+                     0);
 
     // 2. Post 3 messages (2 + 1)
     tester.post("1,2,3", guard.engine());
@@ -1121,22 +1124,22 @@ static void test11_roundRobinAndRedelivery()
     PVV(L_ << ": C2@b Messages: " << C2->_messages("b"));
     PVV(L_ << ": C2@c Messages: " << C2->_messages("c"));
 
-    ASSERT_EQ(C1->_numMessages("a"), 2);
-    ASSERT_EQ(C1->_numMessages("b"), 1);
-    ASSERT_EQ(C1->_numMessages("c"), 3);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("b"), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages("c"), 3);
 
-    ASSERT_EQ(C2->_numMessages("a"), 1);
-    ASSERT_EQ(C2->_numMessages("b"), 2);
-    ASSERT_EQ(C2->_numMessages("c"), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages("a"), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("c"), 0);
 
-    ASSERT_EQ(C1->_messages("c"), "1,2,3");
+    BMQTST_ASSERT_EQ(C1->_messages("c"), "1,2,3");
 
     // 4. Close higher priority handle and verify messages redelivered to
     //      lower priority handle
 
     tester.releaseHandle("C1@c readCount=1");
-    ASSERT_EQ(C2->_numMessages("c"), 3);
-    ASSERT_EQ(C2->_messages("c"), "1,2,3");
+    BMQTST_ASSERT_EQ(C2->_numMessages("c"), 3);
+    BMQTST_ASSERT_EQ(C2->_messages("c"), "1,2,3");
 }
 
 static void test12_redeliverAfterGc()
@@ -1191,14 +1194,14 @@ static void test12_redeliverAfterGc()
     PVV(L_ << ": C1 Messages: " << C1->_messages());
     PVV(L_ << ": C2 Messages: " << C2->_messages());
 
-    ASSERT_EQ(C1->_numMessages(), 4);
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 4);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
-    ASSERT_EQ(C1->_messages(), "1,2,3,4");
+    BMQTST_ASSERT_EQ(C1->_messages(), "1,2,3,4");
 
     // 2)
     tester.dropHandle("C1");
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
     // 3)
     tester.garbageCollectMessages(1);
@@ -1208,8 +1211,8 @@ static void test12_redeliverAfterGc()
 
     PVV(L_ << ": C2 Messages: " << C2->_messages());
 
-    ASSERT_EQ(C2->_numMessages(), 3);
-    ASSERT_EQ(C2->_messages(), "2,3,4");
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 3);
+    BMQTST_ASSERT_EQ(C2->_messages(), "2,3,4");
 
     tester.confirm("C2", "2,3,4");
 }
@@ -1249,25 +1252,25 @@ static void test13_deconfigureWhenOpen()
 
     //   1. Bring up 1st consumer.
     mqbmock::QueueHandle* C1 = tester.getHandle("C1@a readCount=1");
-    ASSERT_NE(C1, k_nullHandle_p);
+    BMQTST_ASSERT_NE(C1, k_nullHandle_p);
 
     //   2. Configure 1st consumer.
-    ASSERT_EQ(tester.configureHandle("C1@a consumerPriority=1"), 0);
+    BMQTST_ASSERT_EQ(tester.configureHandle("C1@a consumerPriority=1"), 0);
 
     //   3. Bring up 2nd consumer.
     mqbmock::QueueHandle* C2 = tester.getHandle("C2@a readCount=1");
-    ASSERT_NE(C2, k_nullHandle_p);
+    BMQTST_ASSERT_NE(C2, k_nullHandle_p);
 
     //   4. Deconfigure 1st consumer.
     bmqu::MemOutStream os;
     os << "C1@a consumerPriority="
        << bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID;
 
-    ASSERT_EQ(tester.configureHandle(os.str()), 0);
+    BMQTST_ASSERT_EQ(tester.configureHandle(os.str()), 0);
 
     // Release the handle and verify it succeeds
-    ASSERT_EQ(tester.releaseHandle("C1@a readCount=1"), 0);
-    ASSERT_EQ(tester.releaseHandle("C2@a readCount=1"), 0);
+    BMQTST_ASSERT_EQ(tester.releaseHandle("C1@a readCount=1"), 0);
+    BMQTST_ASSERT_EQ(tester.releaseHandle("C2@a readCount=1"), 0);
 }
 
 static void test14_throttleRedeliveryPriority()
@@ -1331,9 +1334,9 @@ static void test14_throttleRedeliveryPriority()
     tester.afterNewMessage(4);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages());
-    ASSERT_EQ(C1->_numMessages(), 4);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 4);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 0);
 
     // 2)
     tester.dropHandle("C1");
@@ -1341,23 +1344,23 @@ static void test14_throttleRedeliveryPriority()
     // Only one message should be redelivered here since the other messages are
     // being throttled.
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     // 3)
     // TODO: Right now, delays are hardcoded not in a utility. Move to a
     // utility
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     // 4)
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 3);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 3);
 
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 4);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 4);
 }
 
 static void test15_throttleRedeliveryFanout()
@@ -1440,13 +1443,13 @@ static void test15_throttleRedeliveryFanout()
     tester.afterNewMessage(4);
 
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 4);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 4);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 4);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 4);
     PVV(L_ << ": C3 Messages: " << C3->_messages("c"));
-    ASSERT_EQ(C3->_numMessages("c"), 4);
+    BMQTST_ASSERT_EQ(C3->_numMessages("c"), 4);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 0);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 0);
 
     // 2)
     tester.dropHandle("C3");
@@ -1454,11 +1457,11 @@ static void test15_throttleRedeliveryFanout()
     // Only one message should be redelivered to C4 since the other messages
     // are being throttled.
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 4);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 4);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 4);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 4);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 1);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 1);
 
     // 3)
     tester.confirm("C1@a", "1,2");
@@ -1466,11 +1469,11 @@ static void test15_throttleRedeliveryFanout()
     // The messages being confirmed for C1 and C2 shouldn't have any effect on
     // C4. No messages should be delivered to C1 and C2.
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 2);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 1);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 1);
 
     // 4)
     // TODO: Right now, delays are hardcoded not in a utility. Move to a
@@ -1479,32 +1482,32 @@ static void test15_throttleRedeliveryFanout()
     // C4 should receive the next throttled message. C1 and C2 should be
     // unaffected.
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 2);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 2);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 2);
 
     // 5)
     tester.advanceTime(expectedDelay);
     // C4 should receive the next throttled message. C1 and C2 should be
     // unaffected.
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 2);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 3);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 3);
 
     tester.advanceTime(expectedDelay);
     // C4 should receive the next throttled message. C1 and C2 should be
     // unaffected.
     PVV(L_ << ": C1 Messages: " << C1->_messages("a"));
-    ASSERT_EQ(C1->_numMessages("a"), 2);
+    BMQTST_ASSERT_EQ(C1->_numMessages("a"), 2);
     PVV(L_ << ": C2 Messages: " << C2->_messages("b"));
-    ASSERT_EQ(C2->_numMessages("b"), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages("b"), 2);
     PVV(L_ << ": C4 Messages: " << C4->_messages("c"));
-    ASSERT_EQ(C4->_numMessages("c"), 4);
+    BMQTST_ASSERT_EQ(C4->_numMessages("c"), 4);
 }
 
 static void test16_throttleRedeliveryCancelledDelay()
@@ -1578,27 +1581,27 @@ static void test16_throttleRedeliveryCancelledDelay()
     // Only one message should be redelivered here since the other messages are
     // being throttled.
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     // 3)
     // TODO: Right now, delays are hardcoded not in a utility. Move to a
     // utility
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     // 4)
     // Confirming the first message should still keep the delay between the
     // second and third message intact (ie. no new messages should come in).
     tester.confirm("C2", "1");
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     // 5)
     // Another message should come in after the delay
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 2);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 2);
 
     // 6)
     // Since the message before the currently delayed message was confirmed,
@@ -1606,7 +1609,7 @@ static void test16_throttleRedeliveryCancelledDelay()
     tester.confirm("C2", "2");
     tester.confirm("C2", "3");
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 }
 
 static void test17_throttleRedeliveryNewHandle()
@@ -1660,12 +1663,12 @@ static void test17_throttleRedeliveryNewHandle()
     // Only one message should be redelivered here since the other message is
     // being throttled.
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     // 3)
     mqbmock::QueueHandle* C1 = tester.getHandle("C1 readCount=1");
     tester.configureHandle("C1 consumerPriority=2 consumerPriorityCount=1");
-    ASSERT_EQ(C1->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C1->_numMessages(), 1);
 }
 
 static void test18_throttleRedeliveryNoMoreHandles()
@@ -1737,23 +1740,23 @@ static void test18_throttleRedeliveryNoMoreHandles()
     // Only one message should be redelivered here since the other message is
     // being throttled.
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
 
     // 3)
     // We still should not have received the throttled message.
     PVV(L_ << ": C2 Messages: " << C2->_messages());
-    ASSERT_EQ(C2->_numMessages(), 1);
+    BMQTST_ASSERT_EQ(C2->_numMessages(), 1);
     tester.dropHandle("C2");
 
     mqbmock::QueueHandle* C3 = tester.getHandle("C3 readCount=1");
     tester.configureHandle("C3 consumerPriority=1 consumerPriorityCount=1");
     PVV(L_ << ": C3 Messages: " << C3->_messages());
-    ASSERT_EQ(C3->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 0);
 
     // 4)
     tester.advanceTime(expectedDelay);
     PVV(L_ << ": C3 Messages: " << C3->_messages());
-    ASSERT_EQ(C3->_numMessages(), 0);
+    BMQTST_ASSERT_EQ(C3->_numMessages(), 0);
 }
 
 // ============================================================================

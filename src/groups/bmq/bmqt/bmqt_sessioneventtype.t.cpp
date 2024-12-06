@@ -43,27 +43,27 @@ static void test1_breathingTest()
 
     PV("Testing toAscii");
     str = bmqt::SessionEventType::toAscii(bmqt::SessionEventType::e_CONNECTED);
-    ASSERT_EQ(str, "CONNECTED");
+    BMQTST_ASSERT_EQ(str, "CONNECTED");
 
     PV("Testing fromAscii");
     res = bmqt::SessionEventType::fromAscii(&obj, "QUEUE_OPEN_RESULT");
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
     res = bmqt::SessionEventType::fromAscii(&obj, "invalid");
-    ASSERT_EQ(res, false);
+    BMQTST_ASSERT_EQ(res, false);
 
     PV("Testing: fromAscii(toAscii(value)) = value");
     res = bmqt::SessionEventType::fromAscii(
         &obj,
         bmqt::SessionEventType::toAscii(bmqt::SessionEventType::e_TIMEOUT));
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::SessionEventType::e_TIMEOUT);
 
     PV("Testing: toAscii(fromAscii(value)) = value");
     res = bmqt::SessionEventType::fromAscii(&obj, "DISCONNECTED");
-    ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(res, true);
     str = bmqt::SessionEventType::toAscii(obj);
-    ASSERT_EQ(str, "DISCONNECTED");
+    BMQTST_ASSERT_EQ(str, "DISCONNECTED");
 }
 
 static void test2_printTest()
@@ -114,17 +114,17 @@ static void test2_printTest()
         out.setstate(bsl::ios_base::badbit);
         bmqt::SessionEventType::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         bmqt::SessionEventType::print(out, test.d_type, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << test.d_type;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 
