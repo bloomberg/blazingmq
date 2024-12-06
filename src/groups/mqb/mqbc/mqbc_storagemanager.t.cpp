@@ -2969,10 +2969,10 @@ static void test19_fileSizesHardLimits()
             if (rc == 0) {
                 storageManager.stop();
             }
-            ASSERT_EQ_D("line: " << line << ", expected failure: "
-                                 << expectFailure << ", rc: " << rc,
-                        expectFailure,
-                        (rc != 0));
+            BMQTST_ASSERT_EQ_D("line: " << line << ", expected failure: "
+                                        << expectFailure << ", rc: " << rc,
+                               expectFailure,
+                               (rc != 0));
         }
     };
 
