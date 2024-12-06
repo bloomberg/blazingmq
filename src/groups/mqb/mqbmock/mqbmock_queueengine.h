@@ -78,7 +78,7 @@ class QueueEngine : public mqbi::QueueEngine {
     explicit QueueEngine(bslma::Allocator* allocator);
 
     /// Destructor
-    virtual ~QueueEngine() BSLS_KEYWORD_OVERRIDE;
+    ~QueueEngine() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
     //   (virtual mqbi::QueueEngine)
@@ -86,13 +86,13 @@ class QueueEngine : public mqbi::QueueEngine {
     /// Configure this instance.  The specified `isReconfigure` flag indicate
     /// if queue is being reconfigured. Return zero on success, non-zero value
     /// otherwise and populate the specified `errorDescription`.
-    virtual int configure(bsl::ostream& errorDescription,
-                          bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
+    int configure(bsl::ostream& errorDescription,
+                  bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Reset the internal state of this engine.  If the optionally specified
     /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
     /// processing.
-    virtual void resetState(bool keepConfirming = false) BSLS_KEYWORD_OVERRIDE;
+    void resetState(bool keepConfirming = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an
@@ -103,14 +103,14 @@ class QueueEngine : public mqbi::QueueEngine {
     /// `rebuildInternalState` must be called on an empty-state object
     /// (i.e., which has just been constructed, or following a call to
     /// `resetState`) after it has been configured.
-    virtual int
+    int
     rebuildInternalState(bsl::ostream& errorDescription) BSLS_KEYWORD_OVERRIDE;
 
     /// Obtain and return a handle to this queue for the client identified
     /// with the specified `clientContext`, using the specified
     /// `handleParameters`, and invoke the specified `callback` when
     /// finished.
-    virtual mqbi::QueueHandle*
+    mqbi::QueueHandle*
     getHandle(const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
                                                           clientContext,
               const bmqp_ctrlmsg::QueueHandleParameters&  handleParameters,
@@ -121,7 +121,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// Configure the specified `handle` with the specified
     /// `streamParameters` and invoke the specified `configuredCb` when
     /// finished.
-    virtual void configureHandle(
+    void configureHandle(
         mqbi::QueueHandle*                                 handle,
         const bmqp_ctrlmsg::StreamParameters&              streamParameters,
         const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
@@ -130,7 +130,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// Reconfigure the specified `handle` by releasing the specified
     /// `parameters` from its current settings and invoke the specified
     /// `releasedCb` once done.
-    virtual void
+    void
     releaseHandle(mqbi::QueueHandle*                         handle,
                   const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                   bool                                       isFinal,
@@ -144,16 +144,14 @@ class QueueEngine : public mqbi::QueueEngine {
     /// messages to the `handle`.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void
-    onHandleUsable(mqbi::QueueHandle* handle,
-                   unsigned int upstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
+    void onHandleUsable(mqbi::QueueHandle* handle,
+                        unsigned int upstreamSubQueueId) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the mqbi::Queue when a new message with the specified
     /// `msgGUID` is available on the queue and ready to be sent to eventual
     /// interested clients.
-    virtual void
-    afterNewMessage(const bmqt::MessageGUID& msgGUID,
-                    mqbi::QueueHandle*       source) BSLS_KEYWORD_OVERRIDE;
+    void afterNewMessage(const bmqt::MessageGUID& msgGUID,
+                         mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `mqbi::Queue` when the message identified by the
     /// specified `msgGUID` is confirmed for the specified `subQueueId`
@@ -164,10 +162,9 @@ class QueueEngine : public mqbi::QueueEngine {
     /// or 1 if there are still references.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual int
-    onConfirmMessage(mqbi::QueueHandle*       handle,
-                     const bmqt::MessageGUID& msgGUID,
-                     unsigned int subQueueId) BSLS_KEYWORD_OVERRIDE;
+    int onConfirmMessage(mqbi::QueueHandle*       handle,
+                         const bmqt::MessageGUID& msgGUID,
+                         unsigned int subQueueId) BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the `mqbi::Queue` when the message identified by the
     /// specified `msgGUID` is rejected for the specified
@@ -182,7 +179,7 @@ class QueueEngine : public mqbi::QueueEngine {
 
     /// Called by the mqbi::Queue before a message with the specified
     /// `msgGUID` is removed from the queue.
-    virtual void beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
+    void beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Called by the mqbi::Queue *after* *all* messages are removed from
@@ -192,7 +189,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// it manages.  Note that `appKey` may be null, in which case the
     /// `purge` action is applicable to the entire queue.  Also note that
     /// `appId` must be empty if and only if `appKey` is null.
-    virtual void
+    void
     afterQueuePurged(const bsl::string&      appId,
                      const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
@@ -200,8 +197,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// `currentTimer`; can be used for regular status check, such as for
     /// ensuring messages on the queue are flowing and not accumulating.
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void
-    onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
+    void onTimer(bsls::Types::Int64 currentTimer) BSLS_KEYWORD_OVERRIDE;
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
     /// evaluate all Auto (Application) subscriptions and exclude applications
@@ -209,7 +205,7 @@ class QueueEngine : public mqbi::QueueEngine {
     /// Return 0 on success or an non-zero error code on failure.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual mqbi::StorageResult::Enum evaluateAutoSubscriptions(
+    mqbi::StorageResult::Enum evaluateAutoSubscriptions(
         const bmqp::PutHeader&              putHeader,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
         const bmqp::MessagePropertiesInfo&  mpi,
@@ -220,12 +216,11 @@ class QueueEngine : public mqbi::QueueEngine {
 
     /// Return the reference count that should be applied to a message
     /// posted to the queue managed by this engine.
-    virtual unsigned int messageReferenceCount() const BSLS_KEYWORD_OVERRIDE;
+    unsigned int messageReferenceCount() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `out` object the internal information about
     /// this queue engine and associated queue handles.
-    virtual void
-    loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
+    void loadInternals(mqbcmd::QueueEngine* out) const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

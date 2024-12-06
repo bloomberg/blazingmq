@@ -89,7 +89,8 @@ namespace mqbblp {
 // ============
 
 /// Domain implementation
-class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
+class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
+                                  public mqbc::ClusterStateObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.DOMAIN");
@@ -210,7 +211,7 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+    void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `uri` belonging to
@@ -220,10 +221,10 @@ class Domain : public mqbi::Domain, public mqbc::ClusterStateObserver {
     ///
     /// Note: The `uri` could belong to a different domain than this one, in
     ///       which case this queue update is ignored.
-    virtual void onQueueUpdated(const bmqt::Uri&   uri,
-                                const bsl::string& domain,
-                                const AppInfos&    addedAppIds,
-                                const AppInfos&    removedAppIds = AppInfos())
+    void onQueueUpdated(const bmqt::Uri&   uri,
+                        const bsl::string& domain,
+                        const AppInfos&    addedAppIds,
+                        const AppInfos&    removedAppIds = AppInfos())
         BSLS_KEYWORD_OVERRIDE;
 
   private:

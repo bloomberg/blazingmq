@@ -83,12 +83,12 @@ class ReadWriteOnDiskLogFactory BSLS_KEYWORD_FINAL : public mqbsi::LogFactory {
     explicit ReadWriteOnDiskLogFactory(bslma::Allocator* allocator);
 
     /// Destructor.
-    virtual ~ReadWriteOnDiskLogFactory() BSLS_KEYWORD_OVERRIDE;
+    ~ReadWriteOnDiskLogFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
     /// Create a new log using the specified `config`.
-    virtual bslma::ManagedPtr<mqbsi::Log>
+    bslma::ManagedPtr<mqbsi::Log>
     create(const mqbsi::LogConfig& config) BSLS_KEYWORD_OVERRIDE;
 };
 
@@ -201,11 +201,11 @@ class ReadWriteOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// guarantee, upon successful completion of `open()`, `currentOffset()`
     /// must point to the end of the log, while `totalNumBytes()` and
     /// `outstandingNumBytes()` must be equal to the size of the log.
-    virtual int open(int flags) BSLS_KEYWORD_OVERRIDE;
+    int open(int flags) BSLS_KEYWORD_OVERRIDE;
 
     /// Close the log, and return 0 on success, or a negative value
     /// LogOpResult on error.
-    virtual int close() BSLS_KEYWORD_OVERRIDE;
+    int close() BSLS_KEYWORD_OVERRIDE;
 
     /// Move the log's internal write position to the specified `offset`,
     /// and return 0 on success, or a negative value LogOpResult on error.
@@ -215,19 +215,19 @@ class ReadWriteOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// Also note that it is the onus of the user of this component to
     /// update the number of outstanding bytes before seeking and
     /// overwriting existing bytes.
-    virtual int seek(Offset offset) BSLS_KEYWORD_OVERRIDE;
+    int seek(Offset offset) BSLS_KEYWORD_OVERRIDE;
 
     /// Increment the number of outstanding bytes in the log by the
     /// specified `value` (can be negative).
-    virtual void
+    void
     updateOutstandingNumBytes(bsls::Types::Int64 value) BSLS_KEYWORD_OVERRIDE;
 
     /// Update the number of outstanding bytes in the log to the specified
     /// `value`.
-    virtual void
+    void
     setOutstandingNumBytes(bsls::Types::Int64 value) BSLS_KEYWORD_OVERRIDE;
 
-    virtual Offset
+    Offset
     write(const void* entry, int offset, int length) BSLS_KEYWORD_OVERRIDE;
 
     /// Write the specified `length` bytes starting at the specified
@@ -239,9 +239,9 @@ class ReadWriteOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// overwritten.  Therefore, it is the onus of the user to invoke
     /// `updateOutstandingNumBytes` properly before overwriting an existing
     /// record.
-    virtual Offset write(const bdlbb::Blob&        entry,
-                         const bmqu::BlobPosition& offset,
-                         int length) BSLS_KEYWORD_OVERRIDE;
+    Offset write(const bdlbb::Blob&        entry,
+                 const bmqu::BlobPosition& offset,
+                 int                       length) BSLS_KEYWORD_OVERRIDE;
 
     /// Write the specified `section` of the specified `entry` into the
     /// log's internal write position.   Return the offset at which the
@@ -251,60 +251,58 @@ class ReadWriteOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// regardless of whether an existing record is overwritten.  Therefore,
     /// it is the onus of the user to invoke `updateOutstandingNumBytes`
     /// properly before overwriting an existing record.
-    virtual Offset
-    write(const bdlbb::Blob&       entry,
-          const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
+    Offset write(const bdlbb::Blob&       entry,
+                 const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
 
     /// Flush any cached data up to the optionally specified `offset` to the
     /// underlying storing mechanism, and return 0 on success, or a negative
     /// value `mqbsi::LogOpResult` on error.  If `offset` is not specified,
     /// all data is flushed.
-    virtual int flush(Offset offset = 0) BSLS_KEYWORD_OVERRIDE;
+    int flush(Offset offset = 0) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    virtual int
+    int
     read(void* entry, int length, Offset offset) const BSLS_KEYWORD_OVERRIDE;
 
     /// Copy the specified `length` bytes starting at the specified `offset`
     /// of the log into the specified `entry`, and return 0 on success, or a
     /// negative value LogOpResult on error.  Behavior is undefined unless
     /// `entry` has space for at least `length` bytes.
-    virtual int read(bdlbb::Blob* entry,
-                     int          length,
-                     Offset       offset) const BSLS_KEYWORD_OVERRIDE;
+    int read(bdlbb::Blob* entry,
+             int          length,
+             Offset       offset) const BSLS_KEYWORD_OVERRIDE;
 
-    virtual int
+    int
     alias(void** entry, int length, Offset offset) const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `entry a reference to the specified `length'
     /// bytes starting at the specified `offset` of the log, and return 0 on
     /// success, or a negative value LogOpResult on error.  Behavior is
     /// undefined unless aliasing is supported.
-    virtual int alias(bdlbb::Blob* entry,
-                      int          length,
-                      Offset       offset) const BSLS_KEYWORD_OVERRIDE;
+    int alias(bdlbb::Blob* entry,
+              int          length,
+              Offset       offset) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if this log is opened, false otherwise.
-    virtual bool isOpened() const BSLS_KEYWORD_OVERRIDE;
+    bool isOpened() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the total number of bytes in the log.
-    virtual bsls::Types::Int64 totalNumBytes() const BSLS_KEYWORD_OVERRIDE;
+    bsls::Types::Int64 totalNumBytes() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the number of outstanding bytes in the log.
-    virtual bsls::Types::Int64
-    outstandingNumBytes() const BSLS_KEYWORD_OVERRIDE;
+    bsls::Types::Int64 outstandingNumBytes() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the current offset of the log's internal write position.
-    virtual Offset currentOffset() const BSLS_KEYWORD_OVERRIDE;
+    Offset currentOffset() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the config of the log.
-    virtual const LogConfig& logConfig() const BSLS_KEYWORD_OVERRIDE;
+    const LogConfig& logConfig() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the log supports aliasing, false otherwise.
-    virtual bool supportsAliasing() const BSLS_KEYWORD_OVERRIDE;
+    bool supportsAliasing() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the config of this on-disk log.
-    virtual const mqbsi::LogConfig& config() const BSLS_KEYWORD_OVERRIDE;
+    const mqbsi::LogConfig& config() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
