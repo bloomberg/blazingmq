@@ -170,46 +170,46 @@ static void test1_MonitoredSingleConsumerQueue_breathingTest()
             k_QUEUE_SIZE,
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
-        ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 
         queue.setWatermarks(k_LOW_WATERMARK,
                             k_HIGH_WATERMARK,
                             k_HIGH_WATERMARK2);
 
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
-        ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 
-        ASSERT_EQ(queue.lowWatermark(), k_LOW_WATERMARK);
-        ASSERT_EQ(queue.highWatermark(), k_HIGH_WATERMARK);
-        ASSERT_EQ(queue.highWatermark2(), k_HIGH_WATERMARK2);
+        BMQTST_ASSERT_EQ(queue.lowWatermark(), k_LOW_WATERMARK);
+        BMQTST_ASSERT_EQ(queue.highWatermark(), k_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ(queue.highWatermark2(), k_HIGH_WATERMARK2);
 
         // pushBack two items
-        ASSERT_EQ(queue.pushBack(1), 0);
-        ASSERT_EQ(queue.numElements(), 1);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.pushBack(1), 0);
+        BMQTST_ASSERT_EQ(queue.numElements(), 1);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
-        ASSERT_EQ(queue.tryPushBack(2), 0);
-        ASSERT_EQ(queue.numElements(), 2);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.tryPushBack(2), 0);
+        BMQTST_ASSERT_EQ(queue.numElements(), 2);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
         // Verify timed popFront is undefined
         int item = -1;
 
         // popFront two items
         item = -1;
-        ASSERT_EQ(queue.tryPopFront(&item), 0);
-        ASSERT_EQ(item, 1);
-        ASSERT_EQ(queue.numElements(), 1);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.tryPopFront(&item), 0);
+        BMQTST_ASSERT_EQ(item, 1);
+        BMQTST_ASSERT_EQ(queue.numElements(), 1);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
         item = -1;
         queue.popFront(&item);
-        ASSERT_EQ(item, 2);
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(item, 2);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
     }
 
     {
@@ -221,30 +221,30 @@ static void test1_MonitoredSingleConsumerQueue_breathingTest()
             // supportTimedOperations
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
-        ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 
         queue.setWatermarks(k_LOW_WATERMARK,
                             k_HIGH_WATERMARK,
                             k_HIGH_WATERMARK2);
 
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
-        ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 
-        ASSERT_EQ(queue.lowWatermark(), k_LOW_WATERMARK);
-        ASSERT_EQ(queue.highWatermark(), k_HIGH_WATERMARK);
-        ASSERT_EQ(queue.highWatermark2(), k_HIGH_WATERMARK2);
+        BMQTST_ASSERT_EQ(queue.lowWatermark(), k_LOW_WATERMARK);
+        BMQTST_ASSERT_EQ(queue.highWatermark(), k_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ(queue.highWatermark2(), k_HIGH_WATERMARK2);
 
         // pushBack two items
-        ASSERT_EQ(queue.pushBack(1), 0);
-        ASSERT_EQ(queue.numElements(), 1);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.pushBack(1), 0);
+        BMQTST_ASSERT_EQ(queue.numElements(), 1);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
-        ASSERT_EQ(queue.pushBack(2), 0);
-        ASSERT_EQ(queue.numElements(), 2);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.pushBack(2), 0);
+        BMQTST_ASSERT_EQ(queue.numElements(), 2);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
         // popFront two items
         // 1. timedPopFront
@@ -252,17 +252,17 @@ static void test1_MonitoredSingleConsumerQueue_breathingTest()
         const bsls::TimeInterval timeout = bsls::TimeInterval(
             0,
             5 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-        ASSERT_EQ(queue.timedPopFront(&item, timeout), 0);
-        ASSERT_EQ(item, 1)
-        ASSERT_EQ(queue.numElements(), 1);
-        ASSERT_EQ(queue.isEmpty(), false);
+        BMQTST_ASSERT_EQ(queue.timedPopFront(&item, timeout), 0);
+        BMQTST_ASSERT_EQ(item, 1)
+        BMQTST_ASSERT_EQ(queue.numElements(), 1);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
         // 2. popFront
         item = -1;
         queue.popFront(&item);
-        ASSERT_EQ(item, 2);
-        ASSERT_EQ(queue.numElements(), 0);
-        ASSERT_EQ(queue.isEmpty(), true);
+        BMQTST_ASSERT_EQ(item, 2);
+        BMQTST_ASSERT_EQ(queue.numElements(), 0);
+        BMQTST_ASSERT_EQ(queue.isEmpty(), true);
     }
 }
 
@@ -309,18 +309,18 @@ static void test2_MonitoredSingleConsumerQueue_exceed_reset()
     queue.tryPushBack(8);
     queue.tryPushBack(9);
 
-    ASSERT_EQ(queue.tryPushBack(10), 0);
+    BMQTST_ASSERT_EQ(queue.tryPushBack(10), 0);
 
-    ASSERT_EQ(queue.numElements(), k_QUEUE_SIZE + 1);
-    ASSERT_EQ(queue.isEmpty(), false);
+    BMQTST_ASSERT_EQ(queue.numElements(), k_QUEUE_SIZE + 1);
+    BMQTST_ASSERT_EQ(queue.isEmpty(), false);
 
     // 2. Reset the queue and verify that items were removed and state is reset
     //    to an empty queue.
     queue.reset();
 
-    ASSERT_EQ(queue.numElements(), 0);
-    ASSERT_EQ(queue.isEmpty(), true);
-    ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
+    BMQTST_ASSERT_EQ(queue.numElements(), 0);
+    BMQTST_ASSERT_EQ(queue.isEmpty(), true);
+    BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 }
 
 BSLA_MAYBE_UNUSED

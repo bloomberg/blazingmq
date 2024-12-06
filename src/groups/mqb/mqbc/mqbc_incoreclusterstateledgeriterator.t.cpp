@@ -405,22 +405,22 @@ static void test1_breathingTest()
     }
 
     mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
-    ASSERT(!incoreCslIt.isValid());
+    BMQTST_ASSERT(!incoreCslIt.isValid());
 
     // Iterate through each record in the ledger
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        ASSERT_EQ(incoreCslIt.next(), 0);
-        ASSERT(incoreCslIt.isValid());
+        BMQTST_ASSERT_EQ(incoreCslIt.next(), 0);
+        BMQTST_ASSERT(incoreCslIt.isValid());
 
         const Test&                           test   = k_DATA[idx];
         const mqbc::ClusterStateRecordHeader& header = incoreCslIt.header();
-        ASSERT_EQ(header.headerWords(),
-                  mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS);
-        ASSERT_EQ(header.recordType(), test.d_recordType);
-        ASSERT_GT(header.leaderAdvisoryWords(), 0U);
-        ASSERT_EQ(header.electorTerm(), test.d_electorTerm);
-        ASSERT_EQ(header.sequenceNumber(), test.d_sequenceNumber);
-        ASSERT_EQ(header.timestamp(), test.d_timeStamp);
+        BMQTST_ASSERT_EQ(header.headerWords(),
+                         mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS);
+        BMQTST_ASSERT_EQ(header.recordType(), test.d_recordType);
+        BMQTST_ASSERT_GT(header.leaderAdvisoryWords(), 0U);
+        BMQTST_ASSERT_EQ(header.electorTerm(), test.d_electorTerm);
+        BMQTST_ASSERT_EQ(header.sequenceNumber(), test.d_sequenceNumber);
+        BMQTST_ASSERT_EQ(header.timestamp(), test.d_timeStamp);
 
         const unsigned int leaderAdvisoryWords =
             (recordInfos[idx].second -
@@ -435,15 +435,15 @@ static void test1_breathingTest()
                << " electorTerm = " << test.d_electorTerm
                << " sequenceNumber = " << test.d_sequenceNumber
                << " timestamp = " << test.d_timeStamp << " ]";
-        ASSERT_EQ(expected.str(), actual.str());
+        BMQTST_ASSERT_EQ(expected.str(), actual.str());
 
         bmqp_ctrlmsg::ClusterMessage clusterMessage;
-        ASSERT_EQ(incoreCslIt.loadClusterMessage(&clusterMessage), 0);
-        ASSERT_EQ(clusterMessage, recordInfos[idx].first);
+        BMQTST_ASSERT_EQ(incoreCslIt.loadClusterMessage(&clusterMessage), 0);
+        BMQTST_ASSERT_EQ(clusterMessage, recordInfos[idx].first);
     }
 
-    ASSERT_EQ(incoreCslIt.next(), 1);  // 1 means end of ledger
-    ASSERT(!incoreCslIt.isValid());
+    BMQTST_ASSERT_EQ(incoreCslIt.next(), 1);  // 1 means end of ledger
+    BMQTST_ASSERT(!incoreCslIt.isValid());
 }
 
 // ============================================================================

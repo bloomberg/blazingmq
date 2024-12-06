@@ -80,16 +80,16 @@ static void test1_BreathingTest()
 
     {
         PV("Test Accessors");
-        ASSERT_EQ(obj.negotiationMessage(), negotiationMessage);
-        ASSERT_EQ(obj.description(), description);
-        ASSERT_EQ(obj.clusterNode(), &mockClusterNode);
-        ASSERT_EQ(obj.channel(), testChannel);
+        BMQTST_ASSERT_EQ(obj.negotiationMessage(), negotiationMessage);
+        BMQTST_ASSERT_EQ(obj.description(), description);
+        BMQTST_ASSERT_EQ(obj.clusterNode(), &mockClusterNode);
+        BMQTST_ASSERT_EQ(obj.channel(), testChannel);
     }
 
     {
         PV("Ensure that processEvent asserts");
         bmqp::Event event(bmqtst::TestHelperUtil::allocator());
-        ASSERT_OPT_FAIL(obj.processEvent(event, &mockClusterNode));
+        BMQTST_ASSERT_OPT_FAIL(obj.processEvent(event, &mockClusterNode));
     }
 
     {  // teardown is a no-op, just invoke it for coverage's sake

@@ -57,94 +57,102 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
         messageCapacity * monitor->messageHighWatermarkRatio();
 
     // BYTES
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
     // Not needed here but for logical consistency
 
     // Increment by 1 until hitting high watermark
     for (int i = monitor->bytes() + 1; i < byteHighWatermark; ++i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateBytes(1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->bytes());
-        ASSERT_EQ(monitor->byteState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateBytes(1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->bytes());
+        BMQTST_ASSERT_EQ(monitor->byteState(),
+                         mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
     }
 
     // bytes = byteHighWatermark - 1
-    ASSERT_EQ(monitor->updateBytes(1),
-              mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
-    ASSERT_EQ(byteHighWatermark, monitor->bytes());
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(
+        monitor->updateBytes(1),
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(byteHighWatermark, monitor->bytes());
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Increment by 1 until hitting full capacity
     for (int i = byteHighWatermark + 1; i < byteCapacity; ++i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateBytes(1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->bytes());
-        ASSERT_EQ(monitor->byteState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateBytes(1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->bytes());
+        BMQTST_ASSERT_EQ(
+            monitor->byteState(),
+            mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
     }
 
     // bytes = byteCapacity - 1
-    ASSERT_EQ(monitor->updateBytes(1),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(byteCapacity, monitor->bytes());
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor->updateBytes(1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(byteCapacity, monitor->bytes());
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(0, monitor->messages());  // no change in messages
+    BMQTST_ASSERT_EQ(0, monitor->messages());  // no change in messages
 
     // MESSAGES
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Increment by 1 until hitting high watermark
     for (int i = 1; i < messageHighWatermark; ++i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateMessages(1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->messages());
-        ASSERT_EQ(monitor->messageState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateMessages(1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->messages());
+        BMQTST_ASSERT_EQ(monitor->messageState(),
+                         mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
     }
 
     // messages = messageHighWatermark - 1
-    ASSERT_EQ(monitor->updateMessages(1),
-              mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
-    ASSERT_EQ(messageHighWatermark, monitor->messages());
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(
+        monitor->updateMessages(1),
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(messageHighWatermark, monitor->messages());
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Increment by 1 until hitting capacity
     for (int i = messageHighWatermark + 1; i < messageCapacity; ++i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateMessages(1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->messages());
-        ASSERT_EQ(monitor->messageState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateMessages(1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->messages());
+        BMQTST_ASSERT_EQ(
+            monitor->messageState(),
+            mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
     }
 
     // messages = messageCapacity - 1
-    ASSERT_EQ(monitor->updateMessages(1),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(messageCapacity, monitor->messages());
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor->updateMessages(1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(messageCapacity, monitor->messages());
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(byteCapacity, monitor->bytes());
+    BMQTST_ASSERT_EQ(byteCapacity, monitor->bytes());
     // no change in bytes
 
     // No change in the exposed parameters used to configure the monitor
-    ASSERT_EQ(byteCapacity, monitor->byteCapacity());
-    ASSERT_EQF(byteHighWatermark,
-               byteCapacity * monitor->byteHighWatermarkRatio());
-    ASSERT_EQ(messageCapacity, monitor->messageCapacity());
-    ASSERT_EQF(messageHighWatermark,
-               messageCapacity * monitor->messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(byteCapacity, monitor->byteCapacity());
+    BMQTST_ASSERT_EQF(byteHighWatermark,
+                      byteCapacity * monitor->byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(messageCapacity, monitor->messageCapacity());
+    BMQTST_ASSERT_EQF(messageHighWatermark,
+                      messageCapacity * monitor->messageHighWatermarkRatio());
 }
 
 /// Decrement bytes and messages being monitored by the specified `monitor`
@@ -174,104 +182,112 @@ void testDecrementFromFullCapacityToLowWatermark(
         monitor->messageCapacity() * monitor->messageHighWatermarkRatio();
 
     // BYTES
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
     // Not necessary here but for logical consistency
 
     // Decrement by 1 until hitting high watermark
     for (int i = monitor->bytes() - 1; i > byteHighWatermark; --i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateBytes(-1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->bytes());
-        ASSERT_EQ(monitor->byteState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateBytes(-1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->bytes());
+        BMQTST_ASSERT_EQ(monitor->byteState(),
+                         mqbu::ResourceUsageMonitorState::e_STATE_FULL);
     }
 
     // bytes = byteHighWatermark + 1
-    ASSERT_EQ(monitor->updateBytes(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(byteHighWatermark, monitor->bytes());
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor->updateBytes(-1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(byteHighWatermark, monitor->bytes());
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Decrement by 1 until hitting low watermark
     for (int i = monitor->bytes() - 1; i > byteLowWatermark; --i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateBytes(-1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->bytes());
-        ASSERT_EQ(monitor->byteState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateBytes(-1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->bytes());
+        BMQTST_ASSERT_EQ(
+            monitor->byteState(),
+            mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
     }
 
     // bytes = byteLowWatermark + 1
-    ASSERT_EQ(monitor->updateBytes(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(byteLowWatermark, monitor->bytes());
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor->updateBytes(-1),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(byteLowWatermark, monitor->bytes());
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Decrement one more and observe no change
-    ASSERT_EQ(monitor->updateBytes(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(byteLowWatermark - 1, monitor->bytes());
-    ASSERT_EQ(monitor->byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor->updateBytes(-1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(byteLowWatermark - 1, monitor->bytes());
+    BMQTST_ASSERT_EQ(monitor->byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Restore bytes value to low watermark point
     monitor->updateBytes(1);
-    ASSERT_EQ(byteLowWatermark, monitor->bytes());
+    BMQTST_ASSERT_EQ(byteLowWatermark, monitor->bytes());
 
     // MESSAGES
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
     // Not necessary here but for logical consistency
 
     // Decrement by 1 until hitting high watermark
     for (int i = monitor->messages() - 1; i > messageHighWatermark; --i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateMessages(-1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->messages());
-        ASSERT_EQ(monitor->messageState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateMessages(-1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->messages());
+        BMQTST_ASSERT_EQ(monitor->messageState(),
+                         mqbu::ResourceUsageMonitorState::e_STATE_FULL);
     }
 
     // messages = messageHighWatermark + 1
-    ASSERT_EQ(monitor->updateMessages(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(messageHighWatermark, monitor->messages());
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor->updateMessages(-1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(messageHighWatermark, monitor->messages());
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Decrement by 1 until hitting low watermark
     for (int i = monitor->messages() - 1; i > messageLowWatermark; --i) {
-        ASSERT_EQ_D(i,
-                    monitor->updateMessages(-1),
-                    mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-        ASSERT_EQ_D(i, i, monitor->messages());
-        ASSERT_EQ(monitor->messageState(),
-                  mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+        BMQTST_ASSERT_EQ_D(
+            i,
+            monitor->updateMessages(-1),
+            mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D(i, i, monitor->messages());
+        BMQTST_ASSERT_EQ(
+            monitor->messageState(),
+            mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
     }
 
     // messages = messageLowWatermark + 1
-    ASSERT_EQ(monitor->updateMessages(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(messageLowWatermark, monitor->messages());
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor->updateMessages(-1),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(messageLowWatermark, monitor->messages());
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Decrement one more and observe no change
-    ASSERT_EQ(monitor->updateMessages(-1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(messageLowWatermark - 1, monitor->messages());
-    ASSERT_EQ(monitor->messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor->updateMessages(-1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(messageLowWatermark - 1, monitor->messages());
+    BMQTST_ASSERT_EQ(monitor->messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Restore messages value to low watermark point
     monitor->updateMessages(1);
-    ASSERT_EQ(messageLowWatermark, monitor->messages());
+    BMQTST_ASSERT_EQ(messageLowWatermark, monitor->messages());
 }
 
 // ============================================================================
@@ -315,21 +331,24 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // 1
-    ASSERT_LT(mqbu::ResourceUsageMonitorState::e_STATE_NORMAL,
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_LT(mqbu::ResourceUsageMonitorState::e_STATE_NORMAL,
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
-    ASSERT_LT(mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK,
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_LT(mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK,
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     // 2
-    ASSERT_LT(mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE,
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_LT(
+        mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE,
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
 
-    ASSERT_LT(mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK,
-              mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_LT(
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK,
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
 
-    ASSERT_LT(mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK,
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_LT(
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK,
+        mqbu::ResourceUsageMonitorStateTransition::e_FULL);
 
     // 3 Create a mqbu::ResourceUsageMonitor object with default watermark
     // ratios
@@ -343,22 +362,24 @@ static void test1_breathingTest()
     mqbu::ResourceUsageMonitor monitor(k_BYTE_CAPACITY, k_MESSAGE_CAPACITY);
 
     // Initial state: BYTES
-    ASSERT_EQ(0, monitor.bytes());
-    ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteLowWatermarkRatio());
-    ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO, monitor.byteHighWatermarkRatio());
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.bytes());
+    BMQTST_ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO,
+                      monitor.byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Initial state: MESSAGES
-    ASSERT_EQ(0, monitor.messages());
-    ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageLowWatermarkRatio());
-    ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
-               monitor.messageHighWatermarkRatio());
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.messages());
+    BMQTST_ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
+                      monitor.messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // 4 Increment bytes and messages from 'NO_CHANGE' to 'HIGH_WATERMARK' and
     // then from 'HIGH_WATERMARK' to 'FULL'
@@ -368,22 +389,24 @@ static void test1_breathingTest()
     monitor.reset();
 
     // Reset state: BYTES
-    ASSERT_EQ(0, monitor.bytes());
-    ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteLowWatermarkRatio());
-    ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO, monitor.byteHighWatermarkRatio());
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.bytes());
+    BMQTST_ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO,
+                      monitor.byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Reset state: MESSAGES
-    ASSERT_EQ(0, monitor.messages());
-    ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageLowWatermarkRatio());
-    ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
-               monitor.messageHighWatermarkRatio());
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.messages());
+    BMQTST_ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
+                      monitor.messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // 6 Increment bytes and messages from 'NO_CHANGE' to 'HIGH_WATERMARK' and
     // then from 'HIGH_WATERMARK' to 'FULL'
@@ -405,22 +428,24 @@ static void test1_breathingTest()
                          k_MESSAGE_HIGH_WATERMARK_RATIO);
 
     // Reset state: BYTES
-    ASSERT_EQ(0, monitor.bytes());
-    ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteLowWatermarkRatio());
-    ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO, monitor.byteHighWatermarkRatio());
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.bytes());
+    BMQTST_ASSERT_EQ(k_BYTE_CAPACITY, monitor.byteCapacity());
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO,
+                      monitor.byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // Reset state: MESSAGES
-    ASSERT_EQ(0, monitor.messages());
-    ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageLowWatermarkRatio());
-    ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
-               monitor.messageHighWatermarkRatio());
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(0, monitor.messages());
+    BMQTST_ASSERT_EQ(k_MESSAGE_CAPACITY, monitor.messageCapacity());
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
+                      monitor.messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // 8 Increment bytes and messages from 'NO_CHANGE' to 'HIGH_WATERMARK' and
     // then from 'HIGH_WATERMARK' to 'FULL'
@@ -444,22 +469,24 @@ static void test1_breathingTest()
                                k_MESSAGE_LOW_WATERMARK_RATIO,
                                k_MESSAGE_HIGH_WATERMARK_RATIO);
 
-    ASSERT_EQ(monitor.byteCapacity(), k_BYTE_CAPACITY);
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteLowWatermarkRatio());
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteHighWatermarkRatio());
-    ASSERT_EQ(monitor.messageCapacity(), k_MESSAGE_CAPACITY);
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageLowWatermarkRatio());
-    ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
-               monitor.messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.byteCapacity(), k_BYTE_CAPACITY);
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.messageCapacity(), k_MESSAGE_CAPACITY);
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_MESSAGE_HIGH_WATERMARK_RATIO,
+                      monitor.messageHighWatermarkRatio());
 
-    ASSERT_EQ(monitor.bytes(), bytesBefore);
-    ASSERT_EQ(monitor.messages(), messagesBefore);
+    BMQTST_ASSERT_EQ(monitor.bytes(), bytesBefore);
+    BMQTST_ASSERT_EQ(monitor.messages(), messagesBefore);
 
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // 11 Reconfigure object by concrete value instead of by ratio such that it
     //    becomes in 'HIGH_WATERMARK' state for bytes but remains in
@@ -480,22 +507,24 @@ static void test1_breathingTest()
                         k_MESSAGE_LOW_WATERMARK);
     // 'HIGH_WATERMARK' == 'LOW_WATERMARK'`
 
-    ASSERT_EQ(monitor.byteCapacity(), k_BYTE_CAPACITY);
-    ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO, monitor.byteLowWatermarkRatio());
-    ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO, monitor.byteHighWatermarkRatio());
-    ASSERT_EQ(monitor.messageCapacity(), k_MESSAGE_CAPACITY);
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageLowWatermarkRatio());
-    ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
-               monitor.messageHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.byteCapacity(), k_BYTE_CAPACITY);
+    BMQTST_ASSERT_EQF(k_BYTE_LOW_WATERMARK_RATIO,
+                      monitor.byteLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_BYTE_HIGH_WATERMARK_RATIO,
+                      monitor.byteHighWatermarkRatio());
+    BMQTST_ASSERT_EQ(monitor.messageCapacity(), k_MESSAGE_CAPACITY);
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageLowWatermarkRatio());
+    BMQTST_ASSERT_EQF(k_MESSAGE_LOW_WATERMARK_RATIO,
+                      monitor.messageHighWatermarkRatio());
 
-    ASSERT_EQ(monitor.bytes(), bytesBefore);
-    ASSERT_EQ(monitor.messages(), messagesBefore);
+    BMQTST_ASSERT_EQ(monitor.bytes(), bytesBefore);
+    BMQTST_ASSERT_EQ(monitor.messages(), messagesBefore);
 
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 }
 
 static void test2_zeroCapacity()
@@ -523,48 +552,53 @@ static void test2_zeroCapacity()
 
     // 1 Create an instance with zero messageCapacity and zero byteCapacity
     mqbu::ResourceUsageMonitor obj(0, 0, 0, 0, 0, 0);
-    ASSERT_EQ(obj.messageCapacity(), 0);
-    ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
-    ASSERT_EQ(obj.byteCapacity(), 0);
-    ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.messageCapacity(), 0);
+    BMQTST_ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.byteCapacity(), 0);
+    BMQTST_ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
 
-    ASSERT_EQ(obj.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(obj.byteState(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(obj.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     //   2 Reconfigure instance to have zero messageCapacity and non-zero
     //     byteCapacity
     obj.reconfigure(5, 0, 0, 0, 0, 0);
-    ASSERT_EQ(obj.messageCapacity(), 0);
-    ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
-    ASSERT_EQ(obj.byteCapacity(), 5);
-    ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.messageCapacity(), 0);
+    BMQTST_ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.byteCapacity(), 5);
+    BMQTST_ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
 
-    ASSERT_EQ(obj.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(obj.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
-    ASSERT_EQ(obj.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(obj.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     //   3 Reconfigure instance to have non-zero messageCapacity and zero
     //     byteCapacity
     obj.reconfigure(0, 5, 0, 0, 0, 0);
-    ASSERT_EQ(obj.messageCapacity(), 5);
-    ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
-    ASSERT_EQ(obj.byteCapacity(), 0);
-    ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
-    ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.messageCapacity(), 5);
+    BMQTST_ASSERT_EQF(obj.messageLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.messageHighWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQ(obj.byteCapacity(), 0);
+    BMQTST_ASSERT_EQF(obj.byteLowWatermarkRatio(), 0.0);
+    BMQTST_ASSERT_EQF(obj.byteHighWatermarkRatio(), 0.0);
 
-    ASSERT_EQ(obj.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
-    ASSERT_EQ(obj.byteState(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(obj.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(obj.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(obj.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 }
 
 static void test3_updateOneResource()
@@ -838,40 +872,44 @@ static void test3_updateOneResource()
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
 
         // Update bytes
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.updateBytes(test.d_bytes),
-                    test.d_expectedByteStateTransition);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.updateBytes(test.d_bytes),
+                           test.d_expectedByteStateTransition);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), test.d_bytes);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.bytes(),
+                           test.d_bytes);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.updateBytes(0),
-                    RUMStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.updateBytes(0),
+                           RUMStateTransition::e_NO_CHANGE);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), test.d_bytes);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.bytes(),
+                           test.d_bytes);
 
         monitor.updateBytes(-test.d_bytes);
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), 0);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), 0);
 
         // Update messages
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.updateMessages(test.d_messages),
-                    test.d_expectedMessageStateTransition);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.updateMessages(test.d_messages),
+                           test.d_expectedMessageStateTransition);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messages(),
-                    test.d_messages);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messages(),
+                           test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.updateMessages(0),
-                    RUMStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.updateMessages(0),
+                           RUMStateTransition::e_NO_CHANGE);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messages(),
-                    test.d_messages);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messages(),
+                           test.d_messages);
 
         monitor.updateMessages(-test.d_messages);
-        ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
     }
 }
 
@@ -1240,15 +1278,17 @@ static void test4_updateBothResources()
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
 
         // update(bytes, msgs)
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.update(test.d_bytes, test.d_messages),
-                    test.d_expectedStateTransition);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.update(test.d_bytes, test.d_messages),
+                           test.d_expectedStateTransition);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), test.d_bytes);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.bytes(),
+                           test.d_bytes);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messages(),
-                    test.d_messages);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messages(),
+                           test.d_messages);
 
         // Test edge case where update value is 0 (This fails in the original
         // 'mqbu::ResourceUsageMonitor' if 'highWatermark == capacity' and the
@@ -1258,22 +1298,24 @@ static void test4_updateBothResources()
         // This can be verified by replacing in the .cpp file methods
         // 'update<Bytes/Messages>' the 'else if (delta<Bytes/Messages> < 0)'
         // with just 'else'.
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.update(0, 0),
-                    RUMStateTransition::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.update(0, 0),
+                           RUMStateTransition::e_NO_CHANGE);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), test.d_bytes);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.bytes(),
+                           test.d_bytes);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messages(),
-                    test.d_messages);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messages(),
+                           test.d_messages);
 
         // update(-bytes, -msgs)
         monitor.update(-test.d_bytes, -test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), 0);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.bytes(), 0);
 
-        ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
     }
 
     // 3 Verify that an update that takes the monitor past a limit emits the
@@ -1296,19 +1338,20 @@ static void test4_updateBothResources()
         k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
         k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
 
-    ASSERT_EQ(monitor.update(k_BYTE_HIGH_WATERMARK - 1,
-                             k_MESSAGE_HIGH_WATERMARK - 1),
-              RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(k_BYTE_HIGH_WATERMARK - 1,
+                                    k_MESSAGE_HIGH_WATERMARK - 1),
+                     RUMStateTransition::e_NO_CHANGE);
 
     // Reach STATE_HIGH_WATERMARK (bytes state becomes STATE_HIGH_WATERMARK)
-    ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.update(1, 0),
+                     RUMStateTransition::e_HIGH_WATERMARK);
 
     // Still in STATE_HIGH_WATERMARK, emit NO_CHANGE (messages state becomes
     // STATE_HIGH_WATERMARK, bytes state stays in STATE_HIGH_WATERMARK)
-    ASSERT_EQ(monitor.update(-1, 1), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-1, 1), RUMStateTransition::e_NO_CHANGE);
 
     // Still in STATE_HIGH_WATERMARK, emit NO_CHANGE
-    ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_NO_CHANGE);
 
     // Reset bytes and messages values
     monitor.resetByRatio(k_BYTE_CAPACITY,
@@ -1318,41 +1361,44 @@ static void test4_updateBothResources()
                          k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
                          k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
 
-    ASSERT_EQ(monitor.update(k_BYTE_CAPACITY - 1, k_MESSAGE_CAPACITY - 1),
-              RUMStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.update(k_BYTE_CAPACITY - 1,
+                                    k_MESSAGE_CAPACITY - 1),
+                     RUMStateTransition::e_HIGH_WATERMARK);
 
     // Reach STATE_FULL, emit FULL (bytes state becomes STATE_FULL)
-    ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_FULL);
 
     // Still in STATE_FULL, emit NO_CHANGE (messages state becomes STATE_FULL,
     // bytes state stays STATE_FULL)
-    ASSERT_EQ(monitor.update(-1, 1), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-1, 1), RUMStateTransition::e_NO_CHANGE);
 
     // Still in STATE_FULL, emit NO_CHANGE
-    ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(1, 0), RUMStateTransition::e_NO_CHANGE);
 
     bsls::Types::Int64 bytesDiffFullToLow = k_BYTE_CAPACITY -
                                             k_BYTE_LOW_WATERMARK;
     bsls::Types::Int64 messagesDiffFullToLow = k_MESSAGE_CAPACITY -
                                                k_MESSAGE_LOW_WATERMARK;
 
-    ASSERT_EQ(monitor.update(-bytesDiffFullToLow + 1,
-                             -messagesDiffFullToLow + 1),
-              RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-bytesDiffFullToLow + 1,
+                                    -messagesDiffFullToLow + 1),
+                     RUMStateTransition::e_NO_CHANGE);
 
     // Still in STATE_FULL, emit NO_CHANGE (bytes state becomes STATE_NORMAL)
-    ASSERT_EQ(monitor.update(-1, 0), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-1, 0), RUMStateTransition::e_NO_CHANGE);
 
     // Reach LOW_WATERMARK (messages state becomes LOW_WATERMARK, bytes state
     // stays at LOW_WATERMARK)
-    ASSERT_EQ(monitor.update(1, -1), RUMStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.update(1, -1),
+                     RUMStateTransition::e_LOW_WATERMARK);
 
     // Still in LOW_WATERMARK
-    ASSERT_EQ(monitor.update(-1, 0), RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-1, 0), RUMStateTransition::e_NO_CHANGE);
 
     // Decrementing further does not emit
-    ASSERT_EQ(monitor.update(-k_BYTE_LOW_WATERMARK, -k_MESSAGE_LOW_WATERMARK),
-              RUMStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.update(-k_BYTE_LOW_WATERMARK,
+                                    -k_MESSAGE_LOW_WATERMARK),
+                     RUMStateTransition::e_NO_CHANGE);
 }
 
 static void test5_stateOneResource()
@@ -1747,13 +1793,13 @@ static void test5_stateOneResource()
         // Update and check state
         monitor.update(test.d_bytes, test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.byteState(),
-                    test.d_expectedByteState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.byteState(),
+                           test.d_expectedByteState);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messageState(),
-                    test.d_expectedMessageState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messageState(),
+                           test.d_expectedMessageState);
 
         // Test edge case where update value is 0 (This fails in the original
         // 'mqbu::ResourceUsageMonitor' if 'highWatermark == capacity' and the
@@ -1765,24 +1811,24 @@ static void test5_stateOneResource()
         // with just 'else'.
         monitor.update(0, 0);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.byteState(),
-                    test.d_expectedByteState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.byteState(),
+                           test.d_expectedByteState);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messageState(),
-                    test.d_expectedMessageState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messageState(),
+                           test.d_expectedMessageState);
 
         // Reverse update and check state
         monitor.update(-test.d_bytes, -test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.byteState(),
-                    RUMState::e_STATE_NORMAL);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.byteState(),
+                           RUMState::e_STATE_NORMAL);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.messageState(),
-                    RUMState::e_STATE_NORMAL);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.messageState(),
+                           RUMState::e_STATE_NORMAL);
     }
 }
 
@@ -2119,9 +2165,9 @@ static void test6_stateBothResources()
         // Update and check state
         monitor.update(test.d_bytes, test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.state(),
-                    test.d_expectedMonitorState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.state(),
+                           test.d_expectedMonitorState);
 
         // Test edge case where update value is 0 (This fails in the original
         // 'mqbu::ResourceUsageMonitor' if 'highWatermark == capacity' and the
@@ -2133,16 +2179,16 @@ static void test6_stateBothResources()
         // with just 'else'.
         monitor.update(0, 0);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.state(),
-                    test.d_expectedMonitorState);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.state(),
+                           test.d_expectedMonitorState);
 
         // Reverse update and check state
         monitor.update(-test.d_bytes, -test.d_messages);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    monitor.state(),
-                    RUMState::e_STATE_NORMAL);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           monitor.state(),
+                           RUMState::e_STATE_NORMAL);
     }
 }
 
@@ -2168,52 +2214,58 @@ static void test7_jumpingStates()
         k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
         k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
 
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // HIGH_WATERMARK and back: (HIGH_WATERMARK, LOW_WATERMARK)
-    ASSERT_EQ(monitor.updateBytes(k_BYTE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(
+        monitor.updateBytes(k_BYTE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
-    ASSERT_EQ(monitor.updateMessages(k_MESSAGE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(
+        monitor.updateMessages(k_MESSAGE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_HIGH_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
-    ASSERT_EQ(monitor.updateBytes(-k_BYTE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateBytes(-k_BYTE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
-    ASSERT_EQ(monitor.updateMessages(-k_MESSAGE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateMessages(-k_MESSAGE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // CAPACITY and back: (FULL, LOW_WATERMARK)
-    ASSERT_EQ(monitor.updateBytes(k_BYTE_CAPACITY),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.updateBytes(k_BYTE_CAPACITY),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(monitor.updateMessages(k_MESSAGE_CAPACITY),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.updateMessages(k_MESSAGE_CAPACITY),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(monitor.updateBytes(-k_BYTE_CAPACITY),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateBytes(-k_BYTE_CAPACITY),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
-    ASSERT_EQ(monitor.updateMessages(-k_MESSAGE_CAPACITY),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateMessages(-k_MESSAGE_CAPACITY),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // LOW_WATERMARK < HIGH_WATERMARK and HIGH_WATERMARK == CAPACITY
     k_BYTE_HIGH_WATERMARK    = k_BYTE_CAPACITY;
@@ -2226,32 +2278,34 @@ static void test7_jumpingStates()
                   k_MESSAGE_LOW_WATERMARK,
                   k_MESSAGE_HIGH_WATERMARK);  // == k_MESSAGE_CAPACITY
 
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
     // When hitting high watermark, expect a transition to FULL
     // HIGH_WATERMARK and back: (FULL, LOW_WATERMARK)
-    ASSERT_EQ(monitor.updateBytes(k_BYTE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.updateBytes(k_BYTE_HIGH_WATERMARK),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(monitor.updateMessages(k_MESSAGE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_FULL);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.updateMessages(k_MESSAGE_HIGH_WATERMARK),
+                     mqbu::ResourceUsageMonitorStateTransition::e_FULL);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
-    ASSERT_EQ(monitor.updateBytes(-k_BYTE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateBytes(-k_BYTE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 
-    ASSERT_EQ(monitor.updateMessages(-k_MESSAGE_HIGH_WATERMARK),
-              mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
+    BMQTST_ASSERT_EQ(
+        monitor.updateMessages(-k_MESSAGE_HIGH_WATERMARK),
+        mqbu::ResourceUsageMonitorStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 }
 
 static void test8_zeroWatermarksUpdate()
@@ -2295,35 +2349,40 @@ static void test8_zeroWatermarksUpdate()
                                        k_MESSAGE_LOW_WATERMARK,
                                        k_MESSAGE_HIGH_WATERMARK);
 
-    ASSERT_EQ(monitor.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     // 2. Increase messages above zero
-    ASSERT_EQ(monitor.update(0, 1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(monitor.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.update(0, 1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     // 3. Decrease messages to 0 and verify that the state is FULL
-    ASSERT_EQ(monitor.update(0, -1),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE)
-    ASSERT_EQ(monitor.messageState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(monitor.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.update(0, -1),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE)
+    BMQTST_ASSERT_EQ(monitor.messageState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     // 4. Increase bytes above 0
-    ASSERT_EQ(monitor.update(2, 0),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(monitor.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.update(2, 0),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 
     // 5. Decrease bytes to 0 and verify that the state is still FULL
-    ASSERT_EQ(monitor.update(-1, 0),
-              mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
-    ASSERT_EQ(monitor.byteState(),
-              mqbu::ResourceUsageMonitorState::e_STATE_FULL);
-    ASSERT_EQ(monitor.state(), mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.update(-1, 0),
+                     mqbu::ResourceUsageMonitorStateTransition::e_NO_CHANGE);
+    BMQTST_ASSERT_EQ(monitor.byteState(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
+    BMQTST_ASSERT_EQ(monitor.state(),
+                     mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 }
 
 static void test9_print()
@@ -2405,7 +2464,7 @@ static void test9_print()
 
             ascii = RUMState::toAscii(test.d_value);
 
-            ASSERT_EQ_D("line " << test.d_line, ascii, test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, ascii, test.d_expected);
 
             PVV("    " << ascii);
         }
@@ -2441,7 +2500,7 @@ static void test9_print()
 
             ascii = RUMStateTransition::toAscii(test.d_value);
 
-            ASSERT_EQ_D("line " << test.d_line, ascii, test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, ascii, test.d_expected);
 
             PVV("    " << ascii);
         }
@@ -2476,7 +2535,9 @@ static void test9_print()
 
             RUMState::print(ss, test.d_value, 0, -1);
 
-            ASSERT_EQ_D("line " << test.d_line, ss.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expected);
 
             // operator <<
             PVV(test.d_line << ": checking 'operator<<(ostream, "
@@ -2486,13 +2547,15 @@ static void test9_print()
 
             ss << test.d_value;
 
-            ASSERT_EQ_D("line " << test.d_line, ss.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expected);
 
             // Set bad bit and ensure nothing was printed.
             ss.reset();
             ss.setstate(bsl::ios_base::badbit);
             RUMState::print(ss, test.d_value, 0, -1);
-            ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
+            BMQTST_ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
         }
     }
 
@@ -2525,7 +2588,9 @@ static void test9_print()
 
             RUMStateTransition::print(ss, test.d_value, 0, -1);
 
-            ASSERT_EQ_D("line " << test.d_line, ss.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expected);
 
             PVV(test.d_line << ": checking 'operator<<(ostream, "
                             << "mqbu::RUMStateTransition::Enum)");
@@ -2534,13 +2599,15 @@ static void test9_print()
 
             ss << test.d_value;
 
-            ASSERT_EQ_D("line " << test.d_line, ss.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expected);
 
             // Set bad bit and ensure nothing was printed.
             ss.reset();
             ss.setstate(bsl::ios_base::badbit);
             RUMStateTransition::print(ss, test.d_value, 0, -1);
-            ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
+            BMQTST_ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
         }
     }
 
@@ -2653,17 +2720,17 @@ static void test9_print()
             // STATE_NORMAL
             monitor.print(ss, 0, -1);
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedLowWatermark);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedLowWatermark);
 
             ss.reset();
 
             ss << monitor;
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedLowWatermark);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedLowWatermark);
 
             // STATE_HIGH_WATERMARK
             ss.reset();
@@ -2672,17 +2739,17 @@ static void test9_print()
                            test.d_messageHighWatermark);
             monitor.print(ss, 0, -1);
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedHighWatermark);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedHighWatermark);
 
             ss.reset();
 
             ss << monitor;
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedHighWatermark);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedHighWatermark);
 
             // STATE_FULL
             ss.reset();
@@ -2691,17 +2758,17 @@ static void test9_print()
             monitor.update(test.d_byteCapacity, test.d_messageCapacity);
             monitor.print(ss, 0, -1);
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedCapacity);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedCapacity);
 
             ss.reset();
 
             ss << monitor;
 
-            ASSERT_EQ_D("line " << test.d_line,
-                        ss.str(),
-                        test.d_expectedCapacity);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               ss.str(),
+                               test.d_expectedCapacity);
         }
     }
 }
@@ -2752,7 +2819,7 @@ static void test10_usageExample()
     bool highWatermarkLimitReached = monitor.state() !=
                                      RUMState::e_STATE_NORMAL;
 
-    ASSERT(!highWatermarkLimitReached);
+    BMQTST_ASSERT(!highWatermarkLimitReached);
 
     if (!highWatermarkLimitReached) {
         // Send message(s)
@@ -2775,7 +2842,7 @@ static void test10_usageExample()
     // Update resource usage state (e.g. confirmed message from client)
     RUMStateTransition::Enum change = monitor.update(-30, -7);
 
-    ASSERT_EQ(change, RUMStateTransition::e_LOW_WATERMARK);
+    BMQTST_ASSERT_EQ(change, RUMStateTransition::e_LOW_WATERMARK);
 
     // Check if we're back to below our low watermark
     if (change == RUMStateTransition::e_LOW_WATERMARK) {

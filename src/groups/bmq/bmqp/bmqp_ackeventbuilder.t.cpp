@@ -80,7 +80,7 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
                                         data.d_corrId,
                                         data.d_guid,
                                         data.d_queueId);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
         vec->push_back(data);
     }
 }
@@ -95,37 +95,38 @@ static void verifyContent(const bmqp::AckEventBuilder& builder,
     PVV("Verifying accessors");
     size_t expectedSize = sizeof(bmqp::EventHeader) + sizeof(bmqp::AckHeader) +
                           (data.size() * sizeof(bmqp::AckMessage));
-    ASSERT_EQ(static_cast<size_t>(builder.messageCount()), data.size());
-    ASSERT_EQ(static_cast<size_t>(builder.eventSize()), expectedSize);
-    ASSERT_EQ(static_cast<size_t>(builder.blob()->length()), expectedSize);
+    BMQTST_ASSERT_EQ(static_cast<size_t>(builder.messageCount()), data.size());
+    BMQTST_ASSERT_EQ(static_cast<size_t>(builder.eventSize()), expectedSize);
+    BMQTST_ASSERT_EQ(static_cast<size_t>(builder.blob()->length()),
+                     expectedSize);
 
     PVV("Iterating over messages");
     bmqp::Event event(builder.blob().get(),
                       bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(event.isValid(), true);
-    ASSERT_EQ(event.isAckEvent(), true);
+    BMQTST_ASSERT_EQ(event.isValid(), true);
+    BMQTST_ASSERT_EQ(event.isAckEvent(), true);
 
     bmqp::AckMessageIterator iter;
     event.loadAckMessageIterator(&iter);
 
-    ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t idx = 0;
     while (iter.next() == 1 && idx < data.size()) {
         const Data& d = data[idx];
 
-        ASSERT_EQ_D(idx, iter.isValid(), true);
-        ASSERT_EQ_D(idx, d.d_guid, iter.message().messageGUID());
-        ASSERT_EQ_D(idx, d.d_corrId, iter.message().correlationId());
-        ASSERT_EQ_D(idx, d.d_status, iter.message().status());
-        ASSERT_EQ_D(idx, d.d_queueId, iter.message().queueId());
+        BMQTST_ASSERT_EQ_D(idx, iter.isValid(), true);
+        BMQTST_ASSERT_EQ_D(idx, d.d_guid, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ_D(idx, d.d_corrId, iter.message().correlationId());
+        BMQTST_ASSERT_EQ_D(idx, d.d_status, iter.message().status());
+        BMQTST_ASSERT_EQ_D(idx, d.d_queueId, iter.message().queueId());
 
         ++idx;
     }
 
-    ASSERT_EQ(idx, data.size());
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(idx, data.size());
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 }  // close unnamed namespace
@@ -150,10 +151,10 @@ static void test1_breathingTest()
     bsl::vector<Data>     messages(bmqtst::TestHelperUtil::allocator());
 
     PVV("Verifying accessors");
-    ASSERT_EQ(obj.messageCount(), 0);
-    ASSERT_NE(obj.maxMessageCount(), 0);
-    ASSERT_EQ(obj.eventSize(), 0);
-    ASSERT_EQ(obj.blob()->length(), 0);
+    BMQTST_ASSERT_EQ(obj.messageCount(), 0);
+    BMQTST_ASSERT_NE(obj.maxMessageCount(), 0);
+    BMQTST_ASSERT_EQ(obj.eventSize(), 0);
+    BMQTST_ASSERT_EQ(obj.blob()->length(), 0);
 
     PVV("Appending one message");
     appendMessages(&obj, &messages, 1);
@@ -210,9 +211,9 @@ static void test3_reset()
     obj.reset();
 
     PV("Verifying accessors");
-    ASSERT_EQ(obj.messageCount(), 0);
-    ASSERT_EQ(obj.eventSize(), 0);
-    ASSERT_EQ(obj.blob()->length(), 0);
+    BMQTST_ASSERT_EQ(obj.messageCount(), 0);
+    BMQTST_ASSERT_EQ(obj.eventSize(), 0);
+    BMQTST_ASSERT_EQ(obj.blob()->length(), 0);
 
     PV("Appending another message");
     messages.clear();
@@ -249,24 +250,26 @@ static void test4_capacity()
         currentEventSize += sizeof(bmqp::AckMessage);
     }
     PV("MaxMessageCount: " << maxMsgCount);
-    ASSERT_EQ(obj.maxMessageCount(), maxMsgCount);
+    BMQTST_ASSERT_EQ(obj.maxMessageCount(), maxMsgCount);
 
     PVV("Filling up AckEventBuilder");
     // Fill the builder with that maximum number of messages, all additions
     // should succeed.
     while (maxMsgCount--) {
         rc = obj.appendMessage(0, 0, bmqt::MessageGUID(), 0);
-        ASSERT_EQ(rc, 0);
-        ASSERT(obj.eventSize() <= bmqp::EventHeader::k_MAX_SIZE_SOFT);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT(obj.eventSize() <= bmqp::EventHeader::k_MAX_SIZE_SOFT);
     }
 
-    ASSERT_EQ(obj.messageCount(), obj.maxMessageCount());
+    BMQTST_ASSERT_EQ(obj.messageCount(), obj.maxMessageCount());
 
     PVV("Append a one-too-much message to the AckEventBuilder");
     // This message should fail since the builder is full.
     rc = obj.appendMessage(0, 0, bmqt::MessageGUID(), 0);
-    ASSERT_EQ(rc, static_cast<int>(bmqt::EventBuilderResult::e_EVENT_TOO_BIG));
-    ASSERT(obj.eventSize() <= bmqp::EventHeader::k_MAX_SIZE_SOFT);
+    BMQTST_ASSERT_EQ(
+        rc,
+        static_cast<int>(bmqt::EventBuilderResult::e_EVENT_TOO_BIG));
+    BMQTST_ASSERT(obj.eventSize() <= bmqp::EventHeader::k_MAX_SIZE_SOFT);
 }
 
 static void testN1_decodeFromFile()
@@ -345,36 +348,36 @@ static void testN1_decodeFromFile()
     outBlob.appendDataBuffer(dataBlobBuffer);
     outBlob.setLength(obj.blob()->length());
 
-    ASSERT_EQ(bdlbb::BlobUtil::compare(*obj.blob(), outBlob), 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*obj.blob(), outBlob), 0);
 
     // Decode event
     bmqp::Event event(&outBlob, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(event.isValid(), true);
-    ASSERT_EQ(event.isAckEvent(), true);
+    BMQTST_ASSERT_EQ(event.isValid(), true);
+    BMQTST_ASSERT_EQ(event.isAckEvent(), true);
 
     PVV("Iterating over messages");
 
     bmqp::AckMessageIterator iter;
     event.loadAckMessageIterator(&iter);
 
-    ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t idx = 0;
     while (iter.next() == 1 && idx < messages.size()) {
         const Data& d = messages[idx];
 
-        ASSERT_EQ_D(idx, iter.isValid(), true);
-        ASSERT_EQ_D(idx, d.d_guid, iter.message().messageGUID());
-        ASSERT_EQ_D(idx, d.d_corrId, iter.message().correlationId());
-        ASSERT_EQ_D(idx, d.d_status, iter.message().status());
-        ASSERT_EQ_D(idx, d.d_queueId, iter.message().queueId());
+        BMQTST_ASSERT_EQ_D(idx, iter.isValid(), true);
+        BMQTST_ASSERT_EQ_D(idx, d.d_guid, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ_D(idx, d.d_corrId, iter.message().correlationId());
+        BMQTST_ASSERT_EQ_D(idx, d.d_status, iter.message().status());
+        BMQTST_ASSERT_EQ_D(idx, d.d_queueId, iter.message().queueId());
 
         ++idx;
     }
 
-    ASSERT_EQ(idx, messages.size());
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(idx, messages.size());
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 // ============================================================================

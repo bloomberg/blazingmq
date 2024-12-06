@@ -81,13 +81,13 @@ static void test1_breathingTest()
         FileHeader          fh;
         const unsigned char headerWords = sizeof(fh) / 4;
 
-        ASSERT_EQ(fh.magic1(), FileHeader::k_MAGIC1);
-        ASSERT_EQ(fh.magic2(), FileHeader::k_MAGIC2);
-        ASSERT_EQ(fh.protocolVersion(), FileStoreProtocol::k_VERSION);
-        ASSERT_EQ(fh.headerWords(), headerWords);
-        ASSERT_EQ(fh.bitness(), Bitness::e_64);
-        ASSERT_EQ(fh.fileType(), FileType::e_UNDEFINED);
-        ASSERT_EQ(fh.partitionId(), 0);
+        BMQTST_ASSERT_EQ(fh.magic1(), FileHeader::k_MAGIC1);
+        BMQTST_ASSERT_EQ(fh.magic2(), FileHeader::k_MAGIC2);
+        BMQTST_ASSERT_EQ(fh.protocolVersion(), FileStoreProtocol::k_VERSION);
+        BMQTST_ASSERT_EQ(fh.headerWords(), headerWords);
+        BMQTST_ASSERT_EQ(fh.bitness(), Bitness::e_64);
+        BMQTST_ASSERT_EQ(fh.fileType(), FileType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(fh.partitionId(), 0);
 
         // Create FileHeader, set fields, assert fields
         FileHeader fh2;
@@ -99,13 +99,13 @@ static void test1_breathingTest()
             .setFileType(FileType::e_JOURNAL)
             .setPartitionId(2);
 
-        ASSERT_EQ(fh2.magic1(), 0xdeadbeef);
-        ASSERT_EQ(fh2.magic2(), 0xcafebabe);
-        ASSERT_EQ(fh2.protocolVersion(), 2);
-        ASSERT_EQ(fh2.headerWords(), 10);
-        ASSERT_EQ(fh2.bitness(), Bitness::e_32);
-        ASSERT_EQ(fh2.fileType(), FileType::e_JOURNAL);
-        ASSERT_EQ(fh2.partitionId(), 2);
+        BMQTST_ASSERT_EQ(fh2.magic1(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.magic2(), 0xcafebabe);
+        BMQTST_ASSERT_EQ(fh2.protocolVersion(), 2);
+        BMQTST_ASSERT_EQ(fh2.headerWords(), 10);
+        BMQTST_ASSERT_EQ(fh2.bitness(), Bitness::e_32);
+        BMQTST_ASSERT_EQ(fh2.fileType(), FileType::e_JOURNAL);
+        BMQTST_ASSERT_EQ(fh2.partitionId(), 2);
     }
 
     {
@@ -118,8 +118,8 @@ static void test1_breathingTest()
         DataFileHeader      fh;
         const unsigned char numWords = sizeof(fh) / 4;
 
-        ASSERT_EQ(fh.headerWords(), numWords);
-        ASSERT_EQ(mqbu::StorageKey::k_NULL_KEY, fh.fileKey());
+        BMQTST_ASSERT_EQ(fh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(mqbu::StorageKey::k_NULL_KEY, fh.fileKey());
 
         // Create DataFileHeader, set fields, assert fields
         mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
@@ -127,8 +127,8 @@ static void test1_breathingTest()
         DataFileHeader   fh2;
         fh2.setHeaderWords(8).setFileKey(key);
 
-        ASSERT_EQ(fh2.headerWords(), 8);
-        ASSERT_EQ(key, fh2.fileKey());
+        BMQTST_ASSERT_EQ(fh2.headerWords(), 8);
+        BMQTST_ASSERT_EQ(key, fh2.fileKey());
     }
 
     {
@@ -142,18 +142,18 @@ static void test1_breathingTest()
         const unsigned char numWords = sizeof(fh) / 4;
         const unsigned char recWords = FSP::k_JOURNAL_RECORD_SIZE / 4;
 
-        ASSERT_EQ(fh.headerWords(), numWords);
-        ASSERT_EQ(fh.recordWords(), recWords);
-        ASSERT_EQ(fh.firstSyncPointOffsetWords(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(fh.recordWords(), recWords);
+        BMQTST_ASSERT_EQ(fh.firstSyncPointOffsetWords(), 0ULL);
 
         // Create JournalFileHeader, set fields, assert fields
         JournalFileHeader fh2;
         fh2.setHeaderWords(8).setRecordWords(12).setFirstSyncPointOffsetWords(
             k_UINT64_MAX);
 
-        ASSERT_EQ(fh2.headerWords(), 8U);
-        ASSERT_EQ(fh2.recordWords(), 12U);
-        ASSERT_EQ(fh2.firstSyncPointOffsetWords(), k_UINT64_MAX);
+        BMQTST_ASSERT_EQ(fh2.headerWords(), 8U);
+        BMQTST_ASSERT_EQ(fh2.recordWords(), 12U);
+        BMQTST_ASSERT_EQ(fh2.firstSyncPointOffsetWords(), k_UINT64_MAX);
     }
 
     {
@@ -166,13 +166,13 @@ static void test1_breathingTest()
         QlistFileHeader     fh;
         const unsigned char numWords = sizeof(fh) / 4;
 
-        ASSERT_EQ(fh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(fh.headerWords(), numWords);
 
         // Create QlistFileHeader, set fields, assert fields
         QlistFileHeader fh2;
         fh2.setHeaderWords(8);
 
-        ASSERT_EQ(fh2.headerWords(), 8U);
+        BMQTST_ASSERT_EQ(fh2.headerWords(), 8U);
     }
 
     {
@@ -185,10 +185,10 @@ static void test1_breathingTest()
         DataHeader dh;
         const int  numWords = sizeof(dh) / 4;
 
-        ASSERT_EQ(dh.headerWords(), numWords);
-        ASSERT_EQ(dh.messageWords(), numWords);
-        ASSERT_EQ(dh.optionsWords(), 0);
-        ASSERT_EQ(dh.flags(), 0);
+        BMQTST_ASSERT_EQ(dh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(dh.messageWords(), numWords);
+        BMQTST_ASSERT_EQ(dh.optionsWords(), 0);
+        BMQTST_ASSERT_EQ(dh.flags(), 0);
 
         // Create DataHeader, set fields, assert fields
         DataHeader dh2;
@@ -197,10 +197,10 @@ static void test1_breathingTest()
             .setOptionsWords(42)
             .setFlags(29);
 
-        ASSERT_EQ(dh2.headerWords(), 5);
-        ASSERT_EQ(dh2.messageWords(), 123);
-        ASSERT_EQ(dh2.optionsWords(), 42);
-        ASSERT_EQ(dh2.flags(), 29);
+        BMQTST_ASSERT_EQ(dh2.headerWords(), 5);
+        BMQTST_ASSERT_EQ(dh2.messageWords(), 123);
+        BMQTST_ASSERT_EQ(dh2.optionsWords(), 42);
+        BMQTST_ASSERT_EQ(dh2.flags(), 29);
     }
 
     {
@@ -213,10 +213,10 @@ static void test1_breathingTest()
         QueueRecordHeader  fh;
         const unsigned int numWords = sizeof(fh) / 4;
 
-        ASSERT_EQ(fh.queueUriLengthWords(), 0U);
-        ASSERT_EQ(fh.numAppIds(), 0U);
-        ASSERT_EQ(fh.headerWords(), numWords);
-        ASSERT_EQ(fh.queueRecordWords(), numWords);
+        BMQTST_ASSERT_EQ(fh.queueUriLengthWords(), 0U);
+        BMQTST_ASSERT_EQ(fh.numAppIds(), 0U);
+        BMQTST_ASSERT_EQ(fh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(fh.queueRecordWords(), numWords);
 
         // Create QueueRecordHeader, set fields, assert fields
         QueueRecordHeader fh2;
@@ -225,10 +225,10 @@ static void test1_breathingTest()
             .setHeaderWords(7)
             .setQueueRecordWords(20);
 
-        ASSERT_EQ(fh2.queueUriLengthWords(), 5U);
-        ASSERT_EQ(fh2.numAppIds(), 10U);
-        ASSERT_EQ(fh2.headerWords(), 7U);
-        ASSERT_EQ(fh2.queueRecordWords(), 20U);
+        BMQTST_ASSERT_EQ(fh2.queueUriLengthWords(), 5U);
+        BMQTST_ASSERT_EQ(fh2.numAppIds(), 10U);
+        BMQTST_ASSERT_EQ(fh2.headerWords(), 7U);
+        BMQTST_ASSERT_EQ(fh2.queueRecordWords(), 20U);
     }
 
     {
@@ -240,11 +240,11 @@ static void test1_breathingTest()
         // Create default RecordHeader
         RecordHeader fh;
 
-        ASSERT_EQ(fh.type(), RecordType::e_UNDEFINED);
-        ASSERT_EQ(fh.flags(), 0U);
-        ASSERT_EQ(fh.timestamp(), 0ULL);
-        ASSERT_EQ(fh.primaryLeaseId(), 0U);
-        ASSERT_EQ(fh.sequenceNumber(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.type(), RecordType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(fh.flags(), 0U);
+        BMQTST_ASSERT_EQ(fh.timestamp(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.primaryLeaseId(), 0U);
+        BMQTST_ASSERT_EQ(fh.sequenceNumber(), 0ULL);
 
         // Create RecordHeader, set fields, assert fields
         RecordHeader fh2;
@@ -254,12 +254,12 @@ static void test1_breathingTest()
             .setSequenceNumber(0xFFFFFFFFFFFF)
             .setTimestamp(k_UINT64_MAX);
 
-        ASSERT_EQ(fh2.type(), RecordType::e_JOURNAL_OP);
-        ASSERT_EQ(fh2.flags(), 123U);
-        ASSERT_EQ(fh2.timestamp(), k_UINT64_MAX);
-        ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(fh2.sequenceNumber(),
-                  static_cast<bsls::Types::Uint64>(0xFFFFFFFFFFFF));
+        BMQTST_ASSERT_EQ(fh2.type(), RecordType::e_JOURNAL_OP);
+        BMQTST_ASSERT_EQ(fh2.flags(), 123U);
+        BMQTST_ASSERT_EQ(fh2.timestamp(), k_UINT64_MAX);
+        BMQTST_ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(fh2.sequenceNumber(),
+                         static_cast<bsls::Types::Uint64>(0xFFFFFFFFFFFF));
     }
 
     {
@@ -271,17 +271,17 @@ static void test1_breathingTest()
         // Create default MessageRecord
         MessageRecord fh;
 
-        ASSERT_EQ(fh.refCount(), 0U);
-        ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.fileKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.messageOffsetDwords(), 0U);
-        ASSERT_EQ(fh.header().primaryLeaseId(), 0U);
-        ASSERT_EQ(fh.header().sequenceNumber(), 0ULL);
-        ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh.crc32c(), 0U);
-        ASSERT_EQ(fh.compressionAlgorithmType(),
-                  bmqt::CompressionAlgorithmType::e_NONE);
-        ASSERT_EQ(fh.magic(), 0U);
+        BMQTST_ASSERT_EQ(fh.refCount(), 0U);
+        BMQTST_ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.fileKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.messageOffsetDwords(), 0U);
+        BMQTST_ASSERT_EQ(fh.header().primaryLeaseId(), 0U);
+        BMQTST_ASSERT_EQ(fh.header().sequenceNumber(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh.crc32c(), 0U);
+        BMQTST_ASSERT_EQ(fh.compressionAlgorithmType(),
+                         bmqt::CompressionAlgorithmType::e_NONE);
+        BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create MessageRecord, set fields, assert fields
         MessageRecord fh2;
@@ -299,19 +299,21 @@ static void test1_breathingTest()
             .setCompressionAlgorithmType(
                 bmqt::CompressionAlgorithmType::e_ZLIB)
             .setMagic(0xdeadbeef);
-        ASSERT_EQ(fh2.refCount(), refCount);
-        ASSERT(fh2.queueKey() ==
-               mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                "abcde"));
-        ASSERT(fh2.fileKey() ==
-               mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                "12345"));
-        ASSERT_EQ(fh2.messageOffsetDwords(), 1000000U);
-        ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh2.crc32c(), 987654321U);
-        ASSERT_EQ(fh2.compressionAlgorithmType(),
-                  bmqt::CompressionAlgorithmType::e_ZLIB);
-        ASSERT_EQ(fh2.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.refCount(), refCount);
+        BMQTST_ASSERT(
+            fh2.queueKey() ==
+            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                             "abcde"));
+        BMQTST_ASSERT(
+            fh2.fileKey() ==
+            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                             "12345"));
+        BMQTST_ASSERT_EQ(fh2.messageOffsetDwords(), 1000000U);
+        BMQTST_ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh2.crc32c(), 987654321U);
+        BMQTST_ASSERT_EQ(fh2.compressionAlgorithmType(),
+                         bmqt::CompressionAlgorithmType::e_ZLIB);
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 
     {
@@ -323,11 +325,11 @@ static void test1_breathingTest()
         // Create default ConfirmRecord
         ConfirmRecord fh;
 
-        ASSERT_EQ(fh.reason(), ConfirmReason::e_CONFIRMED);
-        ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.appKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh.magic(), 0U);
+        BMQTST_ASSERT_EQ(fh.reason(), ConfirmReason::e_CONFIRMED);
+        BMQTST_ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.appKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create MessageRecord, set fields, assert fields
         ConfirmRecord fh2;
@@ -341,15 +343,15 @@ static void test1_breathingTest()
             .setMessageGUID(bmqt::MessageGUID())
             .setMagic(0xdeadbeef);
 
-        ASSERT_EQ(fh2.reason(), ConfirmReason::e_REJECTED);
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(fh2.reason(), ConfirmReason::e_REJECTED);
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(fh2.queueKey().data(), "abcde", FSP::k_KEY_LENGTH));
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(fh2.appKey().data(), "12345", FSP::k_KEY_LENGTH));
-        ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh2.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 
     {
@@ -361,10 +363,10 @@ static void test1_breathingTest()
         // Create default DeletionRecord
         DeletionRecord fh;
 
-        ASSERT_EQ(fh.deletionRecordFlag(), 0);
-        ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh.magic(), 0U);
+        BMQTST_ASSERT_EQ(fh.deletionRecordFlag(), 0);
+        BMQTST_ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create DeletionRecord, set fields, assert fields
         DeletionRecord fh2;
@@ -375,13 +377,13 @@ static void test1_breathingTest()
             .setMessageGUID(bmqt::MessageGUID())
             .setMagic(0xdeadbeef);
 
-        ASSERT_EQ(fh2.deletionRecordFlag(),
-                  DeletionRecordFlag::e_TTL_EXPIRATION);
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(fh2.deletionRecordFlag(),
+                         DeletionRecordFlag::e_TTL_EXPIRATION);
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(fh2.queueKey().data(), "abcde", FSP::k_KEY_LENGTH));
-        ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
-        ASSERT_EQ(fh2.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.messageGUID(), bmqt::MessageGUID());
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 
     {
@@ -393,11 +395,11 @@ static void test1_breathingTest()
         // Create default QueueOpRecord
         QueueOpRecord fh;
 
-        ASSERT_EQ(fh.flags(), 0U);
-        ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.appKey(), mqbu::StorageKey::k_NULL_KEY);
-        ASSERT_EQ(fh.type(), QueueOpType::e_UNDEFINED);
-        ASSERT_EQ(fh.magic(), 0U);
+        BMQTST_ASSERT_EQ(fh.flags(), 0U);
+        BMQTST_ASSERT_EQ(fh.queueKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.appKey(), mqbu::StorageKey::k_NULL_KEY);
+        BMQTST_ASSERT_EQ(fh.type(), QueueOpType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create QueueOpRecord, set fields, assert fields
         QueueOpRecord fh2;
@@ -411,15 +413,15 @@ static void test1_breathingTest()
             .setType(QueueOpType::e_PURGE)
             .setMagic(0xdeadbeef);
 
-        ASSERT_EQ(fh2.flags(), 1000U);
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(fh2.flags(), 1000U);
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(fh2.queueKey().data(), "abcde", FSP::k_KEY_LENGTH));
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(fh2.appKey().data(), "12345", FSP::k_KEY_LENGTH));
-        ASSERT_EQ(fh2.type(), QueueOpType::e_PURGE);
-        ASSERT_EQ(fh2.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.type(), QueueOpType::e_PURGE);
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 
     {
@@ -431,12 +433,12 @@ static void test1_breathingTest()
         // Create default JournalOpRecord
         JournalOpRecord fh;
 
-        ASSERT_EQ(fh.flags(), 0U);
-        ASSERT_EQ(fh.type(), JournalOpType::e_UNDEFINED);
-        ASSERT_EQ(fh.sequenceNum(), 0ULL);
-        ASSERT_EQ(fh.primaryNodeId(), 0);
-        ASSERT_EQ(fh.primaryLeaseId(), 0U);
-        ASSERT_EQ(fh.magic(), 0U);
+        BMQTST_ASSERT_EQ(fh.flags(), 0U);
+        BMQTST_ASSERT_EQ(fh.type(), JournalOpType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(fh.sequenceNum(), 0ULL);
+        BMQTST_ASSERT_EQ(fh.primaryNodeId(), 0);
+        BMQTST_ASSERT_EQ(fh.primaryLeaseId(), 0U);
+        BMQTST_ASSERT_EQ(fh.magic(), 0U);
 
         // Create JournalOpRecord, set fields, assert fields
         JournalOpRecord fh2;
@@ -447,12 +449,12 @@ static void test1_breathingTest()
             .setPrimaryLeaseId(k_UNSIGNED_INT_MAX)
             .setMagic(0xdeadbeef);
 
-        ASSERT_EQ(fh2.flags(), 1000U);
-        ASSERT_EQ(fh2.type(), JournalOpType::e_SYNCPOINT);
-        ASSERT_EQ(fh2.sequenceNum(), k_33_BITS_MASK);
-        ASSERT_EQ(fh2.primaryNodeId(), k_INT_MAX);
-        ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(fh2.magic(), 0xdeadbeef);
+        BMQTST_ASSERT_EQ(fh2.flags(), 1000U);
+        BMQTST_ASSERT_EQ(fh2.type(), JournalOpType::e_SYNCPOINT);
+        BMQTST_ASSERT_EQ(fh2.sequenceNum(), k_33_BITS_MASK);
+        BMQTST_ASSERT_EQ(fh2.primaryNodeId(), k_INT_MAX);
+        BMQTST_ASSERT_EQ(fh2.primaryLeaseId(), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(fh2.magic(), 0xdeadbeef);
     }
 }
 
@@ -530,16 +532,16 @@ static void test2_manipulators()
         const unsigned int magic1 = FileHeader::k_MAGIC1;
         const unsigned int magic2 = FileHeader::k_MAGIC2;
 
-        ASSERT_EQ_D(dataIdx, magic1, fh.magic1());
-        ASSERT_EQ_D(dataIdx, magic2, fh.magic2());
-        ASSERT_EQ_D(dataIdx, fh.protocolVersion(), data.d_expectedPV);
-        ASSERT_EQ_D(dataIdx, fh.headerWords(), data.d_expectedHW);
+        BMQTST_ASSERT_EQ_D(dataIdx, magic1, fh.magic1());
+        BMQTST_ASSERT_EQ_D(dataIdx, magic2, fh.magic2());
+        BMQTST_ASSERT_EQ_D(dataIdx, fh.protocolVersion(), data.d_expectedPV);
+        BMQTST_ASSERT_EQ_D(dataIdx, fh.headerWords(), data.d_expectedHW);
 
-        ASSERT_EQ_D(dataIdx,
-                    fh.fileType(),
-                    static_cast<FileType::Enum>(data.d_expectedFT));
+        BMQTST_ASSERT_EQ_D(dataIdx,
+                           fh.fileType(),
+                           static_cast<FileType::Enum>(data.d_expectedFT));
 
-        ASSERT_EQ_D(dataIdx, fh.partitionId(), data.d_expectedGID);
+        BMQTST_ASSERT_EQ_D(dataIdx, fh.partitionId(), data.d_expectedGID);
     }
 }
 
@@ -588,14 +590,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << rh;
-        ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
+        BMQTST_ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << rh;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
     {
@@ -624,14 +626,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << msgRec;
-        ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
+        BMQTST_ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << msgRec;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
     {
@@ -656,14 +658,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << confRec;
-        ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
+        BMQTST_ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << confRec;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
     {
@@ -686,14 +688,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << delRec;
-        ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
+        BMQTST_ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << delRec;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
     {
@@ -718,14 +720,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << qOpRec;
-        ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
+        BMQTST_ASSERT_EQ(stream.str(), k_EXPECTED_OUTPUT);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << qOpRec;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 
     {
@@ -754,14 +756,14 @@ static void test3_printTest()
 
         bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
         stream << jOpRec;
-        ASSERT_EQ(stream.str(), expectedOut);
+        BMQTST_ASSERT_EQ(stream.str(), expectedOut);
         stream.reset();
 
         PV("Bad stream test");
         stream << "INVALID";
         stream.clear(bsl::ios_base::badbit);
         stream << jOpRec;
-        ASSERT_EQ(stream.str(), "INVALID");
+        BMQTST_ASSERT_EQ(stream.str(), "INVALID");
     }
 }
 

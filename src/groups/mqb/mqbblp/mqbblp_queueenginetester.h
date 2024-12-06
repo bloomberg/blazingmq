@@ -74,9 +74,9 @@
 //..
 // Next, we verify the consumers received the corresponding messages.
 //..
-//  ASSERT_EQ(handle1->_messages(), "a");
-//  ASSERT_EQ(handle2->_messages(), "b");
-//  ASSERT_EQ(handle3->_messages(), "c");
+//  BMQTST_ASSERT_EQ(handle1->_messages(), "a");
+//  BMQTST_ASSERT_EQ(handle2->_messages(), "b");
+//  BMQTST_ASSERT_EQ(handle3->_messages(), "c");
 //..
 // Then, for each consumer we confirm the corresponding messages.
 //..
@@ -84,9 +84,9 @@
 //  tester.confirm("C2", "b");
 //  tester.confirm("C3", "c");
 //
-//  ASSERT_EQ(handle1->_messages(), "");
-//  ASSERT_EQ(handle2->_messages(), "");
-//  ASSERT_EQ(handle3->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle1->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle2->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle3->_messages(), "");
 //..
 // Finally, we release all the handles.
 //..

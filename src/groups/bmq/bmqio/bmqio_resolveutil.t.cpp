@@ -44,15 +44,15 @@ static void test1_breathingTest()
     bsl::string       hostname(bmqtst::TestHelperUtil::allocator());
     ntsa::Ipv4Address hostIp;
 
-    ASSERT(hostname.empty());
+    BMQTST_ASSERT(hostname.empty());
 
     {
         PVV("GET HOSTNAME");
 
         ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
 
-        ASSERT_EQ(error.code(), ntsa::Error::e_OK);
-        ASSERT(!hostname.empty());
+        BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
+        BMQTST_ASSERT(!hostname.empty());
 
         PVV(hostname);
     }
@@ -63,8 +63,8 @@ static void test1_breathingTest()
         ntsa::Error error = bmqio::ResolveUtil::getIpAddress(&hostIp,
                                                              hostname);
 
-        ASSERT_EQ(error.code(), ntsa::Error::e_OK);
-        ASSERT_NE(hostIp, ntsa::Ipv4Address());
+        BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
+        BMQTST_ASSERT_NE(hostIp, ntsa::Ipv4Address());
 
         PVV(hostIp);
     }
@@ -76,8 +76,8 @@ static void test1_breathingTest()
         ntsa::Error error = bmqio::ResolveUtil::getDomainName(
             &domainName,
             ntsa::IpAddress(hostIp));
-        ASSERT_EQ(error.code(), ntsa::Error::e_OK);
-        ASSERT(!domainName.empty());
+        BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
+        BMQTST_ASSERT(!domainName.empty());
 
         PVV(domainName);
     }
@@ -90,8 +90,8 @@ static void test1_breathingTest()
         ntsa::Error                  error =
             bmqio::ResolveUtil::getIpAddress(&addresses, "www.wikipedia.org");
 
-        ASSERT_EQ(error.code(), ntsa::Error::e_OK);
-        ASSERT_GT(addresses.size(), 0U);
+        BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
+        BMQTST_ASSERT_GT(addresses.size(), 0U);
 
         for (bsl::vector<ntsa::IpAddress>::const_iterator it =
                  addresses.begin();
@@ -108,8 +108,8 @@ static void test1_breathingTest()
             bmqtst::TestHelperUtil::allocator());
         ntsa::Error error = bmqio::ResolveUtil::getLocalIpAddress(&addresses);
 
-        ASSERT_EQ(error.code(), ntsa::Error::e_OK);
-        ASSERT_GT(addresses.size(), 0U);
+        BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
+        BMQTST_ASSERT_GT(addresses.size(), 0U);
 
         ntsa::IpAddress loopback("127.0.0.1");
         bool            foundLoopback = false;
@@ -124,7 +124,7 @@ static void test1_breathingTest()
             }
         }
 
-        ASSERT(foundLoopback);
+        BMQTST_ASSERT(foundLoopback);
     }
 }
 

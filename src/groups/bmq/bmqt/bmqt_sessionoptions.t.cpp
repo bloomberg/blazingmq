@@ -48,7 +48,7 @@ static void test1_breathingTest()
         bsl::string str(ss.str().data(),
                         ss.str().length(),
                         bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(str, sessionOptions.brokerUri());
+        BMQTST_ASSERT_EQ(str, sessionOptions.brokerUri());
     }
 }
 
@@ -69,13 +69,13 @@ static void test2_printTest()
     // Create default sessionOptions
     bmqt::SessionOptions sessionOptions(bmqtst::TestHelperUtil::allocator());
     stream << sessionOptions;
-    ASSERT_EQ(stream.str(), sampleSessionOptionsLayout);
+    BMQTST_ASSERT_EQ(stream.str(), sampleSessionOptionsLayout);
     stream.reset();
     PV("Bad stream test");
     stream << "NO LAYOUT";
     stream.clear(bsl::ios_base::badbit);
     stream << sessionOptions;
-    ASSERT_EQ(stream.str(), "NO LAYOUT");
+    BMQTST_ASSERT_EQ(stream.str(), "NO LAYOUT");
 }
 
 static void test3_setterGetterAndCopyTest()
@@ -87,83 +87,84 @@ static void test3_setterGetterAndCopyTest()
 
     PVV("Checking setter and getter for brokerUri");
     const char* const brokerUri = "tcp://localhost:30115";
-    ASSERT_NE(obj.brokerUri(), brokerUri);
+    BMQTST_ASSERT_NE(obj.brokerUri(), brokerUri);
     obj.setBrokerUri(brokerUri);
-    ASSERT_EQ(obj.brokerUri(), brokerUri);
+    BMQTST_ASSERT_EQ(obj.brokerUri(), brokerUri);
 
     PVV("Checking setter and getter for numProcessingThreads");
     const int numProcessingThreads = 2;
-    ASSERT_NE(obj.numProcessingThreads(), numProcessingThreads);
+    BMQTST_ASSERT_NE(obj.numProcessingThreads(), numProcessingThreads);
     obj.setNumProcessingThreads(numProcessingThreads);
-    ASSERT_EQ(obj.numProcessingThreads(), numProcessingThreads);
+    BMQTST_ASSERT_EQ(obj.numProcessingThreads(), numProcessingThreads);
 
     PVV("Checking setter and getter for blobBufferSize");
     const int blobBufferSize = 8 * 1024;
-    ASSERT_NE(obj.blobBufferSize(), blobBufferSize);
+    BMQTST_ASSERT_NE(obj.blobBufferSize(), blobBufferSize);
     obj.setBlobBufferSize(blobBufferSize);
-    ASSERT_EQ(obj.blobBufferSize(), blobBufferSize);
+    BMQTST_ASSERT_EQ(obj.blobBufferSize(), blobBufferSize);
 
     PVV("Checking setter and getter for channelHighWatermark");
     const bsls::Types::Int64 channelHighWatermark = 256 * 1024 * 1024;
-    ASSERT_NE(obj.channelHighWatermark(), channelHighWatermark);
+    BMQTST_ASSERT_NE(obj.channelHighWatermark(), channelHighWatermark);
     obj.setChannelHighWatermark(channelHighWatermark);
-    ASSERT_EQ(obj.channelHighWatermark(), channelHighWatermark);
+    BMQTST_ASSERT_EQ(obj.channelHighWatermark(), channelHighWatermark);
 
     PVV("Checking setter and getter for statsDumpInterval");
     const bsls::TimeInterval statsDumpInterval(6 * 60.0);
     obj.setStatsDumpInterval(statsDumpInterval);
-    ASSERT_EQ(obj.statsDumpInterval(), statsDumpInterval);
+    BMQTST_ASSERT_EQ(obj.statsDumpInterval(), statsDumpInterval);
 
     PVV("Checking setter and getter for connectTimeout");
     const bsls::TimeInterval connectTimeout(70);
-    ASSERT_NE(obj.connectTimeout(), connectTimeout);
+    BMQTST_ASSERT_NE(obj.connectTimeout(), connectTimeout);
     obj.setConnectTimeout(connectTimeout);
-    ASSERT_EQ(obj.connectTimeout(), connectTimeout);
+    BMQTST_ASSERT_EQ(obj.connectTimeout(), connectTimeout);
 
     PVV("Checking setter and getter for openQueueTimeout");
     const bsls::TimeInterval openQueueTimeout(
         bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 1);
-    ASSERT_NE(obj.openQueueTimeout(), openQueueTimeout);
+    BMQTST_ASSERT_NE(obj.openQueueTimeout(), openQueueTimeout);
     obj.setOpenQueueTimeout(openQueueTimeout);
-    ASSERT_EQ(obj.openQueueTimeout(), openQueueTimeout);
+    BMQTST_ASSERT_EQ(obj.openQueueTimeout(), openQueueTimeout);
 
     PVV("Checking setter and getter for configureQueueTimeout");
     const bsls::TimeInterval configureQueueTimeout(
         bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 2);
-    ASSERT_NE(obj.configureQueueTimeout(), configureQueueTimeout);
+    BMQTST_ASSERT_NE(obj.configureQueueTimeout(), configureQueueTimeout);
     obj.setConfigureQueueTimeout(configureQueueTimeout);
-    ASSERT_EQ(obj.configureQueueTimeout(), configureQueueTimeout);
+    BMQTST_ASSERT_EQ(obj.configureQueueTimeout(), configureQueueTimeout);
 
     PVV("Checking setter and getter for closeQueueTimeout");
     const bsls::TimeInterval closeQueueTimeout(
         bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 3);
-    ASSERT_NE(obj.closeQueueTimeout(), closeQueueTimeout);
+    BMQTST_ASSERT_NE(obj.closeQueueTimeout(), closeQueueTimeout);
     obj.setCloseQueueTimeout(closeQueueTimeout);
-    ASSERT_EQ(obj.closeQueueTimeout(), closeQueueTimeout);
+    BMQTST_ASSERT_EQ(obj.closeQueueTimeout(), closeQueueTimeout);
 
     PVV("Checking setter and getter for eventQueueLowWatermark, "
         "eventQueueHighWatermark");
     const int eventQueueLowWatermark  = 51;
     const int eventQueueHighWatermark = 2001;
-    ASSERT_NE(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
-    ASSERT_NE(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
+    BMQTST_ASSERT_NE(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
+    BMQTST_ASSERT_NE(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
     obj.configureEventQueue(eventQueueLowWatermark, eventQueueHighWatermark);
-    ASSERT_EQ(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
-    ASSERT_EQ(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
+    BMQTST_ASSERT_EQ(obj.eventQueueLowWatermark(), eventQueueLowWatermark);
+    BMQTST_ASSERT_EQ(obj.eventQueueHighWatermark(), eventQueueHighWatermark);
 
     PVV("Copy constructor test");
     bmqt::SessionOptions objCopy(obj);
-    ASSERT_EQ(objCopy.brokerUri(), brokerUri);
-    ASSERT_EQ(objCopy.numProcessingThreads(), numProcessingThreads);
-    ASSERT_EQ(objCopy.blobBufferSize(), blobBufferSize);
-    ASSERT_EQ(objCopy.channelHighWatermark(), channelHighWatermark);
-    ASSERT_EQ(objCopy.statsDumpInterval(), statsDumpInterval);
-    ASSERT_EQ(objCopy.connectTimeout(), connectTimeout);
-    ASSERT_EQ(objCopy.openQueueTimeout(), openQueueTimeout);
-    ASSERT_EQ(objCopy.configureQueueTimeout(), configureQueueTimeout);
-    ASSERT_EQ(objCopy.closeQueueTimeout(), closeQueueTimeout);
-    ASSERT_EQ(objCopy.eventQueueLowWatermark(), eventQueueLowWatermark);
-    ASSERT_EQ(objCopy.eventQueueHighWatermark(), eventQueueHighWatermark);
+    BMQTST_ASSERT_EQ(objCopy.brokerUri(), brokerUri);
+    BMQTST_ASSERT_EQ(objCopy.numProcessingThreads(), numProcessingThreads);
+    BMQTST_ASSERT_EQ(objCopy.blobBufferSize(), blobBufferSize);
+    BMQTST_ASSERT_EQ(objCopy.channelHighWatermark(), channelHighWatermark);
+    BMQTST_ASSERT_EQ(objCopy.statsDumpInterval(), statsDumpInterval);
+    BMQTST_ASSERT_EQ(objCopy.connectTimeout(), connectTimeout);
+    BMQTST_ASSERT_EQ(objCopy.openQueueTimeout(), openQueueTimeout);
+    BMQTST_ASSERT_EQ(objCopy.configureQueueTimeout(), configureQueueTimeout);
+    BMQTST_ASSERT_EQ(objCopy.closeQueueTimeout(), closeQueueTimeout);
+    BMQTST_ASSERT_EQ(objCopy.eventQueueLowWatermark(), eventQueueLowWatermark);
+    BMQTST_ASSERT_EQ(objCopy.eventQueueHighWatermark(),
+                     eventQueueHighWatermark);
 }
 // ============================================================================
 //                                 MAIN PROGRAM

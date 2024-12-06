@@ -30,15 +30,15 @@ using namespace BloombergLP;
 //                                  UTILITIES
 // ----------------------------------------------------------------------------
 
-TEST(breathing)
+BMQTST_TEST(breathing)
 {
-    ASSERT_SAFE_FAIL(mqbcfg::BrokerConfig::get());
+    BMQTST_ASSERT_SAFE_FAIL(mqbcfg::BrokerConfig::get());
 
     mqbcfg::AppConfig config;
     mqbcfg::BrokerConfig::set(config);
-    ASSERT_EQ(&mqbcfg::BrokerConfig::get(), &config);
+    BMQTST_ASSERT_EQ(&mqbcfg::BrokerConfig::get(), &config);
 
-    ASSERT_SAFE_FAIL(mqbcfg::BrokerConfig::set(config));
+    BMQTST_ASSERT_SAFE_FAIL(mqbcfg::BrokerConfig::set(config));
 }
 
 // ============================================================================
