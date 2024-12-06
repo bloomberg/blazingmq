@@ -3479,8 +3479,8 @@ int StorageManager::start(bsl::ostream& errorDescription)
         d_clusterConfig.partitionConfig();
 
     // Validate file size limits before checking the available disk space
-    if (partitionCfg.maxDataFileSize() >
-        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD) {
+    if (mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD <
+        partitionCfg.maxDataFileSize()) {
         BALL_LOG_ERROR << "Configured maxDataFileSize ("
                        << partitionCfg.maxDataFileSize()
                        << ") exceeds the protocol limit ("
@@ -3489,8 +3489,8 @@ int StorageManager::start(bsl::ostream& errorDescription)
         return rc_OVERFLOW_MAX_DATA_FILE_SIZE;
     }
 
-    if (partitionCfg.maxJournalFileSize() >
-        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD) {
+    if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
+        partitionCfg.maxJournalFileSize()) {
         BALL_LOG_ERROR << "Configured maxJournalFileSize ("
                        << partitionCfg.maxJournalFileSize()
                        << ") exceeds the protocol limit ("
@@ -3499,8 +3499,8 @@ int StorageManager::start(bsl::ostream& errorDescription)
         return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;
     }
 
-    if (partitionCfg.maxQlistFileSize() >
-        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD) {
+    if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
+        partitionCfg.maxQlistFileSize()) {
         BALL_LOG_ERROR << "Configured maxQlistFileSize ("
                        << partitionCfg.maxQlistFileSize()
                        << ") exceeds the protocol limit ("

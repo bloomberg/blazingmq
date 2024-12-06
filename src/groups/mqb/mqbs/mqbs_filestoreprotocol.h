@@ -60,13 +60,13 @@
 //       Max QlistFileHeader size.......................: 1020 bytes
 //       Max QueueRecordHeader size.....................: 1020 bytes
 //       Max Data file size.............................: 34359738360 bytes
-//                                                        or 32GB - 8B
+//                                                        or 32GiB - 8B
 //               (See also: mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD)
 //       Max Journal file size..........................: 17179869180 bytes
-//                                                        or 16GB - 8B
+//                                                        or 16GiB - 8B
 //            (See also: mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD)
 //       Max Qlist file size............................: 17179869180 bytes
-//                                                        or 16GB - 8B
+//                                                        or 16GiB - 8B
 //              (See also: mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD)
 //       Max Journal Record size........................: 1020 bytes
 //       Max Journal Record types.......................: 15
