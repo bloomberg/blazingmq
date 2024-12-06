@@ -2914,6 +2914,109 @@ static void test18_primaryHealingStage1SelfHighestSendsDataChunks()
     helper.d_cluster_mp->stop();
 }
 
+static void test19_fileSizesHardLimits()
+// ------------------------------------------------------------------------
+// FILE SIZES HARD LIMITS
+//
+// Concerns:
+//   Ensure StorageManager is able to early-detect overflow in the file sizes
+//   configuration and gracefully return an error code on start.
+//
+// Plan:
+//   Try to start mqbc::StorageManager with different partition configurations
+//   and check that it respects hard limits on the file sizes.
+//
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("FILE SIZES HARD LIMITS");
+
+    TestHelper helper;
+
+    mqbs::DataStoreRecordHandle handle;
+    helper.initializeRecords(&handle, 1);
+
+    struct LocalFuncs {
+        static void testFileSizes(int                 line,
+                                  TestHelper&         helper,
+                                  bsls::Types::Uint64 dataFileSize,
+                                  bsls::Types::Uint64 journalFileSize,
+                                  bsls::Types::Uint64 qlistFileSize,
+                                  bool                expectFailure)
+        {
+            // Make a copy to allow modification
+            mqbcfg::ClusterDefinition clusterDef =
+                helper.d_cluster_mp->_clusterDefinition();
+            clusterDef.partitionConfig().maxDataFileSize() = dataFileSize;
+            clusterDef.partitionConfig().maxJournalFileSize() =
+                journalFileSize;
+            clusterDef.partitionConfig().maxQlistFileSize() = qlistFileSize;
+
+            mqbc::StorageManager storageManager(
+                clusterDef,
+                helper.d_cluster_mp.get(),
+                helper.d_cluster_mp->_clusterData(),
+                helper.d_cluster_mp->_state(),
+                helper.d_cluster_mp->_clusterData()->domainFactory(),
+                helper.d_cluster_mp->dispatcher(),
+                k_WATCHDOG_TIMEOUT_DURATION,
+                mockOnRecoveryStatus,
+                mockOnPartitionPrimaryStatus,
+                bmqtst::TestHelperUtil::allocator());
+
+            bmqu::MemOutStream errorDescription(
+                bmqtst::TestHelperUtil::allocator());
+            const int rc = storageManager.start(errorDescription);
+            if (rc == 0) {
+                storageManager.stop();
+            }
+            ASSERT_EQ_D("line: " << line << ", expected failure: "
+                                 << expectFailure << ", rc: " << rc,
+                        expectFailure,
+                        (rc != 0));
+        }
+    };
+
+    LocalFuncs::testFileSizes(L_, helper, 1000ULL, 1000ULL, 1000ULL, false);
+    LocalFuncs::testFileSizes(
+        L_,
+        helper,
+        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD,
+        false);
+    LocalFuncs::testFileSizes(
+        L_,
+        helper,
+        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD + 1,
+        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD,
+        true);
+    LocalFuncs::testFileSizes(
+        L_,
+        helper,
+        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD + 1,
+        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD,
+        true);
+    LocalFuncs::testFileSizes(
+        L_,
+        helper,
+        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD,
+        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD + 1,
+        true);
+    LocalFuncs::testFileSizes(
+        L_,
+        helper,
+        mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD << 8,
+        mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD << 8,
+        mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD << 8,
+        true);
+
+    // Stop the cluster
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -2927,14 +3030,13 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-        //      case 23:
-        //      test23_primaryHealingStage2SendsReplicaDataRqstPushDrop();
-        //      break; case 22: test22_replicaHealingDetectSelfPrimary();
-        //      break; case 21:
-        //      test21_replicaHealingReceivesReplicaDataRqstDrop();
-        //      break; case 20:
-        //      test20_replicaHealingReceivesReplicaDataRqstPush();
-        //      break; case 19: test19_primaryHealedSendsDataChunks(); break;
+        // TODO: overview the removed tests or remove this comment
+        //      - test23_primaryHealingStage2SendsReplicaDataRqstPushDrop();
+        //      - test22_replicaHealingDetectSelfPrimary();
+        //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
+        //      - test20_replicaHealingReceivesReplicaDataRqstPush();
+        //      - test19_primaryHealedSendsDataChunks();
+    case 19: test19_fileSizesHardLimits(); break;
     case 18: test18_primaryHealingStage1SelfHighestSendsDataChunks(); break;
     case 17: test17_replicaHealingReceivesReplicaDataRqstPull(); break;
     case 16: test16_replicaHealingReceivesPrimaryStateRqst(); break;
