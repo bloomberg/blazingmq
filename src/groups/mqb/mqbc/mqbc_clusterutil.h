@@ -133,8 +133,8 @@ struct ClusterUtil {
     /// Return true if the specified `spoPair` is valid, false otherwise.
     static bool isValid(const bmqp_ctrlmsg::SyncPointOffsetPair& spoPair);
 
-    /// Set the specified `uri` to have the specified `pendingUnassignment`
-    /// status in the specified `clusterState`.
+    /// Set the specified `uri` to have the `k_UNASSIGNING` state in the
+    /// specified `clusterState`.
     static void setPendingUnassignment(ClusterState*    clusterState,
                                        const bmqt::Uri& uri);
 
@@ -188,8 +188,8 @@ struct ClusterUtil {
 
     /// Process the queue assignment in the specified `request`, received
     /// from the specified `requester`, using the specified `clusterState`,
-    /// `clusterData`, `ledger`, `cluster`, `queueAssigningCb` and
-    /// `allocator`.  Return the queue assignment result.
+    /// `clusterData`, `ledger`, `cluster`,  and `allocator`.  Return the queue
+    /// assignment result.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

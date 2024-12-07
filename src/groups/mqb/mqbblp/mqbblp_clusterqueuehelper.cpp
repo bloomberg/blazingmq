@@ -214,7 +214,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(
 }
 
 // MANIPULATORS
-void ClusterQueueHelper::QueueLiveState::resetAndKeepPending()
+void ClusterQueueHelper::QueueLiveState::resetButKeepPending()
 {
     // NOTE: Do not reset d_pending and d_inFlight, and some other data.
 
@@ -386,8 +386,7 @@ ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!isQueueAssigned(*queueContext) ||
-                     queueContext->d_stateQInfo_sp->pendingUnassignment());
+    BSLS_ASSERT_SAFE(!isQueueAssigned(*queueContext));
 
     if (d_cluster_p->isRemote()) {
         // Assigning a queue in a remote, is simply giving it a new queueId.
@@ -3928,7 +3927,7 @@ void ClusterQueueHelper::onClusterLeader(
 }
 
 void ClusterQueueHelper::onQueueAssigned(
-    const mqbc::ClusterStateQueueInfo& info)
+    const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -3936,6 +3935,7 @@ void ClusterQueueHelper::onQueueAssigned(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(info);
 
     const mqbnet::ClusterNode* leaderNode =
         d_clusterData_p->electorInfo().leaderNode();
@@ -3944,7 +3944,8 @@ void ClusterQueueHelper::onQueueAssigned(
                                                : "** UNKNOWN**";
 
     QueueContextSp      queueContext;
-    QueueContextMapIter queueContextIt = d_queues.find(info.uri());
+    QueueContextMapIter queueContextIt = d_queues.find(info->uri());
+
     if (queueContextIt != d_queues.end()) {
         // We already have a queueContext created for that queue
         queueContext = queueContextIt->second;
@@ -3955,10 +3956,10 @@ void ClusterQueueHelper::onQueueAssigned(
             // partitionId/queueKey mismatch.  And d_queueKeys must also
             // contain the key.
             BSLS_ASSERT_SAFE(
-                (queueContext->partitionId() == info.partitionId()) &&
-                (queueContext->key() == info.key()));
+                (queueContext->partitionId() == info->partitionId()) &&
+                (queueContext->key() == info->key()));
             BSLS_ASSERT_SAFE(1 ==
-                             d_clusterState_p->queueKeys().count(info.key()));
+                             d_clusterState_p->queueKeys().count(info->key()));
 
             BSLS_ASSERT_SAFE(
                 !queueContext->d_stateQInfo_sp->pendingUnassignment());
@@ -3967,7 +3968,7 @@ void ClusterQueueHelper::onQueueAssigned(
             return;  // RETURN
         }
         else {
-            if (1 == d_clusterState_p->queueKeys().count(info.key())) {
+            if (1 == d_clusterState_p->queueKeys().count(info->key())) {
                 // Self node's queue context is unaware of the assigned queue,
                 // but queueKey specified in the advisory is present in the
                 // 'queueKeys' data structure.
@@ -3976,8 +3977,8 @@ void ClusterQueueHelper::onQueueAssigned(
                     << d_cluster_p->description()
                     << ": attempting to apply queue assignment for a known but"
                     << " unassigned queue, but queueKey is not unique. "
-                    << "QueueKey [" << info.key() << "], URI [" << info.uri()
-                    << "], Partition [" << info.partitionId()
+                    << "QueueKey [" << info->key() << "], URI [" << info->uri()
+                    << "], Partition [" << info->partitionId()
                     << "]. Current leader is: '" << leaderDescription
                     << "'. Ignoring this entry in the advisory."
                     << BMQTSK_ALARMLOG_END;
@@ -3985,17 +3986,16 @@ void ClusterQueueHelper::onQueueAssigned(
             }
 
             // Update queue's mapping etc.
-            mqbc::ClusterState::QueueKeysInsertRc insertRc =
-                d_clusterState_p->queueKeys().insert(info.key());
+            BSLA_MAYBE_UNUSED mqbc::ClusterState::QueueKeysInsertRc insertRc =
+                d_clusterState_p->queueKeys().insert(info->key());
             BSLS_ASSERT_SAFE(insertRc.second);
-            (void)insertRc.second;
         }
     }
     else {
         // First time hearing about this queue.  Update 'queueKeys' and
         // ensure that queue key is unique.
         mqbc::ClusterState::QueueKeysInsertRc insertRc =
-            d_clusterState_p->queueKeys().insert(info.key());
+            d_clusterState_p->queueKeys().insert(info->key());
 
         if (false == insertRc.second) {
             // QueueKey is not unique.
@@ -4003,8 +4003,8 @@ void ClusterQueueHelper::onQueueAssigned(
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": attempting to apply queue assignment for an unknown "
-                << "queue [" << info.uri() << "] assigned to Partition ["
-                << info.partitionId() << "], but queueKey [" << info.key()
+                << "queue [" << info->uri() << "] assigned to Partition ["
+                << info->partitionId() << "], but queueKey [" << info->key()
                 << "] is not unique. Current leader is: '" << leaderDescription
                 << "'. Ignoring this assignment." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
@@ -4012,17 +4012,17 @@ void ClusterQueueHelper::onQueueAssigned(
 
         // Create the queueContext.
         queueContext.reset(new (*d_allocator_p)
-                               QueueContext(info.uri(), d_allocator_p),
+                               QueueContext(info->uri(), d_allocator_p),
                            d_allocator_p);
 
-        d_queues[info.uri()] = queueContext;
+        d_queues[info->uri()] = queueContext;
     }
     mqbc::ClusterState::DomainState& domainState =
-        *d_clusterState_p->domainStates().at(info.uri().qualifiedDomain());
+        *d_clusterState_p->domainStates().at(info->uri().qualifiedDomain());
 
     domainState.adjustQueueCount(1);
 
-    queueContext->d_stateQInfo_sp = domainState.queuesInfo().at(info.uri());
+    queueContext->d_stateQInfo_sp = info;
     // Queue assignment from the leader is honored per the info updated
     // above
 
@@ -4033,7 +4033,7 @@ void ClusterQueueHelper::onQueueAssigned(
     // replica nodes when they receive a queue creation record from the primary
     // in the partition stream.
     if (d_cluster_p->isCSLModeEnabled()) {
-        if (!d_clusterState_p->isSelfPrimary(info.partitionId())) {
+        if (!d_clusterState_p->isSelfPrimary(info->partitionId())) {
             // This is a replica node
 
             // Note: It's possible that the queue has already been registered
@@ -4041,21 +4041,21 @@ void ClusterQueueHelper::onQueueAssigned(
             // recovery. Therefore, we will allow for duplicate registration
             // which will simply result in a no-op.
             d_storageManager_p->registerQueueReplica(
-                info.partitionId(),
-                info.uri(),
-                info.key(),
+                info->partitionId(),
+                info->uri(),
+                info->key(),
                 d_clusterState_p->domainStates()
-                    .at(info.uri().qualifiedDomain())
+                    .at(info->uri().qualifiedDomain())
                     ->domain(),
                 true);  // allowDuplicate
 
             d_storageManager_p->updateQueueReplica(
-                info.partitionId(),
-                info.uri(),
-                info.key(),
-                info.appInfos(),
+                info->partitionId(),
+                info->uri(),
+                info->key(),
+                info->appInfos(),
                 d_clusterState_p->domainStates()
-                    .at(info.uri().qualifiedDomain())
+                    .at(info->uri().qualifiedDomain())
                     ->domain(),
                 true);  // allowDuplicate
         }
@@ -4068,7 +4068,7 @@ void ClusterQueueHelper::onQueueAssigned(
 }
 
 void ClusterQueueHelper::onQueueUnassigned(
-    const mqbc::ClusterStateQueueInfo& info)
+    const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -4076,11 +4076,12 @@ void ClusterQueueHelper::onQueueUnassigned(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(info);
 
     const bsl::string& leaderDesc =
         d_clusterData_p->electorInfo().leaderNode()->nodeDescription();
 
-    const QueueContextMapIter queueContextIt = d_queues.find(info.uri());
+    const QueueContextMapIter queueContextIt = d_queues.find(info->uri());
     if (queueContextIt == d_queues.end()) {
         // We don't know about that uri .. nothing to do, but error because
         // it should not happen.
@@ -4092,7 +4093,8 @@ void ClusterQueueHelper::onQueueUnassigned(
                        << ": Ignoring queue unassignment from leader "
                        << leaderDesc << ", for unknown queue: " << info;
 
-        BSLS_ASSERT_SAFE(0 == d_clusterState_p->queueKeys().count(info.key()));
+        BSLS_ASSERT_SAFE(0 ==
+                         d_clusterState_p->queueKeys().count(info->key()));
         // Since queue uri is unknown to self node, queue key should be
         // unknown too.
 
@@ -4101,7 +4103,11 @@ void ClusterQueueHelper::onQueueUnassigned(
 
     const QueueContextSp& queueContextSp = queueContextIt->second;
     QueueLiveState&       qinfo          = queueContextSp->d_liveQInfo;
-    if (!isQueueAssigned(*queueContextSp)) {
+
+    mqbc::ClusterStateQueueInfo* assigned =
+        d_clusterState_p->getAssignedOrUnassigning(queueContextSp->uri());
+
+    if (assigned == 0) {
         // Queue is known but not assigned.  Error because it should not occur.
         // Note that it may occur if self node is starting, received an
         // open-queue request for this queue (and thus, populated 'd_queues'
@@ -4114,8 +4120,8 @@ void ClusterQueueHelper::onQueueUnassigned(
                        << " because self node sees queue as unassigned.";
         return;  // RETURN
     }
-    BSLS_ASSERT_SAFE(queueContextSp->partitionId() == info.partitionId() &&
-                     queueContextSp->key() == info.key());
+    BSLS_ASSERT_SAFE(queueContextSp->partitionId() == info->partitionId() &&
+                     queueContextSp->key() == info->key());
 
     if (0 != qinfo.d_numQueueHandles) {
         // This could occur if destruction of a handle at self node is delayed
@@ -4129,14 +4135,14 @@ void ClusterQueueHelper::onQueueUnassigned(
                       << qinfo.d_numQueueHandles << "].";
     }
 
-    if (d_clusterState_p->isSelfPrimary(info.partitionId())) {
+    if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
         // openQueue while queue unassigning cancels the unassigning
         // so we can safely delete it from the various maps.
         removeQueueRaw(queueContextIt);
 
         // Unregister the queue/storage from the partition, which will end up
         // issuing a QueueDeletion record.  Note that this method is async.
-        d_storageManager_p->unregisterQueue(info.uri(), info.partitionId());
+        d_storageManager_p->unregisterQueue(info->uri(), info->partitionId());
     }
     else {
         // This is a replica node.
@@ -4170,16 +4176,14 @@ void ClusterQueueHelper::onQueueUnassigned(
 
             if (queueContextSp->d_liveQInfo.d_queue_sp) {
                 d_clusterState_p->updatePartitionNumActiveQueues(
-                    info.partitionId(),
+                    info->partitionId(),
                     -1);
             }
             d_queuesById.erase(qinfo.d_id);
-            qinfo.resetAndKeepPending();
+            qinfo.resetButKeepPending();
             // CQH will recreate 'queueContextSp->d_liveQInfo.d_queue_sp' upon
             // 'onOpenQueueResponse'
 
-            // We do this in CSL mode only, such that isQueueAssigned() will
-            // return false.
             queueContextSp->d_stateQInfo_sp.reset();
         }
         else {
@@ -4194,15 +4198,18 @@ void ClusterQueueHelper::onQueueUnassigned(
         // Note: In non-CSL mode, the queue deletion callback is instead
         // invoked at nodes when they receive a queue deletion record from the
         // primary in the partition stream.
-        d_storageManager_p->unregisterQueueReplica(info.partitionId(),
-                                                   info.uri(),
-                                                   info.key(),
-                                                   mqbu::StorageKey());
+
+        if (d_cluster_p->isCSLModeEnabled()) {
+            d_storageManager_p->unregisterQueueReplica(info->partitionId(),
+                                                       info->uri(),
+                                                       info->key(),
+                                                       mqbu::StorageKey());
+        }
     }
 
-    d_clusterState_p->queueKeys().erase(info.key());
+    d_clusterState_p->queueKeys().erase(info->key());
     d_clusterState_p->domainStates()
-        .at(info.uri().qualifiedDomain())
+        .at(info->uri().qualifiedDomain())
         ->adjustQueueCount(-1);
 
     BALL_LOG_INFO << d_cluster_p->description()
@@ -4449,6 +4456,43 @@ void ClusterQueueHelper::openQueue(
 
     QueueContextMapIter queueContextIt = d_queues.find(uriKey);
 
+    // NOTE: See TBD in 'onGetDomainDispatched': if the request comes from a
+    //       peer inside the cluster, 'clientIdentity' will represent our own
+    //       identity instead of that of the peer; which is obviously wrong;
+    //       however, here we only want to use it to determine whether the
+    //       request comes from a peer node in the cluster (and not a client or
+    //       a proxy broker), and so this is still fine.
+    if (clientContext->identity().clientType() ==
+            bmqp_ctrlmsg::ClientType::E_TCPBROKER &&
+        !clientContext->identity().clusterName().empty() &&
+        clientContext->identity().clusterNodeId() !=
+            mqbnet::Cluster::k_INVALID_NODE_ID) {
+        // The request came from a peer in the cluster, make sure we are the
+        // primary for the partition.  Since we received the openQueue request
+        // from a in-cluster peer node, we should have already received a queue
+        // advisory assignment from the leader about that queue; however maybe
+        // events will come out of order, so just return a NOT_PRIMARY
+        // retryable error in this case and let the peer re-emit a request.
+        bsl::string                  reason;
+        mqbi::ClusterErrorCode::Enum errorCode =
+            mqbi::ClusterErrorCode::e_UNKNOWN;
+        if (queueContextIt == d_queues.end()) {
+            reason    = "Not aware of that queue";
+            errorCode = mqbi::ClusterErrorCode::e_UNKNOWN_QUEUE;
+            CALLBACK_FAILURE(reason, errorCode);
+            return;  // RETURN
+        }
+        const int pid = queueContextIt->second->partitionId();
+        if (!isSelfAvailablePrimary(pid)) {
+            bmqu::MemOutStream errorDesc;
+            errorDesc << "Not the primary for partitionId [" << pid << "]";
+            reason    = errorDesc.str();
+            errorCode = mqbi::ClusterErrorCode::e_NOT_PRIMARY;
+            CALLBACK_FAILURE(reason, errorCode);
+            return;  // RETURN
+        }
+    }
+
     // Create an OpenQueue context for that request.
     OpenQueueContext context;
     context.d_domain_p           = domain;
@@ -4542,8 +4586,7 @@ void ClusterQueueHelper::openQueue(
             // advisory are received).  So to be safe, we explicitly attempt to
             // assign the queue, which is a no-op in case there is no leader.
 
-            if (!isQueueAssigned(*(queueContextIt->second)) ||
-                isQueuePendingUnassignment(*(queueContextIt->second))) {
+            if (!isQueueAssigned(*(queueContextIt->second))) {
                 // In CSL, unassignment is async.
                 // Since QueueUnassignmentAdvisory can contain multiple queues,
                 // canceling pending Advisory is not an option.

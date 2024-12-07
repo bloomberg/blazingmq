@@ -285,7 +285,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// Reset the `id`, `partitionId`, `key` and `queue` members of this
         /// object.  Note that `uri` is left untouched because it is an
         /// invariant member of a given instance of such a QueueInfo object.
-        void resetAndKeepPending();
+        void resetButKeepPending();
     };
 
     struct StopContext {
@@ -910,10 +910,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// assigned.
     bool isQueueAssigned(const QueueContext& queueContext) const;
 
-    /// Return true if the queue in the specified `queueContext` is
-    /// pending unassignment (async in CSL).
-    bool isQueuePendingUnassignment(const QueueContext& queueContext) const;
-
     /// Return true if the queue in the specified `queueContext` is assigned
     /// and its associated primary is AVAILABLE and is different from the
     /// optionally specified `otherThan`.
@@ -959,7 +955,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+    void
+    onQueueAssigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `info` gets
@@ -967,7 +964,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void onQueueUnassigned(const mqbc::ClusterStateQueueInfo& info)
+    void
+    onQueueUnassigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `uri` belonging to
@@ -1240,29 +1238,17 @@ ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
                bmqp::QueueId::k_UNASSIGNED_QUEUE_ID;  // RETURN
     }
 
-    DomainStatesCIter domCit = d_clusterState_p->domainStates().find(
-        queueContext.uri().qualifiedDomain());
-    if (domCit == d_clusterState_p->domainStates().cend()) {
-        return false;  // RETURN
-    }
-
-    UriToQueueInfoMapCIter qCit = domCit->second->queuesInfo().find(
+    mqbc::ClusterStateQueueInfo* assigned = d_clusterState_p->getAssigned(
         queueContext.uri());
-    if (qCit == domCit->second->queuesInfo().cend()) {
+
+    if (assigned == 0) {
         return false;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(qCit->second->partitionId() !=
+    BSLS_ASSERT_SAFE(assigned->partitionId() !=
                          mqbs::DataStore::k_INVALID_PARTITION_ID &&
-                     !qCit->second->key().isNull());
+                     !assigned->key().isNull());
     return true;
-}
-
-inline bool ClusterQueueHelper::isQueuePendingUnassignment(
-    const QueueContext& queueContext) const
-{
-    const ClusterStateQueueInfoCSp& state = queueContext.d_stateQInfo_sp;
-    return state ? state->pendingUnassignment() : false;
 }
 
 inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
