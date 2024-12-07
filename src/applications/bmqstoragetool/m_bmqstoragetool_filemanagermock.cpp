@@ -20,7 +20,28 @@ namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
-// NOTHING
+FileManagerMock::FileManagerMock()
+: d_journalFileIt()
+, d_dataFileIt()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+FileManagerMock::FileManagerMock(const JournalFile& journalFile)
+: d_journalFileIt(&journalFile.mappedFileDescriptor(),
+                  journalFile.fileHeader(),
+                  false)
+, d_dataFileIt()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
+{
+    return &d_journalFileIt;
+}
 
 }  // close package namespace
 

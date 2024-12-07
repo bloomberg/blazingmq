@@ -128,14 +128,6 @@ UriCorrIdToQueueMap& uriCorrIdToQueues(B& buffer)
 {
     return reinterpret_cast<UriCorrIdToQueueMap&>(*(buffer.buffer()));
 }
-
-/// Utility method to cast the `UriCorrIdToQueueMap` held by the
-/// `bsls::AlignedBuffer` (represented by the type `B`).
-template <class B>
-const UriCorrIdToQueueMap& uriCorrIdToQueues(const B& buffer)
-{
-    return reinterpret_cast<const UriCorrIdToQueueMap&>(*(buffer.buffer()));
-}
 }  // close unnamed namespace
 
 #define BMQA_CHECK_ARG(METHOD, ARGNAME, EXPECTED, ACTUAL, CALL)               \
