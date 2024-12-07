@@ -211,7 +211,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+    void
+    onQueueAssigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `uri` belonging to

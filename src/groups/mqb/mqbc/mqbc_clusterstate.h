@@ -165,6 +165,18 @@ class ClusterStateQueueInfo {
     typedef mqbi::ClusterStateManager::AppInfos      AppInfos;
     typedef mqbi::ClusterStateManager::AppInfosCIter AppInfosCIter;
 
+    enum State {
+        // State of Assignment.  In CSL, assignment and unassignment are async,
+        // hence the need for k_ASSIGNING/k_UNASSIGNING
+        // Assigning following unassigning is also supported.
+        // On Replica, the only possible state is k_ASSIGNED.
+
+        k_NONE,
+        k_ASSIGNING,
+        k_ASSIGNED,
+        k_UNASSIGNING
+    };
+
   private:
     // DATA
     bmqt::Uri d_uri;
@@ -183,9 +195,9 @@ class ClusterStateQueueInfo {
     //
     // TBD: Should also be added to mqbconfm::Domain
 
-    bool d_pendingUnassignment;
+    State d_state;
     // Flag indicating whether this queue is in the process of
-    // being unassigned.
+    // being assigned / unassigned.
 
   private:
     // NOT IMPLEMENTED
@@ -219,7 +231,7 @@ class ClusterStateQueueInfo {
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    ClusterStateQueueInfo& setPendingUnassignment(bool value);
+    void setState(State value);
 
     /// Get a modifiable reference to this object's appIdInfos.
     AppInfos& appInfos();
@@ -236,7 +248,8 @@ class ClusterStateQueueInfo {
     const AppInfos&         appInfos() const;
 
     /// Return the value of the corresponding member of this object.
-    bool pendingUnassignment() const;
+    State state() const;
+    bool  pendingUnassignment() const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -302,14 +315,16 @@ class ClusterStateObserver {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueAssigned(const ClusterStateQueueInfo& info);
+    virtual void
+    onQueueAssigned(const bsl::shared_ptr<ClusterStateQueueInfo>& info);
 
     /// Callback invoked when a queue with the specified `info` gets
     /// unassigned from the cluster.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueUnassigned(const ClusterStateQueueInfo& info);
+    virtual void
+    onQueueUnassigned(const bsl::shared_ptr<ClusterStateQueueInfo>& info);
 
     /// Callback invoked when a queue with the specified `uri` belonging to
     /// the specified `domain` is updated with the optionally specified
@@ -645,6 +660,20 @@ class ClusterState {
     /// validation can be performed.  The bahavior is undefined unless
     /// `partitionId >= 0` and `partitionId < partitionsCount`.
     const ClusterStatePartitionInfo& partition(int partitionId) const;
+
+    /// Return `ClusterStateQueueInfo` for the specified `uri` or `0` if it
+    /// does not exist.
+    ClusterStateQueueInfo* getQueueInfo(const bmqt::Uri& uri) const;
+
+    /// Return `ClusterStateQueueInfo` for the specified `uri` if it exists and
+    /// is in the `k_ASSIGNED` state or `0` otherwise.
+    ClusterStateQueueInfo* getAssigned(const bmqt::Uri& uri) const;
+
+    /// Return `ClusterStateQueueInfo` for the specified `uri` if it exists and
+    /// is in either the `k_ASSIGNED` or `k_UNASSIGNING` state.  Return `0`
+    /// otherwise.
+    ClusterStateQueueInfo*
+    getAssignedOrUnassigning(const bmqt::Uri& uri) const;
 };
 
 // ============================================================================
@@ -767,7 +796,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_key()
 , d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
-, d_pendingUnassignment(false)
+, d_state(k_NONE)
 {
     // NOTHING
 }
@@ -782,7 +811,7 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_key(key)
 , d_partitionId(partitionId)
 , d_appInfos(appIdInfos, allocator)
-, d_pendingUnassignment(false)
+, d_state(k_NONE)
 {
     // NOTHING
 }
@@ -801,11 +830,23 @@ inline ClusterStateQueueInfo& ClusterStateQueueInfo::setPartitionId(int value)
     return *this;
 }
 
-inline ClusterStateQueueInfo&
-ClusterStateQueueInfo::setPendingUnassignment(bool value)
+inline void ClusterStateQueueInfo::setState(ClusterStateQueueInfo::State value)
 {
-    d_pendingUnassignment = value;
-    return *this;
+    //                            k_NONE
+    //                            |     |
+    //  ClusterUtil::assignQueue  |     |
+    //                            |     V
+    //                            | k_ASSIGNING <---+
+    //                            |     |           |
+    //  ClusterState::assignQueue |     |           |
+    //                            V     V           |
+    //                          k_ASSIGNED          |
+    //                                  |           |
+    //                                  |           | ClusterState::assignQueue
+    //                                  V           |
+    //                                  k_UNASSIGNING
+
+    d_state = value;
 }
 
 inline ClusterStateQueueInfo::AppInfos& ClusterStateQueueInfo::appInfos()
@@ -845,9 +886,14 @@ ClusterStateQueueInfo::appInfos() const
     return d_appInfos;
 }
 
+inline ClusterStateQueueInfo::State ClusterStateQueueInfo::state() const
+{
+    return d_state;
+}
+
 inline bool ClusterStateQueueInfo::pendingUnassignment() const
 {
-    return d_pendingUnassignment;
+    return d_state == k_UNASSIGNING;
 }
 
 // ------------------
@@ -1020,6 +1066,46 @@ ClusterState::partition(int partitionId) const
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     return d_partitionsInfo[partitionId];
+}
+
+inline ClusterStateQueueInfo*
+ClusterState::getQueueInfo(const bmqt::Uri& uri) const
+{
+    const DomainStatesCIter domCit = domainStates().find(
+        uri.qualifiedDomain());
+    if (domCit == domainStates().cend()) {
+        return 0;
+    }
+
+    UriToQueueInfoMapCIter qcit = domCit->second->queuesInfo().find(uri);
+    if (qcit == domCit->second->queuesInfo().cend()) {
+        return 0;
+    }
+
+    return qcit->second.get();
+}
+
+inline ClusterStateQueueInfo*
+ClusterState::getAssigned(const bmqt::Uri& uri) const
+{
+    ClusterStateQueueInfo* queue = getQueueInfo(uri);
+
+    return queue ? queue->state() == ClusterStateQueueInfo::k_ASSIGNED ? queue
+                                                                       : 0
+                 : 0;
+}
+
+inline ClusterStateQueueInfo*
+ClusterState::getAssignedOrUnassigning(const bmqt::Uri& uri) const
+{
+    ClusterStateQueueInfo* queue = getQueueInfo(uri);
+
+    return queue
+               ? queue->state() == ClusterStateQueueInfo::k_ASSIGNED ||
+                         queue->state() == ClusterStateQueueInfo::k_UNASSIGNING
+                     ? queue
+                     : 0
+               : 0;
 }
 
 // --------------------------------

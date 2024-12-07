@@ -276,13 +276,15 @@ void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
     }
 }
 
-void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+void Domain::onQueueAssigned(
+    const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
 {
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(info);
 
     if (!d_cluster_sp->isCSLModeEnabled()) {
         return;  // RETURN
@@ -292,7 +294,7 @@ void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         return;  // RETURN
     }
 
-    if (info.uri().domain() != d_name) {
+    if (info->uri().domain() != d_name) {
         // Note: This method will fire on all domains which belong to the
         //       cluster having the queue assignment, but we examine the domain
         //       name from the 'uri' to guarantee that only one domain is
@@ -301,7 +303,7 @@ void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         return;  // RETURN
     }
 
-    updateAuthorizedAppIds(info.appInfos());
+    updateAuthorizedAppIds(info->appInfos());
 }
 
 void Domain::onQueueUpdated(const bmqt::Uri&   uri,

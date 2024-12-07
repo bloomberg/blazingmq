@@ -330,12 +330,14 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
              ++citer) {
             const mqbc::ClusterState::QueueInfoSp& infoSp = citer->second;
 
-            bmqp_ctrlmsg::QueueInfo queueInfo;
-            infoSp->key().loadBinary(&queueInfo.key());
-            queueInfo.uri()         = infoSp->uri().asString();
-            queueInfo.partitionId() = infoSp->partitionId();
+            if (infoSp->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+                bmqp_ctrlmsg::QueueInfo queueInfo;
+                infoSp->key().loadBinary(&queueInfo.key());
+                queueInfo.uri()         = infoSp->uri().asString();
+                queueInfo.partitionId() = infoSp->partitionId();
 
-            leaderAdvisory.queues().push_back(queueInfo);
+                leaderAdvisory.queues().push_back(queueInfo);
+            }
         }
     }
 

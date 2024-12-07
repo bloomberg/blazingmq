@@ -67,7 +67,6 @@ ClusterStateManager::ClusterStateManager(
 // TODO Add cluster config to determine Eventual vs Strong
 , d_clusterStateLedger_mp(clusterStateLedger)
 , d_storageManager_p(0)
-, d_queueAssigningCb()
 , d_afterPartitionPrimaryAssignmentCb()
 {
     // PRECONDITIONS
@@ -1501,7 +1500,6 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           d_clusterStateLedger_mp.get(),
                                           d_cluster_p,
                                           uri,
-                                          d_queueAssigningCb,
                                           d_allocator_p,
                                           status);
 }
@@ -1523,7 +1521,6 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
                                          partitionId,
                                          queueKey,
                                          appIdInfos,
-                                         d_queueAssigningCb,
                                          forceUpdate);
 }
 
@@ -1810,7 +1807,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_cluster_p,
         request,
         requester,
-        d_queueAssigningCb,
         d_allocator_p);
 }
 
