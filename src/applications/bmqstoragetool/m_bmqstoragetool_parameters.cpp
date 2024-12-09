@@ -209,23 +209,6 @@ bool CommandLineArguments::validate(bsl::string* error)
     return error->empty();
 }
 
-Parameters::Parameters(bslma::Allocator* allocator)
-: d_queueMap(allocator)
-, d_timestampGt(0)
-, d_timestampLt(0)
-, d_guid(allocator)
-, d_queueKey(allocator)
-, d_queueName(allocator)
-, d_dumpLimit(0)
-, d_details(false)
-, d_dumpPayload(false)
-, d_summary(false)
-, d_outstanding(false)
-, d_confirmed(false)
-, d_partiallyConfirmed(false)
-{
-}
-
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_queueMap(allocator)
@@ -241,6 +224,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
+, d_minRecordsPerQueue(arguments.d_minRecordsPerQueue)
 {
 }
 
