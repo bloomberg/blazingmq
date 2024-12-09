@@ -167,14 +167,19 @@ static void test2_ackMesageIteratorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::AckEventBuilder builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::AckEventBuilder builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<AckData>  messages(bmqtst::TestHelperUtil::allocator());
 
     PVV("Appending messages");
     appendMessages(&builder, &messages, k_NUM_MSGS);
 
-    bmqp::Event rawEvent(&builder.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> eventImpl;
     eventImpl.createInplace(bmqtst::TestHelperUtil::allocator(),
@@ -229,7 +234,11 @@ static void test3_putMessageIteratorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<PutData>  messages(bmqtst::TestHelperUtil::allocator());
 
@@ -244,7 +253,8 @@ static void test3_putMessageIteratorTest()
         ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     }
 
-    bmqp::Event rawEvent(&builder.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(builder.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> eventImpl;
     eventImpl.createInplace(bmqtst::TestHelperUtil::allocator(),

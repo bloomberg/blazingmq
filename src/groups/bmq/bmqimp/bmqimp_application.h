@@ -78,16 +78,18 @@ namespace bmqimp {
 
 /// Top level object to manipulate a session with bmqbrkr
 class Application {
+  public:
+    // PUBLIC TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // PRIVATE TYPES
     typedef bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle>
         ChannelFactoryOpHandleMp;
 
-  private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQIMP.APPLICATION");
 
-  private:
     // DATA
     bmqst::StatContext d_allocatorStatContext;
     // Stat context for counting allocators
@@ -115,6 +117,9 @@ class Application {
 
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
     // Factory for blob buffers
+
+    /// Pool of shared pointers to blobs.
+    BlobSpPool d_blobSpPool;
 
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
@@ -254,12 +259,9 @@ class Application {
 
     // MANIPULATORS
 
-    /// Return a pointer to the blob buffer factory used by this instance.
-    /// Note that lifetime of the pointed-to buffer factory is bound by this
-    /// instance.
-    bdlbb::BlobBufferFactory* bufferFactory();
-
-    // MANIPULATORS
+    /// Return a pointer to the blob shared pointer pool used by this instance.
+    /// Note that lifetime of the pointed-to pool is bound by this instance.
+    BlobSpPool* blobSpPool();
 
     /// Start the session and the session pool. Return 0 on success or a
     /// non-zero negative code otherwise.  Calling start on an already
@@ -320,9 +322,9 @@ inline bool Application::isStarted() const
             state == bmqimp::BrokerSession::State::e_RECONNECTING);
 }
 
-inline bdlbb::BlobBufferFactory* Application::bufferFactory()
+inline Application::BlobSpPool* Application::blobSpPool()
 {
-    return &d_blobBufferFactory;
+    return &d_blobSpPool;
 }
 
 }  // close package namespace

@@ -127,11 +127,14 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
 /// cluster nodes themselves instead of being offloaded to an external meta
 /// data (e.g., ZooKeeper).
 class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.INCORECLUSTERSTATELEDGER");
 
-  private:
     // TYPES
     typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
     typedef ClusterStateLedgerCommitStatus              CommitStatus;
@@ -163,10 +166,8 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     // Flag to indicate open/close status
     // of this object
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory for the headers and
-    // payloads of the messages to be
-    // written
+    /// Pool of shared pointers to blobs
+    BlobSpPool* d_blobSpPool_p;
 
     bsl::string d_description;
     // Brief description for logging
@@ -300,7 +301,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         ClusterStateLedgerConsistency::Enum consistencyLevel,
         ClusterData*                        clusterData,
         ClusterState*                       clusterState,
-        bdlbb::BlobBufferFactory*           bufferFactory,
+        BlobSpPool*                         blobSpPool_p,
         bslma::Allocator*                   allocator);
 
     /// Destructor.

@@ -356,9 +356,9 @@ ClientSessionState::ClientSessionState(
 , d_statContext_mp(clientStatContext)
 , d_bufferFactory_p(bufferFactory)
 , d_blobSpPool_p(blobSpPool)
-, d_schemaEventBuilder(bufferFactory, allocator, encodingType)
-, d_pushBuilder(bufferFactory, allocator)
-, d_ackBuilder(bufferFactory, allocator)
+, d_schemaEventBuilder(blobSpPool, encodingType, allocator)
+, d_pushBuilder(blobSpPool, allocator)
+, d_ackBuilder(blobSpPool, allocator)
 , d_throttledFailedAckMessages()
 , d_throttledFailedPutMessages()
 {
@@ -422,7 +422,8 @@ void ClientSession::sendErrorResponse(
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
 
-void ClientSession::sendPacket(const bdlbb::Blob& blob, bool flushBuilders)
+void ClientSession::sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                               bool flushBuilders)
 {
     dispatcher()->execute(
         bdlf::BindUtil::bind(&ClientSession::sendPacketDispatched,
@@ -432,8 +433,9 @@ void ClientSession::sendPacket(const bdlbb::Blob& blob, bool flushBuilders)
         this);
 }
 
-void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
-                                         bool               flushBuilders)
+void ClientSession::sendPacketDispatched(
+    const bsl::shared_ptr<bdlbb::Blob>& blob,
+    bool                                flushBuilders)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -484,7 +486,7 @@ void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
     // the message to the channelBufferQueue, and we'll send it later, once we
     // get the lowWatermark notification.
     bmqio::Status status;
-    d_channel_sp->write(&status, blob);
+    d_channel_sp->write(&status, *blob);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             status.category() != bmqio::StatusCategory::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -496,7 +498,7 @@ void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
         if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             BALL_LOG_WARN << "#CLIENT_SEND_FAILURE " << description()
                           << ": Failed to send data [size: "
-                          << bmqu::PrintUtil::prettyNumber(blob.length())
+                          << bmqu::PrintUtil::prettyNumber(blob->length())
                           << " bytes] to client due to channel watermark limit"
                           << "; enqueuing to the ChannelBufferQueue.";
             d_state.d_channelBufferQueue.push_back(blob);
@@ -504,7 +506,7 @@ void ClientSession::sendPacketDispatched(const bdlbb::Blob& blob,
         else {
             BALL_LOG_INFO << "#CLIENT_SEND_FAILURE " << description()
                           << ": Failed to send data [size: "
-                          << bmqu::PrintUtil::prettyNumber(blob.length())
+                          << bmqu::PrintUtil::prettyNumber(blob->length())
                           << " bytes] to client with status: " << status;
         }
     }
@@ -527,10 +529,11 @@ void ClientSession::flushChannelBufferQueue()
 
     // Try to send as many data as possible
     while (!d_state.d_channelBufferQueue.empty()) {
-        const bdlbb::Blob& blob = d_state.d_channelBufferQueue.front();
+        const bsl::shared_ptr<bdlbb::Blob>& blob_sp =
+            d_state.d_channelBufferQueue.front();
 
         bmqio::Status status;
-        d_channel_sp->write(&status, blob);
+        d_channel_sp->write(&status, *blob_sp);
         if (status.category() == bmqio::StatusCategory::e_LIMIT) {
             // We are hitting the limit again, can't continue.. stop sending
             // and we'll resume with the next lowWatermark notification.

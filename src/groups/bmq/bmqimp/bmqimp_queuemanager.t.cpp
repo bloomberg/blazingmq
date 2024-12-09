@@ -590,7 +590,11 @@ static void test9_pushStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PushEventBuilder peb(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PushEventBuilder peb(&blobSpPool,
                                bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqt::Uri   uri(k_URI, bmqtst::TestHelperUtil::allocator());
@@ -625,8 +629,8 @@ static void test9_pushStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPushEvent());
@@ -704,7 +708,11 @@ static void test10_putStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder peb(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder peb(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bmqt::Uri             uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp  queueSp;
@@ -730,8 +738,8 @@ static void test10_putStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPutEvent());

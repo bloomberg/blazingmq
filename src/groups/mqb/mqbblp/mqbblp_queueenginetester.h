@@ -52,7 +52,7 @@
 //
 // First, we create a 'QueueEngineTester' object and the Priority Queue Engine.
 //..
-//  mqbblp::QueueEngineTester tester(s_allocator_p);
+//  mqbblp::QueueEngineTester tester(bmqtst::TestHelperUtil::allocator());
 //  tester.createQueueEngine<mqbblp::PriorityQueueEngine>();
 //..
 // Then, we get handles for three consumers, each with one reader.

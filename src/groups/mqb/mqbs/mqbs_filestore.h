@@ -130,7 +130,7 @@ struct FileStore_AliasedBufferDeleter {
 
 /// Mechanism to store BlazingMQ messages in file. This component is
 /// *const-thread* safe.
-class FileStore : public DataStore {
+class FileStore BSLS_KEYWORD_FINAL : public DataStore {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.FILESTORE");
@@ -142,13 +142,9 @@ class FileStore : public DataStore {
   public:
     // TYPES
 
-    /// Pool of shared pointers to Blobs
-    typedef bdlcc::SharedObjectPool<
-        bdlbb::Blob,
-        bdlcc::ObjectPoolFunctors::DefaultCreator,
-        bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
+    /// Pool of shared pointers to AtomicStates
     typedef bdlcc::SharedObjectPool<
         bmqu::AtomicState,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
@@ -241,16 +237,15 @@ class FileStore : public DataStore {
     };
 
     struct NodeContext {
+        /// Last Receipt from/to this node (Replica/Primary).
         DataStoreRecordKey d_key;
-        // last Receipt from/to this
-        // node (Replica/Primary).
-        bdlbb::Blob d_blob;
-        // Receipt to this node.
+
+        /// Receipt to this node.
+        bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+
         bsl::shared_ptr<bmqu::AtomicState> d_state;
 
-        NodeContext(bdlbb::BlobBufferFactory* factory,
-                    const DataStoreRecordKey& key,
-                    bslma::Allocator*         basicAllocator = 0);
+        NodeContext(BlobSpPool* blobSpPool_p, const DataStoreRecordKey& key);
     };
     typedef bmqc::OrderedHashMap<DataStoreRecordKey,
                                  ReceiptContext,
@@ -1116,11 +1111,10 @@ inline FileStore::ReceiptContext::ReceiptContext(
 // class FileStore::NodeContext
 // ----------------------------
 
-inline FileStore::NodeContext::NodeContext(bdlbb::BlobBufferFactory* factory,
-                                           const DataStoreRecordKey& key,
-                                           bslma::Allocator* basicAllocator)
+inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
+                                           const DataStoreRecordKey& key)
 : d_key(key)
-, d_blob(factory, basicAllocator)
+, d_blob_sp(blobSpPool_p->getObject())
 {
     // NOTHING
 }

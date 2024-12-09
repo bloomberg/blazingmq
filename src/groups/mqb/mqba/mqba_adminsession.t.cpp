@@ -171,7 +171,6 @@ class TestBench {
            "sessionDescription",
            setInDispatcherThread(&d_mockDispatcher),
            &d_blobSpPool,
-           &d_bufferFactory,
            &d_scheduler,
            adminEnqueueCb,
            allocator)
@@ -251,14 +250,14 @@ static void test1_watermark()
     admin.choice().makeAdminCommand();
     admin.choice().adminCommand().command() = command;
 
-    bmqp::SchemaEventBuilder builder(&tb.d_bufferFactory,
-                                     tb.d_allocator_p,
-                                     bmqp::EncodingType::e_JSON);
+    bmqp::SchemaEventBuilder builder(&tb.d_blobSpPool,
+                                     bmqp::EncodingType::e_JSON,
+                                     tb.d_allocator_p);
 
     int rc = builder.setMessage(admin, bmqp::EventType::e_CONTROL);
     ASSERT_EQ(rc, 0);
 
-    bmqp::Event adminEvent(&builder.blob(),
+    bmqp::Event adminEvent(builder.blob().get(),
                            bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT(adminEvent.isValid());
     BSLS_ASSERT(adminEvent.isControlEvent());

@@ -95,10 +95,11 @@ static void verifyContent(const bmqp::RejectEventBuilder& builder,
                           (data.size() * sizeof(bmqp::RejectMessage));
     ASSERT_EQ(static_cast<size_t>(builder.messageCount()), data.size());
     ASSERT_EQ(static_cast<size_t>(builder.eventSize()), expectedSize);
-    ASSERT_EQ(static_cast<size_t>(builder.blob().length()), expectedSize);
+    ASSERT_EQ(static_cast<size_t>(builder.blob()->length()), expectedSize);
 
     PVV("Iterating over messages");
-    bmqp::Event event(&builder.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event event(builder.blob().get(),
+                      bmqtst::TestHelperUtil::allocator());
 
     ASSERT(event.isValid());
     ASSERT(event.isRejectEvent());
@@ -137,7 +138,11 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::RejectEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::RejectEventBuilder obj(&blobSpPool,
                                  bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
@@ -145,7 +150,7 @@ static void test1_breathingTest()
     ASSERT_EQ(obj.messageCount(), 0);
     ASSERT_NE(obj.maxMessageCount(), 0);
     ASSERT_EQ(obj.eventSize(), 0);
-    ASSERT_EQ(obj.blob().length(), 0);
+    ASSERT_EQ(obj.blob()->length(), 0);
 
     PVV("Appending one message");
     appendMessages(&obj, &messages, 1);
@@ -164,7 +169,11 @@ static void test2_multiMessage()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::RejectEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::RejectEventBuilder obj(&blobSpPool,
                                  bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
@@ -183,7 +192,11 @@ static void test3_reset()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::RejectEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::RejectEventBuilder obj(&blobSpPool,
                                  bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
 
@@ -196,7 +209,7 @@ static void test3_reset()
     PV("Verifying accessors");
     ASSERT_EQ(obj.messageCount(), 0);
     ASSERT_EQ(obj.eventSize(), 0);
-    ASSERT_EQ(obj.blob().length(), 0);
+    ASSERT_EQ(obj.blob()->length(), 0);
 
     PV("Appending another message");
     messages.clear();
@@ -215,7 +228,11 @@ static void test4_capacity()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::RejectEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::RejectEventBuilder obj(&blobSpPool,
                                  bmqtst::TestHelperUtil::allocator());
 
     PVV("Computing max message");
@@ -271,7 +288,11 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::RejectEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::RejectEventBuilder obj(&blobSpPool,
                                  bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>        messages(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -282,11 +303,11 @@ static void testN1_decodeFromFile()
     PVV("Appending messages");
     appendMessages(&obj, &messages, k_NUM_MSGS);
 
-    ASSERT_NE(obj.blob().length(), 0);
+    ASSERT_NE(obj.blob()->length(), 0);
 
     os << "msg_reject_" << guid << ".bin" << bsl::ends;
 
-    const int blobLen = obj.blob().length();
+    const int blobLen = obj.blob()->length();
     char*     buf     = new char[blobLen];
 
     /// Functor invoked to delete the file at the specified `filePath`
@@ -306,7 +327,7 @@ static void testN1_decodeFromFile()
     bsl::ofstream ofile(os.str().data(), bsl::ios::binary);
     BSLS_ASSERT(ofile.good());
 
-    bdlbb::BlobUtil::copy(buf, obj.blob(), 0, blobLen);
+    bdlbb::BlobUtil::copy(buf, *obj.blob(), 0, blobLen);
     ofile.write(buf, blobLen);
     ofile.close();
     bsl::memset(buf, 0, blobLen);
@@ -326,7 +347,7 @@ static void testN1_decodeFromFile()
     outBlob.appendDataBuffer(dataBlobBuffer);
     outBlob.setLength(blobLen);
 
-    ASSERT_EQ(bdlbb::BlobUtil::compare(obj.blob(), outBlob), 0);
+    ASSERT_EQ(bdlbb::BlobUtil::compare(*obj.blob(), outBlob), 0);
 
     // Decode event
     bmqp::Event event(&outBlob, bmqtst::TestHelperUtil::allocator());
