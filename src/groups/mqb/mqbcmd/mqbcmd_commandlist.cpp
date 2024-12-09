@@ -76,6 +76,9 @@ struct CommandDefinition {
      "Clear the domain resolution cache entry of the optionally specified "
      "'domain', or clear all domain resolution cache entries if 'ALL' is "
      "specified."},
+    {"DOMAINS REMOVE <domain>",
+     "Reject all incoming connections to all queues in domain 'name'",
+     "and purge them from the domain"},
     // ConfigProvider
     {"CONFIGPROVIDER CACHE_CLEAR (<domain>|ALL)",
      "Clear domain's cached configuration.",
