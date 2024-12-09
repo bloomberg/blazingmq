@@ -260,7 +260,11 @@ static void test2_capacityTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder         builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder         builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
@@ -281,7 +285,7 @@ static void test2_capacityTest()
                            bmqtst::TestHelperUtil::allocator());
 
     builder.startMessage();
-    const bdlbb::Blob& eventBlob = builder.blob();
+    const bdlbb::Blob& eventBlob = *builder.blob();
 
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Event> event;
@@ -563,7 +567,11 @@ static void test6_workingStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder         builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder         builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
@@ -622,7 +630,7 @@ static void test6_workingStatsTest()
     obj.initializeStats(&rootStatContext, start, end);
 
     builder.startMessage();
-    const bdlbb::Blob& eventBlob = builder.blob();
+    const bdlbb::Blob& eventBlob = *builder.blob();
 
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Event> event;

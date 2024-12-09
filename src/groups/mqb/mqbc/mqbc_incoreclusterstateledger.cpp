@@ -268,12 +268,12 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
          ++advisoryIt) {
         ClusterMessageInfo& info = advisoryIt->second;
 
-        bdlbb::Blob                  record(d_bufferFactory_p, d_allocator_p);
+        bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
         ClusterStateRecordType::Enum recordType =
             info.d_clusterMessage.choice().isLeaderAdvisoryValue()
                 ? ClusterStateRecordType::e_SNAPSHOT
                 : ClusterStateRecordType::e_UPDATE;
-        rc = ClusterStateLedgerUtil::appendRecord(&record,
+        rc = ClusterStateLedgerUtil::appendRecord(record.get(),
                                                   info.d_clusterMessage,
                                                   advisoryIt->first,
                                                   currentTime(),
@@ -283,9 +283,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         }
 
         rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                      record,
+                                      *record,
                                       bmqu::BlobPosition(),
-                                      record.length());
+                                      record->length());
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
         }
@@ -343,9 +343,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     ClusterMessageInfo info;
     info.d_clusterMessage.choice().makeLeaderAdvisory(leaderAdvisory);
 
-    bdlbb::Blob record(d_bufferFactory_p, d_allocator_p);
-    rc = ClusterStateLedgerUtil::appendRecord(
-        &record,
+    bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
+    rc                                  = ClusterStateLedgerUtil::appendRecord(
+        record.get(),
         info.d_clusterMessage,
         leaderAdvisory.sequenceNumber(),
         currentTime(),
@@ -355,9 +355,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     }
 
     rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                  record,
+                                  *record,
                                   bmqu::BlobPosition(),
-                                  record.length());
+                                  record->length());
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
     }
@@ -415,8 +415,8 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     }
 
     // Do leader logic: apply and broadcast advisory, then apply its ack
-    bdlbb::Blob advisoryRecord(d_bufferFactory_p, d_allocator_p);
-    int         rc = ClusterStateLedgerUtil::appendRecord(&advisoryRecord,
+    bsl::shared_ptr<bdlbb::Blob> advisoryRecord = d_blobSpPool_p->getObject();
+    int rc = ClusterStateLedgerUtil::appendRecord(advisoryRecord.get(),
                                                   clusterMessage,
                                                   sequenceNumber,
                                                   currentTime(),
@@ -425,7 +425,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
         return 10 * rc + rc_CREATE_RECORD_FAILURE;  // RETURN
     }
 
-    rc = applyRecordInternal(advisoryRecord,
+    rc = applyRecordInternal(*advisoryRecord,
                              0,
                              clusterMessage,
                              sequenceNumber,
@@ -523,8 +523,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
-            bdlbb::Blob advisoryEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&advisoryEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(advisoryEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 advisoryEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -543,9 +545,9 @@ int IncoreClusterStateLedger::applyRecordInternal(
         ackMessage.choice().makeLeaderAdvisoryAck().sequenceNumberAcked() =
             sequenceNumber;
 
-        bdlbb::Blob ackRecord(d_bufferFactory_p, d_allocator_p);
+        bsl::shared_ptr<bdlbb::Blob> ackRecord = d_blobSpPool_p->getObject();
         rc = ClusterStateLedgerUtil::appendRecord(
-            &ackRecord,
+            ackRecord.get(),
             ackMessage,
             sequenceNumber,
             currentTime(),
@@ -556,7 +558,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
 
         // If leader, apply Ack to self.  Else, reply Ack back to leader
         if (isSelfLeader()) {
-            rc = applyRecordInternal(ackRecord,
+            rc = applyRecordInternal(*ackRecord,
                                      0,
                                      ackMessage,
                                      sequenceNumber,
@@ -566,8 +568,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             }
         }
         else {
-            bdlbb::Blob ackEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&ackEvent, ackRecord);
+            bsl::shared_ptr<bdlbb::Blob> ackEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(ackEvent.get(), *ackRecord);
 
             mqbnet::ClusterNode* leaderNode =
                 d_clusterData_p->electorInfo().leaderNode();
@@ -631,8 +635,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
         }
 
         if (isSelfLeader()) {
-            bdlbb::Blob commitEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&commitEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> commitEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(commitEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 commitEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -694,9 +700,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
                           << ", creating and applying commit advisory: "
                           << commitMessage << ".";
 
-            bdlbb::Blob commitRecord(d_bufferFactory_p, d_allocator_p);
+            bsl::shared_ptr<bdlbb::Blob> commitRecord =
+                d_blobSpPool_p->getObject();
             rc = ClusterStateLedgerUtil::appendRecord(
-                &commitRecord,
+                commitRecord.get(),
                 commitMessage,
                 commitAdvisory.sequenceNumber(),
                 currentTime(),
@@ -705,7 +712,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
                 return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
             }
 
-            rc = applyRecordInternal(commitRecord,
+            rc = applyRecordInternal(*commitRecord,
                                      0,
                                      commitMessage,
                                      commitAdvisory.sequenceNumber(),
@@ -1177,12 +1184,12 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     ClusterStateLedgerConsistency::Enum consistencyLevel,
     ClusterData*                        clusterData,
     ClusterState*                       clusterState,
-    bdlbb::BlobBufferFactory*           bufferFactory,
+    BlobSpPool*                         blobSpPool_p,
     bslma::Allocator*                   allocator)
 : d_allocator_p(allocator)
 , d_isFirstLeaderAdvisory(true)
 , d_isOpen(false)
-, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_description(allocator)
 , d_commitCb()
 , d_clusterData_p(clusterData)

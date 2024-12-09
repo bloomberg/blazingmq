@@ -147,6 +147,9 @@ LogControllerConfig::LogControllerConfig(bslma::Allocator* allocator)
 , d_syslogAppName("")
 , d_syslogVerbosity(ball::Severity::ERROR)
 , d_categories(allocator)
+, d_recordBufferSizeBytes(32 * 1024)  // 32 KB
+, d_recordingVerbosity(ball::Severity::OFF)
+, d_triggerVerbosity(ball::Severity::OFF)
 {
     // NOTHING
 }
@@ -167,6 +170,9 @@ LogControllerConfig::LogControllerConfig(const LogControllerConfig& other,
 , d_syslogAppName(other.d_syslogAppName, allocator)
 , d_syslogVerbosity(other.d_syslogVerbosity)
 , d_categories(other.d_categories, allocator)
+, d_recordBufferSizeBytes(other.d_recordBufferSizeBytes)
+, d_recordingVerbosity(other.d_recordingVerbosity)
+, d_triggerVerbosity(other.d_triggerVerbosity)
 {
     // NOTHING
 }
@@ -189,6 +195,9 @@ LogControllerConfig::operator=(const LogControllerConfig& rhs)
         d_syslogAppName            = rhs.d_syslogAppName;
         d_syslogVerbosity          = rhs.d_syslogVerbosity;
         d_categories               = rhs.d_categories;
+        d_recordBufferSizeBytes    = rhs.d_recordBufferSizeBytes;
+        d_recordingVerbosity       = rhs.d_recordingVerbosity;
+        d_triggerVerbosity         = rhs.d_triggerVerbosity;
     }
 
     return *this;
@@ -227,169 +236,6 @@ int LogControllerConfig::addCategoryProperties(const bsl::string& properties)
 void LogControllerConfig::clearCategoriesProperties()
 {
     d_categories.clear();
-}
-
-int LogControllerConfig::fromDatum(bsl::ostream&      errorDescription,
-                                   const bdld::Datum& datum)
-{
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS           = 0,
-        rc_INVALID_DATUM     = -1,
-        rc_INVALID_KEY_TYPE  = -2,
-        rc_INVALID_KEY_VALUE = -3,
-        rc_UNSET_VALUE       = -4,
-        rc_UNKNOWN_KEY       = -5
-    };
-
-    if (!datum.isMap()) {
-        errorDescription << "The specified datum must be a map";
-        return rc_INVALID_DATUM;  // RETURN
-    }
-
-#define PARSE_ENTRY(ENTRY, FIELD, TYPE, KEY_STR, KEY_PATH)                    \
-    if (bdlb::String::areEqualCaseless(ENTRY.key(), KEY_STR)) {               \
-        if (!ENTRY.value().is##TYPE()) {                                      \
-            errorDescription << "Key '" << #KEY_PATH << "' type must be a "   \
-                             << #TYPE;                                        \
-            return rc_INVALID_KEY_TYPE;                                       \
-        }                                                                     \
-        FIELD = ENTRY.value().the##TYPE();                                    \
-        continue;                                                             \
-    }
-
-#define PARSE_CONF(FIELD, TYPE, KEY_STR)                                      \
-    PARSE_ENTRY(entry, FIELD, TYPE, KEY_STR, KEY_STR)
-
-#define PARSE_SYSLOG(FIELD, TYPE, KEY_STR)                                    \
-    PARSE_ENTRY(syslog, FIELD, TYPE, KEY_STR, "syslog/" + KEY_STR)
-
-    double      fileMaxAgeDays = -1;
-    double      rotationBytes  = -1;
-    bsl::string loggingVerbosityStr;
-    bsl::string bslsLogSeverityStr;
-    bsl::string consoleSeverityStr;
-    bsl::string syslogVerbosityStr;
-
-    // Iterate over each keys of the datum map..
-    for (bsl::size_t i = 0; i < datum.theMap().size(); ++i) {
-        const bdld::DatumMapEntry& entry = datum.theMap().data()[i];
-        PARSE_CONF(d_fileName, String, "fileName");
-        PARSE_CONF(fileMaxAgeDays, Double, "fileMaxAgeDays");
-        PARSE_CONF(rotationBytes, Double, "rotationBytes");
-        PARSE_CONF(d_logfileFormat, String, "logfileFormat");
-        PARSE_CONF(d_consoleFormat, String, "consoleFormat");
-        PARSE_CONF(loggingVerbosityStr, String, "loggingVerbosity");
-        PARSE_CONF(bslsLogSeverityStr, String, "bslsLogSeverityThreshold");
-        PARSE_CONF(consoleSeverityStr, String, "consoleSeverityThreshold");
-
-        if (bdlb::String::areEqualCaseless(entry.key(), "categories")) {
-            if (!entry.value().isArray()) {
-                errorDescription << "Key 'categories' must be an array";
-                return rc_INVALID_KEY_TYPE;  // RETURN
-            }
-            bdld::DatumArrayRef array = entry.value().theArray();
-            for (bsls::Types::size_type idx = 0; idx < array.length(); ++idx) {
-                if (!array[idx].isString()) {
-                    errorDescription << "Invalid type for categories[" << idx
-                                     << "]: must be a string";
-                    return rc_INVALID_KEY_TYPE;  // RETURN
-                }
-                int rc = addCategoryProperties(array[idx].theString());
-                if (rc != 0) {
-                    errorDescription << "Invalid string format for categories"
-                                     << "[" << idx << "] [rc: " << rc << "]";
-                    return rc_INVALID_KEY_VALUE;  // RETURN
-                }
-            }
-            continue;  // CONTINUE
-        }
-
-        if (bdlb::String::areEqualCaseless(entry.key(), "syslog")) {
-            if (!entry.value().isMap()) {
-                errorDescription << "Key 'syslog' must be a map";
-                return rc_INVALID_KEY_TYPE;  // RETURN
-            }
-
-            bdld::DatumMapRef syslogConfig = entry.value().theMap();
-            for (bsl::size_t j = 0; j < syslogConfig.size(); ++j) {
-                const bdld::DatumMapEntry& syslog = syslogConfig.data()[j];
-
-                PARSE_SYSLOG(d_syslogEnabled, Boolean, "enabled");
-                PARSE_SYSLOG(d_syslogFormat, String, "logFormat");
-                PARSE_SYSLOG(d_syslogAppName, String, "appName");
-                PARSE_SYSLOG(syslogVerbosityStr, String, "verbosity");
-
-                // In a normal workflow should just 'continue'
-                errorDescription << "Unknown key 'syslog/" << syslog.key()
-                                 << "'";
-                return rc_UNKNOWN_KEY;  // RETURN
-            }
-
-            continue;  // CONTINUE
-        }
-
-        // In a normal workflow should just 'continue'
-        errorDescription << "Unknown key '" << entry.key() << "'";
-        return rc_UNKNOWN_KEY;  // RETURN
-    }
-
-#undef PARSE_SYSLOG
-#undef PARSE_CONF
-#undef PARSE_ENTRY
-
-    if (fileMaxAgeDays <= 0) {
-        errorDescription << "Unset key 'fileMaxAgeDays'";
-        return rc_UNSET_VALUE;  // RETURN
-    }
-    else {
-        d_fileMaxAgeDays = static_cast<int>(fileMaxAgeDays);
-    }
-
-    if (rotationBytes <= 0) {
-        errorDescription << "Unset key 'rotationBytes'";
-        return rc_UNSET_VALUE;  // RETURN
-    }
-    else {
-        d_rotationBytes = static_cast<int>(rotationBytes);
-    }
-
-    if (ball::SeverityUtil::fromAsciiCaseless(&d_loggingVerbosity,
-                                              loggingVerbosityStr.c_str()) !=
-        0) {
-        errorDescription << "Invalid value for 'loggingVerbosity' ('"
-                         << loggingVerbosityStr << "')";
-        return rc_INVALID_KEY_VALUE;  // RETURN
-    }
-
-    ball::Severity::Level bslsSeverityAsBal;
-    if (ball::SeverityUtil::fromAsciiCaseless(&bslsSeverityAsBal,
-                                              bslsLogSeverityStr.c_str()) !=
-        0) {
-        errorDescription << "Invalid value for 'bslsLogSeverityThreshold' ('"
-                         << bslsLogSeverityStr << "')";
-        return rc_INVALID_KEY_VALUE;  // RETURN
-    }
-    d_bslsLogSeverityThreshold = LogControllerConfig::balToBslsLogLevel(
-        bslsSeverityAsBal);
-
-    if (ball::SeverityUtil::fromAsciiCaseless(&d_consoleSeverityThreshold,
-                                              consoleSeverityStr.c_str()) !=
-        0) {
-        errorDescription << "Invalid value for 'consoleSeverityThreshold' ('"
-                         << consoleSeverityStr << "')";
-        return rc_INVALID_KEY_VALUE;  // RETURN
-    }
-
-    if (d_syslogEnabled && ball::SeverityUtil::fromAsciiCaseless(
-                               &d_syslogVerbosity,
-                               syslogVerbosityStr.c_str()) != 0) {
-        errorDescription << "Invalid value for 'syslog/verbosity' ('"
-                         << syslogVerbosityStr << "')";
-        return rc_INVALID_KEY_VALUE;  // RETURN
-    }
-
-    return rc_SUCCESS;
 }
 
 // -------------------
@@ -642,7 +488,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
     // -------------
     // LoggerManager
     ball::LoggerManagerConfiguration lmc;
-    lmc.setLogOrder(ball::LoggerManagerConfiguration::LIFO);
+    lmc.setLogOrder(ball::LoggerManagerConfiguration::FIFO);
     lmc.setDefaultThresholdLevelsCallback(bdlf::BindUtil::bind(
         &ball::LoggerFunctorPayloads::loadParentCategoryThresholdValues,
         bdlf::PlaceHolders::_1,
@@ -651,7 +497,7 @@ int LogController::initialize(bsl::ostream&              errorDescription,
         bdlf::PlaceHolders::_4,
         bdlf::PlaceHolders::_5,
         '.'));
-    rc = lmc.setDefaultRecordBufferSizeIfValid(32768);
+    rc = lmc.setDefaultRecordBufferSizeIfValid(config.recordBufferSizeBytes());
     if (rc != 0) {
         errorDescription << "Unable to set default record buffer size on lmc "
                          << "[rc: " << rc << "]";
@@ -740,7 +586,9 @@ int LogController::initialize(bsl::ostream&              errorDescription,
 
     // -------------
     // Configuration
-    setVerbosityLevel(config.loggingVerbosity());
+    setVerbosityLevel(config.loggingVerbosity(),
+                      config.recordingVerbosity(),
+                      config.triggerVerbosity());
 
     const LogControllerConfig::CategoryPropertiesMap& categories =
         config.categoriesProperties();
@@ -828,18 +676,20 @@ void LogController::shutdown()
     d_isInitialized = false;
 }
 
-void LogController::setVerbosityLevel(ball::Severity::Level verbosity)
+void LogController::setVerbosityLevel(ball::Severity::Level passVerbosity,
+                                      ball::Severity::Level recordVerbosity,
+                                      ball::Severity::Level triggerVerbosity)
 {
     ball::Administration::setDefaultThresholdLevels(
-        ball::Severity::OFF,   // recording level
-        verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
+        recordVerbosity,       // recording level
+        passVerbosity,         // passthrough level
+        triggerVerbosity,      // trigger level
         ball::Severity::OFF);  // triggerAll level
     ball::Administration::setThresholdLevels(
         "*",
-        ball::Severity::OFF,   // recording level
-        verbosity,             // passthrough level
-        ball::Severity::OFF,   // trigger level
+        recordVerbosity,       // recording level
+        passVerbosity,         // passthrough level
+        triggerVerbosity,      // trigger level
         ball::Severity::OFF);  // triggerAll level
 }
 

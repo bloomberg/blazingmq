@@ -762,7 +762,9 @@ class TestBench {
     /// this testbench's `ClientSession`.
     void openQueue(const bsl::string& uri, const int queueId)
     {
-        bmqp::SchemaEventBuilder     obj(&d_bufferFactory, d_allocator_p);
+        bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::OpenQueue&     openQueue =
             controlMessage.choice().makeOpenQueue();
@@ -778,7 +780,7 @@ class TestBench {
         int rc = obj.setMessage(controlMessage, bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
 
-        bmqp::Event event(&obj.blob(), d_allocator_p);
+        bmqp::Event event(obj.blob().get(), d_allocator_p);
 
         d_cs.processEvent(event);
     }
@@ -787,7 +789,9 @@ class TestBench {
     /// this testbench's `ClientSession`.
     void closeQueue(const bsl::string& uri, const int queueId)
     {
-        bmqp::SchemaEventBuilder     obj(&d_bufferFactory, d_allocator_p);
+        bmqp::SchemaEventBuilder     obj(&d_blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
         bmqp_ctrlmsg::ControlMessage controlMessage(d_allocator_p);
         bmqp_ctrlmsg::CloseQueue&    closeQueue =
             controlMessage.choice().makeCloseQueue();
@@ -804,7 +808,7 @@ class TestBench {
         int rc = obj.setMessage(controlMessage, bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
 
-        bmqp::Event event(&obj.blob(), d_allocator_p);
+        bmqp::Event event(obj.blob().get(), d_allocator_p);
 
         d_cs.processEvent(event);
     }
@@ -1908,7 +1912,7 @@ static void test9_newStylePush()
     bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+    bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
                         bmqtst::TestHelperUtil::allocator());
@@ -1927,7 +1931,8 @@ static void test9_newStylePush()
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
     mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
-    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event           rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
@@ -1937,17 +1942,11 @@ static void test9_newStylePush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    bsl::shared_ptr<bdlbb::Blob> blobSp;
-    blobSp.createInplace(bmqtst::TestHelperUtil::allocator(),
-                         &tb.d_bufferFactory,
-                         bmqtst::TestHelperUtil::allocator());
-    *blobSp = peb.blob();
-
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())
-        .setBlob(blobSp);  // const bsl::shared_ptr<bdlbb::Blob>& value
+        .setBlob(peb.blob());  // const bsl::shared_ptr<bdlbb::Blob>& value
 
     tb.dispatch(putEvent);
 
@@ -2023,7 +2022,7 @@ static void test10_newStyleCompressedPush()
     bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
 
-    bmqp::PutEventBuilder peb(&tb.d_bufferFactory,
+    bmqp::PutEventBuilder peb(&tb.d_blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob           payload(&tb.d_bufferFactory,
                         bmqtst::TestHelperUtil::allocator());
@@ -2043,7 +2042,8 @@ static void test10_newStyleCompressedPush()
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
     mqbi::DispatcherEvent putEvent(bmqtst::TestHelperUtil::allocator());
-    bmqp::Event rawEvent(&peb.blob(), bmqtst::TestHelperUtil::allocator());
+    bmqp::Event           rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
     BSLS_ASSERT(rawEvent.isPutEvent());
@@ -2053,17 +2053,11 @@ static void test10_newStyleCompressedPush()
     rawEvent.loadPutMessageIterator(&putIt, false);
     BSLS_ASSERT(putIt.next());
 
-    bsl::shared_ptr<bdlbb::Blob> blobSp;
-    blobSp.createInplace(bmqtst::TestHelperUtil::allocator(),
-                         &tb.d_bufferFactory,
-                         bmqtst::TestHelperUtil::allocator());
-    *blobSp = peb.blob();
-
     putEvent.setType(mqbi::DispatcherEventType::e_PUT)
         .setIsRelay(true)     // Relay message
         .setSource(&tb.d_cs)  // DispatcherClient *value
         .setPutHeader(putIt.header())
-        .setBlob(blobSp)  // const bsl::shared_ptr<bdlbb::Blob>& value
+        .setBlob(peb.blob())  // const bsl::shared_ptr<bdlbb::Blob>& value
         .setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::e_ZLIB);
 
     tb.dispatch(putEvent);

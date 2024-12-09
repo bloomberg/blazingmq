@@ -790,6 +790,9 @@ class Elector : public SessionEventProcessor {
     BALL_LOG_SET_CLASS_CATEGORY("MQBNET.ELECTOR");
 
   public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
     // PUBLIC CLASS DATA
     static const bsls::Types::Uint64 k_INVALID_TERM =
         ElectorStateMachine::k_INVALID_TERM;
@@ -833,7 +836,7 @@ class Elector : public SessionEventProcessor {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
+    BlobSpPool* d_blobSpPool_p;
 
     mqbi::Cluster* d_cluster_p;
 
@@ -1008,13 +1011,13 @@ class Elector : public SessionEventProcessor {
     /// Create an elector instance with the specified `config`, invoking the
     /// specified `callback` whenever elector state changes, using the
     /// specified `cluster` for emitting I/O events, using the specified
-    /// `initalTerm` and using the specified `bufferFactory` for blobs
+    /// `initalTerm` and using the specified `blobSpPool_p` for blobs
     /// allocation and `allocator` for memory allocation.
     Elector(mqbcfg::ElectorConfig&      config,
             mqbi::Cluster*              cluster,
             const ElectorStateCallback& callback,
             bsls::Types::Uint64         initialTerm,
-            bdlbb::BlobBufferFactory*   bufferFactory,
+            BlobSpPool*                 blobSpPool_p,
             bslma::Allocator*           allocator);
 
     /// Destroy this instance.  Behavior is undefined unless this instance

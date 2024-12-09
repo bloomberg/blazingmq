@@ -76,7 +76,7 @@ struct ClusterNodeTestImp : bsls::ProtocolTestImp<mqbnet::ClusterNode> {
     void closeChannel() BSLS_KEYWORD_OVERRIDE { markDone(); }
 
     bmqt::GenericResult::Enum
-    write(const bdlbb::Blob&    blob,
+    write(const bsl::shared_ptr<bdlbb::Blob>& blob,
           bmqp::EventType::Enum type = bmqp::EventType::e_CONTROL)
         BSLS_KEYWORD_OVERRIDE
     {
@@ -129,14 +129,15 @@ struct ClusterTestImp : bsls::ProtocolTestImp<mqbnet::Cluster> {
         return markDone();
     }
 
-    int writeAll(const bdlbb::Blob&    blob,
+    int writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
                  bmqp::EventType::Enum type = bmqp::EventType::e_CONTROL)
         BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
 
-    int broadcast(const bdlbb::Blob& blob) BSLS_KEYWORD_OVERRIDE
+    int
+    broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob) BSLS_KEYWORD_OVERRIDE
     {
         return markDone();
     }
@@ -304,7 +305,7 @@ static void test2_ClusterNode()
         PV("Verify that methods are public and virtual");
 
         bsl::weak_ptr<bmqio::Channel> dummyWeakChannel;
-        bdlbb::Blob                   dummyBlob;
+        bsl::shared_ptr<bdlbb::Blob>  dummyBlob_sp;
         bmqp_ctrlmsg::ClientIdentity  identity;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
@@ -315,7 +316,8 @@ static void test2_ClusterNode()
         BSLS_PROTOCOLTEST_ASSERT(testObj, closeChannel());
         BSLS_PROTOCOLTEST_ASSERT(testObj, resetChannel());
         BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 write(dummyBlob, bmqp::EventType::e_CONTROL));
+                                 write(dummyBlob_sp,
+                                       bmqp::EventType::e_CONTROL));
         BSLS_PROTOCOLTEST_ASSERT(testObj, channel());
         BSLS_PROTOCOLTEST_ASSERT(testObj, identity());
         BSLS_PROTOCOLTEST_ASSERT(testObj, nodeId());
@@ -386,7 +388,7 @@ static void test3_Cluster()
         PV("Verify that methods are public and virtual");
 
         mqbnet::ClusterObserver* dummyClusterObserver_p = 0;
-        bdlbb::Blob              dummyBlob;
+        bsl::shared_ptr<bdlbb::Blob> dummyBlob_sp;
         int                      dummyInt = 0;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
@@ -394,9 +396,9 @@ static void test3_Cluster()
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  unregisterObserver(dummyClusterObserver_p));
         BSLS_PROTOCOLTEST_ASSERT(testObj,
-                                 writeAll(dummyBlob,
+                                 writeAll(dummyBlob_sp,
                                           bmqp::EventType::e_CONTROL));
-        BSLS_PROTOCOLTEST_ASSERT(testObj, broadcast(dummyBlob));
+        BSLS_PROTOCOLTEST_ASSERT(testObj, broadcast(dummyBlob_sp));
         BSLS_PROTOCOLTEST_ASSERT(testObj, closeChannels());
         BSLS_PROTOCOLTEST_ASSERT(testObj, lookupNode(dummyInt));
         BSLS_PROTOCOLTEST_ASSERT(testObj, enableRead());

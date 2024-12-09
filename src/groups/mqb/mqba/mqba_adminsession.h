@@ -92,9 +92,6 @@ struct AdminSessionState {
     // Dispatcher client data associated to
     // this session.
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use.
-
     BlobSpPool* d_blobSpPool_p;
     // Pool of shared pointers to blob to
     // use.
@@ -118,14 +115,13 @@ struct AdminSessionState {
 
     // CREATORS
 
-    /// Constructor of a new session state using the specified `dispatcher`,
-    /// `blobSpPool` and `bufferFactory`.  The specified `encodingType` is
-    /// the encoding which the schema event builder will use.  Memory
-    /// allocations are performed using the specified `allocator`.
-    AdminSessionState(BlobSpPool*               blobSpPool,
-                      bdlbb::BlobBufferFactory* bufferFactory,
-                      bmqp::EncodingType::Enum  encodingType,
-                      bslma::Allocator*         allocator);
+    /// Constructor of a new session state using the specified `dispatcher` and
+    /// `blobSpPool`.  The specified `encodingType` is the encoding which the
+    /// schema event builder will use.  Memory allocations are performed using
+    /// the specified `allocator`.
+    AdminSessionState(BlobSpPool*              blobSpPool,
+                      bmqp::EncodingType::Enum encodingType,
+                      bslma::Allocator*        allocator);
 };
 
 // ==================
@@ -230,20 +226,18 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     // CREATORS
 
     /// Constructor of a new session associated to the specified `channel`
-    /// and using the specified `dispatcher`, `blobSpPool`, `bufferFactory`
-    /// and `scheduler`.  The specified `negotiationMessage` represents the
-    /// identity received from the peer during negotiation, and the
-    /// specified `sessionDescription` is the short form description of the
-    /// session.  Memory allocations are performed using the specified
-    /// `allocator`.  The specified `adminEnqueueCb` callback is used to
-    /// enqueue admin commands to entity that is responsible for executing
-    /// admin commands.
+    /// and using the specified `dispatcher`, `blobSpPool` and `scheduler`.
+    /// The specified `negotiationMessage` represents the  identity received
+    /// from the peer during negotiation, and the specified
+    /// `sessionDescription` is the short form description of the session.
+    /// Memory allocations are performed using the specified `allocator`.
+    /// The specified `adminEnqueueCb` callback is used to enqueue admin
+    /// commands to entity that is responsible for executing admin commands.
     AdminSession(const bsl::shared_ptr<bmqio::Channel>&  channel,
                  const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
                  const bsl::string&                      sessionDescription,
                  mqbi::Dispatcher*                       dispatcher,
                  AdminSessionState::BlobSpPool*          blobSpPool,
-                 bdlbb::BlobBufferFactory*               bufferFactory,
                  bdlmt::EventScheduler*                  scheduler,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
                  bslma::Allocator*                             allocator);

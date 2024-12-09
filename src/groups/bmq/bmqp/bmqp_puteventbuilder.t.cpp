@@ -217,6 +217,10 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
         "gid:0",
@@ -257,7 +261,7 @@ static void test1_breathingTest()
         BSLS_ASSERT_OPT(k_NUM_PROPERTIES == msgProps.numProperties());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj.crc32c(), 0U);
@@ -339,8 +343,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -441,7 +445,7 @@ static void test1_breathingTest()
         ASSERT_GT(obj.eventSize(), k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -484,7 +488,7 @@ static void test1_breathingTest()
         BSLS_ASSERT_OPT(k_NUM_PROPERTIES == msgProps.numProperties());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj.crc32c(), 0U);
@@ -566,8 +570,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -674,7 +678,7 @@ static void test1_breathingTest()
         ASSERT_LT(obj.eventSize(), k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -717,7 +721,7 @@ static void test1_breathingTest()
         BSLS_ASSERT_OPT(k_NUM_PROPERTIES == msgProps.numProperties());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj.crc32c(), 0U);
@@ -807,8 +811,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -921,7 +925,7 @@ static void test1_breathingTest()
         ASSERT_LT(obj.eventSize(), k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -965,7 +969,7 @@ static void test1_breathingTest()
         BSLS_ASSERT_OPT(k_NUM_PROPERTIES == msgProps.numProperties());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj.crc32c(), 0U);
@@ -1053,8 +1057,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -1157,7 +1161,7 @@ static void test1_breathingTest()
         ASSERT_GT(obj.eventSize(), k_PAYLOAD_LEN);
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -1201,7 +1205,7 @@ static void test1_breathingTest()
         BSLS_ASSERT_OPT(k_NUM_PROPERTIES == msgProps.numProperties());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
 
         ASSERT_EQ(obj.crc32c(), 0U);
@@ -1283,8 +1287,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -1386,7 +1390,7 @@ static void test1_breathingTest()
         ASSERT_GT(obj.eventSize(), k_PAYLOAD_BIGGER_LEN);
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -1419,7 +1423,7 @@ static void test1_breathingTest()
         PVV("DO NOT USE COMPRESSION FOR RELAYED PUT MESSAGES");
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder obj(&bufferFactory,
+        bmqp::PutEventBuilder obj(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
         ASSERT_EQ(obj.crc32c(), 0U);
         bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
@@ -1491,8 +1495,8 @@ static void test1_breathingTest()
         // Get blob and use bmqp iterator to test.  Note that bmqp event and
         // bmqp iterators are lower than bmqp builders, and thus, can be used
         // to test them.
-        const bdlbb::Blob& eventBlob = obj.blob();
-        bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+        bmqp::Event rawEvent(obj.blob().get(),
+                             bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(rawEvent.isValid());
         BSLS_ASSERT_OPT(rawEvent.isPutEvent());
@@ -1575,7 +1579,7 @@ static void test1_breathingTest()
         ASSERT_GT(obj.eventSize(), payload.length());
         ASSERT_EQ(obj.messageCount(), 1);
 
-        rawEvent.reset(&obj.blob());
+        rawEvent.reset(obj.blob().get());
         rawEvent.loadPutMessageIterator(&putIter, true);
 
         ASSERT_EQ(1, putIter.next());
@@ -1673,7 +1677,11 @@ static void test2_manipulators_one()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
 
     // Properties.
@@ -1734,8 +1742,8 @@ static void test2_manipulators_one()
     }
 
     // Iterate and check
-    const bdlbb::Blob& eventBlob = obj.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(obj.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_OPT(true == rawEvent.isValid());
     BSLS_ASSERT_OPT(true == rawEvent.isPutEvent());
@@ -1821,6 +1829,10 @@ static void test3_eventTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bdlbb::Blob bigMsgPayload(&bufferFactory,
                               bmqtst::TestHelperUtil::allocator());
 #ifdef BMQ_ENABLE_MSG_GROUPID
@@ -1839,7 +1851,7 @@ static void test3_eventTooBig()
                 bigMsgPayload.length());
 
     // Create PutEventBuilder
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
 
     obj.startMessage();
@@ -1870,8 +1882,8 @@ static void test3_eventTooBig()
     // Get blob and use bmqp iterator to test.  Note that bmqp event and bmqp
     // iterators are lower than bmqp builders, and thus, can be used to test
     // them.
-    const bdlbb::Blob& eventBlob = obj.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(obj.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isPutEvent());
@@ -1933,7 +1945,11 @@ static void test4_manipulators_two()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder          obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder          obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   k_NUM_MSGS = 1000;
@@ -1952,8 +1968,8 @@ static void test4_manipulators_two()
     }
 
     // Iterate and check
-    const bdlbb::Blob& eventBlob = obj.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(obj.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isPutEvent());
@@ -2014,7 +2030,11 @@ static void test5_putEventWithZeroLengthMessage()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>     data(bmqtst::TestHelperUtil::allocator());
 
@@ -2029,8 +2049,8 @@ static void test5_putEventWithZeroLengthMessage()
     ASSERT_EQ_D(0, rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Iterate and check
-    const bdlbb::Blob& eventBlob = obj.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(obj.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(true == rawEvent.isValid());
     BSLS_ASSERT(true == rawEvent.isPutEvent());
@@ -2065,6 +2085,10 @@ static void test6_emptyBuilder()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 #ifdef BMQ_ENABLE_MSG_GROUPID
     bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
         "gid:0",
@@ -2083,7 +2107,7 @@ static void test6_emptyBuilder()
 
     const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
 
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.unpackedMessageSize(), 0);
@@ -2155,6 +2179,10 @@ static void test7_multiplePackMessage()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 #ifdef BMQ_ENABLE_MSG_GROUPID
     const bmqp::Protocol::MsgGroupId k_MSG_GROUP_ID(
         "gid:0",
@@ -2191,7 +2219,7 @@ static void test7_multiplePackMessage()
     ASSERT_EQ(k_NUM_PROPERTIES, msgProps.numProperties());
 
     // Create PutEventBuilder
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
 
     ASSERT_EQ(obj.crc32c(), 0U);
@@ -2251,8 +2279,8 @@ static void test7_multiplePackMessage()
     // Get blob and use bmqp iterator to test.  Note that bmqp event and
     // bmqp iterators are lower than bmqp builders, and thus, can be used
     // to test them.
-    const bdlbb::Blob& eventBlob = obj.blob();
-    bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
+    bmqp::Event rawEvent(obj.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     ASSERT(rawEvent.isValid());
     ASSERT(rawEvent.isPutEvent());
@@ -2344,7 +2372,7 @@ static void test7_multiplePackMessage()
 #endif
     ASSERT_EQ(obj.compressionAlgorithmType(),
               bmqt::CompressionAlgorithmType::e_NONE);
-    rawEvent.reset(&obj.blob());
+    rawEvent.reset(obj.blob().get());
     rawEvent.loadPutMessageIterator(&putIter, true);
 
     // we want to test the 3rd message so we call next thrice
@@ -2399,6 +2427,10 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream             os(bmqtst::TestHelperUtil::allocator());
@@ -2439,7 +2471,7 @@ static void testN1_decodeFromFile()
         bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES);
 
     // Create PutEventBuilder
-    bmqp::PutEventBuilder obj(&bufferFactory,
+    bmqp::PutEventBuilder obj(&blobSpPool,
                               bmqtst::TestHelperUtil::allocator());
 
     obj.startMessage();
@@ -2480,7 +2512,7 @@ static void testN1_decodeFromFile()
 
     BSLS_ASSERT(ofile.good() == true);
 
-    bdlbb::BlobUtil::copy(buf, obj.blob(), 0, obj.blob().length());
+    bdlbb::BlobUtil::copy(buf, *obj.blob(), 0, obj.blob()->length());
     ofile.write(buf, k_SIZE);
     ofile.close();
     bsl::memset(buf, 0, k_SIZE);
@@ -2499,9 +2531,9 @@ static void testN1_decodeFromFile()
     bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, k_SIZE);
 
     outBlob.appendDataBuffer(dataBlobBuffer);
-    outBlob.setLength(obj.blob().length());
+    outBlob.setLength(obj.blob()->length());
 
-    ASSERT_EQ(bdlbb::BlobUtil::compare(obj.blob(), outBlob), 0);
+    ASSERT_EQ(bdlbb::BlobUtil::compare(*obj.blob(), outBlob), 0);
 
     // Decode event
     bmqp::Event rawEvent(&outBlob, bmqtst::TestHelperUtil::allocator());

@@ -787,7 +787,7 @@ MessageEventBuilder Session::createMessageEventBuilder()
     eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
 
     eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->bufferFactory());
+        d_impl.d_application_mp->blobSpPool());
 
     return builder;
 }
@@ -814,7 +814,7 @@ void Session::loadMessageEventBuilder(MessageEventBuilder* builder)
     eventImplSpRef = d_impl.d_application_mp->brokerSession().createEvent();
 
     eventImplSpRef->configureAsMessageEvent(
-        d_impl.d_application_mp->bufferFactory());
+        d_impl.d_application_mp->blobSpPool());
 }
 
 void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
@@ -837,7 +837,7 @@ void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
     }
 
     new (builderImplRef.d_buffer.buffer())
-        bmqp::ConfirmEventBuilder(d_impl.d_application_mp->bufferFactory(),
+        bmqp::ConfirmEventBuilder(d_impl.d_application_mp->blobSpPool(),
                                   d_impl.d_allocator_p);
 
     builderImplRef.d_builder_p = reinterpret_cast<bmqp::ConfirmEventBuilder*>(

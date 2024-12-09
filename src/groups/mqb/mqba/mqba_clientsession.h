@@ -155,7 +155,7 @@ struct ClientSessionState {
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
 
-    bsl::deque<bdlbb::Blob> d_channelBufferQueue;
+    bsl::deque<bsl::shared_ptr<bdlbb::Blob> > d_channelBufferQueue;
     // Queue of data pending being sent to
     // the client.  This should almost
     // always be empty, and is meant to
@@ -183,8 +183,10 @@ struct ClientSessionState {
     // context for any queue in this
     // domain.
 
+    /// Blob buffer factory to use.
+    /// TODO: this field should be removed once we retire the code for
+    ///       message properties conversion.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use.
 
     BlobSpPool* d_blobSpPool_p;
     // Pool of shared pointers to blob to
@@ -427,8 +429,10 @@ class ClientSession : public mqbnet::Session,
     /// ACK) will be flushed and sent before `blob`; this is necessary to
     /// guarantee strict serialization of events when sending a control
     /// message.
-    void sendPacket(const bdlbb::Blob& blob, bool flushBuilders);
-    void sendPacketDispatched(const bdlbb::Blob& blob, bool flushBuilders);
+    void sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                    bool                                flushBuilders);
+    void sendPacketDispatched(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                              bool flushBuilders);
 
     /// Flush as much as possible of the content of the internal
     /// `channelBufferQueue`.

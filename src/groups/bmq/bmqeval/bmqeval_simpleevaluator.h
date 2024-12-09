@@ -39,20 +39,21 @@
 /// Basic Usage Example
 ///-------------------
 //
+// bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator();
+//
 // SimpleEvaluator evaluator;
 // bsl::string     expression = "foo < 3 | bar > 4";
 //
-// CompilationContext compilationContext(s_allocator_p);
+// CompilationContext compilationContext(allocator);
 //
 // if (int rc = evaluator.compile(expression, compilationContext)) {
 //     bsl::cerr << compilationContext.lastErrorMessage() << "\n";
 //     // don't use evaluator
 // }
 //
-// MockPropertiesReader reader(s_allocator_p);
-// EvaluationContext evaluationContext(&reader,
-// bmqtst::TestHelperUtil::allocator()); bool result =
-// evaluator.evaluate(evaluationContext);
+// MockPropertiesReader reader(allocator);
+// EvaluationContext    evaluationContext(&reader, allocator);
+// bool                 result = evaluator.evaluate(evaluationContext);
 //..
 
 // BDE

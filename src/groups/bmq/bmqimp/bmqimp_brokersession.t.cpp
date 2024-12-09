@@ -21,6 +21,7 @@
 #include <bmqimp_manualhosthealthmonitor.h>
 #include <bmqimp_queue.h>
 #include <bmqp_ackeventbuilder.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_confirmeventbuilder.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
@@ -396,6 +397,9 @@ struct TestSession BSLS_CPP11_FINAL {
     // Buffer factory provided to the
     // various builders
 
+    /// Blob pool used to provide blobs to event builders.
+    bmqp::BlobPoolUtil::BlobSpPool d_blobSpPool;
+
     bdlmt::EventScheduler& d_scheduler;
     // event scheduler used in the
     // broker session
@@ -450,8 +454,8 @@ struct TestSession BSLS_CPP11_FINAL {
     // ACCESSORS
     bmqimp::BrokerSession&    session();
     bmqio::TestChannel&       channel();
-    bslma::Allocator*         allocator();
-    bdlbb::BlobBufferFactory& blobBufferFactory();
+    bslma::Allocator*               allocator();
+    bmqp::BlobPoolUtil::BlobSpPool& blobSpPool();
 
     // MANIPULATORS
 
@@ -838,11 +842,15 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_blobBufferFactory(1024, d_allocator_p)
+, d_blobSpPool(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator()))
 , d_scheduler(scheduler)
 , d_testChannel(d_allocator_p)
 , d_eventQueue(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
+                  &d_blobSpPool,
                   sessionOptions,
                   useEventHandler
                       ? bdlf::BindUtil::bind(&sessionEventHandler,
@@ -870,11 +878,15 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_blobBufferFactory(1024, d_allocator_p)
+, d_blobSpPool(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator()))
 , d_scheduler(testClock.d_scheduler)
 , d_testChannel(d_allocator_p)
 , d_eventQueue(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
+                  &d_blobSpPool,
                   sessionOptions,
                   useEventHandler
                       ? bdlf::BindUtil::bind(&sessionEventHandler,
@@ -926,9 +938,9 @@ bslma::Allocator* TestSession::allocator()
     return d_allocator_p;
 }
 
-bdlbb::BlobBufferFactory& TestSession::blobBufferFactory()
+bmqp::BlobPoolUtil::BlobSpPool& TestSession::blobSpPool()
 {
-    return d_blobBufferFactory;
+    return d_blobSpPool;
 }
 
 // MANIPULATORS
@@ -2426,11 +2438,13 @@ void TestSession::getOutboundControlMessage(
 void TestSession::sendControlMessage(
     const bmqp_ctrlmsg::ControlMessage& message)
 {
-    bmqp::SchemaEventBuilder builder(&d_blobBufferFactory, d_allocator_p);
+    bmqp::SchemaEventBuilder builder(&d_blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
     int rc = builder.setMessage(message, bmqp::EventType::e_CONTROL);
     ASSERT_EQ(0, rc);
 
-    const bdlbb::Blob& packet = builder.blob();
+    const bdlbb::Blob& packet = *builder.blob();
 
     PVVV_SAFE("Send control message");
     d_brokerSession.processPacket(packet);
@@ -2820,6 +2834,10 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
@@ -2830,6 +2848,7 @@ static void test1_breathingTest()
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         emptyEventHandler,  // emptyEventHandler,
         bdlf::BindUtil::bind(&stateCb,
@@ -2884,6 +2903,10 @@ static void test2_basicAccessorsTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -2894,6 +2917,7 @@ static void test2_basicAccessorsTest()
 
     bmqimp::BrokerSession obj(&scheduler,
                               &blobBufferFactory,
+                              &blobSpPool,
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
@@ -2930,6 +2954,10 @@ static void test3_nullChannelTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
@@ -2942,6 +2970,7 @@ static void test3_nullChannelTest()
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         bdlf::BindUtil::bind(&channelEventHandler,
                              bdlf::PlaceHolders::_1,
@@ -3024,6 +3053,10 @@ static void test4_createEventTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
@@ -3031,6 +3064,7 @@ static void test4_createEventTest()
 
     bmqimp::BrokerSession obj(&scheduler,
                               &blobBufferFactory,
+                              &blobSpPool,
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
@@ -3048,6 +3082,10 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -3077,6 +3115,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         eventCallback,
         bdlf::BindUtil::bind(&stateCb,
@@ -3279,6 +3318,10 @@ static void test6_setChannelTest()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
@@ -3292,6 +3335,7 @@ static void test6_setChannelTest()
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         bdlf::BindUtil::bind(&channelSetEventHandler,
                              bdlf::PlaceHolders::_1,
@@ -3945,6 +3989,10 @@ static void test11_disconnect()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > eventQueue(
         bsls::SystemClockType::e_MONOTONIC,
         bmqtst::TestHelperUtil::allocator());
@@ -3967,6 +4015,7 @@ static void test11_disconnect()
         bmqimp::BrokerSession obj(
             &scheduler,
             &blobBufferFactory,
+            &blobSpPool,
             options,
             bdlf::BindUtil::bind(&sessionEventHandler,
                                  &eventQueue,
@@ -4032,13 +4081,14 @@ static void test11_disconnect()
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory,
+        bmqp::SchemaEventBuilder builder(&blobSpPool,
+                                         bmqp::EncodingType::e_BER,
                                          bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
 
-        obj.processPacket(builder.blob());
+        obj.processPacket(*builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -4072,6 +4122,7 @@ static void test11_disconnect()
         bmqimp::BrokerSession obj(
             &scheduler,
             &blobBufferFactory,
+            &blobSpPool,
             options,
             bmqimp::EventQueue::EventHandlerCallback(),
             bdlf::BindUtil::bind(&stateCb,
@@ -4132,13 +4183,14 @@ static void test11_disconnect()
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory,
+        bmqp::SchemaEventBuilder builder(&blobSpPool,
+                                         bmqp::EncodingType::e_BER,
                                          bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
         ASSERT_EQ(rc, 0);
 
-        obj.processPacket(builder.blob());
+        obj.processPacket(*builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -4692,7 +4744,7 @@ static void test21_post_Limit()
 
     PVV_SAFE("Step 4. Create and post PUT message");
     bmqp::Crc32c::initialize();
-    bmqp::PutEventBuilder builder(&obj.blobBufferFactory(), obj.allocator());
+    bmqp::PutEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -4703,7 +4755,7 @@ static void test21_post_Limit()
     ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS,
               builder.packMessage(pQueue->id()));
 
-    int rc = obj.session().post(builder.blob(), postTimeout);
+    int rc = obj.session().post(*builder.blob(), postTimeout);
 
     PVV_SAFE("Step 5. Ensure the PUT message is accepted");
     ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4718,7 +4770,7 @@ static void test21_post_Limit()
     ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 6. Ensure e_BW_LIMIT is returned for the second post");
-    rc = obj.session().post(builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob(), postTimeout);
 
     ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
     ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
@@ -4732,7 +4784,7 @@ static void test21_post_Limit()
 
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().post(builder.blob(), timeout);
+    rc = obj.session().post(*builder.blob(), timeout);
 
     PVV_SAFE("Step 8. Ensure e_SUCCESS is returned");
     ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4752,7 +4804,7 @@ static void test21_post_Limit()
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().post(builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob(), postTimeout);
 
     PVV_SAFE("Step 10. Ensure e_SUCCESS is returned");
     ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
@@ -4829,15 +4881,14 @@ static void test22_confirm_Limit()
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 4. Create the blob and confirm messages");
-    bmqp::ConfirmEventBuilder builder(&obj.blobBufferFactory(),
-                                      obj.allocator());
+    bmqp::ConfirmEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
     int rc = builder.appendMessage(pQueue->id(),
                                    pQueue->subQueueId(),
                                    bmqt::MessageGUID());
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
-    rc = obj.session().confirmMessages(builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
 
     PVV_SAFE("Step 5. Ensure e_SUCCESS is returned");
     ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4861,7 +4912,7 @@ static void test22_confirm_Limit()
 
     // Call confirm with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().confirmMessages(builder.blob(), timeout);
+    rc = obj.session().confirmMessages(*builder.blob(), timeout);
 
     PVV_SAFE("Step 7. Ensure e_SUCCESS is returned");
     ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
@@ -4879,7 +4930,7 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().confirmMessages(builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
 
     PVV_SAFE("Step 9. Ensure e_SUCCESS");
 
@@ -5713,6 +5764,10 @@ static void test25_sessionFsmTable()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
@@ -5727,6 +5782,7 @@ static void test25_sessionFsmTable()
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         emptyEventHandler,  // emptyEventHandler,
         bdlf::BindUtil::bind(&transitionCb,
@@ -6641,7 +6697,11 @@ static void test33_queueNackTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder          eventBuilder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder          eventBuilder(&blobSpPool,
                                        bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId      corrId(243);
     bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
@@ -6690,7 +6750,7 @@ static void test33_queueNackTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using just event blob
-    int res = obj.session().post(eventBuilder.blob(), timeout);
+    int res = obj.session().post(*eventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -7731,6 +7791,10 @@ static void test40_syncCalledFromEventHandler()
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -7754,6 +7818,7 @@ static void test40_syncCalledFromEventHandler()
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        &blobSpPool,
         sessionOptions,
         bdlf::BindUtil::bind(&eventHandlerSyncCall,
                              &eventSp,
@@ -9028,11 +9093,15 @@ static void test50_putRetransmittingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder     putEventBuilder(&blobSpPool,
                                           bmqtst::TestHelperUtil::allocator());
     bmqp::PutMessageIterator  putIter(&bufferFactory,
                                      bmqtst::TestHelperUtil::allocator());
-    bmqp::AckEventBuilder     ackEventBuilder(&bufferFactory,
+    bmqp::AckEventBuilder     ackEventBuilder(&blobSpPool,
                                           bmqtst::TestHelperUtil::allocator());
     bmqp::Event               rawEvent(bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId corrIdFirst(243);
@@ -9101,7 +9170,7 @@ static void test50_putRetransmittingTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9116,7 +9185,7 @@ static void test50_putRetransmittingTest()
                                   guidFirst,
                                   pQueue->id());
 
-    obj.session().processPacket(ackEventBuilder.blob());
+    obj.session().processPacket(*ackEventBuilder.blob());
 
     bsl::shared_ptr<bmqimp::Event> ackEvent = obj.waitAckEvent();
 
@@ -9147,7 +9216,7 @@ static void test50_putRetransmittingTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9220,7 +9289,7 @@ static void test50_putRetransmittingTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9317,7 +9386,11 @@ static void test51_putRetransmittingNoAckTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder     putEventBuilder(&blobSpPool,
                                           bmqtst::TestHelperUtil::allocator());
     bmqp::PutMessageIterator  putIter(&bufferFactory,
                                      bmqtst::TestHelperUtil::allocator());
@@ -9380,7 +9453,7 @@ static void test51_putRetransmittingNoAckTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
@@ -9405,7 +9478,7 @@ static void test51_putRetransmittingNoAckTest()
     ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
     ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 

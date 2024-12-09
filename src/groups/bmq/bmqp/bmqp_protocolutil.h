@@ -284,13 +284,6 @@ struct ProtocolUtil {
     /// event.
     static const bdlbb::Blob& heartbeatRspBlob();
 
-    /// Return const reference to the pre-allocated empty blob.  If you need
-    /// an empty blob and not going to modify it use this method instead of
-    /// creating another blob.  Heap allocate it to prevent 'exit-time-
-    /// destructor needed' compiler warning.  Causes valgrind-reported
-    /// memory leak.
-    static const bdlbb::Blob& emptyBlob();
-
     /// Hex/Binary conversion
     ///---------------------
 
@@ -413,8 +406,8 @@ struct ProtocolUtil {
     buildEvent(ACTION_FUNCTOR_TYPE&   actionCb,
                OVERFLOW_FUNCTOR_TYPE& overflowCb);
 
-    /// Encode Receipt into the specified `blob` for the specified
-    /// `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
+    /// Encode Receipt into the specified `blob` (expected to be empty) for
+    /// the specified `partitionId`, `primaryLeaseId`, and `sequenceNumber`.
     static void buildReceipt(bdlbb::Blob*        blob,
                              int                 partitionId,
                              unsigned int        primaryLeaseId,
@@ -739,7 +732,8 @@ inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
                                        unsigned int        primaryLeaseId,
                                        bsls::Types::Uint64 sequenceNumber)
 {
-    blob->removeAll();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 == blob->length());
 
     blob->setLength(sizeof(EventHeader) + sizeof(ReplicationReceipt));
 

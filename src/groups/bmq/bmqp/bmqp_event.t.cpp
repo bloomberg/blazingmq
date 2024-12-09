@@ -524,6 +524,10 @@ static void test4_eventLoading()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
 
     struct Test {
         int                      d_line;
@@ -540,11 +544,11 @@ static void test4_eventLoading()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
-                                     bmqtst::TestHelperUtil::allocator(),
-                                     test.d_encodingType);
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     test.d_encodingType,
+                                     bmqtst::TestHelperUtil::allocator());
 
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
         {
             PVV(test.d_line << ": Create a control message");
 
@@ -557,12 +561,12 @@ static void test4_eventLoading()
             // Encode the message
             rc = obj.setMessage(ctrlMessage, bmqp::EventType::e_CONTROL);
             BSLS_ASSERT_OPT(rc == 0);
-            BSLS_ASSERT_OPT(obj.blob().length() > 0);
-            BSLS_ASSERT_OPT(obj.blob().length() % 4 == 0);
+            BSLS_ASSERT_OPT(obj.blob()->length() > 0);
+            BSLS_ASSERT_OPT(obj.blob()->length() % 4 == 0);
 
             PVV(test.d_line << ": Decode and compare message");
 
-            bmqp::Event ctrlEvent(&obj.blob(),
+            bmqp::Event ctrlEvent(obj.blob().get(),
                                   bmqtst::TestHelperUtil::allocator());
 
             ASSERT_EQ(ctrlEvent.isValid(), true);
@@ -582,13 +586,14 @@ static void test4_eventLoading()
         PVV(test.d_line << ": Reset");
 
         obj.reset();
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
 
     {
-        bmqp::SchemaEventBuilder obj(&bufferFactory,
+        bmqp::SchemaEventBuilder obj(&blobSpPool,
+                                     bmqp::EncodingType::e_BER,
                                      bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
 
         PVV(L_ << ": Create an elector message");
 
@@ -599,12 +604,12 @@ static void test4_eventLoading()
         rc = obj.setMessage(electorMsg, bmqp::EventType::e_ELECTOR);
 
         BSLS_ASSERT_OPT(rc == 0);
-        BSLS_ASSERT_OPT(obj.blob().length() > 0);
-        BSLS_ASSERT_OPT(obj.blob().length() % 4 == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() > 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() % 4 == 0);
 
         PVV(L_ << ": Decode and compare message");
 
-        bmqp::Event electorEvent(&obj.blob(),
+        bmqp::Event electorEvent(obj.blob().get(),
                                  bmqtst::TestHelperUtil::allocator());
 
         BSLS_ASSERT_OPT(electorEvent.isValid());
@@ -619,7 +624,7 @@ static void test4_eventLoading()
         PVV(L_ << ": Reset");
 
         obj.reset();
-        BSLS_ASSERT_OPT(obj.blob().length() == 0);
+        BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
 
     bmqp::ProtocolUtil::shutdown();

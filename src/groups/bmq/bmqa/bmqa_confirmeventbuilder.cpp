@@ -100,7 +100,7 @@ const bdlbb::Blob& ConfirmEventBuilder::blob() const
     // PRECONDITIONS
     BSLS_ASSERT(d_impl.d_builder_p);
 
-    return d_impl.d_builder_p->blob();
+    return *d_impl.d_builder_p->blob();
 }
 
 }  // close package namespace
