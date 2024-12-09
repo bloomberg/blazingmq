@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_recordprinter.h>
 #include <m_bmqstoragetool_searchresult.h>
 
 // MQB
@@ -140,16 +141,6 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     }
 }
 
-// Helper to print message GUID as a string
-void outputGuidString(bsl::ostream&            ostream,
-                      const bmqt::MessageGUID& messageGUID,
-                      const bool               addNewLine = true)
-{
-    ostream << messageGUID;
-    if (addNewLine)
-        ostream << '\n';
-}
-
 // Helper to calculate and print outstanding ratio
 void outputOutstandingRatio(bsl::ostream& ostream,
                             bsl::size_t   totalMessagesCount,
@@ -166,16 +157,6 @@ void outputOutstandingRatio(bsl::ostream& ostream,
                 << "% (" << outstandingMessages << "/" << totalMessagesCount
                 << ")" << '\n';
     }
-}
-
-// Helper to print summary of search result
-void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
-{
-    const char* captionForFound    = " message GUID(s) found.";
-    const char* captionForNotFound = "No message GUID found.";
-    foundMessagesCount > 0 ? (ostream << foundMessagesCount << captionForFound)
-                           : ostream << captionForNotFound;
-    ostream << '\n';
 }
 
 }  // close unnamed namespace
@@ -297,13 +278,13 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
 // =======================
 
 SearchShortResult::SearchShortResult(
-    bsl::ostream&                     ostream,
+    bslma::ManagedPtr<PrintManager>&  printManager,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
     bool                              printImmediately,
     bool                              eraseDeleted,
     bool                              printOnDelete,
     bslma::Allocator*                 allocator)
-: d_ostream(ostream)
+: d_printManager(printManager)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
@@ -377,7 +358,7 @@ void SearchShortResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printManager->printFooter(d_printedMessagesCount);
 }
 
 void SearchShortResult::outputResult(const GuidsList& guidFilter)
@@ -392,17 +373,17 @@ void SearchShortResult::outputResult(const GuidsList& guidFilter)
             }
             else {
                 // this should not happen
-                d_ostream << "Logic error : guid " << *it << " not found\n";
+                d_printManager->printError(*it);
             }
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printManager->printFooter(d_printedMessagesCount);
 }
 
 void SearchShortResult::outputGuidData(const GuidData& guidData)
 {
-    outputGuidString(d_ostream, guidData.first);
+    d_printManager->printGuid(guidData.first);
     if (d_payloadDumper)
         d_payloadDumper->outputPayload(guidData.second);
 
@@ -419,15 +400,15 @@ bool SearchShortResult::hasCache() const
 // ========================
 
 SearchDetailResult::SearchDetailResult(
-    bsl::ostream&                     ostream,
     const QueueMap&                   queueMap,
+    bslma::ManagedPtr<PrintManager>&  printManager,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
     bool                              printImmediately,
     bool                              eraseDeleted,
     bool                              cleanUnprinted,
     bslma::Allocator*                 allocator)
-: d_ostream(ostream)
-, d_queueMap(queueMap)
+: d_queueMap(queueMap)
+, d_printManager(printManager)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
@@ -495,7 +476,7 @@ void SearchDetailResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printManager->printFooter(d_printedMessagesCount);
 }
 
 void SearchDetailResult::outputResult(const GuidsList& guidFilter)
@@ -510,12 +491,12 @@ void SearchDetailResult::outputResult(const GuidsList& guidFilter)
             }
             else {
                 // this should not happen
-                d_ostream << "Logic error : guid " << *it << " not found\n";
+                d_printManager->printError(*it);
             }
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printManager->printFooter(d_printedMessagesCount);
 }
 
 void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
@@ -524,9 +505,12 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
 {
     d_messageDetailsMap.emplace(
         record.messageGUID(),
-        d_messageDetailsList.insert(
-            d_messageDetailsList.cend(),
-            MessageDetails(record, recordIndex, recordOffset, d_allocator_p)));
+        d_messageDetailsList.insert(d_messageDetailsList.cend(),
+                                    MessageDetails(record,
+                                                   recordIndex,
+                                                   recordOffset,
+                                                   d_queueMap,
+                                                   d_allocator_p)));
 }
 
 void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
@@ -539,7 +523,7 @@ void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
 void SearchDetailResult::outputMessageDetails(
     const MessageDetails& messageDetails)
 {
-    messageDetails.print(d_ostream, d_queueMap);
+    d_printManager->printMessage(messageDetails);
     if (d_payloadDumper)
         d_payloadDumper->outputPayload(messageDetails.dataRecordOffset());
 
@@ -779,7 +763,7 @@ void SearchGuidDecorator::outputResult()
                   << " GUID(s) not found:" << '\n';
         GuidsList::const_iterator it = d_guids.cbegin();
         for (; it != d_guids.cend(); ++it) {
-            outputGuidString(d_ostream, *it);
+            d_ostream << *it << '\n';
         }
     }
 }

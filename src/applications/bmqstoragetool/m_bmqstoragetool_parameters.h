@@ -65,6 +65,8 @@ struct CommandLineArguments {
     // Path to read data files from
     bsl::string d_cslFile;
     // Path to read CSL files from
+    bsl::string d_printMode;
+    // Print mode
     bsl::vector<bsl::string> d_guid;
     // Filter messages by message guids
     bsl::vector<bsl::string> d_queueKey;
@@ -95,9 +97,13 @@ struct CommandLineArguments {
 };
 
 struct Parameters {
+    // PUBLIC TYPES
+    enum PrintMode { e_HUMAN, e_JSON_PRETTY, e_JSON_LINE };
     // PUBLIC DATA
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
+    PrintMode d_printMode;
+    // Print mode
     bsls::Types::Int64 d_timestampGt;
     // Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampLt;

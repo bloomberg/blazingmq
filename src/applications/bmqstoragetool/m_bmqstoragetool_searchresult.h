@@ -47,6 +47,7 @@
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_payloaddumper.h>
+#include <m_bmqstoragetool_recordprinter.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -133,8 +134,8 @@ class SearchShortResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
+    const bslma::ManagedPtr<PrintManager> d_printManager;
+    // Pointer to 'PrintManager' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -171,7 +172,7 @@ class SearchShortResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
-    explicit SearchShortResult(bsl::ostream&                     ostream,
+    explicit SearchShortResult(bslma::ManagedPtr<PrintManager>&  printManager,
                                bslma::ManagedPtr<PayloadDumper>& payloadDumper,
                                bool              printImmediately = true,
                                bool              eraseDeleted     = false,
@@ -213,6 +214,7 @@ class SearchShortResult : public SearchResult {
 // ========================
 
 /// This class provides logic to handle and output detail result.
+// template <typename PRINTER_TYPE>
 class SearchDetailResult : public SearchResult {
   private:
     // PRIVATE TYPES
@@ -225,10 +227,10 @@ class SearchDetailResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
+    const bslma::ManagedPtr<PrintManager> d_printManager;
+    // Pointer to 'PrintManager' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -277,8 +279,8 @@ class SearchDetailResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
-    SearchDetailResult(bsl::ostream&                     ostream,
-                       const QueueMap&                   queueMap,
+    SearchDetailResult(const QueueMap&                   queueMap,
+                       bslma::ManagedPtr<PrintManager>&  printManager,
                        bslma::ManagedPtr<PayloadDumper>& payloadDumper,
                        bool              printImmediately = true,
                        bool              eraseDeleted     = true,
