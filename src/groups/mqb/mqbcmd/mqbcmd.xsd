@@ -28,7 +28,7 @@
       <element   name='encoding'       type='tns:EncodingFormat' default='TEXT'/>
     </sequence>
   </complexType>
-  
+
   <simpleType name='EncodingFormat'>
     <annotation>
       <documentation>
@@ -306,6 +306,7 @@
   <complexType name="DomainCommand">
     <choice>
       <element name="purge"           type="tns:Void"/>
+      <element name="remove"          type="tns:Void"/>
       <element name="info"            type="tns:Void"/>
       <element name="queue"           type="tns:DomainQueue"/>
     </choice>

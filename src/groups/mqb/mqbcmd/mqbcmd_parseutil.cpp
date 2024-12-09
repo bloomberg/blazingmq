@@ -406,6 +406,10 @@ int parseDomainCommand(Domain* domain, bsl::string* error, WordGenerator next)
         domain->command().makePurge();
         return expectEnd(error, next);  // RETURN
     }
+    else if (equalCaseless(subCommand, "REMOVE")) {
+        domain->command().makeRemove();
+        return expectEnd(error, next);  // RETURN
+    }
     else if (equalCaseless(subCommand, "INFOS")) {
         domain->command().makeInfo();
         return expectEnd(error, next);  // RETURN
