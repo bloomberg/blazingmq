@@ -26,7 +26,7 @@
  <tr style="height: 56px;">
   <td id="projectalign" style="padding-left: 0.5em;">
    <div id="projectname">libbmq
-   &#160;<span id="projectnumber">90b398b0b9bec2e1be4bff7a667bb1c8537f9dcf</span>
+   &#160;<span id="projectnumber">1739af070f899680291bb2c1b4bf0f93f9690c80</span>
    </div>
   </td>
  </tr>
@@ -304,19 +304,20 @@ Example 1</h2>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Make a call to startAsync and emit the event that is enqueued from</span></div>
 <div class="line">    <span class="comment">// that call.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.startAsync(), 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.startAsync(), 0);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Emit our enqueued event.  This fully sets up the session which is</span></div>
 <div class="line">    <span class="comment">// now ready to use.  Typically you would have some business logic on</span></div>
 <div class="line">    <span class="comment">// &#39;e_CONNECTED&#39; that makes your application ready to use.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Our event handler internally just stores the event emitted, so pop</span></div>
 <div class="line">    <span class="comment">// it out and examine.</span></div>
 <div class="line">    bmqa::SessionEvent startEvent(eventHandler.popSessionEvent());</div>
 <div class="line"> </div>
-<div class="line">    ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);</div>
-<div class="line">    ASSERT_EQ(startEvent.status Code(), 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(startEvent.type(),</div>
+<div class="line">    bmqt::SessionEventType::e_CONNECTED);</div>
+<div class="line">    BMQTST_ASSERT_EQ(startEvent.status Code(), 0);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Create the uri to your queue as you would in your application.</span></div>
 <div class="line">    <span class="keyword">const</span> bmqt::Uri uri(<span class="stringliteral">&quot;bmq://my.domain/queue&quot;</span>);</div>
@@ -360,11 +361,11 @@ Example 1</h2>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// We just enqueued a &#39;bmqa::OpenQueueStatus&#39; to be emitted.  We can</span></div>
 <div class="line">    <span class="comment">// emit it using &#39;emitEvent&#39;.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">//  Pop out this event from the handler and examine it.</span></div>
 <div class="line">    bmqa::OpenQueueStatus result = eventHandler.popOpenQueueStatus();</div>
-<div class="line">    ASSERT_EQ(result, openQueueResult);</div>
+<div class="line">    BMQTST_ASSERT_EQ(result, openQueueResult);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// On emission of &#39;bmqa::OpenQueueStatus&#39;, the queue is fully open and</span></div>
 <div class="line">    <span class="comment">// we can now post to it.</span></div>
@@ -380,7 +381,7 @@ Example 1</h2>
 <div class="line">    <span class="comment">// been elided for brevity.</span></div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Now that the event has been built we can &#39;post&#39; it to BMQ.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.post(builder.messageEvent()), 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.post(builder.messageEvent()), 0);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Simply creating a blob buffer factory on the stack to be used by</span></div>
 <div class="line">    <span class="comment">// &#39;createAckEvent&#39;.  Typically you would have one for the component.</span></div>
@@ -405,14 +406,15 @@ Example 1</h2>
 <div class="line">                                                          allocator));</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Emit the enqueued ack event.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// As we did earlier, pop it out and examine.</span></div>
 <div class="line">    bmqa::MessageEvent ackEvent(eventHandler.popMessageEvent());</div>
-<div class="line">    ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);</div>
+<div class="line">    BMQTST_ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);</div>
 <div class="line">    bmqa::MessageIterator mIter = ackEvent.messageIterator();</div>
 <div class="line">    mIter.nextMessage();</div>
-<div class="line">    ASSERT_EQ(mIter.message().ackStatus(), bmqt::AckResult::e_SUCCESS);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mIter.message().ackStatus(),</div>
+<div class="line">    bmqt::AckResult::e_SUCCESS);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// This is a simple test.  After posting our message and receiving the</span></div>
 <div class="line">    <span class="comment">// ack, we are now shutting down our application.  Therefore we expect</span></div>
@@ -428,20 +430,21 @@ Example 1</h2>
 <div class="line">                                   bmqt::SessionEventType::e_DISCONNECTED,</div>
 <div class="line">                                   0,   <span class="comment">// statusCode</span></div>
 <div class="line">                                   <span class="stringliteral">&quot;&quot;</span>,  <span class="comment">// errorDescription</span></div>
-<div class="line">                                   allocator));</div>
-<div class="line">    ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
+<div class="line">                                   d_allocator_p));</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.emitEvent(), <span class="keyword">true</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Our event handler internally just stores the event emitted, so pop</span></div>
 <div class="line">    <span class="comment">// it out and examine.</span></div>
 <div class="line">    bmqa::SessionEvent stopEvent(eventHandler.popSessionEvent());</div>
-<div class="line">    ASSERT_EQ(stopEvent.type(), bmqt::SessionEventType::e_DISCONNECTED);</div>
-<div class="line">    ASSERT_EQ(stopEvent.statusCode(), 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(stopEvent.type(),</div>
+<div class="line">    bmqt::SessionEventType::e_DISCONNECTED);</div>
+<div class="line">    BMQTST_ASSERT_EQ(stopEvent.statusCode(), 0);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// The corresponding pendant operation of the &#39;initialize&#39; which would</span></div>
 <div class="line">    <span class="comment">// need to be called only if &#39;initialize&#39; was explicitly called.</span></div>
 <div class="line">    <span class="comment">// bmqa::MockSession::shutdown();</span></div>
 <div class="line">}</div>
-<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition:</b> bmqa_mocksession.h:603</div></div>
+<div class="ttc" id="abmqa__mocksession_8h_html_abe2652fa6d696e03dec9bf44e4e731c9"><div class="ttname"><a href="bmqa__mocksession_8h.html#abe2652fa6d696e03dec9bf44e4e731c9">BMQA_EXPECT_CALL</a></div><div class="ttdeci">#define BMQA_EXPECT_CALL(OBJ, CALL)</div><div class="ttdef"><b>Definition:</b> bmqa_mocksession.h:607</div></div>
 </div><!-- fragment --><h2><a class="anchor" id="bmqa_mocksession_ex2"></a>
 Example 2</h2>
 <p>The folowing example shows a consumer in synchronous mode, which will start the session, generate a push message (simulating the broker), confirm the message and then stop the session. Additionally, this test case also sets all expectations up front before running the code, as this is the alternate way of writing your test driver.</p>
@@ -542,30 +545,31 @@ Example 2</h2>
 <div class="line">    <span class="comment">// &#39;startAsync&#39; is the first call.  We expect it to return 0 and we</span></div>
 <div class="line">    <span class="comment">// expect &#39;nextEvent&#39; to return the &#39;e_CONNECTED&#39; session event.</span></div>
 <div class="line">    <span class="keywordtype">int</span> rc = mockSession.startAsync();</div>
-<div class="line">    ASSERT_EQ(rc, 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(rc, 0);</div>
 <div class="line">    bmqa::SessionEvent startEvent = mockSession.nextEvent(</div>
 <div class="line">                                                      bsls::TimeInterval())</div>
 <div class="line">        .sessionEvent();</div>
-<div class="line">    ASSERT_EQ(startEvent.type(), bmqt::SessionEventType::e_CONNECTED);</div>
-<div class="line">    ASSERT_EQ(startEvent.statusCode(),       0);</div>
-<div class="line">    ASSERT_EQ(startEvent.errorDescription(), <span class="stringliteral">&quot;&quot;</span>);</div>
+<div class="line">    BMQTST_ASSERT_EQ(startEvent.type(),</div>
+<div class="line">    bmqt::SessionEventType::e_CONNECTED);</div>
+<div class="line">    BMQTST_ASSERT_EQ(startEvent.statusCode(),       0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(startEvent.errorDescription(), <span class="stringliteral">&quot;&quot;</span>);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Next we expect a call to &#39;openQueue&#39; to open the queue.</span></div>
 <div class="line">    bmqa::OpenQueueStatus result = mockSession.openQueueSync(&amp;queueId,</div>
 <div class="line">                                                             uri,</div>
 <div class="line">                                                             flags);</div>
-<div class="line">    ASSERT_EQ(result, expectedResult);</div>
+<div class="line">    BMQTST_ASSERT_EQ(result, expectedResult);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Now our call to &#39;nextEvent&#39; will generate a push message from the</span></div>
 <div class="line">    <span class="comment">// broker, which we will then go on to confirm.</span></div>
 <div class="line">    bmqa::MessageEvent pushMsgEvt(mockSession.nextEvent(</div>
 <div class="line">                                                      bsls::TimeInterval())</div>
 <div class="line">                                                          .messageEvent());</div>
-<div class="line">    ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);</div>
+<div class="line">    BMQTST_ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Now that we have received a push message which has yet to be</span></div>
 <div class="line">    <span class="comment">// confirmed, we can confirm that 1 unconfirmed message exists.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.unconfirmedMessages(), 1U);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 1U);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Since there is only 1 message in our message event, we dont have to</span></div>
 <div class="line">    <span class="comment">// iterate over the event but in reality you will want to iterate over</span></div>
@@ -573,14 +577,14 @@ Example 2</h2>
 <div class="line">    bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();</div>
 <div class="line">    mIter.nextMessage();</div>
 <div class="line">    confirmBuilder.addMessageConfirmation(mIter.message());</div>
-<div class="line">    ASSERT_EQ(confirmBuilder.messageCount(), 1);</div>
+<div class="line">    BMQTST_ASSERT_EQ(confirmBuilder.messageCount(), 1);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Confirm the messages using the builder that has been populated.</span></div>
 <div class="line">    rc = mockSession.confirmMessages(&amp;confirmBuilder);</div>
-<div class="line">    ASSERT_EQ(rc, 0);</div>
+<div class="line">    BMQTST_ASSERT_EQ(rc, 0);</div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// Voila! We now have no unconfirmed messages.</span></div>
-<div class="line">    ASSERT_EQ(mockSession.unconfirmedMessages(), 0u);</div>
+<div class="line">    BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 0u);</div>
 <div class="line">    <span class="comment">// &#39;stop&#39; has been elided for brevity and is analogous to &#39;start&#39;</span></div>
 <div class="line"> </div>
 <div class="line">    <span class="comment">// The corresponding pendant operation of the &#39;initialize&#39; which would</span></div>
