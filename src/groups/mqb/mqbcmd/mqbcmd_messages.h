@@ -95,6 +95,9 @@ namespace mqbcmd {
 class DomainReconfigure;
 }
 namespace mqbcmd {
+class DomainRemove;
+}
+namespace mqbcmd {
 class Error;
 }
 namespace mqbcmd {
@@ -2755,6 +2758,221 @@ class DomainReconfigure {
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcmd::DomainReconfigure)
+
+namespace mqbcmd {
+
+// ==================
+// class DomainRemove
+// ==================
+
+class DomainRemove {
+    // INSTANCE DATA
+    union {
+        bsls::ObjectBuffer<bsl::string> d_domain;
+    };
+
+    int               d_selectionId;
+    bslma::Allocator* d_allocator_p;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const DomainRemove& rhs) const;
+
+  public:
+    // TYPES
+
+    enum { SELECTION_ID_UNDEFINED = -1, SELECTION_ID_DOMAIN = 0 };
+
+    enum { NUM_SELECTIONS = 1 };
+
+    enum { SELECTION_INDEX_DOMAIN = 0 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
+
+    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+                                                          int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit DomainRemove(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'DomainRemove' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    DomainRemove(const DomainRemove& original,
+                 bslma::Allocator*   basicAllocator = 0);
+    // Create an object of type 'DomainRemove' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DomainRemove(DomainRemove&& original) noexcept;
+    // Create an object of type 'DomainRemove' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    DomainRemove(DomainRemove&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'DomainRemove' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~DomainRemove();
+    // Destroy this object.
+
+    // MANIPULATORS
+    DomainRemove& operator=(const DomainRemove& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DomainRemove& operator=(DomainRemove&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
+
+    int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
+
+    int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
+
+    bsl::string& makeDomain();
+    bsl::string& makeDomain(const bsl::string& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    bsl::string& makeDomain(bsl::string&& value);
+#endif
+    // Set the value of this object to be a "Domain" value.  Optionally
+    // specify the 'value' of the "Domain".  If 'value' is not specified,
+    // the default "Domain" value is used.
+
+    template <typename t_MANIPULATOR>
+    int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
+
+    bsl::string& domain();
+    // Return a reference to the modifiable "Domain" selection of this
+    // object if "Domain" is the current selection.  The behavior is
+    // undefined unless "Domain" is the selection of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
+
+    const bsl::string& domain() const;
+    // Return a reference to the non-modifiable "Domain" selection of this
+    // object if "Domain" is the current selection.  The behavior is
+    // undefined unless "Domain" is the selection of this object.
+
+    bool isDomainValue() const;
+    // Return 'true' if the value of this object is a "Domain" value, and
+    // return 'false' otherwise.
+
+    bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
+
+    const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const DomainRemove& lhs, const DomainRemove& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'DomainRemove' objects have the
+    // same value if either the selections in both objects have the same
+    // ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const DomainRemove& lhs, const DomainRemove& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&       stream,
+                                    const DomainRemove& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&   hashAlg,
+                           const DomainRemove& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'DomainRemove'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainRemove)
 
 namespace mqbcmd {
 
@@ -23850,6 +24068,7 @@ class DomainsCommand {
         bsls::ObjectBuffer<Domain>                d_domain;
         bsls::ObjectBuffer<DomainResolverCommand> d_resolver;
         bsls::ObjectBuffer<DomainReconfigure>     d_reconfigure;
+        bsls::ObjectBuffer<DomainRemove>          d_remove;
     };
 
     int               d_selectionId;
@@ -23868,15 +24087,17 @@ class DomainsCommand {
         SELECTION_ID_UNDEFINED   = -1,
         SELECTION_ID_DOMAIN      = 0,
         SELECTION_ID_RESOLVER    = 1,
-        SELECTION_ID_RECONFIGURE = 2
+        SELECTION_ID_RECONFIGURE = 2,
+        SELECTION_ID_REMOVE      = 3
     };
 
-    enum { NUM_SELECTIONS = 3 };
+    enum { NUM_SELECTIONS = 4 };
 
     enum {
         SELECTION_INDEX_DOMAIN      = 0,
         SELECTION_INDEX_RESOLVER    = 1,
-        SELECTION_INDEX_RECONFIGURE = 2
+        SELECTION_INDEX_RECONFIGURE = 2,
+        SELECTION_INDEX_REMOVE      = 3
     };
 
     // CONSTANTS
@@ -23986,6 +24207,16 @@ class DomainsCommand {
     // Optionally specify the 'value' of the "Reconfigure".  If 'value' is
     // not specified, the default "Reconfigure" value is used.
 
+    DomainRemove& makeRemove();
+    DomainRemove& makeRemove(const DomainRemove& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DomainRemove& makeRemove(DomainRemove&& value);
+#endif
+    // Set the value of this object to be a "Remove" value.  Optionally
+    // specify the 'value' of the "Remove".  If 'value' is not specified,
+    // the default "Remove" value is used.
+
     template <typename t_MANIPULATOR>
     int manipulateSelection(t_MANIPULATOR& manipulator);
     // Invoke the specified 'manipulator' on the address of the modifiable
@@ -24008,6 +24239,11 @@ class DomainsCommand {
     // Return a reference to the modifiable "Reconfigure" selection of this
     // object if "Reconfigure" is the current selection.  The behavior is
     // undefined unless "Reconfigure" is the selection of this object.
+
+    DomainRemove& remove();
+    // Return a reference to the modifiable "Remove" selection of this
+    // object if "Remove" is the current selection.  The behavior is
+    // undefined unless "Remove" is the selection of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -24050,6 +24286,11 @@ class DomainsCommand {
     // this object if "Reconfigure" is the current selection.  The behavior
     // is undefined unless "Reconfigure" is the selection of this object.
 
+    const DomainRemove& remove() const;
+    // Return a reference to the non-modifiable "Remove" selection of this
+    // object if "Remove" is the current selection.  The behavior is
+    // undefined unless "Remove" is the selection of this object.
+
     bool isDomainValue() const;
     // Return 'true' if the value of this object is a "Domain" value, and
     // return 'false' otherwise.
@@ -24061,6 +24302,10 @@ class DomainsCommand {
     bool isReconfigureValue() const;
     // Return 'true' if the value of this object is a "Reconfigure" value,
     // and return 'false' otherwise.
+
+    bool isRemoveValue() const;
+    // Return 'true' if the value of this object is a "Remove" value, and
+    // return 'false' otherwise.
 
     bool isUndefinedValue() const;
     // Return 'true' if the value of this object is undefined, and 'false'
@@ -33205,6 +33450,107 @@ inline bool DomainReconfigure::isDomainValue() const
 }
 
 inline bool DomainReconfigure::isUndefinedValue() const
+{
+    return SELECTION_ID_UNDEFINED == d_selectionId;
+}
+
+// ------------------
+// class DomainRemove
+// ------------------
+
+// CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void DomainRemove::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef DomainRemove Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_DOMAIN:
+        hashAppend(hashAlgorithm, this->domain());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool DomainRemove::isEqualTo(const DomainRemove& rhs) const
+{
+    typedef DomainRemove Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_DOMAIN: return this->domain() == rhs.domain();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
+// CREATORS
+inline DomainRemove::DomainRemove(bslma::Allocator* basicAllocator)
+: d_selectionId(SELECTION_ID_UNDEFINED)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+}
+
+inline DomainRemove::~DomainRemove()
+{
+    reset();
+}
+
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int DomainRemove::manipulateSelection(t_MANIPULATOR& manipulator)
+{
+    switch (d_selectionId) {
+    case DomainRemove::SELECTION_ID_DOMAIN:
+        return manipulator(&d_domain.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN]);
+    default:
+        BSLS_ASSERT(DomainRemove::SELECTION_ID_UNDEFINED == d_selectionId);
+        return -1;
+    }
+}
+
+inline bsl::string& DomainRemove::domain()
+{
+    BSLS_ASSERT(SELECTION_ID_DOMAIN == d_selectionId);
+    return d_domain.object();
+}
+
+// ACCESSORS
+inline int DomainRemove::selectionId() const
+{
+    return d_selectionId;
+}
+
+template <typename t_ACCESSOR>
+int DomainRemove::accessSelection(t_ACCESSOR& accessor) const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_DOMAIN:
+        return accessor(d_domain.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN]);
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    }
+}
+
+inline const bsl::string& DomainRemove::domain() const
+{
+    BSLS_ASSERT(SELECTION_ID_DOMAIN == d_selectionId);
+    return d_domain.object();
+}
+
+inline bool DomainRemove::isDomainValue() const
+{
+    return SELECTION_ID_DOMAIN == d_selectionId;
+}
+
+inline bool DomainRemove::isUndefinedValue() const
 {
     return SELECTION_ID_UNDEFINED == d_selectionId;
 }
@@ -48479,6 +48825,9 @@ void DomainsCommand::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_RECONFIGURE:
         hashAppend(hashAlgorithm, this->reconfigure());
         break;
+    case Class::SELECTION_ID_REMOVE:
+        hashAppend(hashAlgorithm, this->remove());
+        break;
     default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
     }
 }
@@ -48493,6 +48842,7 @@ inline bool DomainsCommand::isEqualTo(const DomainsCommand& rhs) const
             return this->resolver() == rhs.resolver();
         case Class::SELECTION_ID_RECONFIGURE:
             return this->reconfigure() == rhs.reconfigure();
+        case Class::SELECTION_ID_REMOVE: return this->remove() == rhs.remove();
         default:
             BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
             return true;
@@ -48529,6 +48879,9 @@ int DomainsCommand::manipulateSelection(t_MANIPULATOR& manipulator)
     case DomainsCommand::SELECTION_ID_RECONFIGURE:
         return manipulator(&d_reconfigure.object(),
                            SELECTION_INFO_ARRAY[SELECTION_INDEX_RECONFIGURE]);
+    case DomainsCommand::SELECTION_ID_REMOVE:
+        return manipulator(&d_remove.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_REMOVE]);
     default:
         BSLS_ASSERT(DomainsCommand::SELECTION_ID_UNDEFINED == d_selectionId);
         return -1;
@@ -48553,6 +48906,12 @@ inline DomainReconfigure& DomainsCommand::reconfigure()
     return d_reconfigure.object();
 }
 
+inline DomainRemove& DomainsCommand::remove()
+{
+    BSLS_ASSERT(SELECTION_ID_REMOVE == d_selectionId);
+    return d_remove.object();
+}
+
 // ACCESSORS
 inline int DomainsCommand::selectionId() const
 {
@@ -48572,6 +48931,9 @@ int DomainsCommand::accessSelection(t_ACCESSOR& accessor) const
     case SELECTION_ID_RECONFIGURE:
         return accessor(d_reconfigure.object(),
                         SELECTION_INFO_ARRAY[SELECTION_INDEX_RECONFIGURE]);
+    case SELECTION_ID_REMOVE:
+        return accessor(d_remove.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_REMOVE]);
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
     }
 }
@@ -48594,6 +48956,12 @@ inline const DomainReconfigure& DomainsCommand::reconfigure() const
     return d_reconfigure.object();
 }
 
+inline const DomainRemove& DomainsCommand::remove() const
+{
+    BSLS_ASSERT(SELECTION_ID_REMOVE == d_selectionId);
+    return d_remove.object();
+}
+
 inline bool DomainsCommand::isDomainValue() const
 {
     return SELECTION_ID_DOMAIN == d_selectionId;
@@ -48607,6 +48975,11 @@ inline bool DomainsCommand::isResolverValue() const
 inline bool DomainsCommand::isReconfigureValue() const
 {
     return SELECTION_ID_RECONFIGURE == d_selectionId;
+}
+
+inline bool DomainsCommand::isRemoveValue() const
+{
+    return SELECTION_ID_REMOVE == d_selectionId;
 }
 
 inline bool DomainsCommand::isUndefinedValue() const
