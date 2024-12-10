@@ -418,9 +418,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
 
             // If queue exists, report self generated NACK
             if (isSelfGenerated) {
-                it->second.d_handle_p->queue()->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_NACK,
-                    1);
+                it->second.d_handle_p->queue()
+                    ->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
             }
         }
         else if (!isSelfGenerated) {
@@ -548,7 +548,7 @@ void Cluster::generateNack(bmqt::AckResult::Enum               status,
                                     options);
 
     // Report locally generated NACK
-    queue->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK, 1);
+    queue->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
 
     bmqu::MemOutStream os;
     os << description() << ": Failed to relay PUT message "

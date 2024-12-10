@@ -584,9 +584,11 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
 
             // If queue is found, report locally generated NACK
             if (isSelfGenerated) {
-                queueState->d_handle_p->queue()->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_NACK,
-                    1);
+                queueState->d_handle_p->queue()
+                    ->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+
+                        1);
             }
         }
 
@@ -1658,9 +1660,9 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             // Calculate time delta between PUT and ACK
             const bsls::Types::Int64 timeDelta =
                 bmqsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
-            queue->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
-                timeDelta);
+            queue->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
+                    timeDelta);
 
             if (!d_isClientGeneratingGUIDs) {
                 // Legacy client.

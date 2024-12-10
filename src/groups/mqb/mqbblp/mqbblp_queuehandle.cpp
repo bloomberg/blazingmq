@@ -299,9 +299,9 @@ QueueHandle::updateMonitor(const bsl::shared_ptr<Downstream>& subStream,
             // The message exist in the storage, we likely are in situation
             // (3), so it's a legit confirm and therefore, update the domain
             // stats.
-            d_domainStats_p->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM,
-                msgSize);
+            d_domainStats_p
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM>(
+                    msgSize);
         }
 
         BALL_LOG_INFO_BLOCK
@@ -404,15 +404,15 @@ mqbu::ResourceUsageMonitorStateTransition::Enum QueueHandle::updateMonitor(
 
     if (type == bmqp::EventType::e_CONFIRM) {
         // Update domain stats
-        d_domainStats_p->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_CONFIRM,
-            msgSize);
+        d_domainStats_p
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CONFIRM>(
+                msgSize);
 
         // Report CONFIRM time only at first hop
         // Note that we update metric per entire queue and also per `appId`
         if (d_clientContext_sp->isFirstHop()) {
-            d_domainStats_p->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
+            d_domainStats_p->onEvent<
+                mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME>(
                 timeDelta);
             d_domainStats_p->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_CONFIRM_TIME,
@@ -498,8 +498,8 @@ void QueueHandle::deliverMessageImpl(
     BSLS_ASSERT_SAFE(subQueueInfos.size() >= 1 &&
                      subQueueInfos.size() <= d_subscriptions.size());
 
-    d_domainStats_p->onEvent(mqbstat::QueueStatsDomain::EventType::e_PUSH,
-                             msgSize);
+    d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
+        msgSize);
 
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
@@ -1208,7 +1208,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     ackMsg.setQueueId(id());
 
     client->dispatcher()->dispatchEvent(event, client);
-    d_domainStats_p->onEvent(mqbstat::QueueStatsDomain::EventType::e_ACK, 1);
+    d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK>(1);
 }
 
 bool QueueHandle::canDeliver(unsigned int downstreamSubscriptionId) const
