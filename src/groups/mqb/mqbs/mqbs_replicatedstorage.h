@@ -98,6 +98,11 @@ class ReplicatedStorage : public mqbi::Storage {
     /// replica nodes, and the record will not be replicated to peer nodes.
     virtual void purge(const mqbu::StorageKey& appKey) = 0;
 
+    // Notify the storage of node role set to primary
+    virtual void setPrimary() = 0;
+
+    // ACCESSORS
+
     /// Return a non-modifiable list of handles of all QUEUEOP records
     /// associated with this storage.
     virtual const RecordHandles& queueOpRecordHandles() const = 0;
