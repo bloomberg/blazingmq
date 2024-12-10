@@ -239,13 +239,12 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
                      appIdKeyPairs.cbegin();
                  cit != appIdKeyPairs.cend();
                  ++cit, ++i) {
-                const mqbi::Storage::AppInfo& p      = *cit;
-                virtualStorages[i].appId()           = p.first;
+                virtualStorages[i].appId() = cit->first;
                 os.reset();
-                os << p.second;
+                os << cit->second;
                 virtualStorages[i].appKey()      = os.str();
                 virtualStorages[i].numMessages() = d_storage_mp->numMessages(
-                    p.second);
+                    cit->second);
             }
         }
     }

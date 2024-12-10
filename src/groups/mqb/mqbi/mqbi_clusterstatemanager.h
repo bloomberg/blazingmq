@@ -87,7 +87,7 @@ class ClusterStateManager {
 
     /// Pair of (appId, appKey)
     typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-    typedef bsl::unordered_set<AppInfo>              AppInfos;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
     typedef AppInfos::const_iterator                 AppInfosCIter;
 
     struct QueueAssignmentResult {
