@@ -200,8 +200,9 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for known queue [uri: "
                     << uri << "] with a mismatched queueKey "
-                    << "[expected: " << cit->second->key() << ", received: " << queueKey
-                    << "]: " << queueUpdate << BMQTSK_ALARMLOG_END;
+                    << "[expected: " << cit->second->key()
+                    << ", received: " << queueKey << "]: " << queueUpdate
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
         }

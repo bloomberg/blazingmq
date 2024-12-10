@@ -263,8 +263,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
-    int applyImpl(const bdlbb::Blob&   event,
-                  mqbnet::ClusterNode* source);
+    int applyImpl(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
 
     // PRIVATE ACCESSORS
 
