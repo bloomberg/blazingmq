@@ -40,16 +40,6 @@ namespace {
 /// Name of the stat context to create (holding all broker's statistics)
 static const char k_BROKER_STAT_NAME[] = "broker";
 
-//------------------------
-// struct BrokerStatsIndex
-//------------------------
-
-/// Namespace for the constants of stat values that applies to the queues
-/// from the clients
-struct BrokerStatsIndex {
-    enum Enum { e_STAT_QUEUE_COUNT, e_STAT_CLIENT_COUNT };
-};
-
 }  // close unnamed namespace
 
 // -----------------
@@ -108,30 +98,6 @@ void BrokerStats::initialize(bmqst::StatContext* brokerStatContext)
     BSLS_ASSERT_SAFE(!d_statContext_p && "initialize was already called");
 
     d_statContext_p = brokerStatContext;
-}
-
-void BrokerStats::onEvent(EventType::Enum type)
-{
-    BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
-
-    switch (type) {
-    case EventType::e_CLIENT_CREATED: {
-        d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_CLIENT_COUNT, 1);
-    } break;
-    case EventType::e_CLIENT_DESTROYED: {
-        d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_CLIENT_COUNT,
-                                     -1);
-    } break;
-    case EventType::e_QUEUE_CREATED: {
-        d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_QUEUE_COUNT, 1);
-    } break;
-    case EventType::e_QUEUE_DESTROYED: {
-        d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_QUEUE_COUNT, -1);
-    } break;
-    default: {
-        BSLS_ASSERT_SAFE(false && "Unknown event type");
-    } break;
-    };
 }
 
 // ---------------------

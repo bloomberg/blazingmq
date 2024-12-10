@@ -584,9 +584,11 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
 
             // If queue is found, report locally generated NACK
             if (isSelfGenerated) {
-                queueState->d_handle_p->queue()->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_NACK,
-                    1);
+                queueState->d_handle_p->queue()
+                    ->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+
+                        1);
             }
         }
 
@@ -1658,9 +1660,9 @@ void ClientSession::onAckEvent(const mqbi::DispatcherAckEvent& event)
             // Calculate time delta between PUT and ACK
             const bsls::Types::Int64 timeDelta =
                 bmqsys::Time::highResolutionTimer() - cit->second.d_timeStamp;
-            queue->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
-                timeDelta);
+            queue->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
+                    timeDelta);
 
             if (!d_isClientGeneratingGUIDs) {
                 // Legacy client.
@@ -2693,8 +2695,8 @@ ClientSession::ClientSession(
                              this,
                              bdlf::PlaceHolders::_1));  // type
 
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_CLIENT_CREATED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_CLIENT_CREATED>();
 
     BALL_LOG_INFO << description() << ": created "
                   << "[dispatcherProcessor: " << processor
@@ -2714,8 +2716,8 @@ ClientSession::~ClientSession()
 
     BALL_LOG_INFO << description() << ": destructor";
 
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_CLIENT_DESTROYED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_CLIENT_DESTROYED>();
 
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);

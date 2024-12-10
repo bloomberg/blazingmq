@@ -430,10 +430,10 @@ int Domain::configure(bsl::ostream&           errorDescription,
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
         .setWatermarkThresholds(limits.messagesWatermarkRatio(),
                                 limits.bytesWatermarkRatio());
-    d_domainsStats.onEvent(mqbstat::DomainStats::EventType::e_CFG_MSGS,
-                           limits.messages());
-    d_domainsStats.onEvent(mqbstat::DomainStats::EventType::e_CFG_BYTES,
-                           limits.bytes());
+    d_domainsStats.onEvent<mqbstat::DomainStats::EventType::e_CFG_MSGS>(
+        limits.messages());
+    d_domainsStats.onEvent<mqbstat::DomainStats::EventType::e_CFG_BYTES>(
+        limits.bytes());
 
     if (isReconfigure) {
         BSLS_ASSERT_OPT(oldConfig.has_value());

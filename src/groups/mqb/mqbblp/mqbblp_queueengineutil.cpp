@@ -1452,9 +1452,9 @@ void QueueEngineUtil_AppState::reportStats(
             message->attributes());
 
         // First report 'queue time' metric for the entire queue
-        d_queue_p->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-            timeDelta);
+        d_queue_p->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME>(
+                timeDelta);
 
         // Then report 'queue time' metric for appId
         d_queue_p->stats()->onEvent(

@@ -42,16 +42,6 @@ namespace {
 /// Name of the stat context to create (holding all domain's statistics)
 static const char k_DOMAIN_STAT_NAME[] = "domains";
 
-//------------------------
-// struct DomainStatsIndex
-//------------------------
-
-/// Namespace for the constants of stat values that applies to the queues
-/// from the clients
-struct DomainStatsIndex {
-    enum Enum { e_STAT_CFG_MSGS, e_STAT_CFG_BYTES, e_STAT_QUEUE_COUNT };
-};
-
 }  // close unnamed namespace
 
 // ------------------
@@ -141,27 +131,6 @@ void DomainStats::initialize(mqbi::Domain*       domain,
                                              alloc));
 
     datum->adopt(builder.commit());
-}
-
-void DomainStats::onEvent(EventType::Enum type, bsls::Types::Int64 value)
-{
-    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
-
-    switch (type) {
-    case EventType::e_CFG_MSGS: {
-        d_statContext_mp->setValue(DomainStatsIndex::e_STAT_CFG_MSGS, value);
-    } break;
-    case EventType::e_CFG_BYTES: {
-        d_statContext_mp->setValue(DomainStatsIndex::e_STAT_CFG_BYTES, value);
-    } break;
-    case EventType::e_QUEUE_COUNT: {
-        d_statContext_mp->setValue(DomainStatsIndex::e_STAT_QUEUE_COUNT,
-                                   value);
-    } break;
-    default: {
-        BSLS_ASSERT_SAFE(false && "Unknown event type");
-    } break;
-    };
 }
 
 // ---------------------
