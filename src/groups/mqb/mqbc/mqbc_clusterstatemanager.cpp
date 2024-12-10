@@ -1746,35 +1746,6 @@ void ClusterStateManager::processClusterStateEvent(
     bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isClusterStateEvent());
 
-    // NOTE: Any validation of the event would go here.
-    if (source != d_clusterData_p->electorInfo().leaderNode()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring cluster state event from cluster node "
-                      << source->nodeDescription() << " as this node is not "
-                      << "the current perceived leader. Current leader: ["
-                      << d_clusterData_p->electorInfo().leaderNodeId() << ": "
-                      << (d_clusterData_p->electorInfo().leaderNode()
-                              ? d_clusterData_p->electorInfo()
-                                    .leaderNode()
-                                    ->nodeDescription()
-                              : "* UNKNOWN *")
-                      << "]";
-        return;  // RETURN
-    }
-    // 'source' is the perceived leader
-
-    // TBD: Suppress the following check for now, which will help some
-    // integration tests to pass.  At this point, it is not clear if it is safe
-    // to process cluster state events while self is stopping.
-    //
-    // if (   bmqp_ctrlmsg::NodeStatus::E_STOPPING
-    //     == d_clusterData_p->membership().selfNodeStatus()) {
-    //     return;                                                    // RETURN
-    // }
-
-    // TODO: Validate the incoming advisory and potentially buffer it for later
-    //       if the node is currently starting.
-
     const int rc = d_clusterStateLedger_mp->apply(*rawEvent.blob(), source);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
@@ -1878,14 +1849,16 @@ void ClusterStateManager::onNodeStopped()
 
 // MANIPULATORS
 //   (virtual: mqbc::ElectorInfoObserver)
-void ClusterStateManager::onClusterLeader(
-    mqbnet::ClusterNode*   node,
-    BSLS_ANNOTATION_UNUSED ElectorInfoLeaderStatus::Enum status)
+void ClusterStateManager::onClusterLeader(mqbnet::ClusterNode*          node,
+                                          ElectorInfoLeaderStatus::Enum status)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(
+        (node && (ElectorInfoLeaderStatus::e_UNDEFINED != status)) ||
+        (!node && (ElectorInfoLeaderStatus::e_UNDEFINED == status)));
 
     if (!node) {
         // Leader lost
@@ -1899,21 +1872,27 @@ void ClusterStateManager::onClusterLeader(
         return;  // RETURN
     }
 
+    // We can only reach this code path if leader `node` is not null.  Here, we
+    // only care about transitioning from no leader to having a leader.  We
+    // don't care about leader status changing between e_PASSIVE and e_ACTIVE.
+    if (d_clusterFSM.state() != ClusterFSM::State::e_UNKNOWN) {
+        return;  // RETURN
+    }
+
+    // IMPORTANT: This is the main entry point to start running the Cluster FSM
     InputMessages inputMessages(1, d_allocator_p);
     inputMessages.at(0).setSource(node);  // leader node
 
     if (d_clusterData_p->membership().selfNode()->nodeId() == node->nodeId()) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description() << ": "
-                      << (d_clusterFSM.isSelfLeader() ? "Re-" : "")
-                      << "Transitioning to leader in the Cluster FSM.";
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Transitioning to leader in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_LDR,
                       ClusterFSMEventMetadata(inputMessages));
     }
     else {
-        BALL_LOG_INFO << d_clusterData_p->identity().description() << ": "
-                      << (d_clusterFSM.isSelfFollower() ? "Re-" : "")
-                      << "Transitioning to follower in the Cluster FSM.";
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Transitioning to follower in the Cluster FSM.";
 
         applyFSMEvent(ClusterFSM::Event::e_SLCT_FOL,
                       ClusterFSMEventMetadata(inputMessages));

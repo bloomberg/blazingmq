@@ -200,8 +200,9 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
                     << clusterData.identity().description()
                     << ": Received QueueUpdateAdvisory for known queue [uri: "
                     << uri << "] with a mismatched queueKey "
-                    << "[expected: " << queueKey << ", received: " << queueKey
-                    << "]: " << queueUpdate << BMQTSK_ALARMLOG_END;
+                    << "[expected: " << cit->second->key()
+                    << ", received: " << queueKey << "]: " << queueUpdate
+                    << BMQTSK_ALARMLOG_END;
                 return;  // RETURN
             }
         }
@@ -1213,10 +1214,10 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
     if (mqbnet::ElectorState::e_LEADER !=
         clusterData->electorInfo().electorState()) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to register appId '" << appId
-                       << "' for domain '" << domain->name()
-                       << "'. Self is not leader.";
+        BALL_LOG_WARN << clusterData->identity().description()
+                      << ": Not registering appId '" << appId
+                      << "' for domain '" << domain->name()
+                      << "'. Self is not leader.";
         return;  // RETURN
     }
 

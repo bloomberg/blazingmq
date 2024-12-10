@@ -3911,7 +3911,9 @@ void ClusterQueueHelper::onClusterLeader(
                   << (node ? node->nodeDescription() : "** none **")
                   << ", leader status: " << status;
 
-    restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
+    if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
+        restoreState(mqbs::DataStore::k_ANY_PARTITION_ID);
+    }
 
     if (d_cluster_p->isRemote()) {
         // non-proxy (replica) case is handled by

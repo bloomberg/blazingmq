@@ -306,8 +306,6 @@ class ClusterStateLedger : public ElectorInfoObserver {
     virtual int apply(const bdlbb::Blob&   record,
                       mqbnet::ClusterNode* source) = 0;
 
-    virtual void setIsFirstLeaderAdvisory(bool isFirstLeaderAdvisory) = 0;
-
     /// Set the commit callback to the specified `value`.
     virtual void setCommitCb(const CommitCb& value) = 0;
 
