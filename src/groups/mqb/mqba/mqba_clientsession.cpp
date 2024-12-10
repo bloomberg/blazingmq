@@ -2693,8 +2693,8 @@ ClientSession::ClientSession(
                              this,
                              bdlf::PlaceHolders::_1));  // type
 
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_CLIENT_CREATED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_CLIENT_CREATED>();
 
     BALL_LOG_INFO << description() << ": created "
                   << "[dispatcherProcessor: " << processor
@@ -2714,8 +2714,8 @@ ClientSession::~ClientSession()
 
     BALL_LOG_INFO << description() << ": destructor";
 
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_CLIENT_DESTROYED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_CLIENT_DESTROYED>();
 
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);
