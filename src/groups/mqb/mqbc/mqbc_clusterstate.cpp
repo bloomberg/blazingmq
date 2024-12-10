@@ -549,9 +549,10 @@ void ClusterState::DomainState::adjustQueueCount(int by)
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
-        d_domain_p->domainStats()->onEvent(
-            mqbstat::DomainStats::EventType::e_QUEUE_COUNT,
-            d_numAssignedQueues);
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
+
+                d_numAssignedQueues);
     }
 }
 
