@@ -372,7 +372,8 @@ struct Tester {
         bmqp_ctrlmsg::ClusterMessage message;
         message.choice().makeLeaderAdvisoryAck(ack);
 
-        bdlbb::Blob ackEvent(d_cluster_mp->_bufferFactory(), s_allocator_p);
+        bdlbb::Blob ackEvent(d_cluster_mp->_bufferFactory(),
+                             bmqtst::TestHelperUtil::allocator());
         constructEventBlob(&ackEvent,
                            message,
                            ack.sequenceNumberAcked(),
@@ -1062,7 +1063,7 @@ static void test8_apply_ClusterStateRecordCommit()
     invalidCommitMessage.choice().makeLeaderAdvisoryCommit(invalidCommit);
 
     bdlbb::Blob invalidCommitEvent(tester.d_cluster_mp->_bufferFactory(),
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
     tester.constructEventBlob(&invalidCommitEvent,
                               invalidCommitMessage,
                               invalidCommit.sequenceNumber(),
