@@ -189,14 +189,14 @@ struct StorageUtil {
 
     /// Load into the specified `addedAppInfos` and
     /// `removedAppInfos` the appId/key pairs which have been added and
-    /// removed respectively for the specified `storage` based on the
+    /// removed respectively for the specified `existingAppInfos` based on the
     /// specified `newAppInfos`.  Return true if there are any added or removed
     /// appId/key pairs, false otherwise.
     ///
-    /// THREAD: Executed by the cluster dispatcher thread.
-    static bool loadUpdatedAppInfos(AppInfos* addedAppInfos,
-                                    AppInfos* removedAppInfos,
-                                    const mqbs::ReplicatedStorage& storage,
+    /// THREAD: Executed by the queue dispatcher thread.
+    static bool loadUpdatedAppInfos(AppInfos*       addedAppInfos,
+                                    AppInfos*       removedAppInfos,
+                                    const AppInfos& existingAppInfos,
                                     const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.

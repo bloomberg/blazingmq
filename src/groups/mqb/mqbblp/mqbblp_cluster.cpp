@@ -2210,6 +2210,9 @@ void Cluster::onRecoveryStatusDispatched(
                 BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
                                  static_cast<int>(pid));
 
+                // TODO:  wrong thread to call 'loadVirtualStorageDetails'
+                // but 'onRecoveryStatusDispatched' should not be concurrent
+                // with any of 'add/removeVirtualStorage' calls.
                 AppInfos appIdInfos;
                 itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
 

@@ -155,12 +155,12 @@ void StorageUtil::loadAddedAndRemovedEntries(
     loadDifference(removedEntries, existingEntries, newEntries);
 }
 
-bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
-                                      AppInfos* removedAppInfos,
-                                      const mqbs::ReplicatedStorage& storage,
+bool StorageUtil::loadUpdatedAppInfos(AppInfos*       addedAppInfos,
+                                      AppInfos*       removedAppInfos,
+                                      const AppInfos& existingAppInfos,
                                       const AppInfos& newAppInfos)
 {
-    // executed by the *CLUSTER DISPATCHER* thread
+    // executed by the *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(addedAppInfos);
@@ -180,9 +180,6 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos* addedAppInfos,
     // B and C, and add D.  This routine takes care of that, by retrieving the
     // list of newly added and removed appIds, and then invoking 'updateQueue'
     // in the appropriate thread.
-
-    AppInfos existingAppInfos;
-    storage.loadVirtualStorageDetails(&existingAppInfos);
 
     loadAddedAndRemovedEntries(addedAppInfos,
                                removedAppInfos,
@@ -294,7 +291,7 @@ void StorageUtil::updateQueuePrimaryDispatched(
 
     bool hasUpdate = loadUpdatedAppInfos(&addedAppInfos,
                                          &removedAppInfos,
-                                         *storage,
+                                         existingAppInfos,
                                          appIdKeyPairs);
     if (!hasUpdate) {
         // No update needed for AppId/Key pairs.

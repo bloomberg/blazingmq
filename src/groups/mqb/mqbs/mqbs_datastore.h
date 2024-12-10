@@ -272,7 +272,6 @@ class DataStoreConfigQueueInfo {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
-    typedef AppInfos::const_iterator AppInfo;
 
   private:
     // DATA
