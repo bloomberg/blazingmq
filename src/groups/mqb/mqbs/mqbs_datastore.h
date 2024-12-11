@@ -271,8 +271,6 @@ struct DataStoreRecordKeyLess {
 class DataStoreConfigQueueInfo {
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo AppInfo;
-
     typedef mqbi::Storage::AppInfos AppInfos;
 
   private:
@@ -299,7 +297,7 @@ class DataStoreConfigQueueInfo {
 
     void setPartitionId(int value);
 
-    void addAppInfo(const AppInfo& value);
+    void addAppInfo(const AppInfos::const_iterator& value);
 
     // ACCESSORS
     const bsl::string& canonicalQueueUri() const;
@@ -334,8 +332,6 @@ class DataStoreConfig {
     typedef Records::iterator RecordIterator;
 
     typedef Records::const_iterator RecordConstIterator;
-
-    typedef mqbi::Storage::AppInfo AppInfo;
 
     typedef mqbi::Storage::AppInfos AppInfos;
 
@@ -541,8 +537,6 @@ class DataStore : public mqbi::DispatcherClient {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo AppInfo;
-
     typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
@@ -891,9 +885,10 @@ inline void DataStoreConfigQueueInfo::setPartitionId(int value)
     d_partitionId = value;
 }
 
-inline void DataStoreConfigQueueInfo::addAppInfo(const AppInfo& value)
+inline void
+DataStoreConfigQueueInfo::addAppInfo(const AppInfos::const_iterator& value)
 {
-    d_appIdKeyPairs.insert(value);
+    d_appIdKeyPairs.emplace(value->first, value->second);
 }
 
 // ACCESSORS

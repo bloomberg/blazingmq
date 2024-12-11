@@ -1604,16 +1604,14 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
                  appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit) {
-            const mqbi::Storage::AppInfo& p = *cit;
-
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();
-            subStream.appId()                            = p.first;
+            subStream.appId()                            = cit->first;
             bmqu::MemOutStream appKey;
-            appKey << p.second;
+            appKey << cit->second;
             subStream.appKey()      = appKey.str();
             subStream.numMessages() = d_queueState_p->storage()->numMessages(
-                p.second);
+                cit->second);
         }
     }
 

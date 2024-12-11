@@ -499,7 +499,7 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         for (AppInfosCIter citer = removedAppIds.begin();
              citer != removedAppIds.end();
              ++citer) {
-            const AppInfosCIter appIdInfoCIter = appIdInfos.find(*citer);
+            const AppInfosCIter appIdInfoCIter = appIdInfos.find(citer->first);
             if (appIdInfoCIter == appIdInfos.cend()) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
