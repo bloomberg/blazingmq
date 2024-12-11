@@ -90,7 +90,7 @@ static void test1_prettyNumberInt64()
                                           test.d_value,
                                           test.d_groupSize,
                                           test.d_separator);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
 
         // manipulator
@@ -104,15 +104,15 @@ static void test1_prettyNumberInt64()
             buf << bmqu::PrintUtil::prettyNumber(test.d_value,
                                                  test.d_groupSize,
                                                  test.d_separator);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
 
     PV("Ensure assertion when group size <= 0");
     {
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123, 0, ','));
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123, -2, ','));
     }
 }
@@ -173,7 +173,7 @@ static void test2_prettyNumberDouble()
                                           test.d_precision,
                                           test.d_groupSize,
                                           test.d_separator);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
 
         // manipulator
@@ -189,15 +189,15 @@ static void test2_prettyNumberDouble()
                                                  test.d_precision,
                                                  test.d_groupSize,
                                                  test.d_separator);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
 
     PV("Ensure assertion when group size <= 0");
     {
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123.0, 0, 0, ','));
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             bmqu::PrintUtil::prettyNumber(bsl::cout, 123.0, 0, -2, ','));
     }
 }
@@ -274,7 +274,7 @@ static void test3_prettyBytes()
 
             bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             bmqu::PrintUtil::prettyBytes(buf, test.d_value, test.d_precision);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
 
         // manipulator
@@ -286,7 +286,7 @@ static void test3_prettyBytes()
             bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyBytes(test.d_value,
                                                 test.d_precision);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
 }
@@ -358,7 +358,7 @@ static void test4_prettyTimeInterval()
             bmqu::PrintUtil::prettyTimeInterval(buf,
                                                 test.d_value,
                                                 test.d_precision);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
 
         // manipulator
@@ -370,7 +370,7 @@ static void test4_prettyTimeInterval()
             bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
             buf << bmqu::PrintUtil::prettyTimeInterval(test.d_value,
                                                        test.d_precision);
-            ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
         }
     }
 }

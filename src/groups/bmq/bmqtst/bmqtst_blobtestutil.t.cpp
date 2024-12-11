@@ -56,8 +56,8 @@ static void test1_fromString()
                                          "",
                                          bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(blob.length(), 0);
-        ASSERT_EQ(blob.numDataBuffers(), 0);
+        BMQTST_ASSERT_EQ(blob.length(), 0);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 0);
     }
 
     {
@@ -68,18 +68,18 @@ static void test1_fromString()
                                          "a|b",
                                          bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(blob.length(), 2);
-        ASSERT_EQ(blob.numDataBuffers(), 2);
+        BMQTST_ASSERT_EQ(blob.length(), 2);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 2);
 
         // First buffer
         bsl::string buf1(blob.buffer(0).data(), 1U);
-        ASSERT_EQ(blob.buffer(0).size(), 1);
-        ASSERT_EQ(buf1, "a");
+        BMQTST_ASSERT_EQ(blob.buffer(0).size(), 1);
+        BMQTST_ASSERT_EQ(buf1, "a");
 
         // Second buffer
         bsl::string buf2(blob.buffer(1).data(), 1U);
-        ASSERT_EQ(blob.buffer(1).size(), 1);
-        ASSERT_EQ(buf2, "b");
+        BMQTST_ASSERT_EQ(blob.buffer(1).size(), 1);
+        BMQTST_ASSERT_EQ(buf2, "b");
     }
 
     {
@@ -90,12 +90,12 @@ static void test1_fromString()
                                          "ab",
                                          bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(blob.length(), 2);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 2);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
 
         bsl::string buf(blob.buffer(0).data(), 2U);
-        ASSERT_EQ(blob.buffer(0).size(), 2);
-        ASSERT_EQ(buf, "ab");
+        BMQTST_ASSERT_EQ(blob.buffer(0).size(), 2);
+        BMQTST_ASSERT_EQ(buf, "ab");
     }
 
     {
@@ -105,12 +105,12 @@ static void test1_fromString()
                                          "aXX",
                                          bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(blob.length(), 1);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
-        ASSERT_EQ(blob.buffer(0).size(), 3);
+        BMQTST_ASSERT_EQ(blob.length(), 1);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.buffer(0).size(), 3);
 
         bsl::string buf(blob.buffer(0).data(), 1U);
-        ASSERT_EQ(buf, "a");
+        BMQTST_ASSERT_EQ(buf, "a");
     }
 }
 
@@ -138,7 +138,8 @@ static void test2_toString()
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 1);
 
         bsl::string out(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&out, blob));
+        BMQTST_ASSERT_EQ("abcdefg",
+                         bmqtst::BlobTestUtil::toString(&out, blob));
     }
 
     {
@@ -152,7 +153,8 @@ static void test2_toString()
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 2);
 
         bsl::string out(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ("a|b", bmqtst::BlobTestUtil::toString(&out, blob, true));
+        BMQTST_ASSERT_EQ("a|b",
+                         bmqtst::BlobTestUtil::toString(&out, blob, true));
     }
 
     {
@@ -167,7 +169,8 @@ static void test2_toString()
         BSLS_ASSERT_OPT(blob.totalSize() == 5);
 
         bsl::string out(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ("a|bXXX", bmqtst::BlobTestUtil::toString(&out, blob, true));
+        BMQTST_ASSERT_EQ("a|bXXX",
+                         bmqtst::BlobTestUtil::toString(&out, blob, true));
     }
 
     {
@@ -181,7 +184,8 @@ static void test2_toString()
         BSLS_ASSERT_OPT(blob.numDataBuffers() == 3);
 
         bsl::string out(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&out, blob));
+        BMQTST_ASSERT_EQ("abcdefg",
+                         bmqtst::BlobTestUtil::toString(&out, blob));
     }
 }
 

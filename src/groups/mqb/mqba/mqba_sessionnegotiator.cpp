@@ -208,7 +208,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 /// Load in the specified `out` the short description representing the
 /// specified `identity` from the specified `peerChannel`.  The format is as
 /// follow:
-///    tskName:pid.sessionId[@hostId]
+///    tskName:pid.sessionId[\@hostId]
 /// Where:
 ///  - tskName   : the task name, without any optional leading path
 ///  - pid       : the pid of the task

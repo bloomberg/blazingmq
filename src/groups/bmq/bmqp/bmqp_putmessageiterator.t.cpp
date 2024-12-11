@@ -83,7 +83,7 @@ static void test1_breathingTest()
         PVV("CREATE INVALID ITER");
         bmqp::PutMessageIterator iter(&bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -93,8 +93,8 @@ static void test1_breathingTest()
         bmqp::PutMessageIterator iter2(iter1,
                                        bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
@@ -102,12 +102,12 @@ static void test1_breathingTest()
         bmqp::PutMessageIterator iter1(&bufferFactory,
                                        bmqtst::TestHelperUtil::allocator()),
             iter2(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         iter1 = iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
@@ -142,74 +142,80 @@ static void test1_breathingTest()
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
 
         bmqu::BlobPosition emptyPos;
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
-        ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
 
         retrievedPayloadBlob.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::PutMessageIterator iter2(iter,
                                        bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader, true);
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
 
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bdlbb::Blob retrievedPayloadBlob2(bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition retrievedPayloadPos2;
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
-        ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos2));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
         retrievedPayloadBlob2.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -247,71 +253,77 @@ static void test1_breathingTest()
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
 
         bmqu::BlobPosition emptyPos;
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
-        ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
 
         retrievedPayloadBlob.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
-        ASSERT(retrievedPayloadBlob.length() > 0);
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
+        BMQTST_ASSERT(retrievedPayloadBlob.length() > 0);
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::PutMessageIterator iter2(iter,
                                        bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader, true);
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
 
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bdlbb::Blob retrievedPayloadBlob2(bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition retrievedPayloadPos2;
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
-        ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos2));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
         retrievedPayloadBlob2.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -347,101 +359,107 @@ static void test1_breathingTest()
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
-        ASSERT_EQ(0, iter.messagePropertiesSize());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(0, iter.messagePropertiesSize());
 
         bdlbb::Blob emptyBlob(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
-        ASSERT_EQ(0, emptyBlob.length());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
+        BMQTST_ASSERT_EQ(0, emptyBlob.length());
 
         bmqu::BlobPosition emptyPos;
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bmqp::MessageProperties emptyProps(
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
-        ASSERT_EQ(0, emptyProps.numProperties());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
+        BMQTST_ASSERT_EQ(0, emptyProps.numProperties());
 
-        ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob,
+                                                  expectedBlob));
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
-        ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
 
         retrievedPayloadBlob.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::PutMessageIterator iter2(iter,
                                        bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader, true);
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
-        ASSERT_EQ(0, iter.messagePropertiesSize());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
-        ASSERT_EQ(0, emptyBlob.length());
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
-        ASSERT_EQ(0, emptyProps.numProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(0, iter.messagePropertiesSize());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
+        BMQTST_ASSERT_EQ(0, emptyBlob.length());
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
+        BMQTST_ASSERT_EQ(0, emptyProps.numProperties());
 
         bdlbb::Blob        retrievedPayloadBlob2(&bufferFactory,
                                           bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition retrievedPayloadPos2;
 
-        ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
-        ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos2));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
         retrievedPayloadBlob2.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -480,101 +498,107 @@ static void test1_breathingTest()
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
-        ASSERT_EQ(0, iter.messagePropertiesSize());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(0, iter.messagePropertiesSize());
 
         bdlbb::Blob emptyBlob(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
-        ASSERT_EQ(0, emptyBlob.length());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
+        BMQTST_ASSERT_EQ(0, emptyBlob.length());
 
         bmqu::BlobPosition emptyPos;
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
 
         bmqp::MessageProperties emptyProps(
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
-        ASSERT_EQ(0, emptyProps.numProperties());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
+        BMQTST_ASSERT_EQ(0, emptyProps.numProperties());
 
-        ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob,
+                                                  expectedBlob));
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos));
-        ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos, expectedPayloadPos);
 
         retrievedPayloadBlob.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::PutMessageIterator iter2(iter,
                                        bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader, true);
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(true, iter.next());
-        ASSERT_EQ(queueId, iter.header().queueId());
-        ASSERT_EQ(guid, iter.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
-        ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
-        ASSERT_EQ(false, iter.hasMessageProperties());
-        ASSERT_EQ(0, iter.messagePropertiesSize());
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
-        ASSERT_EQ(0, emptyBlob.length());
-        ASSERT_EQ(false, 0 == iter.loadMessagePropertiesPosition(&emptyPos));
-        ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
-        ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
-        ASSERT_EQ(0, emptyProps.numProperties());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.next());
+        BMQTST_ASSERT_EQ(queueId, iter.header().queueId());
+        BMQTST_ASSERT_EQ(guid, iter.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.messagePayloadSize());
+        BMQTST_ASSERT_EQ(expectedBlobLength, iter.applicationDataSize());
+        BMQTST_ASSERT_EQ(false, iter.hasMessageProperties());
+        BMQTST_ASSERT_EQ(0, iter.messagePropertiesSize());
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyBlob));
+        BMQTST_ASSERT_EQ(0, emptyBlob.length());
+        BMQTST_ASSERT_EQ(false,
+                         0 == iter.loadMessagePropertiesPosition(&emptyPos));
+        BMQTST_ASSERT_EQ(bmqu::BlobPosition(), emptyPos);
+        BMQTST_ASSERT_EQ(0, iter.loadMessageProperties(&emptyProps));
+        BMQTST_ASSERT_EQ(0, emptyProps.numProperties());
 
         bdlbb::Blob        retrievedPayloadBlob2(&bufferFactory,
                                           bmqtst::TestHelperUtil::allocator());
         bmqu::BlobPosition retrievedPayloadPos2;
 
-        ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadMessagePayload(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(0, iter.loadApplicationDataPosition(&retrievedPayloadPos2));
-        ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
+        BMQTST_ASSERT_EQ(
+            0,
+            iter.loadApplicationDataPosition(&retrievedPayloadPos2));
+        BMQTST_ASSERT_EQ(retrievedPayloadPos2, expectedPayloadPos);
 
         retrievedPayloadBlob2.removeAll();
-        ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
-        ASSERT_EQ(0,
-                  bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
-                                           expectedBlob));
+        BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob2));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
+                                                  expectedBlob));
 
-        ASSERT_EQ(false, iter.hasMsgGroupId());
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
 
@@ -631,7 +655,7 @@ static void test2_reset()
                                           &bufferFactory,
                                           bmqtst::TestHelperUtil::allocator());
 
-            ASSERT_EQ(true, iter.isValid());
+            BMQTST_ASSERT_EQ(true, iter.isValid());
 
             // Copy 'blob' into 'copiedBlob'. Reset 'pmt' with 'copiedBlob'
             // and 'iter'
@@ -641,19 +665,20 @@ static void test2_reset()
         }
 
         // Iterate and verify
-        ASSERT_EQ(true, pmt.isValid());
-        ASSERT_EQ(true, pmt.next());
-        ASSERT_EQ(queueId, pmt.header().queueId());
-        ASSERT_EQ(guid, pmt.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, pmt.applicationDataSize());
+        BMQTST_ASSERT_EQ(true, pmt.isValid());
+        BMQTST_ASSERT_EQ(true, pmt.next());
+        BMQTST_ASSERT_EQ(queueId, pmt.header().queueId());
+        BMQTST_ASSERT_EQ(guid, pmt.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, pmt.applicationDataSize());
 
-        ASSERT_EQ(0, pmt.loadApplicationData(&appDataBlob));
-        ASSERT_EQ(0, bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
+        BMQTST_ASSERT_EQ(0, pmt.loadApplicationData(&appDataBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
 
-        ASSERT_EQ(false, pmt.hasMsgGroupId());
-        ASSERT_EQ(true, pmt.isValid());
-        ASSERT_EQ(false, pmt.next());
-        ASSERT_EQ(false, pmt.isValid());
+        BMQTST_ASSERT_EQ(false, pmt.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, pmt.isValid());
+        BMQTST_ASSERT_EQ(false, pmt.next());
+        BMQTST_ASSERT_EQ(false, pmt.isValid());
     }
 
     {
@@ -696,7 +721,7 @@ static void test2_reset()
                                           &bufferFactory,
                                           bmqtst::TestHelperUtil::allocator());
 
-            ASSERT_EQ(true, iter.isValid());
+            BMQTST_ASSERT_EQ(true, iter.isValid());
 
             // Copy 'blob' into 'copiedBlob'. Reset 'pmt' with 'copiedBlob'
             // and 'iter'
@@ -706,23 +731,25 @@ static void test2_reset()
         }
 
         // Iterate and verify
-        ASSERT_EQ(true, pmt.isValid());
-        ASSERT_EQ(true, pmt.next());
-        ASSERT_EQ(queueId, pmt.header().queueId());
-        ASSERT_EQ(guid, pmt.header().messageGUID());
-        ASSERT_EQ(expectedBlobLength, pmt.messagePayloadSize());
-        ASSERT_EQ(expectedBlobLength, pmt.applicationDataSize());
+        BMQTST_ASSERT_EQ(true, pmt.isValid());
+        BMQTST_ASSERT_EQ(true, pmt.next());
+        BMQTST_ASSERT_EQ(queueId, pmt.header().queueId());
+        BMQTST_ASSERT_EQ(guid, pmt.header().messageGUID());
+        BMQTST_ASSERT_EQ(expectedBlobLength, pmt.messagePayloadSize());
+        BMQTST_ASSERT_EQ(expectedBlobLength, pmt.applicationDataSize());
 
-        ASSERT_EQ(0, pmt.loadMessagePayload(&payloadBlob));
-        ASSERT_EQ(0, bdlbb::BlobUtil::compare(payloadBlob, expectedBlob));
+        BMQTST_ASSERT_EQ(0, pmt.loadMessagePayload(&payloadBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(payloadBlob, expectedBlob));
 
-        ASSERT_EQ(0, pmt.loadApplicationData(&appDataBlob));
-        ASSERT_EQ(0, bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
+        BMQTST_ASSERT_EQ(0, pmt.loadApplicationData(&appDataBlob));
+        BMQTST_ASSERT_EQ(0,
+                         bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
 
-        ASSERT_EQ(false, pmt.hasMsgGroupId());
-        ASSERT_EQ(true, pmt.isValid());
-        ASSERT_EQ(false, pmt.next());
-        ASSERT_EQ(false, pmt.isValid());
+        BMQTST_ASSERT_EQ(false, pmt.hasMsgGroupId());
+        BMQTST_ASSERT_EQ(true, pmt.isValid());
+        BMQTST_ASSERT_EQ(false, pmt.next());
+        BMQTST_ASSERT_EQ(false, pmt.isValid());
     }
 }
 
@@ -758,8 +785,8 @@ static void test3_putEventWithNoMessages()
     // Verify non-validity
     bmqp::PutMessageIterator iter(&bufferFactory,
                                   bmqtst::TestHelperUtil::allocator());
-    ASSERT_LT(iter.reset(&eventBlob, eventHeader, true), 0);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_LT(iter.reset(&eventBlob, eventHeader, true), 0);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test4_invalidPutEvent()
@@ -804,11 +831,11 @@ static void test4_invalidPutEvent()
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(true, iter.isValid());  // First message is valid..
-        ASSERT_EQ(1, iter.next());        // Second message is error.
+        BMQTST_ASSERT_EQ(true, iter.isValid());  // First message is valid..
+        BMQTST_ASSERT_EQ(1, iter.next());        // Second message is error.
 
         int rc = iter.next();
-        ASSERT_LT(rc, 0);
+        BMQTST_ASSERT_LT(rc, 0);
 
         PVV("Error returned: " << rc);
         iter.dumpBlob(bsl::cout);
@@ -838,14 +865,14 @@ static void test4_invalidPutEvent()
                                       bmqtst::TestHelperUtil::allocator());
 
         // First 3 messages are valid..
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(1, iter.next());
 
         bdlbb::Blob options;
         eventBlob.setLength(1);
         int rc = iter.loadOptions(&options);
-        ASSERT_LT(rc, 0);
+        BMQTST_ASSERT_LT(rc, 0);
 
         PVV("Error returned: " << rc);
         iter.dumpBlob(bsl::cout);
@@ -891,25 +918,29 @@ static void test5_putEventWithMultipleMessages()
                                       true,
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
 
         size_t index = 0;
 
         while (iter.next() == 1 && index < data.size()) {
             const bmqp::PutTester::Data& D = data[index];
 
-            ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
+            BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
 
             const bool hasMsgProps = bmqp::PutHeaderFlagUtil::isSet(
                 iter.header().flags(),
                 bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES);
-            ASSERT_EQ_D(index, true, hasMsgProps);
-            ASSERT_EQ_D(index, hasMsgProps, iter.hasMessageProperties());
-            ASSERT_EQ_D(index, D.d_propLen, iter.messagePropertiesSize());
-            ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
-            ASSERT_EQ_D(index,
-                        (D.d_msgLen + D.d_propLen),
-                        iter.applicationDataSize());
+            BMQTST_ASSERT_EQ_D(index, true, hasMsgProps);
+            BMQTST_ASSERT_EQ_D(index,
+                               hasMsgProps,
+                               iter.hasMessageProperties());
+            BMQTST_ASSERT_EQ_D(index,
+                               D.d_propLen,
+                               iter.messagePropertiesSize());
+            BMQTST_ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
+            BMQTST_ASSERT_EQ_D(index,
+                               (D.d_msgLen + D.d_propLen),
+                               iter.applicationDataSize());
 
             bdlbb::Blob        options(bmqtst::TestHelperUtil::allocator());
             bdlbb::Blob        props(bmqtst::TestHelperUtil::allocator());
@@ -919,37 +950,42 @@ static void test5_putEventWithMultipleMessages()
             bmqu::BlobPosition payloadPos;
             bmqu::BlobPosition appDataPos;
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadMessagePropertiesPosition(&propsPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadMessagePropertiesPosition(&propsPos));
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadApplicationDataPosition(&appDataPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadApplicationDataPosition(&appDataPos));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(props, D.d_properties));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(props,
+                                                        D.d_properties));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(payload, D.d_payload));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(payload, D.d_payload));
 
-            ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(appData, D.d_appData));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(appData, D.d_appData));
 
             const bool hasMsgGroupId = iter.hasMsgGroupId();
-            ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
+            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
             if (hasMsgGroupId) {
                 bmqp::Protocol::MsgGroupId msgGroupId(
                     bmqtst::TestHelperUtil::allocator());
-                ASSERT_EQ_D(index, true, iter.extractMsgGroupId(&msgGroupId));
+                BMQTST_ASSERT_EQ_D(index,
+                                   true,
+                                   iter.extractMsgGroupId(&msgGroupId));
 
-                ASSERT_EQ_D(index, msgGroupId, D.d_msgGroupId.valueOr(""));
+                BMQTST_ASSERT_EQ_D(index,
+                                   msgGroupId,
+                                   D.d_msgGroupId.valueOr(""));
             }
             typedef bmqp::OptionUtil::OptionMeta OptionMeta;
             const OptionMeta                     msgGroupIdOption =
@@ -961,15 +997,15 @@ static void test5_putEventWithMultipleMessages()
             const int optionsSize = hasMsgGroupId ? msgGroupIdOption.size()
                                                   : 0;
 
-            ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
 
-            ASSERT_EQ_D(index, optionsSize, options.length());
+            BMQTST_ASSERT_EQ_D(index, optionsSize, options.length());
 
             ++index;
         }
 
-        ASSERT_EQ(index, data.size());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(index, data.size());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -995,25 +1031,29 @@ static void test5_putEventWithMultipleMessages()
                                       true,
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
 
         size_t index = 0;
 
         while (iter.next() == 1 && index < data.size()) {
             const bmqp::PutTester::Data& D = data[index];
 
-            ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
+            BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
 
             const bool hasMsgProps = bmqp::PutHeaderFlagUtil::isSet(
                 iter.header().flags(),
                 bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES);
-            ASSERT_EQ_D(index, true, hasMsgProps);
-            ASSERT_EQ_D(index, hasMsgProps, iter.hasMessageProperties());
-            ASSERT_EQ_D(index, D.d_propLen, iter.messagePropertiesSize());
-            ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
-            ASSERT_EQ_D(index,
-                        (D.d_msgLen + D.d_propLen),
-                        iter.applicationDataSize());
+            BMQTST_ASSERT_EQ_D(index, true, hasMsgProps);
+            BMQTST_ASSERT_EQ_D(index,
+                               hasMsgProps,
+                               iter.hasMessageProperties());
+            BMQTST_ASSERT_EQ_D(index,
+                               D.d_propLen,
+                               iter.messagePropertiesSize());
+            BMQTST_ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
+            BMQTST_ASSERT_EQ_D(index,
+                               (D.d_msgLen + D.d_propLen),
+                               iter.applicationDataSize());
 
             bdlbb::Blob        options(bmqtst::TestHelperUtil::allocator());
             bdlbb::Blob        props(bmqtst::TestHelperUtil::allocator());
@@ -1023,37 +1063,42 @@ static void test5_putEventWithMultipleMessages()
             bmqu::BlobPosition payloadPos;
             bmqu::BlobPosition appDataPos;
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadMessagePropertiesPosition(&propsPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadMessagePropertiesPosition(&propsPos));
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadApplicationDataPosition(&appDataPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadApplicationDataPosition(&appDataPos));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(props, D.d_properties));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(props,
+                                                        D.d_properties));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(payload, D.d_payload));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(payload, D.d_payload));
 
-            ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(appData, D.d_appData));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(appData, D.d_appData));
 
             const bool hasMsgGroupId = iter.hasMsgGroupId();
-            ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
+            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
             if (hasMsgGroupId) {
                 bmqp::Protocol::MsgGroupId msgGroupId(
                     bmqtst::TestHelperUtil::allocator());
-                ASSERT_EQ_D(index, true, iter.extractMsgGroupId(&msgGroupId));
+                BMQTST_ASSERT_EQ_D(index,
+                                   true,
+                                   iter.extractMsgGroupId(&msgGroupId));
 
-                ASSERT_EQ_D(index, msgGroupId, D.d_msgGroupId.valueOr(""));
+                BMQTST_ASSERT_EQ_D(index,
+                                   msgGroupId,
+                                   D.d_msgGroupId.valueOr(""));
             }
             typedef bmqp::OptionUtil::OptionMeta OptionMeta;
             const OptionMeta                     msgGroupIdOption =
@@ -1065,15 +1110,15 @@ static void test5_putEventWithMultipleMessages()
             const int optionsSize = hasMsgGroupId ? msgGroupIdOption.size()
                                                   : 0;
 
-            ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
 
-            ASSERT_EQ_D(index, optionsSize, options.length());
+            BMQTST_ASSERT_EQ_D(index, optionsSize, options.length());
 
             ++index;
         }
 
-        ASSERT_EQ(index, data.size());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(index, data.size());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
 
@@ -1116,24 +1161,28 @@ static void test6_putEventWithZeroLengthPutMessages()
                                       true,
                                       &bufferFactory,
                                       bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
 
         size_t index = 0;
 
         while (iter.next() == 1 && index < data.size()) {
             const bmqp::PutTester::Data& D = data[index];
-            ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
+            BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.header().queueId());
 
             const bool hasMsgProps = bmqp::PutHeaderFlagUtil::isSet(
                 iter.header().flags(),
                 bmqp::PutHeaderFlags::e_MESSAGE_PROPERTIES);
-            ASSERT_EQ_D(index, true, hasMsgProps);
-            ASSERT_EQ_D(index, hasMsgProps, iter.hasMessageProperties());
-            ASSERT_EQ_D(index, D.d_propLen, iter.messagePropertiesSize());
-            ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
-            ASSERT_EQ_D(index,
-                        (D.d_msgLen + D.d_propLen),
-                        iter.applicationDataSize());
+            BMQTST_ASSERT_EQ_D(index, true, hasMsgProps);
+            BMQTST_ASSERT_EQ_D(index,
+                               hasMsgProps,
+                               iter.hasMessageProperties());
+            BMQTST_ASSERT_EQ_D(index,
+                               D.d_propLen,
+                               iter.messagePropertiesSize());
+            BMQTST_ASSERT_EQ_D(index, D.d_msgLen, iter.messagePayloadSize());
+            BMQTST_ASSERT_EQ_D(index,
+                               (D.d_msgLen + D.d_propLen),
+                               iter.applicationDataSize());
 
             bdlbb::Blob        props(bmqtst::TestHelperUtil::allocator());
             bdlbb::Blob        payload(bmqtst::TestHelperUtil::allocator());
@@ -1142,43 +1191,48 @@ static void test6_putEventWithZeroLengthPutMessages()
             bmqu::BlobPosition payloadPos;
             bmqu::BlobPosition appDataPos;
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadMessagePropertiesPosition(&propsPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadMessagePropertiesPosition(&propsPos));
 
-            ASSERT_EQ_D(index,
-                        0,
-                        iter.loadApplicationDataPosition(&appDataPos));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               iter.loadApplicationDataPosition(&appDataPos));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(props, D.d_properties));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessageProperties(&props));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(props,
+                                                        D.d_properties));
 
-            ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(payload, D.d_payload));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadMessagePayload(&payload));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(payload, D.d_payload));
 
-            ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
-            ASSERT_EQ_D(index,
-                        0,
-                        bdlbb::BlobUtil::compare(appData, D.d_appData));
+            BMQTST_ASSERT_EQ_D(index, 0, iter.loadApplicationData(&appData));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bdlbb::BlobUtil::compare(appData, D.d_appData));
 
             const bool hasMsgGroupId = iter.hasMsgGroupId();
-            ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
+            BMQTST_ASSERT_EQ_D(index, hasMsgGroupId, !D.d_msgGroupId.isNull());
             if (hasMsgGroupId) {
                 bmqp::Protocol::MsgGroupId msgGroupId(
                     bmqtst::TestHelperUtil::allocator());
-                ASSERT_EQ_D(index, true, iter.extractMsgGroupId(&msgGroupId));
-                ASSERT_EQ_D(index, msgGroupId, D.d_msgGroupId.valueOr(""));
+                BMQTST_ASSERT_EQ_D(index,
+                                   true,
+                                   iter.extractMsgGroupId(&msgGroupId));
+                BMQTST_ASSERT_EQ_D(index,
+                                   msgGroupId,
+                                   D.d_msgGroupId.valueOr(""));
             }
 
             ++index;
         }
 
-        ASSERT_EQ(index, data.size());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(index, data.size());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
 

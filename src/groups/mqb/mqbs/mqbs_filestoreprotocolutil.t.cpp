@@ -60,7 +60,7 @@ static void test1_hasBmqHeader()
         MemoryBlock          block;
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
-        ASSERT_EQ(FileStoreProtocolUtil::hasBmqHeader(mfd), -1);
+        BMQTST_ASSERT_EQ(FileStoreProtocolUtil::hasBmqHeader(mfd), -1);
     }
 
     {
@@ -73,7 +73,7 @@ static void test1_hasBmqHeader()
         MappedFileDescriptor mfd;
         mfd.setBlock(block);
         mfd.setFileSize(FileHeader::k_MIN_HEADER_SIZE + 3);
-        ASSERT_EQ(-2, FileStoreProtocolUtil::hasBmqHeader(mfd));
+        BMQTST_ASSERT_EQ(-2, FileStoreProtocolUtil::hasBmqHeader(mfd));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -94,7 +94,7 @@ static void test1_hasBmqHeader()
         // Update 'headerWords' field with a value > block.size()
         fh->setHeaderWords(block.size() / 4 + 10);
 
-        ASSERT_EQ(-4, FileStoreProtocolUtil::hasBmqHeader(mfd));
+        BMQTST_ASSERT_EQ(-4, FileStoreProtocolUtil::hasBmqHeader(mfd));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -111,7 +111,7 @@ static void test1_hasBmqHeader()
         OffsetPtr<FileHeader> fh(block, 0);
         new (fh.get()) FileHeader();
         fh->setFileType(FileType::e_JOURNAL);
-        ASSERT_EQ(0, FileStoreProtocolUtil::hasBmqHeader(mfd));
+        BMQTST_ASSERT_EQ(0, FileStoreProtocolUtil::hasBmqHeader(mfd));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
@@ -167,12 +167,12 @@ static void test2_lastJournalRecord()
         bsls::Types::Uint64 lastRecordPos =
             currPos - (2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-        ASSERT_EQ(lastRecordPos,
-                  FileStoreProtocolUtil::lastJournalRecord(
-                      mfd,
-                      *fh,
-                      *jfh,
-                      0));  // last journal sync point
+        BMQTST_ASSERT_EQ(lastRecordPos,
+                         FileStoreProtocolUtil::lastJournalRecord(
+                             mfd,
+                             *fh,
+                             *jfh,
+                             0));  // last journal sync point
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -195,7 +195,7 @@ static void test2_lastJournalRecord()
         FileHeader        fh;
         JournalFileHeader jfh;
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             lastJournalSyncPoint,
             FileStoreProtocolUtil::lastJournalRecord(mfd,
                                                      fh,
@@ -243,7 +243,7 @@ static void test2_lastJournalRecord()
             jfh,
             lastJournalSyncPoint);
 
-        ASSERT_EQ(lastValidRecordPos, result);
+        BMQTST_ASSERT_EQ(lastValidRecordPos, result);
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -274,7 +274,7 @@ static void test2_lastJournalRecord()
 
         bsls::Types::Uint64 result =
             FileStoreProtocolUtil::lastJournalRecord(mfd, *fh, *jfh, 0);
-        ASSERT_EQ(0ULL, result);
+        BMQTST_ASSERT_EQ(0ULL, result);
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -320,8 +320,9 @@ static void test3_lastJournalSyncPoint()
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
 
-        ASSERT_EQ(0ULL,
-                  FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
+        BMQTST_ASSERT_EQ(
+            0ULL,
+            FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -350,8 +351,9 @@ static void test3_lastJournalSyncPoint()
         new (jfh.get()) JournalFileHeader();
         currPos += sizeof(JournalFileHeader);
 
-        ASSERT_EQ(0ULL,
-                  FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
+        BMQTST_ASSERT_EQ(
+            0ULL,
+            FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -411,8 +413,9 @@ static void test3_lastJournalSyncPoint()
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
 
-        ASSERT_EQ(syncPointPos,
-                  FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
+        BMQTST_ASSERT_EQ(
+            syncPointPos,
+            FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -450,8 +453,9 @@ static void test3_lastJournalSyncPoint()
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
 
-        ASSERT_EQ(0ULL,
-                  FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
+        BMQTST_ASSERT_EQ(
+            0ULL,
+            FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 
@@ -500,8 +504,9 @@ static void test3_lastJournalSyncPoint()
             currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         }
 
-        ASSERT_EQ(syncPointPos,
-                  FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
+        BMQTST_ASSERT_EQ(
+            syncPointPos,
+            FileStoreProtocolUtil::lastJournalSyncPoint(mfd, *fh, *jfh));
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
 }
@@ -512,8 +517,7 @@ static void test4_loadAppInfos()
 //   loadAppInfos()
 // ------------------------------------------------------------------------
 {
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-    typedef bsl::unordered_set<AppInfo>              AppInfos;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
 
     {
         // No appIds.
@@ -527,7 +531,7 @@ static void test4_loadAppInfos()
                                                   mb,
                                                   0);  // no appIds
 
-        ASSERT_EQ(0u, appIdKeyPairs.size());
+        BMQTST_ASSERT_EQ(0u, appIdKeyPairs.size());
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -582,9 +586,9 @@ static void test4_loadAppInfos()
                                                   mb,
                                                   1);  // 1 appId
 
-        ASSERT_EQ(1U, appIdKeyPairs.size());
-        ASSERT_EQ(appId, appIdKeyPairs.begin()->first);
-        ASSERT_EQ(appKey, appIdKeyPairs.begin()->second);
+        BMQTST_ASSERT_EQ(1U, appIdKeyPairs.size());
+        BMQTST_ASSERT_EQ(appId, appIdKeyPairs.begin()->first);
+        BMQTST_ASSERT_EQ(appKey, appIdKeyPairs.begin()->second);
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -661,9 +665,9 @@ static void test4_loadAppInfos()
                         appHash,
                         mqbs::FileStoreProtocol::k_HASH_LENGTH);
 
-            expectedAppInfos.emplace(AppInfo(
+            expectedAppInfos.emplace(
                 bsl::string(appId, bmqtst::TestHelperUtil::allocator()),
-                appKey));
+                appKey);
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
         // Test.
@@ -674,8 +678,8 @@ static void test4_loadAppInfos()
                                                   mb,
                                                   numAppIds);
 
-        ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
-        ASSERT_EQ(appIdKeyPairs, expectedAppInfos);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
+        BMQTST_ASSERT_EQ(appIdKeyPairs, expectedAppInfos);
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -735,16 +739,17 @@ static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
             bdlde::Md5::Md5Digest buffer;
 
             int rc = -1;
-            ASSERT_PASS(rc = mqbs::FileStoreProtocolUtil::calculateMd5Digest(
-                            &buffer,
-                            localBlob,
-                            startPos,
-                            source.size()));
-            ASSERT_EQ(0, rc);
+            BMQTST_ASSERT_PASS(
+                rc = mqbs::FileStoreProtocolUtil::calculateMd5Digest(
+                    &buffer,
+                    localBlob,
+                    startPos,
+                    source.size()));
+            BMQTST_ASSERT_EQ(0, rc);
             bsl::string result(buffer.buffer(),
                                MD5_DIGEST_BYTES,
                                bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(result, expected);
+            BMQTST_ASSERT_EQ(result, expected);
         }
     }
 }
@@ -776,7 +781,7 @@ static void test5_calculateMd5Digest()
 
     {
         // Empty buffer.
-        ASSERT_FAIL(
+        BMQTST_ASSERT_FAIL(
             mqbs::FileStoreProtocolUtil::calculateMd5Digest(0,
                                                             blob,
                                                             startPos,
@@ -792,18 +797,18 @@ static void test5_calculateMd5Digest()
             bdlbb::Blob(&myFactory, bmqtst::TestHelperUtil::allocator()),
             startPos,
             data.size());
-        ASSERT_NE(0, rc);
+        BMQTST_ASSERT_NE(0, rc);
     }
 
     {
         // startPos out of blob.
         bdlde::Md5::Md5Digest buffer;
-        ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
+        BMQTST_ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
             &buffer,
             blob,
             bmqu::BlobPosition(0, data.size() + 1),
             data.size()));
-        ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
+        BMQTST_ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(
             &buffer,
             blob,
             bmqu::BlobPosition(1, 1),
@@ -813,10 +818,11 @@ static void test5_calculateMd5Digest()
     {
         // Zero Length.
         bdlde::Md5::Md5Digest buffer;
-        ASSERT_FAIL(mqbs::FileStoreProtocolUtil::calculateMd5Digest(&buffer,
-                                                                    blob,
-                                                                    startPos,
-                                                                    0));
+        BMQTST_ASSERT_FAIL(
+            mqbs::FileStoreProtocolUtil::calculateMd5Digest(&buffer,
+                                                            blob,
+                                                            startPos,
+                                                            0));
     }
 
     {
@@ -832,7 +838,7 @@ static void test5_calculateMd5Digest()
         catch (const BloombergLP::bsls::AssertTestException&) {
             failed = true;
         }
-        ASSERT_EQ(true, failed);
+        BMQTST_ASSERT_EQ(true, failed);
     }
 
     {
@@ -843,11 +849,11 @@ static void test5_calculateMd5Digest()
                                                                  blob,
                                                                  startPos,
                                                                  data.size());
-        ASSERT_EQ(0, rc);
+        BMQTST_ASSERT_EQ(0, rc);
         bsl::string result(buffer.buffer(),
                            MD5_DIGEST_BYTES,
                            bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(result, md5b);
+        BMQTST_ASSERT_EQ(result, md5b);
     }
 
     {
@@ -865,7 +871,7 @@ static void test5_calculateMd5Digest()
         chunkedBlob.setLength(data.size());
         const int num = chunkedBlob.numBuffers();
 
-        ASSERT_EQ(expected_num, num);
+        BMQTST_ASSERT_EQ(expected_num, num);
         for (int index = 0; index < num; ++index) {
             bsl::memcpy(chunkedBlob.buffer(index).data(),
                         data.c_str() + index * bufferSize,
@@ -879,11 +885,11 @@ static void test5_calculateMd5Digest()
                                                                  chunkedBlob,
                                                                  startPos,
                                                                  data.size());
-        ASSERT_EQ(0, rc);
+        BMQTST_ASSERT_EQ(0, rc);
         bsl::string result(buffer.buffer(),
                            MD5_DIGEST_BYTES,
                            bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(result, md5b);
+        BMQTST_ASSERT_EQ(result, md5b);
     }
 
     {
@@ -920,7 +926,7 @@ static void test5_calculateMd5Digest()
                                       &jobForThreadPool,
                                       &correctMd5s,
                                       &barrier));
-            ASSERT_EQ(0, rc);
+            BMQTST_ASSERT_EQ(0, rc);
         }
         barrier.wait();
         threadGroup.joinAll();

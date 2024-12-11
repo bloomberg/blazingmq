@@ -97,13 +97,13 @@ static void test1_breathingTest()
     bsls::ProtocolTest<HostHealthMonitorTestImp> monitor;
 
     PV("Verify that the protocol is abstract");
-    ASSERT(monitor.testAbstract());
+    BMQTST_ASSERT(monitor.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(monitor.testNoDataMembers());
+    BMQTST_ASSERT(monitor.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(monitor.testVirtualDestructor());
+    BMQTST_ASSERT(monitor.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
 

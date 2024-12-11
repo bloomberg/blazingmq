@@ -293,6 +293,7 @@ bool StorageManager::isStorageEmpty(
 const mqbs::FileStore&
 StorageManager::fileStore(BSLS_ANNOTATION_UNUSED int partitionId) const
 {
+    BSLS_ASSERT_INVOKE_NORETURN("Unimplemented");
 }
 
 bslma::ManagedPtr<mqbi::StorageManagerIterator>

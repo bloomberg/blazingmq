@@ -132,8 +132,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo AppInfo;
-
     typedef mqbi::Storage::AppInfos AppInfos;
 
     typedef ReplicatedStorage::RecordHandles RecordHandles;

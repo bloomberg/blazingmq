@@ -63,33 +63,33 @@ static void test1_breathingTest()
 
     // Creators
     bmqt::Version a;
-    ASSERT_EQ(a.major(), 0);
-    ASSERT_EQ(a.minor(), 0);
+    BMQTST_ASSERT_EQ(a.major(), 0);
+    BMQTST_ASSERT_EQ(a.minor(), 0);
 
     bmqt::Version b(1, 2);
-    ASSERT_EQ(b.major(), 1);
-    ASSERT_EQ(b.minor(), 2);
+    BMQTST_ASSERT_EQ(b.major(), 1);
+    BMQTST_ASSERT_EQ(b.minor(), 2);
 
     // Equality
-    ASSERT_EQ(a, a);
-    ASSERT_EQ(b, b);
-    ASSERT_NE(a, b);
+    BMQTST_ASSERT_EQ(a, a);
+    BMQTST_ASSERT_EQ(b, b);
+    BMQTST_ASSERT_NE(a, b);
 
     // Copy constructor
     bmqt::Version c(b);
-    ASSERT_EQ(c, c);
-    ASSERT_EQ(b, c);
-    ASSERT_EQ(c.major(), 1);
-    ASSERT_EQ(c.minor(), 2);
+    BMQTST_ASSERT_EQ(c, c);
+    BMQTST_ASSERT_EQ(b, c);
+    BMQTST_ASSERT_EQ(c.major(), 1);
+    BMQTST_ASSERT_EQ(c.minor(), 2);
 
     // Manipulators and accessors
     c.setMinor(3);
-    ASSERT_EQ(c.major(), 1);
-    ASSERT_EQ(c.minor(), 3);
-    ASSERT_NE(b, c);
+    BMQTST_ASSERT_EQ(c.major(), 1);
+    BMQTST_ASSERT_EQ(c.minor(), 3);
+    BMQTST_ASSERT_NE(b, c);
     c.setMajor(4);
-    ASSERT_EQ(c.major(), 4);
-    ASSERT_EQ(c.minor(), 3);
+    BMQTST_ASSERT_EQ(c.major(), 4);
+    BMQTST_ASSERT_EQ(c.minor(), 3);
 
     // Operator <
     bmqt::Version ab(1, 2);
@@ -97,20 +97,20 @@ static void test1_breathingTest()
     bmqt::Version bb(2, 2);
     bmqt::Version be(2, 5);
 
-    ASSERT_EQ(ab < ab, false);
-    ASSERT_EQ(ab < ad, true);
-    ASSERT_EQ(ab < bb, true);
-    ASSERT_EQ(ab < be, true);
-    ASSERT_EQ(ad < bb, true);
-    ASSERT_EQ(ad < be, true);
-    ASSERT_EQ(bb < be, true);
+    BMQTST_ASSERT_EQ(ab < ab, false);
+    BMQTST_ASSERT_EQ(ab < ad, true);
+    BMQTST_ASSERT_EQ(ab < bb, true);
+    BMQTST_ASSERT_EQ(ab < be, true);
+    BMQTST_ASSERT_EQ(ad < bb, true);
+    BMQTST_ASSERT_EQ(ad < be, true);
+    BMQTST_ASSERT_EQ(bb < be, true);
 
-    ASSERT_EQ(ad < ab, false);
-    ASSERT_EQ(bb < ab, false);
-    ASSERT_EQ(be < ab, false);
-    ASSERT_EQ(bb < ad, false);
-    ASSERT_EQ(be < ad, false);
-    ASSERT_EQ(be < bb, false);
+    BMQTST_ASSERT_EQ(ad < ab, false);
+    BMQTST_ASSERT_EQ(bb < ab, false);
+    BMQTST_ASSERT_EQ(be < ab, false);
+    BMQTST_ASSERT_EQ(bb < ad, false);
+    BMQTST_ASSERT_EQ(be < ad, false);
+    BMQTST_ASSERT_EQ(be < bb, false);
 
     // Printing
     {
@@ -118,27 +118,27 @@ static void test1_breathingTest()
         os << a;
         bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
-        ASSERT_EQ(str, "[ major = 0 minor = 0 ]");
+        BMQTST_ASSERT_EQ(str, "[ major = 0 minor = 0 ]");
     }
     {
         bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << b;
         bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
-        ASSERT_EQ(str, "[ major = 1 minor = 2 ]");
+        BMQTST_ASSERT_EQ(str, "[ major = 1 minor = 2 ]");
     }
     {
         bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << c;
         bsl::string str(bmqtst::TestHelperUtil::allocator());
         str.assign(os.str().data(), os.str().length());
-        ASSERT_EQ(str, "[ major = 4 minor = 3 ]");
+        BMQTST_ASSERT_EQ(str, "[ major = 4 minor = 3 ]");
     }
     {
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         a.print(out, 0, -1);
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
 

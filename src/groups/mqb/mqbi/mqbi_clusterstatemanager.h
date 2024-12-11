@@ -74,22 +74,6 @@ class ClusterStateManager {
   public:
     // TYPES
 
-    /// Signature of a callback invoked when the specified `uri` is in the
-    /// process of being assigned.  If the specified
-    /// `processingPendingRequests` is true, we will process pending
-    /// requests on this machine.
-    typedef bsl::function<void(const bmqt::Uri& uri,
-                               bool             processingPendingRequests)>
-        QueueAssigningCb;
-
-    /// Signature of a callback invoked when the queue with the specified
-    /// `queueInfo` is being unassigned.  Load into the specified
-    /// `hasInFlightRequests` whether there are still in-flight requests for
-    /// the queue.  Return true on success, or false on failure.
-    typedef bsl::function<bool(bool* hasInFlightRequests,
-                               const bmqp_ctrlmsg::QueueInfo& queueInfo)>
-        QueueUnassigningCb;
-
     /// Signature of a callback invoked after the specified `partitionId`
     /// gets assigned to the specified `primary` with the specified `status`.
     /// Note that null is a valid value for the `primary`, and it implies
@@ -103,7 +87,7 @@ class ClusterStateManager {
 
     /// Pair of (appId, appKey)
     typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-    typedef bsl::unordered_set<AppInfo>              AppInfos;
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
     typedef AppInfos::const_iterator                 AppInfosCIter;
 
     struct QueueAssignmentResult {
@@ -154,12 +138,6 @@ class ClusterStateManager {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual void setStorageManager(StorageManager* value) = 0;
-
-    /// Set the queue assigning callback to the specified `value`.
-    virtual void setQueueAssigningCb(const QueueAssigningCb& value) = 0;
-
-    /// Set the queue unassigning callback to the specified `value`.
-    virtual void setQueueUnassigningCb(const QueueUnassigningCb& value) = 0;
 
     /// Set the after partition primary assignment callback to the specified
     /// `value`.
@@ -324,7 +302,7 @@ class ClusterStateManager {
     processRegistrationRequest(const bmqp_ctrlmsg::ControlMessage& message,
                                mqbnet::ClusterNode*                source) = 0;
 
-    /// Process the specified `event`.
+    /// Process the specified cluster state `event`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

@@ -119,6 +119,7 @@ LogControllerConfig::balToBslsLogLevel(ball::Severity::Level level)
     case ball::Severity::e_INFO: return bsls::LogSeverity::e_INFO;
     case ball::Severity::e_DEBUG: return bsls::LogSeverity::e_DEBUG;
     case ball::Severity::e_TRACE: return bsls::LogSeverity::e_TRACE;
+    case ball::Severity::e_OFF:
     default: return bsls::LogSeverity::e_ERROR;
     };
 }

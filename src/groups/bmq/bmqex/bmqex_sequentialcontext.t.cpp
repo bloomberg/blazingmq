@@ -222,8 +222,8 @@ static void test1_context_creators()
     bmqex::SequentialContext ctx(&alloc);
 
     // check postconditions
-    ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(0));
-    ASSERT_EQ(ctx.allocator(), &alloc);
+    BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(0));
+    BMQTST_ASSERT_EQ(ctx.allocator(), &alloc);
 }
 
 static void test2_context_start()
@@ -264,7 +264,7 @@ static void test2_context_start()
         }
 
         // do start
-        ASSERT_EQ(ctx.start(), 0);
+        BMQTST_ASSERT_EQ(ctx.start(), 0);
 
         // synchronize with the completion of each submitted function object
         for (int i = 0; i < NUM_JOBS; ++i) {
@@ -340,7 +340,7 @@ static void test3_context_stop()
     // the working thread completed, function object #1 completed execution
 
     // function object #2 had not been executed
-    ASSERT(job2Storage.empty());
+    BMQTST_ASSERT(job2Storage.empty());
 
     // delete the thread-local storage
     rc = bslmt::ThreadUtil::deleteKey(tlsKey);
@@ -398,7 +398,7 @@ static void test4_context_join()
     ctx.join();
 
     // all jobs executed
-    ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
+    BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
 
     // wait till working thread exits
     threadExitSignal.wait();
@@ -437,12 +437,12 @@ static void test5_context_dropPendingJobs()
         ctx.executor().post(NoOp());
         ctx.executor().post(NoOp());
         ctx.executor().post(NoOp());
-        ASSERT_EQ(ctx.outstandingJobs(), 3u);
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), 3u);
 
         // drop all of them
         size_t jobsRemoved = ctx.dropPendingJobs();
-        ASSERT_EQ(jobsRemoved, 3u);
-        ASSERT_EQ(ctx.outstandingJobs(), 0u);
+        BMQTST_ASSERT_EQ(jobsRemoved, 3u);
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), 0u);
     }
 
     // 2. drop jobs while a job is executing
@@ -456,7 +456,7 @@ static void test5_context_dropPendingJobs()
                                                  &continueSignal));
         ctx.executor().post(NoOp());
         ctx.executor().post(NoOp());
-        ASSERT_EQ(ctx.outstandingJobs(), 3u);
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), 3u);
 
         // start executing the first job
         ctx.start();
@@ -464,8 +464,8 @@ static void test5_context_dropPendingJobs()
 
         // drop the other two jobs
         size_t jobsRemoved = ctx.dropPendingJobs();
-        ASSERT_EQ(jobsRemoved, 2u);
-        ASSERT_EQ(ctx.outstandingJobs(), 1u);
+        BMQTST_ASSERT_EQ(jobsRemoved, 2u);
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), 1u);
 
         // synchronize
         continueSignal.post();
@@ -504,7 +504,7 @@ static void test6_context_outstandingJobs()
     bmqex::SequentialContext ctx(&alloc);
 
     // outstanding jobs is 0
-    ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(0));
+    BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(0));
 
     // submit 'NUM_JOBS' function objects
     for (int i = 0; i < NUM_JOBS; ++i) {
@@ -514,7 +514,7 @@ static void test6_context_outstandingJobs()
                                                  &continueSignal));
 
         // outstanding jobs increased by 1
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i + 1));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i + 1));
     }
 
     // make the context execute submitted function objects one by one
@@ -525,7 +525,7 @@ static void test6_context_outstandingJobs()
         // the function object is currently executing
 
         // outstanding jobs not decreased yet
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i));
 
         // complete the function object execution
         ctx.stop();
@@ -534,7 +534,7 @@ static void test6_context_outstandingJobs()
         // function object finished execution
 
         // outstanding jobs has decrease
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i - 1));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i - 1));
     }
 }
 
@@ -586,20 +586,21 @@ static void test7_executor_post()
         // submit function objects
         for (int i = 0; i < NUM_JOBS; ++i) {
             ctx.executor().post(bdlf::BindUtil::bind(PushBack(), &out, i));
-            ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(ctx.outstandingJobs(),
+                             static_cast<size_t>(i + 1));
         }
 
         // no function object executed so far
-        ASSERT(out.empty());
+        BMQTST_ASSERT(out.empty());
 
         // start the context and join it
         ctx.start();
         ctx.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
         for (int i = 0; i < NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -632,9 +633,9 @@ static void test7_executor_post()
         ctx.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
         for (int i = 0; i < NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -645,7 +646,7 @@ static void test7_executor_post()
         // sumbit function objects #1 and #2
         ctx.executor().post(NoOp());
         ctx.executor().post(NoOp());
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(2));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(2));
 
         ThrowOnCopy throwOnCopy;
         bool        exceptionThrown = false;
@@ -659,15 +660,15 @@ static void test7_executor_post()
         }
 
         // exception thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // context not affected
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(2));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(2));
 
         // context stays usable
         ctx.executor().post(NoOp());
         ctx.executor().post(NoOp());
-        ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(4));
+        BMQTST_ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(4));
 
         // NOTE: The test allocator will check that no memory is leaked on
         //       destruction.
@@ -715,20 +716,21 @@ static void test8_executor_dispatch()
         // submit function objects
         for (int i = 0; i < NUM_JOBS; ++i) {
             ctx.executor().dispatch(bdlf::BindUtil::bind(PushBack(), &out, i));
-            ASSERT_EQ(ctx.outstandingJobs(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(ctx.outstandingJobs(),
+                             static_cast<size_t>(i + 1));
         }
 
         // no function object executed so far
-        ASSERT(out.empty());
+        BMQTST_ASSERT(out.empty());
 
         // start the context and join it
         ctx.start();
         ctx.join();
 
         // all function objects executed in submission order
-        ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
+        BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(NUM_JOBS));
         for (int i = 0; i < NUM_JOBS; ++i) {
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out[i], i);
         }
     }
 
@@ -771,8 +773,8 @@ static void test8_executor_dispatch()
             startedSignal.wait();
 
             // function object executed in-place
-            ASSERT_EQ(out.size(), static_cast<size_t>(i + 1));
-            ASSERT_EQ(out[i], i);
+            BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(i + 1));
+            BMQTST_ASSERT_EQ(out[i], i);
 
             // continue
             continueSignal.post();
@@ -806,8 +808,8 @@ static void test9_executor_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &ctx2);
-    ASSERT_EQ(&ex2.context(), &ctx1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &ctx2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &ctx1);
 }
 
 static void test10_executor_runningInThisThread()
@@ -850,11 +852,11 @@ static void test10_executor_runningInThisThread()
     ctx.join();
 
     // the saved result is 'true'
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     // when calling 'runningInThisThread' outside the context working thread,
     // the result is 'false'
-    ASSERT_EQ(ex.runningInThisThread(), false);
+    BMQTST_ASSERT_EQ(ex.runningInThisThread(), false);
 }
 
 static void test11_executor_context()
@@ -876,10 +878,10 @@ static void test11_executor_context()
     bmqex::SequentialContext ctx1(&alloc), ctx2(&alloc);
 
     bmqex::SequentialContextExecutor ex1 = ctx1.executor();
-    ASSERT_EQ(&ex1.context(), &ctx1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &ctx1);
 
     bmqex::SequentialContextExecutor ex2 = ctx2.executor();
-    ASSERT_EQ(&ex2.context(), &ctx2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &ctx2);
 }
 
 // ============================================================================
