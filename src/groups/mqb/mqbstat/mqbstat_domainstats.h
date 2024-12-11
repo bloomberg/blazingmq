@@ -73,20 +73,18 @@ class DomainStats {
         enum Enum { e_CFG_MSGS, e_CFG_BYTES, e_QUEUE_COUNT };
     };
 
-    //------------------------
-    // struct DomainStatsIndex
-    //------------------------
+  private:
+    // DATA
+    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
+    // StatContext
+
+    // PRIVATE TYPES
 
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct DomainStatsIndex {
         enum Enum { e_STAT_CFG_MSGS, e_STAT_CFG_BYTES, e_STAT_QUEUE_COUNT };
     };
-
-  private:
-    // DATA
-    bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
-    // StatContext
 
   private:
     // NOT IMPLEMENTED
