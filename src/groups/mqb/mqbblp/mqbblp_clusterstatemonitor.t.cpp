@@ -218,6 +218,19 @@ struct TestHelper {
             isActive ? mqbc::ElectorInfoLeaderStatus::e_ACTIVE
                      : mqbc::ElectorInfoLeaderStatus::e_PASSIVE;
 
+        if (d_cluster_mp->_clusterData()->electorInfo().leaderStatus() ==
+                mqbc::ElectorInfoLeaderStatus::e_UNDEFINED &&
+            status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
+            // It is **prohibited** to set leader status directly from
+            // e_UNDEFINED to e_ACTIVE, so we set to e_PASSIVE first then
+            // immediately to e_ACTIVE
+            d_cluster_mp->_clusterData()->electorInfo().setElectorInfo(
+                mqbnet::ElectorState::e_LEADER,
+                1,
+                node,
+                mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+        }
+
         d_cluster_mp->_clusterData()->electorInfo().setElectorInfo(
             mqbnet::ElectorState::e_LEADER,
             1,
