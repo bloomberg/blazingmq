@@ -80,6 +80,14 @@ class BrokerStats {
     // DATA
     bmqst::StatContext* d_statContext_p;  // StatContext
 
+    // PRIVATE TYPES
+
+    /// Namespace for the constants of stat values that applies to the queues
+    /// from the clients
+    struct BrokerStatsIndex {
+        enum Enum { e_STAT_QUEUE_COUNT, e_STAT_CLIENT_COUNT };
+    };
+
   private:
     // NOT IMPLEMENTED
     BrokerStats(const BrokerStats&) BSLS_CPP11_DELETED;
@@ -141,16 +149,6 @@ struct BrokerStatsUtil {
     /// specified `allocator` for all stat context and stat values.
     static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContext(int historySize, bslma::Allocator* allocator);
-};
-
-//------------------------
-// struct BrokerStatsIndex
-//------------------------
-
-/// Namespace for the constants of stat values that applies to the queues
-/// from the clients
-struct BrokerStatsIndex {
-    enum Enum { e_STAT_QUEUE_COUNT, e_STAT_CLIENT_COUNT };
 };
 
 // ============================================================================
