@@ -1320,7 +1320,10 @@ int StorageManager::start(bsl::ostream& errorDescription)
         rc_RECOVERY_MANAGER_FAILURE       = -2,
         rc_FILE_STORE_OPEN_FAILURE        = -3,
         rc_FILE_STORE_RECOVERY_FAILURE    = -4,
-        rc_NOT_ENOUGH_DISK_SPACE          = -5
+        rc_NOT_ENOUGH_DISK_SPACE          = -5,
+        rc_OVERFLOW_MAX_DATA_FILE_SIZE    = -6,
+        rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE = -7,
+        rc_OVERFLOW_MAX_QLIST_FILE_SIZE   = -8
     };
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1329,6 +1332,37 @@ int StorageManager::start(bsl::ostream& errorDescription)
     // For convenience:
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
+
+    // Validate file size limits before checking the available disk space
+    if (mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD <
+        partitionCfg.maxDataFileSize()) {
+        BALL_LOG_ERROR << "Configured maxDataFileSize ("
+                       << partitionCfg.maxDataFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
+        partitionCfg.maxJournalFileSize()) {
+        BALL_LOG_ERROR << "Configured maxJournalFileSize ("
+                       << partitionCfg.maxJournalFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
+        partitionCfg.maxQlistFileSize()) {
+        BALL_LOG_ERROR << "Configured maxQlistFileSize ("
+                       << partitionCfg.maxQlistFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;  // RETURN
+    }
 
     int rc = mqbc::StorageUtil::validatePartitionDirectory(partitionCfg,
                                                            errorDescription);
