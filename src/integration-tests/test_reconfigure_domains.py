@@ -62,7 +62,7 @@ class TestReconfigureDomains:
     # limit of `max_num_msgs`.  If 'leader_only' is true, the 'DOMAINS
     # RECONFIGURE' command will only be issued to the leader.  Return true if
     # reconfigure succeeds, else false.
-    def reconfigure_to_limit_n_msgs(self, cluster: Cluster, max_num_msgs):
+    def reconfigure_to_limit_n_msgs(self, cluster: Cluster, max_num_msgs: int) -> bool:
         cluster.config.domains[
             tc.DOMAIN_PRIORITY_SC
         ].definition.parameters.storage.domain_limits.messages = max_num_msgs
@@ -70,7 +70,7 @@ class TestReconfigureDomains:
             tc.DOMAIN_PRIORITY_SC, leader_only=True, succeed=True
         )
 
-    # Verify that reconfiguring domain message limits work as expected.
+    # Verify that reconfiguring domain message limits works as expected.
     @tweak.domain.storage.domain_limits.messages(INITIAL_MSG_QUOTA)
     def test_reconfigure_domain_message_limits(self, multi_node: Cluster):
         assert self.post_n_msgs(URI_PRIORITY_1, INITIAL_MSG_QUOTA)
@@ -87,7 +87,7 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(URI_PRIORITY_1, 1)
         assert not self.post_n_msgs(URI_PRIORITY_2, 1)
 
-        # Modify the domain configuration to hold 2 more messages.
+        # Modify the domain configuration to hold 10 more messages.
         self.reconfigure_to_limit_n_msgs(multi_node, INITIAL_MSG_QUOTA + 10)
 
         # Observe that posting two more messages succeeds.
@@ -123,7 +123,7 @@ class TestReconfigureDomains:
         self.reader.confirm(URI_PRIORITY_1, "+1", succeed=True)
         assert self.post_n_msgs(URI_PRIORITY_2, 1)
 
-    # Verify that reconfiguring queue message limits work as expected.
+    # Verify that reconfiguring queue message limits works as expected.
     @tweak.domain.storage.queue_limits.messages(INITIAL_MSG_QUOTA)
     def test_reconfigure_queue_message_limits(self, multi_node: Cluster):
         # Resource monitor allows exceeding message quota exactly once before
