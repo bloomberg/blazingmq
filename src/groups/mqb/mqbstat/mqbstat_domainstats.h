@@ -44,10 +44,6 @@ namespace BloombergLP {
 namespace mqbi {
 class Domain;
 }
-namespace bmqst {
-class StatContext;
-}
-
 namespace mqbstat {
 
 // =================
