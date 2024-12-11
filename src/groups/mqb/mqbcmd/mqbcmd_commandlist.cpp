@@ -65,6 +65,9 @@ struct CommandDefinition {
      "'count' is 'negative', print '-count' messages *preceding* the "
      "specified starting position.  If 'count' is 'UNLIMITED', print all "
      "the messages starting at and after the specified position."},
+    {"DOMAINS REMOVE <domain>",
+     "Reject all incoming connections to all queues in domain 'name'",
+     "and purge them from the domain"},
     {"DOMAINS RECONFIGURE <domain>",
      "Reconfigure 'domain' by reloading its configuration from disk",
      "Reconfigure 'domain' by reloading its configuration from disk"},
