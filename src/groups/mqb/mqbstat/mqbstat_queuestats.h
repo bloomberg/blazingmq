@@ -555,6 +555,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NACK>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    // For NACK, we don't care about the bytes value
     d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_NACK, 1);
 }
 
