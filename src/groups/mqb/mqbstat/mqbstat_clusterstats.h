@@ -299,6 +299,33 @@ class ClusterNodeStats {
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
 
+    // PRIVATE TYPES
+
+    /// Namespace for the constants of stat values that applies to the
+    /// cluster node
+    struct ClusterNodeStatsIndex {
+        enum Enum {
+            /// Value:      Number of ack messages delivered to the client
+            e_STAT_ACK
+
+            ,
+            e_STAT_CONFIRM
+            // Value:      Number of confirm messages delivered to the client
+
+            ,
+            e_STAT_PUSH
+            // Value:      Accumulated bytes of all messages ever pushed to
+            //             the client
+            // Increments: Number of messages ever pushed to the client
+
+            ,
+            e_STAT_PUT
+            // Value:      Accumulated bytes of all messages ever received from
+            //             the client
+            // Increments: Number of messages ever received from the client
+        };
+    };
+
   private:
     // NOT IMPLEMENTED
     ClusterNodeStats(const ClusterNodeStats&) BSLS_CPP11_DELETED;
@@ -366,35 +393,6 @@ struct ClusterStatsUtil {
     static bsl::shared_ptr<bmqst::StatContext>
     initializeStatContextClusterNodes(int               historySize,
                                       bslma::Allocator* allocator);
-};
-
-// ----------------------------
-// struct ClusterNodeStatsIndex
-// ----------------------------
-
-/// Namespace for the constants of stat values that applies to the
-/// cluster node
-struct ClusterNodeStatsIndex {
-    enum Enum {
-        /// Value:      Number of ack messages delivered to the client
-        e_STAT_ACK
-
-        ,
-        e_STAT_CONFIRM
-        // Value:      Number of confirm messages delivered to the client
-
-        ,
-        e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed to
-        //             the client
-        // Increments: Number of messages ever pushed to the client
-
-        ,
-        e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever received from
-        //             the client
-        // Increments: Number of messages ever received from the client
-    };
 };
 
 // ============================================================================
