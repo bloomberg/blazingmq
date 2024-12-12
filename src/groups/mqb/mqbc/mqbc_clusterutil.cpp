@@ -2193,6 +2193,10 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
+            if (qCit->second->state() != ClusterStateQueueInfo::k_ASSIGNED) {
+                continue;  // CONTINUE
+            }
+
             bmqp_ctrlmsg::QueueInfo queueInfo;
             queueInfo.uri()         = qCit->second->uri().asString();
             queueInfo.partitionId() = qCit->second->partitionId();
