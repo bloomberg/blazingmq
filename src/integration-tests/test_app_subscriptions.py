@@ -31,9 +31,10 @@ from blazingmq.dev.it.util import wait_until
 from blazingmq.dev.configurator.configurator import Configurator
 
 
-class TestAutoSubscriptions:
+class TestAppSubscriptions:
     """
-    This test verifies auto subscription for one or more substreams (apps)
+    This test verifies application subscription for one or more substreams
+    (apps)
     """
 
     def _start_client(self, broker, uri, name, subscriptions=[]):
@@ -77,11 +78,11 @@ class TestAutoSubscriptions:
             {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x==2"}},
         ]
     )
-    def test_auto_subscription_fanout(self, cluster: Cluster):
+    def test_app_subscription_fanout(self, cluster: Cluster):
         proxies = cluster.proxy_cycle()
 
         """
-        Out of the 3 apps, configure one to evaluate auto subscription
+        Out of the 3 apps, configure one to evaluate application subscription
         negatively, another to evaluate positively, and another do not
         configure.
         Make sure the first does not get the message, and the rest do.
@@ -162,9 +163,10 @@ class TestAutoSubscriptions:
     @tweak.domain.subscriptions(
         [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
     )
-    def test_auto_subscription_priority(self, cluster: Cluster):
+    def test_app_subscription_priority(self, cluster: Cluster):
         """
-        Configure the priority queue to evaluate auto subscription negatively.
+        Configure the priority queue to evaluate application subscription
+        negatively.
         Make sure the queue does not get the message.
         Make sure the same is the case after restarts.
         """
@@ -217,12 +219,12 @@ class TestAutoSubscriptions:
             {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x > 2"}},
         ]
     )
-    def test_auto_subscription_with_consumer_subscription(self, cluster: Cluster):
+    def test_app_subscription_with_consumer_subscription(self, cluster: Cluster):
         """
-        Out of the 3 apps, configure two to evaluate auto subscriptions.
+        Out of the 3 apps, configure two to evaluate application subscriptions.
         Configure consumsers with consumer subscriptions.
-        Make sure outcome of message delivery is logical AND of both auto and
-        consumer subscriptions.
+        Make sure outcome of message delivery is logical AND of both
+        application and consumer subscriptions.
         """
 
         proxies = cluster.proxy_cycle()
@@ -332,9 +334,10 @@ class TestAutoSubscriptions:
     @tweak.domain.subscriptions(
         [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
     )
-    def test_auto_subscription_broadcast(self, cluster: Cluster):
+    def test_app_subscription_broadcast(self, cluster: Cluster):
         """
-        Configure the boadcast queue to evaluate auto subscription negatively.
+        Configure the boadcast queue to evaluate application subscription
+        negatively.
         Make sure the queue does not get the message.
         """
 
@@ -377,9 +380,10 @@ class TestAutoSubscriptions:
             {"appId": "baz", "expression": {"version": "E_VERSION_1", "text": "x==3"}},
         ]
     )
-    def test_auto_subscription_fanout_all_negative(self, cluster: Cluster):
+    def test_app_subscription_fanout_all_negative(self, cluster: Cluster):
         """
-        Configure all fanout Apps to evaluate auto subscriptions negatively.
+        Configure all fanout Apps to evaluate application subscriptions
+        negatively.
         Make sure none receives a message.
         """
         proxies = cluster.proxy_cycle()
@@ -434,11 +438,11 @@ class TestAutoSubscriptions:
     )
     def test_invalid_configuration(self, cluster: Cluster):
         """
-        Configure priority domain with invalid auto subscription.
+        Configure priority domain with invalid application subscription.
         Make sure a queue fails to open.
-        Reconfigure the domain with valid auto subscription.
+        Reconfigure the domain with valid application subscription.
         Make sure a queue opens successfully.
-        Reconfigure the domain with invalid auto subscription.
+        Reconfigure the domain with invalid application subscription.
         Make sure the reconfigure command fails.
         Make sure a queue opens successfully.
         """

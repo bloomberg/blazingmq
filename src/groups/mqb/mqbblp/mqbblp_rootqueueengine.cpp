@@ -265,7 +265,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                            bdlf::PlaceHolders::_2),  // enableLog
       allocator)
 , d_apps(allocator)
-, d_hasAutoSubscriptions(false)
+, d_hasAppSubscriptions(false)
 , d_isFanout(domainConfig.mode().isFanoutValue())
 , d_scheduler_p(queueState->scheduler())
 , d_miscWorkThreadPool_p(queueState->miscWorkThreadPool())
@@ -304,9 +304,10 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
         ,
         rc_APP_INITIALIZATION_ERROR = -1  // No Virtual Storage
         ,
-        rc_AUTO_SUBSCRIPTION_ERROR = -2  // Wrong expression
+        rc_APP_SUBSCRIPTION_ERROR = -2  // Wrong expression
         ,
-        rc_AUTO_SUBSCRIPTIONS_ERROR = -3  // Wrong number of auto subscriptions
+        rc_APP_SUBSCRIPTIONS_ERROR = -3  // Wrong number of application
+                                         // subscriptions
     };
 
     // Populate map of appId to appKey for statically registered consumers
@@ -314,7 +315,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 
     const bsl::vector<mqbconfm::Subscription>& subscriptions =
         d_queueState_p->domain()->config().subscriptions();
-    d_hasAutoSubscriptions = !subscriptions.empty();
+    d_hasAppSubscriptions = !subscriptions.empty();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
@@ -345,7 +346,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
                         << "' for the '" << itApp->first << "' app, rc: " << rc
                         << ", reason: '"
                         << bmqeval::ErrorType::toString(errorType) << "'";
-                    return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
+                    return rc_APP_SUBSCRIPTION_ERROR;  // RETURN
                 }
             }
             else {
@@ -364,13 +365,14 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
                             isReconfigure)) {
             return rc_APP_INITIALIZATION_ERROR;  // RETURN
         }
-        // TODO: what is auto subscription "appId" for priority/broadcast?
+        // TODO: what is application subscription "appId" for
+        // priority/broadcast?
         if (subscriptions.size() > 1) {
             BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE  Queue '"
                            << d_queueState_p->queue()->description()
                            << "' Cannot have more than 1 auto subscription";
 
-            return rc_AUTO_SUBSCRIPTIONS_ERROR;  // RETURN
+            return rc_APP_SUBSCRIPTIONS_ERROR;  // RETURN
         }
 
         Apps::iterator itApp = d_apps.begin();
@@ -395,7 +397,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
                            << subscriptions[0].expression().text()
                            << "', rc: " << rc << ", reason: '"
                            << bmqeval::ErrorType::toString(errorType) << "'";
-            return rc_AUTO_SUBSCRIPTION_ERROR;  // RETURN
+            return rc_APP_SUBSCRIPTION_ERROR;  // RETURN
         }
     }
 
@@ -1993,14 +1995,14 @@ void RootQueueEngine::unregisterStorage(
     iter->second->unauthorize();
 }
 
-mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
+mqbi::StorageResult::Enum RootQueueEngine::evaluateAppSubscriptions(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bmqp::MessagePropertiesInfo&  mpi,
     bsls::Types::Uint64                 timestamp)
 {
-    if (!d_hasAutoSubscriptions) {
-        // No-op if no auto subscriptions configured
+    if (!d_hasAppSubscriptions) {
+        // No-op if no application subscriptions configured
         return mqbi::StorageResult::e_SUCCESS;
     }
 
@@ -2021,7 +2023,7 @@ mqbi::StorageResult::Enum RootQueueEngine::evaluateAutoSubscriptions(
 
     for (Apps::iterator it = d_apps.begin(); it != d_apps.end(); ++it) {
         AppStateSp& app = it->second;
-        if (!app->evaluateAutoSubcription()) {
+        if (!app->evaluateAppSubcription()) {
             result = d_queueState_p->storage()->autoConfirm(app->appKey(),
                                                             timestamp);
 
