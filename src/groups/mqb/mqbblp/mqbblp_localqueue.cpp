@@ -441,13 +441,12 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
         bdlt::CurrentTime::utc());
 
-    // EXPERIMENTAL:
-    //  Evaluate 'auto' subscriptions
-    mqbi::StorageResult::Enum res =
-        d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
-                                                    appData,
-                                                    translation,
-                                                    timestamp);
+    // Evaluate application subscriptions
+    mqbi::StorageResult::Enum res = d_queueEngine_mp->evaluateAppSubscriptions(
+        putHeader,
+        appData,
+        translation,
+        timestamp);
 
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();

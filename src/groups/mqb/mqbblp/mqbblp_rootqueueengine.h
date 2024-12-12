@@ -100,8 +100,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     Apps d_apps;
     // Map of appId to AppState
 
-    bool d_hasAutoSubscriptions;
-    // Does this queue engine have any auto subscriptions configured
+    bool d_hasAppSubscriptions;
+    // Does this queue engine have any application subscriptions configured
 
     const bool d_isFanout;
 
@@ -407,12 +407,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                            unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     /// Given the specified 'putHeader', 'appData', 'mpi', and 'timestamp',
-    /// evaluate all Auto (Application) subscriptions and exclude applications
-    /// with negative results from message delivery.
-    /// Return 0 on success or an non-zero error code on failure.
+    /// evaluate all application subscriptions and exclude applications with
+    /// negative results from message delivery.  Return 0 on success or an
+    /// non-zero error code on failure.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    mqbi::StorageResult::Enum evaluateAutoSubscriptions(
+    mqbi::StorageResult::Enum evaluateAppSubscriptions(
         const bmqp::PutHeader&              putHeader,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
         const bmqp::MessagePropertiesInfo&  mpi,
