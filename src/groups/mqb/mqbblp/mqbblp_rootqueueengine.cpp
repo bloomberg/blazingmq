@@ -341,7 +341,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
                     BALL_LOG_ERROR
                         << "#QUEUE_CONFIGURE_FAILURE Queue '"
                         << d_queueState_p->queue()->description()
-                        << "' failed to compile auto subscription: '"
+                        << "' failed to compile application subscription: '"
                         << subscriptions[i].expression().text()
                         << "' for the '" << itApp->first << "' app, rc: " << rc
                         << ", reason: '"
@@ -352,7 +352,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
             else {
                 BALL_LOG_WARN << "Queue \""
                               << d_queueState_p->queue()->description()
-                              << "' ignores auto subscription: '"
+                              << "' ignores application subscription: '"
                               << subscriptions[i].appId() << "'";
             }
         }
@@ -370,7 +370,8 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
         if (subscriptions.size() > 1) {
             BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE  Queue '"
                            << d_queueState_p->queue()->description()
-                           << "' Cannot have more than 1 auto subscription";
+                           << "' Cannot have more than 1 application "
+                           << "subscription";
 
             return rc_APP_SUBSCRIPTIONS_ERROR;  // RETURN
         }
@@ -393,7 +394,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 
             BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE Queue '"
                            << d_queueState_p->queue()->description()
-                           << "' Failed to compile auto subscription: '"
+                           << "' Failed to compile application subscription: '"
                            << subscriptions[0].expression().text()
                            << "', rc: " << rc << ", reason: '"
                            << bmqeval::ErrorType::toString(errorType) << "'";
