@@ -133,8 +133,6 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
 
-        queue->stats()->setQueueContentRaw(numMessage, numByte);
-
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having ["

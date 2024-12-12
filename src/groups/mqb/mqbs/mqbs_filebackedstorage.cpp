@@ -150,7 +150,6 @@ FileBackedStorage::FileBackedStorage(
 
     d_queueStats_sp.createInplace(d_allocator_p, d_allocator_p);
     d_queueStats_sp->initialize(queueUri, domain);
-    d_queueStats_sp->setQueueContentRaw(0, 0);
 }
 
 FileBackedStorage::~FileBackedStorage()
