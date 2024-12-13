@@ -17,15 +17,13 @@
 #ifndef INCLUDED_MQBBLP_QUEUE
 #define INCLUDED_MQBBLP_QUEUE
 
-//@PURPOSE: Provide a queue implementation for a queue managed by this broker.
-//
-//@CLASSES:
-//
-//
-//@DESCRIPTION:  pseudo-strategy pattern
+/// @file mqbblp_queue.h
+///
+/// @brief Provide a queue implementation for a queue managed by this broker.
+///
+/// @todo Document this component: "pseudo-strategy pattern" (?)
 
 // MQB
-
 #include <mqbblp_localqueue.h>
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_queuestate.h>
@@ -101,7 +99,7 @@ namespace mqbblp {
 // class Queue
 // ===========
 
-/// TBD:
+/// @todo Document this class
 class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
   private:
     // CLASS-SCOPE CATEGORY
@@ -400,21 +398,21 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// has-multiple-sub-streams semantics or `false` otherwise.
     bool hasMultipleSubStreams() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference not offering modifiable access to the aggregated
+    /// parameters of all currently opened queueHandles on this queue.
     const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const BSLS_KEYWORD_OVERRIDE;
-    // Return a reference not offering modifiable access to the aggregated
-    // parameters of all currently opened queueHandles on this queue.
 
+    /// Return true if the queue has upstream parameters for the specified
+    /// `upstreamSubQueueId` in which case load the parameters into the
+    /// specified `value`.  Return false otherwise.
     bool getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,
                                unsigned int upstreamSubQueueId) const
         BSLS_KEYWORD_OVERRIDE;
-    // Return true if the queue has upstream parameters for the specified
-    // 'upstreamSubQueueId' in which case load the parameters into the
-    // specified 'value'.  Return false otherwise.
 
+    /// Return the message throttle config associated with this queue.
     const mqbcfg::MessageThrottleConfig&
     messageThrottleConfig() const BSLS_KEYWORD_OVERRIDE;
-    // Returnt the message throttle config associated with this queue.
 
     // MANIPULATORS
     //   (mqbi::DispatcherClient)

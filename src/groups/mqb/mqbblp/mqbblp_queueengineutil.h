@@ -17,18 +17,15 @@
 #ifndef INCLUDED_MQBBLP_QUEUEENGINEUTIL
 #define INCLUDED_MQBBLP_QUEUEENGINEUTIL
 
-//@PURPOSE: Provide utilities for Queue Engine
-//
-//@CLASSES:
-//  mqbblp::QueueEngineUtil: namespace for Queue Engine utilities
-//
-//@DESCRIPTION: This component provides a utility 'struct',
-// 'mqbblp::QueueEngineUtil', that serves as a namespace for a collection of
-// functions used across the different 'mqbblp::QueueEngine'.
-//
+/// @file mqbblp_queueengineutil.h
+///
+/// @brief Provide utilities for Queue Engine
+///
+/// This component provides a utility struct, @bbref{mqbblp::QueueEngineUtil},
+/// that serves as a namespace for a collection of functions used across the
+/// different @bbref{mqbblp::QueueEngine}s.
 
 // MQB
-
 #include <mqbblp_routers.h>
 #include <mqbcfg_messages.h>
 #include <mqbconfm_messages.h>
@@ -165,30 +162,24 @@ struct QueueEngineUtil_ReleaseHandleProctor {
     // - no more consumers for this subStream for this handle
 
     // DATA
+
+    /// Cached raw pointer to the queue state.
     QueueState* d_queueState_p;
-    // cached raw pointer
-    // to the queue state
 
+    /// Keep the handle from destruction.
     bsl::shared_ptr<mqbi::QueueHandle> d_handleSp;
-    // keep the handle from
-    // destruction
 
+    /// The outcome of releasing the handle.
     mqbi::QueueHandleReleaseResult d_result;
-    // the outcome of
-    // releasing handle
 
+    /// The case where no handle clients were indicated.
     bool d_isFinal;
-    // the case of no
-    // handle clients was
-    // indicated
 
+    /// The callback to execute in the destructor.
     const mqbi::QueueHandle::HandleReleasedCallback d_releasedCb;
-    // the callback to
-    // execute in dtor
 
+    /// Do not invoke callback if true.
     bool d_disableCallback;
-    // do not invoke
-    // callback if true
 
     bsls::AtomicInt d_refCount;
 
@@ -339,19 +330,16 @@ struct QueueEngineUtil_AppState {
 
   private:
     // PRIVATE DATA
+
+    /// Set of alive consumers and their states.
     bsl::shared_ptr<Routers::AppContext> d_routing_sp;
-    // Set of alive consumers and their
-    // states
 
+    /// List of messages that need redelivery, i.e., messages that were sent to
+    /// a client who went down without confirming them.
     RedeliveryList d_redeliveryList;
-    // List of messages that need
-    // redelivery, i.e., messages that were
-    // sent to a client who went down
-    // without confirming them.
 
+    /// List of messages without matching Subscription.
     RedeliveryList d_putAsideList;
-    // List of messages without matching
-    // Subscription
 
     size_t d_priorityCount;
 
@@ -361,9 +349,9 @@ struct QueueEngineUtil_AppState {
 
     bdlmt::EventScheduler* d_scheduler_p;
 
+    /// EventHandle for poison pill message throttling.
     bdlmt::EventSchedulerEventHandle d_throttleEventHandle;
-    // EventHandle for poison pill message
-    // throttling.
+
     mqbu::StorageKey  d_appKey;
     const bsl::string d_appId;
 
@@ -373,16 +361,16 @@ struct QueueEngineUtil_AppState {
 
     bsls::AtomicBool d_isScheduled;
 
+    /// The application subscription expression, if any.
     mqbconfm::Expression d_subcriptionExpression;
-    // The application subscription expression if any.
 
+    /// Evaluator of the application subscription.
     Routers::Expression d_appSubscription;
-    // Evaluator of the application subscription
 
     unsigned int d_appOrdinal;
 
+    /// When at capacity, resume point.
     bmqt::MessageGUID d_resumePoint;
-    // When at capacity, resume point.
 
   public:
     // TRAITS
@@ -503,10 +491,10 @@ struct QueueEngineUtil_AppState {
                                    const mqbi::StorageIterator* currentMessage,
                                    unsigned int                 ordinal);
 
-    // Set the application subscription
+    /// Set the application subscription
     int setSubscription(const mqbconfm::Expression& value);
 
-    // Evaluate the application subscription
+    /// Evaluate the application subscription
     bool evaluateAppSubcription();
 
     /// Change the state to authorized, thus enabling delivery
