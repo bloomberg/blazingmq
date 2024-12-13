@@ -685,15 +685,6 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     };
 }
 
-void QueueStatsDomain::setQueueContentRaw(bsls::Types::Int64 messages,
-                                          bsls::Types::Int64 bytes)
-{
-    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
-
-    d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, bytes);
-    d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, messages);
-}
-
 void QueueStatsDomain::updateDomainAppIds(
     const bsl::vector<bsl::string>& appIds)
 {

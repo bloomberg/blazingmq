@@ -35,6 +35,7 @@
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_replicatedstorage.h>
 #include <mqbs_virtualstoragecatalog.h>
+#include <mqbstat_queuestats.h>
 #include <mqbu_capacitymeter.h>
 #include <mqbu_storagekey.h>
 
@@ -209,6 +210,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     AutoConfirms d_autoConfirms;
     // Auto CONFIRMs waiting for 'put' or 'processMessageRecord'
 
+    bsl::shared_ptr<mqbstat::QueueStatsDomain> d_queueStats_sp;
+    // Statistics of the queue associated to this storage.
+
   private:
     // NOT IMPLEMENTED
     FileBackedStorage(const FileBackedStorage&) BSLS_KEYWORD_DELETED;
@@ -242,8 +246,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     FileBackedStorage(DataStore*                     dataStore,
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
-                      const mqbconfm::Domain&        config,
-                      mqbu::CapacityMeter*           parentCapacityMeter,
+                      mqbi::Domain*                  domain,
                       bslma::Allocator*              allocator,
                       bmqma::CountingAllocatorStore* allocatorStore = 0);
 
@@ -538,6 +541,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// 'appKey' in persistent storage.
     /// Any other sequence removes auto CONFIRMs.
     /// Auto-confirmed Apps do not PUSH the message.
+
+    virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS (for mqbs::ReplicatedStorage)
     int partitionId() const BSLS_KEYWORD_OVERRIDE;

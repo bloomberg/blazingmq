@@ -173,21 +173,21 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
                                              d_state_p->uri(),
                                              d_state_p->partitionId());
 
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
         mqbstat::QueueStatsDomain::Role::e_PRIMARY);
 
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS,
         domainCfg.storage().queueLimits().messages());
 
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES,
         domainCfg.storage().queueLimits().bytes());
 
     if (isReconfigure) {
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -482,7 +482,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
             bmqsys::Time::highResolutionTimer() - timePoint;
-        d_state_p->stats().onEvent(
+        d_state_p->stats()->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
             timeDelta);
         if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
@@ -509,8 +509,9 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // flushed (which occurs in 'flush' routine).  In no case should
         // 'afterNewMessage' be called here.
 
-        d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
-                                   appData->length());
+        d_state_p->stats()->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_PUT,
+            appData->length());
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -524,7 +525,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             }
         }
         else {
-            d_state_p->stats().onEvent(
+            d_state_p->stats()->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_NACK,
                 1);
         }
@@ -547,7 +548,7 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
     const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
                                          arrivalTimepoint;
 
-    d_state_p->stats().onEvent(
+    d_state_p->stats()->onEvent(
         mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
         timeDelta);
 
@@ -571,8 +572,8 @@ void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
     // TODO: do we need to update NACK stats considering that downstream can
     // NACK the same GUID as well?
 
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
-                               1);
+    d_state_p->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
+                                1);
 
     if (d_state_p->handleCatalog().hasHandle(qH)) {
         // Send negative acknowledgement

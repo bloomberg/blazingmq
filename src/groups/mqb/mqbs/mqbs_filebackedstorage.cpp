@@ -89,14 +89,11 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
         // Update stats
         d_capacityMeter.clear();
 
-        if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_PURGE,
-                0);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-                d_handles.historySize());
-        }
+        d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
+                                 0);
+        d_queueStats_sp->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
     }
 }
 
@@ -105,8 +102,7 @@ FileBackedStorage::FileBackedStorage(
     DataStore*                     dataStore,
     const bmqt::Uri&               queueUri,
     const mqbu::StorageKey&        queueKey,
-    const mqbconfm::Domain&        config,
-    mqbu::CapacityMeter*           parentCapacityMeter,
+    mqbi::Domain*                  domain,
     bslma::Allocator*              allocator,
     bmqma::CountingAllocatorStore* allocatorStore)
 : d_allocator_p(allocator)
@@ -117,24 +113,25 @@ FileBackedStorage::FileBackedStorage(
 , d_virtualStorageCatalog(
       this,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
-, d_ttlSeconds(config.messageTtl())
+, d_ttlSeconds(domain->config().messageTtl())
 , d_capacityMeter(
       "queue [" + queueUri.asString() + "]",
-      parentCapacityMeter,
+      domain->capacityMeter(),
       allocator,
       bdlf::BindUtil::bind(&FileBackedStorage::logAppsSubscriptionInfoCb,
                            this,
                            bdlf::PlaceHolders::_1)  // stream
       )
 , d_handles(bsls::TimeInterval()
-                .addMilliseconds(config.deduplicationTimeMs())
+                .addMilliseconds(domain->config().deduplicationTimeMs())
                 .totalNanoseconds(),
             allocatorStore ? allocatorStore->get("Handles") : d_allocator_p)
 , d_queueOpRecordHandles(allocator)
 , d_isEmpty(1)
-, d_hasReceipts(!config.consistency().isStrongValue())
+, d_hasReceipts(!domain->config().consistency().isStrongValue())
 , d_currentlyAutoConfirming()
 , d_autoConfirms(d_allocator_p)
+, d_queueStats_sp()
 {
     BSLS_ASSERT(d_store_p);
 
@@ -148,7 +145,11 @@ FileBackedStorage::FileBackedStorage(
     // and domain instance will return a zero capacity meter when queries to be
     // passed to the 'FileBackedStorage' instance.
 
-    d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
+    d_virtualStorageCatalog.setDefaultRda(
+        domain->config().maxDeliveryAttempts());
+
+    d_queueStats_sp.createInplace(d_allocator_p, d_allocator_p);
+    d_queueStats_sp->initialize(queueUri, domain);
 }
 
 FileBackedStorage::~FileBackedStorage()
@@ -262,12 +263,12 @@ void FileBackedStorage::setQueue(mqbi::Queue* queue)
 
     // Update queue stats if a queue has been associated with the storage.
     if (queue) {
+        queue->setStats(d_queueStats_sp);
+
         const bsls::Types::Int64 numMessage = numMessages(
             mqbu::StorageKey::k_NULL_KEY);
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
-
-        queue->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
@@ -477,10 +478,10 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
         // and a purge.
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(guid);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
         }
+        d_queueStats_sp->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
+            msgLen);
 
         // There is not really a need to remove the guid from all virtual
         // storages, because we can be here only if guid doesn't exist in
@@ -495,11 +496,9 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_capacityMeter.remove(1, msgLen);
         d_handles.erase(it);
 
-        if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-                d_handles.historySize());
-        }
+        d_queueStats_sp->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+            d_handles.historySize());
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;
     }
@@ -605,11 +604,9 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
         d_isEmpty.storeRelaxed(1);
     }
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_handles.historySize());
-    }
+    d_queueStats_sp->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+        d_handles.historySize());
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -696,10 +693,10 @@ int FileBackedStorage::gcExpiredMessages(
         // The same 'e_DEL_MESSAGE' is about 3 cases: TTL, no SC quorum, purge.
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(cit->first);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
         }
+        d_queueStats_sp->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
+            msgLen);
 
         // Remove message from all virtual storages.
         d_virtualStorageCatalog.gc(cit->first);
@@ -716,18 +713,18 @@ int FileBackedStorage::gcExpiredMessages(
         ++numMsgsDeleted;
     }
 
-    if (queue() && numMsgsDeleted > 0) {
+    if (numMsgsDeleted > 0) {
         if (numMsgsDeleted > numMsgsUnreceipted) {
-            queue()->stats()->onEvent(
+            d_queueStats_sp->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
                 numMsgsDeleted - numMsgsUnreceipted);
         }
         if (numMsgsUnreceipted) {
-            queue()->stats()->onEvent(
+            d_queueStats_sp->onEvent(
                 mqbstat::QueueStatsDomain::EventType::e_NO_SC_MESSAGE,
                 numMsgsUnreceipted);
         }
-        queue()->stats()->onEvent(
+        d_queueStats_sp->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
             d_handles.historySize());
     }
@@ -744,11 +741,9 @@ bool FileBackedStorage::gcHistory()
     bool hasMoreToGc = d_handles.gc(bmqsys::Time::highResolutionTimer(),
                                     k_GC_MESSAGES_BATCH_SIZE);
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_handles.historySize());
-    }
+    d_queueStats_sp->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+        d_handles.historySize());
 
     return hasMoreToGc;
 }
@@ -803,11 +798,9 @@ void FileBackedStorage::processMessageRecord(
         // Update the messages & bytes monitors, and the stats.
         d_capacityMeter.forceCommit(1, msgLen);  // Return value ignored.
 
-        if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
-                msgLen);
-        }
+        d_queueStats_sp->onEvent(
+            mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
+            msgLen);
 
         d_isEmpty.storeRelaxed(0);
     }
@@ -920,10 +913,10 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
 
     if (queue()) {
         queue()->queueEngine()->beforeMessageRemoved(guid);
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-            msgLen);
     }
+    d_queueStats_sp->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
+        msgLen);
 
     // Delete 'guid' from all virtual storages, if any.  Note that 'guid'
     // should have already been removed from each virtual storage when confirm
@@ -949,11 +942,9 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
         d_isEmpty.storeRelaxed(1);
     }
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_handles.historySize());
-    }
+    d_queueStats_sp->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
+        d_handles.historySize());
 }
 
 void FileBackedStorage::addQueueOpRecordHandle(
@@ -1019,6 +1010,13 @@ FileBackedStorage::autoConfirm(const mqbu::StorageKey& appKey,
     d_autoConfirms.emplace_back(appKey, handle);
 
     return mqbi::StorageResult::e_SUCCESS;
+}
+
+void FileBackedStorage::setPrimary()
+{
+    d_queueStats_sp->onEvent(
+        mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
+        mqbstat::QueueStatsDomain::Role::e_PRIMARY);
 }
 
 void FileBackedStorage::clearSelection()

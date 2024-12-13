@@ -546,6 +546,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
+    virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual mqbs::ReplicatedStorage)
     int partitionId() const BSLS_KEYWORD_OVERRIDE;

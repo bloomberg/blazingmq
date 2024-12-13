@@ -751,7 +751,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
         queueHandle = d_queueState_p->handleCatalog().createHandle(
             clientContext,
             handleParameters,
-            &d_queueState_p->stats());
+            d_queueState_p->stats().get());
         BSLS_ASSERT_SAFE(queueHandle && "handle creation failed");
 
         handleCreated = true;
@@ -1518,7 +1518,7 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
                         d_queueState_p,
                         d_allocator_p));
                 }
-                d_queueState_p->stats().onEvent(
+                d_queueState_p->stats()->onEvent(
                     mqbstat::QueueStatsDomain::EventType::e_REJECT,
                     1);
 

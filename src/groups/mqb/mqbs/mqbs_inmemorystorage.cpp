@@ -133,8 +133,6 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
 
-        queue->stats()->setQueueContentRaw(numMessage, numByte);
-
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having ["
@@ -598,6 +596,11 @@ void InMemoryStorage::purge(
     // Replicated in-memory storage is not yet supported.
 
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
+}
+
+void InMemoryStorage::setPrimary()
+{
+    // NOTHING
 }
 
 // ACCESSORS (for mqbs::ReplicatedStorage)

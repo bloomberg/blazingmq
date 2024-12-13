@@ -5427,8 +5427,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                              FileBackedStorage(this,
                                                queueUri,
                                                queueKey,
-                                               domain->config(),
-                                               domain->capacityMeter(),
+                                               domain,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -6721,6 +6720,11 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     d_clusterStats_p->setNodeRoleForPartition(
         d_config.partitionId(),
         mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+
+    for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
+         ++sIt) {
+        sIt->second->setPrimary();
+    }
 
     // Schedule a sync point issue recurring event every 1 second, starting
     // after 1 second.
