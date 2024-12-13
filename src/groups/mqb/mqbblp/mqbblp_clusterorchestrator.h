@@ -17,22 +17,21 @@
 #ifndef INCLUDED_MQBBLP_CLUSTERORCHESTRATOR
 #define INCLUDED_MQBBLP_CLUSTERORCHESTRATOR
 
-//@PURPOSE: Provide a mechanism to orchestrate the state and health of cluster.
-//
-//@CLASSES:
-//  mqbblp::ClusterOrchestrator: Mechanism to orchestrate a cluster.
-//
-//@DESCRIPTION: 'mqbblp::ClusterOrchestrator' is a mechanism to orchestrate the
-// state and health of a cluster.
-//
-/// Thread Safety
-///-------------
-// The 'mqbblp::ClusterOrchestrator' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless explicitly documented in a method's contract.
+/// @file mqbblp_clusterorchestrator.h
+///
+/// @brief Provide a mechanism to orchestrate the state and health of cluster.
+///
+/// @bbref{mqbblp::ClusterOrchestrator} is a mechanism to orchestrate the
+/// state and health of a cluster.
+///
+/// Thread Safety                          {#mqbblp_clusterorchestrator_thread}
+/// =============
+
+/// The @bbref{mqbblp::ClusterOrchestrator} object is not thread safe and
+/// should always be manipulated from the associated cluster's dispatcher
+/// thread, unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbblp_clusterqueuehelper.h>
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusternodesession.h>
@@ -42,9 +41,8 @@
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
 
-#include <bmqma_countingallocatorstore.h>
-
 // BMQ
+#include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 
@@ -84,6 +82,7 @@ namespace mqbblp {
 // class ClusterOrchestrator
 // =========================
 
+// @todo Document
 class ClusterOrchestrator {
   private:
     // CLASS-SCOPE CATEGORY
@@ -113,35 +112,33 @@ class ClusterOrchestrator {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
     bool d_isStarted;
 
+    /// Whether an available advisory was sent to peer nodes.  Per the contract
+    /// of node startup sequence, we will only emit this advisory *once* in the
+    /// lifetime of this instance.
     bool d_wasAvailableAdvisorySent;
-    // Whether an available advisory was sent
-    // to peer nodes.  Per the contract of
-    // node startup sequence, we will only
-    // emit this advisory *once* in the
-    // lifetime of this instance.
 
+    /// Cluster configuration to use.
     mqbcfg::ClusterDefinition& d_clusterConfig;
-    // Cluster configuration to use
 
     mqbi::Cluster* d_cluster_p;
 
+    /// Transient cluster data.
     mqbc::ClusterData* d_clusterData_p;
-    // Transient cluster data
 
+    /// Cluster's state manager.
     ClusterStateManagerMp d_stateManager_mp;
-    // Cluster's state manager
 
+    /// Cluster's queue helper.
     ClusterQueueHelper d_queueHelper;
-    // Cluster's queue helper
 
     ElectorMp d_elector_mp;
 
@@ -458,26 +455,26 @@ class ClusterOrchestrator {
     void processStopRequest(const bmqp_ctrlmsg::ControlMessage& request,
                             mqbnet::ClusterNode*                source);
 
-    // Process the specified cluster state FSM 'message' from the specified
-    // 'source'.
-    //
-    // THREAD: This method is invoked in the associated cluster's
-    //         dispatcher thread.
+    /// Process the specified cluster state FSM `message` from the specified
+    /// `source`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
     void
     processClusterStateFSMMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                   mqbnet::ClusterNode*                source);
 
-    // Process the specified partition FSM 'message' from the specified
-    // 'source'.
-    //
-    // THREAD: This method is invoked in the associated cluster's
-    //         dispatcher thread.
+    /// Process the specified partition FSM `message` from the specified
+    /// `source`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
     void processPartitionMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                  mqbnet::ClusterNode*                source);
 
-    /// Invoked by `mqbblp::Cluster` when recovery has succeeded.
+    /// Invoked by @bbref{mqbblp::Cluster} when recovery has succeeded.
     ///
-    /// TBD: this is mostly temporary.
+    /// @todo this is mostly temporary.
     void onRecoverySuccess();
 
     /// Invoked to perform validation of IncoreCSL's contents (on disk)
@@ -487,18 +484,20 @@ class ClusterOrchestrator {
     /// THREAD: This method is invoked in the associated cluster's
     /// dispatcher thread.
     ///
-    /// TBD: This is mostly temporary, used in phase I of integrating
-    ///      IncoreCSL.
+    /// @todo This is mostly temporary, used in phase I of integrating
+    /// IncoreCSL.
     void validateClusterStateLedger();
 
-    /// Invoked by `mqbblp::Cluster` to register a new `appId` for `domain`.
+    /// Invoked by @bbref{mqbblp::Cluster} to register a new `appId` for
+    /// `domain`.
     ///
     /// Note: As this function is dispatched from a separate thread, `appId`
     ///       is taken by value to ensure it survives the lifetime of this
     ///       function call.
     void registerAppId(bsl::string appId, const mqbi::Domain& domain);
 
-    /// Invoked by `mqbblp::Cluster` to unregister an `appId` for `domain`.
+    /// Invoked by @bbref{mqbblp::Cluster} to unregister an `appId` for
+    /// `domain`.
     ///
     /// Note: As this function is dispatched from a separate thread, `appId`
     ///       is taken by value to ensure it survives the lifetime of this

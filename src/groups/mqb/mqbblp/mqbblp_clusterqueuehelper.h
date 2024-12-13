@@ -17,23 +17,19 @@
 #ifndef INCLUDED_MQBBLP_CLUSTERQUEUEHELPER
 #define INCLUDED_MQBBLP_CLUSTERQUEUEHELPER
 
-//@PURPOSE: Provide a mechanism to manage queues on a cluster.
-//
-//@CLASSES:
-//  mqbblp::ClusterQueueHelper : Mechanism to manage queues on a cluster
-//
-//@DESCRIPTION:
-//
-/// Thread Safety
-///-------------
-//
-
-// NOTE: This entire component's code is *serialized* and only executes inside
-//       the *dispatcher* thread.  That is, *every* method, unless explicitly
-//       stated, should be executed by the dispatcher thread.
+/// @file mqbblp_clusterqueuehelper.h
+///
+/// @brief Provide a mechanism to manage queues on a cluster.
+///
+/// Thread Safety                           {#mqbblp_clusterqueuehelper_thread}
+/// =============
+///
+///
+/// @note This entire component's code is *serialized* and only executes inside
+///       the *dispatcher* thread.  That is, *every* method, unless explicitly
+///       stated, should be executed by the dispatcher thread.
 
 // MQB
-
 #include <mqbblp_queue.h>
 #include <mqbc_clusterdata.h>
 #include <mqbc_clustermembership.h>
@@ -49,10 +45,9 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqio_status.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
-
-#include <bmqio_status.h>
 
 // BDE
 #include <ball_log.h>
@@ -126,25 +121,22 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Private struct holding attributes related to a substream of a queue.
     struct SubQueueContext {
+        /// State of the upstream for the given subStream
         enum Enum {
-            // State of the upstream for the given subStream
-
-            k_CLOSED  // Answer Close/Configure requests immediately.
-                      // RelayQueueEngine caches new Configuration coming
-                      // from Clients.
-                      // Close requests subtracts the read/write counts and
-                      // if they drop to zeroes, removes the subStream.
-
-            ,
-            k_REOPENING  // Reopen response is pending.
-                         // Buffer Close requests and send them upon response.
-                         // Answer (cached) Configure requests immediately.
-                         // Note, this is different from the treatment of
-                         // Close.
-            ,
-            k_OPEN  // Send requests upstream.
-            ,
-            k_FAILED  // Reopen has failed.
+            /// Answer Close/Configure requests immediately.  RelayQueueEngine
+            /// caches new Configuration coming from Clients.  Close requests
+            /// subtracts the read/write counts and if they drop to zeroes,
+            /// removes the subStream.
+            k_CLOSED,
+            /// Reopen response is pending.  Buffer Close requests and send
+            /// them upon response.  Answer (cached) Configure requests
+            /// immediately.  Note, this is different from the treatment of
+            /// Close.
+            k_REOPENING,
+            /// Send requests upstream.
+            k_OPEN,
+            /// Reopen has failed.
+            k_FAILED
         };
 
         struct PendingClose {
@@ -162,16 +154,15 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         bmqp_ctrlmsg::QueueHandleParameters d_parameters;
 
+        /// State of the upstream.
         Enum d_state;
-        // State of the upstream
 
-        bdlmt::EventScheduler::EventHandle d_timer;
         // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
         // V2.
-        // (timer handle 1s) when waiting for
-        // unconfirmed.  This is to cancel the timer in
-        // the case when this broker stops while
-        // waiting.
+
+        /// (timer handle 1s) when waiting for unconfirmed.  This is to cancel
+        /// the timer in the case when this broker stops while waiting.
+        bdlmt::EventScheduler::EventHandle d_timer;
 
         bsl::vector<PendingClose> d_pendingCloseRequests;
 
@@ -187,8 +178,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         }
     };
 
-    /// Map of {appId, subQueueId} combinations to their
-    /// substream-specific (appId, subQueueId) context.
+    /// Map of {appId, subQueueId} combinations to their substream-specific
+    /// (appId, subQueueId) context.
     typedef bmqp::ProtocolUtil::QueueInfo<SubQueueContext> StreamsMap;
 
     /// Publicly visible struct holding all live information related to a
@@ -196,74 +187,52 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     struct QueueLiveState {
       public:
         // PUBLIC DATA
-        unsigned int d_id;
-        // Upstream id of the queue
-        // (mqbi::Queue::k_UNASSIGNED_QUEUE_ID
+
+        // Upstream id of the queue (@bbref{mqbi::Queue::k_UNASSIGNED_QUEUE_ID}
         // if unassigned)
+        unsigned int d_id;
 
-        StreamsMap d_subQueueIds;
-        // Map of subQueueIds and appId
-        // associated with an open (or
-        // pending-open) subStream of the queue
-        // to a context of the subStream
+        // Map of subQueueIds and appId associated with an open (or
+        // pending-open) subStream of the queue to a context of the subStream
         // (holding some related state)
+        StreamsMap d_subQueueIds;
 
+        // Next upstream subQueueId for a subStream of the queue
         unsigned int d_nextSubQueueId;
-        // Next upstream subQueueId for a
-        // subStream of the queue
 
+        // Queue created (null if no queue created yet)
         bsl::shared_ptr<mqbblp::Queue> d_queue_sp;
-        // Queue created (null if no queue
-        // created yet)
 
+        // Number of queue handles associated with this queue.
         int d_numQueueHandles;
-        // Number of queue handles associated
-        // with this queue.
 
+        // Number of handle-creations in progress. This counter is incremented
+        // every time `createQueue` is invoked (because currently in the
+        // "open-queue" work flow, a handle creation is always preceded by
+        // `createQueue`.  This counter is decremented in
+        // `onQueueHandleCreated`. This counter is used in this manner:
+        // `d_numQueueHandles` is decremented in `onQueueHandleDestroyed`.  If
+        // that counter goes to zero and this flag is also zero, then and only
+        // then will a primary node deleted the queue (assuming pending context
+        // and in-flight requests are zero).
         int d_numHandleCreationsInProgress;
-        // Number of handle-creations in
-        // progress. This counter is
-        // incremented every time 'createQueue'
-        // is invoked (because currently in the
-        // 'open-queue' work flow, a handle
-        // creation is always preceded by
-        // 'createQueue'.  This counter is
-        // decremented in
-        // 'onQueueHandleCreated'. This counter
-        // is used in this manner:
-        // 'd_numQueueHandles' is decremented
-        // in 'onQueueHandleDestroyed'.  If
-        // that counter goes to zero and this
-        // flag is also zero, then and only
-        // then will a primary node deleted the
-        // queue (assuming pending context and
-        // in-flight requests are zero).
 
-        bsls::Types::Int64 d_queueExpirationTimestampMs;
-        // Timerstamp (high resolution timer)
-        // in milliseconds after which queue
-        // will expire.  Zero if queue cannot
-        // expire (because it has non-zero
+        // Timerstamp (high resolution timer) in milliseconds after which queue
+        // will expire.  Zero if queue cannot expire (because it has non-zero
         // messages or handles or both).
+        bsls::Types::Int64 d_queueExpirationTimestampMs;
 
+        // List of all open queue pending contexts which are awaiting for a
+        // next step on the queue (assignment, ...).
         bsl::vector<OpenQueueContext> d_pending;
-        // List of all open queue pending
-        // contexts which are awaiting for a
-        // next step on the queue (assignment,
-        // ...).
 
-        int d_inFlight;
-        // Number of in flight contexts, that
-        // is the number of contexts for which
-        // 'd_callback' has not yet been
-        // called. Note that this may be
-        // different than 'd_pending.size'
-        // because the 'd_pending' vector
-        // doesn't contain the requests which
-        // have been sent and are awaiting an
-        // answer (those contexts are stored
-        // through binding in the response
+        // Number of in flight contexts, that is the number of contexts for
+        // which `d_callback` has not yet been called. Note that this may be
+        // different than `d_pending.size` because the `d_pending` vector
+        // doesn't contain the requests which have been sent and are awaiting
+        // an answer (those contexts are stored through binding in the response
         // callback).
+        int d_inFlight;
 
       public:
         // TRAITS
@@ -293,8 +262,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         bmqp_ctrlmsg::ControlMessage d_response;
         VoidFunctor                  d_callback;
         bsls::TimeInterval           d_stopTime;
+        /// link StopContext for the same node
         bsl::shared_ptr<StopContext> d_previous_sp;
-        // link StopContext for the same node
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(StopContext, bslma::UsesBslmaAllocator)
@@ -343,26 +312,23 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// request.
     struct OpenQueueContext {
         // PUBLIC DATA
+
+        /// queueContext associated to this context
         QueueContext* d_queueContext_p;
-        // queueContext associated to this
-        // context
 
+        /// domain the queue belongs to
         mqbi::Domain* d_domain_p;
-        // domain the queue belongs to
 
+        /// parameters requested for the open queue
         bmqp_ctrlmsg::QueueHandleParameters d_handleParameters;
-        // parameters requested for the open
-        // queue
 
+        /// upstream subQueueId
+        /// (@bbref{bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID} if unassigned)
         unsigned int d_upstreamSubQueueId;
-        // upstream subQueueId
-        // (bmqp::QueueId
-        // ::k_UNASSIGNED_SUBQUEUE_ID
-        // if unassigned)
 
+        /// Callback to invoke when the queue is opened (whether success or
+        /// failure).
         mqbi::Cluster::OpenQueueCallback d_callback;
-        // Callback to invoke when the queue is
-        // opened (whether success or failure).
     };
 
     /// Structure representing all information and context associated to a
@@ -371,17 +337,18 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     struct QueueContext {
       public:
         // PUBLIC DATA
-        QueueLiveState d_liveQInfo;
-        // Live queue-related information
 
+        /// Live queue-related information
+        QueueLiveState d_liveQInfo;
+
+        /// Persistent queue information (null if no queue created)
         ClusterStateQueueInfoCSp d_stateQInfo_sp;
-        // Persistent queue information (null if no
-        // queue created)
 
       private:
         // DATA
+
+        /// Queue uri
         const bmqt::Uri d_uri;
-        // Queue uri
 
       public:
         // TRAITS
@@ -427,61 +394,47 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
   private:
     // DATA
+
+    /// Allocator to use
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Not atomic, manipulated only in dispatcher thread.
     unsigned int d_nextQueueId;
-    // Not atomic, manipulated only in
-    // dispatcher thread.
 
+    /// The non-persistent state of a cluster.
     mqbc::ClusterData* d_clusterData_p;
-    // The non-persistent state of a
-    // cluster.
 
+    /// The state of the cluster associated to this object
     mqbc::ClusterState* d_clusterState_p;
-    // The state of the cluster associated
-    // to this object
 
+    /// Just a shortcut alias to `d_clusterState_p->cluster()`
     mqbi::Cluster* d_cluster_p;
-    // Just a shortcut alias to
-    // d_clusterState_p->cluster()
 
+    /// Cluster state manager to use
     mqbi::ClusterStateManager* d_clusterStateManager_p;
-    // Cluster state manager to use
 
+    /// Storage manager to use
     mqbi::StorageManager* d_storageManager_p;
-    // Storage manager to use
 
-    QueueContextMap d_queues;  // Map of all queues
+    /// Map of all queues.
+    QueueContextMap d_queues;
 
+    /// Queues indexed by queueId.  Note that this map is only populated with
+    /// the queues which are not local, since local queues all have a 0 id.
     QueueContextByIdMap d_queuesById;
-    // Queues indexed by queueId.  Note
-    // that this map is only populated with
-    // the queues which are not local,
-    // since local queues all have a 0 id.
 
+    /// Number of requests that have been send to reopen the queues after
+    /// active node switch or primary switch .  This variable is incremented
+    /// when an open-queue request is sent, but decremented only upon receiving
+    /// configure queue response.  Additionally, this counter is never
+    /// explicitly set to zero.  We rely on all response callbacks being fired
+    /// (success, error, or cancel), where we decrement this variable.
     bsls::AtomicInt d_numPendingReopenQueueRequests;
-    // Number of requests that have been
-    // sent to reopen the queues after
-    // active node switch or primary
-    // switch.  This variable is
-    // incremented when an open-queue
-    // request is sent, but decremented
-    // only upon receiving configure queue
-    // response.  Additionally, this
-    // counter is never explicitly set to
-    // zero.  We rely on all response
-    // callbacks being fired (success,
-    // error or cancel), where we decrement
-    // this variable.
 
+    // Whether the alarm for primary and leader nodes being different has been
+    // raised at least once when gc'ing expired queues.  This is important
+    // because we only want to raise such alarm once.
     bool d_primaryNotLeaderAlarmRaised;
-    // Whether the alarm for primary and
-    // leader nodes being different has
-    // been raised at least once when
-    // gc'ing expired queues.  This is
-    // important because we only want to
-    // raise such alarm once.
 
     StopContexts d_stopContexts;
 
@@ -836,6 +789,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                           const QueueContextSp&               queueContextSp);
 
     // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
+
     /// Second step of StopRequest / CLOSING node advisory processing
     /// (after de-configure response).  Start timer to wait the configured
     /// `stopTimeoutMs` is there are any pending PUSH messages to collect
