@@ -166,7 +166,8 @@ mqbi::StorageResult::Enum
 InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                      const bmqt::MessageGUID&            msgGUID,
                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options)
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     mqbi::DataStreamMessage**           out)
 {
     const int msgSize = appData->length();
 
@@ -201,18 +202,20 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        attributes->arrivalTimepoint());
 
         if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(msgGUID, msgSize);
+            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
         }
         else {
-            VirtualStorage::DataStreamMessage* dataStreamMessage = 0;
-            d_virtualStorageCatalog.put(msgGUID, msgSize, &dataStreamMessage);
+            mqbi::DataStreamMessage* dataStreamMessage = 0;
+            if (out == 0) {
+                out = &dataStreamMessage;
+            }
+            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
 
             // Move auto confirms to the data record
             for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
                  it != d_autoConfirms.end();
                  ++it) {
-                d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                    it->d_appKey);
+                d_virtualStorageCatalog.autoConfirm(*out, it->d_appKey);
             }
             d_autoConfirms.clear();
         }
@@ -245,12 +248,20 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         mqbi::StorageMessageAttributes& existing = it->second.attributes();
         existing.setRefCount(existing.refCount() +
                              attributes->refCount());  // Bump up
+
+        if (out) {
+            // Proxy can detect duplicates by inspecting 'DataStreamMessage'.
+            VirtualStorage::DataStreamIterator data =
+                d_virtualStorageCatalog.get(msgGUID);
+            BSLS_ASSERT_SAFE(data != d_virtualStorageCatalog.end());
+            *out = &data->second;
+        }
     }
     else {
         d_items.insert(bsl::make_pair(msgGUID,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
-        d_virtualStorageCatalog.put(msgGUID, msgSize);
+        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
     }
 
     // We don't verify uniqueness of the insertion because in the case of a
