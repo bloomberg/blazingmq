@@ -127,7 +127,7 @@ inline FileManagerImpl::FileHandler<ITER>::FileHandler(
 }
 
 template <typename ITER>
-inline FileManagerImpl::FileHandler<ITER>::~FileHandler<ITER>()
+inline FileManagerImpl::FileHandler<ITER>::~FileHandler()
 {
     d_iter.clear();
     if (d_mfd.isValid()) {
