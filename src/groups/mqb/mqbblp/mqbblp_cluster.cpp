@@ -418,9 +418,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
 
             // If queue exists, report self generated NACK
             if (isSelfGenerated) {
-                it->second.d_handle_p->queue()->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_NACK,
-                    1);
+                it->second.d_handle_p->queue()
+                    ->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
             }
         }
         else if (!isSelfGenerated) {
@@ -467,9 +467,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             cit->second.d_subQueueInfosMap.findBySubIdSafe(
                 bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         if (subQueueCiter != cit->second.d_subQueueInfosMap.end()) {
-            subQueueCiter->value().d_clientStats->onEvent(
-                mqbstat::ClusterNodeStats::EventType::e_ACK,
-                1);
+            subQueueCiter->value()
+                .d_clientStats
+                ->onEvent<mqbstat::ClusterNodeStats::EventType::e_ACK>(1);
         }
         // In the case of Strong Consistency, a Receipt can arrive and trigger
         // an ACK after Producer closes subStream.
@@ -548,7 +548,7 @@ void Cluster::generateNack(bmqt::AckResult::Enum               status,
                                     options);
 
     // Report locally generated NACK
-    queue->stats()->onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK, 1);
+    queue->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
 
     bmqu::MemOutStream os;
     os << description() << ": Failed to relay PUT message "
@@ -1206,9 +1206,11 @@ void Cluster::onPutEvent(const mqbi::DispatcherPutEvent& event)
             queueState.d_subQueueInfosMap.findBySubId(
                 bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-        subQueueCiter->value().d_clientStats->onEvent(
-            mqbstat::ClusterNodeStats::EventType::e_PUT,
-            appDataSp->length());
+        subQueueCiter->value()
+            .d_clientStats
+            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUT>(
+
+                appDataSp->length());
 
         // TBD: groupId: Similar to 'appDataSp' above, load 'optionsSp' here,
         // using something like PutMessageIterator::loadOptions().
@@ -1644,9 +1646,9 @@ Cluster::validateMessage(mqbi::QueueHandle**       queueHandle,
 
     if (eventType == bmqp::EventType::e_CONFIRM) {
         // Update client stats
-        subQueueIt->value().d_clientStats->onEvent(
-            mqbstat::ClusterNodeStats::EventType::e_CONFIRM,
-            1);
+        subQueueIt->value()
+            .d_clientStats
+            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_CONFIRM>(1);
     }
 
     return ValidationResult::k_SUCCESS;
@@ -1912,9 +1914,10 @@ void Cluster::onPushEvent(const mqbi::DispatcherPushEvent& event)
             queueState.d_subQueueInfosMap.findBySubscriptionId(
                 event.subQueueInfos()[i].id());
 
-        subQueueCiter->value().d_clientStats->onEvent(
-            mqbstat::ClusterNodeStats::EventType::e_PUSH,
-            event.blob() ? event.blob()->length() : 0);
+        subQueueCiter->value()
+            .d_clientStats
+            ->onEvent<mqbstat::ClusterNodeStats::EventType::e_PUSH>(
+                event.blob() ? event.blob()->length() : 0);
     }
 
     bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;

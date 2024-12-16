@@ -88,14 +88,14 @@ QueueState::QueueState(mqbi::Queue*                 queue,
 
     // NOTE: The 'description' will be set by the owner of this object.
 
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_QUEUE_CREATED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_QUEUE_CREATED>();
 }
 
 QueueState::~QueueState()
 {
-    mqbstat::BrokerStats::instance().onEvent(
-        mqbstat::BrokerStats::EventType::e_QUEUE_DESTROYED);
+    mqbstat::BrokerStats::instance()
+        .onEvent<mqbstat::BrokerStats::EventType::e_QUEUE_DESTROYED>();
 }
 
 void QueueState::add(const bmqp_ctrlmsg::QueueHandleParameters& params)
