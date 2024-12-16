@@ -65,7 +65,7 @@ static void test1_partitionIdExtractor()
     TestData::const_iterator cIt = testData.begin();
     for (; cIt != testData.end(); ++cIt) {
         int result = extractor.extract(cIt->first);
-        ASSERT_EQ(result, cIt->second);
+        BMQTST_ASSERT_EQ(result, cIt->second);
     }
 }
 

@@ -2213,6 +2213,9 @@ void Cluster::onRecoveryStatusDispatched(
                 BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
                                  static_cast<int>(pid));
 
+                // TODO:  wrong thread to call 'loadVirtualStorageDetails'
+                // but 'onRecoveryStatusDispatched' should not be concurrent
+                // with any of 'add/removeVirtualStorage' calls.
                 AppInfos appIdInfos;
                 itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
 
@@ -3552,10 +3555,13 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
     }
 
     d_clusterOrchestrator.updateDatumStats();
-    d_clusterData.stats().setIsLeader(
-        d_clusterData.membership().selfNode() == node
-            ? mqbstat::ClusterStats::LeaderStatus::e_LEADER
-            : mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+
+    if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
+        d_clusterData.stats().setIsLeader(
+            d_clusterData.membership().selfNode() == node
+                ? mqbstat::ClusterStats::LeaderStatus::e_LEADER
+                : mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
+    }
 }
 
 void Cluster::onLeaderPassiveThreshold()

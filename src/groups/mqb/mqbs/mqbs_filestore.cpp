@@ -2067,7 +2067,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
 
-                    AppInfos appIdKeyPairs;
+                    AppInfos appIdKeyPairs(d_allocator_p);
                     FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                         appIdsBlock,
                                                         numAppIds);
@@ -2075,8 +2075,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
                          cit != appIdKeyPairs.cend();
                          ++cit) {
-                        const AppInfo& p = *cit;
-                        if (0 == deletedAppKeysOffsets.count(p.second)) {
+                        if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             // This appKey is not deleted.  Add it to the list
                             // of 'alive' appId/appKey pairs for this queue.
                             // Note that we don't check for appId/appKey
@@ -2084,15 +2083,16 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             // StorageMgr because we have recovered all
                             // appId/appKey pairs by that time.
 
-                            qinfo.addAppInfo(p);
+                            qinfo.addAppInfo(cit);
 
-                            BALL_LOG_INFO
-                                << partitionDesc()
-                                << "Recovered appId/appKey pair ['" << p.first
-                                << "' (" << p.second << ")] in QueueOp ["
-                                << queueOpType << "] record for queue ["
-                                << qinfo.canonicalQueueUri()
-                                << "] with queue key [" << queueKey << "].";
+                            BALL_LOG_INFO << partitionDesc()
+                                          << "Recovered appId/appKey pair ['"
+                                          << cit->first << "' (" << cit->second
+                                          << ")] in QueueOp [" << queueOpType
+                                          << "] record for queue ["
+                                          << qinfo.canonicalQueueUri()
+                                          << "] with queue key [" << queueKey
+                                          << "].";
                         }
                     }
                 }
@@ -5427,8 +5427,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                              FileBackedStorage(this,
                                                queueUri,
                                                queueKey,
-                                               domain->config(),
-                                               domain->capacityMeter(),
+                                               domain,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -5720,13 +5719,12 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
-            const AppInfo& appIdKeyPair = *cit;
-            BSLS_ASSERT_SAFE(!appIdKeyPair.first.empty());
-            BSLS_ASSERT_SAFE(!appIdKeyPair.second.isNull());
+            BSLS_ASSERT_SAFE(!cit->first.empty());
+            BSLS_ASSERT_SAFE(!cit->second.isNull());
             appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
                 &appIdPaddings[i],
-                appIdKeyPair.first.length());
-            totalLength += sizeof(AppIdHeader) + appIdKeyPair.first.length() +
+                cit->first.length());
+            totalLength += sizeof(AppIdHeader) + cit->first.length() +
                            appIdPaddings[i] +
                            FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
         }
@@ -6722,6 +6720,11 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     d_clusterStats_p->setNodeRoleForPartition(
         d_config.partitionId(),
         mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+
+    for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
+         ++sIt) {
+        sIt->second->setPrimary();
+    }
 
     // Schedule a sync point issue recurring event every 1 second, starting
     // after 1 second.

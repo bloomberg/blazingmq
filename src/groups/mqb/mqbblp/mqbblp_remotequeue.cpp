@@ -159,7 +159,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     }
 
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
             mqbstat::QueueStatsDomain::Role::e_PROXY);
 
     BALL_LOG_INFO
@@ -277,7 +277,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
                                              d_state_p->uri(),
                                              d_state_p->partitionId());
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
             mqbstat::QueueStatsDomain::Role::e_REPLICA);
 
     BALL_LOG_INFO << d_state_p->domain()->cluster()->name()
@@ -529,7 +529,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (isReconfigure) {
         const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -923,7 +923,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             ackMessage.setMessageGUID(putHeader.messageGUID());
 
             d_state_p->stats()
-                .onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
 
             // CorrelationId & QueueId are left unset as those fields
             // will be filled downstream.
@@ -995,7 +995,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     // the time the message is actually sent upstream, i.e. in
     // cluster/clusterProxy) for the most exact accuracy, but doing it here is
     // good enough.
-    d_state_p->stats().onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
+
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
         appData->length());
 }
 
@@ -1495,7 +1496,7 @@ RemoteQueue::Puts::iterator& RemoteQueue::nack(Puts::iterator&   it,
 {
     ackMessage.setMessageGUID(it->first);
 
-    d_state_p->stats().onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
         1);
 
     // CorrelationId & QueueId are left unset as those fields

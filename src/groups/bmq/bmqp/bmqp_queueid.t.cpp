@@ -67,20 +67,21 @@ static void test1_breathingTest()
         // -----------
         PV("CONSISTENCY");
 
-        ASSERT_EQ(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                  bmqp_ctrlmsg::SubQueueIdInfo::DEFAULT_INITIALIZER_SUB_ID);
+        BMQTST_ASSERT_EQ(
+            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+            bmqp_ctrlmsg::SubQueueIdInfo::DEFAULT_INITIALIZER_SUB_ID);
         // The default subQueueId as specified in this class should equal
         // the default subQueueId as specified for an instance of
         // SubQueueIdInfo because various components in 'mqbblp'
         // (specifically, the queue engines) rely on this assumption.
 
         // DEFAULT < RESERVED
-        ASSERT_LT(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                  bmqp::QueueId::k_RESERVED_SUBQUEUE_ID);
+        BMQTST_ASSERT_LT(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                         bmqp::QueueId::k_RESERVED_SUBQUEUE_ID);
 
         // RESERVED < UNASSIGNED
-        ASSERT_LT(bmqp::QueueId::k_RESERVED_SUBQUEUE_ID,
-                  bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
+        BMQTST_ASSERT_LT(bmqp::QueueId::k_RESERVED_SUBQUEUE_ID,
+                         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
     }
 
     {
@@ -95,8 +96,8 @@ static void test1_breathingTest()
         bmqp::QueueId obj1(id, subId);
 
         // Accessors
-        ASSERT_EQ(obj1.id(), id);
-        ASSERT_EQ(obj1.subId(), subId);
+        BMQTST_ASSERT_EQ(obj1.id(), id);
+        BMQTST_ASSERT_EQ(obj1.subId(), subId);
 
         // Manipulators
         id    = 6;
@@ -104,21 +105,21 @@ static void test1_breathingTest()
 
         obj1.setId(id).setSubId(subId);
 
-        ASSERT_EQ(obj1.id(), id);
-        ASSERT_EQ(obj1.subId(), subId);
+        BMQTST_ASSERT_EQ(obj1.id(), id);
+        BMQTST_ASSERT_EQ(obj1.subId(), subId);
 
         // Equality
         bmqp::QueueId obj2(obj1);
 
-        ASSERT_EQ(obj1, obj2);
+        BMQTST_ASSERT_EQ(obj1, obj2);
 
         // Constructor with default argument 'subId'
         bmqp::QueueId obj3(id);
 
         const unsigned int k_DEFAULT_SUBQUEUE_ID =
             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
-        ASSERT_EQ(obj3.id(), id);
-        ASSERT_EQ(obj3.subId(), k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(obj3.id(), id);
+        BMQTST_ASSERT_EQ(obj3.subId(), k_DEFAULT_SUBQUEUE_ID);
     }
 }
 
@@ -136,20 +137,20 @@ static void test2_print()
     out.setstate(bsl::ios_base::badbit);
     obj.print(out, 0, -1);
 
-    ASSERT_EQ(out.str(), "");
+    BMQTST_ASSERT_EQ(out.str(), "");
 
     out.clear();
     obj.print(out, 0, -1);
 
     const char* expected = "[ qId = 5 subId = 10 ]";
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 
     // operator<<
     out.reset();
 
     out << obj;
 
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 }
 
 static void test3_hashAppend()
@@ -190,7 +191,7 @@ static void test3_hashAppend()
             bsl::hash<bmqp::QueueId>::result_type currHash =
                 algo.computeHash();
             PVV("[" << i << "] hash: " << currHash);
-            ASSERT_EQ_D(i, currHash, firstHash);
+            BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
     }
 }

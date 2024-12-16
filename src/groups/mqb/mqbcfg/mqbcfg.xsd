@@ -38,6 +38,14 @@
     </sequence>
   </complexType>
 
+  <complexType name='LogDumpConfig'>
+    <sequence>
+      <element name='recordBufferSize' type='int'    default='32768'/>
+      <element name='recordingLevel'   type='string' default='OFF'/>
+      <element name='triggerLevel'     type='string' default='OFF'/>
+    </sequence>
+  </complexType>
+
   <complexType name='LogController'>
     <sequence>
       <element name='fileName'                 type='string'/>
@@ -51,6 +59,7 @@
       <element name='categories'               type='string' maxOccurs='unbounded'/>
           <!-- format for 'categories': 'categoryExpression:severity:color' -->
       <element name='syslog'                   type='tns:SyslogConfig'/>
+      <element name='logDump'                  type='tns:LogDumpConfig'/>
     </sequence>
   </complexType>
 

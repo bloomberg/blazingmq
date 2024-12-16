@@ -88,14 +88,14 @@ static void test1_breathingTest()
         const int min     = bmqp::Protocol::k_CONSUMER_PRIORITY_MIN;
         const int max     = bmqp::Protocol::k_CONSUMER_PRIORITY_MAX;
 
-        ASSERT_EQ(invalid,
-                  bmqp_ctrlmsg::QueueStreamParameters ::
-                      DEFAULT_INITIALIZER_CONSUMER_PRIORITY);
-        ASSERT_LT(invalid, min);
-        ASSERT_LE(min, max);
+        BMQTST_ASSERT_EQ(invalid,
+                         bmqp_ctrlmsg::QueueStreamParameters ::
+                             DEFAULT_INITIALIZER_CONSUMER_PRIORITY);
+        BMQTST_ASSERT_LT(invalid, min);
+        BMQTST_ASSERT_LE(min, max);
 
-        ASSERT_EQ(min, bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN);
-        ASSERT_EQ(max, bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX);
+        BMQTST_ASSERT_EQ(min, bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN);
+        BMQTST_ASSERT_EQ(max, bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX);
     }
 
     {
@@ -108,7 +108,7 @@ static void test1_breathingTest()
         // greater than later -- see notes in
         // 'StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT' constant).  Ensure that its
         // true.
-        ASSERT_GT(
+        BMQTST_ASSERT_GT(
             static_cast<int>(bmqp::StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT),
             bmqp::PutHeader::k_MAX_PAYLOAD_SIZE_SOFT);
 
@@ -116,15 +116,15 @@ static void test1_breathingTest()
         // from 'StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT' (former must be
         // greater than later -- see notes in 'EventHeader::k_MAX_SIZE_SOFT'
         // constant).  Ensure that its true.
-        ASSERT_GT(
+        BMQTST_ASSERT_GT(
             static_cast<unsigned int>(bmqp::EventHeader::k_MAX_SIZE_SOFT),
             bmqp::StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT);
 
         // Ensure that various MAX_OPTIONS_SIZE constants have the same value.
-        ASSERT_EQ(bmqp::Protocol::k_MAX_OPTIONS_SIZE,
-                  bmqp::PutHeader::k_MAX_OPTIONS_SIZE);
-        ASSERT_EQ(bmqp::Protocol::k_MAX_OPTIONS_SIZE,
-                  bmqp::PushHeader::k_MAX_OPTIONS_SIZE);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::k_MAX_OPTIONS_SIZE,
+                         bmqp::PutHeader::k_MAX_OPTIONS_SIZE);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::k_MAX_OPTIONS_SIZE,
+                         bmqp::PushHeader::k_MAX_OPTIONS_SIZE);
     }
 
     {
@@ -134,44 +134,44 @@ static void test1_breathingTest()
 
         // Create default RdaInfo
         bmqp::RdaInfo info;
-        ASSERT_EQ(info.isUnlimited(), true);
-        ASSERT_EQ(info.isPotentiallyPoisonous(), false);
-        ASSERT_GE(info.counter(), bmqp::RdaInfo::k_MAX_COUNTER_VALUE);
+        BMQTST_ASSERT_EQ(info.isUnlimited(), true);
+        BMQTST_ASSERT_EQ(info.isPotentiallyPoisonous(), false);
+        BMQTST_ASSERT_GE(info.counter(), bmqp::RdaInfo::k_MAX_COUNTER_VALUE);
 
         // Going from unlimited redelivery to setting a counter value
         info.setCounter(16U);
-        ASSERT_EQ(info.counter(), 16U);
-        ASSERT_EQ(info.isUnlimited(), false);
-        ASSERT_EQ(info.isPotentiallyPoisonous(), false);
+        BMQTST_ASSERT_EQ(info.counter(), 16U);
+        BMQTST_ASSERT_EQ(info.isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info.isPotentiallyPoisonous(), false);
 
         // Set the RdaInfo as being potentially poisonous
         info.setPotentiallyPoisonous(true);
-        ASSERT_EQ(info.isPotentiallyPoisonous(), true);
+        BMQTST_ASSERT_EQ(info.isPotentiallyPoisonous(), true);
 
         // Make sure nothing else was changed
-        ASSERT_EQ(info.isUnlimited(), false);
-        ASSERT_EQ(info.counter(), 16U);
+        BMQTST_ASSERT_EQ(info.isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info.counter(), 16U);
 
         // Change counter value and make sure nothing else changed
         info.setCounter(31U);
-        ASSERT_EQ(info.counter(), 31U);
-        ASSERT_EQ(info.isUnlimited(), false);
-        ASSERT_EQ(info.isPotentiallyPoisonous(), true);
+        BMQTST_ASSERT_EQ(info.counter(), 31U);
+        BMQTST_ASSERT_EQ(info.isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info.isPotentiallyPoisonous(), true);
 
         // Set the RdaInfo to unlimited
         info.setUnlimited();
-        ASSERT_EQ(info.isUnlimited(), true);
-        ASSERT_EQ(info.isPotentiallyPoisonous(), false);
-        ASSERT_GE(info.counter(), bmqp::RdaInfo::k_MAX_COUNTER_VALUE);
+        BMQTST_ASSERT_EQ(info.isUnlimited(), true);
+        BMQTST_ASSERT_EQ(info.isPotentiallyPoisonous(), false);
+        BMQTST_ASSERT_GE(info.counter(), bmqp::RdaInfo::k_MAX_COUNTER_VALUE);
 
         // Create RdaInfo using by populating the internal representation of
         // the counter with the potentially poisonous flag with a counter set
         // to 11
         unsigned int  internalRepresentation = 0x4B;
         bmqp::RdaInfo info2(internalRepresentation);
-        ASSERT_EQ(info2.isUnlimited(), false);
-        ASSERT_EQ(info2.isPotentiallyPoisonous(), true);
-        ASSERT_EQ(info2.counter(), 11U);
+        BMQTST_ASSERT_EQ(info2.isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info2.isPotentiallyPoisonous(), true);
+        BMQTST_ASSERT_EQ(info2.counter(), 11U);
     }
 
     {
@@ -181,22 +181,22 @@ static void test1_breathingTest()
 
         // Create default SubQueueInfo
         bmqp::SubQueueInfo info;
-        ASSERT_EQ(info.id(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
-        ASSERT_EQ(info.rdaInfo().isUnlimited(), true);
+        BMQTST_ASSERT_EQ(info.id(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(info.rdaInfo().isUnlimited(), true);
 
         // Set some values
         info.setId(96U);
         info.rdaInfo().setCounter(17U);
-        ASSERT_EQ(info.id(), 96U);
-        ASSERT_EQ(info.rdaInfo().counter(), 17U);
-        ASSERT_EQ(info.rdaInfo().isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info.id(), 96U);
+        BMQTST_ASSERT_EQ(info.rdaInfo().counter(), 17U);
+        BMQTST_ASSERT_EQ(info.rdaInfo().isUnlimited(), false);
 
         // Create SubQueueInfo with non-default ctor
         bmqp::SubQueueInfo info2(888U);
         info2.rdaInfo().setCounter(29U);
-        ASSERT_EQ(info2.id(), 888U);
-        ASSERT_EQ(info2.rdaInfo().counter(), 29U);
-        ASSERT_EQ(info2.rdaInfo().isUnlimited(), false);
+        BMQTST_ASSERT_EQ(info2.id(), 888U);
+        BMQTST_ASSERT_EQ(info2.rdaInfo().counter(), 29U);
+        BMQTST_ASSERT_EQ(info2.rdaInfo().isUnlimited(), false);
     }
 
     {
@@ -208,28 +208,28 @@ static void test1_breathingTest()
         bmqp::EventHeader eh;
         const int         numWords = sizeof(eh) / 4;
 
-        // Oddly, using directly 'bmqp::Protocol::k_VERSION' in the ASSERT_EQ
-        // leads to a linker undefined symbol ..
+        // Oddly, using directly 'bmqp::Protocol::k_VERSION' in the
+        // BMQTST_ASSERT_EQ leads to a linker undefined symbol ..
         const int currentProtocolVersion = bmqp::Protocol::k_VERSION;
 
-        ASSERT_EQ(static_cast<size_t>(eh.length()), sizeof(eh));
-        ASSERT_EQ(eh.fragmentBit(), 0);
-        ASSERT_EQ(eh.protocolVersion(), currentProtocolVersion);
-        ASSERT_EQ(eh.headerWords(), numWords);
-        ASSERT_EQ(eh.type(), bmqp::EventType::e_UNDEFINED);
-        ASSERT_EQ(eh.typeSpecific(), 0);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(eh.length()), sizeof(eh));
+        BMQTST_ASSERT_EQ(eh.fragmentBit(), 0);
+        BMQTST_ASSERT_EQ(eh.protocolVersion(), currentProtocolVersion);
+        BMQTST_ASSERT_EQ(eh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(eh.type(), bmqp::EventType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(eh.typeSpecific(), 0);
 
         // Create EventHeader with non-default ctor
         bmqp::EventHeader              eh2(bmqp::EventType::e_CONTROL);
         const bmqp::EncodingType::Enum encodingType =
             bmqp::EventHeaderUtil::controlEventEncodingType(eh2);
 
-        ASSERT_EQ(static_cast<size_t>(eh2.length()), sizeof(eh2));
-        ASSERT_EQ(eh2.fragmentBit(), 0);
-        ASSERT_EQ(eh2.protocolVersion(), currentProtocolVersion);
-        ASSERT_EQ(eh2.headerWords(), numWords);
-        ASSERT_EQ(eh2.type(), bmqp::EventType::e_CONTROL);
-        ASSERT_EQ(encodingType, bmqp::EncodingType::e_BER);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(eh2.length()), sizeof(eh2));
+        BMQTST_ASSERT_EQ(eh2.fragmentBit(), 0);
+        BMQTST_ASSERT_EQ(eh2.protocolVersion(), currentProtocolVersion);
+        BMQTST_ASSERT_EQ(eh2.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(eh2.type(), bmqp::EventType::e_CONTROL);
+        BMQTST_ASSERT_EQ(encodingType, bmqp::EncodingType::e_BER);
 
         // Set min values on a default EventHeader
         bmqp::EventHeader           eh3;
@@ -246,12 +246,12 @@ static void test1_breathingTest()
         eh3.setType(minEventType);
         eh3.setTypeSpecific(minTypeSpecific);
 
-        ASSERT_EQ(eh3.length(), minLength);
-        ASSERT_EQ(eh3.fragmentBit(), 0);
-        ASSERT_EQ(eh3.protocolVersion(), minProtocolVersion);
-        ASSERT_EQ(eh3.headerWords(), minHeaderWords);
-        ASSERT_EQ(eh3.type(), minEventType);
-        ASSERT_EQ(eh3.typeSpecific(), minTypeSpecific);
+        BMQTST_ASSERT_EQ(eh3.length(), minLength);
+        BMQTST_ASSERT_EQ(eh3.fragmentBit(), 0);
+        BMQTST_ASSERT_EQ(eh3.protocolVersion(), minProtocolVersion);
+        BMQTST_ASSERT_EQ(eh3.headerWords(), minHeaderWords);
+        BMQTST_ASSERT_EQ(eh3.type(), minEventType);
+        BMQTST_ASSERT_EQ(eh3.typeSpecific(), minTypeSpecific);
 
         // Set max values on a default EventHeader
         bmqp::EventHeader           eh4;
@@ -268,12 +268,12 @@ static void test1_breathingTest()
         eh4.setType(maxEventType);
         eh4.setTypeSpecific(maxTypeSpecific);
 
-        ASSERT_EQ(eh4.length(), maxLength);
-        ASSERT_EQ(eh4.fragmentBit(), 0);
-        ASSERT_EQ(eh4.protocolVersion(), maxProtocolVersion);
-        ASSERT_EQ(eh4.headerWords(), maxHeaderWords);
-        ASSERT_EQ(eh4.type(), maxEventType);
-        ASSERT_EQ(eh4.typeSpecific(), maxTypeSpecific);
+        BMQTST_ASSERT_EQ(eh4.length(), maxLength);
+        BMQTST_ASSERT_EQ(eh4.fragmentBit(), 0);
+        BMQTST_ASSERT_EQ(eh4.protocolVersion(), maxProtocolVersion);
+        BMQTST_ASSERT_EQ(eh4.headerWords(), maxHeaderWords);
+        BMQTST_ASSERT_EQ(eh4.type(), maxEventType);
+        BMQTST_ASSERT_EQ(eh4.typeSpecific(), maxTypeSpecific);
     }
 
     {
@@ -284,36 +284,36 @@ static void test1_breathingTest()
         bmqp::OptionHeader oh;
         const int          numWords = sizeof(bmqp::OptionHeader) / 4;
 
-        ASSERT_EQ(oh.type(), bmqp::OptionType::e_UNDEFINED);
-        ASSERT_EQ(oh.packed(), false);
-        ASSERT_EQ(oh.typeSpecific(), 0);
-        ASSERT_EQ(oh.words(), numWords);
+        BMQTST_ASSERT_EQ(oh.type(), bmqp::OptionType::e_UNDEFINED);
+        BMQTST_ASSERT_EQ(oh.packed(), false);
+        BMQTST_ASSERT_EQ(oh.typeSpecific(), 0);
+        BMQTST_ASSERT_EQ(oh.words(), numWords);
 
         // Set some values
         oh.setType(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
         oh.setPacked(true);
         oh.setTypeSpecific(13);
         oh.setWords(2097151);
-        ASSERT_EQ(oh.type(), bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
-        ASSERT_EQ(oh.packed(), true);
-        ASSERT_EQ(oh.typeSpecific(), 13);
-        ASSERT_EQ(oh.words(), 2097151);
+        BMQTST_ASSERT_EQ(oh.type(), bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
+        BMQTST_ASSERT_EQ(oh.packed(), true);
+        BMQTST_ASSERT_EQ(oh.typeSpecific(), 13);
+        BMQTST_ASSERT_EQ(oh.words(), 2097151);
 
         // Create non-packed OptionHeader with non-default ctor
         bmqp::OptionHeader oh2(bmqp::OptionType::e_MSG_GROUP_ID,
                                false);  // isPacked
-        ASSERT_EQ(oh2.type(), bmqp::OptionType::e_MSG_GROUP_ID);
-        ASSERT_EQ(oh2.packed(), false);
-        ASSERT_EQ(oh2.typeSpecific(), 0);
-        ASSERT_EQ(oh2.words(), numWords);
+        BMQTST_ASSERT_EQ(oh2.type(), bmqp::OptionType::e_MSG_GROUP_ID);
+        BMQTST_ASSERT_EQ(oh2.packed(), false);
+        BMQTST_ASSERT_EQ(oh2.typeSpecific(), 0);
+        BMQTST_ASSERT_EQ(oh2.words(), numWords);
 
         // Create *packed* OptionHeader with non-default ctor
         bmqp::OptionHeader oh3(bmqp::OptionType::e_MSG_GROUP_ID,
                                true);  // isPacked
-        ASSERT_EQ(oh3.type(), bmqp::OptionType::e_MSG_GROUP_ID);
-        ASSERT_EQ(oh3.packed(), true);
-        ASSERT_EQ(oh3.typeSpecific(), 0);
-        ASSERT_EQ(oh3.words(), 0);
+        BMQTST_ASSERT_EQ(oh3.type(), bmqp::OptionType::e_MSG_GROUP_ID);
+        BMQTST_ASSERT_EQ(oh3.packed(), true);
+        BMQTST_ASSERT_EQ(oh3.typeSpecific(), 0);
+        BMQTST_ASSERT_EQ(oh3.words(), 0);
     }
 
     {
@@ -322,15 +322,15 @@ static void test1_breathingTest()
         // --------------------------------------
 
         bmqp::MessagePropertiesHeader mph;
-        ASSERT_EQ(static_cast<size_t>(mph.headerSize()), sizeof(mph));
-        ASSERT_EQ(mph.messagePropertiesAreaWords(), 2);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(mph.headerSize()), sizeof(mph));
+        BMQTST_ASSERT_EQ(mph.messagePropertiesAreaWords(), 2);
         // Entire msg property area is word aligned, so even though
         // sizeof(MessagePropertiesHeader) == 6 bytes, total area is
         // recorded as 8 bytes (2 words), because it is assumed that
         // padding will be added.
 
-        ASSERT_EQ(static_cast<size_t>(mph.messagePropertyHeaderSize()),
-                  sizeof(bmqp::MessagePropertyHeader));
+        BMQTST_ASSERT_EQ(static_cast<size_t>(mph.messagePropertyHeaderSize()),
+                         sizeof(bmqp::MessagePropertyHeader));
 
         bmqp::MessagePropertiesHeader mph2;
         mph2.setHeaderSize(14);                 // max per protocol
@@ -339,9 +339,9 @@ static void test1_breathingTest()
             bmqp::MessagePropertiesHeader::k_MAX_MESSAGE_PROPERTIES_SIZE /
             bmqp::Protocol::k_WORD_SIZE);  // max per protocol
 
-        ASSERT_EQ(mph2.headerSize(), 14);
-        ASSERT_EQ(mph2.messagePropertyHeaderSize(), 14);
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(mph2.headerSize(), 14);
+        BMQTST_ASSERT_EQ(mph2.messagePropertyHeaderSize(), 14);
+        BMQTST_ASSERT_EQ(
             mph2.messagePropertiesAreaWords(),
             bmqp::MessagePropertiesHeader::k_MAX_MESSAGE_PROPERTIES_SIZE /
                 bmqp::Protocol::k_WORD_SIZE);
@@ -352,10 +352,10 @@ static void test1_breathingTest()
         mph3.setMessagePropertiesAreaWords(1024 * 123);
         mph3.setNumProperties(8);
 
-        ASSERT_EQ(mph3.headerSize(), 10);
-        ASSERT_EQ(mph3.messagePropertyHeaderSize(), 12);
-        ASSERT_EQ(mph3.messagePropertiesAreaWords(), 1024 * 123);
-        ASSERT_EQ(mph3.numProperties(), 8);
+        BMQTST_ASSERT_EQ(mph3.headerSize(), 10);
+        BMQTST_ASSERT_EQ(mph3.messagePropertyHeaderSize(), 12);
+        BMQTST_ASSERT_EQ(mph3.messagePropertiesAreaWords(), 1024 * 123);
+        BMQTST_ASSERT_EQ(mph3.numProperties(), 8);
     }
 
     {
@@ -364,27 +364,27 @@ static void test1_breathingTest()
         // ------------------------------------
 
         bmqp::MessagePropertyHeader mph;
-        ASSERT_EQ(0, mph.propertyType());
-        ASSERT_EQ(0, mph.propertyValueLength());
-        ASSERT_EQ(0, mph.propertyNameLength());
+        BMQTST_ASSERT_EQ(0, mph.propertyType());
+        BMQTST_ASSERT_EQ(0, mph.propertyValueLength());
+        BMQTST_ASSERT_EQ(0, mph.propertyNameLength());
 
         bmqp::MessagePropertyHeader mph2;
         mph2.setPropertyType(31);                    // max per protocol
         mph2.setPropertyValueLength((1 << 26) - 1);  // max per protocol
         mph2.setPropertyNameLength((1 << 12) - 1);   // max per protocol
 
-        ASSERT_EQ(31, mph2.propertyType());
-        ASSERT_EQ(((1 << 26) - 1), mph2.propertyValueLength());
-        ASSERT_EQ(((1 << 12) - 1), mph2.propertyNameLength());
+        BMQTST_ASSERT_EQ(31, mph2.propertyType());
+        BMQTST_ASSERT_EQ(((1 << 26) - 1), mph2.propertyValueLength());
+        BMQTST_ASSERT_EQ(((1 << 12) - 1), mph2.propertyNameLength());
 
         bmqp::MessagePropertyHeader mph3;
         mph3.setPropertyType(17);
         mph3.setPropertyValueLength((1 << 19) - 1);
         mph3.setPropertyNameLength((1 << 8) - 1);
 
-        ASSERT_EQ(17, mph3.propertyType());
-        ASSERT_EQ(((1 << 19) - 1), mph3.propertyValueLength());
-        ASSERT_EQ(((1 << 8) - 1), mph3.propertyNameLength());
+        BMQTST_ASSERT_EQ(17, mph3.propertyType());
+        BMQTST_ASSERT_EQ(((1 << 19) - 1), mph3.propertyValueLength());
+        BMQTST_ASSERT_EQ(((1 << 8) - 1), mph3.propertyNameLength());
     }
 
     {
@@ -395,15 +395,16 @@ static void test1_breathingTest()
         bmqp::PutHeader ph;
         const int       numWords = sizeof(ph) / 4;
 
-        ASSERT_EQ(ph.flags(), 0);
-        ASSERT_EQ(static_cast<size_t>(ph.messageWords()), sizeof(ph) / 4);
-        ASSERT_EQ(0, ph.optionsWords());
-        ASSERT_EQ(bmqt::CompressionAlgorithmType::e_NONE,
-                  ph.compressionAlgorithmType());
-        ASSERT_EQ(numWords, ph.headerWords());
-        ASSERT_EQ(0, ph.queueId());
+        BMQTST_ASSERT_EQ(ph.flags(), 0);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(ph.messageWords()),
+                         sizeof(ph) / 4);
+        BMQTST_ASSERT_EQ(0, ph.optionsWords());
+        BMQTST_ASSERT_EQ(bmqt::CompressionAlgorithmType::e_NONE,
+                         ph.compressionAlgorithmType());
+        BMQTST_ASSERT_EQ(numWords, ph.headerWords());
+        BMQTST_ASSERT_EQ(0, ph.queueId());
 
-        ASSERT(ph.messageGUID().isUnset());
+        BMQTST_ASSERT(ph.messageGUID().isUnset());
 
         // Set some values
         const int                                  msgNumWords     = 5;
@@ -428,29 +429,29 @@ static void test1_breathingTest()
             bmqp::PutHeaderFlags::e_ACK_REQUESTED);
         ph.setFlags(phFlags);
 
-        ASSERT_EQ(msgNumWords, ph.messageWords());
-        ASSERT_EQ(optionsNumWords, ph.optionsWords());
-        ASSERT_EQ(catType, ph.compressionAlgorithmType());
-        ASSERT_EQ(numWords, ph.headerWords());
-        ASSERT_EQ(queueId, ph.queueId());
-        ASSERT_EQ(guid, ph.messageGUID());
-        ASSERT_EQ(crc32c, ph.crc32c());
+        BMQTST_ASSERT_EQ(msgNumWords, ph.messageWords());
+        BMQTST_ASSERT_EQ(optionsNumWords, ph.optionsWords());
+        BMQTST_ASSERT_EQ(catType, ph.compressionAlgorithmType());
+        BMQTST_ASSERT_EQ(numWords, ph.headerWords());
+        BMQTST_ASSERT_EQ(queueId, ph.queueId());
+        BMQTST_ASSERT_EQ(guid, ph.messageGUID());
+        BMQTST_ASSERT_EQ(crc32c, ph.crc32c());
 
-        ASSERT_EQ(bmqp::PutHeaderFlagUtil::isSet(
-                      ph.flags(),
-                      bmqp::PutHeaderFlags::e_ACK_REQUESTED),
-                  true);
+        BMQTST_ASSERT_EQ(bmqp::PutHeaderFlagUtil::isSet(
+                             ph.flags(),
+                             bmqp::PutHeaderFlags::e_ACK_REQUESTED),
+                         true);
 
         // Set empty GUID
         bmqt::MessageGUID emptyGUID;
         ph.setMessageGUID(emptyGUID);
-        ASSERT_EQ(emptyGUID, ph.messageGUID());
+        BMQTST_ASSERT_EQ(emptyGUID, ph.messageGUID());
 
         // Make sure the ACK flag was not erased
-        ASSERT_EQ(bmqp::PutHeaderFlagUtil::isSet(
-                      ph.flags(),
-                      bmqp::PutHeaderFlags::e_ACK_REQUESTED),
-                  true);
+        BMQTST_ASSERT_EQ(bmqp::PutHeaderFlagUtil::isSet(
+                             ph.flags(),
+                             bmqp::PutHeaderFlags::e_ACK_REQUESTED),
+                         true);
     }
 
     {
@@ -461,13 +462,14 @@ static void test1_breathingTest()
         bmqp::PushHeader ph;
         const int        numWords = sizeof(ph) / 4;
 
-        ASSERT_EQ(0, ph.flags());
-        ASSERT_EQ(sizeof(ph) / 4, static_cast<size_t>(ph.messageWords()));
-        ASSERT_EQ(0, ph.optionsWords());
-        ASSERT_EQ(bmqt::CompressionAlgorithmType::e_NONE,
-                  ph.compressionAlgorithmType());
-        ASSERT_EQ(numWords, ph.headerWords());
-        ASSERT_EQ(0, ph.queueId());
+        BMQTST_ASSERT_EQ(0, ph.flags());
+        BMQTST_ASSERT_EQ(sizeof(ph) / 4,
+                         static_cast<size_t>(ph.messageWords()));
+        BMQTST_ASSERT_EQ(0, ph.optionsWords());
+        BMQTST_ASSERT_EQ(bmqt::CompressionAlgorithmType::e_NONE,
+                         ph.compressionAlgorithmType());
+        BMQTST_ASSERT_EQ(numWords, ph.headerWords());
+        BMQTST_ASSERT_EQ(0, ph.queueId());
 
         // Set some values
         const int                                  msgNumWords     = 5;
@@ -490,18 +492,18 @@ static void test1_breathingTest()
             bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD);
         ph.setFlags(phFlags);
 
-        ASSERT_EQ(msgNumWords, ph.messageWords());
-        ASSERT_EQ(optionsNumWords, ph.optionsWords());
-        ASSERT_EQ(catType, ph.compressionAlgorithmType());
-        ASSERT_EQ(numWords, ph.headerWords());
-        ASSERT_EQ(queueId, ph.queueId());
-        ASSERT_EQ(expectedGUID, ph.messageGUID());
+        BMQTST_ASSERT_EQ(msgNumWords, ph.messageWords());
+        BMQTST_ASSERT_EQ(optionsNumWords, ph.optionsWords());
+        BMQTST_ASSERT_EQ(catType, ph.compressionAlgorithmType());
+        BMQTST_ASSERT_EQ(numWords, ph.headerWords());
+        BMQTST_ASSERT_EQ(queueId, ph.queueId());
+        BMQTST_ASSERT_EQ(expectedGUID, ph.messageGUID());
 
         // Check flag
-        ASSERT_EQ(bmqp::PushHeaderFlagUtil::isSet(
-                      ph.flags(),
-                      bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD),
-                  true);
+        BMQTST_ASSERT_EQ(bmqp::PushHeaderFlagUtil::isSet(
+                             ph.flags(),
+                             bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD),
+                         true);
     }
 
     {
@@ -511,10 +513,10 @@ static void test1_breathingTest()
         bmqp::AckHeader ah;
         const int       numWords = sizeof(ah) / 4;
 
-        ASSERT_EQ(ah.flags(), 0);
-        ASSERT_EQ(ah.headerWords(), numWords);
-        ASSERT_EQ(static_cast<size_t>(ah.perMessageWords()),
-                  sizeof(bmqp::AckMessage) / 4);
+        BMQTST_ASSERT_EQ(ah.flags(), 0);
+        BMQTST_ASSERT_EQ(ah.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(ah.perMessageWords()),
+                         sizeof(bmqp::AckMessage) / 4);
 
         // Set some values
         const char flags       = 123;
@@ -523,9 +525,9 @@ static void test1_breathingTest()
         ah.setFlags(flags);
         ah.setPerMessageWords(msgNumWords);
 
-        ASSERT_EQ(ah.flags(), flags);
-        ASSERT_EQ(ah.perMessageWords(), msgNumWords);
-        ASSERT_EQ(ah.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(ah.flags(), flags);
+        BMQTST_ASSERT_EQ(ah.perMessageWords(), msgNumWords);
+        BMQTST_ASSERT_EQ(ah.headerWords(), numWords);
     }
 
     {
@@ -539,10 +541,10 @@ static void test1_breathingTest()
         bmqt::MessageGUID zeroGuid;
         zeroGuid.fromBinary(zeroGuidBuf);
 
-        ASSERT_EQ(am.queueId(), 0);
-        ASSERT_EQ(am.status(), 0);
-        ASSERT_EQ(am.correlationId(), 0);
-        ASSERT_EQ(am.messageGUID(), zeroGuid);
+        BMQTST_ASSERT_EQ(am.queueId(), 0);
+        BMQTST_ASSERT_EQ(am.status(), 0);
+        BMQTST_ASSERT_EQ(am.correlationId(), 0);
+        BMQTST_ASSERT_EQ(am.messageGUID(), zeroGuid);
 
         // Set some values
         const int queueId = 5;
@@ -559,17 +561,17 @@ static void test1_breathingTest()
             .setCorrelationId(corrId)
             .setMessageGUID(onesGuid);
 
-        ASSERT_EQ(am.queueId(), queueId);
-        ASSERT_EQ(am.status(), status);
-        ASSERT_EQ(am.correlationId(), corrId);
-        ASSERT_EQ(am.messageGUID(), onesGuid);
+        BMQTST_ASSERT_EQ(am.queueId(), queueId);
+        BMQTST_ASSERT_EQ(am.status(), status);
+        BMQTST_ASSERT_EQ(am.correlationId(), corrId);
+        BMQTST_ASSERT_EQ(am.messageGUID(), onesGuid);
 
         // Custom constructor test
         bmqp::AckMessage am2(status, corrId, onesGuid, queueId);
-        ASSERT_EQ(queueId, am2.queueId());
-        ASSERT_EQ(status, am2.status());
-        ASSERT_EQ(corrId, am2.correlationId());
-        ASSERT_EQ(onesGuid, am2.messageGUID());
+        BMQTST_ASSERT_EQ(queueId, am2.queueId());
+        BMQTST_ASSERT_EQ(status, am2.status());
+        BMQTST_ASSERT_EQ(corrId, am2.correlationId());
+        BMQTST_ASSERT_EQ(onesGuid, am2.messageGUID());
     }
 
     {
@@ -579,17 +581,17 @@ static void test1_breathingTest()
         bmqp::ConfirmHeader ch;
         const int           numWords = sizeof(ch) / 4;
 
-        ASSERT_EQ(ch.headerWords(), numWords);
-        ASSERT_EQ(static_cast<size_t>(ch.perMessageWords()),
-                  sizeof(bmqp::ConfirmMessage) / 4);
+        BMQTST_ASSERT_EQ(ch.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(ch.perMessageWords()),
+                         sizeof(bmqp::ConfirmMessage) / 4);
 
         // Set some values
         const int msgNumWords = 5;
 
         ch.setPerMessageWords(msgNumWords);
 
-        ASSERT_EQ(ch.perMessageWords(), msgNumWords);
-        ASSERT_EQ(ch.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(ch.perMessageWords(), msgNumWords);
+        BMQTST_ASSERT_EQ(ch.headerWords(), numWords);
     }
 
     {
@@ -603,9 +605,9 @@ static void test1_breathingTest()
         bmqt::MessageGUID zeroGuid;
         zeroGuid.fromBinary(zeroGuidBuf);
 
-        ASSERT_EQ(cm.queueId(), 0);
-        ASSERT_EQ(cm.messageGUID(), zeroGuid);
-        ASSERT_EQ(cm.subQueueId(), 0);
+        BMQTST_ASSERT_EQ(cm.queueId(), 0);
+        BMQTST_ASSERT_EQ(cm.messageGUID(), zeroGuid);
+        BMQTST_ASSERT_EQ(cm.subQueueId(), 0);
 
         // Set some values
         const int queueId    = 5;
@@ -620,9 +622,9 @@ static void test1_breathingTest()
         cm.setSubQueueId(subQueueId);
         cm.setMessageGUID(onesGuid);
 
-        ASSERT_EQ(cm.queueId(), queueId);
-        ASSERT_EQ(cm.messageGUID(), onesGuid);
-        ASSERT_EQ(cm.subQueueId(), subQueueId);
+        BMQTST_ASSERT_EQ(cm.queueId(), queueId);
+        BMQTST_ASSERT_EQ(cm.messageGUID(), onesGuid);
+        BMQTST_ASSERT_EQ(cm.subQueueId(), subQueueId);
     }
 
     {
@@ -632,17 +634,17 @@ static void test1_breathingTest()
         bmqp::RejectHeader rh;
         const int          numWords = sizeof(rh) / 4;
 
-        ASSERT_EQ(rh.headerWords(), numWords);
-        ASSERT_EQ(static_cast<size_t>(rh.perMessageWords()),
-                  sizeof(bmqp::RejectMessage) / 4);
+        BMQTST_ASSERT_EQ(rh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(static_cast<size_t>(rh.perMessageWords()),
+                         sizeof(bmqp::RejectMessage) / 4);
 
         // Set some values
         const int msgNumWords = 5;
 
         rh.setPerMessageWords(msgNumWords);
 
-        ASSERT_EQ(rh.perMessageWords(), msgNumWords);
-        ASSERT_EQ(rh.headerWords(), numWords);
+        BMQTST_ASSERT_EQ(rh.perMessageWords(), msgNumWords);
+        BMQTST_ASSERT_EQ(rh.headerWords(), numWords);
     }
 
     {
@@ -656,9 +658,9 @@ static void test1_breathingTest()
         bmqt::MessageGUID zeroGuid;
         zeroGuid.fromBinary(zeroGuidBuf);
 
-        ASSERT_EQ(rm.queueId(), 0);
-        ASSERT_EQ(rm.messageGUID(), zeroGuid);
-        ASSERT_EQ(rm.subQueueId(), 0);
+        BMQTST_ASSERT_EQ(rm.queueId(), 0);
+        BMQTST_ASSERT_EQ(rm.messageGUID(), zeroGuid);
+        BMQTST_ASSERT_EQ(rm.subQueueId(), 0);
 
         // Set some values
         const int queueId    = 5;
@@ -673,9 +675,9 @@ static void test1_breathingTest()
         rm.setMessageGUID(onesGuid);
         rm.setSubQueueId(subQueueId);
 
-        ASSERT_EQ(rm.queueId(), queueId);
-        ASSERT_EQ(rm.messageGUID(), onesGuid);
-        ASSERT_EQ(rm.subQueueId(), subQueueId);
+        BMQTST_ASSERT_EQ(rm.queueId(), queueId);
+        BMQTST_ASSERT_EQ(rm.messageGUID(), onesGuid);
+        BMQTST_ASSERT_EQ(rm.subQueueId(), subQueueId);
     }
 
     {
@@ -685,13 +687,14 @@ static void test1_breathingTest()
         bmqp::StorageHeader sh;
         const int           numWords = sizeof(sh) / 4;
 
-        ASSERT_EQ(0, sh.flags());
-        ASSERT_EQ(numWords, sh.messageWords());
-        ASSERT_EQ(0, sh.storageProtocolVersion());
-        ASSERT_EQ(numWords, sh.headerWords());
-        ASSERT_EQ(0u, sh.partitionId());
-        ASSERT_EQ(0u, sh.journalOffsetWords());
-        ASSERT_EQ(bmqp::StorageMessageType::e_UNDEFINED, sh.messageType());
+        BMQTST_ASSERT_EQ(0, sh.flags());
+        BMQTST_ASSERT_EQ(numWords, sh.messageWords());
+        BMQTST_ASSERT_EQ(0, sh.storageProtocolVersion());
+        BMQTST_ASSERT_EQ(numWords, sh.headerWords());
+        BMQTST_ASSERT_EQ(0u, sh.partitionId());
+        BMQTST_ASSERT_EQ(0u, sh.journalOffsetWords());
+        BMQTST_ASSERT_EQ(bmqp::StorageMessageType::e_UNDEFINED,
+                         sh.messageType());
 
         // Set fields
         const int flags = static_cast<int>(
@@ -707,18 +710,19 @@ static void test1_breathingTest()
         sh.setJournalOffsetWords(jow);
         sh.setMessageType(bmqp::StorageMessageType::e_DELETION);
 
-        ASSERT_EQ(flags, sh.flags());
-        ASSERT_EQ(words, sh.messageWords());
-        ASSERT_EQ(spv, sh.storageProtocolVersion());
-        ASSERT_EQ(numWords, sh.headerWords());
-        ASSERT_EQ(pid, sh.partitionId());
-        ASSERT_EQ(jow, sh.journalOffsetWords());
-        ASSERT_EQ(bmqp::StorageMessageType::e_DELETION, sh.messageType());
+        BMQTST_ASSERT_EQ(flags, sh.flags());
+        BMQTST_ASSERT_EQ(words, sh.messageWords());
+        BMQTST_ASSERT_EQ(spv, sh.storageProtocolVersion());
+        BMQTST_ASSERT_EQ(numWords, sh.headerWords());
+        BMQTST_ASSERT_EQ(pid, sh.partitionId());
+        BMQTST_ASSERT_EQ(jow, sh.journalOffsetWords());
+        BMQTST_ASSERT_EQ(bmqp::StorageMessageType::e_DELETION,
+                         sh.messageType());
 
-        ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isSet(
-                      static_cast<unsigned char>(sh.flags()),
-                      bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED),
-                  true);
+        BMQTST_ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isSet(
+                             static_cast<unsigned char>(sh.flags()),
+                             bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED),
+                         true);
     }
 
     {
@@ -731,13 +735,13 @@ static void test1_breathingTest()
         char      md5Digest[bmqp::RecoveryHeader::k_MD5_DIGEST_LEN];
         bsl::memset(md5Digest, 1, bmqp::RecoveryHeader::k_MD5_DIGEST_LEN);
 
-        ASSERT_EQ(0, rh.isFinalChunk());
-        ASSERT_EQ(numWords, rh.messageWords());
-        ASSERT_EQ(numWords, rh.headerWords());
-        ASSERT_EQ(0u, rh.partitionId());
-        ASSERT_EQ(0u, rh.chunkSequenceNumber());
-        ASSERT_EQ(bmqp::RecoveryFileChunkType::e_UNDEFINED,
-                  rh.fileChunkType());
+        BMQTST_ASSERT_EQ(0, rh.isFinalChunk());
+        BMQTST_ASSERT_EQ(numWords, rh.messageWords());
+        BMQTST_ASSERT_EQ(numWords, rh.headerWords());
+        BMQTST_ASSERT_EQ(0u, rh.partitionId());
+        BMQTST_ASSERT_EQ(0u, rh.chunkSequenceNumber());
+        BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_UNDEFINED,
+                         rh.fileChunkType());
 
         // Set fields
         const int                 words = 7;
@@ -752,16 +756,17 @@ static void test1_breathingTest()
         rh.setChunkSequenceNumber(seqNum);
         rh.setMd5Digest(md5Digest);
 
-        ASSERT_EQ(true, rh.isFinalChunk());
-        ASSERT_EQ(words, rh.messageWords());
-        ASSERT_EQ(numWords, rh.headerWords());
-        ASSERT_EQ(pid, rh.partitionId());
-        ASSERT_EQ(seqNum, rh.chunkSequenceNumber());
-        ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL, rh.fileChunkType());
-        ASSERT_EQ(0,
-                  bsl::memcmp(rh.md5Digest(),
-                              md5Digest,
-                              bmqp::RecoveryHeader::k_MD5_DIGEST_LEN));
+        BMQTST_ASSERT_EQ(true, rh.isFinalChunk());
+        BMQTST_ASSERT_EQ(words, rh.messageWords());
+        BMQTST_ASSERT_EQ(numWords, rh.headerWords());
+        BMQTST_ASSERT_EQ(pid, rh.partitionId());
+        BMQTST_ASSERT_EQ(seqNum, rh.chunkSequenceNumber());
+        BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                         rh.fileChunkType());
+        BMQTST_ASSERT_EQ(0,
+                         bsl::memcmp(rh.md5Digest(),
+                                     md5Digest,
+                                     bmqp::RecoveryHeader::k_MD5_DIGEST_LEN));
     }
 }
 
@@ -784,113 +789,113 @@ static void test2_bitManipulation()
         unsigned int        U = 0;
         unsigned int        L = 0;
         bsls::Types::Uint64 E = 0;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 0;
         L = k_UNSIGNED_INT_MAX;
         E = k_UNSIGNED_INT_MAX;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 1;
         L = 0;
         E = 1ULL << 32;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 1;
         L = k_UNSIGNED_INT_MAX;
         E = k_33_BITS_MASK;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = k_UNSIGNED_INT_MAX;
         L = k_UNSIGNED_INT_MAX;
         E = bsl::numeric_limits<bsls::Types::Uint64>::max();
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = k_UNSIGNED_INT_MAX;
         L = 0;
         E = bsl::numeric_limits<bsls::Types::Uint64>::max() << 32;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 0xC6E7C7CD;
         L = 0x01FE34E8;
         E = 0xC6E7C7CD01FE34E8;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 0x80808080;
         L = 0x80808080;
         E = 0x8080808080808080;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
 
         U = 3195984953;
         L = 4037236647;
         E = 13726650855680333735ULL;
-        ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::combine(U, L), E);
     }
 
     {
         // getUpper
         bsls::Types::Uint64 N = 0;
         unsigned int        E = 0;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = 1ULL << 32;
         E = 1;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = k_33_BITS_MASK;
         E = 1;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max();
         E = k_UNSIGNED_INT_MAX;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = 0xC6E7C7CD01FE34E8;
         E = 0xC6E7C7CD;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = 0x8080808080808080;
         E = 0x80808080;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
 
         N = 13726650855680333735ULL;
         E = 3195984953;
-        ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getUpper(N), E);
     }
 
     {
         // getLower
         bsls::Types::Uint64 N = 0;
         unsigned int        E = 0;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = 1ULL << 32;
         E = 0;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = k_33_BITS_MASK;
         E = k_UNSIGNED_INT_MAX;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max();
         E = k_UNSIGNED_INT_MAX;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = 1;
         E = 1;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = 0xC6E7C7CD01FE34E8;
         E = 0x01FE34E8;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = 0x8080808080808080;
         E = 0x80808080;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
 
         N = 13726650855680333735ULL;
         E = 4037236647;
-        ASSERT_EQ(bmqp::Protocol::getLower(N), E);
+        BMQTST_ASSERT_EQ(bmqp::Protocol::getLower(N), E);
     }
 
     {
@@ -901,48 +906,48 @@ static void test2_bitManipulation()
 
         bsls::Types::Uint64 N = 0;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 0u);
-        ASSERT_EQ(L, 0u);
+        BMQTST_ASSERT_EQ(U, 0u);
+        BMQTST_ASSERT_EQ(L, 0u);
 
         N = 1;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 0u);
-        ASSERT_EQ(L, 1u);
+        BMQTST_ASSERT_EQ(U, 0u);
+        BMQTST_ASSERT_EQ(L, 1u);
 
         N = 1ULL << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 1u);
-        ASSERT_EQ(L, 0u);
+        BMQTST_ASSERT_EQ(U, 1u);
+        BMQTST_ASSERT_EQ(L, 0u);
 
         N = k_33_BITS_MASK;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 1u);
-        ASSERT_EQ(L, k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(U, 1u);
+        BMQTST_ASSERT_EQ(L, k_UNSIGNED_INT_MAX);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max();
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(L, k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(U, k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(L, k_UNSIGNED_INT_MAX);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max() << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(L, 0u);
+        BMQTST_ASSERT_EQ(U, k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(L, 0u);
 
         N = 0xC6E7C7CD01FE34E8;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 0xC6E7C7CDu);
-        ASSERT_EQ(L, 0x01FE34E8u);
+        BMQTST_ASSERT_EQ(U, 0xC6E7C7CDu);
+        BMQTST_ASSERT_EQ(L, 0x01FE34E8u);
 
         N = 0x8080808080808080;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 0x80808080u);
-        ASSERT_EQ(L, 0x80808080u);
+        BMQTST_ASSERT_EQ(U, 0x80808080u);
+        BMQTST_ASSERT_EQ(L, 0x80808080u);
 
         N = 13726650855680333735ULL;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 3195984953u);
-        ASSERT_EQ(L, 4037236647u);
+        BMQTST_ASSERT_EQ(U, 3195984953u);
+        BMQTST_ASSERT_EQ(L, 4037236647u);
     }
 
     {
@@ -953,48 +958,48 @@ static void test2_bitManipulation()
 
         bsls::Types::Uint64 N = 0;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 0u);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0u);
 
         N = 1;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 0u);
-        ASSERT_EQ(L, 1u);
+        BMQTST_ASSERT_EQ(U, 0u);
+        BMQTST_ASSERT_EQ(L, 1u);
 
         N = 1ULL << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 1u);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 1u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0u);
 
         N = k_33_BITS_MASK;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 1u);
-        ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 1u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max();
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max() << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), k_UNSIGNED_INT_MAX);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0u);
 
         N = 0xC6E7C7CD01FE34E8;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 0xC6E7C7CDu);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0x01FE34E8u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 0xC6E7C7CDu);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0x01FE34E8u);
 
         N = 0x8080808080808080;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 0x80808080u);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0x80808080u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 0x80808080u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0x80808080u);
 
         N = 13726650855680333735ULL;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned int>(U), 3195984953u);
-        ASSERT_EQ(static_cast<unsigned int>(L), 4037236647u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(U), 3195984953u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 4037236647u);
     }
 
     {
@@ -1005,48 +1010,48 @@ static void test2_bitManipulation()
 
         bsls::Types::Uint64 N = 0;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0u);
 
         N = 1;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0);
-        ASSERT_EQ(static_cast<unsigned int>(L), 1u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 1u);
 
         N = 1ULL << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 1u);
-        ASSERT_EQ(L, 0u);
+        BMQTST_ASSERT_EQ(U, 1u);
+        BMQTST_ASSERT_EQ(L, 0u);
 
         N = k_33_BITS_MASK;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(U, 1u);
-        ASSERT_EQ(k_UNSIGNED_INT_MAX, L);
+        BMQTST_ASSERT_EQ(U, 1u);
+        BMQTST_ASSERT_EQ(k_UNSIGNED_INT_MAX, L);
 
         N = 0xFFFFFFFFFFFF;  // 48 bits set
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0xFFFF);
-        ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0xFFFF);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), k_UNSIGNED_INT_MAX);
 
         N = bsl::numeric_limits<bsls::Types::Uint64>::max() << 32;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0xFFFF);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0xFFFF);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0u);
 
         N = 0xC6E7C7CD01FE34E8;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0xC7CD);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0x01FE34E8u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0xC7CD);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0x01FE34E8u);
 
         N = 0x8080808080808080;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 0x8080);
-        ASSERT_EQ(static_cast<unsigned int>(L), 0x80808080u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 0x8080);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 0x80808080u);
 
         N = 13726650855680333735ULL;
         bmqp::Protocol::split(&U, &L, N);
-        ASSERT_EQ(static_cast<unsigned short>(U), 56377);
-        ASSERT_EQ(static_cast<unsigned int>(L), 4037236647u);
+        BMQTST_ASSERT_EQ(static_cast<unsigned short>(U), 56377);
+        BMQTST_ASSERT_EQ(static_cast<unsigned int>(L), 4037236647u);
     }
 }
 
@@ -1105,7 +1110,8 @@ static void test3_flagUtils()
             int flags = 0;
 
             // 1. Check that the flag is not 'isSet'.
-            ASSERT(!bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(
+                !bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other
             // flag is set.
@@ -1113,7 +1119,7 @@ static void test3_flagUtils()
                             << test.d_value << ")");
 
             bmqp::PutHeaderFlagUtil::setFlag(&flags, test.d_value);
-            ASSERT(bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
 
             bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PutHeaderFlagUtil::prettyPrint(out, flags);
@@ -1129,22 +1135,23 @@ static void test3_flagUtils()
 
                 if (currFlag == test.d_value) {
                     const bool expectedIsSet = (currFlag == test.d_value);
-                    ASSERT_EQ_D(test.d_line,
-                                bmqp::PutHeaderFlagUtil::isSet(flags,
-                                                               currFlag),
-                                expectedIsSet);
+                    BMQTST_ASSERT_EQ_D(
+                        test.d_line,
+                        bmqp::PutHeaderFlagUtil::isSet(flags, currFlag),
+                        expectedIsSet);
                 }
             }
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
             bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(bmqp::PutHeaderFlagUtil::isValid(errDesc, flags),
-                      test.d_isValid);
+            BMQTST_ASSERT_EQ(bmqp::PutHeaderFlagUtil::isValid(errDesc, flags),
+                             test.d_isValid);
 
             // 4. Unset flag and verify that it is unset.
             bmqp::PutHeaderFlagUtil::unsetFlag(&flags, test.d_value);
-            ASSERT(!bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(
+                !bmqp::PutHeaderFlagUtil::isSet(flags, test.d_value));
         }
     }
 
@@ -1170,7 +1177,8 @@ static void test3_flagUtils()
             int flags = 0;
 
             // 1. Check that the flag is not 'isSet'.
-            ASSERT(!bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(
+                !bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
 
             // 2. Set the flag.  Verify that it is set, and that no other
             // flag is set.
@@ -1178,7 +1186,8 @@ static void test3_flagUtils()
                             << test.d_value << ")");
 
             bmqp::PushHeaderFlagUtil::setFlag(&flags, test.d_value);
-            ASSERT(bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(
+                bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
 
             bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
             bmqp::PushHeaderFlagUtil::prettyPrint(out, flags);
@@ -1194,22 +1203,23 @@ static void test3_flagUtils()
 
                 if (currFlag == test.d_value) {
                     const bool expectedIsSet = (currFlag == test.d_value);
-                    ASSERT_EQ_D(test.d_line,
-                                bmqp::PushHeaderFlagUtil::isSet(flags,
-                                                                currFlag),
-                                expectedIsSet);
+                    BMQTST_ASSERT_EQ_D(
+                        test.d_line,
+                        bmqp::PushHeaderFlagUtil::isSet(flags, currFlag),
+                        expectedIsSet);
                 }
             }
 
             // 3. Verify that, with this flag set, the flags are correctly
             // identified as 'isValid' or not 'isValid'.
             bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(bmqp::PushHeaderFlagUtil::isValid(errDesc, flags),
-                      test.d_isValid);
+            BMQTST_ASSERT_EQ(bmqp::PushHeaderFlagUtil::isValid(errDesc, flags),
+                             test.d_isValid);
 
             // 4. Unset flag and verify that it is unset.
             bmqp::PushHeaderFlagUtil::unsetFlag(&flags, test.d_value);
-            ASSERT(!bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
+            BMQTST_ASSERT(
+                !bmqp::PushHeaderFlagUtil::isSet(flags, test.d_value));
         }
     }
 
@@ -1236,7 +1246,7 @@ static void test3_flagUtils()
             int flags = 0;
 
             // 1. Check that the flag is not 'isSet'.
-            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
+            BMQTST_ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
                 static_cast<unsigned char>(flags),
                 test.d_value));
 
@@ -1246,7 +1256,7 @@ static void test3_flagUtils()
                             << test.d_value << ")");
 
             bmqp::StorageHeaderFlagUtil::setFlag(&flags, test.d_value);
-            ASSERT(bmqp::StorageHeaderFlagUtil::isSet(
+            BMQTST_ASSERT(bmqp::StorageHeaderFlagUtil::isSet(
                 static_cast<unsigned char>(flags),
                 test.d_value));
 
@@ -1267,25 +1277,25 @@ static void test3_flagUtils()
 
                 if (currFlag == test.d_value) {
                     const bool expectedIsSet = (currFlag == test.d_value);
-                    ASSERT_EQ_D(test.d_line,
-                                bmqp::StorageHeaderFlagUtil::isSet(
-                                    static_cast<unsigned char>(flags),
-                                    currFlag),
-                                expectedIsSet);
+                    BMQTST_ASSERT_EQ_D(test.d_line,
+                                       bmqp::StorageHeaderFlagUtil::isSet(
+                                           static_cast<unsigned char>(flags),
+                                           currFlag),
+                                       expectedIsSet);
                 }
             }
 
             // 3. Verify that, with this flag set, the flags are correctly
             //    identified as 'isValid' or not 'isValid'.
             bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(
-                          errDesc,
-                          static_cast<unsigned char>(flags)),
-                      test.d_isValid);
+            BMQTST_ASSERT_EQ(bmqp::StorageHeaderFlagUtil::isValid(
+                                 errDesc,
+                                 static_cast<unsigned char>(flags)),
+                             test.d_isValid);
 
             // 4. Unset flag and verify that it is unset.
             bmqp::StorageHeaderFlagUtil::unsetFlag(&flags, test.d_value);
-            ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
+            BMQTST_ASSERT(!bmqp::StorageHeaderFlagUtil::isSet(
                 static_cast<unsigned char>(flags),
                 test.d_value));
         }
@@ -1312,17 +1322,17 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
         out.setstate(bsl::ios_base::badbit);
         ENUM_TYPE::print(out, obj, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         ENUM_TYPE::print(out, obj, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << obj;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 
@@ -1580,12 +1590,12 @@ static void test5_enumIsomorphism()
         const char* str;                                                      \
         bool        res;                                                      \
         res = T::fromAscii(&obj, "IMPOSSIBLE VALUE");                         \
-        ASSERT_EQ(res, false);                                                \
+        BMQTST_ASSERT_EQ(res, false);                                         \
         res = T::fromAscii(&obj, #ENUM_VAL);                                  \
-        ASSERT_EQ(res, true);                                                 \
-        ASSERT_EQ(obj, T::e_##ENUM_VAL);                                      \
+        BMQTST_ASSERT_EQ(res, true);                                          \
+        BMQTST_ASSERT_EQ(obj, T::e_##ENUM_VAL);                               \
         str = T::toAscii(obj);                                                \
-        ASSERT_EQ(bsl::strncmp(str, #ENUM_VAL, sizeof(#ENUM_VAL)), 0);        \
+        BMQTST_ASSERT_EQ(bsl::strncmp(str, #ENUM_VAL, sizeof(#ENUM_VAL)), 0); \
     }
 
     bmqtst::TestHelper::printTestName("ENUM ISOMORPHISM");
@@ -1621,11 +1631,11 @@ static void enumFromStringHelper(FLAG_TYPE          expectedFlags,
     FLAG_TYPE          outFlags;
     int                rc;
     rc = ENUM_UTIL_TYPE::fromString(errStream, &outFlags, corrStr);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(outFlags, expectedFlags);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(outFlags, expectedFlags);
     rc = ENUM_UTIL_TYPE::fromString(errStream, &outFlags, incorrStr);
-    ASSERT_EQ(rc, -1);
-    ASSERT_EQ(errStream.str(), errOutput);
+    BMQTST_ASSERT_EQ(rc, -1);
+    BMQTST_ASSERT_EQ(errStream.str(), errOutput);
 }
 
 static void test6_enumFromString()
@@ -1748,7 +1758,7 @@ static void test7_eventHeaderUtil()
                                                                test.d_value);
 
             // 2. Verify that the intended encoding type is set
-            ASSERT_EQ(
+            BMQTST_ASSERT_EQ(
                 test.d_value,
                 bmqp::EventHeaderUtil::controlEventEncodingType(eventHeader));
         }

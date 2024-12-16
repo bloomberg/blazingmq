@@ -871,7 +871,7 @@ QueueEngineUtil_AppState::QueueEngineUtil_AppState(
     // nodes don't load the domain config.
     BSLS_ASSERT_SAFE(d_scheduler_p);
 
-    d_autoSubscription.d_evaluationContext_p =
+    d_appSubscription.d_evaluationContext_p =
         &d_routing_sp->d_queue.d_evaluationContext;
 
     const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
@@ -1372,21 +1372,21 @@ int QueueEngineUtil_AppState::setSubscription(
 
     if (mqbconfm::ExpressionVersion::E_VERSION_1 == value.version()) {
         if (d_subcriptionExpression.text().length()) {
-            int rc = d_autoSubscription.d_evaluator.compile(
+            int rc = d_appSubscription.d_evaluator.compile(
                 d_subcriptionExpression.text(),
                 d_routing_sp->d_compilationContext);
             return rc;  // RETURN
         }
     }
     // Reset
-    d_autoSubscription.d_evaluator = bmqeval::SimpleEvaluator();
+    d_appSubscription.d_evaluator = bmqeval::SimpleEvaluator();
 
     return 0;
 }
 
-bool QueueEngineUtil_AppState::evaluateAutoSubcription()
+bool QueueEngineUtil_AppState::evaluateAppSubcription()
 {
-    return d_autoSubscription.evaluate();
+    return d_appSubscription.evaluate();
 }
 
 void QueueEngineUtil_AppState::authorize(const mqbu::StorageKey& appKey,

@@ -91,7 +91,7 @@ void verifyBroadfcastPut(
     mqbi::QueueHandle*                                         origin,
     size_t*                                                    count)
 {
-    ASSERT_EQ(source, origin);
+    BMQTST_ASSERT_EQ(source, origin);
 
     ++(*count);
 }
@@ -417,12 +417,13 @@ inline size_t TestQueueHandle::count()
 // virtual
 void TestQueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 {
-    ASSERT_NE(0U, count());
-    ASSERT_EQ(d_sequence.front(), nextAckSequenceNumber());
+    BMQTST_ASSERT_NE(0U, count());
+    BMQTST_ASSERT_EQ(d_sequence.front(), nextAckSequenceNumber());
 
-    ASSERT_EQ(d_guids.front(), ackMessage.messageGUID());
-    ASSERT_EQ(d_status,
-              bmqp::ProtocolUtil::ackResultFromCode(ackMessage.status()));
+    BMQTST_ASSERT_EQ(d_guids.front(), ackMessage.messageGUID());
+    BMQTST_ASSERT_EQ(
+        d_status,
+        bmqp::ProtocolUtil::ackResultFromCode(ackMessage.status()));
 
     d_sequence.pop();
     d_guids.pop();
@@ -510,8 +511,8 @@ static void test1_fanoutBasic()
 
     // everything is ACK'ed with e_SUCCESS
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     // 2. --------------------- test e_NOT_READY ------------------------------
     x.postOneMessage(&theQueue.d_remoteQueue);
@@ -523,8 +524,8 @@ static void test1_fanoutBasic()
     // Everything is pending
     theBench.ackPuts(bmqt::AckResult::e_NOT_READY);
     // RemoteQueue should terminate 'e_NOT_READY'
-    ASSERT_EQ(2U, x.count());
-    ASSERT_EQ(3U, y.count());
+    BMQTST_ASSERT_EQ(2U, x.count());
+    BMQTST_ASSERT_EQ(3U, y.count());
 
     // 3. --------------------- test retransmission ---------------------------
     // 'd_pendingMessages' is still full
@@ -536,8 +537,8 @@ static void test1_fanoutBasic()
 
     // everything is ACK'ed with e_SUCCESS
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     // 4. --------------------- test expiration -------------------------------
     x.postOneMessage(&theQueue.d_remoteQueue);
@@ -547,8 +548,8 @@ static void test1_fanoutBasic()
     y.postOneMessage(&theQueue.d_remoteQueue);
 
     // everything is still pending
-    ASSERT_EQ(2U, x.count());
-    ASSERT_EQ(3U, y.count());
+    BMQTST_ASSERT_EQ(2U, x.count());
+    BMQTST_ASSERT_EQ(3U, y.count());
 
     x.d_status = bmqt::AckResult::e_UNKNOWN;
     y.d_status = bmqt::AckResult::e_UNKNOWN;
@@ -557,8 +558,8 @@ static void test1_fanoutBasic()
 
     // everything non broadcast is ACK'ed with e_UNKNOWN
     // All broadcast PUTs are still pending.
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     // 5. --------------------- upstream not responding -----------------------
     // All broadcast PUTs are still pending.
@@ -581,8 +582,8 @@ static void test1_fanoutBasic()
 
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
 
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     // run timer
     theBench.advanceTime(bsls::TimeInterval(1, 0));
@@ -664,7 +665,7 @@ static void test2_broadcastBasic()
     // One (Nth) broadcast is ACK'ed resulting in removal of all previously
     // broadcasted PUTs.
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -676,8 +677,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(0U, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // 2. --------------------- test e_NOT_READY ------------------------------
     for (size_t i = 0; i < ackWindowSize; ++i) {
@@ -687,7 +688,7 @@ static void test2_broadcastBasic()
     // Everything is pending including all N broadcast PUTs
     theBench.ackPuts(bmqt::AckResult::e_NOT_READY);
     // RemoteQueue should terminate 'e_NOT_READY'
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -699,8 +700,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPutsWithData);
 
     // 3. --------------------- test retransmission ---------------------------
     // 'd_pendingMessages' is still full
@@ -721,15 +722,15 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // everything but broadcast is ACK'ed with e_SUCCESS
     // One (N + 1) broadcast is ACK'ed resulting in removal of all previously
     // broadcasted PUTs.
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
 
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -741,8 +742,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(0U, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // 4. --------------------- test expiration -------------------------------
     for (size_t i = 0; i < ackWindowSize; ++i) {
@@ -750,7 +751,7 @@ static void test2_broadcastBasic()
     }
 
     // everything is still pending
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -762,13 +763,13 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     theBench.advanceTime(bsls::TimeInterval(timeout + 1, 0));
 
     // All broadcast PUTs are still pending.
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -780,8 +781,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // 5. --------------------- upstream not responding -----------------------
     // All broadcast PUTs are still pending.
@@ -799,7 +800,7 @@ static void test2_broadcastBasic()
 
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
 
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     // broadcast queue should NOT retransmit, so no ACKs for broadcasted PUTs,
     // so all broadcasted PUTs are still pending.
@@ -813,8 +814,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(0U, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // 6. ---------------- posting when there is no upstream ------------------
     theQueue.d_remoteQueue.onLostUpstream();
@@ -833,8 +834,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
-    ASSERT_EQ(ackWindowSize, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(ackWindowSize, pendingBroadcastPutsWithData);
 
     // simulate queue reopening
     theQueue.d_remoteQueue.onOpenUpstream(
@@ -842,7 +843,7 @@ static void test2_broadcastBasic()
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -854,8 +855,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(0U, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     // 7. ---------------- posting when there is no upstream ------------------
     theQueue.d_remoteQueue.onLostUpstream();
@@ -867,7 +868,7 @@ static void test2_broadcastBasic()
     // simulate reopen failure
     theQueue.d_remoteQueue.onOpenFailure(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     pendingBroadcastPutsWithData = 0;
     pendingBroadcastPuts = theQueue.d_remoteQueue.iteratePendingMessages(
@@ -879,8 +880,8 @@ static void test2_broadcastBasic()
                              &z,  // source
                              &pendingBroadcastPutsWithData));
 
-    ASSERT_EQ(0U, pendingBroadcastPuts);
-    ASSERT_EQ(0U, pendingBroadcastPutsWithData);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPuts);
+    BMQTST_ASSERT_EQ(0U, pendingBroadcastPutsWithData);
 
     theBench.dropPuts();
 
@@ -888,8 +889,8 @@ static void test2_broadcastBasic()
         z.postOneMessage(&theQueue.d_remoteQueue);
     }
 
-    ASSERT_EQ(0U, theBench.d_puts.size());
-    ASSERT_EQ(0U, z.count());
+    BMQTST_ASSERT_EQ(0U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(0U, z.count());
 
     theQueue.d_remoteQueue.close();
 }
@@ -947,8 +948,8 @@ static void test3_close()
     y.postOneMessage(&theQueue.d_remoteQueue);
 
     theQueue.d_remoteQueue.close();
-    ASSERT_EQ(2U, x.count());
-    ASSERT_EQ(3U, y.count());
+    BMQTST_ASSERT_EQ(2U, x.count());
+    BMQTST_ASSERT_EQ(3U, y.count());
 }
 
 static void test4_buffering()
@@ -1008,7 +1009,7 @@ static void test4_buffering()
     x.postOneMessage(&theQueue.d_remoteQueue);
     y.postOneMessage(&theQueue.d_remoteQueue);
 
-    ASSERT_EQ(5U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(5U, theBench.d_puts.size());
 
     // Start buffering.
     theQueue.d_remoteQueue.onLostUpstream();
@@ -1020,14 +1021,14 @@ static void test4_buffering()
     x.postOneMessage(&theQueue.d_remoteQueue);
     y.postOneMessage(&theQueue.d_remoteQueue);
 
-    ASSERT_EQ(5U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(5U, theBench.d_puts.size());
 
     // ACK with e_SUCCESS
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(2U, x.count());
-    ASSERT_EQ(3U, y.count());
+    BMQTST_ASSERT_EQ(2U, x.count());
+    BMQTST_ASSERT_EQ(3U, y.count());
 
-    ASSERT_EQ(0U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(0U, theBench.d_puts.size());
 
     // Reopen the queue.
     theQueue.d_remoteQueue.onOpenUpstream(
@@ -1041,12 +1042,12 @@ static void test4_buffering()
     x.postOneMessage(&theQueue.d_remoteQueue);
     y.postOneMessage(&theQueue.d_remoteQueue);
 
-    ASSERT_EQ(10U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(10U, theBench.d_puts.size());
 
     // everything is ACK'ed with e_SUCCESS
     theBench.ackPuts(bmqt::AckResult::e_SUCCESS);
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     theBench.advanceTime(bsls::TimeInterval(timeout + 1, 0));
     bslmt::Semaphore sem;
@@ -1110,13 +1111,13 @@ static void test5_reopen_failure()
     x.postOneMessage(&theQueue.d_remoteQueue);
     y.postOneMessage(&theQueue.d_remoteQueue);
 
-    ASSERT_EQ(5U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(5U, theBench.d_puts.size());
 
     // simulate upstream drop
     theQueue.d_remoteQueue.onLostUpstream();
 
-    ASSERT_EQ(2U, x.count());
-    ASSERT_EQ(3U, y.count());
+    BMQTST_ASSERT_EQ(2U, x.count());
+    BMQTST_ASSERT_EQ(3U, y.count());
 
     // expecting NACKs
     x.d_status = bmqt::AckResult::e_UNKNOWN;
@@ -1125,8 +1126,8 @@ static void test5_reopen_failure()
     // simulate reopen failure
     theQueue.d_remoteQueue.onOpenFailure(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     theBench.dropPuts();
 
@@ -1137,9 +1138,9 @@ static void test5_reopen_failure()
     x.postOneMessage(&theQueue.d_remoteQueue);
     y.postOneMessage(&theQueue.d_remoteQueue);
 
-    ASSERT_EQ(0U, theBench.d_puts.size());
-    ASSERT_EQ(0U, x.count());
-    ASSERT_EQ(0U, y.count());
+    BMQTST_ASSERT_EQ(0U, theBench.d_puts.size());
+    BMQTST_ASSERT_EQ(0U, x.count());
+    BMQTST_ASSERT_EQ(0U, y.count());
 
     theQueue.d_remoteQueue.close();
 }

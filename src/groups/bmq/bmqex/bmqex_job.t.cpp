@@ -123,13 +123,13 @@ static void test1_breathing()
         bmqex::Job job(target, &alloc);
 
         // no memory allocated
-        ASSERT_EQ(alloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(alloc.numBytesInUse(), 0);
 
         // invoke job
         job();
 
         // target invoked
-        ASSERT_EQ(invoked, true);
+        BMQTST_ASSERT_EQ(invoked, true);
     }
 
     // large target
@@ -142,13 +142,13 @@ static void test1_breathing()
         bmqex::Job job(target, &alloc);
 
         // memory allocated
-        ASSERT_NE(alloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_NE(alloc.numBytesInUse(), 0);
 
         // invoke job
         job();
 
         // target invoked
-        ASSERT_EQ(invoked, true);
+        BMQTST_ASSERT_EQ(invoked, true);
     }
 }
 

@@ -527,7 +527,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                            unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
     /// Not valid for 'RelayQueueEngine'
-    mqbi::StorageResult::Enum evaluateAutoSubscriptions(
+    mqbi::StorageResult::Enum evaluateAppSubscriptions(
         const bmqp::PutHeader&              putHeader,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
         const bmqp::MessagePropertiesInfo&  mpi,

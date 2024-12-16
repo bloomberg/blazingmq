@@ -155,8 +155,8 @@ static void test1_breathingTest()
     {
         // Default Object
         DataFileIterator it;
-        ASSERT_EQ(false, it.isValid());
-        ASSERT_EQ(-1, it.nextRecord());
+        BMQTST_ASSERT_EQ(false, it.isValid());
+        BMQTST_ASSERT_EQ(-1, it.nextRecord());
     }
     {
         // Empty file -- forward iterator
@@ -165,8 +165,8 @@ static void test1_breathingTest()
 
         FileHeader       fh;
         DataFileIterator it(&mfd, fh);
-        ASSERT_EQ(false, it.isValid());
-        ASSERT_EQ(-1, it.nextRecord());
+        BMQTST_ASSERT_EQ(false, it.isValid());
+        BMQTST_ASSERT_EQ(-1, it.nextRecord());
     }
     {
         // No records
@@ -179,8 +179,8 @@ static void test1_breathingTest()
                              0);
 
         DataFileIterator it(&mfd, fh);
-        ASSERT_EQ(true, it.isValid());
-        ASSERT_EQ(-2, it.nextRecord());
+        BMQTST_ASSERT_EQ(true, it.isValid());
+        BMQTST_ASSERT_EQ(-2, it.nextRecord());
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -195,12 +195,12 @@ static void test1_breathingTest()
                              0);
 
         DataFileIterator it(&mfd, fh);
-        ASSERT_EQ(true, it.isValid());
+        BMQTST_ASSERT_EQ(true, it.isValid());
 
         it.reset(&mfd, fh);
 
-        ASSERT_EQ(true, it.isValid());
-        ASSERT_EQ(-2, it.nextRecord());
+        BMQTST_ASSERT_EQ(true, it.isValid());
+        BMQTST_ASSERT_EQ(-2, it.nextRecord());
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }
@@ -243,45 +243,49 @@ static void test2_forwardIteration()
                          MESSAGES,
                          k_NUM_MSGS);
 
-    ASSERT(p != 0);
-    ASSERT_GT(mfd.fileSize(), 0ULL);
+    BMQTST_ASSERT(p != 0);
+    BMQTST_ASSERT_GT(mfd.fileSize(), 0ULL);
 
     // Create iterator
     DataFileIterator it(&mfd, fileHeader);
 
-    ASSERT_EQ(it.hasRecordSizeRemaining(), true);
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
-    ASSERT_EQ(it.isReverseMode(), false);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), false);
 
     unsigned int i      = 0;
     unsigned int offset = sizeof(FileHeader) + sizeof(DataFileHeader);
-    ASSERT_EQ(offset, it.firstRecordPosition());
+    BMQTST_ASSERT_EQ(offset, it.firstRecordPosition());
 
     while (it.nextRecord() == 1) {
-        ASSERT_EQ_D(i, it.recordOffset(), offset);
-        ASSERT_EQ_D(i, it.recordIndex(), i);
+        BMQTST_ASSERT_EQ_D(i, it.recordOffset(), offset);
+        BMQTST_ASSERT_EQ_D(i, it.recordIndex(), i);
 
         const DataHeader& dh     = it.dataHeader();
         const char*       data   = 0;
         unsigned int      length = 0;
         it.loadApplicationData(&data, &length);
 
-        ASSERT_EQ_D(i, bsl::strlen(MESSAGES[i].d_appData_p), length);
-        ASSERT_EQ_D(i, bsl::memcmp(data, MESSAGES[i].d_appData_p, length), 0);
+        BMQTST_ASSERT_EQ_D(i, bsl::strlen(MESSAGES[i].d_appData_p), length);
+        BMQTST_ASSERT_EQ_D(i,
+                           bsl::memcmp(data, MESSAGES[i].d_appData_p, length),
+                           0);
 
         it.loadOptions(&data, &length);
-        ASSERT_EQ_D(i, bsl::strlen(MESSAGES[i].d_options_p), length);
-        ASSERT_EQ_D(i, bsl::memcmp(data, MESSAGES[i].d_options_p, length), 0);
+        BMQTST_ASSERT_EQ_D(i, bsl::strlen(MESSAGES[i].d_options_p), length);
+        BMQTST_ASSERT_EQ_D(i,
+                           bsl::memcmp(data, MESSAGES[i].d_options_p, length),
+                           0);
 
         offset += (dh.messageWords() * bmqp::Protocol::k_WORD_SIZE);
         ++i;
     }
 
-    ASSERT_EQ(i, k_NUM_MSGS);
+    BMQTST_ASSERT_EQ(i, k_NUM_MSGS);
 
-    ASSERT(it.nextRecord() != 1);
-    ASSERT(!it.isValid());
+    BMQTST_ASSERT(it.nextRecord() != 1);
+    BMQTST_ASSERT(!it.isValid());
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
@@ -323,21 +327,21 @@ static void test3_reverseIteration()
                          MESSAGES,
                          k_NUM_MSGS);
 
-    ASSERT(p != 0);
-    ASSERT_GT(mfd.fileSize(), 0ULL);
+    BMQTST_ASSERT(p != 0);
+    BMQTST_ASSERT_GT(mfd.fileSize(), 0ULL);
 
     // Create iterator
     DataFileIterator it(&mfd, fileHeader);
 
-    ASSERT_EQ(it.hasRecordSizeRemaining(), true);
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
-    ASSERT_EQ(it.isReverseMode(), false);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), false);
 
     it.flipDirection();
 
-    ASSERT_EQ(it.isReverseMode(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), false);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), false);
 
     it.flipDirection();
 
@@ -349,14 +353,14 @@ static void test3_reverseIteration()
     }
 
     // 'it' is now pointing to 'D' (the 2nd-last record).
-    ASSERT(it.isValid());
-    ASSERT(!it.isReverseMode());
+    BMQTST_ASSERT(it.isValid());
+    BMQTST_ASSERT(!it.isReverseMode());
 
     it.flipDirection();
 
-    ASSERT(it.isValid());
-    ASSERT(it.isReverseMode());
-    ASSERT(it.hasRecordSizeRemaining());
+    BMQTST_ASSERT(it.isValid());
+    BMQTST_ASSERT(it.isReverseMode());
+    BMQTST_ASSERT(it.hasRecordSizeRemaining());
 
     // Start iterating the records in the reverse direction.  Note that we
     // will start with record 'D', which is 6th record, and thus, at index
@@ -364,7 +368,7 @@ static void test3_reverseIteration()
 
     unsigned int i = 0;
     while (it.nextRecord() == 1) {
-        ASSERT_EQ_D(i, k_NUM_MSGS - i - 2, it.recordIndex());
+        BMQTST_ASSERT_EQ_D(i, k_NUM_MSGS - i - 2, it.recordIndex());
 
         const char*  data;
         unsigned int length;
@@ -373,19 +377,19 @@ static void test3_reverseIteration()
         int rc = bsl::memcmp(data,
                              MESSAGES[k_NUM_MSGS - i - 2].d_appData_p,
                              length);
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
 
         it.loadOptions(&data, &length);
         rc = bsl::memcmp(data,
                          MESSAGES[k_NUM_MSGS - i - 2].d_options_p,
                          length);
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
 
         ++i;
     }
 
-    ASSERT_EQ(i, k_NUM_MSGS - 1);
-    ASSERT_EQ(it.isValid(), false);
+    BMQTST_ASSERT_EQ(i, k_NUM_MSGS - 1);
+    BMQTST_ASSERT_EQ(it.isValid(), false);
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }

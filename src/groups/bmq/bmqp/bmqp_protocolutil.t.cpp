@@ -78,16 +78,16 @@ static void test1_initializeShutdown()
     bmqtst::TestHelper::printTestName("INITIALIZE / SHUTDOWN");
 
     // 1. Calling 'shutdown' without a call to 'initialize' should assert.
-    ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
+    BMQTST_ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
 
     // 2. Should be able to call 'initialize()' after the instance has already
     //    started and have no effect.
     // Initialize the 'ProtocolUtil'
-    ASSERT_SAFE_PASS(
+    BMQTST_ASSERT_SAFE_PASS(
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // 'initialize' should be a no-op
-    ASSERT_SAFE_PASS(
+    BMQTST_ASSERT_SAFE_PASS(
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // 3. Should be able to call 'shutdown' after already calling 'shutdown'
@@ -95,20 +95,20 @@ static void test1_initializeShutdown()
     //    does not exceed to number of calls to 'initialize' without a
     //    corresponding call to 'shutdown'.
     // 'shutdown' should be a no-op
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
 
     // Shut down the 'ProtocolUtil'
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
 
     // 'shutdown' again should assert
-    ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
+    BMQTST_ASSERT_SAFE_FAIL(bmqp::ProtocolUtil::shutdown());
 
     // 4. It is safe to call 'initialize' after calling 'shutdown'.
-    ASSERT_SAFE_PASS(
+    BMQTST_ASSERT_SAFE_PASS(
         bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator()));
 
     // Finally, shutdown the 'ProtocolUtil'
-    ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
+    BMQTST_ASSERT_SAFE_PASS(bmqp::ProtocolUtil::shutdown());
 }
 
 static void test2_hexBinaryConversions()
@@ -154,9 +154,9 @@ static void test2_hexBinaryConversions()
             PVV(test.d_line << ": converting '" << test.d_hex << "' to bin");
             char buffer[8] = {0};
             bmqp::ProtocolUtil::hexToBinary(buffer, 8, test.d_hex);
-            ASSERT_EQ_D("line " << test.d_line,
-                        0,
-                        bsl::memcmp(test.d_expected, buffer, 8));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expected, buffer, 8));
         }
     }
 
@@ -194,9 +194,9 @@ static void test2_hexBinaryConversions()
                 buffer,
                 reinterpret_cast<const char*>(test.d_binary),
                 l);
-            ASSERT_EQ_D("line " << test.d_line,
-                        0,
-                        bsl::memcmp(test.d_expected, buffer, l * 2));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expected, buffer, l * 2));
         }
     }
 
@@ -211,12 +211,12 @@ static void test2_hexBinaryConversions()
         PVV("binaryToHex(hexToBinary(x))");
         bmqp::ProtocolUtil::hexToBinary(binaryToFill, k_SIZE, k_HEX);
         bmqp::ProtocolUtil::binaryToHex(hexToFill, binaryToFill, k_SIZE);
-        ASSERT_EQ(0, bsl::memcmp(k_HEX, hexToFill, k_SIZE * 2));
+        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_HEX, hexToFill, k_SIZE * 2));
 
         PVV("hexToBinary(binaryToHex(x))");
         bmqp::ProtocolUtil::binaryToHex(hexToFill, k_BINARY, k_SIZE);
         bmqp::ProtocolUtil::hexToBinary(binaryToFill, k_SIZE, hexToFill);
-        ASSERT_EQ(0, bsl::memcmp(k_BINARY, binaryToFill, k_SIZE));
+        BMQTST_ASSERT_EQ(0, bsl::memcmp(k_BINARY, binaryToFill, k_SIZE));
     }
 }
 
@@ -273,14 +273,20 @@ static void test3_calcNumWordsAndPadding()
         // WORDS
         words = bmqp::ProtocolUtil::calcNumWordsAndPadding(&padding,
                                                            test.d_length);
-        ASSERT_EQ_D("line " << test.d_line, padding, test.d_wordPadding);
-        ASSERT_EQ_D("line " << test.d_line, words, test.d_wordNumWords);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           padding,
+                           test.d_wordPadding);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, words, test.d_wordNumWords);
 
         // DWORD
         words = bmqp::ProtocolUtil::calcNumDwordsAndPadding(&padding,
                                                             test.d_length);
-        ASSERT_EQ_D("line " << test.d_line, padding, test.d_dwordPadding);
-        ASSERT_EQ_D("line " << test.d_line, words, test.d_dwordNumWords);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           padding,
+                           test.d_dwordPadding);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           words,
+                           test.d_dwordNumWords);
     }
 
     bmqp::ProtocolUtil::shutdown();
@@ -327,9 +333,9 @@ static void test4_paddingChar()
             char buffer[5] = {0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
             bmqp::ProtocolUtil::appendPaddingRaw(buffer,
                                                  test.d_numPaddingBytes);
-            ASSERT_EQ_D("line " << test.d_line,
-                        0,
-                        bsl::memcmp(test.d_expectedBuffer, buffer, 5));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expectedBuffer, buffer, 5));
         }
     }
 
@@ -361,9 +367,9 @@ static void test4_paddingChar()
                 {0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x12, 0x34};
             bmqp::ProtocolUtil::appendPaddingDwordRaw(buffer,
                                                       test.d_numPaddingBytes);
-            ASSERT_EQ_D("line " << test.d_line,
-                        0,
-                        bsl::memcmp(test.d_expectedBuffer, buffer, 9));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               0,
+                               bsl::memcmp(test.d_expectedBuffer, buffer, 9));
         }
     }
 
@@ -402,16 +408,16 @@ static void test5_paddingBlob()
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
         bdlbb::BlobUtil::append(&blob, "ABC", 3);
-        ASSERT_EQ(blob.length(), 3);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 3);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
 
         bmqp::ProtocolUtil::appendPaddingRaw(&blob, 2);
         // Appending two bytes of padding to this blob: this will fit in
         // the already existing buffer.
-        ASSERT_EQ(blob.length(), 5);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 5);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
         const char expectedBufferContent[] = {'A', 'B', 'C', 2, 2};
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(blob.buffer(0).data(), expectedBufferContent, 5));
     }
@@ -427,26 +433,26 @@ static void test5_paddingBlob()
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
         bdlbb::BlobUtil::append(&blob, "ABC", 3);
-        ASSERT_EQ(blob.length(), 3);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 3);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
 
         bmqp::ProtocolUtil::appendPaddingRaw(&blob, 4);
         // Appending four bytes of padding to this blob: this will not fit
         // in the already existing buffer, and will end up appending a new
         // buffer with just the padding bytes.
-        ASSERT_EQ(blob.length(), 7);
-        ASSERT_EQ(blob.numDataBuffers(), 2);
-        ASSERT_EQ(blob.buffer(0).size(), 3);
-        ASSERT_EQ(blob.buffer(1).size(), 4);
-        ASSERT_EQ(blob.lastDataBufferLength(), 4);
+        BMQTST_ASSERT_EQ(blob.length(), 7);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 2);
+        BMQTST_ASSERT_EQ(blob.buffer(0).size(), 3);
+        BMQTST_ASSERT_EQ(blob.buffer(1).size(), 4);
+        BMQTST_ASSERT_EQ(blob.lastDataBufferLength(), 4);
 
         const char expectedBuffer1Content[] = {'A', 'B', 'C'};
         const char expectedBuffer2Content[] = {4, 4, 4, 4};
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(blob.buffer(0).data(), expectedBuffer1Content, 3));
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(blob.buffer(1).data(), expectedBuffer2Content, 4));
     }
@@ -462,15 +468,15 @@ static void test5_paddingBlob()
         // Initialize the blob: it will have one buffer of capacity 5, and a
         // total size of 3.
         bdlbb::BlobUtil::append(&blob, "ABC", 3);
-        ASSERT_EQ(blob.length(), 3);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 3);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
 
         bmqp::ProtocolUtil::appendPadding(&blob, 3);
         // Expecting it to add 1 byte of padding
-        ASSERT_EQ(blob.length(), 4);
-        ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(blob.length(), 4);
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
         const char expectedBufferContent[] = {'A', 'B', 'C', 1};
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(blob.buffer(0).data(), expectedBufferContent, 4));
     }
@@ -504,12 +510,13 @@ static void test6_heartbeatAndEmptyBlobs()
 
         const bdlbb::Blob& blob = bmqp::ProtocolUtil::heartbeatReqBlob();
 
-        ASSERT_EQ(blob.length(), static_cast<int>(sizeof(bmqp::EventHeader)));
-        ASSERT_EQ(blob.numDataBuffers(), 1);
-        ASSERT_EQ(0,
-                  memcmp(blob.buffer(0).data(),
-                         &expectedHeader,
-                         sizeof(bmqp::EventHeader)));
+        BMQTST_ASSERT_EQ(blob.length(),
+                         static_cast<int>(sizeof(bmqp::EventHeader)));
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(0,
+                         memcmp(blob.buffer(0).data(),
+                                &expectedHeader,
+                                sizeof(bmqp::EventHeader)));
     }
 
     PV("Verifying the HeartbeatRsp blob")
@@ -518,12 +525,13 @@ static void test6_heartbeatAndEmptyBlobs()
 
         const bdlbb::Blob& blob = bmqp::ProtocolUtil::heartbeatRspBlob();
 
-        ASSERT_EQ(blob.length(), static_cast<int>(sizeof(bmqp::EventHeader)));
-        ASSERT_EQ(blob.numDataBuffers(), 1);
-        ASSERT_EQ(0,
-                  memcmp(blob.buffer(0).data(),
-                         &expectedHeader,
-                         sizeof(bmqp::EventHeader)));
+        BMQTST_ASSERT_EQ(blob.length(),
+                         static_cast<int>(sizeof(bmqp::EventHeader)));
+        BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
+        BMQTST_ASSERT_EQ(0,
+                         memcmp(blob.buffer(0).data(),
+                                &expectedHeader,
+                                sizeof(bmqp::EventHeader)));
     }
 
     bmqp::ProtocolUtil::shutdown();
@@ -571,9 +579,10 @@ static void test7_ackResultToCode()
         PVV(test.d_line << ": Testing: bmqp::ProtocolUti::ackResultToCode("
                         << test.d_ackResult << ") == " << test.d_expectedCode);
 
-        ASSERT_EQ_D(test.d_line,
-                    bmqp::ProtocolUtil::ackResultToCode(test.d_ackResult),
-                    test.d_expectedCode);
+        BMQTST_ASSERT_EQ_D(
+            test.d_line,
+            bmqp::ProtocolUtil::ackResultToCode(test.d_ackResult),
+            test.d_expectedCode);
     }
 }
 
@@ -615,9 +624,9 @@ static void test8_ackResultFromCode()
         PVV(test.d_line << ": Testing: bmqp::ProtocolUti::ackResultFromCode("
                         << test.d_code << ") == " << test.d_expectedAckResult);
 
-        ASSERT_EQ_D(test.d_line,
-                    bmqp::ProtocolUtil::ackResultFromCode(test.d_code),
-                    test.d_expectedAckResult);
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           bmqp::ProtocolUtil::ackResultFromCode(test.d_code),
+                           test.d_expectedAckResult);
     }
 }
 
@@ -666,31 +675,31 @@ static void test9_loadFieldValues()
         bsl::vector<bsl::string> field1Values(
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field1Values,
-                                                   field1,
-                                                   featureSet));
-        ASSERT_EQ(field1NumVal, field1Values.size());
-        ASSERT_EQ(val1, field1Values[0]);
-        ASSERT_EQ(val2, field1Values[1]);
-        ASSERT_EQ(val3, field1Values[2]);
+        BMQTST_ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field1Values,
+                                                          field1,
+                                                          featureSet));
+        BMQTST_ASSERT_EQ(field1NumVal, field1Values.size());
+        BMQTST_ASSERT_EQ(val1, field1Values[0]);
+        BMQTST_ASSERT_EQ(val2, field1Values[1]);
+        BMQTST_ASSERT_EQ(val3, field1Values[2]);
 
         bsl::vector<bsl::string> field2Values(
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field2Values,
-                                                   field2,
-                                                   featureSet));
-        ASSERT_EQ(field2NumVal, field2Values.size());
-        ASSERT_EQ(val4, field2Values[0]);
+        BMQTST_ASSERT(bmqp::ProtocolUtil::loadFieldValues(&field2Values,
+                                                          field2,
+                                                          featureSet));
+        BMQTST_ASSERT_EQ(field2NumVal, field2Values.size());
+        BMQTST_ASSERT_EQ(val4, field2Values[0]);
 
         PVV("Load field with no specified value");
         bsl::vector<bsl::string> emptyFieldValues(
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(bmqp::ProtocolUtil::loadFieldValues(&emptyFieldValues,
-                                                   emptyField,
-                                                   featureSet));
-        ASSERT(emptyFieldValues.empty());
+        BMQTST_ASSERT(bmqp::ProtocolUtil::loadFieldValues(&emptyFieldValues,
+                                                          emptyField,
+                                                          featureSet));
+        BMQTST_ASSERT(emptyFieldValues.empty());
     }
 
     PV("Load invalid field");
@@ -700,10 +709,10 @@ static void test9_loadFieldValues()
         const bsl::string invalidField("invalidField",
                                        bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(!bmqp::ProtocolUtil::loadFieldValues(&invalidFieldValues,
-                                                    invalidField,
-                                                    featureSet));
-        ASSERT(invalidFieldValues.empty());
+        BMQTST_ASSERT(!bmqp::ProtocolUtil::loadFieldValues(&invalidFieldValues,
+                                                           invalidField,
+                                                           featureSet));
+        BMQTST_ASSERT(invalidFieldValues.empty());
     }
 
     PV("Load from malformed feature set");
@@ -714,10 +723,11 @@ static void test9_loadFieldValues()
             field1 + ":",
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(!bmqp::ProtocolUtil::loadFieldValues(&field1Values,
-                                                    field1,
-                                                    malformedFeatureSet));
-        ASSERT(field1Values.empty());
+        BMQTST_ASSERT(
+            !bmqp::ProtocolUtil::loadFieldValues(&field1Values,
+                                                 field1,
+                                                 malformedFeatureSet));
+        BMQTST_ASSERT(field1Values.empty());
     }
 }
 
@@ -751,22 +761,22 @@ static void encodeDecodeHelper(E encodingType)
                                                &blob,
                                                clusterMessage,
                                                encodingType);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(ms.str(), "");
-    ASSERT_NE(blob.length(), 0);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(ms.str(), "");
+    BMQTST_ASSERT_NE(blob.length(), 0);
 
     // Decode and verify
     bmqp_ctrlmsg::ClusterMessage decodedClusterMessage;
-    ASSERT_NE(decodedClusterMessage, clusterMessage);
+    BMQTST_ASSERT_NE(decodedClusterMessage, clusterMessage);
 
     rc = bmqp::ProtocolUtil::decodeMessage(ms,
                                            &decodedClusterMessage,
                                            blob,
                                            8,  // offset
                                            encodingType);
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(ms.str(), "");
-    ASSERT_EQ(decodedClusterMessage, clusterMessage);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(ms.str(), "");
+    BMQTST_ASSERT_EQ(decodedClusterMessage, clusterMessage);
 }
 
 static void test10_encodeDecodeMessage()
@@ -807,18 +817,18 @@ static void test10_encodeDecodeMessage()
 
 static void encode(bmqp::MessageProperties* properties)
 {
-    ASSERT_EQ(0, properties->setPropertyAsInt32("encoding", 3));
-    ASSERT_EQ(0, properties->setPropertyAsString("id", "3"));
-    ASSERT_EQ(0, properties->setPropertyAsInt64("timestamp", 3LL));
-    ASSERT_EQ(3, properties->numProperties());
+    BMQTST_ASSERT_EQ(0, properties->setPropertyAsInt32("encoding", 3));
+    BMQTST_ASSERT_EQ(0, properties->setPropertyAsString("id", "3"));
+    BMQTST_ASSERT_EQ(0, properties->setPropertyAsInt64("timestamp", 3LL));
+    BMQTST_ASSERT_EQ(3, properties->numProperties());
 }
 
 static void verify(const bmqp::MessageProperties& properties)
 {
-    ASSERT_EQ(3, properties.numProperties());
-    ASSERT_EQ(properties.getPropertyAsInt32("encoding"), 3);
-    ASSERT_EQ(properties.getPropertyAsString("id"), "3");
-    ASSERT_EQ(properties.getPropertyAsInt64("timestamp"), 3LL);
+    BMQTST_ASSERT_EQ(3, properties.numProperties());
+    BMQTST_ASSERT_EQ(properties.getPropertyAsInt32("encoding"), 3);
+    BMQTST_ASSERT_EQ(properties.getPropertyAsString("id"), "3");
+    BMQTST_ASSERT_EQ(properties.getPropertyAsInt64("timestamp"), 3LL);
 }
 
 static void populateBlob(bdlbb::Blob* blob, int atLeastLen)
@@ -875,7 +885,7 @@ static void test11_parseMessageProperties()
 
     bmqt::EventBuilderResult::Enum builderResult = peb.packMessage(queueId);
 
-    ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, builderResult);
+    BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, builderResult);
 
     bmqp::PutMessageIterator putIt(&bufferFactory,
                                    bmqtst::TestHelperUtil::allocator(),
@@ -886,7 +896,7 @@ static void test11_parseMessageProperties()
     BSLS_ASSERT_SAFE(rawEvent.isPutEvent());
     rawEvent.loadPutMessageIterator(&putIt);
 
-    ASSERT_EQ(1, putIt.next());
+    BMQTST_ASSERT_EQ(1, putIt.next());
 
     bdlbb::Blob payloadIn(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
@@ -909,13 +919,13 @@ static void test11_parseMessageProperties()
                                        peb.compressionAlgorithmType(),
                                        &bufferFactory,
                                        bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(0, rc);
     bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
     out.streamIn(msgPropertiesBlob, true);
 
     verify(out);
 
-    ASSERT_EQ(0, bdlbb::BlobUtil::compare(payloadOut, payload));
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payloadOut, payload));
 
     bmqp::ProtocolUtil::shutdown();
 }

@@ -45,7 +45,7 @@ static void threadFunction(bslmt::Barrier*          barrier,
                            bmqu::TLSBool*           obj)
 {
     // Make sure value is default initialized to 'false'
-    ASSERT_EQ(*obj, false);
+    BMQTST_ASSERT_EQ(*obj, false);
 
     for (size_t i = 0; i < values.size(); ++i) {
         PV_SAFE(bslmt::ThreadUtil::selfIdAsUint64()
@@ -53,14 +53,14 @@ static void threadFunction(bslmt::Barrier*          barrier,
                 << ", current value: " << *obj);
         if (i != 0) {
             // Make sure the value is equal to the last one we set
-            ASSERT_EQ(*obj, values[i - 1]);
+            BMQTST_ASSERT_EQ(*obj, values[i - 1]);
         }
 
         // Set the new value
         *obj = values[i];
 
         // Validate the value was correctly set
-        ASSERT_EQ(*obj, values[i]);
+        BMQTST_ASSERT_EQ(*obj, values[i]);
 
         // Wait on the barrier
         barrier->wait();
@@ -81,66 +81,66 @@ static void test1_breathingTest()
         PV("Testing default constructor");
 
         bmqu::TLSBool obj;
-        ASSERT_EQ(obj.isValid(), true);
+        BMQTST_ASSERT_EQ(obj.isValid(), true);
 
         // Initialized to false by default
-        ASSERT_EQ(obj, false);
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), false);
+        BMQTST_ASSERT_EQ(obj, false);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), false);
 
         obj = true;
-        ASSERT_EQ(obj, true);
-        ASSERT_EQ(obj.getDefault(false), true);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj, true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         obj = false;
-        ASSERT_EQ(obj, false);
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), false);
+        BMQTST_ASSERT_EQ(obj, false);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), false);
     }
 
     {
         PV("Testing constructor with 'false' value");
 
         bmqu::TLSBool obj(false);
-        ASSERT_EQ(obj.isValid(), true);
+        BMQTST_ASSERT_EQ(obj.isValid(), true);
 
         // Initialized to false by default
-        ASSERT_EQ(obj, false);
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), false);
+        BMQTST_ASSERT_EQ(obj, false);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), false);
 
         obj = true;
-        ASSERT_EQ(obj, true);
-        ASSERT_EQ(obj.getDefault(false), true);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj, true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         obj = false;
-        ASSERT_EQ(obj, false);
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), false);
+        BMQTST_ASSERT_EQ(obj, false);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), false);
     }
 
     {
         PV("Testing constructor with 'true' value");
 
         bmqu::TLSBool obj(true);
-        ASSERT_EQ(obj.isValid(), true);
+        BMQTST_ASSERT_EQ(obj.isValid(), true);
 
         // Initialized to true by default
-        ASSERT_EQ(obj, true);
-        ASSERT_EQ(obj.getDefault(false), true);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj, true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         obj = false;
-        ASSERT_EQ(obj, false);
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), false);
+        BMQTST_ASSERT_EQ(obj, false);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), false);
 
         obj = true;
-        ASSERT_EQ(obj, true);
-        ASSERT_EQ(obj.getDefault(false), true);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj, true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
     }
 }
 
@@ -217,44 +217,44 @@ static void test2_isValid()
     // ASSERT, so skip that check on those platforms.
     {
         // Constructor without a value, should assert
-        ASSERT_OPT_FAIL(bmqu::TLSBool obj);
-        ASSERT_OPT_FAIL(bmqu::TLSBool obj(true));
+        BMQTST_ASSERT_OPT_FAIL(bmqu::TLSBool obj);
+        BMQTST_ASSERT_OPT_FAIL(bmqu::TLSBool obj(true));
     }
 #endif
 
     {
         PV("Invalid TLSBool with Initial default value of 'true'");
         bmqu::TLSBool obj(true, true);
-        ASSERT_EQ(obj.isValid(), false);
+        BMQTST_ASSERT_EQ(obj.isValid(), false);
 
         // Initialized to true
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         obj = false;  // Should have no effect since invalid
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         if (!obj) {
-            ASSERT(false && "operator bool should have said 'true'");
+            BMQTST_ASSERT(false && "operator bool should have said 'true'");
         }
     }
 
     {
         PV("Invalid TLSBool with Initial default value of 'false'");
         bmqu::TLSBool obj(true, false);
-        ASSERT_EQ(obj.isValid(), false);
+        BMQTST_ASSERT_EQ(obj.isValid(), false);
 
         // Initialized to true
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         obj = true;  // Should have no effect since invalid
-        ASSERT_EQ(obj.getDefault(false), false);
-        ASSERT_EQ(obj.getDefault(true), true);
+        BMQTST_ASSERT_EQ(obj.getDefault(false), false);
+        BMQTST_ASSERT_EQ(obj.getDefault(true), true);
 
         if (obj) {
-            ASSERT(false && "operator bool should have said 'false'");
+            BMQTST_ASSERT(false && "operator bool should have said 'false'");
         }
     }
 

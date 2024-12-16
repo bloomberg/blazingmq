@@ -174,20 +174,20 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
                                              d_state_p->partitionId());
 
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
             mqbstat::QueueStatsDomain::Role::e_PRIMARY);
 
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS>(
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS>(
             domainCfg.storage().queueLimits().messages());
 
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES>(
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES>(
             domainCfg.storage().queueLimits().bytes());
 
     if (isReconfigure) {
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -441,13 +441,12 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
         bdlt::CurrentTime::utc());
 
-    // EXPERIMENTAL:
-    //  Evaluate 'auto' subscriptions
-    mqbi::StorageResult::Enum res =
-        d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
-                                                    appData,
-                                                    translation,
-                                                    timestamp);
+    // Evaluate application subscriptions
+    mqbi::StorageResult::Enum res = d_queueEngine_mp->evaluateAppSubscriptions(
+        putHeader,
+        appData,
+        translation,
+        timestamp);
 
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
@@ -484,7 +483,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         const bsls::Types::Int64 timeDelta =
             bmqsys::Time::highResolutionTimer() - timePoint;
         d_state_p->stats()
-            .onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
                 timeDelta);
         if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
             bmqp::AckMessage ackMessage;
@@ -511,7 +510,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // 'afterNewMessage' be called here.
 
         d_state_p->stats()
-            .onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
                 appData->length());
     }
     else {
@@ -527,7 +526,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         }
         else {
             d_state_p->stats()
-                .onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
         }
     }
 }
@@ -549,7 +548,7 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
                                          arrivalTimepoint;
 
     d_state_p->stats()
-        .onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(timeDelta);
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(timeDelta);
 
     if (d_state_p->handleCatalog().hasHandle(qH)) {
         // Send acknowledgement
@@ -571,7 +570,7 @@ void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
     // TODO: do we need to update NACK stats considering that downstream can
     // NACK the same GUID as well?
 
-    d_state_p->stats().onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
         1);
 
     if (d_state_p->handleCatalog().hasHandle(qH)) {

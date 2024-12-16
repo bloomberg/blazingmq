@@ -83,7 +83,7 @@ static void test1_breathingTest()
                                      bmqtst::TestHelperUtil::allocator());
 
         PVV(test.d_line << ": Verifying accessors");
-        ASSERT_EQ(obj.blob()->length(), 0);
+        BMQTST_ASSERT_EQ(obj.blob()->length(), 0);
 
         PVV(test.d_line << ": Create a message");
         bmqp_ctrlmsg::ControlMessage message(
@@ -94,29 +94,30 @@ static void test1_breathingTest()
 
         // Encode the message
         rc = obj.setMessage(message, bmqp::EventType::e_CONTROL);
-        ASSERT_EQ(rc, 0);
-        ASSERT_NE(obj.blob()->length(), 0);
-        ASSERT_EQ(obj.blob()->length() % 4, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_NE(obj.blob()->length(), 0);
+        BMQTST_ASSERT_EQ(obj.blob()->length() % 4, 0);
 
         PVV(test.d_line << ": Decode and compare message");
         bmqp::Event event(obj.blob().get(),
                           bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(event.isValid(), true);
-        ASSERT_EQ(event.isControlEvent(), true);
+        BMQTST_ASSERT_EQ(event.isValid(), true);
+        BMQTST_ASSERT_EQ(event.isControlEvent(), true);
 
         bmqp_ctrlmsg::ControlMessage decoded(
             bmqtst::TestHelperUtil::allocator());
         rc = event.loadControlEvent(&decoded);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
-        ASSERT(decoded.choice().isStatusValue());
-        ASSERT_EQ(decoded.choice().status().code(), status.code());
-        ASSERT_EQ(decoded.choice().status().message(), status.message());
+        BMQTST_ASSERT(decoded.choice().isStatusValue());
+        BMQTST_ASSERT_EQ(decoded.choice().status().code(), status.code());
+        BMQTST_ASSERT_EQ(decoded.choice().status().message(),
+                         status.message());
 
         PVV("Reset");
         obj.reset();
-        ASSERT_EQ(obj.blob()->length(), 0);
+        BMQTST_ASSERT_EQ(obj.blob()->length(), 0);
     }
 }
 
@@ -137,8 +138,8 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
 
     // Encode the message
     rc = obj->setMessage(message, bmqp::EventType::e_CONTROL);
-    ASSERT_EQ(rc, 0);
-    ASSERT_NE(obj->blob()->length(), 0);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_NE(obj->blob()->length(), 0);
 
     bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     bdlb::Guid         guid = bdlb::GuidUtil::generate();
@@ -169,7 +170,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
     bsl::memset(buf, 0, blobLen);
 
     obj->reset();
-    ASSERT_EQ(obj->blob()->length(), 0);
+    BMQTST_ASSERT_EQ(obj->blob()->length(), 0);
 
     // Read blob from file
     bsl::ifstream ifile(os.str().data(), bsl::ios::binary);
@@ -191,11 +192,11 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
     PVVV("Decode event");
     bmqp::Event event(&blb, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(event.isValid(), true);
-    ASSERT_EQ(event.isControlEvent(), true);
+    BMQTST_ASSERT_EQ(event.isValid(), true);
+    BMQTST_ASSERT_EQ(event.isControlEvent(), true);
 
     rc = event.loadControlEvent(decoded);
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     delete[] buf;
 }
@@ -218,8 +219,9 @@ static void test2_bestEncodingSupported()
     {
         // This is TEMPORARY only until all clients are properly advertising
         // their encoding features support; after that it should return INVALID
-        ASSERT_EQ(bmqp::EncodingType::e_BER,
-                  bmqp::SchemaEventBuilderUtil::bestEncodingSupported(""));
+        BMQTST_ASSERT_EQ(
+            bmqp::EncodingType::e_BER,
+            bmqp::SchemaEventBuilderUtil::bestEncodingSupported(""));
     }
 
     PV("Remote feature set only supports one encoding");
@@ -229,7 +231,7 @@ static void test2_bestEncodingSupported()
             .append(":")
             .append(bmqp::EncodingFeature::k_ENCODING_BER);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqp::EncodingType::e_BER,
             bmqp::SchemaEventBuilderUtil::bestEncodingSupported(features1));
 
@@ -238,7 +240,7 @@ static void test2_bestEncodingSupported()
             .append(":")
             .append(bmqp::EncodingFeature::k_ENCODING_JSON);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqp::EncodingType::e_JSON,
             bmqp::SchemaEventBuilderUtil::bestEncodingSupported(features2));
     }
@@ -252,7 +254,7 @@ static void test2_bestEncodingSupported()
             .append(",")
             .append(bmqp::EncodingFeature::k_ENCODING_JSON);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqp::EncodingType::e_BER,
             bmqp::SchemaEventBuilderUtil::bestEncodingSupported(features));
     }
@@ -326,9 +328,10 @@ static void testN1_decodeFromFile()
                                      "status",
                                      &bufferFactory);
 
-            ASSERT(decoded.choice().isStatusValue());
-            ASSERT_EQ(decoded.choice().status().code(), status.code());
-            ASSERT_EQ(decoded.choice().status().message(), status.message());
+            BMQTST_ASSERT(decoded.choice().isStatusValue());
+            BMQTST_ASSERT_EQ(decoded.choice().status().code(), status.code());
+            BMQTST_ASSERT_EQ(decoded.choice().status().message(),
+                             status.message());
         }
 
         PVV(test.d_line << ": Negotiation message - ClientIdentity");
@@ -350,8 +353,8 @@ static void testN1_decodeFromFile()
 
             // Ensure 'guidInfo' contains default values
             bmqp_ctrlmsg::GuidInfo& gg = ci.guidInfo();
-            ASSERT_EQ("", gg.clientId());
-            ASSERT_EQ(0, gg.nanoSecondsFromEpoch());
+            BMQTST_ASSERT_EQ("", gg.clientId());
+            BMQTST_ASSERT_EQ(0, gg.nanoSecondsFromEpoch());
 
             testDecodeFromFileHelper(&obj,
                                      &decoded,
@@ -359,26 +362,27 @@ static void testN1_decodeFromFile()
                                      "nego_client_client_identity",
                                      &bufferFactory);
 
-            ASSERT_EQ(decoded.isClientIdentityValue(), true);
-            ASSERT_EQ(decoded.isBrokerResponseValue(), false);
-            ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
-            ASSERT_EQ(decoded.isUndefinedValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), true);
+            BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::ClientIdentity& dci = decoded.clientIdentity();
 
-            ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
-            ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
-            ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
-            ASSERT_EQ(ci.clientType(), dci.clientType());
-            ASSERT_EQ(ci.pid(), dci.pid());
-            ASSERT_EQ(ci.sessionId(), dci.sessionId());
-            ASSERT_EQ(ci.hostName(), dci.hostName());
-            ASSERT_EQ(ci.processName(), dci.processName());
+            BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
+            BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
+            BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
+            BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
+            BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
+            BMQTST_ASSERT_EQ(ci.hostName(), dci.hostName());
+            BMQTST_ASSERT_EQ(ci.processName(), dci.processName());
 
             bmqp_ctrlmsg::GuidInfo& dgg = dci.guidInfo();
 
-            ASSERT_EQ(gg.clientId(), dgg.clientId());
-            ASSERT_EQ(gg.nanoSecondsFromEpoch(), dgg.nanoSecondsFromEpoch());
+            BMQTST_ASSERT_EQ(gg.clientId(), dgg.clientId());
+            BMQTST_ASSERT_EQ(gg.nanoSecondsFromEpoch(),
+                             dgg.nanoSecondsFromEpoch());
         }
 
         PVV(test.d_line << ": Negotiation message - ClientIdentity (GUIDS)");
@@ -408,26 +412,27 @@ static void testN1_decodeFromFile()
                                      "nego_client_client_identity_guids",
                                      &bufferFactory);
 
-            ASSERT_EQ(decoded.isClientIdentityValue(), true);
-            ASSERT_EQ(decoded.isBrokerResponseValue(), false);
-            ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
-            ASSERT_EQ(decoded.isUndefinedValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), true);
+            BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::ClientIdentity& dci = decoded.clientIdentity();
 
-            ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
-            ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
-            ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
-            ASSERT_EQ(ci.clientType(), dci.clientType());
-            ASSERT_EQ(ci.pid(), dci.pid());
-            ASSERT_EQ(ci.sessionId(), dci.sessionId());
-            ASSERT_EQ(ci.hostName(), dci.hostName());
-            ASSERT_EQ(ci.processName(), dci.processName());
+            BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
+            BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
+            BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
+            BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
+            BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
+            BMQTST_ASSERT_EQ(ci.hostName(), dci.hostName());
+            BMQTST_ASSERT_EQ(ci.processName(), dci.processName());
 
             bmqp_ctrlmsg::GuidInfo& dgg = dci.guidInfo();
 
-            ASSERT_EQ(gg.clientId(), dgg.clientId());
-            ASSERT_EQ(gg.nanoSecondsFromEpoch(), dgg.nanoSecondsFromEpoch());
+            BMQTST_ASSERT_EQ(gg.clientId(), dgg.clientId());
+            BMQTST_ASSERT_EQ(gg.nanoSecondsFromEpoch(),
+                             dgg.nanoSecondsFromEpoch());
         }
 
         PVV(test.d_line << ": Negotiation message - BrokerResponse");
@@ -462,28 +467,28 @@ static void testN1_decodeFromFile()
                                      "nego_client_broker_response",
                                      &bufferFactory);
 
-            ASSERT_EQ(decoded.isClientIdentityValue(), false);
-            ASSERT_EQ(decoded.isBrokerResponseValue(), true);
-            ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
-            ASSERT_EQ(decoded.isUndefinedValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isClientIdentityValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isBrokerResponseValue(), true);
+            BMQTST_ASSERT_EQ(decoded.isReverseConnectionRequestValue(), false);
+            BMQTST_ASSERT_EQ(decoded.isUndefinedValue(), false);
 
             bmqp_ctrlmsg::BrokerResponse& dbr = message.makeBrokerResponse();
-            ASSERT_EQ(dbr.protocolVersion(), br.protocolVersion());
-            ASSERT_EQ(dbr.brokerVersion(), br.brokerVersion());
-            ASSERT_EQ(dbr.isDeprecatedSdk(), br.isDeprecatedSdk());
-            ASSERT_EQ(dbr.result().code(), br.result().code());
-            ASSERT_EQ(dbr.result().category(), br.result().category());
+            BMQTST_ASSERT_EQ(dbr.protocolVersion(), br.protocolVersion());
+            BMQTST_ASSERT_EQ(dbr.brokerVersion(), br.brokerVersion());
+            BMQTST_ASSERT_EQ(dbr.isDeprecatedSdk(), br.isDeprecatedSdk());
+            BMQTST_ASSERT_EQ(dbr.result().code(), br.result().code());
+            BMQTST_ASSERT_EQ(dbr.result().category(), br.result().category());
 
             bmqp_ctrlmsg::ClientIdentity& dci = dbr.brokerIdentity();
-            ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
-            ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
-            ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
-            ASSERT_EQ(ci.clientType(), dci.clientType());
-            ASSERT_EQ(ci.pid(), dci.pid());
-            ASSERT_EQ(ci.sessionId(), dci.sessionId());
-            ASSERT_EQ(ci.hostName(), dci.hostName());
-            ASSERT_EQ(ci.processName(), dci.processName());
-            ASSERT_EQ(ci.clusterName(), dci.clusterName());
+            BMQTST_ASSERT_EQ(ci.protocolVersion(), dci.protocolVersion());
+            BMQTST_ASSERT_EQ(ci.sdkVersion(), dci.sdkVersion());
+            BMQTST_ASSERT_EQ(ci.sdkLanguage(), dci.sdkLanguage());
+            BMQTST_ASSERT_EQ(ci.clientType(), dci.clientType());
+            BMQTST_ASSERT_EQ(ci.pid(), dci.pid());
+            BMQTST_ASSERT_EQ(ci.sessionId(), dci.sessionId());
+            BMQTST_ASSERT_EQ(ci.hostName(), dci.hostName());
+            BMQTST_ASSERT_EQ(ci.processName(), dci.processName());
+            BMQTST_ASSERT_EQ(ci.clusterName(), dci.clusterName());
         }
 
         PVV(test.d_line << ": OpenQueue message");
@@ -517,12 +522,12 @@ static void testN1_decodeFromFile()
                                      "open_queue",
                                      &bufferFactory);
 
-            ASSERT(decoded.choice().isOpenQueueValue());
+            BMQTST_ASSERT(decoded.choice().isOpenQueueValue());
 
             bmqp_ctrlmsg::OpenQueue& decOpenQueue =
                 decoded.choice().openQueue();
 
-            ASSERT(decOpenQueue == openQueue);
+            BMQTST_ASSERT(decOpenQueue == openQueue);
         }
 
         PVV(test.d_line << ": OpenQueueResponse message");
@@ -565,7 +570,7 @@ static void testN1_decodeFromFile()
 
             bmqp_ctrlmsg::OpenQueueResponse& decOpenQueueResponse =
                 decoded.choice().openQueueResponse();
-            ASSERT(decOpenQueueResponse == openQueueResponse);
+            BMQTST_ASSERT(decOpenQueueResponse == openQueueResponse);
         }
     }
 }

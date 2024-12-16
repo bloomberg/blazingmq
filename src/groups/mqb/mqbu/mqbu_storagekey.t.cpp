@@ -117,86 +117,90 @@ void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Test some invalid StorageKeys");
     mqbu::StorageKey s1;
-    ASSERT_EQ(true, s1.isNull());
+    BMQTST_ASSERT_EQ(true, s1.isNull());
 
     mqbu::StorageKey s2;
     s1 = s2;
 
-    ASSERT_EQ(true, s1.isNull());
-    ASSERT_EQ(true, s2.isNull());
+    BMQTST_ASSERT_EQ(true, s1.isNull());
+    BMQTST_ASSERT_EQ(true, s2.isNull());
 
     mqbu::StorageKey s3(s1);
-    ASSERT_EQ(true, s3.isNull());
+    BMQTST_ASSERT_EQ(true, s3.isNull());
 
     PV("Create StorageKey s4 and s5 from valid hex");
     const char          k_VALID_HEX[] = "ABCDEF1234";
     const unsigned char k_VALID_BIN[] = {0xAB, 0xCD, 0xEF, 0x12, 0x34};
     mqbu::StorageKey    s4;
     s4.fromHex(k_VALID_HEX);
-    ASSERT_EQ(false, s4.isNull());
+    BMQTST_ASSERT_EQ(false, s4.isNull());
 
     mqbu::StorageKey s5(mqbu::StorageKey::HexRepresentation(), k_VALID_HEX);
-    ASSERT_EQ(false, s5.isNull());
-    ASSERT_EQ(0,
-              bsl::memcmp(s4.data(),
-                          s5.data(),
-                          mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+    BMQTST_ASSERT_EQ(false, s5.isNull());
+    BMQTST_ASSERT_EQ(0,
+                     bsl::memcmp(s4.data(),
+                                 s5.data(),
+                                 mqbu::StorageKey::e_KEY_LENGTH_BINARY));
 
     PV("Create StorageKey s6 and s7 from valid binary");
     const char       k_VALID_BINARY[] = "ABCDE";
     mqbu::StorageKey s6;
     s6.fromBinary(k_VALID_BINARY);
-    ASSERT_EQ(false, s6.isNull());
-    ASSERT_EQ(0,
-              bsl::memcmp(k_VALID_BINARY,
-                          s6.data(),
-                          mqbu::StorageKey::e_KEY_LENGTH_BINARY));
-    ASSERT_EQ(s6, reinterpret_cast<const mqbu::StorageKey&>(k_VALID_BINARY));
+    BMQTST_ASSERT_EQ(false, s6.isNull());
+    BMQTST_ASSERT_EQ(0,
+                     bsl::memcmp(k_VALID_BINARY,
+                                 s6.data(),
+                                 mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+    BMQTST_ASSERT_EQ(
+        s6,
+        reinterpret_cast<const mqbu::StorageKey&>(k_VALID_BINARY));
 
     mqbu::StorageKey s7(mqbu::StorageKey::BinaryRepresentation(),
                         k_VALID_BINARY);
-    ASSERT_EQ(false, s7.isNull());
-    ASSERT_EQ(0,
-              bsl::memcmp(s6.data(),
-                          s7.data(),
-                          mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+    BMQTST_ASSERT_EQ(false, s7.isNull());
+    BMQTST_ASSERT_EQ(0,
+                     bsl::memcmp(s6.data(),
+                                 s7.data(),
+                                 mqbu::StorageKey::e_KEY_LENGTH_BINARY));
 
     PV("Create StorageKey from integer");
     mqbu::StorageKey s8(0u);
-    ASSERT_EQ(false, s8.isNull());
+    BMQTST_ASSERT_EQ(false, s8.isNull());
 
     mqbu::StorageKey s9(0u);
-    ASSERT_EQ(false, s9.isNull());
+    BMQTST_ASSERT_EQ(false, s9.isNull());
 
-    ASSERT_EQ(true, s8 == s9);
-    ASSERT_EQ(false, s8 != s9);
+    BMQTST_ASSERT_EQ(true, s8 == s9);
+    BMQTST_ASSERT_EQ(false, s8 != s9);
 
     mqbu::StorageKey s10(bsl::numeric_limits<unsigned int>::max());
-    ASSERT_EQ(false, s10.isNull());
+    BMQTST_ASSERT_EQ(false, s10.isNull());
 
     mqbu::StorageKey s11(bsl::numeric_limits<unsigned int>::max());
-    ASSERT_EQ(false, s11.isNull());
+    BMQTST_ASSERT_EQ(false, s11.isNull());
 
-    ASSERT_EQ(true, s10 == s11);
-    ASSERT_EQ(false, s10 != s11);
+    BMQTST_ASSERT_EQ(true, s10 == s11);
+    BMQTST_ASSERT_EQ(false, s10 != s11);
 
     PV("Checking accessors");
     char s[mqbu::StorageKey::e_KEY_LENGTH_HEX];
     s5.loadHex(s);
-    ASSERT_EQ(0, memcmp(k_VALID_HEX, s, mqbu::StorageKey::e_KEY_LENGTH_HEX));
+    BMQTST_ASSERT_EQ(
+        0,
+        memcmp(k_VALID_HEX, s, mqbu::StorageKey::e_KEY_LENGTH_HEX));
 
     bsl::vector<char> binBuf(bmqtst::TestHelperUtil::allocator());
     s5.loadBinary(&binBuf);
-    ASSERT_EQ(0,
-              memcmp(k_VALID_BIN,
-                     &binBuf[0],
-                     mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+    BMQTST_ASSERT_EQ(0,
+                     memcmp(k_VALID_BIN,
+                            &binBuf[0],
+                            mqbu::StorageKey::e_KEY_LENGTH_BINARY));
 
     PV("Checking overloaded == and != operators");
-    ASSERT_EQ(false, s4 == s6);
-    ASSERT_EQ(true, s4 == s5);
-    ASSERT_EQ(false, s4 != s5);
-    ASSERT_EQ(true, s4 != s6);
+    BMQTST_ASSERT_EQ(false, s4 == s6);
+    BMQTST_ASSERT_EQ(true, s4 == s5);
+    BMQTST_ASSERT_EQ(false, s4 != s5);
+    BMQTST_ASSERT_EQ(true, s4 != s6);
 
     PV("Checking default hashing and less than operator");
     bsl::map<mqbu::StorageKey, int> storageMap(
@@ -204,25 +208,26 @@ void test1_breathingTest()
     storageMap.insert(bsl::make_pair(s2, 1));
     storageMap.insert(bsl::make_pair(s4, 2));
     storageMap.insert(bsl::make_pair(s6, 3));
-    ASSERT_EQ(false, storageMap.insert(bsl::make_pair(s2, 1)).second);
+    BMQTST_ASSERT_EQ(false, storageMap.insert(bsl::make_pair(s2, 1)).second);
     bsl::map<mqbu::StorageKey, int>::const_iterator it = storageMap.find(s4);
-    ASSERT_EQ(true, storageMap.end() != it);
-    ASSERT_EQ(s4, it->first);
-    ASSERT_EQ(2, it->second);
+    BMQTST_ASSERT_EQ(true, storageMap.end() != it);
+    BMQTST_ASSERT_EQ(s4, it->first);
+    BMQTST_ASSERT_EQ(2, it->second);
 
     bsl::unordered_map<mqbu::StorageKey, int> unorderedStorageMap(
         bmqtst::TestHelperUtil::allocator());
     unorderedStorageMap.insert(bsl::make_pair(s2, 1));
     unorderedStorageMap.insert(bsl::make_pair(s4, 2));
     unorderedStorageMap.insert(bsl::make_pair(s6, 3));
-    ASSERT_EQ(false, unorderedStorageMap.insert(bsl::make_pair(s2, 1)).second);
+    BMQTST_ASSERT_EQ(false,
+                     unorderedStorageMap.insert(bsl::make_pair(s2, 1)).second);
     bsl::unordered_map<mqbu::StorageKey, int>::const_iterator uit =
         unorderedStorageMap.find(s4);
-    ASSERT_EQ(s4, uit->first);
-    ASSERT_EQ(2, uit->second);
+    BMQTST_ASSERT_EQ(s4, uit->first);
+    BMQTST_ASSERT_EQ(2, uit->second);
 
     s4.reset();
-    ASSERT_EQ(true, s4.isNull());
+    BMQTST_ASSERT_EQ(true, s4.isNull());
 
     PV("Ensure that unordered map compiles when custom hash algo is "
        "specified");
@@ -233,7 +238,7 @@ void test1_breathingTest()
 
     myMap.insert(bsl::make_pair(s6, 2));
 
-    ASSERT_EQ(1u, myMap.count(s6));
+    BMQTST_ASSERT_EQ(1u, myMap.count(s6));
 }
 
 void test2_streamout()
@@ -250,7 +255,7 @@ void test2_streamout()
 
     bsl::string storageKeyStr(k_HEX, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(storageKeyStr, osstr.str());
+    BMQTST_ASSERT_EQ(storageKeyStr, osstr.str());
 
     PV("StorageKey [" << osstr.str() << "]");
 }
@@ -318,7 +323,7 @@ void test3_defaultHashUniqueness()
     // collisions was in the range of [1, 1].
     const size_t k_MAX_EXPECTED_COLLISIONS = 2;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (true || (maxCollisions >= k_MAX_EXPECTED_COLLISIONS)) {
         cout << "Number of collisions...............: "
@@ -404,7 +409,7 @@ void test4_customHashUniqueness()
     // collisions was in the range of [1, 2].
     const size_t k_MAX_EXPECTED_COLLISIONS = 3;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (true || (maxCollisions >= k_MAX_EXPECTED_COLLISIONS)) {
         cout << "Number of collisions...............: "

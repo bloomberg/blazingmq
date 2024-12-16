@@ -269,11 +269,11 @@ static void test1_breathingTest()
     {
         // Default object
         QlistFileIterator qit;
-        ASSERT_EQ(qit.isValid(), false);
-        ASSERT_EQ(qit.isReverseMode(), false);
-        ASSERT_EQ(qit.mappedFileDescriptor(),
-                  static_cast<const mqbs::MappedFileDescriptor*>(0));
-        ASSERT_EQ(qit.nextRecord(), -1);
+        BMQTST_ASSERT_EQ(qit.isValid(), false);
+        BMQTST_ASSERT_EQ(qit.isReverseMode(), false);
+        BMQTST_ASSERT_EQ(qit.mappedFileDescriptor(),
+                         static_cast<const mqbs::MappedFileDescriptor*>(0));
+        BMQTST_ASSERT_EQ(qit.nextRecord(), -1);
     }
 
     {
@@ -283,11 +283,11 @@ static void test1_breathingTest()
 
         FileHeader        fh;
         QlistFileIterator qit(&mfd, fh);
-        ASSERT_EQ(qit.isValid(), false);
-        ASSERT_EQ(qit.isReverseMode(), false);
-        ASSERT_EQ(qit.mappedFileDescriptor(),
-                  static_cast<const mqbs::MappedFileDescriptor*>(0));
-        ASSERT_EQ(qit.nextRecord(), -1);
+        BMQTST_ASSERT_EQ(qit.isValid(), false);
+        BMQTST_ASSERT_EQ(qit.isReverseMode(), false);
+        BMQTST_ASSERT_EQ(qit.mappedFileDescriptor(),
+                         static_cast<const mqbs::MappedFileDescriptor*>(0));
+        BMQTST_ASSERT_EQ(qit.nextRecord(), -1);
     }
 }
 
@@ -369,50 +369,50 @@ static void test2_backwardIteration()
                          appKeysVec);
 
     QlistFileIterator it(&mfd, fh);
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), true);
-    ASSERT_EQ(it.isReverseMode(), false);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), false);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
 
     unsigned int i      = 0;
     unsigned int offset = sizeof(FileHeader) + sizeof(QlistFileHeader);
     while (it.hasRecordSizeRemaining()) {
-        ASSERT_EQ_D(i, it.nextRecord(), 1);
+        BMQTST_ASSERT_EQ_D(i, it.nextRecord(), 1);
 
         const QueueRecordHeader* qrh = it.queueRecordHeader();
-        ASSERT_EQ_D(i, qrh == 0, false);
+        BMQTST_ASSERT_EQ_D(i, qrh == 0, false);
 
         offset += qrh->queueRecordWords() * bmqp::Protocol::k_WORD_SIZE;
         i++;
     }
 
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(queueKeys.size(), i);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(queueKeys.size(), i);
 
     it.flipDirection();
 
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), true);
-    ASSERT_EQ(it.isReverseMode(), true);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), true);
 
     while (i > 0) {
         unsigned index = i - 1;
 
-        ASSERT_EQ_D(i, index, it.recordIndex());
+        BMQTST_ASSERT_EQ_D(i, index, it.recordIndex());
 
         if (index == 0) {
-            ASSERT_EQ_D(i, false, it.hasRecordSizeRemaining());
+            BMQTST_ASSERT_EQ_D(i, false, it.hasRecordSizeRemaining());
         }
         else {
-            ASSERT_EQ_D(i, true, it.hasRecordSizeRemaining());
+            BMQTST_ASSERT_EQ_D(i, true, it.hasRecordSizeRemaining());
         }
 
         const QueueRecordHeader* qrh = it.queueRecordHeader();
-        ASSERT_EQ_D(i, false, qrh == 0);
+        BMQTST_ASSERT_EQ_D(i, false, qrh == 0);
 
         offset -= (qrh->queueRecordWords() * bmqp::Protocol::k_WORD_SIZE);
 
-        ASSERT_EQ_D(i, offset, it.recordOffset());
+        BMQTST_ASSERT_EQ_D(i, offset, it.recordOffset());
 
         const char*  uri;
         unsigned int uriLen;
@@ -421,17 +421,17 @@ static void test2_backwardIteration()
         it.loadQueueUri(&uri, &uriLen);
         it.loadQueueUriHash(&uriHash);
 
-        ASSERT_EQ_D(i, uriLen, queueUris[index].asString().size());
+        BMQTST_ASSERT_EQ_D(i, uriLen, queueUris[index].asString().size());
 
-        ASSERT_EQ_D(
+        BMQTST_ASSERT_EQ_D(
             i,
             0,
             bsl::memcmp(queueUris[index].asString().c_str(), uri, uriLen));
-        ASSERT_EQ_D(i,
-                    0,
-                    bsl::memcmp(queueKeys[index].data(),
-                                uriHash,
-                                mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+        BMQTST_ASSERT_EQ_D(i,
+                           0,
+                           bsl::memcmp(queueKeys[index].data(),
+                                       uriHash,
+                                       mqbu::StorageKey::e_KEY_LENGTH_BINARY));
 
         const bsl::vector<bsl::string>&      appIds  = appIdsVec[index];
         const bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[index];
@@ -440,8 +440,8 @@ static void test2_backwardIteration()
 
         unsigned int numAppIds = it.numAppIds();
 
-        ASSERT_EQ_D(i, numAppIds, appIds.size());
-        ASSERT_EQ_D(i, numAppIds, appKeys.size());
+        BMQTST_ASSERT_EQ_D(i, numAppIds, appIds.size());
+        BMQTST_ASSERT_EQ_D(i, numAppIds, appKeys.size());
 
         typedef QlistFileIterator::AppIdLengthPair AppIdLenPair;
 
@@ -453,38 +453,39 @@ static void test2_backwardIteration()
         it.loadAppIds(&appIdLenPairVector);
         it.loadAppIdHashes(&appKeysVector);
 
-        ASSERT_EQ_D(i, appIdLenPairVector.size(), appKeysVector.size());
+        BMQTST_ASSERT_EQ_D(i, appIdLenPairVector.size(), appKeysVector.size());
 
         for (size_t j = 0; j < appIdLenPairVector.size(); ++j) {
-            ASSERT_EQ_D(i << ", " << j,
-                        appIdLenPairVector[j].second,
-                        appIds[j].length());
+            BMQTST_ASSERT_EQ_D(i << ", " << j,
+                               appIdLenPairVector[j].second,
+                               appIds[j].length());
 
-            ASSERT_EQ_D(i << ", " << j,
-                        0,
-                        bsl::memcmp(appIdLenPairVector[j].first,
-                                    appIds[j].c_str(),
-                                    appIds[j].length()));
+            BMQTST_ASSERT_EQ_D(i << ", " << j,
+                               0,
+                               bsl::memcmp(appIdLenPairVector[j].first,
+                                           appIds[j].c_str(),
+                                           appIds[j].length()));
 
-            ASSERT_EQ_D(i << ", " << j,
-                        0,
-                        bsl::memcmp(appKeysVector[j],
-                                    appKeys[j].data(),
-                                    mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+            BMQTST_ASSERT_EQ_D(
+                i << ", " << j,
+                0,
+                bsl::memcmp(appKeysVector[j],
+                            appKeys[j].data(),
+                            mqbu::StorageKey::e_KEY_LENGTH_BINARY));
         }
 
         if (index == 0) {
-            ASSERT_EQ_D(i, 0, it.nextRecord());
+            BMQTST_ASSERT_EQ_D(i, 0, it.nextRecord());
         }
         else {
-            ASSERT_EQ_D(i, it.nextRecord(), 1);
+            BMQTST_ASSERT_EQ_D(i, it.nextRecord(), 1);
         }
 
         --i;
     }
 
-    ASSERT_EQ(it.isValid(), false);
-    ASSERT_EQ(0U, i);
+    BMQTST_ASSERT_EQ(it.isValid(), false);
+    BMQTST_ASSERT_EQ(0U, i);
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
@@ -514,28 +515,28 @@ static void test3_iteratorWithNoRecords()
             bmqtst::TestHelperUtil::allocator()));
 
     QlistFileIterator it(&mfd, fh);
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.isReverseMode(), false);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), false);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), false);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), false);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
 
-    ASSERT_EQ(it.nextRecord(), -3);
-    ASSERT_EQ(it.isValid(), false);
+    BMQTST_ASSERT_EQ(it.nextRecord(), -3);
+    BMQTST_ASSERT_EQ(it.isValid(), false);
 
-    ASSERT_EQ(it.reset(&mfd, fh), 0);
-    ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.reset(&mfd, fh), 0);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
 
     it.flipDirection();
 
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.isReverseMode(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), false);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), false);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
 
     // Should be at end, as the iterator is hovering over the
     // 'QlistFileHeader'.
-    ASSERT_EQ(it.nextRecord(), 0);
-    ASSERT_EQ(it.isValid(), false);
+    BMQTST_ASSERT_EQ(it.nextRecord(), 0);
+    BMQTST_ASSERT_EQ(it.isValid(), false);
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
@@ -616,23 +617,23 @@ static void test4_iteratorAppKeys()
                          appIdsVec,
                          queueKeys,
                          appKeysVec);
-    ASSERT(p != 0);
+    BMQTST_ASSERT(p != 0);
 
     QlistFileIterator it(&mfd, fh);
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), true);
-    ASSERT_EQ(it.isReverseMode(), false);
-    ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
+    BMQTST_ASSERT_EQ(it.isReverseMode(), false);
+    BMQTST_ASSERT_EQ(it.mappedFileDescriptor(), &mfd);
 
     unsigned int i      = 0;
     unsigned int offset = sizeof(FileHeader) + sizeof(QlistFileHeader);
     while (it.hasRecordSizeRemaining()) {
-        ASSERT_EQ_D(i, 1, it.nextRecord());
-        ASSERT_EQ_D(i, offset, it.recordOffset());
-        ASSERT_EQ_D(i, i, it.recordIndex());
+        BMQTST_ASSERT_EQ_D(i, 1, it.nextRecord());
+        BMQTST_ASSERT_EQ_D(i, offset, it.recordOffset());
+        BMQTST_ASSERT_EQ_D(i, i, it.recordIndex());
 
         const QueueRecordHeader* qrh = it.queueRecordHeader();
-        ASSERT_EQ_D(i, false, qrh == 0);
+        BMQTST_ASSERT_EQ_D(i, false, qrh == 0);
 
         const char*  uri;
         unsigned int uriLen;
@@ -641,16 +642,17 @@ static void test4_iteratorAppKeys()
         it.loadQueueUri(&uri, &uriLen);
         it.loadQueueUriHash(&uriHash);
 
-        ASSERT_EQ_D(i, queueUris[i].asString().size(), uriLen);
+        BMQTST_ASSERT_EQ_D(i, queueUris[i].asString().size(), uriLen);
 
-        ASSERT_EQ_D(i,
-                    0,
-                    bsl::memcmp(queueUris[i].asString().c_str(), uri, uriLen));
-        ASSERT_EQ_D(i,
-                    0,
-                    bsl::memcmp(uriHash,
-                                queueKeys[i].data(),
-                                mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+        BMQTST_ASSERT_EQ_D(
+            i,
+            0,
+            bsl::memcmp(queueUris[i].asString().c_str(), uri, uriLen));
+        BMQTST_ASSERT_EQ_D(i,
+                           0,
+                           bsl::memcmp(uriHash,
+                                       queueKeys[i].data(),
+                                       mqbu::StorageKey::e_KEY_LENGTH_BINARY));
 
         const bsl::vector<bsl::string>&      appIds  = appIdsVec[i];
         const bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[i];
@@ -659,8 +661,8 @@ static void test4_iteratorAppKeys()
 
         unsigned int numAppIds = it.numAppIds();
 
-        ASSERT_EQ_D(i, numAppIds, appIds.size());
-        ASSERT_EQ_D(i, numAppIds, appKeys.size());
+        BMQTST_ASSERT_EQ_D(i, numAppIds, appIds.size());
+        BMQTST_ASSERT_EQ_D(i, numAppIds, appKeys.size());
 
         typedef QlistFileIterator::AppIdLengthPair AppIdLenPair;
 
@@ -672,32 +674,33 @@ static void test4_iteratorAppKeys()
         it.loadAppIds(&appIdLenPairVector);
         it.loadAppIdHashes(&appKeysVector);
 
-        ASSERT_EQ_D(i, appIdLenPairVector.size(), appKeysVector.size());
+        BMQTST_ASSERT_EQ_D(i, appIdLenPairVector.size(), appKeysVector.size());
 
         for (size_t j = 0; j < appIdLenPairVector.size(); ++j) {
-            ASSERT_EQ_D(i << ", " << j,
-                        appIdLenPairVector[j].second,
-                        appIds[j].length());
-            ASSERT_EQ_D(i << ", " << j,
-                        0,
-                        bsl::memcmp(appIdLenPairVector[j].first,
-                                    appIds[j].c_str(),
-                                    appIds[j].length()));
-            ASSERT_EQ_D(i << ", " << j,
-                        0,
-                        bsl::memcmp(appKeysVector[j],
-                                    appKeys[j].data(),
-                                    mqbu::StorageKey::e_KEY_LENGTH_BINARY));
+            BMQTST_ASSERT_EQ_D(i << ", " << j,
+                               appIdLenPairVector[j].second,
+                               appIds[j].length());
+            BMQTST_ASSERT_EQ_D(i << ", " << j,
+                               0,
+                               bsl::memcmp(appIdLenPairVector[j].first,
+                                           appIds[j].c_str(),
+                                           appIds[j].length()));
+            BMQTST_ASSERT_EQ_D(
+                i << ", " << j,
+                0,
+                bsl::memcmp(appKeysVector[j],
+                            appKeys[j].data(),
+                            mqbu::StorageKey::e_KEY_LENGTH_BINARY));
         }
 
         offset += qrh->queueRecordWords() * bmqp::Protocol::k_WORD_SIZE;
         ++i;
     }
 
-    ASSERT_EQ(it.isValid(), true);
-    ASSERT_EQ(it.hasRecordSizeRemaining(), false);
-    ASSERT_EQ(it.nextRecord(), -3);
-    ASSERT_EQ(queueUris.size(), i);
+    BMQTST_ASSERT_EQ(it.isValid(), true);
+    BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), false);
+    BMQTST_ASSERT_EQ(it.nextRecord(), -3);
+    BMQTST_ASSERT_EQ(queueUris.size(), i);
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
