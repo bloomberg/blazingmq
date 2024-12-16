@@ -89,7 +89,7 @@ void verifyMessageConstruction(const mqbcmd::Message&   output,
                                                    0);
     expected.sizeBytes()        = msgSize;
 
-    ASSERT_EQ(expected, output);
+    BMQTST_ASSERT_EQ(expected, output);
 }
 
 /// Verify that the specified `output` matches the expected output based on
@@ -108,7 +108,7 @@ void verifyOutput(const mqbcmd::QueueContents&          queueContents,
                                   storage);
     }
 
-    ASSERT_EQ(index, queueContents.messages().size());
+    BMQTST_ASSERT_EQ(index, queueContents.messages().size());
 }
 
 // CLASSES

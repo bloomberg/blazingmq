@@ -1,5 +1,6 @@
 bmqp_ackeventbuilder
 bmqp_ackmessageiterator
+bmqp_blobpoolutil
 bmqp_compression
 bmqp_confirmeventbuilder
 bmqp_confirmmessageiterator

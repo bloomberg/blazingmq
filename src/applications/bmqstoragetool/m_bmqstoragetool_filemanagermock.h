@@ -27,36 +27,7 @@
 #include <m_bmqstoragetool_filemanager.h>
 #include <m_bmqstoragetool_journalfile.h>
 
-// GMOCK
-// If bmqst_testhelper.h was defined before gtest.h, preserve macroses values.
-// If not, undefine values from gtest.h.
-#pragma push_macro("ASSERT_EQ")
-#pragma push_macro("ASSERT_NE")
-#pragma push_macro("ASSERT_LT")
-#pragma push_macro("ASSERT_LE")
-#pragma push_macro("ASSERT_GT")
-#pragma push_macro("ASSERT_GE")
-#pragma push_macro("TEST_F")
-#pragma push_macro("TEST")
-
 #include <gmock/gmock.h>
-
-#undef ASSERT_EQ
-#undef ASSERT_NE
-#undef ASSERT_LT
-#undef ASSERT_LE
-#undef ASSERT_GT
-#undef ASSERT_GE
-#undef TEST_F
-#undef TEST
-#pragma pop_macro("ASSERT_EQ")
-#pragma pop_macro("ASSERT_NE")
-#pragma pop_macro("ASSERT_LT")
-#pragma pop_macro("ASSERT_LE")
-#pragma pop_macro("ASSERT_GT")
-#pragma pop_macro("ASSERT_GE")
-#pragma pop_macro("TEST_F")
-#pragma pop_macro("TEST")
 
 namespace BloombergLP {
 
@@ -97,33 +68,6 @@ class FileManagerMock : public FileManager {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
-
-// =====================
-// class FileManagerMock
-// =====================
-
-inline FileManagerMock::FileManagerMock()
-: d_journalFileIt()
-, d_dataFileIt()
-{
-    EXPECT_CALL(*this, dataFileIterator())
-        .WillRepeatedly(testing::Return(&d_dataFileIt));
-}
-
-inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)
-: d_journalFileIt(&journalFile.mappedFileDescriptor(),
-                  journalFile.fileHeader(),
-                  false)
-, d_dataFileIt()
-{
-    EXPECT_CALL(*this, dataFileIterator())
-        .WillRepeatedly(testing::Return(&d_dataFileIt));
-}
-
-inline mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
-{
-    return &d_journalFileIt;
-}
 
 }  // close package namespace
 

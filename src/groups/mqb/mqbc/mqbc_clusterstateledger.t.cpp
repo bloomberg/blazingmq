@@ -107,13 +107,6 @@ struct ClusterStateLedgerTestImp
         return markDone();
     }
 
-    void
-    setIsFirstLeaderAdvisory(BSLS_ANNOTATION_UNUSED bool isFirstLeaderAdvisory)
-        BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-    }
-
     // ACCESSORS
     void setCommitCb(BSLS_ANNOTATION_UNUSED const CommitCb& value)
         BSLS_KEYWORD_OVERRIDE
@@ -177,13 +170,13 @@ static void test1_clusterStateLedger_protocol()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -205,7 +198,6 @@ static void test1_clusterStateLedger_protocol()
                                  apply(bmqp_ctrlmsg::LeaderAdvisory()));
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  apply(bmqp_ctrlmsg::ClusterMessage()));
-        BSLS_PROTOCOLTEST_ASSERT(testObj, setIsFirstLeaderAdvisory(true));
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             setCommitCb(mqbc::ClusterStateLedger::CommitCb()));
@@ -257,13 +249,15 @@ static void test2_commitStatus_fromAscii()
                         << ") == " << test.d_expected);
 
         mqbc::ClusterStateLedgerCommitStatus::Enum obj;
-        ASSERT_EQ_D(
+        BMQTST_ASSERT_EQ_D(
             test.d_line,
             mqbc::ClusterStateLedgerCommitStatus::fromAscii(&obj,
                                                             test.d_input),
             test.d_isValid);
         if (test.d_isValid) {
-            ASSERT_EQ_D(test.d_line, static_cast<int>(obj), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line,
+                               static_cast<int>(obj),
+                               test.d_expected);
         }
     }
 }
@@ -310,7 +304,7 @@ static void test3_commitStatus_toAscii()
         ascii = mqbc::ClusterStateLedgerCommitStatus::toAscii(
             mqbc::ClusterStateLedgerCommitStatus::Enum(test.d_value));
 
-        ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
 
@@ -366,20 +360,20 @@ static void test4_commitStatus_print()
         bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
-        ASSERT_EQ_D(test.d_line, out.str(), expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), expected);
 
         // operator<<
         out.reset();
         out << obj;
 
-        ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
 
         // 2. 'badbit' set
         out.reset();
         out.setstate(bsl::ios_base::badbit);
         mqbc::ClusterStateLedgerCommitStatus::print(out, obj, 0, -1);
 
-        ASSERT_EQ_D(test.d_line, out.str(), "");
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
 }
 
@@ -426,12 +420,14 @@ static void test5_clusterStateLedgerConsistency_fromAscii()
                         << ") == " << test.d_expected);
 
         mqbc::ClusterStateLedgerConsistency::Enum obj;
-        ASSERT_EQ_D(
+        BMQTST_ASSERT_EQ_D(
             test.d_line,
             mqbc::ClusterStateLedgerConsistency::fromAscii(&obj, test.d_input),
             test.d_isValid);
         if (test.d_isValid) {
-            ASSERT_EQ_D(test.d_line, static_cast<int>(obj), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line,
+                               static_cast<int>(obj),
+                               test.d_expected);
         }
     }
 }
@@ -479,7 +475,7 @@ static void test6_clusterStateLedgerConsistency_toAscii()
         ascii = mqbc::ClusterStateLedgerConsistency::toAscii(
             mqbc::ClusterStateLedgerConsistency::Enum(test.d_value));
 
-        ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
 
@@ -536,20 +532,20 @@ static void test7_clusterStateLedgerConsistency_print()
         bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
-        ASSERT_EQ_D(test.d_line, out.str(), expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), expected);
 
         // operator<<
         out.reset();
         out << obj;
 
-        ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
 
         // 2. 'badbit' set
         out.reset();
         out.setstate(bsl::ios_base::badbit);
         mqbc::ClusterStateLedgerConsistency::print(out, obj, 0, -1);
 
-        ASSERT_EQ_D(test.d_line, out.str(), "");
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
 }
 

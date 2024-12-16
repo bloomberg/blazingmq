@@ -143,7 +143,7 @@ void QueueEngine::onTimer(
     // NOTHING
 }
 
-mqbi::StorageResult::Enum QueueEngine::evaluateAutoSubscriptions(
+mqbi::StorageResult::Enum QueueEngine::evaluateAppSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
     BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo& mpi,

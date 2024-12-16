@@ -74,6 +74,9 @@ namespace mqbcfg {
 class Heartbeat;
 }
 namespace mqbcfg {
+class LogDumpConfig;
+}
+namespace mqbcfg {
 class MessagePropertiesV2;
 }
 namespace mqbcfg {
@@ -1655,6 +1658,249 @@ class Heartbeat {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(mqbcfg::Heartbeat)
+
+namespace mqbcfg {
+
+// ===================
+// class LogDumpConfig
+// ===================
+
+class LogDumpConfig {
+    // INSTANCE DATA
+    bsl::string d_recordingLevel;
+    bsl::string d_triggerLevel;
+    int         d_recordBufferSize;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_RECORD_BUFFER_SIZE = 0,
+        ATTRIBUTE_ID_RECORDING_LEVEL    = 1,
+        ATTRIBUTE_ID_TRIGGER_LEVEL      = 2
+    };
+
+    enum { NUM_ATTRIBUTES = 3 };
+
+    enum {
+        ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE = 0,
+        ATTRIBUTE_INDEX_RECORDING_LEVEL    = 1,
+        ATTRIBUTE_INDEX_TRIGGER_LEVEL      = 2
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const int DEFAULT_INITIALIZER_RECORD_BUFFER_SIZE;
+
+    static const char DEFAULT_INITIALIZER_RECORDING_LEVEL[];
+
+    static const char DEFAULT_INITIALIZER_TRIGGER_LEVEL[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    explicit LogDumpConfig(bslma::Allocator* basicAllocator = 0);
+    // Create an object of type 'LogDumpConfig' having the default value.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+
+    LogDumpConfig(const LogDumpConfig& original,
+                  bslma::Allocator*    basicAllocator = 0);
+    // Create an object of type 'LogDumpConfig' having the value of the
+    // specified 'original' object.  Use the optionally specified
+    // 'basicAllocator' to supply memory.  If 'basicAllocator' is 0, the
+    // currently installed default allocator is used.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    LogDumpConfig(LogDumpConfig&& original) noexcept;
+    // Create an object of type 'LogDumpConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+
+    LogDumpConfig(LogDumpConfig&& original, bslma::Allocator* basicAllocator);
+    // Create an object of type 'LogDumpConfig' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+    // Use the optionally specified 'basicAllocator' to supply memory.  If
+    // 'basicAllocator' is 0, the currently installed default allocator is
+    // used.
+#endif
+
+    ~LogDumpConfig();
+    // Destroy this object.
+
+    // MANIPULATORS
+    LogDumpConfig& operator=(const LogDumpConfig& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    LogDumpConfig& operator=(LogDumpConfig&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    int& recordBufferSize();
+    // Return a reference to the modifiable "RecordBufferSize" attribute of
+    // this object.
+
+    bsl::string& recordingLevel();
+    // Return a reference to the modifiable "RecordingLevel" attribute of
+    // this object.
+
+    bsl::string& triggerLevel();
+    // Return a reference to the modifiable "TriggerLevel" attribute of
+    // this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    int recordBufferSize() const;
+    // Return the value of the "RecordBufferSize" attribute of this object.
+
+    const bsl::string& recordingLevel() const;
+    // Return a reference offering non-modifiable access to the
+    // "RecordingLevel" attribute of this object.
+
+    const bsl::string& triggerLevel() const;
+    // Return a reference offering non-modifiable access to the
+    // "TriggerLevel" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const LogDumpConfig& lhs, const LogDumpConfig& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.recordBufferSize() == rhs.recordBufferSize() &&
+               lhs.recordingLevel() == rhs.recordingLevel() &&
+               lhs.triggerLevel() == rhs.triggerLevel();
+    }
+
+    friend bool operator!=(const LogDumpConfig& lhs, const LogDumpConfig& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&        stream,
+                                    const LogDumpConfig& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&    hashAlg,
+                           const LogDumpConfig& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'LogDumpConfig'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
+    mqbcfg::LogDumpConfig)
 
 namespace mqbcfg {
 
@@ -4896,6 +5142,7 @@ class LogController {
     bsl::string              d_bslsLogSeverityThreshold;
     bsl::string              d_consoleSeverityThreshold;
     SyslogConfig             d_syslog;
+    LogDumpConfig            d_logDump;
     int                      d_fileMaxAgeDays;
     int                      d_rotationBytes;
 
@@ -4917,10 +5164,11 @@ class LogController {
         ATTRIBUTE_ID_BSLS_LOG_SEVERITY_THRESHOLD = 6,
         ATTRIBUTE_ID_CONSOLE_SEVERITY_THRESHOLD  = 7,
         ATTRIBUTE_ID_CATEGORIES                  = 8,
-        ATTRIBUTE_ID_SYSLOG                      = 9
+        ATTRIBUTE_ID_SYSLOG                      = 9,
+        ATTRIBUTE_ID_LOG_DUMP                    = 10
     };
 
-    enum { NUM_ATTRIBUTES = 10 };
+    enum { NUM_ATTRIBUTES = 11 };
 
     enum {
         ATTRIBUTE_INDEX_FILE_NAME                   = 0,
@@ -4932,7 +5180,8 @@ class LogController {
         ATTRIBUTE_INDEX_BSLS_LOG_SEVERITY_THRESHOLD = 6,
         ATTRIBUTE_INDEX_CONSOLE_SEVERITY_THRESHOLD  = 7,
         ATTRIBUTE_INDEX_CATEGORIES                  = 8,
-        ATTRIBUTE_INDEX_SYSLOG                      = 9
+        ATTRIBUTE_INDEX_SYSLOG                      = 9,
+        ATTRIBUTE_INDEX_LOG_DUMP                    = 10
     };
 
     // CONSTANTS
@@ -5072,6 +5321,10 @@ class LogController {
     // Return a reference to the modifiable "Syslog" attribute of this
     // object.
 
+    LogDumpConfig& logDump();
+    // Return a reference to the modifiable "LogDump" attribute of this
+    // object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5151,6 +5404,10 @@ class LogController {
 
     const SyslogConfig& syslog() const;
     // Return a reference offering non-modifiable access to the "Syslog"
+    // attribute of this object.
+
+    const LogDumpConfig& logDump() const;
+    // Return a reference offering non-modifiable access to the "LogDump"
     // attribute of this object.
 
     // HIDDEN FRIENDS
@@ -10778,6 +11035,186 @@ inline int Heartbeat::clusterPeer() const
     return d_clusterPeer;
 }
 
+// -------------------
+// class LogDumpConfig
+// -------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void LogDumpConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->recordBufferSize());
+    hashAppend(hashAlgorithm, this->recordingLevel());
+    hashAppend(hashAlgorithm, this->triggerLevel());
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int LogDumpConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(
+        &d_recordBufferSize,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_recordingLevel,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORDING_LEVEL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_triggerLevel,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TRIGGER_LEVEL]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int LogDumpConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_RECORD_BUFFER_SIZE: {
+        return manipulator(
+            &d_recordBufferSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE]);
+    }
+    case ATTRIBUTE_ID_RECORDING_LEVEL: {
+        return manipulator(
+            &d_recordingLevel,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORDING_LEVEL]);
+    }
+    case ATTRIBUTE_ID_TRIGGER_LEVEL: {
+        return manipulator(
+            &d_triggerLevel,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TRIGGER_LEVEL]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int LogDumpConfig::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                       const char*    name,
+                                       int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline int& LogDumpConfig::recordBufferSize()
+{
+    return d_recordBufferSize;
+}
+
+inline bsl::string& LogDumpConfig::recordingLevel()
+{
+    return d_recordingLevel;
+}
+
+inline bsl::string& LogDumpConfig::triggerLevel()
+{
+    return d_triggerLevel;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int LogDumpConfig::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_recordBufferSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_recordingLevel,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORDING_LEVEL]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_triggerLevel,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TRIGGER_LEVEL]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int LogDumpConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_RECORD_BUFFER_SIZE: {
+        return accessor(
+            d_recordBufferSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORD_BUFFER_SIZE]);
+    }
+    case ATTRIBUTE_ID_RECORDING_LEVEL: {
+        return accessor(d_recordingLevel,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_RECORDING_LEVEL]);
+    }
+    case ATTRIBUTE_ID_TRIGGER_LEVEL: {
+        return accessor(d_triggerLevel,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TRIGGER_LEVEL]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int LogDumpConfig::accessAttribute(t_ACCESSOR& accessor,
+                                   const char* name,
+                                   int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline int LogDumpConfig::recordBufferSize() const
+{
+    return d_recordBufferSize;
+}
+
+inline const bsl::string& LogDumpConfig::recordingLevel() const
+{
+    return d_recordingLevel;
+}
+
+inline const bsl::string& LogDumpConfig::triggerLevel() const
+{
+    return d_triggerLevel;
+}
+
 // -------------------------------
 // class MasterAssignmentAlgorithm
 // -------------------------------
@@ -13490,6 +13927,7 @@ void LogController::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->consoleSeverityThreshold());
     hashAppend(hashAlgorithm, this->categories());
     hashAppend(hashAlgorithm, this->syslog());
+    hashAppend(hashAlgorithm, this->logDump());
 }
 
 inline bool LogController::isEqualTo(const LogController& rhs) const
@@ -13505,7 +13943,7 @@ inline bool LogController::isEqualTo(const LogController& rhs) const
            this->consoleSeverityThreshold() ==
                rhs.consoleSeverityThreshold() &&
            this->categories() == rhs.categories() &&
-           this->syslog() == rhs.syslog();
+           this->syslog() == rhs.syslog() && this->logDump() == rhs.logDump();
 }
 
 // CLASS METHODS
@@ -13576,6 +14014,12 @@ int LogController::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_logDump,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOG_DUMP]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -13631,6 +14075,10 @@ int LogController::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_SYSLOG: {
         return manipulator(&d_syslog,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYSLOG]);
+    }
+    case ATTRIBUTE_ID_LOG_DUMP: {
+        return manipulator(&d_logDump,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOG_DUMP]);
     }
     default: return NOT_FOUND;
     }
@@ -13702,6 +14150,11 @@ inline SyslogConfig& LogController::syslog()
     return d_syslog;
 }
 
+inline LogDumpConfig& LogController::logDump()
+{
+    return d_logDump;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int LogController::accessAttributes(t_ACCESSOR& accessor) const
@@ -13769,6 +14222,11 @@ int LogController::accessAttributes(t_ACCESSOR& accessor) const
         return ret;
     }
 
+    ret = accessor(d_logDump, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOG_DUMP]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -13821,6 +14279,10 @@ int LogController::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_SYSLOG: {
         return accessor(d_syslog,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SYSLOG]);
+    }
+    case ATTRIBUTE_ID_LOG_DUMP: {
+        return accessor(d_logDump,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LOG_DUMP]);
     }
     default: return NOT_FOUND;
     }
@@ -13890,6 +14352,11 @@ inline const bsl::vector<bsl::string>& LogController::categories() const
 inline const SyslogConfig& LogController::syslog() const
 {
     return d_syslog;
+}
+
+inline const LogDumpConfig& LogController::logDump() const
+{
+    return d_logDump;
 }
 
 // ---------------------
@@ -18094,6 +18561,13 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.07.18
+// GENERATED BY BLP_BAS_CODEGEN_2024.10.17
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

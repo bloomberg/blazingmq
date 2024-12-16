@@ -227,7 +227,7 @@ static void test1_breathingTest()
     // Dequeue.. expect statusCode 1
     event = obj.popFront();
     PV("Dequeued: " << (*event));
-    ASSERT_EQ(event->statusCode(), 1);
+    BMQTST_ASSERT_EQ(event->statusCode(), 1);
 }
 
 static void test2_capacityTest()
@@ -260,7 +260,11 @@ static void test2_capacityTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder         builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder         builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
@@ -281,7 +285,7 @@ static void test2_capacityTest()
                            bmqtst::TestHelperUtil::allocator());
 
     builder.startMessage();
-    const bdlbb::Blob& eventBlob = builder.blob();
+    const bdlbb::Blob& eventBlob = *builder.blob();
 
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Event> event;
@@ -291,28 +295,29 @@ static void test2_capacityTest()
         event = eventPool.getObject();
         event->configureAsMessageEvent(rawEvent);
         PVV("[" << i << "] Enqueuing: " << (*event));
-        ASSERT_EQ_D(i, obj.pushBack(event), 0);
+        BMQTST_ASSERT_EQ_D(i, obj.pushBack(event), 0);
     }
 
     // Trying to push one over succeeds
     event = eventPool.getObject();
     event->configureAsMessageEvent(rawEvent);
 
-    ASSERT_EQ(obj.pushBack(event), 0);
+    BMQTST_ASSERT_EQ(obj.pushBack(event), 0);
 
     // Dequeue k_INITIAL_CAPACITY + 1 plus two events (2 session events)
     for (int i = 0; i < k_INITIAL_CAPACITY + 1 + 2; ++i) {
         event = obj.popFront();
         PVV("Dequeued: " << (*event));
-        ASSERT(event != 0);
+        BMQTST_ASSERT(event != 0);
     }
 
     // No more events
     bsls::TimeInterval timeout(0, 2000000);  // 2 ms
     event = obj.timedPopFront(timeout);
 
-    ASSERT(event != 0);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(event != 0);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
 }
 
 static void test3_watermark()
@@ -356,22 +361,22 @@ static void test3_watermark()
     // Now deque.. it should be a HighWatermark event
     event = obj.popFront();
     PV("Dequeued: " << (*event));
-    ASSERT_EQ(event->sessionEventType(),
-              bmqt::SessionEventType::e_SLOWCONSUMER_HIGHWATERMARK);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_SLOWCONSUMER_HIGHWATERMARK);
 
     // And dequeue 6 times checking order
     for (int i = 0; i < 6; ++i) {
         event = obj.popFront();
         PVV("Dequeued: " << (*event));
-        ASSERT_EQ(event->statusCode(), i);
+        BMQTST_ASSERT_EQ(event->statusCode(), i);
     }
 
     // Finally we should be able to dequeue a last item, consumer_normal
     // (note that this event is not prioritized)
     event = obj.popFront();
     PV("Dequeued: " << (*event));
-    ASSERT_EQ(event->sessionEventType(),
-              bmqt::SessionEventType::e_SLOWCONSUMER_NORMAL);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_SLOWCONSUMER_NORMAL);
 }
 
 static void test4_basicEventHandlerTest()
@@ -437,7 +442,7 @@ static void test4_basicEventHandlerTest()
     obj.stop();
 
     // The event handler should be called once for the user event
-    ASSERT_EQ(eventCounter, 1);
+    BMQTST_ASSERT_EQ(eventCounter, 1);
 }
 
 static void test5_emptyStatsTest()
@@ -509,19 +514,19 @@ static void test5_emptyStatsTest()
                            0,  // numProcessingThreads
                            bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_SAFE_FAIL(obj.printStats(out, false));
+    BMQTST_ASSERT_SAFE_FAIL(obj.printStats(out, false));
 
     obj.initializeStats(&rootStatContext, start, end);
 
-    ASSERT_EQ(rootStatContext.numSubcontexts(), 0);
+    BMQTST_ASSERT_EQ(rootStatContext.numSubcontexts(), 0);
 
     rootStatContext.snapshot();
 
-    ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
+    BMQTST_ASSERT_EQ(rootStatContext.numSubcontexts(), 1);
 
     obj.printStats(out, false);
 
-    ASSERT_EQ(out.str(), expected.str());
+    BMQTST_ASSERT_EQ(out.str(), expected.str());
 }
 
 static void test6_workingStatsTest()
@@ -563,7 +568,11 @@ static void test6_workingStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::PutEventBuilder         builder(&bufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder         builder(&blobSpPool,
                                   bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventPool eventPool(
         bdlf::BindUtil::bind(&poolCreateEvent,
@@ -617,12 +626,12 @@ static void test6_workingStatsTest()
 
     // May also call 'start' for the queue without custom event
     // handler
-    ASSERT_EQ(obj.start(), 0);
+    BMQTST_ASSERT_EQ(obj.start(), 0);
 
     obj.initializeStats(&rootStatContext, start, end);
 
     builder.startMessage();
-    const bdlbb::Blob& eventBlob = builder.blob();
+    const bdlbb::Blob& eventBlob = *builder.blob();
 
     bmqp::Event rawEvent(&eventBlob, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Event> event;
@@ -632,7 +641,7 @@ static void test6_workingStatsTest()
         event = eventPool.getObject();
         event->configureAsMessageEvent(rawEvent);
         PVV("[" << i << "] Enqueuing: " << (*event));
-        ASSERT_EQ_D(i, obj.pushBack(event), 0);
+        BMQTST_ASSERT_EQ_D(i, obj.pushBack(event), 0);
         testClock.d_highResTimer += k_MILL_SEC;
     }
 
@@ -641,7 +650,7 @@ static void test6_workingStatsTest()
     // And dequeue some of them
     for (int i = 0; i < k_QUEUE_POPPED; ++i) {
         event = obj.popFront();
-        ASSERT(event != 0);
+        BMQTST_ASSERT(event != 0);
         PVV("Dequeued: " << (*event));
     }
 
@@ -650,15 +659,15 @@ static void test6_workingStatsTest()
 
     PVV(out.str());
 
-    ASSERT_EQ(out.str(), expected.str());
+    BMQTST_ASSERT_EQ(out.str(), expected.str());
 
     const bmqst::StatContext* pSubCtx = rootStatContext.getSubcontext(
         "EventQueue");
 
-    ASSERT(pSubCtx != 0);
-    ASSERT_EQ(pSubCtx->numValues(), 2);
-    ASSERT_EQ(pSubCtx->valueName(0), "Queue");
-    ASSERT_EQ(pSubCtx->valueName(1), "Time");
+    BMQTST_ASSERT(pSubCtx != 0);
+    BMQTST_ASSERT_EQ(pSubCtx->numValues(), 2);
+    BMQTST_ASSERT_EQ(pSubCtx->valueName(0), "Queue");
+    BMQTST_ASSERT_EQ(pSubCtx->valueName(1), "Time");
 
     bmqst::StatValue valQueue =
         pSubCtx->value(bmqst::StatContext::e_DIRECT_VALUE, 0);
@@ -666,10 +675,12 @@ static void test6_workingStatsTest()
     bmqst::StatValue valTime =
         pSubCtx->value(bmqst::StatContext::e_DIRECT_VALUE, 1);
 
-    ASSERT_EQ(valQueue.min(), 0);
-    ASSERT_EQ(valQueue.max(), k_INITIAL_CAPACITY + 1);  // +1 for HighWatermark
-    ASSERT_EQ(valTime.min(), 0);
-    ASSERT_EQ(valTime.max(), k_INITIAL_CAPACITY * k_MILL_SEC + k_QUEUE_WAIT);
+    BMQTST_ASSERT_EQ(valQueue.min(), 0);
+    BMQTST_ASSERT_EQ(valQueue.max(),
+                     k_INITIAL_CAPACITY + 1);  // +1 for HighWatermark
+    BMQTST_ASSERT_EQ(valTime.min(), 0);
+    BMQTST_ASSERT_EQ(valTime.max(),
+                     k_INITIAL_CAPACITY * k_MILL_SEC + k_QUEUE_WAIT);
 }
 
 static void testN1_performance()

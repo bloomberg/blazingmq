@@ -52,7 +52,7 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 , d_hasMultipleSubStreams(false)
 , d_handleParameters(allocator)
 , d_streamParameters(allocator)
-, d_stats(allocator)
+, d_stats_sp(0)
 , d_domain_p(domain)
 , d_dispatcher_p(0)
 , d_queueEngine_p(0)
@@ -67,7 +67,8 @@ Queue::Queue(mqbi::Domain* domain, bslma::Allocator* allocator)
 
     // Initialize stats
     if (domain) {
-        d_stats.initialize(d_uri, domain);
+        d_stats_sp.createInplace(allocator, allocator);
+        d_stats_sp->initialize(d_uri, domain);
     }
 }
 
@@ -238,9 +239,10 @@ mqbi::QueueEngine* Queue::queueEngine()
     return d_queueEngine_p;
 }
 
-mqbstat::QueueStatsDomain* Queue::stats()
+inline void
+Queue::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
 {
-    return &d_stats;
+    d_stats_sp = stats;
 }
 
 bsls::Types::Int64
@@ -464,6 +466,12 @@ mqbi::Domain* Queue::domain() const
 mqbi::Storage* Queue::storage() const
 {
     return d_storage_p;
+}
+
+const bsl::shared_ptr<mqbstat::QueueStatsDomain>& Queue::stats() const
+{
+    BSLS_ASSERT_SAFE(d_stats_sp);
+    return d_stats_sp;
 }
 
 int Queue::partitionId() const

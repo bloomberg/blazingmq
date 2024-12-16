@@ -256,8 +256,9 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// Return the queue engine used by this queue.
     mqbi::QueueEngine* queueEngine() BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the stats associated with this queue.
-    mqbstat::QueueStatsDomain* stats() BSLS_KEYWORD_OVERRIDE;
+    /// Set the stats associated with this queue.
+    void setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return number of unconfirmed messages across all handles with the
     /// `specified `subId'.
@@ -372,6 +373,10 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     /// Return the storage used by this queue.
     mqbi::Storage* storage() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the stats associated with this queue.
+    const bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+    stats() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the partitionId assigned to this queue.
     int partitionId() const BSLS_KEYWORD_OVERRIDE;
@@ -495,9 +500,15 @@ inline mqbi::QueueEngine* Queue::queueEngine()
     }
 }
 
-inline mqbstat::QueueStatsDomain* Queue::stats()
+inline const bsl::shared_ptr<mqbstat::QueueStatsDomain>& Queue::stats() const
 {
-    return &(d_state.stats());
+    return d_state.stats();
+}
+
+inline void
+Queue::setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats)
+{
+    d_state.setStats(stats);
 }
 
 inline mqbi::Domain* Queue::domain() const

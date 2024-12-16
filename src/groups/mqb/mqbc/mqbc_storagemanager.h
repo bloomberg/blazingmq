@@ -235,9 +235,6 @@ class StorageManager BSLS_KEYWORD_FINAL
     //
     // THREAD: Protected by 'd_unrecognizedDomainsLock'.
 
-    BlobSpPool* d_blobSpPool_p;
-    // SharedObjectPool of blobs to use
-
     mqbi::DomainFactory* d_domainFactory_p;
     // Domain factory to use
 
@@ -811,11 +808,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    void registerQueue(const bmqt::Uri&                   uri,
-                       const mqbu::StorageKey&            queueKey,
-                       int                                partitionId,
-                       const bsl::unordered_set<AppInfo>& appIdKeyPairs,
-                       mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+    void registerQueue(const bmqt::Uri&        uri,
+                       const mqbu::StorageKey& queueKey,
+                       int                     partitionId,
+                       const AppInfos&         appIdKeyPairs,
+                       mqbi::Domain*           domain) BSLS_KEYWORD_OVERRIDE;
 
     /// Synchronously unregister the queue with the specified `uri` from the
     /// specified `partitionId`.

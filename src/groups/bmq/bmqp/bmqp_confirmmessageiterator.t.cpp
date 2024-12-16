@@ -197,7 +197,7 @@ static void test1_breathingTest()
     {
         // Create invalid iter
         bmqp::ConfirmMessageIterator iter;
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
     }
 
     {
@@ -205,19 +205,19 @@ static void test1_breathingTest()
         bmqp::ConfirmMessageIterator iter1;
         bmqp::ConfirmMessageIterator iter2(iter1);
 
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
     }
 
     {
         // Assigning invalid iter
         bmqp::ConfirmMessageIterator iter1, iter2;
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         iter1 = iter2;
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
     }
 
     {
@@ -235,62 +235,62 @@ static void test1_breathingTest()
         // Iterate and verify
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
 
-        ASSERT_EQ(iter.isValid(), true);
-        ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.isValid(), true);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
 
-        ASSERT_EQ(iter.message().queueId(), qId);
-        ASSERT_EQ(iter.message().messageGUID(), guid);
-        ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
 
         // Copy invalid iterator
         bmqp::ConfirmMessageIterator iter2(iter);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Clear
         iter.clear();
-        ASSERT_EQ(iter.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(iter.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(iter.isValid(), true);
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.message().queueId(), qId);
-        ASSERT_EQ(iter.message().messageGUID(), guid);
-        ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.isValid(), true);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
 
         // Reset, assign and iterate other
         iter.reset(&blob, eventHeader);
         iter2 = iter;
-        ASSERT_EQ(iter2.isValid(), true);
-        ASSERT_EQ(iter2.next(), 1);
-        ASSERT_EQ(iter2.message().queueId(), qId);
-        ASSERT_EQ(iter2.message().messageGUID(), guid);
-        ASSERT_EQ(iter2.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter2.isValid(), true);
+        BMQTST_ASSERT_EQ(iter2.next(), 1);
+        BMQTST_ASSERT_EQ(iter2.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter2.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter2.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter2.next(), 0);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.next(), 0);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Copy valid iterator
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
         bmqp::ConfirmMessageIterator iter3(iter);
-        ASSERT_EQ(iter3.isValid(), true);
+        BMQTST_ASSERT_EQ(iter3.isValid(), true);
 
         // Provoke next method to return rc_INVALID value
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 }
 
@@ -314,20 +314,20 @@ static void test2_multiConfirm()
 
     // Iterate and verify
     bmqp::ConfirmMessageIterator iter(&eventBlob, eventHeader);
-    ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t index = 0;
 
     while ((iter.next() == 1) && index < data.size()) {
         const Data& D = data[index];
-        ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
-        ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
-        ASSERT_EQ_D(index, D.d_subQueueId, iter.message().subQueueId());
+        BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
+        BMQTST_ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ_D(index, D.d_subQueueId, iter.message().subQueueId());
         ++index;
     }
 
-    ASSERT_EQ(data.size(), index);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(data.size(), index);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test3_nextMethod()
@@ -376,12 +376,12 @@ static void test3_nextMethod()
 
         // Create valid iterator
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 
     // Next method. Not enough bytes case.
@@ -403,10 +403,10 @@ static void test3_nextMethod()
         // Create iterator
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
     }
 }
 
@@ -457,12 +457,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader),
-                  0);  // rc_INVALID_EVENTHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_INVALID_EVENTHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 
     // NOTE: as far as ConfirmHeader::k_MIN_HEADER_SIZE = 1, there is no
@@ -487,11 +487,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader), 0);  // rc_NOT_ENOUGH_BYTES
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -535,7 +536,7 @@ static void test5_dumpBlob()
     //  Create and check iterator blob layout
     {
         bmqp::ConfirmMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Dump blob
         iter.dumpBlob(stream);
@@ -549,7 +550,7 @@ static void test5_dumpBlob()
                          bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -563,7 +564,7 @@ static void test5_dumpBlob()
         bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 // ============================================================================

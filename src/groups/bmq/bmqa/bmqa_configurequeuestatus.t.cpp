@@ -56,10 +56,10 @@ static void test1_breathingTest()
     PV("Default Constructor");
     {
         bmqa::ConfigureQueueStatus obj(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(bool(obj), true);
-        ASSERT_EQ(obj.result(), bmqt::ConfigureQueueResult::e_SUCCESS);
-        ASSERT_EQ(obj.errorDescription(),
-                  bsl::string("", bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_EQ(bool(obj), true);
+        BMQTST_ASSERT_EQ(obj.result(), bmqt::ConfigureQueueResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(obj.errorDescription(),
+                         bsl::string("", bmqtst::TestHelperUtil::allocator()));
     }
 
     PV("Valued Constructor");
@@ -78,10 +78,10 @@ static void test1_breathingTest()
                                        errorDescription,
                                        bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bool(obj), false);
-        ASSERT_EQ(obj.queueId(), queueId);
-        ASSERT_EQ(obj.result(), result);
-        ASSERT_EQ(obj.errorDescription(), errorDescription);
+        BMQTST_ASSERT_EQ(bool(obj), false);
+        BMQTST_ASSERT_EQ(obj.queueId(), queueId);
+        BMQTST_ASSERT_EQ(obj.result(), result);
+        BMQTST_ASSERT_EQ(obj.errorDescription(), errorDescription);
     }
 
     PV("Copy Constructor");
@@ -102,10 +102,10 @@ static void test1_breathingTest()
         bmqa::ConfigureQueueStatus obj2(obj1,
                                         bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bool(obj1), bool(obj2));
-        ASSERT_EQ(obj1.queueId(), obj2.queueId());
-        ASSERT_EQ(obj1.result(), obj2.result());
-        ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
+        BMQTST_ASSERT_EQ(bool(obj1), bool(obj2));
+        BMQTST_ASSERT_EQ(obj1.queueId(), obj2.queueId());
+        BMQTST_ASSERT_EQ(obj1.result(), obj2.result());
+        BMQTST_ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
     }
 
     PV("Assignment Operator");
@@ -126,10 +126,10 @@ static void test1_breathingTest()
         bmqa::ConfigureQueueStatus obj2(bmqtst::TestHelperUtil::allocator());
         obj2 = obj1;
 
-        ASSERT_EQ(bool(obj1), bool(obj2));
-        ASSERT_EQ(obj1.queueId(), obj2.queueId());
-        ASSERT_EQ(obj1.result(), obj2.result());
-        ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
+        BMQTST_ASSERT_EQ(bool(obj1), bool(obj2));
+        BMQTST_ASSERT_EQ(obj1.queueId(), obj2.queueId());
+        BMQTST_ASSERT_EQ(obj1.result(), obj2.result());
+        BMQTST_ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
     }
 }
 
@@ -173,7 +173,7 @@ static void test2_comparison()
         bmqa::ConfigureQueueStatus obj2(obj1,
                                         bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(obj1 == obj2);
+        BMQTST_ASSERT(obj1 == obj2);
     }
 
     PV("Inequality");
@@ -198,7 +198,7 @@ static void test2_comparison()
                                         errorDescription,
                                         bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(obj1 != obj2);
+        BMQTST_ASSERT(obj1 != obj2);
     }
 }
 
@@ -254,13 +254,13 @@ static void test3_print()
     // operator<<
     out << obj;
 
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 
     // Print
     out.reset();
     obj.print(out, 0, -1);
 
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 }
 
 // ============================================================================

@@ -2067,7 +2067,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
 
-                    AppInfos appIdKeyPairs;
+                    AppInfos appIdKeyPairs(d_allocator_p);
                     FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                         appIdsBlock,
                                                         numAppIds);
@@ -2075,8 +2075,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
                          cit != appIdKeyPairs.cend();
                          ++cit) {
-                        const AppInfo& p = *cit;
-                        if (0 == deletedAppKeysOffsets.count(p.second)) {
+                        if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             // This appKey is not deleted.  Add it to the list
                             // of 'alive' appId/appKey pairs for this queue.
                             // Note that we don't check for appId/appKey
@@ -2084,15 +2083,16 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             // StorageMgr because we have recovered all
                             // appId/appKey pairs by that time.
 
-                            qinfo.addAppInfo(p);
+                            qinfo.addAppInfo(cit);
 
-                            BALL_LOG_INFO
-                                << partitionDesc()
-                                << "Recovered appId/appKey pair ['" << p.first
-                                << "' (" << p.second << ")] in QueueOp ["
-                                << queueOpType << "] record for queue ["
-                                << qinfo.canonicalQueueUri()
-                                << "] with queue key [" << queueKey << "].";
+                            BALL_LOG_INFO << partitionDesc()
+                                          << "Recovered appId/appKey pair ['"
+                                          << cit->first << "' (" << cit->second
+                                          << ")] in QueueOp [" << queueOpType
+                                          << "] record for queue ["
+                                          << qinfo.canonicalQueueUri()
+                                          << "] with queue key [" << queueKey
+                                          << "].";
                         }
                     }
                 }
@@ -3904,9 +3904,8 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
 
     if (itNode == d_nodes.end()) {
         // no prior history about this node
-        d_nodes.insert(bsl::make_pair(
-            nodeId,
-            NodeContext(d_config.bufferFactory(), recordKey, d_allocator_p)));
+        d_nodes.insert(
+            bsl::make_pair(nodeId, NodeContext(d_blobSpPool_p, recordKey)));
         from = d_unreceipted.begin();
     }
     else if (itNode->second.d_key < recordKey) {
@@ -5241,7 +5240,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
-                        config.bufferFactory(),
+                        d_blobSpPool_p,
                         allocator)
 {
     // PRECONDITIONS
@@ -5428,8 +5427,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                              FileBackedStorage(this,
                                                queueUri,
                                                queueKey,
-                                               domain->config(),
-                                               domain->capacityMeter(),
+                                               domain,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -5721,13 +5719,12 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
-            const AppInfo& appIdKeyPair = *cit;
-            BSLS_ASSERT_SAFE(!appIdKeyPair.first.empty());
-            BSLS_ASSERT_SAFE(!appIdKeyPair.second.isNull());
+            BSLS_ASSERT_SAFE(!cit->first.empty());
+            BSLS_ASSERT_SAFE(!cit->second.isNull());
             appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
                 &appIdPaddings[i],
-                appIdKeyPair.first.length());
-            totalLength += sizeof(AppIdHeader) + appIdKeyPair.first.length() +
+                cit->first.length());
+            totalLength += sizeof(AppIdHeader) + cit->first.length() +
                            appIdPaddings[i] +
                            FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
         }
@@ -6524,11 +6521,9 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         if (itNode == d_nodes.end()) {
             // no prior history about this node
             itNode = d_nodes
-                         .insert(bsl::make_pair(
-                             nodeId,
-                             NodeContext(d_config.bufferFactory(),
-                                         key,
-                                         d_allocator_p)))
+                         .insert(
+                             bsl::make_pair(nodeId,
+                                            NodeContext(d_blobSpPool_p, key)))
                          .first;
         }
         nodeContext = &itNode->second;
@@ -6542,7 +6537,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
     }
 
     if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
-        char* buffer = nodeContext->d_blob.buffer(0).data();
+        char* buffer = nodeContext->d_blob_sp->buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
@@ -6555,7 +6550,11 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         nodeContext->d_state->unlock();
     }
     else {
-        bmqp::ProtocolUtil::buildReceipt(&nodeContext->d_blob,
+        // The pointer `nodeContext->d_blob_sp` might be in a write queue, so
+        // it's not safe to modify or replace the blob under this pointer.
+        // Instead, we get another shared pointer to another blob.
+        nodeContext->d_blob_sp = d_blobSpPool_p->getObject();
+        bmqp::ProtocolUtil::buildReceipt(nodeContext->d_blob_sp.get(),
                                          d_config.partitionId(),
                                          primaryLeaseId,
                                          sequenceNumber);
@@ -6572,7 +6571,7 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
         return;  // RETURN
     }
 
-    int rc = node->channel().writeBlob(nodeContext->d_blob,
+    int rc = node->channel().writeBlob(nodeContext->d_blob_sp,
                                        bmqp::EventType::e_REPLICATION_RECEIPT,
                                        nodeContext->d_state);
 
@@ -6721,6 +6720,11 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     d_clusterStats_p->setNodeRoleForPartition(
         d_config.partitionId(),
         mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+
+    for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
+         ++sIt) {
+        sIt->second->setPrimary();
+    }
 
     // Schedule a sync point issue recurring event every 1 second, starting
     // after 1 second.

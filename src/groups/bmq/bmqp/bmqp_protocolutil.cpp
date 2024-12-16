@@ -59,12 +59,10 @@ const char k_PADDING_DATA[9][8] = {
 /// Array of all potential padding buffers used for word and dword padding.
 bsls::ObjectBuffer<bdlbb::BlobBuffer> g_paddingBlobBuffer[9];
 
+/// Static prefilled blobs respectively containing a heartbeat request and
+/// a heartbeat response.
 bsls::ObjectBuffer<bdlbb::Blob> g_heartbeatReqBlob;
 bsls::ObjectBuffer<bdlbb::Blob> g_heartbeatRspBlob;
-
-/// Static prefilled blobs respectively containing a heartbeat request,
-/// heartbeat response and an empty blob.
-bsls::ObjectBuffer<bdlbb::Blob> g_emptyBlob;
 
 /// Integer to keep track of the number of calls to `initialize` for the
 /// `ProtocolUtil`.  If the value is non-zero, then it has already been
@@ -160,9 +158,6 @@ void ProtocolUtil::initialize(bslma::Allocator* allocator)
         new (g_heartbeatRspBlob.buffer()) bdlbb::Blob(alloc);
         g_heartbeatRspBlob.object().appendDataBuffer(buffer);
     }
-
-    // Create empty blob
-    new (g_emptyBlob.buffer()) bdlbb::Blob(alloc);
 }
 
 void ProtocolUtil::shutdown()
@@ -178,7 +173,6 @@ void ProtocolUtil::shutdown()
 
     g_heartbeatRspBlob.object().bdlbb::Blob::~Blob();
     g_heartbeatReqBlob.object().bdlbb::Blob::~Blob();
-    g_emptyBlob.object().bdlbb::Blob::~Blob();
 
     for (int i = 0; i < 9; ++i) {
         g_paddingBlobBuffer[i].object().reset();
@@ -290,11 +284,6 @@ const bdlbb::Blob& ProtocolUtil::heartbeatReqBlob()
 const bdlbb::Blob& ProtocolUtil::heartbeatRspBlob()
 {
     return g_heartbeatRspBlob.object();
-}
-
-const bdlbb::Blob& ProtocolUtil::emptyBlob()
-{
-    return g_emptyBlob.object();
 }
 
 void ProtocolUtil::hexToBinary(char* buffer, int length, const char* hex)

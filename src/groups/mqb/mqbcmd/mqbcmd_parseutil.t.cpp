@@ -77,10 +77,13 @@ void verifyExpected(const Test& test)
     bsl::string           error;
     const int rc = mqbcmd::ParseUtil::parse(&actual, &error, test.d_input);
 
-    ASSERT_EQ_D(test.d_sourceLine << ": " << test.d_input << ": " << error,
-                rc,
-                0);
-    ASSERT_EQ_D(test.d_sourceLine << ": " << test.d_input, actual, expected);
+    BMQTST_ASSERT_EQ_D(test.d_sourceLine << ": " << test.d_input << ": "
+                                         << error,
+                       rc,
+                       0);
+    BMQTST_ASSERT_EQ_D(test.d_sourceLine << ": " << test.d_input,
+                       actual,
+                       expected);
 }
 
 void verifyFailure(const Test& test)
@@ -93,7 +96,7 @@ void verifyFailure(const Test& test)
     bsl::string     error;
     const int rc = mqbcmd::ParseUtil::parse(&actual, &error, test.d_input);
 
-    ASSERT_NE_D(test.d_sourceLine << ": parsing should fail", rc, 0);
+    BMQTST_ASSERT_NE_D(test.d_sourceLine << ": parsing should fail", rc, 0);
 }
 
 void verifyFailsWithExtra(const Test& test)

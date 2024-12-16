@@ -106,7 +106,7 @@ void allocateSomeGroups(MessageGroupIdManager* obj,
         }
         else {
             // Confirm they wrap as expected
-            ASSERT_EQ(h, handlesBefore[i % handles]);
+            BMQTST_ASSERT_EQ(h, handlesBefore[i % handles]);
         }
     }
 
@@ -115,11 +115,11 @@ void allocateSomeGroups(MessageGroupIdManager* obj,
     for (int i = 0; i < handles; ++i) {
         IdsForHandle gids(bmqtst::TestHelperUtil::allocator());
         obj->idsForHandle(&gids, _(i));
-        ASSERT_EQ(static_cast<int>(gids.size()), groupsPerHandle);
+        BMQTST_ASSERT_EQ(static_cast<int>(gids.size()), groupsPerHandle);
         for (IdsForHandle::const_iterator j = gids.begin(); j != gids.end();
              ++j) {
             const int msgGroupId = ::atoi(j->c_str());
-            ASSERT_EQ(msgGroupId % handles, i);
+            BMQTST_ASSERT_EQ(msgGroupId % handles, i);
         }
     }
 }
@@ -215,14 +215,14 @@ static void test1_sameGroupIdSameHandleTest()
     addHandles(&obj, k_NUMBER_OF_HANDLES);
 
     // Verify accessors
-    ASSERT_EQ(obj.timeout(), k_TIMEOUT);
-    ASSERT_EQ(obj.handlesCount(), k_NUMBER_OF_HANDLES);
-    ASSERT_EQ(obj.maxMsgGroupIds(), k_MAX_NUMBER_OF_MAPPINGS);
+    BMQTST_ASSERT_EQ(obj.timeout(), k_TIMEOUT);
+    BMQTST_ASSERT_EQ(obj.handlesCount(), k_NUMBER_OF_HANDLES);
+    BMQTST_ASSERT_EQ(obj.maxMsgGroupIds(), k_MAX_NUMBER_OF_MAPPINGS);
 
     const Handle h1  = obj.getHandle(*k_GID1, k_T0);
     const Handle h1b = obj.getHandle(*k_GID1, k_T0);
 
-    ASSERT_EQ(h1, h1b);
+    BMQTST_ASSERT_EQ(h1, h1b);
 }
 
 static void test2_differentGroupIdsHaveDifferentHandlesTest()
@@ -252,7 +252,7 @@ static void test2_differentGroupIdsHaveDifferentHandlesTest()
     const Handle h1 = obj.getHandle(*k_GID1, k_T0);
     const Handle h2 = obj.getHandle(*k_GID2, k_T0);
 
-    ASSERT_NE(h1, h2);
+    BMQTST_ASSERT_NE(h1, h2);
 }
 
 static void test3_timeoutOldMappingsTest()
@@ -285,10 +285,10 @@ static void test3_timeoutOldMappingsTest()
     const Handle h3 = obj.getHandle(*k_GID2, k_T0 + k_TIMEOUT);
     const Handle h4 = obj.getHandle(*k_GID2, k_T0 + k_TIMEOUT + 1);
 
-    ASSERT_NE(h1, h2);
-    ASSERT_NE(h2, h3);
-    ASSERT_EQ(h3, h1);
-    ASSERT_EQ(h3, h4);
+    BMQTST_ASSERT_NE(h1, h2);
+    BMQTST_ASSERT_NE(h2, h3);
+    BMQTST_ASSERT_EQ(h3, h1);
+    BMQTST_ASSERT_EQ(h3, h4);
 }
 
 static void test4_groupIdExpiresAfterTtlTest()
@@ -320,13 +320,13 @@ static void test4_groupIdExpiresAfterTtlTest()
     const Handle h2b = obj.getHandle(*k_GID2, k_T0 + k_TIMEOUT);
     const Handle h1b = obj.getHandle(*k_GID1, k_T0 + k_TIMEOUT);
 
-    ASSERT_NE(h1, h2);
-    ASSERT_NE(h1b, h2b);
+    BMQTST_ASSERT_NE(h1, h2);
+    BMQTST_ASSERT_NE(h1b, h2b);
 
-    ASSERT_NE(h1, h1b);
-    ASSERT_NE(h2, h2b);
-    ASSERT_EQ(h1, h2b);
-    ASSERT_EQ(h2, h1b);
+    BMQTST_ASSERT_NE(h1, h1b);
+    BMQTST_ASSERT_NE(h2, h2b);
+    BMQTST_ASSERT_EQ(h1, h2b);
+    BMQTST_ASSERT_EQ(h2, h1b);
 }
 
 static void test5_longLivedMoreThanMaxGroupsGcTest()
@@ -362,11 +362,11 @@ static void test5_longLivedMoreThanMaxGroupsGcTest()
     const Handle h3  = obj.getHandle(*k_GID3, k_T0 + 4);
     const Handle h4  = obj.getHandle(*k_GID2, k_T0 + 5);
 
-    ASSERT_EQ(h1, _(0));
-    ASSERT_EQ(h2, _(1));
-    ASSERT_EQ(h1b, _(0));
-    ASSERT_EQ(h3, _(1));  // There was eviction of GID2 (oldest), here
-    ASSERT_EQ(h4, _(0));  // Again - GID1 (oldest) is evicted
+    BMQTST_ASSERT_EQ(h1, _(0));
+    BMQTST_ASSERT_EQ(h2, _(1));
+    BMQTST_ASSERT_EQ(h1b, _(0));
+    BMQTST_ASSERT_EQ(h3, _(1));  // There was eviction of GID2 (oldest), here
+    BMQTST_ASSERT_EQ(h4, _(0));  // Again - GID1 (oldest) is evicted
 }
 
 static void test6_shortLivedMoreThanMaxGroupsGcTest()
@@ -397,29 +397,29 @@ static void test6_shortLivedMoreThanMaxGroupsGcTest()
     addHandles(&obj);
 
     const Handle h1 = obj.getHandle(*k_GID1, k_T0);
-    ASSERT_EQ(false, obj.exceedsMaxMsgGroupIdsLimit());
+    BMQTST_ASSERT_EQ(false, obj.exceedsMaxMsgGroupIdsLimit());
 
     const Handle h2 = obj.getHandle(*k_GID2, k_T0);
-    ASSERT_EQ(true, obj.exceedsMaxMsgGroupIdsLimit());
+    BMQTST_ASSERT_EQ(true, obj.exceedsMaxMsgGroupIdsLimit());
 
     const Handle h1b = obj.getHandle(*k_GID1, k_T0);
     const Handle h2b = obj.getHandle(*k_GID2, k_T0);
     const Handle h2c = obj.getHandle(*k_GID2, k_T0);
     const Handle h1c = obj.getHandle(*k_GID1, k_T0 + 5);
-    ASSERT_EQ(true, obj.exceedsMaxMsgGroupIdsLimit());
+    BMQTST_ASSERT_EQ(true, obj.exceedsMaxMsgGroupIdsLimit());
 
     // This clears everything that timed-out i.e. 'GID2'. Thus we're now back
     // in capacity.
     const Time   texp = k_T0 + k_TIMEOUT + 2;
     const Handle h1d  = obj.getHandle(*k_GID1, texp);
-    ASSERT_EQ(false, obj.exceedsMaxMsgGroupIdsLimit());
+    BMQTST_ASSERT_EQ(false, obj.exceedsMaxMsgGroupIdsLimit());
 
-    ASSERT_NE(h1, h2);
-    ASSERT_EQ(h1, h1b);
-    ASSERT_EQ(h1, h1c);
-    ASSERT_EQ(h1, h1d);
-    ASSERT_EQ(h2, h2b);
-    ASSERT_EQ(h2, h2c);
+    BMQTST_ASSERT_NE(h1, h2);
+    BMQTST_ASSERT_EQ(h1, h1b);
+    BMQTST_ASSERT_EQ(h1, h1c);
+    BMQTST_ASSERT_EQ(h1, h1d);
+    BMQTST_ASSERT_EQ(h2, h2b);
+    BMQTST_ASSERT_EQ(h2, h2c);
 }
 
 static void test7_retrievesGroupIdsFromHandlesTest()
@@ -453,24 +453,24 @@ static void test7_retrievesGroupIdsFromHandlesTest()
     const Handle h3 = obj.getHandle(*k_GID3, k_T0 + 1);
     const Handle h4 = obj.getHandle(*k_GID4, k_T0 + 1);
 
-    ASSERT_EQ(h1, h3);
-    ASSERT_EQ(h2, h4);
-    ASSERT_NE(h1, h2);
+    BMQTST_ASSERT_EQ(h1, h3);
+    BMQTST_ASSERT_EQ(h2, h4);
+    BMQTST_ASSERT_NE(h1, h2);
 
     // Confirm the handle view is as expected
     MessageGroupIdManager::IdsForHandle gids(
         bmqtst::TestHelperUtil::allocator());
     obj.idsForHandle(&gids, h1);
 
-    ASSERT_EQ(gids.size(), 2u);
-    ASSERT_EQ(gids.find(*k_GID1) != gids.end(), true);
-    ASSERT_EQ(gids.find(*k_GID3) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.size(), 2u);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID1) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID3) != gids.end(), true);
 
     gids.clear();
     obj.idsForHandle(&gids, h2);
-    ASSERT_EQ(gids.size(), 2u);
-    ASSERT_EQ(gids.find(*k_GID2) != gids.end(), true);
-    ASSERT_EQ(gids.find(*k_GID4) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.size(), 2u);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID2) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID4) != gids.end(), true);
 
     // Trigger timeouts of the first two (GID1-2)
     (void)obj.getHandle(*k_GID3, k_T0 + k_TIMEOUT);
@@ -478,12 +478,12 @@ static void test7_retrievesGroupIdsFromHandlesTest()
     // Confirm the handle view is as expected
     gids.clear();
     obj.idsForHandle(&gids, h1);
-    ASSERT_EQ(gids.size(), 1u);
-    ASSERT_EQ(gids.find(*k_GID3) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.size(), 1u);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID3) != gids.end(), true);
     gids.clear();
     obj.idsForHandle(&gids, h2);
-    ASSERT_EQ(gids.size(), 1u);
-    ASSERT_EQ(gids.find(*k_GID4) != gids.end(), true);
+    BMQTST_ASSERT_EQ(gids.size(), 1u);
+    BMQTST_ASSERT_EQ(gids.find(*k_GID4) != gids.end(), true);
 }
 
 static void test8_rebalanceWhenAddingHandleTest()
@@ -539,7 +539,7 @@ static void test8_rebalanceWhenAddingHandleTest()
     for (int i = 0; i < k_HANDLES_LIMIT_AFTER; ++i) {
         obj.idsForHandle(&after[i], _(i));
 
-        ASSERT_EQ(after[i].size(), k_GROUPS_PER_HANDLE_AFTER);
+        BMQTST_ASSERT_EQ(after[i].size(), k_GROUPS_PER_HANDLE_AFTER);
     }
 
     // Most elements should remain the same after rebalancing in the common
@@ -562,7 +562,8 @@ static void test8_rebalanceWhenAddingHandleTest()
         const int idsBefore = (k_MSG_GROUP_IDS_COUNT / k_HANDLES_LIMIT_BEFORE);
         const int idsAfter  = (k_MSG_GROUP_IDS_COUNT / k_HANDLES_LIMIT_AFTER);
 
-        ASSERT_EQ(intersectionLength, idsBefore - (idsBefore - idsAfter));
+        BMQTST_ASSERT_EQ(intersectionLength,
+                         idsBefore - (idsBefore - idsAfter));
     }
 }
 
@@ -619,10 +620,10 @@ static void test9_noRebalanceWhenRemovingHandleTest()
         for (int i = 0; i < HANDLES_LIMIT_BEFORE; ++i) {
             obj.idsForHandle(&after[i], _(i));
             if (i == toRemove) {
-                ASSERT_EQ(0u, after[i].size())
+                BMQTST_ASSERT_EQ(0u, after[i].size())
             }
             else {
-                ASSERT_EQ(before[i], after[i])
+                BMQTST_ASSERT_EQ(before[i], after[i])
             }
         }
     }
@@ -663,23 +664,23 @@ static void test10_chooseLeastUsedHandleAfterRemoveTest()
         obj.addHandle(_(2), k_T0);
         obj.addHandle(_(3), k_T0);
 
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(17), k_T0), _(1));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(18), k_T0), _(2));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(19), k_T0), _(3));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(20), k_T0), _(1));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(17), k_T0), _(1));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(18), k_T0), _(2));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(19), k_T0), _(3));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(20), k_T0), _(1));
 
         obj.removeHandle(_(2));
 
         // Where did 18 end up? Nowhere - re-allocation(!)
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(18), k_T0), _(3));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(18), k_T0), _(3));
 
         obj.addHandle(_(4), k_T0);
 
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(21), k_T0), _(4));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(22), k_T0), _(4));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(23), k_T0), _(1));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(24), k_T0), _(3));
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(25), k_T0), _(4));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(21), k_T0), _(4));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(22), k_T0), _(4));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(23), k_T0), _(1));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(24), k_T0), _(3));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(25), k_T0), _(4));
     }
 }
 
@@ -723,8 +724,8 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
 
     // Add Message Group Ids
     for (int i = 0; i < MSG_GROUP_IDS_COUNT; ++i) {
-        ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(i), k_T0),
-                  _(i % HANDLES_COUNT));
+        BMQTST_ASSERT_EQ(obj.getHandle(msgGroupIdFromInt(i), k_T0),
+                         _(i % HANDLES_COUNT));
     }
 
     // Ping ids for handle 0 to retain them after the next Garbage Collection.
@@ -747,8 +748,8 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
 
     IdsForHandle gids(bmqtst::TestHelperUtil::allocator());
     obj.idsForHandle(&gids, _(0));
-    ASSERT_EQ(GROUP_IDS_PER_HANDLE, static_cast<int>(gids.size()));
-    ASSERT_EQ(GROUP_IDS_PER_HANDLE, obj.msgGroupIdsCount());
+    BMQTST_ASSERT_EQ(GROUP_IDS_PER_HANDLE, static_cast<int>(gids.size()));
+    BMQTST_ASSERT_EQ(GROUP_IDS_PER_HANDLE, obj.msgGroupIdsCount());
 
     // Let's add a handle. This forces rebalance.
     obj.addHandle(_(3), k_T0);
@@ -766,7 +767,7 @@ static void test11_stronglyUnbalancedChainOnRebalanceTest()
     for (int i = 0; i < (HANDLES_COUNT + 1); ++i) {
         gids.clear();
         obj.idsForHandle(&gids, _(i));
-        ASSERT_EQ_D(i, expectedSizes[i], static_cast<int>(gids.size()));
+        BMQTST_ASSERT_EQ_D(i, expectedSizes[i], static_cast<int>(gids.size()));
     }
 }
 
@@ -858,7 +859,7 @@ static void test12_printerTest()
                            "        ]\n"
                            "    ]";
 
-    ASSERT_EQ(ss.str(), expected);
+    BMQTST_ASSERT_EQ(ss.str(), expected);
 }
 
 static void test13_largeMessageGroupIdsUseAllocator()

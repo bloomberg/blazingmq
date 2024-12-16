@@ -118,8 +118,9 @@ void MockClusterNode::closeChannel()
     d_channel.closeChannel();
 }
 
-bmqt::GenericResult::Enum MockClusterNode::write(const bdlbb::Blob&    blob,
-                                                 bmqp::EventType::Enum type)
+bmqt::GenericResult::Enum
+MockClusterNode::write(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                       bmqp::EventType::Enum               type)
 {
     return d_channel.writeBlob(blob, type);
 }
@@ -195,7 +196,8 @@ Cluster* MockCluster::unregisterObserver(ClusterObserver* observer)
     return this;
 }
 
-int MockCluster::writeAll(const bdlbb::Blob& blob, bmqp::EventType::Enum type)
+int MockCluster::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                          bmqp::EventType::Enum               type)
 {
     for (bsl::list<MockClusterNode>::iterator it = d_nodes.begin();
          it != d_nodes.end();
@@ -209,7 +211,7 @@ int MockCluster::writeAll(const bdlbb::Blob& blob, bmqp::EventType::Enum type)
     return 0;
 }
 
-int MockCluster::broadcast(const bdlbb::Blob& blob)
+int MockCluster::broadcast(const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     if (d_disableBroadcast) {
         return 0;  // RETURN

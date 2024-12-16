@@ -158,13 +158,13 @@ static void test1_SessionEventProcessor()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -224,13 +224,13 @@ static void test2_Session()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");

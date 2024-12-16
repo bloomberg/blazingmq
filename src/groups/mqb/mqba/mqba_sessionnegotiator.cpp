@@ -208,7 +208,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 /// Load in the specified `out` the short description representing the
 /// specified `identity` from the specified `peerChannel`.  The format is as
 /// follow:
-///    tskName:pid.sessionId[@hostId]
+///    tskName:pid.sessionId[\@hostId]
 /// Where:
 ///  - tskName   : the task name, without any optional leading path
 ///  - pid       : the pid of the task
@@ -686,9 +686,9 @@ int SessionNegotiator::sendNegotiationMessage(
     // Build connection response event
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
-    bmqp::SchemaEventBuilder builder(d_bufferFactory_p,
-                                     &localAllocator,
-                                     encodingType);
+    bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
+                                     encodingType,
+                                     &localAllocator);
 
     int rc = builder.setMessage(message, bmqp::EventType::e_CONTROL);
     if (rc != 0) {
@@ -699,7 +699,7 @@ int SessionNegotiator::sendNegotiationMessage(
 
     // Send response event
     bmqio::Status status;
-    context->d_channelSp->write(&status, builder.blob());
+    context->d_channelSp->write(&status, *builder.blob());
     if (!status) {
         errorDescription << "Failed sending NegotiationMessage "
                          << "[status: " << status << ", message: " << message
@@ -736,7 +736,6 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
                          description,
                          d_dispatcher_p,
                          d_blobSpPool_p,
-                         d_bufferFactory_p,
                          d_scheduler_p,
                          d_adminCb,
                          d_allocator_p);

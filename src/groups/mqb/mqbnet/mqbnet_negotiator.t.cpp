@@ -124,13 +124,13 @@ static void test1_Negotiator()
         bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -153,14 +153,14 @@ static void test2_NegotiatorContext()
     {
         PV("Constructor");
         mqbnet::NegotiatorContext obj1(true);
-        ASSERT_EQ(obj1.isIncoming(), true);
-        ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
-        ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
-        ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
-        ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
+        BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
+        BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
+        BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
+        BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
+        BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
 
         mqbnet::NegotiatorContext obj2(false);
-        ASSERT_EQ(obj2.isIncoming(), false);
+        BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
     }
 
     {
@@ -170,26 +170,26 @@ static void test2_NegotiatorContext()
 
         {  // MaxMissedHeartbeat
             const char value = 5;
-            ASSERT_EQ(&(obj.setMaxMissedHeartbeat(value)), &obj);
-            ASSERT_EQ(obj.maxMissedHeartbeat(), value);
+            BMQTST_ASSERT_EQ(&(obj.setMaxMissedHeartbeat(value)), &obj);
+            BMQTST_ASSERT_EQ(obj.maxMissedHeartbeat(), value);
         }
 
         {  // UserData
             int value = 7;
-            ASSERT_EQ(&(obj.setUserData(&value)), &obj);
-            ASSERT_EQ(obj.userData(), &value);
+            BMQTST_ASSERT_EQ(&(obj.setUserData(&value)), &obj);
+            BMQTST_ASSERT_EQ(obj.userData(), &value);
         }
 
         {  // ResultState
             int value = 9;
-            ASSERT_EQ(&(obj.setResultState(&value)), &obj);
-            ASSERT_EQ(obj.resultState(), &value);
+            BMQTST_ASSERT_EQ(&(obj.setResultState(&value)), &obj);
+            BMQTST_ASSERT_EQ(obj.resultState(), &value);
         }
 
         {  // EventProcessor
             MockSessionEventProcessor value;
-            ASSERT_EQ(&(obj.setEventProcessor(&value)), &obj);
-            ASSERT_EQ(obj.eventProcessor(), &value);
+            BMQTST_ASSERT_EQ(&(obj.setEventProcessor(&value)), &obj);
+            BMQTST_ASSERT_EQ(obj.eventProcessor(), &value);
         }
     }
 }

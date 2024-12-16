@@ -267,11 +267,6 @@ class QueueStatsDomain {
                  bsls::Types::Int64 value,
                  const bsl::string& appId);
 
-    /// Force set the stats of the content of the queue to the specified
-    /// absolute `messages` and `bytes` values.
-    void setQueueContentRaw(bsls::Types::Int64 messages,
-                            bsls::Types::Int64 bytes);
-
     /// Update subcontexts in case of domain reconfigure with the given list of
     /// AppIds.
     void updateDomainAppIds(const bsl::vector<bsl::string>& appIds);
