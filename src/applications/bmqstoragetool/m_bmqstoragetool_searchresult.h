@@ -51,7 +51,7 @@
 // a logic of search and output results.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
+#include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>

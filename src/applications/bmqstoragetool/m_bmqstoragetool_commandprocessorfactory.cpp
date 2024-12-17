@@ -39,11 +39,18 @@ CommandProcessorFactory::createCommandProcessor(
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
     if (params->d_cslMode) {
+        // Create CslSearchResult for given 'params'.
+        bsl::shared_ptr<CslSearchResult> cslSearchResult =
+            SearchResultFactory::createCslSearchResult(params,
+                                                       // fileManager,
+                                                       ostream,
+                                                       alloc);
+
         // Create CslFileProcessor
         return bslma::ManagedPtr<CommandProcessor>(
             new (*alloc) CslFileProcessor(params,
                                           fileManager,
-                                          // searchResult,
+                                          cslSearchResult,
                                           ostream,
                                           alloc),
             alloc);  // RETURN

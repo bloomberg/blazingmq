@@ -183,5 +183,38 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     return searchResult;
 }
 
+bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
+    const Parameters* params,
+    // const bslma::ManagedPtr<FileManager>& fileManager,
+    bsl::ostream&     ostream,
+    bslma::Allocator* allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    // Create CslSearchResult implementation
+    bsl::shared_ptr<CslSearchResult> cslSearchResult;
+    if (params->d_details) {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchDetailResult(ostream,
+                                               params->d_processCslRecordTypes,
+                                               alloc),
+            alloc);
+    }
+    else {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchShortResult(ostream,
+                                              params->d_processCslRecordTypes,
+                                              alloc),
+            alloc);
+    }
+
+    BSLS_ASSERT(cslSearchResult);
+
+    return cslSearchResult;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

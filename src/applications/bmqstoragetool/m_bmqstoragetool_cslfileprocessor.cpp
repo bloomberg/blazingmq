@@ -14,10 +14,10 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
-#include "m_bmqstoragetool_parameters.h"
+#include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
 #include <m_bmqstoragetool_filters.h>
+#include <m_bmqstoragetool_parameters.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -44,15 +44,15 @@ namespace m_bmqstoragetool {
 // ======================
 
 CslFileProcessor::CslFileProcessor(
-    const Parameters*               params,
-    bslma::ManagedPtr<FileManager>& fileManager,
-    // const bsl::shared_ptr<SearchResult>& searchResult_p,
-    bsl::ostream&     ostream,
-    bslma::Allocator* allocator)
+    const Parameters*                       params,
+    bslma::ManagedPtr<FileManager>&         fileManager,
+    const bsl::shared_ptr<CslSearchResult>& searchResult_p,
+    bsl::ostream&                           ostream,
+    bslma::Allocator*                       allocator)
 : d_parameters(params)
 , d_fileManager(fileManager)
 , d_ostream(ostream)
-// , d_searchResult_p(searchResult_p)
+, d_searchResult_p(searchResult_p)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -84,36 +84,50 @@ void CslFileProcessor::process()
     while (true) {
         iter->loadClusterMessage(&clusterMessage);
 
+        // TODO: remove outer `if` statement?
+
         if (iter->header().recordType() ==
             mqbc::ClusterStateRecordType::e_SNAPSHOT) {
             if (d_parameters->d_processCslRecordTypes.d_snapshot) {
-                d_ostream << *iter << '\n';
+                // d_ostream << *iter << '\n';
                 // d_ostream << iter->header() << '\n';
-                d_ostream << clusterMessage << '\n';
+                // d_ostream << clusterMessage << '\n';
+                d_searchResult_p->processRecord(iter->header(),
+                                                clusterMessage,
+                                                iter->currRecordId());
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_UPDATE) {
             if (d_parameters->d_processCslRecordTypes.d_update) {
-                d_ostream << *iter << '\n';
+                // d_ostream << *iter << '\n';
                 // d_ostream << iter->header() << '\n';
-                d_ostream << clusterMessage << '\n';
+                // d_ostream << clusterMessage << '\n';
+                d_searchResult_p->processRecord(iter->header(),
+                                                clusterMessage,
+                                                iter->currRecordId());
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_COMMIT) {
             if (d_parameters->d_processCslRecordTypes.d_commit) {
-                d_ostream << *iter << '\n';
+                // d_ostream << *iter << '\n';
                 // d_ostream << iter->header() << '\n';
-                d_ostream << clusterMessage << '\n';
+                // d_ostream << clusterMessage << '\n';
+                d_searchResult_p->processRecord(iter->header(),
+                                                clusterMessage,
+                                                iter->currRecordId());
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_ACK) {
             if (d_parameters->d_processCslRecordTypes.d_ack) {
-                d_ostream << *iter << '\n';
+                // d_ostream << *iter << '\n';
                 // d_ostream << iter->header() << '\n';
-                d_ostream << clusterMessage << '\n';
+                // d_ostream << clusterMessage << '\n';
+                d_searchResult_p->processRecord(iter->header(),
+                                                clusterMessage,
+                                                iter->currRecordId());
             }
         }
         else {
@@ -124,7 +138,7 @@ void CslFileProcessor::process()
         const int rc = iter->next();
         if (stopSearch || rc == 1) {
             // stopSearch is set or end iterator reached
-            // d_searchResult_p->outputResult();
+            d_searchResult_p->outputResult();
             return;  // RETURN
         }
         if (rc < 0) {

@@ -26,6 +26,7 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessor.h>
+#include <m_bmqstoragetool_cslsearchresult.h>
 
 // BDE
 #include <bsls_keyword.h>
@@ -43,8 +44,8 @@ class CslFileProcessor : public CommandProcessor {
     const Parameters*                    d_parameters;
     const bslma::ManagedPtr<FileManager> d_fileManager;
     bsl::ostream&                        d_ostream;
-    // bsl::shared_ptr<SearchResult>        d_searchResult_p;
-    bslma::Allocator* d_allocator_p;
+    bsl::shared_ptr<CslSearchResult>     d_searchResult_p;
+    bslma::Allocator*                    d_allocator_p;
 
     // MANIPULATORS
 
@@ -52,11 +53,11 @@ class CslFileProcessor : public CommandProcessor {
     // CREATORS
     /// Constructor using the specified `params`, 'fileManager',
     /// 'searchResult_p', 'ostream' and 'allocator'.
-    CslFileProcessor(const Parameters*               params,
-                     bslma::ManagedPtr<FileManager>& fileManager,
-                     //  const bsl::shared_ptr<SearchResult>& searchResult_p,
-                     bsl::ostream&     ostream,
-                     bslma::Allocator* allocator);
+    CslFileProcessor(const Parameters*                       params,
+                     bslma::ManagedPtr<FileManager>&         fileManager,
+                     const bsl::shared_ptr<CslSearchResult>& searchResult_p,
+                     bsl::ostream&                           ostream,
+                     bslma::Allocator*                       allocator);
 
     // MANIPULATORS
     /// Process the CSL file and print result.

@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
-#include "m_bmqstoragetool_parameters.h"
+#include <m_bmqstoragetool_compositesequencenumber.h>
+#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_recordprinter.h>
 #include <m_bmqstoragetool_searchresult.h>
 
