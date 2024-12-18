@@ -155,9 +155,6 @@ class ClusterStatePartitionInfo {
 /// `bmqp_ctrlmsg::QueueInfo`.  Doing vice versa will not be possible
 /// because we don't want to edit generated file.  Perhaps we can place the
 /// converter routine in `ClusterUtil`.
-///
-/// TBD: When should AppIds and AppKeys come from?  Should the leader/primary
-/// generate them, or should we hardcode them in the domain config?
 class ClusterStateQueueInfo {
   public:
     // TYPES
@@ -171,10 +168,10 @@ class ClusterStateQueueInfo {
         // Assigning following unassigning is also supported.
         // On Replica, the only possible state is k_ASSIGNED.
 
-        k_NONE,
-        k_ASSIGNING,
-        k_ASSIGNED,
-        k_UNASSIGNING
+        k_NONE        = 0,
+        k_ASSIGNING   = -1,
+        k_ASSIGNED    = -2,
+        k_UNASSIGNING = -3
     };
 
   private:
@@ -272,6 +269,18 @@ class ClusterStateQueueInfo {
 bsl::ostream& operator<<(bsl::ostream&                stream,
                          const ClusterStateQueueInfo& rhs);
 
+/// Return `true` if the specified `rhs` object contains the value of the
+/// same type as contained in the specified `lhs` object and the value
+/// itself is the same in both objects, return false otherwise.
+bool operator==(const ClusterStateQueueInfo& lhs,
+                const ClusterStateQueueInfo& rhs);
+
+/// Return `false` if the specified `rhs` object contains the value of the
+/// same type as contained in the specified `lhs` object and the value
+/// itself is the same in both objects, return `true` otherwise.
+bool operator!=(const ClusterStateQueueInfo& lhs,
+                const ClusterStateQueueInfo& rhs);
+
 // ==========================
 // class ClusterStateObserver
 // ==========================
@@ -343,7 +352,7 @@ class ClusterStateObserver {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onPartitionOrphanThreshold(size_t partitiondId);
+    virtual void onPartitionOrphanThreshold(size_t partitionId);
 
     /// Callback invoked when the specified `node` has been unavailable
     /// above a certain threshold amount of time.
@@ -1161,6 +1170,20 @@ inline bsl::ostream& mqbc::operator<<(bsl::ostream&                stream,
                                       const ClusterStateQueueInfo& rhs)
 {
     return rhs.print(stream, 0, -1);
+}
+
+inline bool mqbc::operator==(const ClusterStateQueueInfo& lhs,
+                             const ClusterStateQueueInfo& rhs)
+{
+    return lhs.uri() == rhs.uri() && lhs.key() == rhs.key() &&
+           lhs.partitionId() == rhs.partitionId() &&
+           lhs.appInfos() == rhs.appInfos() && lhs.state() == rhs.state();
+}
+
+inline bool mqbc::operator!=(const ClusterStateQueueInfo& lhs,
+                             const ClusterStateQueueInfo& rhs)
+{
+    return !(lhs == rhs);
 }
 
 }  // close enterprise namespace

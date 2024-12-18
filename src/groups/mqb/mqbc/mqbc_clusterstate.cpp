@@ -47,6 +47,7 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
     printer.printAttribute("appIdInfos", appInfos());
+    printer.printAttribute("stateOfAssignment", state());
     printer.end();
 
     return stream;
@@ -94,7 +95,7 @@ void ClusterStateObserver::onQueueUpdated(
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLS_ANNOTATION_UNUSED size_t partitiondId)
+    BSLS_ANNOTATION_UNUSED size_t partitionId)
 {
     // NOTHING
 }
