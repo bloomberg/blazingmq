@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // mqbnet_tcpsessionfactory.cpp                                       -*-C++-*-
+#include <bslmf_movableref.h>
+#include <bslstl_sharedptr.h>
 #include <mqbnet_tcpsessionfactory.h>
 
 #include <mqbscm_version.h>
@@ -55,6 +57,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_pairutil.h>
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
 #include <bdlf_bind.h>
@@ -65,7 +68,9 @@
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <bsl_utility.h>
+#include <bsla_annotations.h>
 #include <bslalg_swaputil.h>
 #include <bslmf_movableref.h>
 #include <bslmt_lockguard.h>
@@ -295,6 +300,12 @@ struct TCPSessionFactory_OperationContext {
     // that will be set for the
     // 'NegotiatorContext::resultState' passed to the
     // 'Negotiator::negotiate'.
+
+    /// True if the session is TLS enabled.
+    bool d_isTls;
+
+    /// Name for the TCP interface the operation is associated with.
+    bsl::string d_interfaceName;
 };
 
 // -----------------------
@@ -709,28 +720,45 @@ void TCPSessionFactory::channelStateCallback(
                                       d_allocator_p);
             channel->close(closeStatus);
         }
+        else if (context->d_isTls) {
+            BALL_LOG_DEBUG << "TLS upgrade is in process";
+
+            bsl::shared_ptr<bmqio::StatChannel> statAlias =
+                bsl::dynamic_pointer_cast<bmqio::StatChannel>(channel);
+            BSLS_ASSERT(statAlias);
+            BSLS_ASSERT(statAlias->base());
+
+            bmqio::ResolvingChannelFactory_Channel* resolveAlias =
+                dynamic_cast<bmqio::ResolvingChannelFactory_Channel*>(
+                    statAlias->base());
+            BSLS_ASSERT(statAlias);
+            BSLS_ASSERT(statAlias->base());
+
+            bmqio::NtcChannel* alias = dynamic_cast<bmqio::NtcChannel*>(
+                resolveAlias->base());
+
+            if (alias) {
+                alias->upgrade(d_encryptionServer_sp,
+                               ntca::UpgradeOptions(),
+                               bdlf::BindUtil::bindS(
+                                   d_allocator_p,
+                                   &TCPSessionFactory::negotiationWithTlsInit,
+                                   this,
+                                   channel,
+                                   context,
+                                   bdlf::PlaceHolders::_1,
+                                   bdlf::PlaceHolders::_2));
+            }
+            else {
+                BALL_LOG_ERROR << "No alias";
+                bmqio::Status closeStatus(
+                    bmqio::StatusCategory::e_GENERIC_ERROR,
+                    d_allocator_p);
+                channel->close(closeStatus);
+            }
+        }
         else {
-            {  // Save begin session timestamp
-               // TODO: it's possible to store this timestamp directly in one
-               // of the bmqio::Channel implementations, so we don't need a
-               // mutex synchronization for them at all.
-                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-                d_timestampMap[channel.get()] =
-                    bmqsys::Time::highResolutionTimer();
-            }  // close mutex lock guard // UNLOCK
-
-            // Keep track of active channels, for logging purposes
-            ++d_nbActiveChannels;
-
-            // Register as observer of the channel to get the 'onClose'
-            channel->onClose(bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &TCPSessionFactory::onClose,
-                this,
-                channel,
-                bdlf::PlaceHolders::_1 /* bmqio::Status */));
-
-            negotiate(channel, context);
+            negotiationInit(channel, context);
         }
     } break;
     case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
@@ -747,6 +775,50 @@ void TCPSessionFactory::channelStateCallback(
                             bmqio::Channel::ReadCallback());
     } break;
     }
+}
+
+void TCPSessionFactory::negotiationWithTlsInit(
+    const bsl::shared_ptr<bmqio::Channel>&   channel,
+    const bsl::shared_ptr<OperationContext>& context,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+    const ntca::UpgradeEvent&                                  event)
+{
+    if (event.isError()) {
+        BALL_LOG_ERROR << "Received error during TLS negotiation: " << event;
+        bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                             d_allocator_p);
+        channel->close(status);
+
+        return;  // RETURN
+    }
+
+    negotiationInit(channel, context);
+}
+
+void TCPSessionFactory::negotiationInit(
+    bsl::shared_ptr<bmqio::Channel>   channel,
+    bsl::shared_ptr<OperationContext> context)
+{
+    {  // Save begin session timestamp
+        // TODO: it's possible to store this timestamp directly in one
+        // of the bmqio::Channel implementations, so we don't need a
+        // mutex synchronization for them at all.
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+        d_timestampMap[channel.get()] = bmqsys::Time::highResolutionTimer();
+    }  // close mutex lock guard // UNLOCK
+
+    // Keep track of active channels, for logging purposes
+    ++d_nbActiveChannels;
+
+    // Register as observer of the channel to get the 'onClose'
+    channel->onClose(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &TCPSessionFactory::onClose,
+                              this,
+                              channel,
+                              bdlf::PlaceHolders::_1 /* bmqio::Status */));
+
+    negotiate(channel, context);
 }
 
 void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
@@ -775,16 +847,16 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
     if (!channelInfo) {
         // We register to the close event as soon as the channel is up;
         // however, we insert in the d_channels only upon successful
-        // negotiation; therefore a failed to negotiate channel (like during
-        // intrusion testing) would trigger this trace.
+        // negotiation; therefore a failed to negotiate channel (like
+        // during intrusion testing) would trigger this trace.
         BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
+                      << "TCPSessionFactory '" << d_threadName
                       << "': OnClose channel for an unknown channel '"
                       << channel.get() << "', " << d_nbActiveChannels
                       << " active channels, status: " << status;
     }
     else {
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
+        BALL_LOG_INFO << "TCPSessionFactory '" << d_threadName
                       << "': OnClose channel [session: '"
                       << channelInfo->d_session_sp->description()
                       << "', channel: '" << channel.get() << "', "
@@ -795,12 +867,12 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         if (channelInfo->d_maxMissedHeartbeat != 0 &&
             d_heartbeatSchedulerActive) {
             // NOTE: When shutting down, we don't care about heartbeat
-            //       verifying the channel, therefore, as an optimization to
-            //       avoid the one-by-one disable for each channel (as they all
-            //       will get closed at this time), the 'stop()' sequence
-            //       cancels the recurring event and wait before closing the
-            //       channels, so we don't need to 'disableHeartbeat' in this
-            //       case.
+            //       verifying the channel, therefore, as an optimization
+            //       to avoid the one-by-one disable for each channel (as
+            //       they all will get closed at this time), the 'stop()'
+            //       sequence cancels the recurring event and wait before
+            //       closing the channels, so we don't need to
+            //       'disableHeartbeat' in this case.
             d_scheduler_p->scheduleEvent(
                 bsls::TimeInterval(0),
                 bdlf::BindUtil::bind(&TCPSessionFactory::disableHeartbeat,
@@ -829,20 +901,21 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
         ChannelInfo* info = it->second;
 
         // Always proactively send a sporadic heartbeat response message to
-        // notify remote peer of the 'good functioning' of that unidirectional
-        // part of the channel.
+        // notify remote peer of the 'good functioning' of that
+        // unidirectional part of the channel.
         //
         /// NOTE
         ///----
-        //  - this is necessary in the scenario where broker (A) is sending a
-        //    huge amount of data to its peer (B), and (B) is just reading, not
-        //    sending anything; therefore (A) will try to send heartbeat
-        //    requests, which will be queued behind the data, and not being
-        //    delivered in time.
+        //  - this is necessary in the scenario where broker (A) is sending
+        //  a
+        //    huge amount of data to its peer (B), and (B) is just reading,
+        //    not sending anything; therefore (A) will try to send
+        //    heartbeat requests, which will be queued behind the data, and
+        //    not being delivered in time.
         //  - sending a 'heartbeatRsp' unconditionally make it sound
         //    superfluous to also do the remaining of this method (i.e.,
-        //    sending 'heartbeatReq' in case we haven't received any data from
-        //    the remote peer), but we still do it as it's a very low
+        //    sending 'heartbeatReq' in case we haven't received any data
+        //    from the remote peer), but we still do it as it's a very low
         //    insignificant overhead that can be helpful to ensure good
         //    detection of any one-way TCP issue.
         //
@@ -864,8 +937,8 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
         // Perform 'incoming' traffic channel monitoring
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
                 info->d_packetReceived.loadRelaxed() != 0)) {
-            // A packet was received on the channel since the last heartbeat
-            // check, simply reset the associated counters.
+            // A packet was received on the channel since the last
+            // heartbeat check, simply reset the associated counters.
             info->d_packetReceived.storeRelaxed(0);
             info->d_missedHeartbeatCounter = 0;
             continue;  // CONTINUE
@@ -874,7 +947,7 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         if (++info->d_missedHeartbeatCounter == info->d_maxMissedHeartbeat) {
             BALL_LOG_WARN << "#TCP_DEAD_CHANNEL "
-                          << "TCPSessionFactory '" << d_config.name() << "'"
+                          << "TCPSessionFactory '" << d_threadName << "'"
                           << ": Closing unresponsive channel after "
                           << static_cast<int>(info->d_maxMissedHeartbeat)
                           << " missed heartbeats [session: '"
@@ -887,8 +960,9 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
             // Send heartbeat
             info->d_channel_p->write(0,  // status
                                      bmqp::ProtocolUtil::heartbeatReqBlob());
-            // We explicitly ignore any failure as failure implies issues with
-            // the channel, which is what the heartbeat is trying to expose.
+            // We explicitly ignore any failure as failure implies issues
+            // with the channel, which is what the heartbeat is trying to
+            // expose.
         }
     }
 }
@@ -905,7 +979,7 @@ void TCPSessionFactory::disableHeartbeat(
 {
     // executed by the *SCHEDULER* thread
 
-    BALL_LOG_INFO << "Disabling TCPSessionFactory '" << d_config.name()
+    BALL_LOG_INFO << "Disabling TCPSessionFactory '" << d_threadName
                   << "' Heartbeat";
 
     d_heartbeatChannels.erase(channelInfo->d_channel_p);
@@ -974,6 +1048,8 @@ TCPSessionFactory::TCPSessionFactory(
 , d_isListening(false)
 , d_listenContexts(allocator)
 , d_timestampMap(allocator)
+, d_certificateStore()
+, d_encryptionServer_sp()
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1041,6 +1117,31 @@ void TCPSessionFactory::cancelListeners()
     d_listenContexts.clear();
 }
 
+int TCPSessionFactory::loadTlsConfig(bmqio::NtcChannelFactory* channelFactory,
+                                     const mqbcfg::TlsConfig&  tlsConfig)
+{
+    ntca::EncryptionServerOptions encryptionServerOptions;
+    // Set the minimum version to TLS 1.3
+    encryptionServerOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionServerOptions.setMaxMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    // Disable client side authentication (mTLS)
+    encryptionServerOptions.setAuthentication(
+        ntca::EncryptionAuthentication::e_NONE);
+
+    encryptionServerOptions.setIdentityFile(tlsConfig.certificate());
+    encryptionServerOptions.setPrivateKeyFile(tlsConfig.key());
+    encryptionServerOptions.setAuthorityDirectory(
+        tlsConfig.certificateAuthority());
+
+    const ntsa::Error err = channelFactory->createEncryptionServer(
+        &d_encryptionServer_sp,
+        encryptionServerOptions);
+    if (err) {
+        BALL_LOG_ERROR << "While creating encryption server: " << err;
+    }
+    return err.code();
+}
+
 int TCPSessionFactory::start(bsl::ostream& errorDescription)
 {
     // PRECONDITIONS
@@ -1069,9 +1170,17 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                                                      d_allocator_p),
                         d_allocator_p);
 
-    channelFactory->onCreate(bdlf::BindUtil::bind(&ntcChannelPreCreation,
-                                                  bdlf::PlaceHolders::_1,
-                                                  bdlf::PlaceHolders::_2));
+    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
+    if (appConfig.tlsConfig().has_value()) {
+        rc = loadTlsConfig(channelFactory.get(),
+                           appConfig.tlsConfig().value());
+        if (rc != 0) {
+            errorDescription << "Failed to load the TLS configuration "
+                             << "TCPSessionFactory '" << d_config.name()
+                             << "' [rc: " << rc << "]";
+            return rc;
+        }
+    }
 
     rc = channelFactory->start();
     if (rc != 0) {
@@ -1080,6 +1189,14 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
                          << "' [rc: " << rc << "]";
         return rc;  // RETURN
     }
+
+    bdlb::ScopeExitAny ntcChannelFactoryScopeGuard(
+        bdlf::BindUtil::bind(&bmqio::NtcChannelFactory::stop,
+                             channelFactory.get()));
+
+    channelFactory->onCreate(bdlf::BindUtil::bind(&ntcChannelPreCreation,
+                                                  bdlf::PlaceHolders::_1,
+                                                  bdlf::PlaceHolders::_2));
 
     d_tcpChannelFactory_mp = channelFactory;
 
@@ -1181,6 +1298,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     reconnectingScopeGuard.release();
     tcpScopeGuard.release();
+    ntcChannelFactoryScopeGuard.release();
 
     return 0;
 }
@@ -1238,11 +1356,11 @@ void TCPSessionFactory::stopListening()
     cancelListeners();
 
     // NOTE: This is done here as a temporary workaround until channels are
-    //       properly stopped (see 'mqba::Application::stop'), because in the
-    //       current shutdown sequence, we 'stopListening()' and then
+    //       properly stopped (see 'mqba::Application::stop'), because in
+    //       the current shutdown sequence, we 'stopListening()' and then
     //       explicitly close each channel one by one in application layer,
-    //       instead of calling 'stop()'; therefore this would not allow the
-    //       optimization to 'bypass' the one-by-one disablement.
+    //       instead of calling 'stop()'; therefore this would not allow
+    //       the optimization to 'bypass' the one-by-one disablement.
     if (d_heartbeatSchedulerActive) {
         d_heartbeatSchedulerActive = false;
         d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
@@ -1290,7 +1408,8 @@ void TCPSessionFactory::closeClients()
                        << "timed out while waiting for clients to close"
                        << ", remaining clients: " << d_nbOpenClients;
 
-        // Invalidate the remaining sessions before stopping all Dispatchers.
+        // Invalidate the remaining sessions before stopping all
+        // Dispatchers.
 
         for (size_t i = 0; i < clients.size(); ++i) {
             bsl::shared_ptr<Session> session = clients[i].lock();
@@ -1317,18 +1436,19 @@ void TCPSessionFactory::stop()
                   << d_nbSessions << " alive sessions]";
 
     // Cancel the heartbeat scheduler event; note that
-    // 'd_heartbeatSchedulerActive' must be set to false prior to this cancel
-    // event, so that 'onClose' of the channels will not try to uselessly
-    // 'disableHeartbeat' on each channel, one-by-one.
+    // 'd_heartbeatSchedulerActive' must be set to false prior to this
+    // cancel event, so that 'onClose' of the channels will not try to
+    // uselessly 'disableHeartbeat' on each channel, one-by-one.
     if (d_heartbeatSchedulerActive) {
         d_heartbeatSchedulerActive = false;
         d_scheduler_p->cancelEventAndWait(&d_heartbeatSchedulerHandle);
         d_heartbeatChannels.clear();
     }
 
-    // NOTE: We don't need to manually call 'teardown' on any active session in
-    //       the 'd_channels' map: calling 'stop' on the channel factory will
-    //       invoke the 'onClose' for every sessions.
+    // NOTE: We don't need to manually call 'teardown' on any active
+    // session in
+    //       the 'd_channels' map: calling 'stop' on the channel factory
+    //       will invoke the 'onClose' for every sessions.
 
     // STOP
     d_resolutionContext.stop();
@@ -1368,8 +1488,8 @@ void TCPSessionFactory::stop()
     d_mutex.unlock();
 
     // DESTROY
-    // We destroy the channel factories here for symmetry since it's created in
-    // 'start'.
+    // We destroy the channel factories here for symmetry since it's
+    // created in 'start'.
     if (d_statChannelFactory_mp) {
         d_statChannelFactory_mp.clear();
     }
@@ -1406,6 +1526,8 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     context->d_resultCb      = resultCallback;
     context->d_isIncoming    = true;
     context->d_resultState_p = 0;
+    context->d_isTls         = listener.tls();
+    context->d_interfaceName = listener.name();
 
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
     bmqu::MemOutStream                  endpoint(&localAlloc);
@@ -1414,7 +1536,7 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     listenOptions.setEndpoint(endpoint.str());
 
     bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> listeningHandle_mp;
-    bmqio::Status status;
+    bmqio::Status                                      status;
     d_statChannelFactory_mp->listen(
         &status,
         &listeningHandle_mp,
@@ -1456,6 +1578,7 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
     context->d_resultCb      = resultCallback;
     context->d_isIncoming    = false;
     context->d_resultState_p = resultState;
+    context->d_isTls         = false;
 
     if (negotiationUserData) {
         context->d_negotiationUserData_sp = *negotiationUserData;

@@ -404,6 +404,7 @@ bool Parameters::from(bsl::ostream&                stream,
     setShutdownGrace(params.shutdownGrace());
     setMessageProperties(params.messageProperties());
     setSubscriptions(params.subscriptions());
+    setCertificateAuthority(params.tlsAuthority());
 
     return true;
 }
