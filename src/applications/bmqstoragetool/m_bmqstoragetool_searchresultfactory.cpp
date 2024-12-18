@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_recordprinter.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -59,11 +60,14 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     // Clean unprinted/unerased data for specific case
     const bool cleanUnprinted = params->d_confirmed;
 
+    bslma::ManagedPtr<PrintManager> printManager =
+        createPrintManager(params->d_printMode, ostream, alloc);
+
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
     if (details) {
-        searchResult.reset(new (*alloc) SearchDetailResult(ostream,
-                                                           params->d_queueMap,
+        searchResult.reset(new (*alloc) SearchDetailResult(params->d_queueMap,
+                                                           printManager,
                                                            payloadDumper,
                                                            printImmediately,
                                                            eraseDeleted,
@@ -72,7 +76,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else {
-        searchResult.reset(new (*alloc) SearchShortResult(ostream,
+        searchResult.reset(new (*alloc) SearchShortResult(printManager,
                                                           payloadDumper,
                                                           printImmediately,
                                                           eraseDeleted,
@@ -81,45 +85,48 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Create Decorator for specific search
-    if (!params->d_guid.empty()) {
-        // Search GUIDs
-        searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
-                                                            params->d_guid,
-                                                            ostream,
-                                                            details,
-                                                            alloc),
-                           alloc);
-    }
-    else if (params->d_summary) {
-        // Summary
-        searchResult.reset(
-            new (*alloc) SummaryProcessor(ostream,
-                                          fileManager->journalFileIterator(),
-                                          fileManager->dataFileIterator(),
-                                          alloc),
-            alloc);
-    }
-    else if (params->d_outstanding || params->d_confirmed) {
-        // Search outstanding or confirmed
-        searchResult.reset(
-            new (*alloc)
-                SearchOutstandingDecorator(searchResult, ostream, alloc),
-            alloc);
-    }
-    else if (params->d_partiallyConfirmed) {
-        // Search partially confirmed
-        searchResult.reset(new (*alloc)
-                               SearchPartiallyConfirmedDecorator(searchResult,
-                                                                 ostream,
-                                                                 alloc),
-                           alloc);
-    }
-    else {
-        // Drefault: search all
-        searchResult.reset(new (*alloc)
-                               SearchAllDecorator(searchResult, alloc),
-                           alloc);
+    // TODO: implement printer methods for the decorators
+    if (params->d_printMode == Parameters::e_HUMAN) {
+        // Create Decorator for specific search
+        if (!params->d_guid.empty()) {
+            // Search GUIDs
+            searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
+                                                                params->d_guid,
+                                                                ostream,
+                                                                details,
+                                                                alloc),
+                               alloc);
+        }
+        else if (params->d_summary) {
+            // Summary
+            searchResult.reset(new (*alloc) SummaryProcessor(
+                                   ostream,
+                                   fileManager->journalFileIterator(),
+                                   fileManager->dataFileIterator(),
+                                   alloc),
+                               alloc);
+        }
+        else if (params->d_outstanding || params->d_confirmed) {
+            // Search outstanding or confirmed
+            searchResult.reset(
+                new (*alloc)
+                    SearchOutstandingDecorator(searchResult, ostream, alloc),
+                alloc);
+        }
+        else if (params->d_partiallyConfirmed) {
+            // Search partially confirmed
+            searchResult.reset(
+                new (*alloc) SearchPartiallyConfirmedDecorator(searchResult,
+                                                               ostream,
+                                                               alloc),
+                alloc);
+        }
+        else {
+            // Drefault: search all
+            searchResult.reset(new (*alloc)
+                                   SearchAllDecorator(searchResult, alloc),
+                               alloc);
+        }
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.

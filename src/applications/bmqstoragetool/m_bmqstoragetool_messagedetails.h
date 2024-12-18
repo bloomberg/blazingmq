@@ -26,8 +26,15 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_queuemap.h>
 
+// BMQ
+#include <bmqu_memoutstream.h>
+
 // MQB
 #include <mqbs_filestoreprotocol.h>
+
+// BDE
+#include <bdlb_nullablevalue.h>
+#include <bdlt_epochutil.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -37,8 +44,8 @@ namespace m_bmqstoragetool {
 // =====================
 
 class MessageDetails {
-  private:
-    // PRIVATE TYPES
+  public:
+    // PUBLIC TYPES
 
     // Value-semantic type representing message details.
     template <typename RECORD_TYPE>
@@ -50,17 +57,11 @@ class MessageDetails {
         // Index of the record from journal file.
         bsls::Types::Uint64 d_recordOffset;
         // Offset of the record from journal file.
-        bool d_isValid;
-        // A flag indicating if the object is in valid state.
+        bsl::string_view d_queueUri;
+        // URI of the string
+        bsl::string_view d_appId;
 
         // CREATORS
-
-        /// Default constructor
-        RecordDetails()
-        : d_isValid(false)
-        {
-            // NOTHING
-        }
 
         /// Constructor with the specified `record`, `recordIndex` and
         /// `recordOffset`.
@@ -70,19 +71,21 @@ class MessageDetails {
         : d_record(record)
         , d_recordIndex(recordIndex)
         , d_recordOffset(recordOffset)
-        , d_isValid(true)
         {
             // NOTHING
         }
     };
 
+  private:
     // DATA
     RecordDetails<mqbs::MessageRecord> d_messageRecord;
     // Message record
     bsl::vector<RecordDetails<mqbs::ConfirmRecord> > d_confirmRecords;
     // All the confirm records related to the `d_messageRecord`
-    RecordDetails<mqbs::DeletionRecord> d_deleteRecord;
+    bdlb::NullableValue<RecordDetails<mqbs::DeletionRecord> > d_deleteRecord;
     // Delete record related to the `d_messageRecord`
+    bmqp_ctrlmsg::QueueInfo* d_queueInfo_p;
+    // A pointer to the QueueInfo of the message's queue
     bslma::Allocator* d_allocator_p;
     // Allocator used inside te class
 
@@ -93,6 +96,7 @@ class MessageDetails {
     explicit MessageDetails(const mqbs::MessageRecord& record,
                             bsls::Types::Uint64        recordIndex,
                             bsls::Types::Uint64        recordOffset,
+                            const QueueMap&            queueMap,
                             bslma::Allocator*          allocator);
 
     // MANIPULATORS
@@ -109,15 +113,23 @@ class MessageDetails {
 
     // ACCESSORS
 
-    /// Print this object to the specified `os` stream, using specified
-    /// 'queueMap'.
-    void print(bsl::ostream& os, const QueueMap& queueMap) const;
-
     /// Return message's data record offset.
     unsigned int dataRecordOffset() const;
 
     /// Return message record index in Journal file.
     bsls::Types::Uint64 messageRecordIndex() const;
+
+    /// Return a reference to the non-modifiable message record
+    const RecordDetails<mqbs::MessageRecord>& messageRecord() const;
+
+    /// Return a reference to the non-modifiable vector of all the confirm
+    /// records related to the `d_messageRecord`
+    const bsl::vector<RecordDetails<mqbs::ConfirmRecord> >&
+    confirmRecords() const;
+
+    /// Return a reference to the non-modifiable delete record
+    const bdlb::NullableValue<RecordDetails<mqbs::DeletionRecord> >&
+    deleteRecord() const;
 };
 
 }  // close package namespace

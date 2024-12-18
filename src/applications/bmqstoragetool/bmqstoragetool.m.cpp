@@ -57,6 +57,12 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "path to a .bmq_csl file",
          balcl::TypeInfo(&arguments.d_cslFile),
          balcl::OccurrenceInfo::e_OPTIONAL},
+        {"print-mode",
+         "print mode",
+         "can be one of the following: [HUMAN, JSON_PRETTY, JSON_LINE]. "
+         "Defailt value is HUMAN",
+         balcl::TypeInfo(&arguments.d_printMode),
+         balcl::OccurrenceInfo::e_OPTIONAL},
         {"guid",
          "guid",
          "message guid",
