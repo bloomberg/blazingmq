@@ -314,25 +314,25 @@ static void test3_queueStatsDomain()
     queueStatsDomain.setWriterCount(2);
 
     // 2 acks : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
 
     // 1 confirm : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
 
     // 1 push : 9 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUSH, 9);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUSH>(9);
 
     // 3 puts : 33 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 10);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 11);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 12);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(10);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(11);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(12);
 
     // 1 add message : 15 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ADD_MESSAGE, 15);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ADD_MESSAGE>(15);
 
     // 1 GUID in history
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 1);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(1);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
@@ -363,29 +363,29 @@ static void test3_queueStatsDomain()
     queueStatsDomain.setReaderCount(3).setWriterCount(1);
 
     // 4 acks : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
 
     // 3 confirms : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
 
     // 1 push : 9 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUSH, 11);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUSH>(11);
 
     // 2 puts : 22 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 10);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 12);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(10);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(12);
 
     // del 1 message
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_DEL_MESSAGE, 15);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_DEL_MESSAGE>(15);
 
     // 3 GUIDs in history (first 5, then gc results in 3)
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 5);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 3);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(5);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(3);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
@@ -474,8 +474,8 @@ static void test4_queueStatsDomainContent()
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 3);
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 5);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(3);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(5);
 
         sc->snapshot();
 
@@ -487,8 +487,8 @@ static void test4_queueStatsDomainContent()
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 7);
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE, 3);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(7);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(3);
 
         sc->snapshot();
 
@@ -500,7 +500,7 @@ static void test4_queueStatsDomainContent()
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE, 5);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(5);
 
         sc->snapshot();
 
