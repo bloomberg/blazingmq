@@ -2061,15 +2061,7 @@ RootQueueEngine::head(const AppStateSp app) const
 //   (virtual mqbi::QueueEngine)
 unsigned int RootQueueEngine::messageReferenceCount() const
 {
-    unsigned refCount = d_isFanout ? d_queueState_p->domain()
-                                         ->config()
-
-                                         .mode()
-                                         .fanout()
-                                         .appIDs()
-                                         .size()
-                                   : 1;
-
+    unsigned int refCount    = d_queueState_p->storage()->numVirtualStorages();
     unsigned int numNegative = d_queueState_p->storage()->numAutoConfirms();
 
     BSLS_ASSERT_SAFE(numNegative <= refCount);
