@@ -55,9 +55,8 @@ static void test1_basic()
     mqbblp::PushStream::Apps::iterator itApp =
         ps.d_apps.emplace(subQueueId, app).first;
 
-    mqbblp::PushStream::Element* element = ps.create(subscription,
-                                                     itGuid,
-                                                     itApp);
+    mqbblp::PushStream::Element* element =
+        ps.create(subscription.rdaInfo(), subscription.id(), itGuid, itApp);
 
     ps.add(element);
     ps.remove(element, true);
@@ -85,7 +84,8 @@ static void test2_iterations()
     mqbblp::PushStream::Apps::iterator itApp1 =
         ps.d_apps.emplace(subQueueId1, unused).first;
 
-    mqbblp::PushStream::Element* element1 = ps.create(subscription1,
+    mqbblp::PushStream::Element* element1 = ps.create(subscription1.rdaInfo(),
+                                                      subscription1.id(),
                                                       itGuid1,
                                                       itApp1);
 
@@ -97,19 +97,22 @@ static void test2_iterations()
     mqbblp::PushStream::Apps::iterator itApp2 =
         ps.d_apps.emplace(subQueueId2, unused).first;
 
-    mqbblp::PushStream::Element* element2 = ps.create(subscription2,
+    mqbblp::PushStream::Element* element2 = ps.create(subscription2.rdaInfo(),
+                                                      subscription2.id(),
                                                       itGuid2,
                                                       itApp2);
 
     ps.add(element2);
 
-    mqbblp::PushStream::Element* element3 = ps.create(subscription2,
+    mqbblp::PushStream::Element* element3 = ps.create(subscription2.rdaInfo(),
+                                                      subscription2.id(),
                                                       itGuid1,
                                                       itApp2);
 
     ps.add(element3);
 
-    mqbblp::PushStream::Element* element4 = ps.create(subscription1,
+    mqbblp::PushStream::Element* element4 = ps.create(subscription1.rdaInfo(),
+                                                      subscription1.id(),
                                                       itGuid2,
                                                       itApp1);
 

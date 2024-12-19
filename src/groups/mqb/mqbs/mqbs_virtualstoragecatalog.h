@@ -171,14 +171,14 @@ class VirtualStorageCatalog {
     DataStreamIterator get(const bmqt::MessageGUID& msgGUID);
 
     /// Allocate space for all Apps states in the specified 'data' if needed.
-    void setup(VirtualStorage::DataStreamMessage* data);
+    void setup(mqbi::DataStreamMessage* data);
 
     /// Save the message having the specified 'msgGUID' and 'msgSize' to the
     /// DataStream.  If the specified 'out' is not '0', allocate space for all
     /// Apps states and load the created object into the 'out'.
-    mqbi::StorageResult::Enum put(const bmqt::MessageGUID&            msgGUID,
-                                  int                                 msgSize,
-                                  VirtualStorage::DataStreamMessage** out = 0);
+    mqbi::StorageResult::Enum put(const bmqt::MessageGUID&  msgGUID,
+                                  int                       msgSize,
+                                  mqbi::DataStreamMessage** out = 0);
 
     /// Get an iterator for items stored in the DataStream identified by the
     /// specified 'appKey'.
@@ -245,8 +245,8 @@ class VirtualStorageCatalog {
 
     /// (Auto)Confirm the specified 'msgGUID' for the specified 'appKey'.
     /// Behavior is undefined unless there is an App with the 'appKey'.
-    void autoConfirm(VirtualStorage::DataStreamMessage* dataStreamMessage,
-                     const mqbu::StorageKey&            appKey);
+    void autoConfirm(mqbi::DataStreamMessage* dataStreamMessage,
+                     const mqbu::StorageKey&  appKey);
 
     /// Set the default RDA according to the specified 'maxDeliveryAttempts'.
     void setDefaultRda(int maxDeliveryAttempts);

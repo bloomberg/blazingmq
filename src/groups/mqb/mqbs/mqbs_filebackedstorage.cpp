@@ -289,7 +289,8 @@ mqbi::StorageResult::Enum
 FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        const bmqt::MessageGUID&            msgGUID,
                        const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       const bsl::shared_ptr<bdlbb::Blob>& options)
+                       const bsl::shared_ptr<bdlbb::Blob>& options,
+                       mqbi::DataStreamMessage**           out)
 {
     const int msgSize = appData->length();
 
@@ -340,19 +341,21 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     // if we keep `irc` (like we keep 'DataStoreRecordHandle').
 
     if (d_autoConfirms.empty()) {
-        d_virtualStorageCatalog.put(msgGUID, msgSize);
+        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
     }
     else {
-        VirtualStorage::DataStreamMessage* dataStreamMessage = 0;
-        d_virtualStorageCatalog.put(msgGUID, msgSize, &dataStreamMessage);
+        mqbi::DataStreamMessage* dataStreamMessage = 0;
+        if (out == 0) {
+            out = &dataStreamMessage;
+        }
+        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
 
         // Move auto confirms to the data record
         for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
              it != d_autoConfirms.end();
              ++it) {
             irc.first->second.d_array.push_back(it->d_confirmRecordHandle);
-            d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                it->d_appKey);
+            d_virtualStorageCatalog.autoConfirm(*out, it->d_appKey);
         }
         d_autoConfirms.clear();
     }
@@ -776,7 +779,7 @@ void FileBackedStorage::processMessageRecord(
         else {
             if (!d_currentlyAutoConfirming.isUnset()) {
                 if (d_currentlyAutoConfirming == guid) {
-                    VirtualStorage::DataStreamMessage* dataStreamMessage = 0;
+                    mqbi::DataStreamMessage* dataStreamMessage = 0;
                     d_virtualStorageCatalog.put(guid,
                                                 msgLen,
                                                 &dataStreamMessage);
@@ -795,7 +798,6 @@ void FileBackedStorage::processMessageRecord(
                 else {
                     clearSelection();
                 }
-                d_currentlyAutoConfirming = bmqt::MessageGUID();
             }
             d_autoConfirms.clear();
         }
