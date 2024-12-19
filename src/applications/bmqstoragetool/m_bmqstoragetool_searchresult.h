@@ -385,9 +385,9 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 
     // ACCESSORS
 
+    /// Return 'true' if the specified 'timestamp' is greater than
+    /// 'd_timestampLt' and internal cache is empty.
     bool stop(const bsls::Types::Uint64 timestamp) const;
-    // Return 'true' if the specified 'timestamp' is greater than
-    // 'd_timestampLt' and internal cache is empty.
 
   public:
     // CREATORS
@@ -428,14 +428,14 @@ class SearchResultTimestampDecorator : public SearchResultDecorator {
 /// This class provides decorator to handle offsets.
 class SearchResultOffsetDecorator : public SearchResultDecorator {
   private:
+    /// Higher bound offset.
     const bsls::Types::Uint64 d_offsetLt;
-    // Higher bound offset.
 
     // ACCESSORS
 
+    /// Return 'true' if the specified 'offset' is greater than
+    /// 'd_offsetLt' and internal cache is empty.
     bool stop(const bsls::Types::Uint64 offset) const;
-    // Return 'true' if the specified 'offset' is greater than
-    // 'd_offsetLt' and internal cache is empty.
 
   public:
     // CREATORS
@@ -475,14 +475,14 @@ class SearchResultOffsetDecorator : public SearchResultDecorator {
 /// This class provides decorator to handle composite sequence numbers.
 class SearchResultSequenceNumberDecorator : public SearchResultDecorator {
   private:
+    /// Higher bound sequence number.
     const CompositeSequenceNumber sequenceNumberLt;
-    // Higher bound sequence number.
 
     // ACCESSORS
 
+    /// Return 'true' if the specified 'sequenceNumber' is greater than
+    /// 'sequenceNumberLt' and internal cache is empty.
     bool stop(const CompositeSequenceNumber& sequenceNumber) const;
-    // Return 'true' if the specified 'sequenceNumber' is greater than
-    // 'sequenceNumberLt' and internal cache is empty.
 
   public:
     // CREATORS
@@ -696,12 +696,12 @@ class SearchGuidDecorator : public SearchResultDecorator {
 class SearchOffsetDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
+    /// List of offsets to search for.
     bsl::vector<bsls::Types::Int64> d_offsets;
-    // List of offsets to search for.
+    /// Reference to output stream.
     bsl::ostream& d_ostream;
-    // Reference to output stream.
-    bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
+    bool d_withDetails;
 
   public:
     // CREATORS
