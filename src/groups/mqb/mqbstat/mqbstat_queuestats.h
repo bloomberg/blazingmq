@@ -258,7 +258,8 @@ class QueueStatsDomain {
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value`.  Depending on the `type`, `value` can represent
     /// the number of bytes, a counter, ...
-    void onEvent(EventType::Enum type, bsls::Types::Int64 value);
+    template <EventType::Enum type>
+    void onEvent(bsls::Types::Int64 value);
 
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value` for the specified `appId`.  Depending on the `type`,
@@ -266,11 +267,6 @@ class QueueStatsDomain {
     void onEvent(EventType::Enum    type,
                  bsls::Types::Int64 value,
                  const bsl::string& appId);
-
-    /// Force set the stats of the content of the queue to the specified
-    /// absolute `messages` and `bytes` values.
-    void setQueueContentRaw(bsls::Types::Int64 messages,
-                            bsls::Types::Int64 bytes);
 
     /// Update subcontexts in case of domain reconfigure with the given list of
     /// AppIds.
@@ -419,6 +415,104 @@ struct QueueStatsUtil {
                                  bmqst::StatContext*            statContext);
 };
 
+// -----------------------
+// struct DomainQueueStats
+// -----------------------
+
+/// Namespace for the constants of stat values that applies to the queues
+/// on the domain
+struct DomainQueueStats {
+    enum Enum {
+        /// Value:      Current number of clients who opened the queue with
+        ///             the `WRITE` flag
+        e_STAT_NB_PRODUCER
+
+        ,
+        /// Value:      Current number of clients who opened the queue with
+        ///             the 'READ' flag
+        e_STAT_NB_CONSUMER
+
+        ,
+        /// Value:      Current number of messages in the queue
+        e_STAT_MESSAGES
+
+        ,
+        /// Value:      Accumulated bytes of all messages currently in the
+        ///             queue
+        e_STAT_BYTES
+
+        ,
+        /// Value:      Number of ack messages delivered by this queue
+        e_STAT_ACK
+
+        ,
+        /// Value:      The time between PUT and ACK (in nanoseconds).
+        e_STAT_ACK_TIME
+
+        ,
+        /// Value:      Number of NACK messages generated for this queue
+        e_STAT_NACK
+
+        ,
+        /// Value:      Number of CONFIRM messages received by this queue
+        e_STAT_CONFIRM
+
+        ,
+        /// Value:      The time between PUSH and CONFIRM (in nanoseconds).
+        e_STAT_CONFIRM_TIME
+
+        ,
+        /// Value:      Number of messages rejected by this queue (RDA
+        ///             reaching zero)
+        e_STAT_REJECT
+
+        ,
+        /// Value:      The time spent by the message in the queue (in
+        ///             nanoseconds).
+        e_STAT_QUEUE_TIME
+
+        ,
+        /// Value:      Accumulated bytes of all messages ever pushed from
+        ///             the queue
+        /// Increment:  Number of messages ever pushed from the queue
+        e_STAT_PUSH
+
+        ,
+        /// Value:      Accumulated bytes of all messages ever put in the
+        ///             queue
+        /// Increment:  Number of messages ever put in the queue
+        e_STAT_PUT
+
+        ,
+        /// Value:      Accumulated number of messages ever GC'ed in the
+        ///             queue
+        e_STAT_GC_MSGS
+
+        ,
+        /// Value:      Role (Unknown, Primary, Replica, Proxy)
+        e_STAT_ROLE
+
+        ,
+        /// Value:      The configured queue messages capacity
+        e_CFG_MSGS
+
+        ,
+        /// Value:      The configured queue bytes capacity
+        e_CFG_BYTES
+
+        ,
+        /// Value:      Accumulated number of messages in the strong
+        ///             consistency queue expired before receiving quorum
+        ///             Receipts
+        e_STAT_NO_SC_MSGS
+
+        ,
+        // Value:      Current number of GUIDs stored in queue's history
+        //             (does not include messages in the queue)
+        e_STAT_HISTORY
+    };
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -430,6 +524,193 @@ struct QueueStatsUtil {
 inline bmqst::StatContext* QueueStatsDomain::statContext()
 {
     return d_statContext_mp.get();
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK>(
+    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_ACK, 1);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK_TIME>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_ACK_TIME, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NACK>(
+    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    // For NACK, we don't care about the bytes value
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_NACK, 1);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM>(
+    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    // For CONFIRM, we don't care about the bytes value
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_CONFIRM, 1);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM_TIME>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_CONFIRM_TIME,
+                                  value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_REJECT>(
+    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    // For REJECT, we don't care about the bytes value
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_REJECT, 1);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_QUEUE_TIME>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->reportValue(DomainQueueStats::e_STAT_QUEUE_TIME, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUSH>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_PUSH, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUT>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_PUT, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ADD_MESSAGE>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+    if (!d_subContextsHolder.empty()) {
+        bsl::list<StatSubContextMp>::iterator it = d_subContextsHolder.begin();
+        while (it != d_subContextsHolder.end()) {
+            it->get()->adjustValue(DomainQueueStats::e_STAT_BYTES, value);
+            it->get()->adjustValue(DomainQueueStats::e_STAT_MESSAGES, 1);
+            ++it;
+        }
+    }
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_DEL_MESSAGE>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_BYTES, -value);
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_MESSAGES, -1);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_GC_MESSAGE>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_GC_MSGS, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PURGE>(
+    BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    // NOTE: Setting the value like that will cause weird results if using
+    //       the stat to get rates
+    d_statContext_mp->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+    d_statContext_mp->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+    if (!d_subContextsHolder.empty()) {
+        bsl::list<StatSubContextMp>::iterator it = d_subContextsHolder.begin();
+        while (it != d_subContextsHolder.end()) {
+            it->get()->setValue(DomainQueueStats::e_STAT_BYTES, 0);
+            it->get()->setValue(DomainQueueStats::e_STAT_MESSAGES, 0);
+            ++it;
+        }
+    }
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CHANGE_ROLE>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainQueueStats::e_STAT_ROLE, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_MSGS>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainQueueStats::e_CFG_MSGS, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_BYTES>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainQueueStats::e_CFG_BYTES, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NO_SC_MESSAGE>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->adjustValue(DomainQueueStats::e_STAT_NO_SC_MSGS, value);
+}
+
+template <>
+inline void
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_UPDATE_HISTORY>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainQueueStats::e_STAT_HISTORY, value);
 }
 
 // -----------------------------

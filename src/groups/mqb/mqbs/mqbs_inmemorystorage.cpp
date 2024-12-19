@@ -133,8 +133,6 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
 
-        queue->stats()->setQueueContentRaw(numMessage, numByte);
-
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
                       << queue->partitionId() << "] with its storage having ["
@@ -222,9 +220,11 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         d_currentlyAutoConfirming = bmqt::MessageGUID();
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
-                msgSize);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
+
+                    msgSize);
         }
 
         d_isEmpty.storeRelaxed(0);
@@ -311,9 +311,10 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_capacityMeter.remove(1, msgLen);
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(guid);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
         }
 
         // There is not really a need to remove the guid from all virtual
@@ -326,9 +327,11 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_items.erase(it);
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-                d_items.historySize());
+            queue()
+                ->stats()
+                ->onEvent<
+                    mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                    d_items.historySize());
         }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
@@ -355,12 +358,14 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     d_capacityMeter.remove(1, msgLen);
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-            msgLen);
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                msgLen);
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     if (msgSize) {
@@ -385,9 +390,9 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_capacityMeter.clear();
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_PURGE,
-                0);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
         }
 
         d_isEmpty.storeRelaxed(1);
@@ -415,9 +420,10 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     }
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     return mqbi::StorageResult::e_SUCCESS;
@@ -456,9 +462,10 @@ int InMemoryStorage::gcExpiredMessages(
         d_capacityMeter.remove(1, msgLen);
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(cit->first);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
         }
 
         // Remove message from all virtual storages and the physical (this)
@@ -469,12 +476,14 @@ int InMemoryStorage::gcExpiredMessages(
     }
 
     if (queue() && (numMsgsDeleted > 0)) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
-            numMsgsDeleted);
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE>(
+                numMsgsDeleted);
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     if (d_items.empty()) {
@@ -490,9 +499,10 @@ bool InMemoryStorage::gcHistory()
                                   k_GC_MESSAGES_BATCH_SIZE);
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     return hasMoreToGc;
@@ -598,6 +608,11 @@ void InMemoryStorage::purge(
     // Replicated in-memory storage is not yet supported.
 
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
+}
+
+void InMemoryStorage::setPrimary()
+{
+    // NOTHING
 }
 
 // ACCESSORS (for mqbs::ReplicatedStorage)

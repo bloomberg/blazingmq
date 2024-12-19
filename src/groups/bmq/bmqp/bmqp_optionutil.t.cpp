@@ -91,7 +91,7 @@ bmqp::OptionUtil::OptionMeta appendOption(bmqp::OptionUtil::OptionsBox* box,
                                                                    payloadSize)
                                     : OptionMeta::forOption(type, payloadSize);
     const Result::Enum result = box->canAdd(currentSize, meta);
-    ASSERT_EQ(result, Result::e_SUCCESS);
+    BMQTST_ASSERT_EQ(result, Result::e_SUCCESS);
     box->add(blob, payload.c_str(), meta);
     return meta;
 }
@@ -105,28 +105,28 @@ const char* validateOption(const char*                         p,
 
     // Now we're a the beginning of 'OptionHeader' and we should get the
     // 'Type' of the option shifted by two reserved bits.
-    ASSERT_EQ(static_cast<char>(meta.type() << 2), *p);
+    BMQTST_ASSERT_EQ(static_cast<char>(meta.type() << 2), *p);
     ++p;
 
     const int sizeWords = meta.size() / bmqp::Protocol::k_WORD_SIZE;
 
     // for the 1st size byte, the top 3 bits are reserved to zero.  For
     // subsequent bytes, they hold the appropriate part of the size value.
-    ASSERT_EQ((sizeWords >> 16) & 0x1f, *p);
+    BMQTST_ASSERT_EQ((sizeWords >> 16) & 0x1f, *p);
     ++p;
-    ASSERT_EQ((sizeWords >> 8) & 0xff, *p);
+    BMQTST_ASSERT_EQ((sizeWords >> 8) & 0xff, *p);
     ++p;
-    ASSERT_EQ(sizeWords, *p);
+    BMQTST_ASSERT_EQ(sizeWords, *p);
     ++p;
 
     // Payload follows. Optional padding follows
-    ASSERT_EQ(0, bsl::memcmp(p, payload.c_str(), payload.length()));
+    BMQTST_ASSERT_EQ(0, bsl::memcmp(p, payload.c_str(), payload.length()));
 
     p += payload.length();
 
     // The optional padding bytes should all be equal to the size of padding.
     for (int i = 0; i < meta.padding(); ++i) {
-        ASSERT_EQ(meta.padding(), *p);
+        BMQTST_ASSERT_EQ(meta.padding(), *p);
         ++p;
     }
     return p;
@@ -170,17 +170,17 @@ static void test1_basicOptionMetaProperties()
     {
         for (int size = 0; size < 10; ++size) {
             if (0 != size % bmqp::Protocol::k_WORD_SIZE) {
-                ASSERT_SAFE_FAIL(OptionMeta::forOption(type, size));
+                BMQTST_ASSERT_SAFE_FAIL(OptionMeta::forOption(type, size));
             }
             else {
                 const OptionMeta meta = OptionMeta::forOption(type, size);
 
-                ASSERT_EQ(false, meta.isNull());
-                ASSERT_EQ(size, meta.payloadSize());
-                ASSERT_EQ(size, meta.payloadEffectiveSize());
-                ASSERT_EQ(size + headerSize, meta.size());
-                ASSERT_EQ(0, meta.padding());
-                ASSERT_EQ(type, meta.type());
+                BMQTST_ASSERT_EQ(false, meta.isNull());
+                BMQTST_ASSERT_EQ(size, meta.payloadSize());
+                BMQTST_ASSERT_EQ(size, meta.payloadEffectiveSize());
+                BMQTST_ASSERT_EQ(size + headerSize, meta.size());
+                BMQTST_ASSERT_EQ(0, meta.padding());
+                BMQTST_ASSERT_EQ(type, meta.type());
             }
         }
     }
@@ -192,12 +192,12 @@ static void test1_basicOptionMetaProperties()
                                                                      size);
 
             const int padding = 1 + (3 - size % 4);
-            ASSERT_EQ(false, meta.isNull());
-            ASSERT_EQ(size, meta.payloadSize());
-            ASSERT_EQ(size + padding, meta.payloadEffectiveSize());
-            ASSERT_EQ(size + padding + headerSize, meta.size());
-            ASSERT_EQ(padding, meta.padding());
-            ASSERT_EQ(type, meta.type());
+            BMQTST_ASSERT_EQ(false, meta.isNull());
+            BMQTST_ASSERT_EQ(size, meta.payloadSize());
+            BMQTST_ASSERT_EQ(size + padding, meta.payloadEffectiveSize());
+            BMQTST_ASSERT_EQ(size + padding + headerSize, meta.size());
+            BMQTST_ASSERT_EQ(padding, meta.padding());
+            BMQTST_ASSERT_EQ(type, meta.type());
         }
     }
 
@@ -205,12 +205,12 @@ static void test1_basicOptionMetaProperties()
     {
         const OptionMeta meta = OptionMeta::forNullOption();
 
-        ASSERT_EQ(true, meta.isNull());
-        ASSERT_SAFE_FAIL(meta.payloadSize());
-        ASSERT_SAFE_FAIL(meta.payloadEffectiveSize());
-        ASSERT_SAFE_FAIL(meta.size());
-        ASSERT_SAFE_FAIL(meta.padding());
-        ASSERT_SAFE_FAIL(meta.type());
+        BMQTST_ASSERT_EQ(true, meta.isNull());
+        BMQTST_ASSERT_SAFE_FAIL(meta.payloadSize());
+        BMQTST_ASSERT_SAFE_FAIL(meta.payloadEffectiveSize());
+        BMQTST_ASSERT_SAFE_FAIL(meta.size());
+        BMQTST_ASSERT_SAFE_FAIL(meta.padding());
+        BMQTST_ASSERT_SAFE_FAIL(meta.type());
     }
 }
 
@@ -260,7 +260,7 @@ static void test2_basicOptionsBoxCanAdd()
             const Result::Enum expected = (size + headerSize > k_MAX_SIZE)
                                               ? Result::e_OPTION_TOO_BIG
                                               : Result::e_SUCCESS;
-            ASSERT_EQ(expected, box.canAdd(contentSize, meta));
+            BMQTST_ASSERT_EQ(expected, box.canAdd(contentSize, meta));
         }
     }
 
@@ -280,12 +280,12 @@ static void test2_basicOptionsBoxCanAdd()
             const int    contentSize = testContentSizes[i];
             const LimitT limit = maxCanBeAdded(contentSize, smallPayload);
             if (contentSize == oneTooMany) {
-                ASSERT_EQ(Result::e_OPTION_TOO_BIG, limit.second);
-                ASSERT_EQ(k_MAX_TYPE - 1, limit.first);
+                BMQTST_ASSERT_EQ(Result::e_OPTION_TOO_BIG, limit.second);
+                BMQTST_ASSERT_EQ(k_MAX_TYPE - 1, limit.first);
             }
             else {
-                ASSERT_EQ(Result::e_UNKNOWN, limit.second);
-                ASSERT_EQ(k_MAX_TYPE, limit.first);
+                BMQTST_ASSERT_EQ(Result::e_UNKNOWN, limit.second);
+                BMQTST_ASSERT_EQ(k_MAX_TYPE, limit.first);
             }
         }
     }
@@ -305,7 +305,7 @@ static void test2_basicOptionsBoxCanAdd()
             const int    contentSize = testContentSizes[i];
             const int    maxPayload  = k_MAX_SIZE - headerSize;
             const LimitT limit       = maxCanBeAdded(contentSize, maxPayload);
-            ASSERT_EQ(Result::e_OPTION_TOO_BIG, limit.second);
+            BMQTST_ASSERT_EQ(Result::e_OPTION_TOO_BIG, limit.second);
         }
     }
 }
@@ -366,10 +366,11 @@ static void test3_checkOptionsBlobSegment()
 
     const int expectedSize = headerSize + meta1.size() + meta2.size() +
                              canary.size();
-    ASSERT_EQ(expectedSize, blob.length());
-    ASSERT_EQ(1, blob.numDataBuffers());
-    ASSERT_EQ(0,
-              bsl::memcmp(blob.buffer(0).data(), header.c_str(), headerSize));
+    BMQTST_ASSERT_EQ(expectedSize, blob.length());
+    BMQTST_ASSERT_EQ(1, blob.numDataBuffers());
+    BMQTST_ASSERT_EQ(
+        0,
+        bsl::memcmp(blob.buffer(0).data(), header.c_str(), headerSize));
 
     PV("The underlying header is as expected by the protocol");
     {
@@ -384,7 +385,7 @@ static void test3_checkOptionsBlobSegment()
         p = validateOption(p, meta1, p1);
         p = validateOption(p, meta2, p2);
 
-        ASSERT_EQ(0, bsl::memcmp(p, canary.c_str(), canary.size()));
+        BMQTST_ASSERT_EQ(0, bsl::memcmp(p, canary.c_str(), canary.size()));
     }
 }
 
@@ -417,15 +418,16 @@ static void test4_isValidMsgGroupId()
         bmqtst::TestHelperUtil::allocator());
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
-    ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
-              bmqp::OptionUtil::isValidMsgGroupId(""));
-    ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
-              bmqp::OptionUtil::isValidMsgGroupId(overMaxLength));
+    BMQTST_ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
+                     bmqp::OptionUtil::isValidMsgGroupId(""));
+    BMQTST_ASSERT_EQ(Result::e_INVALID_MSG_GROUP_ID,
+                     bmqp::OptionUtil::isValidMsgGroupId(overMaxLength));
 #endif
 
-    ASSERT_EQ(Result::e_SUCCESS, bmqp::OptionUtil::isValidMsgGroupId(" "));
-    ASSERT_EQ(Result::e_SUCCESS,
-              bmqp::OptionUtil::isValidMsgGroupId(maxLength));
+    BMQTST_ASSERT_EQ(Result::e_SUCCESS,
+                     bmqp::OptionUtil::isValidMsgGroupId(" "));
+    BMQTST_ASSERT_EQ(Result::e_SUCCESS,
+                     bmqp::OptionUtil::isValidMsgGroupId(maxLength));
 }
 #endif
 

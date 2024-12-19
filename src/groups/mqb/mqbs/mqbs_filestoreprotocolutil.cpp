@@ -331,10 +331,9 @@ int FileStoreProtocolUtil::calculateMd5Digest(
 }
 
 void FileStoreProtocolUtil::loadAppInfos(
-    bsl::unordered_set<bsl::pair<bsl::string, mqbu::StorageKey> >*
-                       appIdKeyPairs,
-    const MemoryBlock& appIdsBlock,
-    unsigned int       numAppIds)
+    bsl::unordered_map<bsl::string, mqbu::StorageKey>* appIdKeyPairs,
+    const MemoryBlock&                                 appIdsBlock,
+    unsigned int                                       numAppIds)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appIdKeyPairs);

@@ -470,9 +470,13 @@ SearchShortResult::SearchShortResult(
 , d_printedJournalOpCount(0)
 , d_guidMap(allocator)
 , d_guidList(allocator)
-, d_allocator_p(allocator)
 {
     // NOTHING
+}
+
+bslma::Allocator* SearchShortResult::allocator() const
+{
+    return d_guidMap.get_allocator().mechanism();
 }
 
 bool SearchShortResult::processMessageRecord(

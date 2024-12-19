@@ -38,16 +38,16 @@ testResolveFn(bsl::string*                  domainName,
               bsl::vector<bsl::string>*     retHosts,
               bsl::vector<ntsa::IpAddress>* expectedAddresses)
 {
-    ASSERT(!expectedAddresses->empty());
+    BMQTST_ASSERT(!expectedAddresses->empty());
 
     if (address != (*expectedAddresses)[0]) {
         bsl::ostringstream ss;
         ss << address;
-        ASSERT_D(ss.str(), false);
+        BMQTST_ASSERT_D(ss.str(), false);
     }
     expectedAddresses->erase(expectedAddresses->begin());
 
-    ASSERT(!retHosts->empty());
+    BMQTST_ASSERT(!retHosts->empty());
     *domainName = (*retHosts)[0];
     retHosts->erase(retHosts->begin());
     if (domainName->length() == 0) {
@@ -62,7 +62,7 @@ static void testResultCallback(bsl::deque<bsl::shared_ptr<Channel> >* store,
                                BSLS_ANNOTATION_UNUSED const Status&   status,
                                const bsl::shared_ptr<Channel>&        channel)
 {
-    ASSERT_EQ(event, ChannelFactoryEvent::e_CHANNEL_UP);
+    BMQTST_ASSERT_EQ(event, ChannelFactoryEvent::e_CHANNEL_UP);
     store->push_back(channel);
 }
 
@@ -140,7 +140,7 @@ static void test1_defaultResolutionFn()
                                                      base,
                                                      resolveFn,
                                                      false);
-    ASSERT_EQ(ret, "");
+    BMQTST_ASSERT_EQ(ret, "");
 
     // Can't parse ip address
     base.setPeerUri("127.0.s:123");
@@ -148,7 +148,7 @@ static void test1_defaultResolutionFn()
                                                      base,
                                                      resolveFn,
                                                      false);
-    ASSERT_EQ(ret, "");
+    BMQTST_ASSERT_EQ(ret, "");
 
     // Resolve fails
     expectedAddresses.emplace_back("1.2.3.4");
@@ -158,7 +158,7 @@ static void test1_defaultResolutionFn()
                                                      base,
                                                      resolveFn,
                                                      false);
-    ASSERT_EQ(ret, "");
+    BMQTST_ASSERT_EQ(ret, "");
 
     // Resolve succeeds
     expectedAddresses.emplace_back("1.2.3.4");
@@ -168,7 +168,7 @@ static void test1_defaultResolutionFn()
                                                      base,
                                                      resolveFn,
                                                      false);
-    ASSERT_EQ(ret, "1.2.3.4~testHost:75");
+    BMQTST_ASSERT_EQ(ret, "1.2.3.4~testHost:75");
 }
 
 static void test2_channelFactory()
@@ -235,32 +235,32 @@ static void test2_channelFactory()
                                       Status(),
                                       channel);
 
-    ASSERT_EQ(channels[0]->peerUri(), "1.2.3.4:567");
+    BMQTST_ASSERT_EQ(channels[0]->peerUri(), "1.2.3.4:567");
 
     expectedAddresses.emplace_back("1.2.3.4");
     retHosts.emplace_back("testHost");
 
     execStore[0]();
 
-    ASSERT(expectedAddresses.empty());
+    BMQTST_ASSERT(expectedAddresses.empty());
 
-    ASSERT_EQ(channels[0]->peerUri(), "1.2.3.4~testHost:567");
+    BMQTST_ASSERT_EQ(channels[0]->peerUri(), "1.2.3.4~testHost:567");
 
     // Resolution fails
     baseFactory.listenCalls()[0].d_cb(ChannelFactoryEvent::e_CHANNEL_UP,
                                       Status(),
                                       channel);
 
-    ASSERT_EQ(channels[1]->peerUri(), "1.2.3.4:567");
+    BMQTST_ASSERT_EQ(channels[1]->peerUri(), "1.2.3.4:567");
 
     expectedAddresses.emplace_back("1.2.3.4");
     retHosts.emplace_back("");
 
     execStore[1]();
 
-    ASSERT(expectedAddresses.empty());
+    BMQTST_ASSERT(expectedAddresses.empty());
 
-    ASSERT_EQ(channels[1]->peerUri(), "1.2.3.4:567");
+    BMQTST_ASSERT_EQ(channels[1]->peerUri(), "1.2.3.4:567");
 
     // Destroy the factory and make sure executor cbs can still be safely
     // executed

@@ -187,12 +187,12 @@ static void test1_breathingTest()
         bmqtst::TestHelperUtil::allocator());
 
     MQTP mfqtp(config, bmqtst::TestHelperUtil::allocator());
-    ASSERT_EQ(mfqtp.isStarted(), false);
-    ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
-    ASSERT_EQ(mfqtp.isSingleThreaded(), false);
-    ASSERT_EQ(mfqtp.start(), 0);
-    ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
-    ASSERT_EQ(mfqtp.isStarted(), true);
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
+    BMQTST_ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
+    BMQTST_ASSERT_EQ(mfqtp.isSingleThreaded(), false);
+    BMQTST_ASSERT_EQ(mfqtp.start(), 0);
+    BMQTST_ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), true);
 
     MQTP::Event* event = mfqtp.getUnmanagedEvent();
     event->object()    = 0;
@@ -211,19 +211,19 @@ static void test1_breathingTest()
     mfqtp.enqueueEventOnAllQueues(event);
 
     mfqtp.stop();
-    ASSERT_EQ(mfqtp.isStarted(), false);
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[0][0], 0);
-    ASSERT_EQ(queueContextMap[0][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[0][0], 0);
+    BMQTST_ASSERT_EQ(queueContextMap[0][1], 3);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[1][0], 1);
-    ASSERT_EQ(queueContextMap[1][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[1][0], 1);
+    BMQTST_ASSERT_EQ(queueContextMap[1][1], 3);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[2][0], 2);
-    ASSERT_EQ(queueContextMap[2][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[2][0], 2);
+    BMQTST_ASSERT_EQ(queueContextMap[2][1], 3);
 
     threadPool.stop();
 }

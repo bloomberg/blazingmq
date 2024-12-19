@@ -54,56 +54,57 @@ namespace m_bmqstoragetool {
 
 struct CommandLineArguments {
     // PUBLIC DATA
+
+    /// Record types constants
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
     static const char* k_JOURNALOP_TYPE;
-    // Record types constants
+    /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
-    // List of record types to process (message, journalOp, queueOp)
+    /// Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampGt;
-    // Filter messages by minimum timestamp
+    /// Filter messages by maximum timestamp
     bsls::Types::Int64 d_timestampLt;
-    // Filter messages by maximum timestamp
+    /// Filter messages by minimum record composite sequence number
     bsl::string d_seqNumGt;
-    // Filter messages by minimum record composite sequence number
+    /// Filter messages by maximum record composite sequence number
     bsl::string d_seqNumLt;
-    // Filter messages by maximum record composite sequence number
+    /// Filter messages by minimum record offset
     bsls::Types::Int64 d_offsetGt;
-    // Filter messages by minimum record offset
+    /// Filter messages by maximum record offset
     bsls::Types::Int64 d_offsetLt;
-    // Filter messages by maximum record offset
+    /// Path to find all files from
     bsl::string d_journalPath;
-    // Path to find all files from
+    /// Path to read journal files from
     bsl::string d_journalFile;
-    // Path to read journal files from
+    /// Path to read data files from
     bsl::string d_dataFile;
-    // Path to read data files from
+    /// Path to read CSL files from
     bsl::string d_cslFile;
-    // Path to read CSL files from
+    /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
-    // Filter messages by message guids
+    /// Filter messages by record composite sequence numbers
     bsl::vector<bsl::string> d_seqNum;
-    // Filter messages by record composite sequence numbers
+    /// Filter messages by record offsets
     bsl::vector<bsls::Types::Int64> d_offset;
-    // Filter messages by record offsets
+    /// Filter messages by queue keys
     bsl::vector<bsl::string> d_queueKey;
-    // Filter messages by queue keys
+    /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;
-    // Filter messages by queue names
+    /// Limit number of bytes to
     int d_dumpLimit;
-    // Limit number of bytes to
+    /// Print message details
     bool d_details;
-    // Print message details
+    /// Print message payload
     bool d_dumpPayload;
-    // Print message payload
+    /// Print summary of messages
     bool d_summary;
-    // Print summary of messages
+    /// Show only outstanding messages (not deleted)
     bool d_outstanding;
-    // Show only outstanding messages (not deleted)
+    /// Show only messages, confirmed by all the appId's
     bool d_confirmed;
-    // Show only messages, confirmed by all the appId's
+    /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
-    // Show only messages, confirmed by some of the appId's
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
@@ -128,7 +129,7 @@ struct CommandLineArguments {
 struct Parameters {
     // PUBLIC TYPES
 
-    // VST representing search range parameters
+    /// VST representing search range parameters
     struct Range {
         // PUBLIC TYPES
         enum Type {
@@ -139,22 +140,23 @@ struct Parameters {
         };
 
         // PUBLIC DATA
-        Type d_type;
         /// Range type
+        Type d_type;
+        /// Filter messages greater than timestamp value
         bsls::Types::Uint64 d_timestampGt;
-        // Filter messages greater than timestamp value
+        /// Filter messages less than timestamp value
         bsls::Types::Uint64 d_timestampLt;
-        // Filter messages less than timestamp value
+        /// Filter messages greater than offset value
         bsls::Types::Uint64 d_offsetGt;
-        // Filter messages greater than offset value
+        /// Filter messages less than offset value
         bsls::Types::Uint64 d_offsetLt;
-        // Filter messages less than offset value
+        /// Filter messages greater than sequence number
         CompositeSequenceNumber d_seqNumGt;
-        // Filter messages greater than sequence number
+        /// Filter messages less than sequence number
         CompositeSequenceNumber d_seqNumLt;
-        // Filter messages less than sequence number
 
         // CREATORS
+        /// Default constructor
         explicit Range();
     };
 
@@ -173,36 +175,37 @@ struct Parameters {
     };
 
     // PUBLIC DATA
+
+    /// Record types to process
     ProcessRecordTypes d_processRecordTypes;
-    // Record types to process
+    /// Queue map containing uri to key and key to info mappings
     QueueMap d_queueMap;
-    // Queue map containing uri to key and key to info mappings
+    /// Range parameters for filtering
     Range d_range;
-    // Range parameters for filtering
+    /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
-    // Filter messages by message guids
+    /// Filter messages by message sequence number
     bsl::vector<CompositeSequenceNumber> d_seqNum;
-    // Filter messages by message sequence number
+    /// Filter messages by message offsets
     bsl::vector<bsls::Types::Int64> d_offset;
-    // Filter messages by message offsets
+    /// Filter messages by queue keys
     bsl::vector<bsl::string> d_queueKey;
-    // Filter messages by queue keys
+    /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;
-    // Filter messages by queue names
+    /// Limit number of bytes to dump
     unsigned int d_dumpLimit;
-    // Limit number of bytes to dump
+    /// Print message details
     bool d_details;
-    // Print message details
+    /// Print message payload
     bool d_dumpPayload;
-    // Print message payload
+    /// Print summary of messages
     bool d_summary;
-    // Print summary of messages
+    /// Show only outstanding messages (not deleted)
     bool d_outstanding;
-    // Show only outstanding messages (not deleted)
+    /// Show only messages, confirmed by all the appId's
     bool d_confirmed;
-    // Show only messages, confirmed by all the appId's
+    /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
-    // Show only messages, confirmed by some of the appId's
 
     // CREATORS
     /// Default constructor

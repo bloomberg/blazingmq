@@ -41,7 +41,7 @@ size_t Channel::ControlArgs::eventSize() const
         return 0;  // RETURN
     }
 
-    return d_data.length();
+    return d_data_sp->length();
 }
 
 // --------------------
@@ -67,14 +67,17 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
                  bslma::Allocator*         allocator)
 : d_allocators(allocator)
 , d_allocator_p(d_allocators.get("Channel"))
-, d_putBuilder(blobBufferFactory, d_allocator_p)
-, d_pushBuilder(blobBufferFactory, d_allocator_p)
-, d_ackBuilder(blobBufferFactory, d_allocator_p)
-, d_confirmBuilder(blobBufferFactory, d_allocator_p)
-, d_rejectBuilder(blobBufferFactory, d_allocator_p)
+, d_blobSpPool(
+      bmqp::BlobPoolUtil::createBlobPool(blobBufferFactory,
+                                         d_allocators.get("BlobSpPool")))
+, d_putBuilder(&d_blobSpPool, d_allocator_p)
+, d_pushBuilder(&d_blobSpPool, d_allocator_p)
+, d_ackBuilder(&d_blobSpPool, d_allocator_p)
+, d_confirmBuilder(&d_blobSpPool, d_allocator_p)
+, d_rejectBuilder(&d_blobSpPool, d_allocator_p)
 , d_itemPool(sizeof(Item),
              bsls::BlockGrowth::BSLS_CONSTANT,
-             d_allocators.get(bsl::string("ItemPool")))
+             d_allocators.get("ItemPool"))
 , d_buffer(1024, allocator)
 , d_secondaryBuffer(1024, allocator)
 , d_doStop(false)
@@ -116,14 +119,12 @@ void Channel::deleteItem(void* item, void* cookie)
 bmqt::GenericResult::Enum
 Channel::writePut(const bmqp::PutHeader&                    ph,
                   const bsl::shared_ptr<bdlbb::Blob>&       data,
-                  const bsl::shared_ptr<bmqu::AtomicState>& state,
-                  bool                                      keepWeakPtr)
+                  const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(
-        new (d_itemPool.allocate())
-            Item(ph, data, keepWeakPtr, state, d_allocator_p),
-        this,
-        deleteItem);
+    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
+                                     Item(ph, data, state, d_allocator_p),
+                                 this,
+                                 deleteItem);
     return enqueue(item);
 }
 
@@ -227,7 +228,7 @@ Channel::writeReject(int                                       queueId,
 }
 
 bmqt::GenericResult::Enum
-Channel::writeBlob(const bdlbb::Blob&                        data,
+Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
@@ -483,7 +484,7 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PutEventBuilder& builder,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    if (!args.d_data) {
+    if (!args.d_data_sp.get()) {
         return bmqt::EventBuilderResult::e_PAYLOAD_EMPTY;
     }
     const bmqp::PutHeader& ph = args.d_putHeader;
@@ -491,7 +492,7 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PutEventBuilder& builder,
     builder.startMessage();
     builder.setMessageGUID(ph.messageGUID())
         .setFlags(ph.flags())
-        .setMessagePayload(args.d_data.get())
+        .setMessagePayload(args.d_data_sp.get())
         .setCompressionAlgorithmType(ph.compressionAlgorithmType())
         .setCrc32c(ph.crc32c())
         .setMessagePropertiesInfo(bmqp::MessagePropertiesInfo(ph));
@@ -512,7 +513,7 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PushEventBuilder& builder,
         args.d_subQueueInfos);
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             rc == bmqt::EventBuilderResult::e_SUCCESS)) {
-        rc = builder.packMessage(*args.d_data.get(),
+        rc = builder.packMessage(*args.d_data_sp,
                                  args.d_queueId,
                                  args.d_msgId,
                                  args.d_flags,

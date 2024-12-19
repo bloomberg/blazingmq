@@ -4763,7 +4763,7 @@ class Domain {
     // queue.  Zero (the default) means unlimited deduplicationTimeMs.:
     // timeout, in milliseconds, to keep GUID of PUT message for the purpose of
     // detecting duplicate PUTs.  consistency.........: optional consistency
-    // mode.  subscriptions.......: optional Auto (Application) subscriptions
+    // mode.  subscriptions.......: optional application subscriptions
 
     // INSTANCE DATA
     bsls::Types::Int64                    d_messageTtl;

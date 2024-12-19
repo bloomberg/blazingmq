@@ -257,7 +257,7 @@ static void test1_breathingTest()
     {
         // Create invalid iter
         bmqp::StorageMessageIterator iter;
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -265,19 +265,19 @@ static void test1_breathingTest()
         bmqp::StorageMessageIterator iter1;
         bmqp::StorageMessageIterator iter2(iter1);
 
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
         // Assigning invalid iter
         bmqp::StorageMessageIterator iter1, iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         iter1 = iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
@@ -300,56 +300,56 @@ static void test1_breathingTest()
         // Iterate and verify
         bmqp::StorageMessageIterator iter(&blob, eventHeader);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(flags, iter.header().flags());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(jow, iter.header().journalOffsetWords());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(flags, iter.header().flags());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(jow, iter.header().journalOffsetWords());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::StorageMessageIterator iter2(iter);
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(flags, iter.header().flags());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(jow, iter.header().journalOffsetWords());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(flags, iter.header().flags());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(jow, iter.header().journalOffsetWords());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Reset, iterate and verify again
         iter2.reset(&blob, eventHeader);
         iter.reset(&blob, iter2);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(flags, iter.header().flags());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(jow, iter.header().journalOffsetWords());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(flags, iter.header().flags());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(jow, iter.header().journalOffsetWords());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
 
@@ -380,62 +380,67 @@ static void test2_storageEventHavingMultipleMessages()
 
     // Iterate and verify
     bmqp::StorageMessageIterator iter(&eventBlob, eventHeader);
-    ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
 
     size_t index  = 0;
     int    nextRc = -1;
     while (1 == (nextRc = iter.next()) && index < data.size()) {
         const Data& D = data[index];
-        ASSERT_EQ_D(index, D.d_flags, iter.header().flags());
-        ASSERT_EQ_D(index, D.d_messageType, iter.header().messageType());
+        BMQTST_ASSERT_EQ_D(index, D.d_flags, iter.header().flags());
+        BMQTST_ASSERT_EQ_D(index,
+                           D.d_messageType,
+                           iter.header().messageType());
 
-        ASSERT_EQ_D(index, D.d_spv, iter.header().storageProtocolVersion());
+        BMQTST_ASSERT_EQ_D(index,
+                           D.d_spv,
+                           iter.header().storageProtocolVersion());
 
-        ASSERT_EQ_D(index, D.d_pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ_D(index, D.d_pid, iter.header().partitionId());
 
         // Compare journal record
         bmqu::BlobPosition position;
-        ASSERT_EQ_D(index, 0, iter.loadDataPosition(&position));
+        BMQTST_ASSERT_EQ_D(index, 0, iter.loadDataPosition(&position));
 
         int compareRc = 0;
-        ASSERT_EQ_D(index,
-                    0,
-                    bmqu::BlobUtil::compareSection(&compareRc,
-                                                   eventBlob,
-                                                   position,
-                                                   D.d_recordBuffer,
-                                                   k_RECORD_SIZE));
-        ASSERT_EQ_D(index, 0, compareRc);
+        BMQTST_ASSERT_EQ_D(index,
+                           0,
+                           bmqu::BlobUtil::compareSection(&compareRc,
+                                                          eventBlob,
+                                                          position,
+                                                          D.d_recordBuffer,
+                                                          k_RECORD_SIZE));
+        BMQTST_ASSERT_EQ_D(index, 0, compareRc);
 
         if (bmqp::StorageMessageType::e_DATA == iter.header().messageType() ||
             bmqp::StorageMessageType::e_QLIST == iter.header().messageType()) {
             // Compare data payload as well.  Need to find data payload
             // position first.
             bmqu::BlobPosition dataPos;
-            ASSERT_EQ_D(index,
-                        0,
-                        bmqu::BlobUtil::findOffsetSafe(&dataPos,
-                                                       eventBlob,
-                                                       position,
-                                                       k_RECORD_SIZE));
+            BMQTST_ASSERT_EQ_D(index,
+                               0,
+                               bmqu::BlobUtil::findOffsetSafe(&dataPos,
+                                                              eventBlob,
+                                                              position,
+                                                              k_RECORD_SIZE));
             int compRc = 0;
-            ASSERT_EQ_D(index,
-                        0,
-                        bmqu::BlobUtil::compareSection(&compRc,
-                                                       eventBlob,
-                                                       position,
-                                                       D.d_payload.c_str(),
-                                                       D.d_payload.length()));
-            ASSERT_EQ_D(index, 0, compRc);
+            BMQTST_ASSERT_EQ_D(
+                index,
+                0,
+                bmqu::BlobUtil::compareSection(&compRc,
+                                               eventBlob,
+                                               position,
+                                               D.d_payload.c_str(),
+                                               D.d_payload.length()));
+            BMQTST_ASSERT_EQ_D(index, 0, compRc);
         }
 
         ++index;
     }
 
-    ASSERT_EQ(nextRc, 0);
-    ASSERT_EQ(data.size(), index);
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(nextRc, 0);
+    BMQTST_ASSERT_EQ(data.size(), index);
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test3_corruptedStorageEvent_part1()
@@ -500,21 +505,21 @@ static void test3_corruptedStorageEvent_part1()
     bmqp::StorageMessageIterator iter(&eventBlob, eh);
 
     // First message
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.next());
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.header().flags());
-    ASSERT_EQ(0U, iter.header().partitionId());
-    ASSERT_EQ(bmqp::StorageMessageType::e_JOURNAL_OP,
-              iter.header().messageType());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.next());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.header().flags());
+    BMQTST_ASSERT_EQ(0U, iter.header().partitionId());
+    BMQTST_ASSERT_EQ(bmqp::StorageMessageType::e_JOURNAL_OP,
+                     iter.header().messageType());
 
     // Second message
-    ASSERT_EQ(iter.isValid(), true);
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_LT(iter.next(), 0);  // make sure successive
-                                // call to next keep
-                                // returning invalid
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_LT(iter.next(), 0);  // make sure successive
+                                       // call to next keep
+                                       // returning invalid
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test4_corruptedStorageEvent_part2()
@@ -585,20 +590,20 @@ static void test4_corruptedStorageEvent_part2()
     bmqp::StorageMessageIterator iter(&eventBlob, eh);
 
     // First message
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.next());
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.header().flags());
-    ASSERT_EQ(0U, iter.header().partitionId());
-    ASSERT_EQ(bmqp::StorageMessageType::e_CONFIRM,
-              iter.header().messageType());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.next());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.header().flags());
+    BMQTST_ASSERT_EQ(0U, iter.header().partitionId());
+    BMQTST_ASSERT_EQ(bmqp::StorageMessageType::e_CONFIRM,
+                     iter.header().messageType());
 
     // Second message
-    ASSERT_EQ(iter.isValid(), true);
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_LT(iter.next(), 0);  // make sure successive call to next keep
-                                // returning invalid
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_LT(iter.next(), 0);  // make sure successive call to next
+                                       // keep returning invalid
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test5_corruptedStorageEvent_part3()
@@ -637,9 +642,9 @@ static void test5_corruptedStorageEvent_part3()
 
         // Create iterator
         bmqp::StorageMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
-        ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 static void test6_resetMethod()
@@ -680,15 +685,15 @@ static void test6_resetMethod()
 
         // Create iterator
         bmqp::StorageMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Invalidate the blob
         blob.setLength(enoughSize - 1);
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader),
-                  0);  // rc_INVALID_EVENTHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_INVALID_EVENTHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -729,7 +734,7 @@ static void test7_dumpBlob()
     // Create iterator over blob
     {
         bmqp::StorageMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Dump blob
         iter.dumpBlob(stream);
@@ -747,7 +752,7 @@ static void test7_dumpBlob()
                          bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -760,7 +765,7 @@ static void test7_dumpBlob()
         bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 

@@ -52,7 +52,7 @@
 //
 // First, we create a 'QueueEngineTester' object and the Priority Queue Engine.
 //..
-//  mqbblp::QueueEngineTester tester(s_allocator_p);
+//  mqbblp::QueueEngineTester tester(bmqtst::TestHelperUtil::allocator());
 //  tester.createQueueEngine<mqbblp::PriorityQueueEngine>();
 //..
 // Then, we get handles for three consumers, each with one reader.
@@ -74,9 +74,9 @@
 //..
 // Next, we verify the consumers received the corresponding messages.
 //..
-//  ASSERT_EQ(handle1->_messages(), "a");
-//  ASSERT_EQ(handle2->_messages(), "b");
-//  ASSERT_EQ(handle3->_messages(), "c");
+//  BMQTST_ASSERT_EQ(handle1->_messages(), "a");
+//  BMQTST_ASSERT_EQ(handle2->_messages(), "b");
+//  BMQTST_ASSERT_EQ(handle3->_messages(), "c");
 //..
 // Then, for each consumer we confirm the corresponding messages.
 //..
@@ -84,9 +84,9 @@
 //  tester.confirm("C2", "b");
 //  tester.confirm("C3", "c");
 //
-//  ASSERT_EQ(handle1->_messages(), "");
-//  ASSERT_EQ(handle2->_messages(), "");
-//  ASSERT_EQ(handle3->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle1->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle2->_messages(), "");
+//  BMQTST_ASSERT_EQ(handle3->_messages(), "");
 //..
 // Finally, we release all the handles.
 //..
@@ -318,7 +318,7 @@ class QueueEngineTester {
 
     /// Obtain and return a handle for the client with handle parameters in
     /// the specified `clientText` per the following format:
-    ///   `<clientKey>[@<appId>] [readCount=<N>] [writeCount=<M>]`
+    ///   `<clientKey>[\@<appId>] [readCount=<N>] [writeCount=<M>]`
     ///
     /// The behavior is undefined unless `clientText` is formatted as above
     /// and includes at least one attribute (e.g. `readCount=1`) other than
@@ -329,7 +329,7 @@ class QueueEngineTester {
 
     /// Configure the handle for the client with stream parameters in the
     /// specified `clientText` per the following format:
-    ///   '<clientKey>[@<appId>] [consumerPriority=<P>]
+    ///   '<clientKey>[\@<appId>] [consumerPriority=<P>]
     ///                          [consumerPriorityCount=<C>]
     ///                          [maxUnconfirmedMessages=<M>]
     ///                          [maxUnconfirmedBytes=<B>]'
@@ -338,7 +338,7 @@ class QueueEngineTester {
     /// on success, non-zero otherwise).  The behavior is undefined unless
     /// `clientText` is formatted as above (e.g. 'C1 consumerPriority=1
     /// consumerPriorityCount=2') , and a previous call to `getHandle()`
-    /// returned a handle for the `<clientKey>[@appId]`, or if
+    /// returned a handle for the `<clientKey>[\@appId]`, or if
     /// `createQueueEngine()` was not called.
     int configureHandle(const bsl::string& clientText);
 
@@ -374,7 +374,7 @@ class QueueEngineTester {
     /// the client identified with the specified `clientText` for the
     /// specified `messages`.  The format of `clientText` must be as
     /// follows:
-    ///   `<clientKey>[@<appId>]`
+    ///   `<clientKey>[\@<appId>]`
     ///
     /// The format of `messages` must be as follows:
     ///   `<msg1>,<msg2>,...,<msgN>`
@@ -382,7 +382,7 @@ class QueueEngineTester {
     /// The order of confirming each message is from left to right per the
     /// format above.  The behavior is undefined unless `messages` is
     /// formatted as above, and a previous call to `getHandle()` returned a
-    /// handle for the `<clientKey>[@appId]`, or if `createQueueEngine()`
+    /// handle for the `<clientKey>[\@appId]`, or if `createQueueEngine()`
     /// was not called.  Note that it is "legal" for a client that is a
     /// reader to confirm a message that was not posted or that is already
     /// confirmed.
@@ -393,7 +393,7 @@ class QueueEngineTester {
     /// the client identified with the specified `clientText` for the
     /// specified `messages`.  The format of `clientText` must be as
     /// follows:
-    ///   `<clientKey>[@<appId>]`
+    ///   `<clientKey>[\@<appId>]`
     ///
     /// The format of `messages` must be as follows:
     ///   `<msg1>,<msg2>,...,<msgN>`
@@ -401,7 +401,7 @@ class QueueEngineTester {
     /// The order of rejecting each message is from left to right per the
     /// format above.  The behavior is undefined unless `messages` is
     /// formatted as above, and a previous call to `getHandle()` returned a
-    /// handle for the `<clientKey>[@appId]`, or if `createQueueEngine()`
+    /// handle for the `<clientKey>[\@appId]`, or if `createQueueEngine()`
     /// was not called.
     void reject(const bsl::string&       clientText,
                 const bslstl::StringRef& messages);
@@ -427,7 +427,7 @@ class QueueEngineTester {
 
     /// Release the parameters in the handle of the client in the specified
     /// `clientText` per the following format:
-    ///   `<clientKey>[@appId] [readCount=<N>] [writeCount=<M>]`
+    ///   `<clientKey>[\@appId] [readCount=<N>] [writeCount=<M>]`
     ///
     /// Return the result status code of the releaseHandle operation (zero
     /// on success, non-zero otherwise). The behavior is undefined unless
@@ -439,7 +439,7 @@ class QueueEngineTester {
 
     /// Release the parameters in the handle of the client in the specified
     /// `clientText` per the following format:
-    ///   '<clientKey>[@appId] [readCount=<N>] [writeCount=<M>]
+    ///   '<clientKey>[\@appId] [readCount=<N>] [writeCount=<M>]
     ///                        [isFinal=(true|false)]'
     ///
     /// Return the result status code of the releaseHandle operation (zero

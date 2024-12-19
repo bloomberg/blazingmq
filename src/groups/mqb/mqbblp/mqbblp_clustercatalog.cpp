@@ -378,7 +378,7 @@ ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
 , d_resources(resources)
 , d_adminCb()
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   resources.bufferFactory(),
+                   resources.blobSpPool(),
                    resources.scheduler(),
                    false,  // lateResponseMode
                    d_allocator_p)

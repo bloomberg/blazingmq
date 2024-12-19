@@ -85,7 +85,7 @@ static void test1_constructor()
     bmqex::BdlmtThreadPoolExecutor ex(&threadPool);
 
     // check postconditions
-    ASSERT_EQ(&ex.context(), &threadPool);
+    BMQTST_ASSERT_EQ(&ex.context(), &threadPool);
 }
 
 static void test2_post()
@@ -129,8 +129,8 @@ static void test2_post()
     threadPool.stop();
 
     // both jobs executed
-    ASSERT(job1Complete);
-    ASSERT(job2Complete);
+    BMQTST_ASSERT(job1Complete);
+    BMQTST_ASSERT(job2Complete);
 }
 
 static void test3_swap()
@@ -170,8 +170,8 @@ static void test3_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &threadPool2);
-    ASSERT_EQ(&ex2.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool1);
 }
 
 static void test4_context()
@@ -202,10 +202,10 @@ static void test4_context()
                                   &alloc);
 
     bmqex::BdlmtThreadPoolExecutor ex1(&threadPool1);
-    ASSERT_EQ(&ex1.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool1);
 
     bmqex::BdlmtThreadPoolExecutor ex2(&threadPool2);
-    ASSERT_EQ(&ex2.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool2);
 }
 
 static void test5_comparison()
@@ -238,24 +238,24 @@ static void test5_comparison()
 
     // equality
     {
-        ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) ==
-                      bmqex::BdlmtThreadPoolExecutor(&threadPool1),
-                  true);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) ==
+                             bmqex::BdlmtThreadPoolExecutor(&threadPool1),
+                         true);
 
-        ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) ==
-                      bmqex::BdlmtThreadPoolExecutor(&threadPool2),
-                  false);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) ==
+                             bmqex::BdlmtThreadPoolExecutor(&threadPool2),
+                         false);
     }
 
     // inequality
     {
-        ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) !=
-                      bmqex::BdlmtThreadPoolExecutor(&threadPool1),
-                  false);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) !=
+                             bmqex::BdlmtThreadPoolExecutor(&threadPool1),
+                         false);
 
-        ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) !=
-                      bmqex::BdlmtThreadPoolExecutor(&threadPool2),
-                  true);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtThreadPoolExecutor(&threadPool1) !=
+                             bmqex::BdlmtThreadPoolExecutor(&threadPool2),
+                         true);
     }
 }
 

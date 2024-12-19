@@ -262,25 +262,6 @@ struct PortMatcher {
         return listener.port() == d_port;
     }
 };
-
-template <typename T>
-T* channelCast(bmqio::Channel* base)
-{
-    bmqio::Channel* alias = base;
-    while (alias) {
-        T* target = dynamic_cast<T*>(alias);
-        if (target) {
-            return target;
-        }
-        bmqio::DecoratingChannelPartialImp* decorated =
-            dynamic_cast<bmqio::DecoratingChannelPartialImp*>(alias);
-        if (!decorated) {
-            return NULL;
-        }
-        alias = decorated->base();
-    }
-}
-
 }  // close unnamed namespace
 
 // -----------------------------------------

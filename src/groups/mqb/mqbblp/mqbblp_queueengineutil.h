@@ -374,10 +374,10 @@ struct QueueEngineUtil_AppState {
     bsls::AtomicBool d_isScheduled;
 
     mqbconfm::Expression d_subcriptionExpression;
-    // The auto subscription expression if any.
+    // The application subscription expression if any.
 
-    Routers::Expression d_autoSubscription;
-    // Evaluator of the auto subscription
+    Routers::Expression d_appSubscription;
+    // Evaluator of the application subscription
 
     unsigned int d_appOrdinal;
 
@@ -503,11 +503,11 @@ struct QueueEngineUtil_AppState {
                                    const mqbi::StorageIterator* currentMessage,
                                    unsigned int                 ordinal);
 
-    // Set the auto subscription
+    // Set the application subscription
     int setSubscription(const mqbconfm::Expression& value);
 
-    // Evaluate the auto subscription
-    bool evaluateAutoSubcription();
+    // Evaluate the application subscription
+    bool evaluateAppSubcription();
 
     /// Change the state to authorized, thus enabling delivery
     void authorize(const mqbu::StorageKey& appKey, unsigned int appOrdinal);

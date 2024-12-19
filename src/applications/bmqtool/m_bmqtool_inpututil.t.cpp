@@ -113,11 +113,11 @@ static void test1_decodeHexDumpTest()
             input,
             bmqtst::TestHelperUtil::allocator());
         // Check rc
-        ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
         // Check error
-        ASSERT_EQ_D(test.d_line, error.str(), test.d_expectedError);
+        BMQTST_ASSERT_EQ_D(test.d_line, error.str(), test.d_expectedError);
         // Check output
-        ASSERT_EQ_D(test.d_line, output.str(), test.d_expectedOutput);
+        BMQTST_ASSERT_EQ_D(test.d_line, output.str(), test.d_expectedOutput);
     }
 }
 
@@ -264,8 +264,8 @@ static void test2_loadMessageFromFileTest()
             &error,
             "wrongFilePath",
             bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(rc, false);
-        ASSERT_EQ(error.str(), "Failed to open file: wrongFilePath");
+        BMQTST_ASSERT_EQ(rc, false);
+        BMQTST_ASSERT_EQ(error.str(), "Failed to open file: wrongFilePath");
     }
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -277,7 +277,7 @@ static void test2_loadMessageFromFileTest()
         const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
-            ASSERT_EQ(ofs.is_open(), true);
+            BMQTST_ASSERT_EQ(ofs.is_open(), true);
             ofs << test.d_fileContent;
         }
 
@@ -291,11 +291,11 @@ static void test2_loadMessageFromFileTest()
             filePath,
             bmqtst::TestHelperUtil::allocator());
         // Check rc
-        ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D(test.d_line, rc, test.d_expectedRc);
         // Check error
-        ASSERT_EQ_D(test.d_line, error.str(), test.d_expectedError);
+        BMQTST_ASSERT_EQ_D(test.d_line, error.str(), test.d_expectedError);
         // Check payload
-        ASSERT_EQ_D(test.d_line, payload.str(), test.d_expectedPayload);
+        BMQTST_ASSERT_EQ_D(test.d_line, payload.str(), test.d_expectedPayload);
         // Check properties (deserialize into properties instance)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             128,
@@ -306,7 +306,7 @@ static void test2_loadMessageFromFileTest()
         bdlbb::BlobUtil::append(&blob,
                                 properties.str().c_str(),
                                 static_cast<int>(properties.str().size()));
-        ASSERT_EQ_D(test.d_line, messageProperties.streamIn(blob), 0);
+        BMQTST_ASSERT_EQ_D(test.d_line, messageProperties.streamIn(blob), 0);
     }
 }
 

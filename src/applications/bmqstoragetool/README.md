@@ -25,8 +25,8 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [--queue-key <queue key>]*
                         [--timestamp-gt <timestamp greater than>]
                         [--timestamp-lt <timestamp less than>]
-                        [--seqnum-gt <composit sequence number greater than>]
-                        [--seqnum-lt <composit sequence number less than>]
+                        [--seqnum-gt <composite sequence number greater than>]
+                        [--seqnum-lt <composite sequence number less than>]
                         [--offset-gt <offset greater than>]
                         [--offset-lt <offset less than>]
                         [--outstanding]
@@ -63,10 +63,10 @@ Where:
           lower timestamp bound
        --timestamp-lt         <timestamp less than>
           higher timestamp bound
-       --seqnum-gt            <composit sequence number greater than>
-          lower composit sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
-       --seqnum-lt            <composit sequence number less than>
-          higher composit sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
+       --seqnum-gt            <composite sequence number greater than>
+          lower composite sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
+       --seqnum-lt            <composite sequence number less than>
+          higher composite sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
        --offset-gt            <offset greater than>
           lower offset bound
        --offset-lt            <offset less than>

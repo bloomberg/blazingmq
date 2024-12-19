@@ -330,9 +330,9 @@ static void test1_breathingTest()
         crc32cHWSerial = bmqp::Crc32c_Impl::calculateHardwareSerial(buffer,
                                                                     length);
 
-        ASSERT_EQ(crc32cDefault, expectedCrc);
-        ASSERT_EQ(crc32cSoftware, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
     }
 
     {
@@ -352,9 +352,9 @@ static void test1_breathingTest()
         /// Hardware Serial
         crc32cHWSerial = bmqp::Crc32c_Impl::calculateHardwareSerial(0, 0);
 
-        ASSERT_EQ(crc32cDef, expectedCrc);
-        ASSERT_EQ(crc32cSW, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDef, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSW, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
     }
 
     {
@@ -377,9 +377,9 @@ static void test1_breathingTest()
         crc32cHWSerial = bmqp::Crc32c_Impl::calculateHardwareSerial(buffer,
                                                                     length);
 
-        ASSERT_EQ(crc32cDefault, expectedCrc);
-        ASSERT_EQ(crc32cSoftware, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
 
         // Compute value for whole buffer
         length         = strlen(buffer);
@@ -398,9 +398,9 @@ static void test1_breathingTest()
         crc32cHWSerial = bmqp::Crc32c_Impl::calculateHardwareSerial(buffer,
                                                                     length);
 
-        ASSERT_EQ(crc32cDefault, expectedCrc);
-        ASSERT_EQ(crc32cSoftware, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
 
         // Now specify length 0 and pass the previous crc and expect the
         // previous crc to be the result.
@@ -421,9 +421,9 @@ static void test1_breathingTest()
                                                                     length,
                                                                     prevCrc);
 
-        ASSERT_EQ(crc32cDefault, expectedCrc);
-        ASSERT_EQ(crc32cSoftware, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
     }
 
     {
@@ -467,9 +467,9 @@ static void test1_breathingTest()
             restLength,
             crc32cHWSerial);
 
-        ASSERT_EQ(crc32cDefault, expectedCrc);
-        ASSERT_EQ(crc32cSoftware, expectedCrc);
-        ASSERT_EQ(crc32cHWSerial, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc);
+        BMQTST_ASSERT_EQ(crc32cHWSerial, expectedCrc);
     }
 }
 
@@ -538,15 +538,15 @@ static void test2_calculateOnBuffer()
             bmqp::Crc32c_Impl::calculateHardwareSerial(test.d_buffer, length);
 
         // Verify correctness
-        ASSERT_EQ_D("line " << test.d_line << " (Default)",
-                    crc32cDefault,
-                    test.d_expectedCrc32c);
-        ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                    crc32cSoftware,
-                    test.d_expectedCrc32c);
-        ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
-                    crc32cHWSerial,
-                    test.d_expectedCrc32c);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                           crc32cDefault,
+                           test.d_expectedCrc32c);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                           crc32cSoftware,
+                           test.d_expectedCrc32c);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
+                           crc32cHWSerial,
+                           test.d_expectedCrc32c);
 
         // Test edge case of non-null buffer and length = 0
 
@@ -561,13 +561,15 @@ static void test2_calculateOnBuffer()
         crc32cHWSerial =
             bmqp::Crc32c_Impl::calculateHardwareSerial(test.d_buffer, 0);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Default)", crc32cDefault, 0u);
-        ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                    crc32cSoftware,
-                    0u);
-        ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
-                    crc32cHWSerial,
-                    0u);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                           crc32cDefault,
+                           0u);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                           crc32cSoftware,
+                           0u);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
+                           crc32cHWSerial,
+                           0u);
     }
 }
 
@@ -686,15 +688,15 @@ static void test3_calculateOnMisalignedBuffer()
                                                            testBufLength);
 
             // Verify correctness
-            ASSERT_EQ_D("line " << test.d_line << " (Default)",
-                        crc32cDefault,
-                        test.d_expectedCrc32c);
-            ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                        crc32cSoftware,
-                        test.d_expectedCrc32c);
-            ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
-                        crc32cHWSerial,
-                        test.d_expectedCrc32c);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                               crc32cDefault,
+                               test.d_expectedCrc32c);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                               crc32cSoftware,
+                               test.d_expectedCrc32c);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line << " (HW Serial)",
+                               crc32cHWSerial,
+                               test.d_expectedCrc32c);
         }
     }
 }
@@ -764,9 +766,9 @@ static void test4_calculateOnBufferWithPreviousCrc()
                                                 suffixLen,
                                                 crc32cDefault);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Default)",
-                    crc32cDefault,
-                    test.d_expectedCrc32c);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                           crc32cDefault,
+                           test.d_expectedCrc32c);
 
         // Software
         unsigned int crc32cSoftware =
@@ -777,9 +779,9 @@ static void test4_calculateOnBufferWithPreviousCrc()
                                                               suffixLen,
                                                               crc32cSoftware);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                    crc32cSoftware,
-                    test.d_expectedCrc32c);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                           crc32cSoftware,
+                           test.d_expectedCrc32c);
 
         // Test edge case where non-null buffer and length = 0 with previous
         // CRC returns the previous CRC
@@ -788,18 +790,18 @@ static void test4_calculateOnBufferWithPreviousCrc()
         // Default
         crc32cDefault = bmqp::Crc32c::calculate(test.d_buffer, 0, previousCrc);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Default)",
-                    crc32cDefault,
-                    previousCrc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                           crc32cDefault,
+                           previousCrc);
 
         // Software
         crc32cSoftware = bmqp::Crc32c_Impl::calculateSoftware(test.d_buffer,
                                                               0,
                                                               previousCrc);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                    crc32cSoftware,
-                    previousCrc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                           crc32cSoftware,
+                           previousCrc);
 
         // Test edge case where null buffer and length = 0 with previous
         // CRC returns the previous CRC
@@ -811,18 +813,18 @@ static void test4_calculateOnBufferWithPreviousCrc()
         // Default
         crc32cDefault = bmqp::Crc32c::calculate(0, 0, previousCrc);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Default)",
-                    crc32cDefault,
-                    previousCrc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Default)",
+                           crc32cDefault,
+                           previousCrc);
 
         // Software
         crc32cSoftware = bmqp::Crc32c_Impl::calculateSoftware(0,
                                                               0,
                                                               previousCrc);
 
-        ASSERT_EQ_D("line " << test.d_line << " (Software)",
-                    crc32cSoftware,
-                    previousCrc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line << " (Software)",
+                           crc32cSoftware,
+                           previousCrc);
     }
 }
 
@@ -909,9 +911,9 @@ static void test5_multithreadedCrc32cDefault()
         const bsl::vector<unsigned int>& currThreadCrc32cData =
             threadsCrc32cData[i];
         for (unsigned int j = 0; j < k_NUM_PAYLOADS; ++j) {
-            ASSERT_EQ_D("thread " << i << "[" << j << "]",
-                        serialCrc32cData[j],
-                        currThreadCrc32cData[j]);
+            BMQTST_ASSERT_EQ_D("thread " << i << "[" << j << "]",
+                               serialCrc32cData[j],
+                               currThreadCrc32cData[j]);
         }
     }
 
@@ -1005,9 +1007,9 @@ static void test6_multithreadedCrc32cSoftware()
         const bsl::vector<unsigned int>& currThreadCrc32cData =
             threadsCrc32cData[i];
         for (unsigned int j = 0; j < k_NUM_PAYLOADS; ++j) {
-            ASSERT_EQ_D("thread " << i << "[" << j << "]",
-                        serialCrc32cData[j],
-                        currThreadCrc32cData[j]);
+            BMQTST_ASSERT_EQ_D("thread " << i << "[" << j << "]",
+                               serialCrc32cData[j],
+                               currThreadCrc32cData[j]);
         }
     }
 
@@ -1059,8 +1061,8 @@ static void test7_calculateOnBlob()
             bmqp::Crc32c_Impl::calculateSoftware(blob);
 
         const unsigned int expectedCrc32c = bmqp::Crc32c::k_NULL_CRC32C;
-        ASSERT_EQ(crc32cDefault, expectedCrc32c);
-        ASSERT_EQ(crc32cSoftware, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc32c);
     }
 
     {
@@ -1102,8 +1104,8 @@ static void test7_calculateOnBlob()
             bmqp::Crc32c_Impl::calculateSoftware(blob);
 
         const unsigned int expectedCrc32c = 0xA0EA6901;
-        ASSERT_EQ(crc32cDefault, expectedCrc32c);
-        ASSERT_EQ(crc32cSoftware, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc32c);
     }
 
     {
@@ -1142,8 +1144,8 @@ static void test7_calculateOnBlob()
             bmqp::Crc32c_Impl::calculateSoftware(blob);
 
         const unsigned int expectedCrc32c = 0xD86F726E;
-        ASSERT_EQ(crc32cDefault, expectedCrc32c);
-        ASSERT_EQ(crc32cSoftware, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc32c);
     }
 }
 
@@ -1192,8 +1194,8 @@ static void test8_calculateOnBlobWithPreviousCrc()
         const unsigned int crc32cSoftware =
             bmqp::Crc32c_Impl::calculateSoftware(blob, prevCrc);
 
-        ASSERT_EQ(crc32cDefault, prevCrc);
-        ASSERT_EQ(crc32cSoftware, prevCrc);
+        BMQTST_ASSERT_EQ(crc32cDefault, prevCrc);
+        BMQTST_ASSERT_EQ(crc32cSoftware, prevCrc);
     }
 
     {
@@ -1245,8 +1247,8 @@ static void test8_calculateOnBlobWithPreviousCrc()
                                                               crc32cSoftware);
 
         const unsigned int expectedCrc32c = 0xA0EA6901;
-        ASSERT_EQ(crc32cDefault, expectedCrc32c);
-        ASSERT_EQ(crc32cSoftware, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc32c);
     }
 
     {
@@ -1306,8 +1308,8 @@ static void test8_calculateOnBlobWithPreviousCrc()
                                                               crc32cSoftware);
 
         const unsigned int expectedCrc32c = 0xD86F726E;
-        ASSERT_EQ(crc32cDefault, expectedCrc32c);
-        ASSERT_EQ(crc32cSoftware, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cDefault, expectedCrc32c);
+        BMQTST_ASSERT_EQ(crc32cSoftware, expectedCrc32c);
     }
 }
 // ============================================================================
