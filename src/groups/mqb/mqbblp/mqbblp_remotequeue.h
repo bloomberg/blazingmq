@@ -45,6 +45,7 @@
 #include <bmqp_protocol.h>
 
 #include <bmqc_orderedhashmap.h>
+#include <bmqu_sharedresource.h>
 
 // BDE
 #include <ball_log.h>
@@ -184,6 +185,8 @@ class RemoteQueue {
 
   private:
     // DATA
+    bmqu::SharedResource<RemoteQueue> d_self;
+
     QueueState* d_state_p;
 
     bslma::ManagedPtr<RelayQueueEngine> d_queueEngine_mp;
