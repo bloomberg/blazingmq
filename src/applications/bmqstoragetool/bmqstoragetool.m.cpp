@@ -24,18 +24,30 @@
 
 // BDE
 #include <balcl_commandline.h>
+#include <bdls_filesystemutil.h>
 #include <bsl_iostream.h>
 #include <bslma_managedptr.h>
 
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool
-parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
+static bool parseArgs(CommandLineArguments& arguments,
+                      int                   argc,
+                      const char*           argv[],
+                      bslma::Allocator*     allocator)
 {
     bool showHelp = false;
 
+    // bsl::vector<bsl::string> defaultType{ {k_MESSAGE_TYPE} };
+
     balcl::OptionInfo specTable[] = {
+        {"r|record-type",
+         "record type",
+         "record type to search {message|queue-op|journal-op}",
+         balcl::TypeInfo(&arguments.d_recordType,
+                         CommandLineArguments::isValidRecordType),
+         balcl::OccurrenceInfo(bsl::vector<bsl::string>(
+             {CommandLineArguments::k_MESSAGE_TYPE}))},
         {"journal-path",
          "journal path",
          "'*'-ended file path pattern, where the tool will try to find "
@@ -45,22 +57,35 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
         {"journal-file",
          "journal file",
          "path to a .bmq_journal file",
-         balcl::TypeInfo(&arguments.d_journalFile),
+         balcl::TypeInfo(&arguments.d_journalFile,
+                         CommandLineArguments::isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"data-file",
          "data file",
          "path to a .bmq_data file",
-         balcl::TypeInfo(&arguments.d_dataFile),
+         balcl::TypeInfo(&arguments.d_dataFile,
+                         CommandLineArguments::isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"csl-file",
          "csl file",
          "path to a .bmq_csl file",
-         balcl::TypeInfo(&arguments.d_cslFile),
+         balcl::TypeInfo(&arguments.d_cslFile,
+                         CommandLineArguments::isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"guid",
          "guid",
          "message guid",
          balcl::TypeInfo(&arguments.d_guid),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum",
+         "seqnum",
+         "message composite sequence number",
+         balcl::TypeInfo(&arguments.d_seqNum),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset",
+         "offset",
+         "message offset",
+         balcl::TypeInfo(&arguments.d_offset),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"queue-name",
          "queue name",
@@ -81,6 +106,28 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "timestamp less than",
          "higher timestamp bound",
          balcl::TypeInfo(&arguments.d_timestampLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-gt",
+         "message composite sequence number greater than",
+         "lower record sequence number bound, defined in form "
+         "<leaseId-sequenceNumber>",
+         balcl::TypeInfo(&arguments.d_seqNumGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-lt",
+         "message composite sequence number less than",
+         "higher sequence number bound, defined in form "
+         "<leaseId-sequenceNumber>",
+         balcl::TypeInfo(&arguments.d_seqNumLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-gt",
+         "message offset greater than",
+         "lower record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-lt",
+         "message offset less than",
+         "higher record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetLt),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"outstanding",
          "only outstanding",
@@ -114,8 +161,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          balcl::OccurrenceInfo(1024)},
         {"summary",
          "summary",
-         "summary of all matching messages (number of outstanding messages "
-         "and other statistics)",
+         "summary of all matching records",
          balcl::TypeInfo(&arguments.d_summary),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"h|help",
@@ -130,7 +176,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
     }
 
     bsl::string error;
-    if (!arguments.validate(&error)) {
+    if (!arguments.validate(&error, allocator)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
         return false;  // RETURN
     }
@@ -157,7 +203,7 @@ int main(int argc, const char* argv[])
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
-    if (!parseArgs(arguments, argc, argv)) {
+    if (!parseArgs(arguments, argc, argv, allocator)) {
         return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
     }
 

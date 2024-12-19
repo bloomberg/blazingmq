@@ -74,14 +74,25 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // class CommandLineArguments
 // ==========================
 
+const char* CommandLineArguments::k_MESSAGE_TYPE   = "message";
+const char* CommandLineArguments::k_QUEUEOP_TYPE   = "queue-op";
+const char* CommandLineArguments::k_JOURNALOP_TYPE = "journal-op";
+
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
-: d_timestampGt(0)
+: d_recordType(allocator)
+, d_timestampGt(0)
 , d_timestampLt(0)
+, d_seqNumGt(allocator)
+, d_seqNumLt(allocator)
+, d_offsetGt(0)
+, d_offsetLt(0)
 , d_journalPath(allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
 , d_guid(allocator)
+, d_seqNum(allocator)
+, d_offset(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
 , d_dumpLimit(0)
@@ -92,11 +103,18 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 {
+    // NOTHING
 }
 
-bool CommandLineArguments::validate(bsl::string* error)
+bool CommandLineArguments::validate(bsl::string*      error,
+                                    bslma::Allocator* allocator)
 {
-    bmqu::MemOutStream ss;
+    bmqu::MemOutStream ss(allocator);
+
+    if (d_recordType.size() > 3) {
+        ss << "Up to 3 types of record are supported, passed: "
+           << d_recordType.size() << "\n";
+    }
 
     if (d_journalPath.empty() && d_journalFile.empty()) {
         ss << "Neither journal path nor journal file are specified\n";
@@ -140,21 +158,6 @@ bool CommandLineArguments::validate(bsl::string* error)
         }
     }
 
-    // Check if the specified files exist
-    if (!d_journalFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_journalFile)) {
-        ss << "The specified journal file does not exist: " << d_journalFile
-           << "\n";
-    }
-    if (!d_dataFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_dataFile)) {
-        ss << "The specified data file does not exist: " << d_dataFile << "\n";
-    }
-    if (!d_cslFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_cslFile)) {
-        ss << "The specified CSL file does not exist: " << d_cslFile << "\n";
-    }
-
     // Sanity check
     if (d_dataFile.empty() && d_dumpPayload) {
         ss << "Can't dump payload, because data file is not specified\n";
@@ -167,13 +170,96 @@ bool CommandLineArguments::validate(bsl::string* error)
         (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
         ss << "Invalid timestamp range specified\n";
     }
+    if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
+        bmqu::MemOutStream      errorDescr(allocator);
+        CompositeSequenceNumber seqNumLt, seqNumGt;
+        if (!d_seqNumLt.empty()) {
+            seqNumLt.fromString(errorDescr, d_seqNumLt);
+            if (!seqNumLt.isSet()) {
+                ss << "--seqnum-lt: " << errorDescr.str() << "\n";
+                errorDescr.reset();
+            }
+        }
+        if (!d_seqNumGt.empty()) {
+            seqNumGt.fromString(errorDescr, d_seqNumGt);
+            if (!seqNumGt.isSet()) {
+                ss << "--seqnum-gt: " << errorDescr.str() << "\n";
+            }
+        }
+
+        if (seqNumLt.isSet() && seqNumGt.isSet()) {
+            if (seqNumLt <= seqNumGt) {
+                ss << "Invalid sequence number range specified\n";
+            }
+        }
+    }
+    if (d_offsetLt < 0 || d_offsetGt < 0 ||
+        (d_offsetLt > 0 && d_offsetGt >= d_offsetLt)) {
+        ss << "Invalid offset range specified\n";
+    }
+    // Check that only one range type is selected
+    bsl::size_t rangesCnt = 0;
+    if (d_timestampLt || d_timestampGt) {
+        rangesCnt++;
+    }
+    if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
+        rangesCnt++;
+    }
+    if (d_offsetLt || d_offsetGt) {
+        rangesCnt++;
+    }
+    if (rangesCnt > 1) {
+        ss << "Only one range type can be selected: timestamp, seqnum or "
+              "offset\n";
+    }
+
     if (!d_guid.empty() &&
-        (!d_queueKey.empty() || !d_queueName.empty() || d_outstanding ||
-         d_confirmed || d_partiallyConfirmed || d_timestampGt > 0 ||
-         d_timestampLt > 0 || d_summary)) {
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() ||
+         !d_offset.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
         ss << "Giud filter can't be combined with any other filters, as it is "
               "specific enough to find a particular message\n";
     }
+    if (!d_seqNum.empty() &&
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty() ||
+         !d_offset.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        ss << "Secnum filter can't be combined with any other filters, as it "
+              "is "
+              "specific enough to find a particular message\n";
+    }
+    if (!d_offset.empty() &&
+        (!d_queueKey.empty() || !d_queueName.empty() || !d_guid.empty() ||
+         !d_seqNum.empty() || d_outstanding || d_confirmed ||
+         d_partiallyConfirmed || rangesCnt > 0 || d_summary)) {
+        ss << "Offset filter can't be combined with any other filters, as it "
+              "is "
+              "specific enough to find a particular message\n";
+    }
+    if (!d_seqNum.empty()) {
+        CompositeSequenceNumber seqNum;
+        bmqu::MemOutStream      errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
+             cit != d_seqNum.end();
+             ++cit) {
+            seqNum.fromString(errorDescr, *cit);
+            if (!seqNum.isSet()) {
+                ss << "--seqnum: " << errorDescr.str() << "\n";
+                errorDescr.reset();
+            }
+        }
+    }
+    if (!d_offset.empty()) {
+        for (bsl::vector<bsls::Types::Int64>::const_iterator cit =
+                 d_offset.begin();
+             cit != d_offset.end();
+             ++cit) {
+            if (*cit < 0) {
+                ss << "--offset: " << *cit << " cannot be negative\n";
+            }
+        }
+    }
+
     if (d_summary &&
         (d_outstanding || d_confirmed || d_partiallyConfirmed || d_details)) {
         ss << "'--summary' can't be combined with '--outstanding', "
@@ -209,11 +295,59 @@ bool CommandLineArguments::validate(bsl::string* error)
     return error->empty();
 }
 
-Parameters::Parameters(bslma::Allocator* allocator)
-: d_queueMap(allocator)
+bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
+                                             bsl::ostream&      stream)
+{
+    if (*recordType != k_MESSAGE_TYPE && *recordType != k_QUEUEOP_TYPE &&
+        *recordType != k_JOURNALOP_TYPE) {
+        stream << "--record-type invalid: " << *recordType << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
+                                           bsl::ostream&      stream)
+{
+    if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
+        stream << "The specified file does not exist: " << *fileName
+               << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+Parameters::Range::Range()
+: d_type(Range::e_NONE)
 , d_timestampGt(0)
 , d_timestampLt(0)
+, d_offsetGt(0)
+, d_offsetLt(0)
+, d_seqNumGt()
+, d_seqNumLt()
+{
+    // NOTHING
+}
+
+Parameters::ProcessRecordTypes::ProcessRecordTypes(bool enableDefault)
+: d_message(enableDefault)
+, d_queueOp(false)
+, d_journalOp(false)
+{
+    // NOTHING
+}
+
+Parameters::Parameters(bslma::Allocator* allocator)
+: d_processRecordTypes()
+, d_queueMap(allocator)
+, d_range()
 , d_guid(allocator)
+, d_seqNum(allocator)
+, d_offset(allocator)
 , d_queueKey(allocator)
 , d_queueName(allocator)
 , d_dumpLimit(0)
@@ -224,14 +358,17 @@ Parameters::Parameters(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 {
+    // NOTHING
 }
 
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
-: d_queueMap(allocator)
-, d_timestampGt(arguments.d_timestampGt)
-, d_timestampLt(arguments.d_timestampLt)
+: d_processRecordTypes(false)
+, d_queueMap(allocator)
+, d_range()
 , d_guid(arguments.d_guid, allocator)
+, d_seqNum(allocator)
+, d_offset(arguments.d_offset, allocator)
 , d_queueKey(arguments.d_queueKey, allocator)
 , d_queueName(arguments.d_queueName, allocator)
 , d_dumpLimit(arguments.d_dumpLimit)
@@ -242,6 +379,63 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
+    // Set record types to process
+    for (bsl::vector<bsl::string>::const_iterator cit =
+             arguments.d_recordType.begin();
+         cit != arguments.d_recordType.end();
+         ++cit) {
+        if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {
+            d_processRecordTypes.d_message = true;
+        }
+        else if (*cit == CommandLineArguments::k_QUEUEOP_TYPE) {
+            d_processRecordTypes.d_queueOp = true;
+        }
+        else if (*cit == CommandLineArguments::k_JOURNALOP_TYPE) {
+            d_processRecordTypes.d_journalOp = true;
+        }
+        else {
+            BSLS_ASSERT(false && "Unknown journal record type");
+        }
+    }
+
+    // Set search range type and values if present
+    if (arguments.d_timestampLt || arguments.d_timestampGt) {
+        d_range.d_type        = Range::e_TIMESTAMP;
+        d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
+            arguments.d_timestampLt);
+        d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
+            arguments.d_timestampGt);
+    }
+    else if (arguments.d_offsetLt || arguments.d_offsetGt) {
+        d_range.d_type     = Range::e_OFFSET;
+        d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
+            arguments.d_offsetLt);
+        d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
+            arguments.d_offsetGt);
+    }
+    else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
+        d_range.d_type = Range::e_SEQUENCE_NUM;
+        bmqu::MemOutStream errorDescr(allocator);
+        if (!arguments.d_seqNumLt.empty()) {
+            d_range.d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
+        }
+        if (!arguments.d_seqNumGt.empty()) {
+            d_range.d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
+        }
+    }
+
+    // Set specific sequence numbers if present
+    if (!arguments.d_seqNum.empty()) {
+        CompositeSequenceNumber seqNum;
+        bmqu::MemOutStream      errorDescr(allocator);
+        for (bsl::vector<bsl::string>::const_iterator cit =
+                 arguments.d_seqNum.begin();
+             cit != arguments.d_seqNum.end();
+             ++cit) {
+            seqNum.fromString(errorDescr, *cit);
+            d_seqNum.push_back(seqNum);
+        }
+    }
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
