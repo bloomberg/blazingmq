@@ -687,9 +687,12 @@ bool SearchDetailResult::processQueueOpRecord(
                                                            record.queueKey());
     bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
 
-    d_ostream << "Record index: " << recordIndex
-              << ", offset: " << recordOffset << '\n'
-              << mqbs::RecordType::e_QUEUE_OP << " Record:" << '\n';
+    bmqu::MemOutStream ss(d_allocator_p);
+    ss << mqbs::RecordType::e_QUEUE_OP << " record, index: " << recordIndex
+       << ", offset: " << recordOffset;
+    bsl::string delimiter(ss.length(), '=', d_allocator_p);
+    d_ostream << delimiter << '\n' << ss.str() << '\n';
+
     RecordPrinter::printRecord(d_ostream, record, queueInfo_p, d_allocator_p);
 
     d_printedQueueOpCount++;
@@ -702,9 +705,12 @@ bool SearchDetailResult::processJournalOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    d_ostream << "Record index: " << recordIndex
-              << ", offset: " << recordOffset << '\n'
-              << mqbs::RecordType::e_JOURNAL_OP << " Record:" << '\n';
+    bmqu::MemOutStream ss(d_allocator_p);
+    ss << mqbs::RecordType::e_JOURNAL_OP << " record, index: " << recordIndex
+       << ", offset: " << recordOffset;
+    bsl::string delimiter(ss.length(), '=', d_allocator_p);
+    d_ostream << delimiter << '\n' << ss.str() << '\n';
+
     mqbs::FileStoreProtocolPrinter::printRecord(d_ostream, record);
 
     d_printedJournalOpCount++;
