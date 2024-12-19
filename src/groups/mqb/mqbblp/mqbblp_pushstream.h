@@ -127,8 +127,12 @@ struct PushStream {
         void add(Element* element);
         void remove(Element* element);
 
-        /// Return 'true'
-        bool setLastPush(const bmqt::MessageGUID& lastGUID);
+        /// Return 'true' if the specified `guid` is the same as in the last
+        /// `setLastPush` call.
+        bool isLastPush(const bmqt::MessageGUID& guid);
+
+        /// Cache the specified `guid` for subsequent checks by `isLastPush`.
+        void setLastPush(const bmqt::MessageGUID& guid);
 
         const Element* last() const;
     };
@@ -620,14 +624,14 @@ inline void PushStream::App::remove(Element* element)
     d_elements.remove(element, e_APP);
 }
 
-inline bool PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID)
+inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID)
 {
-    if (d_lastGUID == lastGUID) {
-        return false;
-    }
-    d_lastGUID = lastGUID;
+    return d_lastGUID == lastGUID;
+}
 
-    return true;
+inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID)
+{
+    d_lastGUID = lastGUID;
 }
 
 inline const PushStream::Element* PushStream::App::last() const

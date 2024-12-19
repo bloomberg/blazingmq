@@ -603,7 +603,13 @@ void RelayQueueEngine::deliverMessages()
 
                 d_storageIter_mp->removeCurrentElement();
             }
-            else if (element->app().setLastPush(d_storageIter_mp->guid())) {
+            else if (element->app().isLastPush(d_storageIter_mp->guid())) {
+                // This `app` has already seen this message.
+                d_storageIter_mp->removeCurrentElement();
+            }
+            else {
+                element->app().setLastPush(d_storageIter_mp->guid());
+
                 if (d_appsDeliveryContext.processApp(*app, i)) {
                     // The current element has made it either to delivery or
                     // putAside and it can be removed
