@@ -292,6 +292,26 @@ struct AppMessage {
     bool isPushing() const;
 };
 
+struct DataStreamMessage {
+    // VST to track the state associated with a GUID (for all Apps).
+
+    int d_size;
+    // The message size
+
+    bsl::vector<mqbi::AppMessage> d_apps;
+    // App states for the message
+
+    DataStreamMessage(int size, bslma::Allocator* allocator);
+
+    /// Return reference to the modifiable state of the App corresponding
+    /// to the specified 'ordinal.
+    mqbi::AppMessage& app(unsigned int appOrdinal);
+
+    /// Return reference to the non-modifiable state of the App
+    /// corresponding to the specified 'ordinal.
+    const mqbi::AppMessage& app(unsigned int appOrdinal) const;
+};
+
 // =====================
 // class StorageIterator
 // =====================
@@ -437,13 +457,16 @@ class Storage {
     /// Save the message contained in the specified `appData`, `options` and
     /// the associated `attributes` and `msgGUID` into this storage and the
     /// associated virtual storage.  The `attributes` is an in/out parameter
-    /// and storage layer can populate certain fields of that struct.
+    /// and storage layer can populate certain fields of that struct.  If the
+    /// optionally specified `out` is not zero, load the created
+    /// `DataStreamMessage` into the 'out'.
     /// Return 0 on success or an non-zero error code on failure.
     virtual StorageResult::Enum
     put(StorageMessageAttributes*           attributes,
         const bmqt::MessageGUID&            msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
+        const bsl::shared_ptr<bdlbb::Blob>& options,
+        mqbi::DataStreamMessage**           out = 0) = 0;
 
     /// Update the App state corresponding to the specified `msgGUID` and the
     /// specified `appKey` in the DataStream.  Decrement the reference count of
@@ -696,6 +719,33 @@ inline bool AppMessage::isNew() const
 inline bool AppMessage::isPushing() const
 {
     return d_state == e_PUSH;
+}
+
+// -----------------------
+// class DataStreamMessage
+// -----------------------
+
+inline DataStreamMessage::DataStreamMessage(int               size,
+                                            bslma::Allocator* allocator)
+: d_size(size)
+, d_apps(allocator)
+{
+    // NOTHING
+}
+
+inline mqbi::AppMessage& DataStreamMessage::app(unsigned int appOrdinal)
+{
+    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
+
+    return d_apps[appOrdinal];
+}
+
+inline const mqbi::AppMessage&
+DataStreamMessage::app(unsigned int appOrdinal) const
+{
+    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
+
+    return d_apps[appOrdinal];
 }
 
 // ------------------------------

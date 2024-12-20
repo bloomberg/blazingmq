@@ -71,29 +71,11 @@ class VirtualStorage {
     // This Mechanism represents one App in a Storage (FileBased or InMemory)
 
   public:
-    struct DataStreamMessage {
-        int d_size;
-        // The message size
-
-        bsl::vector<mqbi::AppMessage> d_apps;
-        // App states for the message
-
-        DataStreamMessage(int size, bslma::Allocator* allocator);
-
-        /// Return reference to the modifiable state of the App corresponding
-        /// to the specified 'ordinal.
-        mqbi::AppMessage& app(unsigned int appOrdinal);
-
-        /// Return reference to the non-modifiable state of the App
-        /// corresponding to the specified 'ordinal.
-        const mqbi::AppMessage& app(unsigned int appOrdinal) const;
-    };
-
     /// msgGUID -> MessageContext
     /// Must be a container in which iteration order is same as insertion
     /// order.
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
-                                 DataStreamMessage,
+                                 mqbi::DataStreamMessage,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         DataStream;
 
@@ -178,15 +160,17 @@ class VirtualStorage {
 
     /// Change the state of this App in the specified 'dataStreamMessage' to
     /// indicate CONFIRM.
-    mqbi::StorageResult::Enum confirm(DataStreamMessage* dataStreamMessage);
+    mqbi::StorageResult::Enum
+    confirm(mqbi::DataStreamMessage* dataStreamMessage);
 
     /// Change the state of this App in the specified 'dataStreamMessage' to
     /// indicate removal (by a purge or unregistration).
-    mqbi::StorageResult::Enum remove(DataStreamMessage* dataStreamMessage);
+    mqbi::StorageResult::Enum
+    remove(mqbi::DataStreamMessage* dataStreamMessage);
 
     /// Observe removal of this App from the specified 'dataStreamMessage' by
     /// GC and update bytes and messages counts if needed.
-    void onGC(const DataStreamMessage& dataStreamMessage);
+    void onGC(const mqbi::DataStreamMessage& dataStreamMessage);
 
     /// Reset bytes and messages counts as in the case of purging all Apps.
     void resetStats();
@@ -359,35 +343,6 @@ class VirtualStorageIterator : public StorageIterator {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
-
-// ---------------------------------------
-// class VirtualStorage::DataStreamMessage
-// ---------------------------------------
-
-inline VirtualStorage::DataStreamMessage::DataStreamMessage(
-    int               size,
-    bslma::Allocator* allocator)
-: d_size(size)
-, d_apps(allocator)
-{
-    // NOTHING
-}
-
-inline mqbi::AppMessage&
-VirtualStorage::DataStreamMessage::app(unsigned int appOrdinal)
-{
-    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
-
-    return d_apps[appOrdinal];
-}
-
-inline const mqbi::AppMessage&
-VirtualStorage::DataStreamMessage::app(unsigned int appOrdinal) const
-{
-    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
-
-    return d_apps[appOrdinal];
-}
 
 // --------------------
 // class VirtualStorage

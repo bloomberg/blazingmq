@@ -58,7 +58,7 @@ VirtualStorage::~VirtualStorage()
 
 // MANIPULATORS
 mqbi::StorageResult::Enum
-VirtualStorage::confirm(DataStreamMessage* dataStreamMessage)
+VirtualStorage::confirm(mqbi::DataStreamMessage* dataStreamMessage)
 {
     mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
 
@@ -77,7 +77,7 @@ VirtualStorage::confirm(DataStreamMessage* dataStreamMessage)
 }
 
 mqbi::StorageResult::Enum
-VirtualStorage::remove(DataStreamMessage* dataStreamMessage)
+VirtualStorage::remove(mqbi::DataStreamMessage* dataStreamMessage)
 {
     mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
 
@@ -95,7 +95,7 @@ VirtualStorage::remove(DataStreamMessage* dataStreamMessage)
     }
 }
 
-void VirtualStorage::onGC(const DataStreamMessage& dataStreamMessage)
+void VirtualStorage::onGC(const mqbi::DataStreamMessage& dataStreamMessage)
 {
     if (!dataStreamMessage.d_apps.empty()) {
         const mqbi::AppMessage& appMessage = dataStreamMessage.app(ordinal());
@@ -191,7 +191,6 @@ void StorageIterator::reset(const bmqt::MessageGUID& where)
 {
     clear();
 
-    // Reset iterator to beginning
     d_iterator = d_owner_p->begin(where);
 }
 
@@ -210,8 +209,7 @@ StorageIterator::appMessageView(unsigned int appOrdinal) const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    const VirtualStorage::DataStreamMessage& dataStreamMessage =
-        d_iterator->second;
+    const mqbi::DataStreamMessage& dataStreamMessage = d_iterator->second;
 
     if (dataStreamMessage.d_apps.size() > appOrdinal) {
         return d_iterator->second.app(appOrdinal);
@@ -224,7 +222,7 @@ mqbi::AppMessage& StorageIterator::appMessageState(unsigned int appOrdinal)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    VirtualStorage::DataStreamMessage* dataStreamMessage = &d_iterator->second;
+    mqbi::DataStreamMessage* dataStreamMessage = &d_iterator->second;
 
     d_owner_p->setup(dataStreamMessage);
 
