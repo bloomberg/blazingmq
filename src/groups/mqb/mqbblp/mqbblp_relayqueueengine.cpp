@@ -1036,7 +1036,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         queueHandle = d_queueState_p->handleCatalog().createHandle(
             clientContext,
             handleParameters,
-            &d_queueState_p->stats());
+            d_queueState_p->stats().get());
         handleCreated = true;
 
         BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
@@ -1562,7 +1562,7 @@ void RelayQueueEngine::onTimer(
     // NOTHING
 }
 
-mqbi::StorageResult::Enum RelayQueueEngine::evaluateAutoSubscriptions(
+mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
     BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo& mpi,
@@ -1604,16 +1604,14 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
                  appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit) {
-            const mqbi::Storage::AppInfo& p = *cit;
-
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();
-            subStream.appId()                            = p.first;
+            subStream.appId()                            = cit->first;
             bmqu::MemOutStream appKey;
-            appKey << p.second;
+            appKey << cit->second;
             subStream.appKey()      = appKey.str();
             subStream.numMessages() = d_queueState_p->storage()->numMessages(
-                p.second);
+                cit->second);
         }
     }
 

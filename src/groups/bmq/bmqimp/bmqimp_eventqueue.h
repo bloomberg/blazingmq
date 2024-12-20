@@ -92,7 +92,7 @@
 //
 //  // Let's read the item from the queue
 //  bsl::shared_ptr<Event> dequeuedEvent = queue.popFront();
-//  ASSERT(*dequeuedEvent == *event);
+//  BMQTST_ASSERT(*dequeuedEvent == *event);
 //..
 //
 /// Usage Example (using the thread pool for processing events)

@@ -108,9 +108,9 @@ static void test1_queueMessagesCountComparator()
     StorageUtil::QueueMessagesCount rhs2(tester.d_d2uri1, 10);
     StorageUtil::QueueMessagesCount rhs3(tester.d_d3uri1, 15);
 
-    ASSERT(StorageUtil::queueMessagesCountComparator(lhs, rhs1));
-    ASSERT(!StorageUtil::queueMessagesCountComparator(lhs, rhs2));
-    ASSERT(!StorageUtil::queueMessagesCountComparator(lhs, rhs3));
+    BMQTST_ASSERT(StorageUtil::queueMessagesCountComparator(lhs, rhs1));
+    BMQTST_ASSERT(!StorageUtil::queueMessagesCountComparator(lhs, rhs2));
+    BMQTST_ASSERT(!StorageUtil::queueMessagesCountComparator(lhs, rhs3));
 }
 
 static void test2_mergeQueueMessagesCountMap()
@@ -143,10 +143,10 @@ static void test2_mergeQueueMessagesCountMap()
     // qs1 = {URI1 -> 10,  URI2 -> 20}
     // qs2 = {URI1 -> 100, URI3 -> 333}
     StorageUtil::mergeQueueMessagesCountMap(&qs1, qs2);
-    ASSERT_EQ(qs1.size(), 3U);  // one entry per URI
-    ASSERT_EQ(qs1[tester.d_d1uri1], 10 + 100);
-    ASSERT_EQ(qs1[tester.d_d1uri2], 20);
-    ASSERT_EQ(qs1[tester.d_d1uri3], 333);
+    BMQTST_ASSERT_EQ(qs1.size(), 3U);  // one entry per URI
+    BMQTST_ASSERT_EQ(qs1[tester.d_d1uri1], 10 + 100);
+    BMQTST_ASSERT_EQ(qs1[tester.d_d1uri2], 20);
+    BMQTST_ASSERT_EQ(qs1[tester.d_d1uri3], 333);
 }
 
 static void test3_mergeDomainQueueMessagesCountMap()
@@ -211,18 +211,18 @@ static void test3_mergeDomainQueueMessagesCountMap()
 
     StorageUtil::mergeDomainQueueMessagesCountMap(&map1, map2);
 
-    ASSERT_EQ(map1.size(), 3U);
-    ASSERT_EQ(map1[tester.d_domain1].size(), 3U);
-    ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri1], 10 + 100);
-    ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri2], 20);
-    ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri3], 333);
+    BMQTST_ASSERT_EQ(map1.size(), 3U);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain1].size(), 3U);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri1], 10 + 100);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri2], 20);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain1][tester.d_d1uri3], 333);
 
-    ASSERT_EQ(map1[tester.d_domain2].size(), 3U);
-    ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri1], 7777);
-    ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri2], 8888);
-    ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri3], 9999);
-    ASSERT_EQ(map1[tester.d_domain3].size(), 1U);
-    ASSERT_EQ(map1[tester.d_domain3][tester.d_d3uri1], 1234567);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain2].size(), 3U);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri1], 7777);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri2], 8888);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain2][tester.d_d2uri3], 9999);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain3].size(), 1U);
+    BMQTST_ASSERT_EQ(map1[tester.d_domain3][tester.d_d3uri1], 1234567);
 }
 
 static void test4_loadArrivalTime()
@@ -258,8 +258,9 @@ static void test4_loadArrivalTime()
             bdlt::EpochUtil::convertToTimeInterval(bdlt::CurrentTime::utc())
                 .totalNanoseconds() -
             (bmqsys::Time::highResolutionTimer() - arrivalTimepointNs);
-        ASSERT_LE(expectedArrivalTimeNs - arrivalTimeNs,
-                  1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+        BMQTST_ASSERT_LE(
+            expectedArrivalTimeNs - arrivalTimeNs,
+            1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
 
         // 2. bdlt::Datetime variant
         bdlt::Datetime arrivalDatetime;
@@ -273,8 +274,8 @@ static void test4_loadArrivalTime()
 
         // Expect less than 1 millisecond of time elapsed between the
         // calculation of 'arrivalDatetime' and 'expectedArrivalDatetime'.
-        ASSERT_LE(expectedArrivalDatetime - arrivalDatetime,
-                  bdlt::DatetimeInterval(0, 0, 0, 0, 1));  // 1 ms
+        BMQTST_ASSERT_LE(expectedArrivalDatetime - arrivalDatetime,
+                         bdlt::DatetimeInterval(0, 0, 0, 0, 1));  // 1 ms
     }
 
     // If timepoint is unset, use timestamp instead
@@ -291,7 +292,7 @@ static void test4_loadArrivalTime()
 
         const bsls::Types::Int64 expectedArrivalTimeNs =
             arrivalTimeSec * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
-        ASSERT_EQ(arrivalTimeNs, expectedArrivalTimeNs);
+        BMQTST_ASSERT_EQ(arrivalTimeNs, expectedArrivalTimeNs);
 
         // 2. bdlt::Datetime variant
         bdlt::Datetime arrivalDatetime;
@@ -302,7 +303,7 @@ static void test4_loadArrivalTime()
         expectedArrivalTimeInterval.addNanoseconds(expectedArrivalTimeNs);
         bdlt::EpochUtil::convertFromTimeInterval(&expectedArrivalDatetime,
                                                  expectedArrivalTimeInterval);
-        ASSERT_EQ(arrivalDatetime, expectedArrivalDatetime);
+        BMQTST_ASSERT_EQ(arrivalDatetime, expectedArrivalDatetime);
     }
 }
 
@@ -338,8 +339,9 @@ static void test5_loadArrivalTimeDelta()
         // 'expectedArrivalTimeDeltaNs'.
         const bsls::Types::Int64 expectedArrivalTimeDeltaNs =
             bmqsys::Time::highResolutionTimer() - arrivalTimepointNs;
-        ASSERT_LE(expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
-                  1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+        BMQTST_ASSERT_LE(
+            expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
+            1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
     }
 
     // If timepoint is unset, use timestamp instead
@@ -361,8 +363,9 @@ static void test5_loadArrivalTimeDelta()
             (bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()) -
              arrivalTimeSec) *
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
-        ASSERT_LE(expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
-                  1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+        BMQTST_ASSERT_LE(
+            expectedArrivalTimeDeltaNs - arrivalTimeDeltaNs,
+            1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
     }
 }
 

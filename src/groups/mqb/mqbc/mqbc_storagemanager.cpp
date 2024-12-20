@@ -3452,12 +3452,23 @@ int StorageManager::start(bsl::ostream& errorDescription)
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
     enum RcEnum {
-        // Value for the various RC error categories
+        // Value for the various RC error categories.
+        // RESERVED returned code is not used here, but kept for consistency
+        // with `mqbblp::StorageManager::start` return code:
+        // - rc_THREAD_POOL_START_FAILURE = rc_FILE_STORE_OPEN_FAILURE
+        // - rc_RESERVED                  = rc_FILE_STORE_RECOVERY_FAILURE
+        // TODO: `mqbblp::StorageManager` is used in non-FSM mode only, if/when
+        //       we support only FSM, we can remove these RESERVED codes
+        //       together with `mqbblp::StorageManager`.
         rc_SUCCESS                        = 0,
         rc_PARTITION_LOCATION_NONEXISTENT = -1,
-        rc_NOT_ENOUGH_DISK_SPACE          = -2,
+        rc_RECOVERY_MANAGER_FAILURE       = -2,
         rc_THREAD_POOL_START_FAILURE      = -3,
-        rc_RECOVERY_MANAGER_FAILURE       = -4
+        rc_RESERVED                       = -4,
+        rc_NOT_ENOUGH_DISK_SPACE          = -5,
+        rc_OVERFLOW_MAX_DATA_FILE_SIZE    = -6,
+        rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE = -7,
+        rc_OVERFLOW_MAX_QLIST_FILE_SIZE   = -8
     };
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -3466,6 +3477,37 @@ int StorageManager::start(bsl::ostream& errorDescription)
     // For convenience:
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
+
+    // Validate file size limits before checking the available disk space
+    if (mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD <
+        partitionCfg.maxDataFileSize()) {
+        BALL_LOG_ERROR << "Configured maxDataFileSize ("
+                       << partitionCfg.maxDataFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
+        partitionCfg.maxJournalFileSize()) {
+        BALL_LOG_ERROR << "Configured maxJournalFileSize ("
+                       << partitionCfg.maxJournalFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
+        partitionCfg.maxQlistFileSize()) {
+        BALL_LOG_ERROR << "Configured maxQlistFileSize ("
+                       << partitionCfg.maxQlistFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;  // RETURN
+    }
 
     int rc = StorageUtil::validatePartitionDirectory(partitionCfg,
                                                      errorDescription);
@@ -3639,7 +3681,7 @@ void StorageManager::initializeQueueKeyInfoMap(
             for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
                  appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppInfo(*appIdCit);
+                qinfo.addAppInfo(appIdCit);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
@@ -3650,12 +3692,11 @@ void StorageManager::initializeQueueKeyInfoMap(
     d_isQueueKeyInfoMapVecInitialized = true;
 }
 
-void StorageManager::registerQueue(
-    const bmqt::Uri&                   uri,
-    const mqbu::StorageKey&            queueKey,
-    int                                partitionId,
-    const bsl::unordered_set<AppInfo>& appIdKeyPairs,
-    mqbi::Domain*                      domain)
+void StorageManager::registerQueue(const bmqt::Uri&        uri,
+                                   const mqbu::StorageKey& queueKey,
+                                   int                     partitionId,
+                                   const AppInfos&         appIdKeyPairs,
+                                   mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 

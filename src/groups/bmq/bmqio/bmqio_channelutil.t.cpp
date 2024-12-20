@@ -111,10 +111,10 @@ static void test1_handleRead_singlePacket()
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packet.length(), 0);
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packet.length(), 0);
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 
     {
@@ -132,10 +132,10 @@ static void test1_handleRead_singlePacket()
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, -1);
-        ASSERT_EQ(packet.length(), 0);
-        ASSERT_EQ(input.length(), totalLength);
-        ASSERT_EQ(numNeeded, 0);
+        BMQTST_ASSERT_EQ(rc, -1);
+        BMQTST_ASSERT_EQ(packet.length(), 0);
+        BMQTST_ASSERT_EQ(input.length(), totalLength);
+        BMQTST_ASSERT_EQ(numNeeded, 0);
     }
 
     {
@@ -153,10 +153,10 @@ static void test1_handleRead_singlePacket()
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packet.length(), 0);
-        ASSERT_EQ(input.length(), totalLength - 1);
-        ASSERT_EQ(numNeeded, totalLength);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packet.length(), 0);
+        BMQTST_ASSERT_EQ(input.length(), totalLength - 1);
+        BMQTST_ASSERT_EQ(numNeeded, totalLength);
     }
 
     {
@@ -174,10 +174,10 @@ static void test1_handleRead_singlePacket()
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packet.length(), totalLength);
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packet.length(), totalLength);
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 
     {
@@ -195,10 +195,10 @@ static void test1_handleRead_singlePacket()
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packet.length(), totalLength);
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packet.length(), totalLength);
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 }
 
@@ -220,11 +220,11 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packets.size(), 1U);
-        ASSERT_EQ(packets[0].length(), totalLength)
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packets.size(), 1U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength)
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 
     {
@@ -242,11 +242,11 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, -1);
-        ASSERT_EQ(packets.size(), 1U);
-        ASSERT_EQ(packets[0].length(), totalLength);
-        ASSERT_EQ(input.length(), totalLength);
-        ASSERT_EQ(numNeeded, 0);
+        BMQTST_ASSERT_EQ(rc, -1);
+        BMQTST_ASSERT_EQ(packets.size(), 1U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength);
+        BMQTST_ASSERT_EQ(input.length(), totalLength);
+        BMQTST_ASSERT_EQ(numNeeded, 0);
     }
 
     {
@@ -264,11 +264,11 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packets.size(), 1U);
-        ASSERT_EQ(packets[0].length(), totalLength);
-        ASSERT_EQ(input.length(), totalLength - 1);
-        ASSERT_EQ(numNeeded, totalLength);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packets.size(), 1U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength);
+        BMQTST_ASSERT_EQ(input.length(), totalLength - 1);
+        BMQTST_ASSERT_EQ(numNeeded, totalLength);
     }
 
     {
@@ -287,13 +287,13 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packets.size(), 3U);
-        ASSERT_EQ(packets[0].length(), totalLength);
-        ASSERT_EQ(packets[1].length(), totalLength - 1);
-        ASSERT_EQ(packets[2].length(), totalLength - 2);
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packets.size(), 3U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength);
+        BMQTST_ASSERT_EQ(packets[1].length(), totalLength - 1);
+        BMQTST_ASSERT_EQ(packets[2].length(), totalLength - 2);
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 
     {
@@ -311,12 +311,12 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packets.size(), 2U);
-        ASSERT_EQ(packets[0].length(), totalLength);
-        ASSERT_EQ(packets[1].length(), totalLength - 2);
-        ASSERT_EQ(input.length(), 0);
-        ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packets.size(), 2U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength);
+        BMQTST_ASSERT_EQ(packets[1].length(), totalLength - 2);
+        BMQTST_ASSERT_EQ(input.length(), 0);
+        BMQTST_ASSERT_EQ(numNeeded, k_MINIMUM_PACKET_LENGTH);
     }
 
     {
@@ -334,11 +334,11 @@ static void test2_handleRead_multiplePackets()
         const int rc = bmqio::ChannelUtil::handleRead(&packets,
                                                       &numNeeded,
                                                       &input);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(packets.size(), 1U);
-        ASSERT_EQ(packets[0].length(), totalLength);
-        ASSERT_EQ(input.length(), k_MINIMUM_PACKET_LENGTH);
-        ASSERT_EQ(numNeeded, totalLength);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(packets.size(), 1U);
+        BMQTST_ASSERT_EQ(packets[0].length(), totalLength);
+        BMQTST_ASSERT_EQ(input.length(), k_MINIMUM_PACKET_LENGTH);
+        BMQTST_ASSERT_EQ(numNeeded, totalLength);
     }
 }
 
@@ -352,11 +352,11 @@ static void test3_isLocalHost()
 
     {
         PVV("'LOCALHOST' - TRUE");
-        ASSERT(bmqio::ChannelUtil::isLocalHost("localhost"));
-        ASSERT(bmqio::ChannelUtil::isLocalHost("LoCaLhOsT"));
+        BMQTST_ASSERT(bmqio::ChannelUtil::isLocalHost("localhost"));
+        BMQTST_ASSERT(bmqio::ChannelUtil::isLocalHost("LoCaLhOsT"));
 
         PVV("'WWW.WIKIPEDIA.ORG' - FALSE")
-        ASSERT(!bmqio::ChannelUtil::isLocalHost("www.wikipedia.org"));
+        BMQTST_ASSERT(!bmqio::ChannelUtil::isLocalHost("www.wikipedia.org"));
     }
 
     {
@@ -364,13 +364,14 @@ static void test3_isLocalHost()
         bsl::vector<ntsa::IpAddress> localIPs(
             bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bmqio::ResolveUtil::getLocalIpAddress(&localIPs).code(),
-                  ntsa::Error::e_OK);
+        BMQTST_ASSERT_EQ(
+            bmqio::ResolveUtil::getLocalIpAddress(&localIPs).code(),
+            ntsa::Error::e_OK);
 
         bsl::vector<ntsa::IpAddress>::const_iterator it;
         for (it = localIPs.begin(); it != localIPs.end(); ++it) {
             PVV(*it);
-            ASSERT(bmqio::ChannelUtil::isLocalHost(*it));
+            BMQTST_ASSERT(bmqio::ChannelUtil::isLocalHost(*it));
         }
     }
 }

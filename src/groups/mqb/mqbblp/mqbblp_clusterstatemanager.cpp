@@ -943,7 +943,6 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
     }
 
     d_isFirstLeaderAdvisory = false;
-    d_clusterStateLedger_mp->setIsFirstLeaderAdvisory(d_isFirstLeaderAdvisory);
 }
 
 // PRIVATE MANIPULATORS
@@ -979,8 +978,6 @@ void ClusterStateManager::onPartitionPrimaryAssignment(
                                                         oldLeaseId);
 
         d_isFirstLeaderAdvisory = false;
-        d_clusterStateLedger_mp->setIsFirstLeaderAdvisory(
-            d_isFirstLeaderAdvisory);
     }
 
     d_afterPartitionPrimaryAssignmentCb(partitionId, primary, status);
@@ -1167,7 +1164,6 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           d_clusterStateLedger_mp.get(),
                                           d_cluster_p,
                                           uri,
-                                          d_queueAssigningCb,
                                           d_allocator_p,
                                           status);
 }
@@ -1189,7 +1185,6 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
                                          partitionId,
                                          queueKey,
                                          appIdInfos,
-                                         d_queueAssigningCb,
                                          forceUpdate);
 }
 
@@ -1213,6 +1208,25 @@ void ClusterStateManager::unassignQueue(
                        << ": Failed to apply queue unassignment advisory: "
                        << advisory << ", rc: " << rc;
     }
+    else {
+        // In non-CSL mode this is the shortcut to call Primary CQH instead of
+        // waiting for the quorum of acks in the ledger.
+        for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator cit =
+                 advisory.queues().begin();
+             cit != advisory.queues().end();
+             ++cit) {
+            const bmqp_ctrlmsg::QueueInfo& queueInfo = *cit;
+
+            if (d_state_p->unassignQueue(queueInfo.uri())) {
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << ": Queue unassigned: " << queueInfo;
+            }
+            else {
+                BALL_LOG_INFO << d_clusterData_p->identity().description()
+                              << ": Failed to unassign Queue: " << queueInfo;
+            }
+        }
+    }
 }
 
 void ClusterStateManager::sendClusterState(
@@ -1230,7 +1244,6 @@ void ClusterStateManager::sendClusterState(
 
     // Self is leader and has published advisory above, so update it.
     d_isFirstLeaderAdvisory = false;
-    d_clusterStateLedger_mp->setIsFirstLeaderAdvisory(d_isFirstLeaderAdvisory);
 
     mqbc::ClusterUtil::sendClusterState(d_clusterData_p,
                                         d_clusterStateLedger_mp.get(),
@@ -1462,7 +1475,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_cluster_p,
         request,
         requester,
-        d_queueAssigningCb,
         d_allocator_p);
 }
 
@@ -1585,149 +1597,99 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             mqbu::StorageKey::BinaryRepresentation(),
             queueInfo.key().data());
 
-        bool                    queueAlreadyAssigned = false;
-        const DomainStatesCIter domCit = d_state_p->domainStates().find(
-            uri.qualifiedDomain());
-        if (domCit != d_state_p->domainStates().cend()) {
-            UriToQueueInfoMapCIter qcit = domCit->second->queuesInfo().find(
-                uri);
-            if (qcit != domCit->second->queuesInfo().cend()) {
-                // Queue is assigned.  Verify that the key and partition match
-                // with what we already have.
-                queueAlreadyAssigned = true;
+        mqbc::ClusterStateQueueInfo* assigned = d_state_p->getAssigned(uri);
+        // Only Replica can `processQueueAssignmentAdvisory`.  Therefore, the
+        // state cannot be `k_UNASSIGNING`
 
-                if (qcit->second->partitionId() != queueInfo.partitionId() ||
-                    (qcit->second->key() != queueKey)) {
-                    if (!delayed) {
-                        // Leader is telling self node to map a queue to new
-                        // partition or have a new key (basically, its a new
-                        // incarnation of the queue).  This could occur when a
-                        // queue is being opened-closed-opened in very quick
-                        // succession.  Old instance of the queue is deleted by
-                        // the primary, primary broadcasts queue-unasssignment
-                        // advisory, leader broadcasts queue-assignment
-                        // advisory for the new instance of the queue, but self
-                        // node receives those 2 broadcasts out of order
-                        // (leader's advisory followed by primary's advisory).
-                        // In this case, its beneficial to force-update self's
-                        // view of the queue with what the leader is
-                        // advertising (with an error).  When self receives
-                        // queue-unassignment advisory from the primary for the
-                        // old instance of the queue, it will log an error and
-                        // ignore it.
+        if (assigned) {
+            // Queue is assigned.  Verify that the key and partition match
+            // with what we already have.
 
-                        BALL_LOG_ERROR
-                            << d_cluster_p->description() << ": "
-                            << "received queueAssignmentAdvisory from leader '"
-                            << source->nodeDescription() << "' for a known and"
-                            << " assigned queue with different "
-                            << "partitionId/key: [received: " << queueInfo
-                            << ", knownPartitionId: "
-                            << qcit->second->partitionId()
-                            << ", knownQueueKey: " << qcit->second->key()
-                            << "]";
-                    }
-                    else {
-                        // There is partitionId/queueKey mismatch and this is a
-                        // delayed (aka, buffered) advisory.  This is a valid
-                        // scenario.  Here's how: Node starts up, initiates
-                        // storage sync with the primary While recovery is
-                        // underway, a queue, which is active, is deleted and
-                        // unassigned by the primary.  Further, same queue is
-                        // opened again, which means leader may assign it to a
-                        // different partition, and will definitely assign it a
-                        // different queue key, and will issue a queue
-                        // assignment advisory.  But self will buffer it.  When
-                        // recovery is complete, self's storage manager will
-                        // apply all recovered queues (including the previous
-                        // incarnation of this queue) to self's cluster state
-                        // (via 'ClusterStateManager::registerQueueInfo'), and
-                        // thus, populate 'd_queues', and this is how we will
-                        // end up here.  So instead of alarming/asserting, we
-                        // simply log at warn, and overwrite current state with
-                        // the buffered (this) advisory and move on.
+            if (assigned->partitionId() != queueInfo.partitionId() ||
+                (assigned->key() != queueKey)) {
+                if (!delayed) {
+                    // Leader is telling self node to map a queue to new
+                    // partition or have a new key (basically, its a new
+                    // incarnation of the queue).  This could occur when a
+                    // queue is being opened-closed-opened in very quick
+                    // succession.  Old instance of the queue is deleted by
+                    // the primary, primary broadcasts queue-unasssignment
+                    // advisory, leader broadcasts queue-assignment
+                    // advisory for the new instance of the queue, but self
+                    // node receives those 2 broadcasts out of order
+                    // (leader's advisory followed by primary's advisory).
+                    // In this case, its beneficial to force-update self's
+                    // view of the queue with what the leader is
+                    // advertising (with an error).  When self receives
+                    // queue-unassignment advisory from the primary for the
+                    // old instance of the queue, it will log an error and
+                    // ignore it.
 
-                        BALL_LOG_WARN
-                            << d_cluster_p->description()
-                            << ": overwriting current known queue state "
-                            << "with the buffered advisory for queue ["
-                            << qcit->second->uri()
-                            << "]. Current assigned Partition ["
-                            << qcit->second->partitionId()
-                            << "], current queueKey [" << qcit->second->key()
-                            << "], new Partition [" << queueInfo.partitionId()
-                            << "], new queueKey [" << queueKey << "].";
-                    }
-
-                    // Remove existing state, mapping, etc.
-
-                    d_state_p->queueKeys().erase(qcit->second->key());
-
-                    mqbc::ClusterState::QueueKeysInsertRc irc =
-                        d_state_p->queueKeys().insert(queueKey);
-                    if (false == irc.second) {
-                        // QueueKey provided by the leader is not unique.  This
-                        // is bad, as thing means that 2 different queue URIs
-                        // have queue key.  Unfortunately we can't retrieve the
-                        // URI of the 'other' queue.
-
-                        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                            << d_cluster_p->description()
-                            << ": queueKey clash while applying"
-                            << (delayed ? " buffered " : " ")
-                            << "queue assignment advisory: " << queueInfo
-                            << ". QueueKey [" << queueKey
-                            << "]. Ignoring this entry in the advisory msg."
-                            << BMQTSK_ALARMLOG_END;
-                        continue;  // CONTINUE
-                    }
-
-                    // no need to update d_state_p->domainStates() entry
-                    // , queue was already known and registered
-                    AppInfos appIdInfos(d_allocator_p);
-
-                    mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                                      queueInfo,
-                                                      d_allocator_p);
-
-                    BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
-                        uri,
-                        queueKey,
-                        queueInfo.partitionId(),
-                        appIdInfos);
-                    BSLS_ASSERT_SAFE(rc == false);
+                    BALL_LOG_ERROR
+                        << d_cluster_p->description() << ": "
+                        << "received queueAssignmentAdvisory from leader '"
+                        << source->nodeDescription() << "' for a known and"
+                        << " assigned queue with different "
+                        << "partitionId/key: [received: " << queueInfo
+                        << ", knownPartitionId: " << assigned->partitionId()
+                        << ", knownQueueKey: " << assigned->key() << "]";
                 }
                 else {
-                    // Queue is assigned, and there is no partitionId/queueKey
-                    // mismatch.  So this assert should not fire.
-                    BSLS_ASSERT_SAFE(1 ==
-                                     d_state_p->queueKeys().count(queueKey));
+                    // There is partitionId/queueKey mismatch and this is a
+                    // delayed (aka, buffered) advisory.  This is a valid
+                    // scenario.  Here's how: Node starts up, initiates
+                    // storage sync with the primary While recovery is
+                    // underway, a queue, which is active, is deleted and
+                    // unassigned by the primary.  Further, same queue is
+                    // opened again, which means leader may assign it to a
+                    // different partition, and will definitely assign it a
+                    // different queue key, and will issue a queue
+                    // assignment advisory.  But self will buffer it.  When
+                    // recovery is complete, self's storage manager will
+                    // apply all recovered queues (including the previous
+                    // incarnation of this queue) to self's cluster state
+                    // (via 'ClusterStateManager::registerQueueInfo'), and
+                    // thus, populate 'd_queues', and this is how we will
+                    // end up here.  So instead of alarming/asserting, we
+                    // simply log at warn, and overwrite current state with
+                    // the buffered (this) advisory and move on.
+
+                    BALL_LOG_WARN
+                        << d_cluster_p->description()
+                        << ": overwriting current known queue state "
+                        << "with the buffered advisory for queue ["
+                        << assigned->uri() << "]. Current assigned Partition ["
+                        << assigned->partitionId() << "], current queueKey ["
+                        << assigned->key() << "], new Partition ["
+                        << queueInfo.partitionId() << "], new queueKey ["
+                        << queueKey << "].";
                 }
+
+                // Remove existing state, mapping, etc.
+
+                d_state_p->queueKeys().erase(assigned->key());
+                // no need to update d_state_p->domainStates() entry
+                // , queue was already known and registered
+                AppInfos appIdInfos(d_allocator_p);
+
+                mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
+                                                  queueInfo,
+                                                  d_allocator_p);
+
+                BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
+                    uri,
+                    queueKey,
+                    queueInfo.partitionId(),
+                    appIdInfos);
+                BSLS_ASSERT_SAFE(rc == false);
+            }
+            else {
+                // Queue is assigned, and there is no partitionId/queueKey
+                // mismatch.  So this assert should not fire.
+                BSLS_ASSERT_SAFE(1 == d_state_p->queueKeys().count(queueKey));
             }
         }
-
-        if (!queueAlreadyAssigned) {
-            // Since self node doesn't see the queue as assigned, the
-            // queueKey specified in the advisory must not occur in
-            // 'queueKeys' data structure.
-            mqbc::ClusterState::QueueKeysInsertRc insertRc =
-                d_state_p->queueKeys().insert(queueKey);
-
-            if (false == insertRc.second) {
-                // QueueKey is not unique.
-
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << d_cluster_p->description() << ": attemping to apply"
-                    << (delayed ? " buffered " : " ")
-                    << " queueAssignmentAdvisory from leader ["
-                    << source->nodeDescription() << "] for an unknown queue ["
-                    << uri << "] assigned to Partition ["
-                    << queueInfo.partitionId() << "], but queueKey ["
-                    << queueKey << "] is not unique. Ignoring this entry in "
-                    << "the advisory." << BMQTSK_ALARMLOG_END;
-                continue;  // CONTINUE
-            }
-
+        else {
             AppInfos appIdInfos(d_allocator_p);
 
             mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
@@ -1738,16 +1700,10 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                                    queueKey,
                                    queueInfo.partitionId(),
                                    appIdInfos);
-
-            d_state_p->domainStates()
-                .at(uri.qualifiedDomain())
-                ->adjustQueueCount(1);
         }
 
         BALL_LOG_INFO << d_cluster_p->description()
                       << ": Queue assigned: " << queueInfo;
-
-        d_queueAssigningCb(uri, true);  // processingPendingRequests
     }
 }
 
@@ -1895,19 +1851,11 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
         mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
                              queueInfo.key().data());
 
-        bool                    hasQueue = true;
-        const DomainStatesCIter domCit   = d_state_p->domainStates().find(
-            uri.qualifiedDomain());
-        if (domCit == d_state_p->domainStates().cend()) {
-            hasQueue = false;
-        }
-        const UriToQueueInfoMapCIter qcit = domCit->second->queuesInfo().find(
-            uri);
-        if (qcit == domCit->second->queuesInfo().cend()) {
-            hasQueue = false;
-        }
+        mqbc::ClusterStateQueueInfo* assigned = d_state_p->getAssigned(uri);
+        // Only Replica can `processQueueAssignmentAdvisory`.  Therefore, the
+        // state cannot be `k_UNASSIGNING`
 
-        if (!hasQueue) {
+        if (assigned == 0) {
             // Queue is not assigned.  Error because it should not occur.
 
             BALL_LOG_ERROR << d_cluster_p->description()
@@ -1922,8 +1870,8 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
         // Self node sees queue as assigned.  Validate that the key/partition
         // from the unassignment match the internal state.
 
-        if ((qcit->second->partitionId() != advisory.partitionId()) ||
-            (qcit->second->key() != key)) {
+        if ((assigned->partitionId() != advisory.partitionId()) ||
+            (assigned->key() != key)) {
             // This can occur if a queue is deleted by the primary and created
             // immediately by the client.  Primary broadcasts queue
             // unassignment advisory upon deleting old instance of the queue,
@@ -1945,30 +1893,11 @@ void ClusterStateManager::processQueueUnAssignmentAdvisory(
                            << advisory.partitionId()
                            << ", advisoryKey: " << key
                            << ", internalPartitionId: "
-                           << qcit->second->partitionId()
-                           << ", internalKey: " << qcit->second->key() << "]";
+                           << assigned->partitionId()
+                           << ", internalKey: " << assigned->key() << "]";
             continue;  // CONTINUE
         }
-
-        bool hasInFlightRequests = false;
-        if (d_queueUnassigningCb(&hasInFlightRequests, queueInfo)) {
-            const mqbu::StorageKey queueKey = qcit->second->key();
-            if (hasInFlightRequests) {
-                d_state_p->updatePartitionQueueMapped(queueInfo.partitionId(),
-                                                      -1);
-            }
-            else {
-                d_state_p->unassignQueue(uri);
-            }
-
-            d_state_p->queueKeys().erase(queueKey);
-            d_state_p->domainStates()
-                .at(uri.qualifiedDomain())
-                ->adjustQueueCount(-1);
-
-            BALL_LOG_INFO << d_cluster_p->description()
-                          << ": Unassigned queue: " << queueInfo;
-        }
+        d_state_p->unassignQueue(uri);
     }
 }
 
@@ -2084,35 +2013,6 @@ void ClusterStateManager::processClusterStateEvent(
     mqbnet::ClusterNode* source = event.clusterNode();
     bmqp::Event          rawEvent(event.blob().get(), d_allocator_p);
     BSLS_ASSERT_SAFE(rawEvent.isClusterStateEvent());
-
-    // NOTE: Any validation of the event would go here.
-    if (source != d_clusterData_p->electorInfo().leaderNode()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring cluster state event from cluster node "
-                      << source->nodeDescription() << " as this node is not "
-                      << "the current perceived leader. Current leader: ["
-                      << d_clusterData_p->electorInfo().leaderNodeId() << ": "
-                      << (d_clusterData_p->electorInfo().leaderNode()
-                              ? d_clusterData_p->electorInfo()
-                                    .leaderNode()
-                                    ->nodeDescription()
-                              : "* UNKNOWN *")
-                      << "]";
-        return;  // RETURN
-    }
-    // 'source' is the perceived leader
-
-    // TBD: Suppress the following check for now, which will help some
-    // integration tests to pass.  At this point, it is not clear if it is safe
-    // to process cluster state events while self is stopping.
-    //
-    // if (   bmqp_ctrlmsg::NodeStatus::E_STOPPING
-    //     == d_clusterData_p->membership().selfNodeStatus()) {
-    //     return;                                                    // RETURN
-    // }
-
-    // TODO: Validate the incoming advisory and potentially buffer it for later
-    //       if the node is currently starting.
 
     const int rc = d_clusterStateLedger_mp->apply(*rawEvent.blob(), source);
     if (rc != 0) {
@@ -2254,7 +2154,7 @@ void ClusterStateManager::processLeaderAdvisory(
 
     // Leader status and sequence number are updated unconditionally.  It may
     // have been updated by one of the routines called earlier in this method,
-    // but there is no harm is setting these values again.
+    // but there is no harm in setting these values again.
 
     d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
     d_clusterData_p->electorInfo().setLeaderStatus(

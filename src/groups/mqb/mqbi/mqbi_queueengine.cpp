@@ -17,8 +17,12 @@
 #include <mqbi_queueengine.h>
 
 #include <mqbscm_version.h>
+
 // BMQ
 #include <bmqp_queueid.h>
+
+// BDE
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbi {
@@ -63,9 +67,9 @@ void QueueEngine::unregisterStorage(
     // NOTHING
 }
 
-bsl::ostream&
-QueueEngine::logAppSubscriptionInfo(bsl::ostream&      stream,
-                                    const bsl::string& appId) const
+bsl::ostream& QueueEngine::logAppSubscriptionInfo(
+    bsl::ostream&           stream,
+    BSLA_MAYBE_UNUSED const bsl::string& appId) const
 {
     return stream;
 };

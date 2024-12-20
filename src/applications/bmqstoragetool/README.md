@@ -18,10 +18,16 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
                         [--guid <guid>]*
+                        [--seqnum <seqnum>]*
+                        [--offset <offset>]*
                         [--queue-name <queue name>]*
                         [--queue-key <queue key>]*
                         [--timestamp-gt <timestamp greater than>]
                         [--timestamp-lt <timestamp less than>]
+                        [--seqnum-gt <composite sequence number greater than>]
+                        [--seqnum-lt <composite sequence number less than>]
+                        [--offset-gt <offset greater than>]
+                        [--offset-lt <offset less than>]
                         [--outstanding]
                         [--confirmed]
                         [--partially-confirmed]
@@ -43,6 +49,10 @@ Where:
           path to a .bmq_csl file
        --guid                 <guid>
           message guid
+       --seqnum               <seqnum>
+          message composite sequence number
+       --offset               <offset>
+          message offset
        --queue-name           <queue name>
           message queue name
        --queue-key            <queue key>
@@ -51,6 +61,14 @@ Where:
           lower timestamp bound
        --timestamp-lt         <timestamp less than>
           higher timestamp bound
+       --seqnum-gt            <composite sequence number greater than>
+          lower composite sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
+       --seqnum-lt            <composite sequence number less than>
+          higher composite sequence number bound, defined in form <leaseId-sequenceNumber>, e.g. 123-456
+       --offset-gt            <offset greater than>
+          lower offset bound
+       --offset-lt            <offset less than>
+          higher offset bound
        --outstanding
           show only outstanding (not deleted) messages
        --confirmed
@@ -125,6 +143,22 @@ bmqstoragetool --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
 ```
 NOTE: no other filters are allowed with this one
 
+Filter messages with corresponding composite sequence numbers (defined in form <primaryLeaseId-sequenceNumber>)
+---------------------------------------------------------------------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnum=<leaseId-sequenceNumber_N>
+```
+NOTE: no other filters are allowed with this one
+
+Filter messages with corresponding record offsets
+-------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
+```
+NOTE: no other filters are allowed with this one
+
 Filter messages within time range
 ---------------------------------
 Example:
@@ -132,6 +166,24 @@ Example:
 bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp>
 bmqstoragetool --journal-file=<path> --timestamp-gt=<stamp>
 bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
+```
+
+Filter messages within composite sequence numbers (primaryLeaseId, sequenceNumber) range
+----------------------------------------------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId-sequenceNumber>
+bmqstoragetool --journal-file=<path> --seqnum-gt=<leaseId-sequenceNumber>
+bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId1-sequenceNumber1> --seqnum-gt=<leaseId2-sequenceNumber2>
+```
+
+Filter messages within record offsets range
+-------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --offset-lt=<offset>
+bmqstoragetool --journal-file=<path> --offset-gt=<offset>
+bmqstoragetool --journal-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
 ```
 
 Filter messages by queue key

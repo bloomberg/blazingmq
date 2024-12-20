@@ -795,8 +795,9 @@ class Queue : public DispatcherClient {
     /// Return the queue engine used by this queue.
     virtual QueueEngine* queueEngine() = 0;
 
-    /// Return the stats associated with this queue.
-    virtual mqbstat::QueueStatsDomain* stats() = 0;
+    /// Set the stats associated with this queue.
+    virtual void
+    setStats(const bsl::shared_ptr<mqbstat::QueueStatsDomain>& stats) = 0;
 
     /// Return number of unconfirmed messages across all handles with the
     /// `specified `subId'.
@@ -910,6 +911,10 @@ class Queue : public DispatcherClient {
 
     /// Return the storage used by this queue.
     virtual Storage* storage() const = 0;
+
+    /// Return the stats associated with this queue.
+    virtual const bsl::shared_ptr<mqbstat::QueueStatsDomain>&
+    stats() const = 0;
 
     /// Return the partitionId assigned to this queue.
     virtual int partitionId() const = 0;

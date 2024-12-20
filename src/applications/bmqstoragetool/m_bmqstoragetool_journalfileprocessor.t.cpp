@@ -14,6 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_compositesequencenumber.h"
+#include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_filemanagermock.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
@@ -223,7 +225,7 @@ static void test1_breathingTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test2_searchGuidTest()
@@ -294,7 +296,7 @@ static void test2_searchGuidTest()
     expectedStream << searchGuids.size() << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test3_searchNonExistingGuidTest()
@@ -358,7 +360,7 @@ static void test3_searchNonExistingGuidTest()
     expectedStream << searchGuids[0] << bsl::endl
                    << searchGuids[1] << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test4_searchExistingAndNonExistingGuidTest()
@@ -444,7 +446,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
     expectedStream << searchGuids[2] << bsl::endl
                    << searchGuids[3] << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test5_searchOutstandingMessagesTest()
@@ -512,7 +514,7 @@ static void test5_searchOutstandingMessagesTest()
                    << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test6_searchConfirmedMessagesTest()
@@ -579,7 +581,7 @@ static void test6_searchConfirmedMessagesTest()
                    << (messageCount - confirmedGUIDS.size()) << "/"
                    << messageCount << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test7_searchPartiallyConfirmedMessagesTest()
@@ -649,7 +651,7 @@ static void test7_searchPartiallyConfirmedMessagesTest()
                    << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
                    << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test8_searchMessagesByQueueKeyTest()
@@ -713,7 +715,7 @@ static void test8_searchMessagesByQueueKeyTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test9_searchMessagesByQueueNameTest()
@@ -787,7 +789,7 @@ static void test9_searchMessagesByQueueNameTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test10_searchMessagesByQueueNameAndQueueKeyTest()
@@ -865,7 +867,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     expectedStream << foundMessagesCount << " message GUID(s) found."
                    << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test11_searchMessagesByTimestamp()
@@ -895,8 +897,10 @@ static void test11_searchMessagesByTimestamp()
         CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
-    params.d_timestampGt = ts1;
-    params.d_timestampLt = ts2;
+    params.d_timestampGt  = ts1;
+    params.d_timestampLt  = ts2;
+    params.d_range.d_type = Parameters::Range::e_TIMESTAMP;
+  
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -934,7 +938,7 @@ static void test11_searchMessagesByTimestamp()
             bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test12_printMessagesDetailsTest()
@@ -1000,8 +1004,8 @@ static void test12_printMessagesDetailsTest()
     for (size_t i = 0; i < confirmedGUIDS.size(); i++) {
         // Check Message type
         size_t foundIdx = resultString.find(messageRecordCaption, startIdx);
-        ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check GUID
@@ -1009,20 +1013,20 @@ static void test12_printMessagesDetailsTest()
         outputGuidString(ss, confirmedGUIDS.at(i));
         bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         foundIdx = resultString.find(guidStr, startIdx);
-        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
         startIdx = foundIdx + guidStr.length();
 
         // Check Confirm type
         foundIdx = resultString.find(confirmRecordCaption, startIdx);
-        ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
 
         // Check Delete type
         foundIdx = resultString.find(deleteRecordCaption, startIdx);
-        ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
         startIdx = foundIdx + bsl::strlen(messageRecordCaption);
     }
 }
@@ -1082,8 +1086,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
                               MESSAGES,
                               k_NUM_MSGS,
                               messageOffsets);
-    ASSERT(pd != 0);
-    ASSERT_GT(mfdData.fileSize(), 0ULL);
+    BMQTST_ASSERT(pd != 0);
+    BMQTST_ASSERT_GT(mfdData.fileSize(), 0ULL);
     // Create data file iterator
     DataFileIterator dataIt(&mfdData, fileHeader);
 
@@ -1153,8 +1157,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
         bsl::string guidStr(ss.str(), bmqtst::TestHelperUtil::allocator());
         size_t      foundIdx = resultString.find(guidStr, startIdx);
 
-        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
 
         startIdx = foundIdx + guidStr.length();
 
@@ -1162,8 +1166,8 @@ static void test13_searchMessagesWithPayloadDumpTest()
         bsl::string dumpStr = expectedPayloadSubstring[i];
         foundIdx            = resultString.find(dumpStr, startIdx);
 
-        ASSERT_D(dumpStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
+        BMQTST_ASSERT_D(dumpStr, (foundIdx != bsl::string::npos));
+        BMQTST_ASSERT_D(guidStr, (foundIdx >= startIdx));
         startIdx = foundIdx + dumpStr.length();
     }
 
@@ -1224,7 +1228,7 @@ static void test14_summaryTest()
            "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
 
     bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
-    ASSERT(res.starts_with(expectedStream.str()));
+    BMQTST_ASSERT(res.starts_with(expectedStream.str()));
 }
 
 static void test15_timestampSearchTest()
@@ -1252,15 +1256,15 @@ static void test15_timestampSearchTest()
         static void check(mqbs::JournalFileIterator& it,
                           const bsls::Types::Uint64& ts)
         {
-            ASSERT_GT(it.recordHeader().timestamp(), ts);
-            ASSERT(!it.isReverseMode());
+            BMQTST_ASSERT_GT(it.recordHeader().timestamp(), ts);
+            BMQTST_ASSERT(!it.isReverseMode());
             // Check previous record
             it.flipDirection();
-            ASSERT_EQ(it.nextRecord(), 1);
-            ASSERT_LE(it.recordHeader().timestamp(), ts);
+            BMQTST_ASSERT_EQ(it.nextRecord(), 1);
+            BMQTST_ASSERT_LE(it.recordHeader().timestamp(), ts);
             // Set 'it' to its original state
             it.flipDirection();
-            ASSERT_EQ(it.nextRecord(), 1);
+            BMQTST_ASSERT_EQ(it.nextRecord(), 1);
         }
     };
 
@@ -1273,8 +1277,22 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+
+        Parameters::Range range;
+        range.d_type        = Parameters::Range::e_TIMESTAMP;
+        range.d_timestampGt = ts;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
         ResultChecker::check(journalFileIt, ts);
     }
 
@@ -1288,35 +1306,56 @@ static void test15_timestampSearchTest()
             false);
 
         // Move the iterator to the center of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(journalFileIt.advance(k_NUM_RECORDS / 2), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+        BMQTST_ASSERT_EQ(journalFileIt.advance(k_NUM_RECORDS / 2), 1);
 
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially forward
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+
+        Parameters::Range range;
+        range.d_type        = Parameters::Range::e_TIMESTAMP;
+        range.d_timestampGt = ts1;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially forward
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        range.d_timestampGt = ts2;
+
+        LessThanLowerBoundFn lessThanLowerBoundFn2(range);
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn2),
+            1);
         ResultChecker::check(journalFileIt, ts2);
 
         // Find record with lower timestamp than the record pointed by the
         // specified iterator, which is initially backward
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
         journalFileIt.flipDirection();
-        ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts1), 1);
+        BMQTST_ASSERT(journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
         ResultChecker::check(journalFileIt, ts1);
 
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially backward
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
         journalFileIt.flipDirection();
-        ASSERT(journalFileIt.isReverseMode());
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts2), 1);
+        BMQTST_ASSERT(journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn2),
+            1);
         ResultChecker::check(journalFileIt, ts2);
     }
 
@@ -1329,11 +1368,20 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 0);
-        ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
-        ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
-        ASSERT(!journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+
+        Parameters::Range range;
+        range.d_type        = Parameters::Range::e_TIMESTAMP;
+        range.d_timestampGt = ts;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            0);
+        BMQTST_ASSERT_EQ(journalFileIt.recordIndex(), k_NUM_RECORDS - 1);
+        BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts);
+        BMQTST_ASSERT(!journalFileIt.isReverseMode());
     }
 
     {
@@ -1344,15 +1392,284 @@ static void test15_timestampSearchTest()
             journalFile.fileHeader(),
             false);
         // Move the iterator to the beginning of the file
-        ASSERT_EQ(journalFileIt.nextRecord(), 1);
-        ASSERT_EQ(m_bmqstoragetool::moveToLowerBound(&journalFileIt, ts), 1);
-        ASSERT_EQ(journalFileIt.recordIndex(), 0U);
-        ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
-        ASSERT(!journalFileIt.isReverseMode());
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+
+        Parameters::Range range;
+        range.d_type        = Parameters::Range::e_TIMESTAMP;
+        range.d_timestampGt = ts;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
+        BMQTST_ASSERT_EQ(journalFileIt.recordIndex(), 0U);
+        BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts);
+        BMQTST_ASSERT(!journalFileIt.isReverseMode());
     }
 }
 
-static void test16_summaryWithQueueDetailsTest()
+static void test16_sequenceNumberLowerBoundTest()
+// ------------------------------------------------------------------------
+// MOVE TO SEQUENCE NUMBER LOWER BOUND TEST
+//
+// Concerns:
+//   Find the first message in journal file with sequence number more than the
+//   specified 'valueGt' and move the specified JournalFileIterator to it.
+//
+// Testing:
+//   m_bmqstoragetool::moveToLowerBound()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "MOVE TO SEQUENCE NUMBER LOWER BOUND TEST");
+
+    struct Test {
+        int                 d_line;
+        size_t              d_numRecords;
+        size_t              d_numRecordsWithSameLeaseId;
+        unsigned int        d_leaseIdGt;
+        bsls::Types::Uint64 d_seqNumberGt;
+    } k_DATA[] = {
+        {L_, 32, 4, 3, 2},
+        {L_, 3, 2, 1, 2},
+        {L_, 300, 10, 3, 2},
+        {L_, 300, 11, 3, 2},
+        {L_, 300, 11, 3, 1},    // edge case (first seqNum inside leaseId)
+        {L_, 300, 11, 3, 11},   // edge case (last seqNum inside leaseId)
+        {L_, 300, 11, 1, 1},    // edge case (left seqNum edge inside first
+                                // leaseId)
+        {L_, 330, 11, 30, 10},  // edge case (prev before last seqNum inside
+                                // last leaseId)
+    };
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        // Simulate journal file
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(test.d_numRecords,
+                                bmqtst::TestHelperUtil::allocator());
+        journalFile.addMultipleTypesRecordsWithMultipleLeaseId(
+            &records,
+            test.d_numRecordsWithSameLeaseId);
+
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+
+        CompositeSequenceNumber seqNumGt(test.d_leaseIdGt, test.d_seqNumberGt);
+        unsigned int            expectedLeaseId =
+            test.d_leaseIdGt +
+            (test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId ? 1 : 0);
+        bsls::Types::Uint64 expectedSeqNumber =
+            test.d_seqNumberGt == test.d_numRecordsWithSameLeaseId
+                ? 1
+                : (test.d_seqNumberGt + 1);
+
+        // Move the iterator to the beginning of the file
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+
+        Parameters::Range range;
+        range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
+        range.d_seqNumGt = seqNumGt;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ_D(
+            test.d_line,
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            1);
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           journalFileIt.recordHeader().primaryLeaseId(),
+                           expectedLeaseId);
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           journalFileIt.recordHeader().sequenceNumber(),
+                           expectedSeqNumber);
+    }
+
+    // Edge case: not in the range (greater then the last record)
+    {
+        const size_t                 k_NUM_RECORDS = 30;
+        JournalFile::RecordsListType records(
+            bmqtst::TestHelperUtil::allocator());
+        JournalFile journalFile(k_NUM_RECORDS,
+                                bmqtst::TestHelperUtil::allocator());
+        journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records,
+                                                               k_NUM_RECORDS);
+
+        mqbs::JournalFileIterator journalFileIt(
+            &journalFile.mappedFileDescriptor(),
+            journalFile.fileHeader(),
+            false);
+
+        // Move the iterator to the beginning of the file
+        BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
+
+        CompositeSequenceNumber seqNumGt(1, k_NUM_RECORDS);
+        Parameters::Range       range;
+        range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
+        range.d_seqNumGt = seqNumGt;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+
+        BMQTST_ASSERT_EQ(
+            m_bmqstoragetool::moveToLowerBound(&journalFileIt,
+                                               lessThanLowerBoundFn),
+            0);
+        BMQTST_ASSERT_EQ(journalFileIt.recordHeader().primaryLeaseId(), 1u);
+        BMQTST_ASSERT_EQ(journalFileIt.recordHeader().sequenceNumber(),
+                         k_NUM_RECORDS);
+    }
+}
+
+static void test17_searchMessagesBySequenceNumbersRange()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST
+//
+// Concerns:
+//   Search messages by sequence numbers range in journal file and output
+//   GUIDs.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 100;
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    journalFile.addMultipleTypesRecordsWithMultipleLeaseId(&records, 10);
+    const CompositeSequenceNumber seqNumGt(3, 3);
+    const CompositeSequenceNumber seqNumLt(4, 6);
+
+    // Configure parameters to search messages by sequence number range
+    Parameters params(bmqtst::TestHelperUtil::allocator());
+    params.d_range.d_seqNumGt = seqNumGt;
+    params.d_range.d_seqNumLt = seqNumLt;
+    params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Get GUIDs of messages inside sequence numbers range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t msgCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const CompositeSequenceNumber seqNum(
+                msg.header().primaryLeaseId(),
+                msg.header().sequenceNumber());
+            if (seqNumGt < seqNum && seqNum < seqNumLt) {
+                outputGuidString(expectedStream, msg.messageGUID());
+                msgCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+
+    // Run search
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+    searchProcessor->process();
+
+    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test18_searchMessagesByOffsetsRange()
+// ------------------------------------------------------------------------
+// SEARCH MESSAGES BY OFFSETS RANGE TEST
+//
+// Concerns:
+//   Search messages by offsets range in journal file and output GUIDs.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY OFFSETS RANGE TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 50;
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    journalFile.addAllTypesRecords(&records);
+    const size_t k_HEADER_SIZE = sizeof(mqbs::FileHeader) +
+                                 sizeof(mqbs::JournalFileHeader);
+    const bsls::Types::Uint64 offsetGt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
+    const bsls::Types::Uint64 offsetLt =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
+
+    // Configure parameters to search messages by timestamps
+    Parameters params(bmqtst::TestHelperUtil::allocator());
+    params.d_range.d_offsetGt = offsetGt;
+    params.d_range.d_offsetLt = offsetLt;
+    params.d_range.d_type     = Parameters::Range::e_OFFSET;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Get GUIDs of messages within offsets range and prepare expected
+    // output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+
+    bsl::list<JournalFile::NodeType>::const_iterator recordIter =
+        records.begin();
+    bsl::size_t msgCnt = 0;
+    for (; recordIter != records.end(); ++recordIter) {
+        RecordType::Enum rtype = recordIter->first;
+        if (rtype == RecordType::e_MESSAGE) {
+            const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
+                recordIter->second.buffer());
+            const bsls::Types::Uint64& offset =
+                msg.header().sequenceNumber() *
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            if (offset > offsetGt && offset < offsetLt) {
+                outputGuidString(expectedStream, msg.messageGUID());
+                msgCnt++;
+            }
+        }
+    }
+    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+
+    // Run search
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+    searchProcessor->process();
+}
+
+static void test19_summaryWithQueueDetailsTest()
 // ------------------------------------------------------------------------
 // OUTPUT SUMMARY TEST
 //
@@ -1384,7 +1701,6 @@ static void test16_summaryWithQueueDetailsTest()
 
     params.d_summary            = true;
     params.d_minRecordsPerQueue = 0;
-
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1400,7 +1716,7 @@ static void test16_summaryWithQueueDetailsTest()
             resultStream,
             bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
-
+  
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream
@@ -1445,7 +1761,11 @@ int main(int argc, char* argv[])
     case 13: test13_searchMessagesWithPayloadDumpTest(); break;
     case 14: test14_summaryTest(); break;
     case 15: test15_timestampSearchTest(); break;
-    case 16: test16_summaryWithQueueDetailsTest(); break;
+    case 16: test16_sequenceNumberLowerBoundTest(); break;
+    case 17: test17_searchMessagesBySequenceNumbersRange(); break;
+    case 18: test18_searchMessagesByOffsetsRange(); break;
+    case 19: test19_summaryWithQueueDetailsTest(); break;
+
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

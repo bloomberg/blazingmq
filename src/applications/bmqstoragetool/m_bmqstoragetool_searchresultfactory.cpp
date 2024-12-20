@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -91,6 +92,25 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                                             alloc),
                            alloc);
     }
+    else if (!params->d_seqNum.empty()) {
+        // Search offsets
+        searchResult.reset(new (*alloc)
+                               SearchSequenceNumberDecorator(searchResult,
+                                                             params->d_seqNum,
+                                                             ostream,
+                                                             details,
+                                                             alloc),
+                           alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search composite sequence numbers
+        searchResult.reset(new (*alloc) SearchOffsetDecorator(searchResult,
+                                                              params->d_offset,
+                                                              ostream,
+                                                              details,
+                                                              alloc),
+                           alloc);
+    }
     else if (params->d_summary) {
         // Summary
         searchResult.reset(
@@ -124,13 +144,35 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Add TimestampDecorator if 'timestampLt' is given.
-    if (params->d_timestampLt > 0) {
-        searchResult.reset(
-            new (*alloc) SearchResultTimestampDecorator(searchResult,
-                                                        params->d_timestampLt,
-                                                        alloc),
-            alloc);
+    // Add TimestampDecorator if 'timestampLt' is given and value type is
+    // `e_TIMESTAMP`.
+    if (params->d_range.d_type == Parameters::Range::e_TIMESTAMP &&
+        params->d_range.d_timestampLt > 0) {
+        searchResult.reset(new (*alloc) SearchResultTimestampDecorator(
+                               searchResult,
+                               params->d_range.d_timestampLt,
+                               alloc),
+                           alloc);
+    }
+    else if (params->d_range.d_type == Parameters::Range::e_OFFSET &&
+             params->d_range.d_offsetLt > 0) {
+        // Add OffsetDecorator if 'offsetLt' is given and value type is
+        // `e_OFFSET`.
+        searchResult.reset(new (*alloc) SearchResultOffsetDecorator(
+                               searchResult,
+                               params->d_range.d_offsetLt,
+                               alloc),
+                           alloc);
+    }
+    else if (params->d_range.d_type == Parameters::Range::e_SEQUENCE_NUM &&
+             params->d_range.d_seqNumLt.isSet()) {
+        // Add SequenceNumberDecorator if 'seqNumLt' is given and value type is
+        // `e_SEQUENCE_NUM`.
+        searchResult.reset(new (*alloc) SearchResultSequenceNumberDecorator(
+                               searchResult,
+                               params->d_range.d_seqNumLt,
+                               alloc),
+                           alloc);
     }
 
     BSLS_ASSERT(searchResult);

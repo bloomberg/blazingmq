@@ -44,7 +44,7 @@
 // ..
 //   int value;
 //   bag.load(&value, "myIntValue");
-//   ASSERT(value == 5);
+//   BMQTST_ASSERT(value == 5);
 //..
 
 // BDE

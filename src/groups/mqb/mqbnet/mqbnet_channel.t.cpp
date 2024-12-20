@@ -169,7 +169,7 @@ struct Iterator<bmqp::PutEventBuilder> : public bmqp::PutMessageIterator {
         loadApplicationData(&blob);
         other.loadApplicationData(&otherBlob);
 
-        ASSERT_EQ(header().queueId(), other.header().queueId());
+        BMQTST_ASSERT_EQ(header().queueId(), other.header().queueId());
 
         return memcmp(&header(), &other.header(), sizeof(header())) == 0 &&
                bdlbb::BlobUtil::compare(blob, otherBlob) == 0;
@@ -393,8 +393,8 @@ void TestChannelEx::write(bmqio::Status*     status,
 
 bool TestChannelEx::waitForChannel(const bsls::TimeInterval& interval)
 {
-    ASSERT_EQ(d_channel.writeBlob(d_eof_sp, bmqp::EventType::e_CONTROL),
-              bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(d_channel.writeBlob(d_eof_sp, bmqp::EventType::e_CONTROL),
+                     bmqt::GenericResult::e_SUCCESS);
 
     return waitFor(*d_eof_sp, interval);
 }
@@ -517,7 +517,7 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PushEventBuilder>::build()
         bsl::shared_ptr<bdlbb::Blob> payload_sp = d_blobSpPool.getObject();
         bdlbb::BlobBuffer blobBuffer;
 
-        ASSERT(0 != payload_sp->factory());
+        BMQTST_ASSERT(0 != payload_sp->factory());
         payload_sp->factory()->allocate(&blobBuffer);
 
         setContent(&blobBuffer);
@@ -650,7 +650,7 @@ inline size_t Tester<Builder>::verify(
 
         itHistoryEvents.load(eventHistory);
 
-        ASSERT(itHistoryEvents.isValid());
+        BMQTST_ASSERT(itHistoryEvents.isValid());
 
         while (itHistoryEvents.next() == 1) {
             if (itEvents.next() != 1) {
@@ -664,19 +664,19 @@ inline size_t Tester<Builder>::verify(
 
                     if (event.type() == eventHistory.type()) {
                         itEvents.load(event);
-                        ASSERT_EQ(itEvents.next(), 1);
+                        BMQTST_ASSERT_EQ(itEvents.next(), 1);
 
                         ++writeBlobs;
                         isFound = true;
                     }
                 }
-                ASSERT_EQ_D("# " << counter, isFound, true);
+                BMQTST_ASSERT_EQ_D("# " << counter, isFound, true);
             }
 
-            ASSERT_EQ_D("# " << counter, itEvents.isValid(), true);
-            ASSERT_EQ_D("# " << counter,
-                        itHistoryEvents.isEqual(itEvents),
-                        true);
+            BMQTST_ASSERT_EQ_D("# " << counter, itEvents.isValid(), true);
+            BMQTST_ASSERT_EQ_D("# " << counter,
+                               itHistoryEvents.isEqual(itEvents),
+                               true);
             ++counter;
         }
     }
@@ -807,7 +807,7 @@ static void test1_write()
     // Flush ACKs which are secondary
     channel.flush();
 
-    ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(3)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(3)), true);
 
     writeBlobs += put.verify(testChannel);
     writeBlobs += push.verify(testChannel);
@@ -815,7 +815,7 @@ static void test1_write()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
 }
 
 static void test2_highWatermark()
@@ -922,7 +922,7 @@ static void test2_highWatermark()
     // Flush ACKs which are secondary
     channel.flush();
 
-    ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
 
     writeBlobs += put.verify(testChannel);
     writeBlobs += push.verify(testChannel);
@@ -931,7 +931,7 @@ static void test2_highWatermark()
     writeBlobs += control.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
 }
 
 static void test3_highWatermarkInWriteCb()
@@ -1012,13 +1012,15 @@ static void test3_highWatermarkInWriteCb()
     phase2.wait();
 
     // Wait for at least 2 'write' calls (the second triggers HWM)
-    ASSERT_EQ(testChannel->waitFor(2, false, bsls::TimeInterval(3)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitFor(2, false, bsls::TimeInterval(3)),
+                     true);
 
     // trigger LWM during which the limit gets hit and trigger HWM
     testChannel->lowWatermark();
 
     // Wait for at least 1 'write' call to trigger HWM
-    ASSERT_EQ(testChannel->waitFor(3, false, bsls::TimeInterval(3)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitFor(3, false, bsls::TimeInterval(3)),
+                     true);
 
     confirm.stop();
     put.stop();
@@ -1036,7 +1038,8 @@ static void test3_highWatermarkInWriteCb()
 
     // Flush ACKs which are secondary
     channel.flush();
-    ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(10)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(10)),
+                     true);
 
     size_t writeBlobs = 0;
     writeBlobs += put.verify(testChannel);
@@ -1045,7 +1048,7 @@ static void test3_highWatermarkInWriteCb()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs);
 }
 
 static void test4_controlBlob()
@@ -1121,10 +1124,10 @@ static void test4_controlBlob()
     // Flush ACKs which are secondary
     channel.flush();
 
-    ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
-              bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
+                     bmqt::GenericResult::e_SUCCESS);
 
-    ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
+    BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
 
     size_t writeBlobs = 0;
 
@@ -1134,12 +1137,12 @@ static void test4_controlBlob()
     writeBlobs += confirm.verify(testChannel);
     writeBlobs += reject.verify(testChannel);
 
-    ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs + 1);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), writeBlobs + 1);
 
     const bdlbb::Blob& lastWrite = (--testChannel->writeCalls().end())->d_blob;
 
     // make sure the control is the last
-    ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, lastWrite), 0);
+    BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, lastWrite), 0);
 }
 
 static void test5_reconnect()
@@ -1180,15 +1183,17 @@ static void test5_reconnect()
         setContent(&blobBuffer);
         payload_sp->appendDataBuffer(blobBuffer);
 
-        ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
-                  bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp,
+                                           bmqp::EventType::e_CONTROL),
+                         bmqt::GenericResult::e_SUCCESS);
 
-        ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
+        BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)),
+                         true);
         const bdlbb::Blob& write = testChannel->writeCalls().begin()->d_blob;
 
-        ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
     }
-    ASSERT_EQ(testChannel->writeCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 1U);
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_CONNECTION);
 
@@ -1200,10 +1205,11 @@ static void test5_reconnect()
         setContent(&blobBuffer);
         payload_sp->appendDataBuffer(blobBuffer);
 
-        ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
-                  bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp,
+                                           bmqp::EventType::e_CONTROL),
+                         bmqt::GenericResult::e_SUCCESS);
     }
-    ASSERT_EQ(testChannel->writeCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 1U);
 
     // simulate reconnection
     channel.resetChannel();
@@ -1219,17 +1225,19 @@ static void test5_reconnect()
         setContent(&blobBuffer);
         payload_sp->appendDataBuffer(blobBuffer);
 
-        ASSERT_EQ(channel.writeBlob(payload_sp, bmqp::EventType::e_CONTROL),
-                  bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp,
+                                           bmqp::EventType::e_CONTROL),
+                         bmqt::GenericResult::e_SUCCESS);
 
-        ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)), true);
+        BMQTST_ASSERT_EQ(testChannel->waitForChannel(bsls::TimeInterval(1)),
+                         true);
         const bdlbb::Blob& write =
             (++testChannel->writeCalls().begin())->d_blob;
 
-        ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
+        BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(*payload_sp, write), 0);
     }
 
-    ASSERT_EQ(testChannel->writeCalls().size(), 2U);
+    BMQTST_ASSERT_EQ(testChannel->writeCalls().size(), 2U);
 }
 
 // ============================================================================

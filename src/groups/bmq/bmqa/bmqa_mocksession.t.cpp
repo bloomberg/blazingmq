@@ -281,16 +281,17 @@ static void test1_staticMethods()
             bmqtst::TestHelperUtil::allocator());
         bmqa::SessionEvent sessionEvent = event.sessionEvent();
 
-        ASSERT_EQ(sessionEvent.type(), bmqt::SessionEventType::e_CONNECTED);
-        ASSERT_EQ(sessionEvent.statusCode(), 0);
-        ASSERT_EQ(sessionEvent.errorDescription(), errorDescription);
-        ASSERT_EQ(sessionEvent.correlationId(), bmqt::CorrelationId(1));
+        BMQTST_ASSERT_EQ(sessionEvent.type(),
+                         bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT_EQ(sessionEvent.statusCode(), 0);
+        BMQTST_ASSERT_EQ(sessionEvent.errorDescription(), errorDescription);
+        BMQTST_ASSERT_EQ(sessionEvent.correlationId(), bmqt::CorrelationId(1));
     }
 
     {
         PVV("Create Queue Session Event using Session Event Method");
 
-        ASSERT_FAIL(bmqa::MockSessionUtil::createSessionEvent(
+        BMQTST_ASSERT_FAIL(bmqa::MockSessionUtil::createSessionEvent(
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
             bmqt::CorrelationId(1),
             0,
@@ -319,13 +320,14 @@ static void test1_staticMethods()
             bmqtst::TestHelperUtil::allocator());
 
         bmqa::MessageEvent ackEvent = event.messageEvent();
-        ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
+        BMQTST_ASSERT_EQ(ackEvent.type(), bmqt::MessageEventType::e_ACK);
 
         bmqa::MessageIterator mIter = ackEvent.messageIterator();
         mIter.nextMessage();
-        ASSERT_EQ(mIter.message().ackStatus(), bmqt::AckResult::e_SUCCESS);
-        ASSERT_EQ(mIter.message().queueId(), queueId);
-        ASSERT_EQ(mIter.message().correlationId(), corrId);
+        BMQTST_ASSERT_EQ(mIter.message().ackStatus(),
+                         bmqt::AckResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(mIter.message().queueId(), queueId);
+        BMQTST_ASSERT_EQ(mIter.message().correlationId(), corrId);
     }
 
     {
@@ -344,11 +346,11 @@ static void test1_staticMethods()
             bmqtst::TestHelperUtil::allocator());
 
         bmqa::SessionEvent openQueueEvent = event.sessionEvent();
-        ASSERT_EQ(openQueueEvent.type(),
-                  bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
-        ASSERT_EQ(openQueueEvent.statusCode(), 0);
-        ASSERT_EQ(openQueueEvent.errorDescription(), "");
-        ASSERT_EQ(openQueueEvent.correlationId(), corrId);
+        BMQTST_ASSERT_EQ(openQueueEvent.type(),
+                         bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+        BMQTST_ASSERT_EQ(openQueueEvent.statusCode(), 0);
+        BMQTST_ASSERT_EQ(openQueueEvent.errorDescription(), "");
+        BMQTST_ASSERT_EQ(openQueueEvent.correlationId(), corrId);
     }
 
     {
@@ -378,20 +380,20 @@ static void test1_staticMethods()
 
         bmqa::MessageEvent pushMsgEvt = event.messageEvent();
 
-        ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);
+        BMQTST_ASSERT_EQ(pushMsgEvt.type(), bmqt::MessageEventType::e_PUSH);
 
         bmqa::MessageIterator mIter = pushMsgEvt.messageIterator();
         mIter.nextMessage();
-        ASSERT_EQ(mIter.message().queueId(), queueId);
-        ASSERT_EQ(mIter.message().messageGUID(), guid);
-        ASSERT_EQ(mIter.message().dataSize(), 6);
+        BMQTST_ASSERT_EQ(mIter.message().queueId(), queueId);
+        BMQTST_ASSERT_EQ(mIter.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(mIter.message().dataSize(), 6);
 
         bmqa::MessageProperties out;
-        ASSERT_EQ(mIter.message().loadProperties(&out), 0);
+        BMQTST_ASSERT_EQ(mIter.message().loadProperties(&out), 0);
 
-        ASSERT_EQ(out.totalSize(), properties.totalSize());
-        ASSERT_EQ(out.getPropertyAsInt32("x"),
-                  properties.getPropertyAsInt32("x"));
+        BMQTST_ASSERT_EQ(out.totalSize(), properties.totalSize());
+        BMQTST_ASSERT_EQ(out.getPropertyAsInt32("x"),
+                         properties.getPropertyAsInt32("x"));
     }
 
     bmqp::ProtocolUtil::shutdown();
@@ -413,22 +415,22 @@ static void test2_call()
     {
         PVV("Incorrect call");
         BMQA_EXPECT_CALL(mockSession, start()).returning(0);
-        ASSERT_FAIL(mockSession.stop());
-        ASSERT_EQ(mockSession.start(), 0);
+        BMQTST_ASSERT_FAIL(mockSession.stop());
+        BMQTST_ASSERT_EQ(mockSession.start(), 0);
     }
 
     {
         PVV("Empty expected call queue");
-        ASSERT_FAIL(mockSession.startAsync());
+        BMQTST_ASSERT_FAIL(mockSession.startAsync());
     }
 
     {
         PVV("Incorrect arguments");
         BMQA_EXPECT_CALL(mockSession, startAsync(bsls::TimeInterval(10)))
             .returning(0);
-        ASSERT_FAIL(mockSession.startAsync(bsls::TimeInterval(1)));
+        BMQTST_ASSERT_FAIL(mockSession.startAsync(bsls::TimeInterval(1)));
         // To clear the expected queue.
-        ASSERT_EQ(mockSession.startAsync(bsls::TimeInterval(10)), 0);
+        BMQTST_ASSERT_EQ(mockSession.startAsync(bsls::TimeInterval(10)), 0);
     }
 
     {
@@ -452,7 +454,7 @@ static void test2_call()
         mockSession_sp.clear();
 
         // Our mockSession reference is also invalid at this point.
-        ASSERT_EQ(eventHandler.d_assertsInvoked, 1u);
+        BMQTST_ASSERT_EQ(eventHandler.d_assertsInvoked, 1u);
     }
 }
 
@@ -526,21 +528,22 @@ static void test3_queueManagement()
             typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
             QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
-            ASSERT_EQ(implPtr->uri(), uri1);
-            ASSERT_EQ(implPtr->correlationId(), corrId1);
+            BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
+            BMQTST_ASSERT_EQ(implPtr->correlationId(), corrId1);
 
-            ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
+            BMQTST_ASSERT_EQ(implPtr->state(),
+                             bmqimp::QueueState::e_OPENING_OPN);
 
-            ASSERT_EQ(mockSession.emitEvent(), true);
+            BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
             bmqa::OpenQueueStatus result =
                 eventHandler.popResult<bmqa::OpenQueueStatus>();
-            ASSERT_EQ(result.queueId(), openQueueResult.queueId());
-            ASSERT_EQ(result.result(), openQueueResult.result());
-            ASSERT_EQ(result.errorDescription(),
-                      openQueueResult.errorDescription());
+            BMQTST_ASSERT_EQ(result.queueId(), openQueueResult.queueId());
+            BMQTST_ASSERT_EQ(result.result(), openQueueResult.result());
+            BMQTST_ASSERT_EQ(result.errorDescription(),
+                             openQueueResult.errorDescription());
 
-            ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_CLOSED);
+            BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_CLOSED);
         }
 
         {
@@ -564,21 +567,22 @@ static void test3_queueManagement()
             typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
             QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
-            ASSERT_EQ(implPtr->uri(), uri1);
-            ASSERT_EQ(implPtr->correlationId(), corrId1);
+            BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
+            BMQTST_ASSERT_EQ(implPtr->correlationId(), corrId1);
 
-            ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
+            BMQTST_ASSERT_EQ(implPtr->state(),
+                             bmqimp::QueueState::e_OPENING_OPN);
 
-            ASSERT_EQ(mockSession.emitEvent(), true);
+            BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
             bmqa::OpenQueueStatus result =
                 eventHandler.popResult<bmqa::OpenQueueStatus>();
 
-            ASSERT_EQ(result.result(), 0);
-            ASSERT_EQ(result.errorDescription(), "");
-            ASSERT_EQ(result.queueId().correlationId(), corrId1);
+            BMQTST_ASSERT_EQ(result.result(), 0);
+            BMQTST_ASSERT_EQ(result.errorDescription(), "");
+            BMQTST_ASSERT_EQ(result.queueId().correlationId(), corrId1);
 
-            ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
         }
     }
 
@@ -589,22 +593,24 @@ static void test3_queueManagement()
         {
             PVVV("Valid queue by uri");
             bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
-            ASSERT_EQ(queueIdFound, queueId1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
+            BMQTST_ASSERT_EQ(queueIdFound, queueId1);
         }
 
         {
             PVVV("Valid queue by uri");
             bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1), 0);
-            ASSERT_EQ(queueIdFound, queueId1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1),
+                             0);
+            BMQTST_ASSERT_EQ(queueIdFound, queueId1);
         }
 
         {
             PVVV("Registered but unused queue");
             bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri2), -1);
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId2), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri2), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId2),
+                             -1);
         }
 
         {
@@ -620,14 +626,16 @@ static void test3_queueManagement()
             // Close queue and then attempt to get queue
             BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
                 .returning(closeResult1);
-            ASSERT_EQ(mockSession.closeQueueSync(&queueId1), closeResult1);
-            ASSERT_EQ(closeResult1.queueId(), queueId1);
-            ASSERT_EQ(closeResult1.result(),
-                      bmqt::CloseQueueResult::e_SUCCESS);
+            BMQTST_ASSERT_EQ(mockSession.closeQueueSync(&queueId1),
+                             closeResult1);
+            BMQTST_ASSERT_EQ(closeResult1.queueId(), queueId1);
+            BMQTST_ASSERT_EQ(closeResult1.result(),
+                             bmqt::CloseQueueResult::e_SUCCESS);
 
             bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), -1);
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1),
+                             -1);
 
             // Close queue successfully and then attempt to get queue
             bmqa::CloseQueueStatus closeResult2 =
@@ -639,10 +647,12 @@ static void test3_queueManagement()
 
             BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
                 .returning(closeResult2);
-            ASSERT_EQ(mockSession.closeQueueSync(&queueId1), closeResult2);
+            BMQTST_ASSERT_EQ(mockSession.closeQueueSync(&queueId1),
+                             closeResult2);
 
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), -1);
-            ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), -1);
+            BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, corrId1),
+                             -1);
         }
     }
 
@@ -672,23 +682,23 @@ static void test3_queueManagement()
             openQueueSync(&queueId1, uri1, bmqt::QueueFlags::e_READ))
             .returning(testOpenQueueResult);
 
-        ASSERT_EQ(mockSession.openQueueSync(&queueId1,
-                                            uri1,
-                                            bmqt::QueueFlags::e_READ),
-                  testOpenQueueResult);
+        BMQTST_ASSERT_EQ(mockSession.openQueueSync(&queueId1,
+                                                   uri1,
+                                                   bmqt::QueueFlags::e_READ),
+                         testOpenQueueResult);
 
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
-        ASSERT_EQ(implPtr->uri(), uri1);
-        ASSERT_EQ(implPtr->correlationId(), corrId1);
-        ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
+        BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
+        BMQTST_ASSERT_EQ(implPtr->correlationId(), corrId1);
+        BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
 
         bmqa::QueueId queueIdFound(bmqtst::TestHelperUtil::allocator());
-        ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
+        BMQTST_ASSERT_EQ(mockSession.getQueueId(&queueIdFound, uri1), 0);
 
-        ASSERT(queueId1 == queueIdFound);
-        ASSERT_NE(queueId1, savedQueueId);
+        BMQTST_ASSERT(queueId1 == queueIdFound);
+        BMQTST_ASSERT_NE(queueId1, savedQueueId);
 
         bmqa::CloseQueueStatus closeResult1 =
             bmqa::MockSessionUtil::createCloseQueueStatus(
@@ -700,7 +710,7 @@ static void test3_queueManagement()
         // Close queue and then attempt to get queue
         BMQA_EXPECT_CALL(mockSession, closeQueueSync(&queueId1))
             .returning(closeResult1);
-        ASSERT_EQ(mockSession.closeQueueSync(&queueId1), closeResult1);
+        BMQTST_ASSERT_EQ(mockSession.closeQueueSync(&queueId1), closeResult1);
     }
 }
 
@@ -742,24 +752,24 @@ static void test4_queueManagementSync()
                 "",
                 bmqtst::TestHelperUtil::allocator()));
 
-        ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
+        BMQTST_ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
-        ASSERT_EQ(implPtr->uri(), uri1);
-        ASSERT_EQ(implPtr->correlationId(), corrId1);
-        ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
+        BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
+        BMQTST_ASSERT_EQ(implPtr->correlationId(), corrId1);
+        BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
 
         bmqa::SessionEvent openQueueEvent =
             mockSession.nextEvent().sessionEvent();
 
-        ASSERT_EQ(openQueueEvent.type(),
-                  bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
-        ASSERT_EQ(openQueueEvent.statusCode(), 1);
-        ASSERT_EQ(openQueueEvent.errorDescription(), "");
-        ASSERT_EQ(openQueueEvent.correlationId(), corrId1);
+        BMQTST_ASSERT_EQ(openQueueEvent.type(),
+                         bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+        BMQTST_ASSERT_EQ(openQueueEvent.statusCode(), 1);
+        BMQTST_ASSERT_EQ(openQueueEvent.errorDescription(), "");
+        BMQTST_ASSERT_EQ(openQueueEvent.correlationId(), corrId1);
 
-        ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_CLOSED);
+        BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_CLOSED);
     }
 
     {
@@ -775,23 +785,23 @@ static void test4_queueManagementSync()
                 "",
                 bmqtst::TestHelperUtil::allocator()));
 
-        ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
+        BMQTST_ASSERT_EQ(mockSession.openQueueAsync(&queueId1, uri1, 10), 0);
         typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
         QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId1);
 
-        ASSERT_EQ(implPtr->uri(), uri1);
-        ASSERT_EQ(implPtr->correlationId(), corrId1);
-        ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
+        BMQTST_ASSERT_EQ(implPtr->uri(), uri1);
+        BMQTST_ASSERT_EQ(implPtr->correlationId(), corrId1);
+        BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENING_OPN);
 
         bmqa::SessionEvent openQueueEvent =
             mockSession.nextEvent().sessionEvent();
-        ASSERT_EQ(openQueueEvent.type(),
-                  bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
-        ASSERT_EQ(openQueueEvent.statusCode(), 0);
-        ASSERT_EQ(openQueueEvent.errorDescription(), "");
-        ASSERT_EQ(openQueueEvent.correlationId(), corrId1);
+        BMQTST_ASSERT_EQ(openQueueEvent.type(),
+                         bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+        BMQTST_ASSERT_EQ(openQueueEvent.statusCode(), 0);
+        BMQTST_ASSERT_EQ(openQueueEvent.errorDescription(), "");
+        BMQTST_ASSERT_EQ(openQueueEvent.correlationId(), corrId1);
 
-        ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
+        BMQTST_ASSERT_EQ(implPtr->state(), bmqimp::QueueState::e_OPENED);
     }
 }
 
@@ -852,9 +862,9 @@ static void test5_confirmingMessages()
         &bufferFactory,
         bmqtst::TestHelperUtil::allocator()));
 
-    ASSERT_EQ(mockSession.emitEvent(), true);
+    BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
-    ASSERT_EQ(mockSession.unconfirmedMessages(), 3u);
+    BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 3u);
     bmqa::MessageEvent messageEvent = eventHandler.popMessageEvent();
     {
         PVV("Confirm push message");
@@ -888,26 +898,26 @@ static void test5_confirmingMessages()
             mIter.nextMessage();
             int rc = confirmBuilder.addMessageConfirmation(mIter.message());
 
-            ASSERT_EQ(rc, 0);
-            ASSERT_EQ(confirmBuilder.messageCount(), 1);
+            BMQTST_ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT_EQ(confirmBuilder.messageCount(), 1);
 
             // we know the guid is invalid so we say the return value is -1.
             BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
                 .returning(bmqt::GenericResult::e_INVALID_ARGUMENT);
 
             rc = mockSession.confirmMessages(&confirmBuilder);
-            ASSERT_EQ(rc, bmqt::GenericResult::e_INVALID_ARGUMENT);
+            BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_INVALID_ARGUMENT);
 
             // we know the guid is invalid so we say the return value is -1.
             BMQA_EXPECT_CALL(mockSession, confirmMessage(mIter.message()))
                 .returning(bmqt::GenericResult::e_INVALID_ARGUMENT);
 
             rc = mockSession.confirmMessage(mIter.message());
-            ASSERT_EQ(rc, bmqt::GenericResult::e_INVALID_ARGUMENT);
+            BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_INVALID_ARGUMENT);
 
             // Finally ensure that no messages were confirmed. (3 messages were
             // consumed/received from the broker)
-            ASSERT_EQ(mockSession.unconfirmedMessages(), 3u);
+            BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 3u);
         }
 
         {
@@ -920,13 +930,13 @@ static void test5_confirmingMessages()
             mIter.nextMessage();
             confirmBuilder.addMessageConfirmation(mIter.message());
 
-            ASSERT_EQ(confirmBuilder.messageCount(), 1);
+            BMQTST_ASSERT_EQ(confirmBuilder.messageCount(), 1);
 
             BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
                 .returning(0);
             int rc = mockSession.confirmMessages(&confirmBuilder);
-            ASSERT_EQ(rc, 0);
-            ASSERT_EQ(mockSession.unconfirmedMessages(), 2u);
+            BMQTST_ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 2u);
         }
 
         {
@@ -940,14 +950,14 @@ static void test5_confirmingMessages()
             mIter.nextMessage();
             confirmBuilder.addMessageConfirmation(mIter.message());
 
-            ASSERT_EQ(confirmBuilder.messageCount(), 1);
+            BMQTST_ASSERT_EQ(confirmBuilder.messageCount(), 1);
 
             BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
                 .returning(0);
             int rc = mockSession.confirmMessages(&confirmBuilder);
-            ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT_EQ(rc, 0);
 
-            ASSERT_EQ(mockSession.unconfirmedMessages(), 2u);
+            BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 2u);
         }
 
         {
@@ -964,8 +974,8 @@ static void test5_confirmingMessages()
             BMQA_EXPECT_CALL(mockSession, confirmMessage(mIter.message()))
                 .returning(0);
             int rc = mockSession.confirmMessage(mIter.message());
-            ASSERT_EQ(rc, 0);
-            ASSERT_EQ(mockSession.unconfirmedMessages(), 1u);
+            BMQTST_ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT_EQ(mockSession.unconfirmedMessages(), 1u);
         }
     }
 }
@@ -1043,74 +1053,74 @@ static void test6_runThrough()
             .returning(0)
             .emitting(testEvent);
         int rc = mockSession.start();
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, startAsync())
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.startAsync();
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, stop()).emitting(testEvent);
         mockSession.stop();
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, stopAsync()).emitting(testEvent);
         mockSession.stopAsync();
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, finalizeStop()).emitting(testEvent);
         mockSession.finalizeStop();
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, openQueue(&queueId, uri, 0))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.openQueue(&queueId, uri, 0);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, closeQueue(&queueId))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.closeQueue(&queueId);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, openQueueAsync(&queueId, uri, 0))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.openQueueAsync(&queueId, uri, 0);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, closeQueueAsync(&queueId))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.closeQueueAsync(&queueId);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession,
                          closeQueueAsync(&queueId, closeQueueCallback))
             .emitting(testCloseQueueResult);
         mockSession.closeQueueAsync(&queueId, closeQueueCallback);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession,
                          openQueueAsync(&queueId, uri, 0, openQueueCallback))
             .emitting(testOpenQueueResult);
         mockSession.openQueueAsync(&queueId, uri, 0, openQueueCallback);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, configureQueue(&queueId))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.configureQueue(&queueId);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession,
                          configureQueueSync(&queueId,
@@ -1118,18 +1128,18 @@ static void test6_runThrough()
                                             bsls::TimeInterval()))
             .returning(testConfigureQueueResult)
             .emitting(testEvent);
-        ASSERT_EQ(mockSession.configureQueueSync(&queueId,
-                                                 bmqt::QueueOptions(),
-                                                 bsls::TimeInterval()),
-                  testConfigureQueueResult);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.configureQueueSync(&queueId,
+                                                        bmqt::QueueOptions(),
+                                                        bsls::TimeInterval()),
+                         testConfigureQueueResult);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, configureQueueAsync(&queueId))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.configureQueueAsync(&queueId);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession,
                          configureQueueAsync(&queueId,
@@ -1139,14 +1149,14 @@ static void test6_runThrough()
         mockSession.configureQueueAsync(&queueId,
                                         bmqt::QueueOptions(),
                                         configureQueueCallback);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
 
         BMQA_EXPECT_CALL(mockSession, post(bmqa::MessageEvent()))
             .returning(0)
             .emitting(testEvent);
         rc = mockSession.post(bmqa::MessageEvent());
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(mockSession.emitEvent(), true);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
     }
 
     {
@@ -1188,23 +1198,23 @@ static void test6_runThrough()
         BMQA_EXPECT_CALL(mockSession, confirmMessage(mIter.message()))
             .returning(0);
         int rc = mockSession.confirmMessage(mIter.message());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         BMQA_EXPECT_CALL(mockSession,
                          confirmMessage(mIter.message().confirmationCookie()))
             .returning(0);
         rc = mockSession.confirmMessage(mIter.message());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Create confirm builder and confirm messages
         bmqa::ConfirmEventBuilder confirmBuilder;
         mockSession.loadConfirmEventBuilder(&confirmBuilder);
         rc = confirmBuilder.addMessageConfirmation(mIter.message());
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
         BMQA_EXPECT_CALL(mockSession, confirmMessages(&confirmBuilder))
             .returning(0);
         rc = mockSession.confirmMessages(&confirmBuilder);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     {
@@ -1220,10 +1230,10 @@ static void test6_runThrough()
         // removed from the two key hash map yet and can still be looked up.
         bmqa::QueueId foundId;
         int           rc = mockSession.getQueueId(&foundId, uri);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         rc = mockSession.getQueueId(&foundId, corrId);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     // Clear the handler since we dont care about the events emitted
@@ -1274,77 +1284,81 @@ static void test7_postAndAccess()
 
     bmqa::Message& bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload1);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload2);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload3);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqa::MessageEvent retrievedPostedEvent;
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
 
     bmqa::MessageEvent postedEvent(builder.messageEvent());
     BMQA_EXPECT_CALL(mockSession, post(builder.messageEvent())).returning(0);
-    ASSERT_EQ(mockSession.post(postedEvent), 0);
+    BMQTST_ASSERT_EQ(mockSession.post(postedEvent), 0);
 
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), true);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), true);
 
     // Please see description of 'compareEvents' for additional details on
     // messageEvent comparison.
     // NOTE: Comparison is implementation specific.
-    ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent, postedEvent),
-              true);
+    BMQTST_ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent,
+                                                 postedEvent),
+                     true);
 
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
 
     // Append another 2 events
     builder.reset();
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload1);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload2);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload3);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload4);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
 
     bmqa::MessageEvent postedEvent2(builder.messageEvent());
     bmqa::MessageEvent postedEvent3(builder.messageEvent());
 
     BMQA_EXPECT_CALL(mockSession, post(postedEvent2)).returning(0);
-    ASSERT_EQ(mockSession.post(postedEvent2), 0);
+    BMQTST_ASSERT_EQ(mockSession.post(postedEvent2), 0);
 
     BMQA_EXPECT_CALL(mockSession, post(postedEvent3)).returning(0);
-    ASSERT_EQ(mockSession.post(postedEvent3), 0);
+    BMQTST_ASSERT_EQ(mockSession.post(postedEvent3), 0);
 
     bmqa::MessageEvent retrievedPostedEvent2;
     bmqa::MessageEvent retrievedPostedEvent3;
 
     // ASSERT that the compare fails for different events
-    ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent2, postedEvent),
-              false);
+    BMQTST_ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent2,
+                                                 postedEvent),
+                     false);
 
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent2), true);
-    ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent2, postedEvent2),
-              true);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent2), true);
+    BMQTST_ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent2,
+                                                 postedEvent2),
+                     true);
 
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent3), true);
-    ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent3, postedEvent3),
-              true);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent3), true);
+    BMQTST_ASSERT_EQ(EventHandler::compareEvents(retrievedPostedEvent3,
+                                                 postedEvent3),
+                     true);
 
     // We are out of posted messages again.
-    ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
+    BMQTST_ASSERT_EQ(mockSession.popPostedEvent(&retrievedPostedEvent), false);
 
     eventHandler.clearEvents();
 
@@ -1396,12 +1410,12 @@ static void test8_postBlockedToSuspendedQueue()
     // Ensure that the message cannot be packed.
     bmqa::Message& bmqMessage = builder.startMessage();
     bmqMessage.setDataRef(&payload);
-    ASSERT_EQ(builder.packMessage(queueId),
-              bmqt::EventBuilderResult::e_QUEUE_SUSPENDED);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId),
+                     bmqt::EventBuilderResult::e_QUEUE_SUSPENDED);
 
     // Unsuspend the queue, and try again.
     implPtr->setIsSuspended(false);
-    ASSERT_EQ(builder.packMessage(queueId), 0);
+    BMQTST_ASSERT_EQ(builder.packMessage(queueId), 0);
     eventHandler.clearEvents();
 
     // Ensure that the builder is clear to ensure that the blob held by the
