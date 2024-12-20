@@ -188,7 +188,10 @@ static void test1_breathingTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -246,7 +249,10 @@ static void test2_searchGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
@@ -314,7 +320,10 @@ static void test3_searchNonExistingGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bmqt::MessageGUID         guid;
@@ -376,7 +385,9 @@ static void test4_searchExistingAndNonExistingGuidTest()
     journalFile.addAllTypesRecords(&records);
 
     // Prepare parameters
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
@@ -464,7 +475,10 @@ static void test5_searchOutstandingMessagesTest()
         true);
 
     // Configure parameters to search outstanding messages
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_outstanding = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -529,7 +543,10 @@ static void test6_searchConfirmedMessagesTest()
         false);
 
     // Configure parameters to search confirmed messages
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_confirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -596,7 +613,10 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to search partially confirmed messages
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_partiallyConfirmed = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -663,7 +683,10 @@ static void test8_searchMessagesByQueueKeyTest()
                                                   queueKey2);
 
     // Configure parameters to search messages by queueKey1
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -732,7 +755,10 @@ static void test9_searchMessagesByQueueNameTest()
     }
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
 
@@ -806,7 +832,10 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     }
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
     params.d_queueKey.push_back(queueKey2);
@@ -864,7 +893,10 @@ static void test11_searchMessagesByTimestamp()
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_range.d_timestampGt = ts1;
     params.d_range.d_timestampLt = ts2;
     params.d_range.d_type        = Parameters::Range::e_TIMESTAMP;
@@ -941,7 +973,10 @@ static void test12_printMessagesDetailsTest()
         false);
 
     // Configure parameters to print message details
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_details = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1073,7 +1108,10 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_confirmed   = true;
     params.d_dumpPayload = true;
     // Prepare file manager
@@ -1161,7 +1199,10 @@ static void test14_summaryTest()
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to output summary
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_summary = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1510,7 +1551,10 @@ static void test17_searchMessagesBySequenceNumbersRange()
     const CompositeSequenceNumber seqNumLt(4, 6);
 
     // Configure parameters to search messages by sequence number range
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
     params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
@@ -1583,10 +1627,14 @@ static void test18_searchMessagesByOffsetsRange()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by timestamps
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     params.d_range.d_type     = Parameters::Range::e_OFFSET;
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1625,8 +1673,73 @@ static void test18_searchMessagesByOffsetsRange()
             resultStream,
             bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
+}
 
-    BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
+static void test19_summaryWithQueueDetailsTest()
+// ------------------------------------------------------------------------
+// OUTPUT SUMMARY TEST
+//
+// Concerns:
+//   Search messages in journal file and output summary.
+//
+// Testing:
+//   JournalFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
+
+    // Simulate journal file
+    const size_t                 k_NUM_RECORDS = 15;
+    JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
+    JournalFile                  journalFile(k_NUM_RECORDS,
+                            bmqtst::TestHelperUtil::allocator());
+    JournalFile::GuidVectorType  partiallyConfirmedGUIDS(
+        bmqtst::TestHelperUtil::allocator());
+    journalFile.addJournalRecordsWithPartiallyConfirmedMessages(
+        &records,
+        &partiallyConfirmedGUIDS);
+
+    // Configure parameters to output summary
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
+    params.d_summary            = true;
+    params.d_minRecordsPerQueue = 0;
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(journalFile),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Run search
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+    searchProcessor->process();
+
+    // Prepare expected output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    expectedStream
+        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
+           "partially confirmed messages: 2\n"
+           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n"
+           "Total number of records: 15\n"
+           "Number of records per Queue:\n"
+           "    Queue Key             : 6162636465\n"
+           "    Total Records         : 15\n"
+           "    Num Queue Op Records  : 0\n"
+           "    Num Message Records   : 5\n"
+           "    Num Confirm Records   : 5\n"
+           "    Num Delete Records    : 5";
+
+    bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
+    ASSERT(res.starts_with(expectedStream.str()));
 }
 
 // ============================================================================
@@ -1657,6 +1770,8 @@ int main(int argc, char* argv[])
     case 16: test16_sequenceNumberLowerBoundTest(); break;
     case 17: test17_searchMessagesBySequenceNumbersRange(); break;
     case 18: test18_searchMessagesByOffsetsRange(); break;
+    case 19: test19_summaryWithQueueDetailsTest(); break;
+
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

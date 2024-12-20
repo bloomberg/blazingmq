@@ -98,6 +98,9 @@ struct CommandLineArguments {
     bool d_confirmed;
     /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
+    // Show only messages, confirmed by some of the appId's
+    bsls::Types::Int64 d_minRecordsPerQueue;
+    // Min number of records per queue for detailed info to be displayed
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
@@ -170,10 +173,11 @@ struct Parameters {
     bool d_confirmed;
     /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
+    // Show only messages, confirmed by some of the appId's
+    bsls::Types::Uint64 d_minRecordsPerQueue;
+    // Min number of records per queue for detailed info to be displayed
 
     // CREATORS
-    /// Default constructor
-    explicit Parameters(bslma::Allocator* allocator = 0);
     /// Constructor from the specified 'aruments'
     explicit Parameters(const CommandLineArguments& aruments,
                         bslma::Allocator*           allocator = 0);
