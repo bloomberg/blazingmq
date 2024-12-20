@@ -163,12 +163,13 @@ struct Parameters {
     // VST representing record types to process
     struct ProcessRecordTypes {
         // PUBLIC DATA
+
+        /// Flag to process records of type message
         bool d_message;
-        // Flag to process records of type message
+        /// Flag to process records of type queueOp
         bool d_queueOp;
-        // Flag to process records of type queueOp
+        /// Flag to process records of type journalOp
         bool d_journalOp;
-        // Flag to process records of type journalOp
 
         // CREATORS
         explicit ProcessRecordTypes(bool enableDefault = true);
