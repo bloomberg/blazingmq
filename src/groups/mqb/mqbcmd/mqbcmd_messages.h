@@ -2767,42 +2767,32 @@ namespace mqbcmd {
 
 class DomainRemove {
     // INSTANCE DATA
-    union {
-        bsls::ObjectBuffer<bsl::string> d_domain;
-    };
-
-    int               d_selectionId;
-    bslma::Allocator* d_allocator_p;
-
-    // PRIVATE ACCESSORS
-    template <typename t_HASH_ALGORITHM>
-    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
-
-    bool isEqualTo(const DomainRemove& rhs) const;
+    bsl::string               d_domain;
+    bdlb::NullableValue<bool> d_finalize;
 
   public:
     // TYPES
+    enum { ATTRIBUTE_ID_DOMAIN = 0, ATTRIBUTE_ID_FINALIZE = 1 };
 
-    enum { SELECTION_ID_UNDEFINED = -1, SELECTION_ID_DOMAIN = 0 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum { NUM_SELECTIONS = 1 };
-
-    enum { SELECTION_INDEX_DOMAIN = 0 };
+    enum { ATTRIBUTE_INDEX_DOMAIN = 0, ATTRIBUTE_INDEX_FINALIZE = 1 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
 
-    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
+  public:
     // CLASS METHODS
-    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
-    // Return selection information for the selection indicated by the
-    // specified 'id' if the selection exists, and 0 otherwise.
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
 
-    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
                                                           int nameLength);
-    // Return selection information for the selection indicated by the
-    // specified 'name' of the specified 'nameLength' if the selection
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
     // exists, and 0 otherwise.
 
     // CREATORS
@@ -2851,42 +2841,45 @@ class DomainRemove {
 #endif
 
     void reset();
-    // Reset this object to the default value (i.e., its value upon default
-    // construction).
-
-    int makeSelection(int selectionId);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'selectionId'.  Return 0 on success, and
-    // non-zero value otherwise (i.e., the selection is not found).
-
-    int makeSelection(const char* name, int nameLength);
-    // Set the value of this object to be the default for the selection
-    // indicated by the specified 'name' of the specified 'nameLength'.
-    // Return 0 on success, and non-zero value otherwise (i.e., the
-    // selection is not found).
-
-    bsl::string& makeDomain();
-    bsl::string& makeDomain(const bsl::string& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    bsl::string& makeDomain(bsl::string&& value);
-#endif
-    // Set the value of this object to be a "Domain" value.  Optionally
-    // specify the 'value' of the "Domain".  If 'value' is not specified,
-    // the default "Domain" value is used.
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
 
     template <typename t_MANIPULATOR>
-    int manipulateSelection(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' on the address of the modifiable
-    // selection, supplying 'manipulator' with the corresponding selection
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
     // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if this object has a defined selection,
-    // and -1 otherwise.
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
 
     bsl::string& domain();
-    // Return a reference to the modifiable "Domain" selection of this
-    // object if "Domain" is the current selection.  The behavior is
-    // undefined unless "Domain" is the selection of this object.
+    // Return a reference to the modifiable "Domain" attribute of this
+    // object.
+
+    bdlb::NullableValue<bool>& finalize();
+    // Return a reference to the modifiable "Finalize" attribute of this
+    // object.
 
     // ACCESSORS
     bsl::ostream&
@@ -2903,47 +2896,54 @@ class DomainRemove {
     // operation has no effect.  Note that a trailing newline is provided
     // in multiline mode only.
 
-    int selectionId() const;
-    // Return the id of the current selection if the selection is defined,
-    // and -1 otherwise.
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
 
     template <typename t_ACCESSOR>
-    int accessSelection(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' on the non-modifiable selection,
-    // supplying 'accessor' with the corresponding selection information
-    // structure.  Return the value returned from the invocation of
-    // 'accessor' if this object has a defined selection, and -1 otherwise.
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
 
     const bsl::string& domain() const;
-    // Return a reference to the non-modifiable "Domain" selection of this
-    // object if "Domain" is the current selection.  The behavior is
-    // undefined unless "Domain" is the selection of this object.
+    // Return a reference offering non-modifiable access to the "Domain"
+    // attribute of this object.
 
-    bool isDomainValue() const;
-    // Return 'true' if the value of this object is a "Domain" value, and
-    // return 'false' otherwise.
-
-    bool isUndefinedValue() const;
-    // Return 'true' if the value of this object is undefined, and 'false'
-    // otherwise.
-
-    const char* selectionName() const;
-    // Return the symbolic name of the current selection of this object.
+    const bdlb::NullableValue<bool>& finalize() const;
+    // Return a reference offering non-modifiable access to the "Finalize"
+    // attribute of this object.
 
     // HIDDEN FRIENDS
     friend bool operator==(const DomainRemove& lhs, const DomainRemove& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
-    // value, and 'false' otherwise.  Two 'DomainRemove' objects have the
-    // same value if either the selections in both objects have the same
-    // ids and the same values, or both selections are undefined.
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
     {
-        return lhs.isEqualTo(rhs);
+        return lhs.domain() == rhs.domain() &&
+               lhs.finalize() == rhs.finalize();
     }
 
     friend bool operator!=(const DomainRemove& lhs, const DomainRemove& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
-    // the same values, as determined by 'operator==', and 'false'
-    // otherwise.
+    // Returns '!(lhs == rhs)'
     {
         return !(lhs == rhs);
     }
@@ -2964,7 +2964,9 @@ class DomainRemove {
     // effectively provides a 'bsl::hash' specialization for
     // 'DomainRemove'.
     {
-        return object.hashAppendImpl(hashAlg);
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.domain());
+        hashAppend(hashAlg, object.finalize());
     }
 };
 
@@ -2972,7 +2974,7 @@ class DomainRemove {
 
 // TRAITS
 
-BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainRemove)
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(mqbcmd::DomainRemove)
 
 namespace mqbcmd {
 
@@ -33459,100 +33461,131 @@ inline bool DomainReconfigure::isUndefinedValue() const
 // ------------------
 
 // CLASS METHODS
-// PRIVATE ACCESSORS
-template <typename t_HASH_ALGORITHM>
-void DomainRemove::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
-{
-    typedef DomainRemove Class;
-    using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->selectionId());
-    switch (this->selectionId()) {
-    case Class::SELECTION_ID_DOMAIN:
-        hashAppend(hashAlgorithm, this->domain());
-        break;
-    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
-    }
-}
-
-inline bool DomainRemove::isEqualTo(const DomainRemove& rhs) const
-{
-    typedef DomainRemove Class;
-    if (this->selectionId() == rhs.selectionId()) {
-        switch (rhs.selectionId()) {
-        case Class::SELECTION_ID_DOMAIN: return this->domain() == rhs.domain();
-        default:
-            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
-            return true;
-        }
-    }
-    else {
-        return false;
-    }
-}
-
-// CREATORS
-inline DomainRemove::DomainRemove(bslma::Allocator* basicAllocator)
-: d_selectionId(SELECTION_ID_UNDEFINED)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
-{
-}
-
-inline DomainRemove::~DomainRemove()
-{
-    reset();
-}
-
 // MANIPULATORS
 template <typename t_MANIPULATOR>
-int DomainRemove::manipulateSelection(t_MANIPULATOR& manipulator)
+int DomainRemove::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
-    switch (d_selectionId) {
-    case DomainRemove::SELECTION_ID_DOMAIN:
-        return manipulator(&d_domain.object(),
-                           SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN]);
-    default:
-        BSLS_ASSERT(DomainRemove::SELECTION_ID_UNDEFINED == d_selectionId);
-        return -1;
+    int ret;
+
+    ret = manipulator(&d_domain, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN]);
+    if (ret) {
+        return ret;
     }
+
+    ret = manipulator(&d_finalize,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int DomainRemove::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_DOMAIN: {
+        return manipulator(&d_domain,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN]);
+    }
+    case ATTRIBUTE_ID_FINALIZE: {
+        return manipulator(&d_finalize,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int DomainRemove::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                      const char*    name,
+                                      int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
 inline bsl::string& DomainRemove::domain()
 {
-    BSLS_ASSERT(SELECTION_ID_DOMAIN == d_selectionId);
-    return d_domain.object();
+    return d_domain;
+}
+
+inline bdlb::NullableValue<bool>& DomainRemove::finalize()
+{
+    return d_finalize;
 }
 
 // ACCESSORS
-inline int DomainRemove::selectionId() const
+template <typename t_ACCESSOR>
+int DomainRemove::accessAttributes(t_ACCESSOR& accessor) const
 {
-    return d_selectionId;
+    int ret;
+
+    ret = accessor(d_domain, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_finalize, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
 }
 
 template <typename t_ACCESSOR>
-int DomainRemove::accessSelection(t_ACCESSOR& accessor) const
+int DomainRemove::accessAttribute(t_ACCESSOR& accessor, int id) const
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN:
-        return accessor(d_domain.object(),
-                        SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN]);
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_DOMAIN: {
+        return accessor(d_domain,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN]);
     }
+    case ATTRIBUTE_ID_FINALIZE: {
+        return accessor(d_finalize,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int DomainRemove::accessAttribute(t_ACCESSOR& accessor,
+                                  const char* name,
+                                  int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
 }
 
 inline const bsl::string& DomainRemove::domain() const
 {
-    BSLS_ASSERT(SELECTION_ID_DOMAIN == d_selectionId);
-    return d_domain.object();
+    return d_domain;
 }
 
-inline bool DomainRemove::isDomainValue() const
+inline const bdlb::NullableValue<bool>& DomainRemove::finalize() const
 {
-    return SELECTION_ID_DOMAIN == d_selectionId;
-}
-
-inline bool DomainRemove::isUndefinedValue() const
-{
-    return SELECTION_ID_UNDEFINED == d_selectionId;
+    return d_finalize;
 }
 
 // ------------------

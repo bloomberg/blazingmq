@@ -575,14 +575,25 @@ int parseDomainRemove(DomainRemove* remove,
                       bsl::string*  error,
                       WordGenerator next)
 {
-    const bslstl::StringRef domain = next();
+    const bslstl::StringRef domain   = next();
+    const bslstl::StringRef finalize = next();
 
     if (domain.empty()) {
         *error = "DOMAINS REMOVE command must be followed by a "
                  "domain name.";
         return -1;  // RETURN
     }
-    remove->makeDomain(domain);
+
+    remove->domain() = domain;
+
+    if (equalCaseless(finalize, "finalize")) {
+        remove->finalize().makeValue(true);
+    }
+    else if (!finalize.empty()) {
+        *error = "Invalid optional key word '" + finalize +
+                 "' for DOMAINS REMOVE <domain> [finalize]";
+        return -1;
+    }
 
     return expectEnd(error, next);
 }

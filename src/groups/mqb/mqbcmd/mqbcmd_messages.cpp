@@ -1,3 +1,18 @@
+// Copyright 2019-2024 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // mqbcmd_messages.cpp            *DO NOT EDIT*            @generated -*-C++-*-
 
 #include <mqbcmd_messages.h>
@@ -1575,99 +1590,89 @@ const char* DomainReconfigure::selectionName() const
 
 const char DomainRemove::CLASS_NAME[] = "DomainRemove";
 
-const bdlat_SelectionInfo DomainRemove::SELECTION_INFO_ARRAY[] = {
-    {SELECTION_ID_DOMAIN,
+const bdlat_AttributeInfo DomainRemove::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_DOMAIN,
      "domain",
      sizeof("domain") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_FINALIZE,
+     "finalize",
+     sizeof("finalize") - 1,
      "",
      bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
-const bdlat_SelectionInfo* DomainRemove::lookupSelectionInfo(const char* name,
+const bdlat_AttributeInfo* DomainRemove::lookupAttributeInfo(const char* name,
                                                              int nameLength)
 {
-    for (int i = 0; i < 1; ++i) {
-        const bdlat_SelectionInfo& selectionInfo =
-            DomainRemove::SELECTION_INFO_ARRAY[i];
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            DomainRemove::ATTRIBUTE_INFO_ARRAY[i];
 
-        if (nameLength == selectionInfo.d_nameLength &&
-            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
-            return &selectionInfo;
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
         }
     }
 
     return 0;
 }
 
-const bdlat_SelectionInfo* DomainRemove::lookupSelectionInfo(int id)
+const bdlat_AttributeInfo* DomainRemove::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case SELECTION_ID_DOMAIN:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN];
+    case ATTRIBUTE_ID_DOMAIN:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN];
+    case ATTRIBUTE_ID_FINALIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE];
     default: return 0;
     }
 }
 
 // CREATORS
 
+DomainRemove::DomainRemove(bslma::Allocator* basicAllocator)
+: d_domain(basicAllocator)
+, d_finalize()
+{
+}
+
 DomainRemove::DomainRemove(const DomainRemove& original,
                            bslma::Allocator*   basicAllocator)
-: d_selectionId(original.d_selectionId)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
+: d_domain(original.d_domain, basicAllocator)
+, d_finalize(original.d_finalize)
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        new (d_domain.buffer())
-            bsl::string(original.d_domain.object(), d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
 }
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 DomainRemove::DomainRemove(DomainRemove&& original) noexcept
-: d_selectionId(original.d_selectionId),
-  d_allocator_p(original.d_allocator_p)
+: d_domain(bsl::move(original.d_domain)),
+  d_finalize(bsl::move(original.d_finalize))
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        new (d_domain.buffer())
-            bsl::string(bsl::move(original.d_domain.object()), d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
 }
 
 DomainRemove::DomainRemove(DomainRemove&&    original,
                            bslma::Allocator* basicAllocator)
-: d_selectionId(original.d_selectionId)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
+: d_domain(bsl::move(original.d_domain), basicAllocator)
+, d_finalize(bsl::move(original.d_finalize))
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        new (d_domain.buffer())
-            bsl::string(bsl::move(original.d_domain.object()), d_allocator_p);
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
 }
 #endif
+
+DomainRemove::~DomainRemove()
+{
+}
 
 // MANIPULATORS
 
 DomainRemove& DomainRemove::operator=(const DomainRemove& rhs)
 {
     if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_DOMAIN: {
-            makeDomain(rhs.d_domain.object());
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
+        d_domain   = rhs.d_domain;
+        d_finalize = rhs.d_finalize;
     }
 
     return *this;
@@ -1678,14 +1683,8 @@ DomainRemove& DomainRemove::operator=(const DomainRemove& rhs)
 DomainRemove& DomainRemove::operator=(DomainRemove&& rhs)
 {
     if (this != &rhs) {
-        switch (rhs.d_selectionId) {
-        case SELECTION_ID_DOMAIN: {
-            makeDomain(bsl::move(rhs.d_domain.object()));
-        } break;
-        default:
-            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
-            reset();
-        }
+        d_domain   = bsl::move(rhs.d_domain);
+        d_finalize = bsl::move(rhs.d_finalize);
     }
 
     return *this;
@@ -1694,86 +1693,9 @@ DomainRemove& DomainRemove::operator=(DomainRemove&& rhs)
 
 void DomainRemove::reset()
 {
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        typedef bsl::string Type;
-        d_domain.object().~Type();
-    } break;
-    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-    }
-
-    d_selectionId = SELECTION_ID_UNDEFINED;
+    bdlat_ValueTypeFunctions::reset(&d_domain);
+    bdlat_ValueTypeFunctions::reset(&d_finalize);
 }
-
-int DomainRemove::makeSelection(int selectionId)
-{
-    switch (selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        makeDomain();
-    } break;
-    case SELECTION_ID_UNDEFINED: {
-        reset();
-    } break;
-    default: return -1;
-    }
-    return 0;
-}
-
-int DomainRemove::makeSelection(const char* name, int nameLength)
-{
-    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
-                                                                   nameLength);
-    if (0 == selectionInfo) {
-        return -1;
-    }
-
-    return makeSelection(selectionInfo->d_id);
-}
-
-bsl::string& DomainRemove::makeDomain()
-{
-    if (SELECTION_ID_DOMAIN == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_domain.object());
-    }
-    else {
-        reset();
-        new (d_domain.buffer()) bsl::string(d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN;
-    }
-
-    return d_domain.object();
-}
-
-bsl::string& DomainRemove::makeDomain(const bsl::string& value)
-{
-    if (SELECTION_ID_DOMAIN == d_selectionId) {
-        d_domain.object() = value;
-    }
-    else {
-        reset();
-        new (d_domain.buffer()) bsl::string(value, d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN;
-    }
-
-    return d_domain.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-bsl::string& DomainRemove::makeDomain(bsl::string&& value)
-{
-    if (SELECTION_ID_DOMAIN == d_selectionId) {
-        d_domain.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_domain.buffer()) bsl::string(bsl::move(value), d_allocator_p);
-        d_selectionId = SELECTION_ID_DOMAIN;
-    }
-
-    return d_domain.object();
-}
-#endif
 
 // ACCESSORS
 
@@ -1782,25 +1704,10 @@ DomainRemove::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN: {
-        printer.printAttribute("domain", d_domain.object());
-    } break;
-    default: stream << "SELECTION UNDEFINED\n";
-    }
+    printer.printAttribute("domain", this->domain());
+    printer.printAttribute("finalize", this->finalize());
     printer.end();
     return stream;
-}
-
-const char* DomainRemove::selectionName() const
-{
-    switch (d_selectionId) {
-    case SELECTION_ID_DOMAIN:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_DOMAIN].name();
-    default:
-        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
-        return "(* UNDEFINED *)";
-    }
 }
 
 // ------------------

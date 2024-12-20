@@ -783,9 +783,10 @@
   </complexType>
 
   <complexType name="DomainRemove">
-    <choice>
-      <element name="domain" type="xs:string"/>
-    </choice>
+    <sequence>
+      <element name="domain"   type="xs:string"/>
+      <element name="finalize" type="xs:boolean" minOccurs="0"/>
+    </sequence>
   </complexType>
 
   <complexType name="ConfigProviderCommand">
