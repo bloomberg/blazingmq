@@ -78,12 +78,12 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-
 #include <mqbcfg_messages.h>
 #include <mqbnet_negotiator.h>
 #include <mqbstat_statcontroller.h>
 
 #include <bmqex_sequentialcontext.h>
+#include <bmqio_certificatestore.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_reconnectingchannelfactory.h>
@@ -109,8 +109,25 @@
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
+#include <ntci_encryptionserver.h>
 
 namespace BloombergLP {
+
+namespace ntci {
+class Upgradable;
+class EncryptionServer;
+class Upgradable;
+}
+
+namespace ntca {
+class UpgradeEvent;
+}
+
+// TODO move TLS config loading into ntcchannelfactory
+
+namespace bmqio {
+class NtcChannelFactory;
+}
 
 namespace mqbnet {
 
@@ -322,6 +339,21 @@ class TCPSessionFactory {
 
     StatChannelFactoryMp d_statChannelFactory_mp;
 
+    bool d_useTls;
+    // Whether TLS enabled or not
+
+    // #review NTC symbols exposed here
+    bsl::shared_ptr<ntci::EncryptionCertificate> d_certificate_sp;
+    // TLS: the certificate the broker will use to identify itself
+    // to other clients.
+
+    bsl::shared_ptr<ntci::EncryptionCertificate> d_certificateAuthority_sp;
+    // TLS: A concatenation of known certificates the server can use
+    // to reference as its certificate store.
+
+    bsl::shared_ptr<ntci::EncryptionKey> d_key_sp;
+    // TLS: private key that the broker uses to read the certificate.
+
     bsl::string d_threadName;
     // Name to use for the IO threads
 
@@ -409,6 +441,12 @@ class TCPSessionFactory {
 
     TimestampMap d_timestampMap;
     // Map of HiRes timestamp of the session beginning per channel.
+
+    // TODO: review NTC symbols exposed here
+    bmqio::CertificateStore d_certificateStore;
+
+    /// The encryption server used to authenticate incoming connections
+    bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer_sp;
 
     bslma::Allocator* d_allocator_p;
     // Allocator to use
@@ -529,6 +567,29 @@ class TCPSessionFactory {
 
     /// Cancel any open listener operations and clear them out.
     void cancelListeners();
+
+    /// Prepare the channel for negotiation. Handles TLS related connection
+    /// information.
+    void
+    negotiationWithTlsInit(const bsl::shared_ptr<bmqio::Channel>&   channel,
+                           const bsl::shared_ptr<OperationContext>& context,
+                           const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+                           const ntca::UpgradeEvent&                event);
+
+    /// Prepare the channel for negotiation.
+    void negotiationInit(bsl::shared_ptr<bmqio::Channel>   channel,
+                         bsl::shared_ptr<OperationContext> context);
+
+    /// Check that the TCP interfaces are valid.
+    ///
+    /// We require the following:
+    /// - The names of each network interface is unique
+    /// - The ports of each network interface is unqiue
+    int validateNetworkInterfaces() const;
+
+    /// Load TLS configuration from the file system based on the config.
+    int loadTlsConfig(bmqio::NtcChannelFactory* channelFactory,
+                      const mqbcfg::TlsConfig&  tlsConfig);
 
   private:
     // NOT IMPLEMENTED

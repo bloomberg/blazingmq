@@ -17,8 +17,13 @@
 #include <bmqio_ntcchannelfactory.h>
 
 #include <bmqscm_version.h>
+
+// BMQ
+#include <bmqio_certificatestore.h>
+
 // NTF
 #include <ntcf_system.h>
+#include <ntci_upgradecallback.h>
 #include <ntsf_system.h>
 
 // BDE
@@ -178,6 +183,15 @@ void NtcChannelFactory::processChannelClosed(int handle)
     }
 }
 
+void NtcChannelFactory::processUpgrade(
+    const bsl::shared_ptr<ntci::Upgradable>& upgradable,
+    const ntca::UpgradeEvent&                event,
+    const UpgradeCallback&                   onUpgrade)
+{
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_stateMutex);  // LOCKED
+    onUpgrade(upgradable, event);
+}
+
 // CREATORS
 
 NtcChannelFactory::NtcChannelFactory(
@@ -237,7 +251,6 @@ NtcChannelFactory::~NtcChannelFactory()
     BSLS_ASSERT_OPT(d_channels.length() == 0);
     BSLS_ASSERT_OPT(d_createSignaler.slotCount() == 0);
     BSLS_ASSERT_OPT(d_limitSignaler.slotCount() == 0);
-    BSLS_ASSERT_OPT(!d_interface_sp);
 }
 
 // MANIPULATORS
@@ -454,6 +467,29 @@ int NtcChannelFactory::lookupChannel(
     int                                 channelId)
 {
     return d_channels.find(channelId, result);
+}
+
+ntsa::Error NtcChannelFactory::createEncryptionServer(
+    bsl::shared_ptr<ntci::EncryptionServer>* result,
+    const ntca::EncryptionServerOptions&     options)
+{
+    return d_interface_sp->createEncryptionServer(result,
+                                                  options,
+                                                  d_allocator_p);
+}
+
+ntsa::Error NtcChannelFactory::createEncryptionClient(
+    bsl::shared_ptr<ntci::EncryptionClient>* result,
+    const ntca::EncryptionClientOptions&     options)
+{
+    return d_interface_sp->createEncryptionClient(result,
+                                                  options,
+                                                  d_allocator_p);
+}
+
+NtcCertificateLoader NtcChannelFactory::createCertificateLoader()
+{
+    return NtcCertificateLoader(d_interface_sp);
 }
 
 // ----------------------------
