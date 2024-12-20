@@ -51,16 +51,20 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     }
 }
 
-bool Filters::apply(const mqbs::MessageRecord& record,
-                    bsls::Types::Uint64        offset) const
+bool Filters::apply(const mqbs::RecordHeader& recordHeader,
+                    bsls::Types::Uint64       recordOffset,
+                    const mqbu::StorageKey&   queueKey,
+                    bool*                     highBoundReached_p) const
 {
+    if (highBoundReached_p) {
+        *highBoundReached_p = false;  // by default
+    }
+
     // Apply `queue key` filter
-    if (!d_queueKeys.empty()) {
+    if (queueKey != mqbu::StorageKey::k_NULL_KEY && !d_queueKeys.empty()) {
         // Match by queueKey
-        bsl::unordered_set<mqbu::StorageKey>::const_iterator it = bsl::find(
-            d_queueKeys.cbegin(),
-            d_queueKeys.cend(),
-            record.queueKey());
+        bsl::unordered_set<mqbu::StorageKey>::const_iterator it =
+            bsl::find(d_queueKeys.cbegin(), d_queueKeys.cend(), queueKey);
         if (it == d_queueKeys.cend()) {
             // Not matched
             return false;  // RETURN
@@ -71,32 +75,41 @@ bool Filters::apply(const mqbs::MessageRecord& record,
     bsls::Types::Uint64 value, valueGt, valueLt;
     switch (d_range.d_type) {
     case Parameters::Range::e_TIMESTAMP:
-        value   = record.header().timestamp();
+        value   = recordHeader.timestamp();
         valueGt = d_range.d_timestampGt;
         valueLt = d_range.d_timestampLt;
         break;
     case Parameters::Range::e_OFFSET:
-        value   = offset;
+        value   = recordOffset;
         valueGt = d_range.d_offsetGt;
         valueLt = d_range.d_offsetLt;
         break;
     case Parameters::Range::e_SEQUENCE_NUM: {
-        CompositeSequenceNumber seqNum(record.header().primaryLeaseId(),
-                                       record.header().sequenceNumber());
+        CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
+                                       recordHeader.sequenceNumber());
+        const bool greaterOrEqualToHigherBound = d_range.d_seqNumLt.isSet() &&
+                                                 d_range.d_seqNumLt <= seqNum;
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+
         return !(
             (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
-            (d_range.d_seqNumLt.isSet() &&
-             d_range.d_seqNumLt <= seqNum));  // RETURN
+            greaterOrEqualToHigherBound);  // RETURN
     } break;
     default:
         // No range filter defined
         return true;  // RETURN
     }
-    if ((valueGt > 0 && value <= valueGt) ||
-        (valueLt > 0 && value >= valueLt)) {
+    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
+    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
         // Not inside range
         return false;  // RETURN
     }
+
     return true;
 }
 
