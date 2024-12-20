@@ -28,7 +28,7 @@
       <element   name='encoding'       type='tns:EncodingFormat' default='TEXT'/>
     </sequence>
   </complexType>
-  
+
   <simpleType name='EncodingFormat'>
     <annotation>
       <documentation>
@@ -766,6 +766,7 @@
       <element name="domain"      type="tns:Domain"/>
       <element name="resolver"    type="tns:DomainResolverCommand"/>
       <element name="reconfigure" type="tns:DomainReconfigure"/>
+      <element name="remove"      type="tns:DomainRemove"/>
     </choice>
   </complexType>
 
@@ -779,6 +780,13 @@
     <choice>
       <element name="domain" type="xs:string"/>
     </choice>
+  </complexType>
+
+  <complexType name="DomainRemove">
+    <sequence>
+      <element name="domain"   type="xs:string"/>
+      <element name="finalize" type="xs:boolean" minOccurs="0"/>
+    </sequence>
   </complexType>
 
   <complexType name="ConfigProviderCommand">

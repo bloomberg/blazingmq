@@ -1583,6 +1583,134 @@ const char* DomainReconfigure::selectionName() const
 }
 
 // ------------------
+// class DomainRemove
+// ------------------
+
+// CONSTANTS
+
+const char DomainRemove::CLASS_NAME[] = "DomainRemove";
+
+const bdlat_AttributeInfo DomainRemove::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_DOMAIN,
+     "domain",
+     sizeof("domain") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_FINALIZE,
+     "finalize",
+     sizeof("finalize") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* DomainRemove::lookupAttributeInfo(const char* name,
+                                                             int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            DomainRemove::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* DomainRemove::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_DOMAIN:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DOMAIN];
+    case ATTRIBUTE_ID_FINALIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_FINALIZE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+DomainRemove::DomainRemove(bslma::Allocator* basicAllocator)
+: d_domain(basicAllocator)
+, d_finalize()
+{
+}
+
+DomainRemove::DomainRemove(const DomainRemove& original,
+                           bslma::Allocator*   basicAllocator)
+: d_domain(original.d_domain, basicAllocator)
+, d_finalize(original.d_finalize)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+DomainRemove::DomainRemove(DomainRemove&& original) noexcept
+: d_domain(bsl::move(original.d_domain)),
+  d_finalize(bsl::move(original.d_finalize))
+{
+}
+
+DomainRemove::DomainRemove(DomainRemove&&    original,
+                           bslma::Allocator* basicAllocator)
+: d_domain(bsl::move(original.d_domain), basicAllocator)
+, d_finalize(bsl::move(original.d_finalize))
+{
+}
+#endif
+
+DomainRemove::~DomainRemove()
+{
+}
+
+// MANIPULATORS
+
+DomainRemove& DomainRemove::operator=(const DomainRemove& rhs)
+{
+    if (this != &rhs) {
+        d_domain   = rhs.d_domain;
+        d_finalize = rhs.d_finalize;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+DomainRemove& DomainRemove::operator=(DomainRemove&& rhs)
+{
+    if (this != &rhs) {
+        d_domain   = bsl::move(rhs.d_domain);
+        d_finalize = bsl::move(rhs.d_finalize);
+    }
+
+    return *this;
+}
+#endif
+
+void DomainRemove::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_domain);
+    bdlat_ValueTypeFunctions::reset(&d_finalize);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+DomainRemove::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("domain", this->domain());
+    printer.printAttribute("finalize", this->finalize());
+    printer.end();
+    return stream;
+}
+
+// ------------------
 // class ElectorState
 // ------------------
 
@@ -19786,6 +19914,11 @@ const bdlat_SelectionInfo DomainsCommand::SELECTION_INFO_ARRAY[] = {
      "reconfigure",
      sizeof("reconfigure") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_REMOVE,
+     "remove",
+     sizeof("remove") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -19793,7 +19926,7 @@ const bdlat_SelectionInfo DomainsCommand::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 DomainsCommand::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             DomainsCommand::SELECTION_INFO_ARRAY[i];
 
@@ -19815,6 +19948,8 @@ const bdlat_SelectionInfo* DomainsCommand::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_RESOLVER];
     case SELECTION_ID_RECONFIGURE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_RECONFIGURE];
+    case SELECTION_ID_REMOVE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REMOVE];
     default: return 0;
     }
 }
@@ -19838,6 +19973,10 @@ DomainsCommand::DomainsCommand(const DomainsCommand& original,
     case SELECTION_ID_RECONFIGURE: {
         new (d_reconfigure.buffer())
             DomainReconfigure(original.d_reconfigure.object(), d_allocator_p);
+    } break;
+    case SELECTION_ID_REMOVE: {
+        new (d_remove.buffer())
+            DomainRemove(original.d_remove.object(), d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -19864,6 +20003,10 @@ DomainsCommand::DomainsCommand(DomainsCommand&& original) noexcept
             DomainReconfigure(bsl::move(original.d_reconfigure.object()),
                               d_allocator_p);
     } break;
+    case SELECTION_ID_REMOVE: {
+        new (d_remove.buffer())
+            DomainRemove(bsl::move(original.d_remove.object()), d_allocator_p);
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -19888,6 +20031,10 @@ DomainsCommand::DomainsCommand(DomainsCommand&&  original,
             DomainReconfigure(bsl::move(original.d_reconfigure.object()),
                               d_allocator_p);
     } break;
+    case SELECTION_ID_REMOVE: {
+        new (d_remove.buffer())
+            DomainRemove(bsl::move(original.d_remove.object()), d_allocator_p);
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -19907,6 +20054,9 @@ DomainsCommand& DomainsCommand::operator=(const DomainsCommand& rhs)
         } break;
         case SELECTION_ID_RECONFIGURE: {
             makeReconfigure(rhs.d_reconfigure.object());
+        } break;
+        case SELECTION_ID_REMOVE: {
+            makeRemove(rhs.d_remove.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -19932,6 +20082,9 @@ DomainsCommand& DomainsCommand::operator=(DomainsCommand&& rhs)
         case SELECTION_ID_RECONFIGURE: {
             makeReconfigure(bsl::move(rhs.d_reconfigure.object()));
         } break;
+        case SELECTION_ID_REMOVE: {
+            makeRemove(bsl::move(rhs.d_remove.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -19954,6 +20107,9 @@ void DomainsCommand::reset()
     case SELECTION_ID_RECONFIGURE: {
         d_reconfigure.object().~DomainReconfigure();
     } break;
+    case SELECTION_ID_REMOVE: {
+        d_remove.object().~DomainRemove();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -19971,6 +20127,9 @@ int DomainsCommand::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_RECONFIGURE: {
         makeReconfigure();
+    } break;
+    case SELECTION_ID_REMOVE: {
+        makeRemove();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -20131,6 +20290,51 @@ DomainReconfigure& DomainsCommand::makeReconfigure(DomainReconfigure&& value)
 }
 #endif
 
+DomainRemove& DomainsCommand::makeRemove()
+{
+    if (SELECTION_ID_REMOVE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_remove.object());
+    }
+    else {
+        reset();
+        new (d_remove.buffer()) DomainRemove(d_allocator_p);
+        d_selectionId = SELECTION_ID_REMOVE;
+    }
+
+    return d_remove.object();
+}
+
+DomainRemove& DomainsCommand::makeRemove(const DomainRemove& value)
+{
+    if (SELECTION_ID_REMOVE == d_selectionId) {
+        d_remove.object() = value;
+    }
+    else {
+        reset();
+        new (d_remove.buffer()) DomainRemove(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_REMOVE;
+    }
+
+    return d_remove.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+DomainRemove& DomainsCommand::makeRemove(DomainRemove&& value)
+{
+    if (SELECTION_ID_REMOVE == d_selectionId) {
+        d_remove.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_remove.buffer()) DomainRemove(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_REMOVE;
+    }
+
+    return d_remove.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& DomainsCommand::print(bsl::ostream& stream,
@@ -20149,6 +20353,9 @@ bsl::ostream& DomainsCommand::print(bsl::ostream& stream,
     case SELECTION_ID_RECONFIGURE: {
         printer.printAttribute("reconfigure", d_reconfigure.object());
     } break;
+    case SELECTION_ID_REMOVE: {
+        printer.printAttribute("remove", d_remove.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -20164,6 +20371,8 @@ const char* DomainsCommand::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_RESOLVER].name();
     case SELECTION_ID_RECONFIGURE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_RECONFIGURE].name();
+    case SELECTION_ID_REMOVE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_REMOVE].name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
@@ -30528,10 +30737,3 @@ const char* InternalResult::selectionName() const
 // GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
-// ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------
