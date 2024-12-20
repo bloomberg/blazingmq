@@ -30,8 +30,10 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool
-parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
+static bool parseArgs(CommandLineArguments& arguments,
+                      int                   argc,
+                      const char*           argv[],
+                      bslma::Allocator*     allocator)
 {
     bool showHelp = false;
 
@@ -62,6 +64,16 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "message guid",
          balcl::TypeInfo(&arguments.d_guid),
          balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum",
+         "seqnum",
+         "message composite sequence number",
+         balcl::TypeInfo(&arguments.d_seqNum),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset",
+         "offset",
+         "message offset",
+         balcl::TypeInfo(&arguments.d_offset),
+         balcl::OccurrenceInfo::e_OPTIONAL},
         {"queue-name",
          "queue name",
          "message queue name",
@@ -81,6 +93,28 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
          "timestamp less than",
          "higher timestamp bound",
          balcl::TypeInfo(&arguments.d_timestampLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-gt",
+         "message composite sequence number greater than",
+         "lower record sequence number bound, defined in form "
+         "<leaseId-sequenceNumber>",
+         balcl::TypeInfo(&arguments.d_seqNumGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"seqnum-lt",
+         "message composite sequence number less than",
+         "higher sequence number bound, defined in form "
+         "<leaseId-sequenceNumber>",
+         balcl::TypeInfo(&arguments.d_seqNumLt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-gt",
+         "message offset greater than",
+         "lower record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetGt),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"offset-lt",
+         "message offset less than",
+         "higher record offset bound",
+         balcl::TypeInfo(&arguments.d_offsetLt),
          balcl::OccurrenceInfo::e_OPTIONAL},
         {"outstanding",
          "only outstanding",
@@ -130,7 +164,7 @@ parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
     }
 
     bsl::string error;
-    if (!arguments.validate(&error)) {
+    if (!arguments.validate(&error, allocator)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
         return false;  // RETURN
     }
@@ -157,7 +191,7 @@ int main(int argc, const char* argv[])
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
-    if (!parseArgs(arguments, argc, argv)) {
+    if (!parseArgs(arguments, argc, argv, allocator)) {
         return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
     }
 
