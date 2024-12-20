@@ -897,9 +897,9 @@ static void test11_searchMessagesByTimestamp()
         CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
-    params.d_timestampGt  = ts1;
-    params.d_timestampLt  = ts2;
-    params.d_range.d_type = Parameters::Range::e_TIMESTAMP;
+    params.d_range.d_timestampGt = ts1;
+    params.d_range.d_timestampLt = ts2;
+    params.d_range.d_type        = Parameters::Range::e_TIMESTAMP;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1551,7 +1551,10 @@ static void test17_searchMessagesBySequenceNumbersRange()
     const CompositeSequenceNumber seqNumLt(4, 6);
 
     // Configure parameters to search messages by sequence number range
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
     params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
@@ -1624,7 +1627,10 @@ static void test18_searchMessagesByOffsetsRange()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by timestamps
-    Parameters params(bmqtst::TestHelperUtil::allocator());
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     params.d_range.d_type     = Parameters::Range::e_OFFSET;
