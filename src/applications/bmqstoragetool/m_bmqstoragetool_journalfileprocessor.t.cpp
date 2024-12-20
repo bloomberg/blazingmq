@@ -900,7 +900,7 @@ static void test11_searchMessagesByTimestamp()
     params.d_timestampGt  = ts1;
     params.d_timestampLt  = ts2;
     params.d_range.d_type = Parameters::Range::e_TIMESTAMP;
-  
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1716,7 +1716,7 @@ static void test19_summaryWithQueueDetailsTest()
             resultStream,
             bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
-  
+
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     expectedStream
