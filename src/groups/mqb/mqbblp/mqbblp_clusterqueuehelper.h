@@ -556,7 +556,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Process the open queue request represented by the specified
     /// `context`: that is, depending on the cluster mode and queue
-    /// assignment, either send an open queue request of create the queue.
+    /// assignment, either send an open queue request or create the queue.
     /// The queue must have been assigned at this point.
     void processOpenQueueRequest(const OpenQueueContext& context);
 
@@ -1086,7 +1086,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// delete the qualified queues immediately instead of marking them for
     /// deletion in future. Returns 0 on success or a non-zero error code on
     /// failure.
-    int gcExpiredQueues(bool immediate = false);
+    int gcExpiredQueues(bool               immediate  = false,
+                        const bsl::string& domainName = "");
 
     /// Start executing multi-step processing of StopRequest or CLOSING node
     /// advisory received from the specified `clusterNode`.   In the case of

@@ -441,10 +441,12 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledFailedAckMessages,
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'" << ", correlationId: " << correlationId
+                          << "'"
+                          << ", correlationId: " << correlationId
                           << ", GUID: " << messageGUID << ", queue: '"
                           << (found ? uri : "** null **") << "' "
-                          << "(id: " << queueId << ")] " << "to node "
+                          << "(id: " << queueId << ")] "
+                          << "to node "
                           << nodeSession->clusterNode()->nodeDescription(););
     }
 
@@ -492,7 +494,8 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledDroppedAckMessages,
             BALL_LOG_ERROR << description() << ": dropping ACK message "
                            << "[status: " << status << ", source: '" << source
-                           << "'" << ", correlationId: " << correlationId
+                           << "'"
+                           << ", correlationId: " << correlationId
                            << ", GUID: " << messageGUID
                            << ", queueId: " << queueId << "] to node "
                            << nodeSession->clusterNode()->nodeDescription()
@@ -3663,6 +3666,47 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     d_storageManager_mp->processCommand(&storageResult, cmd);
     clusterStatus.clusterStorageSummary() =
         storageResult.clusterStorageSummary();
+}
+
+int Cluster::gcQueueOnDomain(mqbcmd::ClusterResult* result,
+                             const bsl::string&     domainName)
+{
+    // exected by *ANY* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Cluster::gcQueueOnDomainDispatched,
+                             this,
+                             result,
+                             domainName),
+        this);
+
+    dispatcher()->synchronize(this);
+
+    return 0;
+}
+
+void Cluster::gcQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
+                                        const bsl::string&     domainName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    // 'true' implies immediate
+    if (const int rc = d_clusterOrchestrator.queueHelper().gcExpiredQueues(
+            true,
+            domainName)) {
+        BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
+                       << rc << ")";
+        result->makeError().message() = "Failed to execute command (rc: " +
+                                        bsl::to_string(rc) + ")";
+    }
+    else {
+        // Otherwise the command succeeded.
+        BALL_LOG_INFO << "SUCCESS in Cluster::gcQueueOnDomainDispatched";
+        result->makeSuccess();
+    }
 }
 
 void Cluster::printClusterStateSummary(bsl::ostream& out,

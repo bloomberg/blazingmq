@@ -784,7 +784,7 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
                        << "Received unexpected event: " << event;
         BSLS_ASSERT_SAFE(false && "Unexpected event received");
         return;  // RETURN
-    }  // break;
+    }            // break;
     default: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
                        << "Received unknown event: " << event;
@@ -1342,6 +1342,20 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
     loadQueuesInfo(&clusterProxyStatus.queuesInfo());
 }
 
+int ClusterProxy::gcQueueOnDomain(
+    mqbcmd::ClusterResult*       result,
+    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+{
+    // exected by *ANY* thread
+
+    bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                   os(&localAllocator);
+    os << "GC Queue not supported on a Proxy.";
+    result->makeError().message() = os.str();
+
+    return 0;
+}
+
 // MANIPULATORS
 //   (virtual: mqbi::DispatcherClient)
 void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
@@ -1405,31 +1419,31 @@ void ClusterProxy::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         BSLS_ASSERT_OPT(false &&
                         "'DISPATCHER' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_CLUSTER_STATE: {
         BSLS_ASSERT_OPT(false &&
                         "'CLUSTER_STATE' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_STORAGE: {
         BSLS_ASSERT_OPT(false && "'STORAGE' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_RECOVERY: {
         BSLS_ASSERT_OPT(false &&
                         "'RECOVERY' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_UNDEFINED: {
         BSLS_ASSERT_OPT(false &&
                         "'UNDEFINED' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     case mqbi::DispatcherEventType::e_REPLICATION_RECEIPT: {
         BSLS_ASSERT_OPT(
             false && "'REPLICATION_RECEIPT' type dispatcher event unexpected");
         return;  // RETURN
-    }  // break;
+    }            // break;
     default: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
                        << ": received unexpected dispatcher event: " << event;

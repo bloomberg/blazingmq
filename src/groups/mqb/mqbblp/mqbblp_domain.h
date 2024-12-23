@@ -108,7 +108,13 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     typedef mqbi::Storage::AppInfos  AppInfos;
     typedef AppInfos::const_iterator AppInfosCIter;
 
-    enum DomainState { e_STARTED = 0, e_STOPPING = 1, e_STOPPED = 2 };
+    enum DomainState {
+        e_STARTED  = 0,
+        e_STOPPING = 1,
+        e_STOPPED  = 2,
+        e_REMOVING = 3,
+        e_REMOVED  = 4
+    };
 
   private:
     // DATA
@@ -315,6 +321,12 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     processCommand(mqbcmd::DomainResult*        result,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
+    /// Mark the state of domain to be REMOVING
+    void removeDomainStart() BSLS_KEYWORD_OVERRIDE;
+
+    /// Mark the state of domain to be REMOVED
+    void removeDomainCompleted() BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
 
     /// Load into the specified `out` the queue corresponding to the
@@ -350,6 +362,10 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     /// should be used by all queues under this domain.
     void loadRoutingConfiguration(bmqp_ctrlmsg::RoutingConfiguration* config)
         const BSLS_KEYWORD_OVERRIDE;
+
+    /// Check the state of the queues in this domain, return true if
+    /// there's queue with valid queue handles.
+    bool hasActiveQueue() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================

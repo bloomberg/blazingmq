@@ -177,6 +177,12 @@ class Domain {
     virtual int processCommand(mqbcmd::DomainResult*        result,
                                const mqbcmd::DomainCommand& command) = 0;
 
+    /// Mark the state of domain to be REMOVING
+    virtual void removeDomainStart() = 0;
+
+    /// Mark the state of domain to be REMOVED
+    virtual void removeDomainCompleted() = 0;
+
     // ACCESSORS
 
     /// Load into the specified `out` the queue corresponding to the
@@ -212,6 +218,10 @@ class Domain {
     /// should be used by all queues under this domain.
     virtual void loadRoutingConfiguration(
         bmqp_ctrlmsg::RoutingConfiguration* config) const = 0;
+
+    /// Check the state of the queues in this domain, return true if
+    /// there's queue with valid queue handles.
+    virtual bool hasActiveQueue() const = 0;
 };
 
 // ===================

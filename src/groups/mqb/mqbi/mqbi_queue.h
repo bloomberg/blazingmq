@@ -956,6 +956,9 @@ class Queue : public DispatcherClient {
 
     /// Return the Schema Leaner associated with this queue.
     virtual bmqp::SchemaLearner& schemaLearner() const = 0;
+
+    /// Return true if there's queue handle and they're actively used.
+    virtual bool hasActiveHandle() const = 0;
 };
 
 // ========================

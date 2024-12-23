@@ -56,7 +56,8 @@ namespace mqbblp {
 namespace {
 const char k_LOG_CATEGORY[] = "MQBBLP.DOMAIN";
 
-const char k_NODE_IS_STOPPING[] = "Node is stopping";
+const char k_NODE_IS_STOPPING[]              = "Node is stopping";
+const char k_DOMAIN_IS_REMOVING_OR_REMOVED[] = "Domain is removing or removed";
 
 /// This method does nothing.. it's just used so that we can control the
 /// destruction of the specified `queue` to happen once we guarantee the
@@ -373,7 +374,7 @@ Domain::Domain(const bsl::string&                     name,
 
 Domain::~Domain()
 {
-    BSLS_ASSERT_SAFE(e_STARTED != d_state &&
+    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state) &&
                      "'teardown' must be called before the destructor");
 }
 
@@ -530,9 +531,17 @@ void Domain::openQueue(
         // Reject this open-queue request with a soft failure status.
 
         bmqp_ctrlmsg::Status status;
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
-        status.message()  = k_NODE_IS_STOPPING;
+
+        if (d_state == e_REMOVING || d_state == e_REMOVED) {
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+            status.message()  = k_DOMAIN_IS_REMOVING_OR_REMOVED;
+        }
+        else {
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+            status.message()  = k_NODE_IS_STOPPING;
+        }
 
         callback(status,
                  static_cast<mqbi::QueueHandle*>(0),
@@ -867,6 +876,20 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     return -1;
 }
 
+void Domain::removeDomainStart()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    d_state = e_REMOVING;
+}
+
+void Domain::removeDomainCompleted()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    d_state = e_REMOVED;
+}
+
 // ACCESSORS
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
@@ -960,6 +983,25 @@ void Domain::loadRoutingConfiguration(
                        << "'.";
     }
     }
+}
+
+bool Domain::hasActiveQueue() const
+{
+    // Queues are created before handles, so if d_queue is empty,
+    // there's shouldn't be any active handle
+    if (d_queues.empty()) {
+        return false;
+    }
+
+    // If there's queue in this domain, check to see if there's
+    // any handle to it
+    for (QueueMapCIter it = d_queues.begin(); it != d_queues.end(); ++it) {
+        if (it->second->hasActiveHandle()) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 }  // close package namespace
