@@ -36,7 +36,7 @@ CompositeSequenceNumber::CompositeSequenceNumber()
 }
 
 CompositeSequenceNumber::CompositeSequenceNumber(
-    const unsigned int        leaseId,
+    const bsls::Types::Uint64 leaseId,
     const bsls::Types::Uint64 sequenceNumber)
 : d_leaseId(leaseId)
 , d_seqNumber(sequenceNumber)
@@ -71,16 +71,11 @@ CompositeSequenceNumber::fromString(bsl::ostream&      errorDescription,
     try {
         size_t posFirst, posSecond;
 
-        unsigned long uLong = bsl::stoul(firstPart, &posFirst);
-        d_seqNumber         = bsl::stoul(secondPart, &posSecond);
+        d_leaseId   = bsl::stoul(firstPart, &posFirst);
+        d_seqNumber = bsl::stoul(secondPart, &posSecond);
 
         if (posFirst != firstPart.size() || posSecond != secondPart.size()) {
             throw bsl::invalid_argument("");  // THROW
-        }
-
-        d_leaseId = static_cast<unsigned int>(uLong);
-        if (uLong != d_leaseId) {
-            throw bsl::out_of_range("");  // THROW
         }
 
         if (d_leaseId == 0 || d_seqNumber == 0) {

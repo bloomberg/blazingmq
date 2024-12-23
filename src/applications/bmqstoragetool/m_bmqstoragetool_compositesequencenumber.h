@@ -45,7 +45,7 @@ namespace m_bmqstoragetool {
 class CompositeSequenceNumber {
   private:
     // DATA
-    unsigned int d_leaseId;
+    bsls::Types::Uint64 d_leaseId;
     // Primary Lease Id
     bsls::Types::Uint64 d_seqNumber;
     // Sequence Number
@@ -61,8 +61,8 @@ class CompositeSequenceNumber {
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
     /// `sequenceNumber`
-    CompositeSequenceNumber(const unsigned int        leaseId,
-                            const bsls::Types::Uint64 sequenceNumber);
+    explicit CompositeSequenceNumber(const bsls::Types::Uint64 leaseId,
+                                     const bsls::Types::Uint64 sequenceNumber);
 
     // MANIPULATORS
 
@@ -81,7 +81,7 @@ class CompositeSequenceNumber {
     bool isSet() const;
 
     /// Return Primary Lease Id value.
-    unsigned int leaseId() const;
+    bsls::Types::Uint64 leaseId() const;
 
     /// Return Sequence Number value.
     bsls::Types::Uint64 sequenceNumber() const;
@@ -144,7 +144,7 @@ inline bool CompositeSequenceNumber::isSet() const
     return d_isSet;
 }
 
-inline unsigned int CompositeSequenceNumber::leaseId() const
+inline bsls::Types::Uint64 CompositeSequenceNumber::leaseId() const
 {
     return d_leaseId;
 }

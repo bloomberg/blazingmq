@@ -89,13 +89,22 @@ class FileManagerMock : public FileManager {
     /// Construct using the specified `journalFile`.
     explicit FileManagerMock(const JournalFile& journalFile);
 
+    /// Construct using the specified `journalFile`.
+    explicit FileManagerMock(
+        mqbc::IncoreClusterStateLedgerIterator* cslFileIterator);
+
     // MANIPULATORS
 
     /// Return pointer to modifiable journal file iterator.
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return pointer to modifiable CSL file iterator.
+    mqbc::IncoreClusterStateLedgerIterator*
+    cslFileIterator() BSLS_KEYWORD_OVERRIDE;
+
     MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
-    MOCK_METHOD0(cslFileIterator, mqbc::IncoreClusterStateLedgerIterator*());
+    // MOCK_METHOD0(cslFileIterator,
+    // mqbc::IncoreClusterStateLedgerIterator*());
     MOCK_CONST_METHOD1(fillQueueMapFromCslFile, void(QueueMap*));
 };
 
@@ -110,11 +119,10 @@ class FileManagerMock : public FileManager {
 inline FileManagerMock::FileManagerMock()
 : d_journalFileIt()
 , d_dataFileIt()
+, d_cslFileIt_p()
 {
     EXPECT_CALL(*this, dataFileIterator())
         .WillRepeatedly(testing::Return(&d_dataFileIt));
-    EXPECT_CALL(*this, cslFileIterator())
-        .WillRepeatedly(testing::Return(d_cslFileIt_p));
 }
 
 inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)
@@ -122,6 +130,17 @@ inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)
                   journalFile.fileHeader(),
                   false)
 , d_dataFileIt()
+, d_cslFileIt_p()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+inline FileManagerMock::FileManagerMock(
+    mqbc::IncoreClusterStateLedgerIterator* cslFileIterator_p)
+: d_journalFileIt()
+, d_dataFileIt()
+, d_cslFileIt_p(cslFileIterator_p)
 {
     EXPECT_CALL(*this, dataFileIterator())
         .WillRepeatedly(testing::Return(&d_dataFileIt));
@@ -130,6 +149,12 @@ inline FileManagerMock::FileManagerMock(const JournalFile& journalFile)
 inline mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
 {
     return &d_journalFileIt;
+}
+
+inline mqbc::IncoreClusterStateLedgerIterator*
+FileManagerMock::cslFileIterator()
+{
+    return d_cslFileIt_p;
 }
 
 }  // close package namespace

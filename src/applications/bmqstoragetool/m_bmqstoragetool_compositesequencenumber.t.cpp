@@ -199,8 +199,8 @@ static void test2_fromStringTest()
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        // Simulate unsigned int overflow
-        bsl::string inputString("11111111111-123", s_allocator_p);
+        // Simulate bsls::Types::Uint64 overflow
+        bsl::string inputString("111111111111111111111-123", s_allocator_p);
         errorDescription.reset();
 
         compositeSeqNum.fromString(errorDescription, inputString);

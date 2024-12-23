@@ -75,10 +75,10 @@ class CslSearchResult {
     // MANIPULATORS
 
     /// Process record with the specified `header`, `record` and
-    /// `currRecordId`.
+    /// `recordId`.
     virtual bool processRecord(const mqbc::ClusterStateRecordHeader& header,
                                const bmqp_ctrlmsg::ClusterMessage&   record,
-                               const mqbsi::LedgerRecordId& currRecordId) = 0;
+                               const mqbsi::LedgerRecordId& recordId) = 0;
 
     // ACCESSORS
 
@@ -117,11 +117,11 @@ class CslSearchShortResult : public CslSearchResult {
     // MANIPULATORS
 
     /// Process record with the specified `header`, `record` and
-    /// `currRecordId`.
-    bool processRecord(const mqbc::ClusterStateRecordHeader& header,
-                       const bmqp_ctrlmsg::ClusterMessage&   record,
-                       const mqbsi::LedgerRecordId&          currRecordId)
-        BSLS_KEYWORD_OVERRIDE;
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -160,11 +160,11 @@ class CslSearchDetailResult : public CslSearchResult {
     // MANIPULATORS
 
     /// Process record with the specified `header`, `record` and
-    /// `currRecordId`.
-    bool processRecord(const mqbc::ClusterStateRecordHeader& header,
-                       const bmqp_ctrlmsg::ClusterMessage&   record,
-                       const mqbsi::LedgerRecordId&          currRecordId)
-        BSLS_KEYWORD_OVERRIDE;
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 

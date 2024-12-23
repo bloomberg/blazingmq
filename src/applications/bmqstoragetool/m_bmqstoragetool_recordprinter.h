@@ -25,11 +25,16 @@
 // versions of
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
 
-// BDE
-#include <bslma_allocator.h>
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
 
 // MQB
+#include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbs_filestoreprotocolprinter.h>
+#include <mqbsi_ledger.h>
+
+// BDE
+#include <bslma_allocator.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -73,6 +78,15 @@ void printRecord(bsl::ostream&                  stream,
                  const mqbs::QueueOpRecord&     rec,
                  const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
                  bslma::Allocator*              allocator);
+
+/// Print the specified cluater state ledger record `rec`, 'header' and
+/// `recId` to the specified `stream`, using the specified `allocator`
+/// for memory allocation.
+void printRecord(bsl::ostream&                         stream,
+                 const bmqp_ctrlmsg::ClusterMessage&   rec,
+                 const mqbc::ClusterStateRecordHeader& header,
+                 const mqbsi::LedgerRecordId&          recId,
+                 bslma::Allocator*                     allocator);
 
 /// Find AppId in the specified `appIds` by the specified `appKey` and store
 /// the result in the specified `appId`. Return `true` on success and `false

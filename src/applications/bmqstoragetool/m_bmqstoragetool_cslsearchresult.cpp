@@ -1,6 +1,10 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_cslsearchresult.h>
 #include <m_bmqstoragetool_parameters.h>
+#include <m_bmqstoragetool_recordprinter.h>
+
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bslim_printer.h>
@@ -16,9 +20,7 @@ void printClusterStateRecordHeader(
     int                                   level          = 0,
     int                                   spacesPerLevel = -1)
 {
-    if (ostream.bad()) {
-        return;  // RETURN
-    }
+    BSLS_ASSERT(ostream.good());
 
     bslim::Printer printer(&ostream, level, spacesPerLevel);
     printer.start();
@@ -59,28 +61,32 @@ void outputFooter(
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
     const CslSearchResult::RecordCount&      recordCount)
 {
+    BSLS_ASSERT(ostream.good());
+
     if (processCslRecordTypes.d_snapshot) {
         recordCount.d_snapshotCount > 0
             ? (ostream << recordCount.d_snapshotCount << " snapshot")
             : ostream << "No snapshot";
+        ostream << " record(s) found.\n";
     }
     if (processCslRecordTypes.d_update) {
         recordCount.d_updateCount > 0
             ? (ostream << recordCount.d_updateCount << " update")
             : ostream << "No update";
+        ostream << " record(s) found.\n";
     }
     if (processCslRecordTypes.d_commit) {
         recordCount.d_commitCount > 0
             ? (ostream << recordCount.d_commitCount << " commit")
             : ostream << "No commit";
+        ostream << " record(s) found.\n";
     }
     if (processCslRecordTypes.d_ack) {
         recordCount.d_ackCount > 0
             ? (ostream << recordCount.d_ackCount << " ack")
             : ostream << "No ack";
+        ostream << " record(s) found.\n";
     }
-
-    ostream << " record(s) found.\n";
 }
 
 }  // close unnamed namespace
@@ -126,10 +132,10 @@ CslSearchShortResult::CslSearchShortResult(
 bool CslSearchShortResult::processRecord(
     const mqbc::ClusterStateRecordHeader& header,
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
-    const mqbsi::LedgerRecordId&                               currRecordId)
+    const mqbsi::LedgerRecordId&                               recordId)
 {
     printClusterStateRecordHeader(d_ostream, header);
-    d_ostream << currRecordId << '\n';
+    d_ostream << recordId << '\n';
 
     updateRecordCount(&d_recordCount, header.recordType());
 
@@ -160,12 +166,14 @@ CslSearchDetailResult::CslSearchDetailResult(
 
 bool CslSearchDetailResult::processRecord(
     const mqbc::ClusterStateRecordHeader& header,
-    BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
-    const mqbsi::LedgerRecordId&                               currRecordId)
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbsi::LedgerRecordId&          recordId)
 {
-    printClusterStateRecordHeader(d_ostream, header, 0, 4);
-    currRecordId.print(d_ostream);
-    record.print(d_ostream);
+    RecordPrinter::printRecord(d_ostream,
+                               record,
+                               header,
+                               recordId,
+                               d_allocator_p);
 
     updateRecordCount(&d_recordCount, header.recordType());
 

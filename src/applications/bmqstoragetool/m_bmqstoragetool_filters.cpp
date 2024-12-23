@@ -19,6 +19,80 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+using namespace bmqp_ctrlmsg;
+typedef bsl::vector<QueueInfo> QueueInfos;
+
+// Helper method to check if queue key from QueueInfo matches keys in
+// queueKeys.
+bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
+                     const bsl::unordered_set<mqbu::StorageKey>& queueKeys)
+{
+    bool queueKeyMatch = false;
+
+    QueueInfos::const_iterator it = queuesInfo.cbegin();
+    for (; it != queuesInfo.cend(); ++it) {
+        mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
+                             it->key().data());
+        // Match by queueKey
+        if (queueKeys.find(key) != queueKeys.end()) {
+            queueKeyMatch = true;
+        }
+    }
+
+    return queueKeyMatch;
+}
+
+// Helper method to apply range filter
+bool applyRangeFilter(const Parameters::Range&       range,
+                      const bsls::Types::Uint64      timestamp,
+                      const bsls::Types::Uint64      offset,
+                      const CompositeSequenceNumber& compositeSequenceNumber,
+                      bool*                          highBoundReached_p)
+{
+    bsls::Types::Uint64 value, valueGt, valueLt;
+    switch (range.d_type) {
+    case Parameters::Range::e_TIMESTAMP:
+        value   = timestamp;
+        valueGt = range.d_timestampGt;
+        valueLt = range.d_timestampLt;
+        break;
+    case Parameters::Range::e_OFFSET:
+        value   = offset;
+        valueGt = range.d_offsetGt;
+        valueLt = range.d_offsetLt;
+        break;
+    case Parameters::Range::e_SEQUENCE_NUM: {
+        const bool greaterOrEqualToHigherBound = range.d_seqNumLt.isSet() &&
+                                                 range.d_seqNumLt <=
+                                                     compositeSequenceNumber;
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+
+        return !((range.d_seqNumGt.isSet() &&
+                  compositeSequenceNumber <= range.d_seqNumGt) ||
+                 greaterOrEqualToHigherBound);  // RETURN
+    } break;
+    default:
+        // No range filter defined
+        return true;  // RETURN
+    }
+    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
+    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+        // Not inside range
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+}  // close unnamed namespace
+
 // =============
 // class Filters
 // =============
@@ -72,45 +146,58 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     }
 
     // Apply `range` filter
-    bsls::Types::Uint64 value, valueGt, valueLt;
-    switch (d_range.d_type) {
-    case Parameters::Range::e_TIMESTAMP:
-        value   = recordHeader.timestamp();
-        valueGt = d_range.d_timestampGt;
-        valueLt = d_range.d_timestampLt;
-        break;
-    case Parameters::Range::e_OFFSET:
-        value   = recordOffset;
-        valueGt = d_range.d_offsetGt;
-        valueLt = d_range.d_offsetLt;
-        break;
-    case Parameters::Range::e_SEQUENCE_NUM: {
-        CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
-                                       recordHeader.sequenceNumber());
-        const bool greaterOrEqualToHigherBound = d_range.d_seqNumLt.isSet() &&
-                                                 d_range.d_seqNumLt <= seqNum;
-        if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached_p = true;
+    return applyRangeFilter(
+        d_range,
+        recordHeader.timestamp(),
+        recordOffset,
+        CompositeSequenceNumber(recordHeader.primaryLeaseId(),
+                                recordHeader.sequenceNumber()),
+        highBoundReached_p);
+}
+
+bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
+                    const bmqp_ctrlmsg::ClusterMessage&   record,
+                    bsls::Types::Uint64                   recordOffset,
+                    bool* highBoundReached_p) const
+{
+    // Apply `queue key` filter
+    if (!d_queueKeys.empty()) {
+        using namespace bmqp_ctrlmsg;
+        bool queueKeyMatch = false;
+
+        if (recordHeader.recordType() ==
+            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            const LeaderAdvisory& leaderAdvisory =
+                record.choice().leaderAdvisory();
+            queueKeyMatch = isQueueKeyMatch(leaderAdvisory.queues(),
+                                            d_queueKeys);
+        }
+        else if (recordHeader.recordType() ==
+                     mqbc::ClusterStateRecordType::e_UPDATE) {
+            if (record.choice().selectionId() ==
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                const QueueAssignmentAdvisory& queueAdvisory =
+                    record.choice().queueAssignmentAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
         }
 
-        return !(
-            (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
-            greaterOrEqualToHigherBound);  // RETURN
-    } break;
-    default:
-        // No range filter defined
-        return true;  // RETURN
-    }
-    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
-    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
-        if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached_p = true;
+        if (!queueKeyMatch) {
+            // Not matched
+            return false;  // RETURN
         }
-        // Not inside range
-        return false;  // RETURN
     }
 
-    return true;
+    // Apply `range` filter
+    return applyRangeFilter(
+        d_range,
+        recordHeader.timestamp(),
+        recordOffset,
+        CompositeSequenceNumber(recordHeader.electorTerm(),
+                                recordHeader.sequenceNumber()),
+        highBoundReached_p);
 }
 
 }  // close package namespace
