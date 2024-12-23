@@ -402,6 +402,10 @@ class Cluster : public mqbi::Cluster {
     /// Load the cluster state to the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
+    /// Force GC queues in this cluster on a given domain.
+    int gcQueueOnDomain(mqbcmd::ClusterResult* result,
+                        const bsl::string& domainName) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Cluster)
 

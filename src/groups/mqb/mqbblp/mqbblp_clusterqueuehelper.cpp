@@ -5992,7 +5992,8 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-int ClusterQueueHelper::gcExpiredQueues(bool immediate)
+int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
+                                        const bsl::string& domainName)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -6026,6 +6027,11 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
         QueueContextSp& queueContextSp = it->second;
         QueueLiveState& qinfo          = queueContextSp->d_liveQInfo;
         const int       pid            = queueContextSp->partitionId();
+
+        if (domainName != "" &&
+            it->second->uri().qualifiedDomain().compare(domainName) != 0) {
+            continue;  // CONTINUE
+        }
 
         if (!isQueueAssigned(*queueContextSp)) {
             continue;  // CONTINUE

@@ -209,6 +209,12 @@ class Domain : public mqbi::Domain {
     processCommand(mqbcmd::DomainResult*        result,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
+    /// Mark the state of domain to be REMOVING
+    void removeDomainStart() BSLS_KEYWORD_OVERRIDE;
+
+    /// Mark the state of domain to be REMOVED
+    void removeDomainCompleted() BSLS_KEYWORD_OVERRIDE;
+
     /// Load into the specified `out`, if `out` is not 0, the queue
     /// corresponding to the specified `uri`, if found. Return 0 on success,
     /// or a non-zero return code otherwise.
@@ -242,6 +248,10 @@ class Domain : public mqbi::Domain {
     /// should be used by all queues under this domain.
     void loadRoutingConfiguration(bmqp_ctrlmsg::RoutingConfiguration* config)
         const BSLS_KEYWORD_OVERRIDE;
+
+    /// Check the state of the current domain, return true if it's
+    /// active and accepts incoming connections.
+    bool hasActiveQueue() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===================
