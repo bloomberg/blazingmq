@@ -72,12 +72,13 @@ const char*              k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
 // TYPES
 struct AdvisoryType {
     enum Enum {
-        e_LEADER            = 0,
-        e_PARTITION_PRIMARY = 1,
-        e_QUEUE_ASSIGNMENT  = 2,
-        e_QUEUE_UNASSIGNED  = 3,
-        e_COMMIT            = 4,
-        e_ACK               = 5
+        e_LEADER             = 0,
+        e_PARTITION_PRIMARY  = 1,
+        e_QUEUE_ASSIGNMENT   = 2,
+        e_QUEUE_UNASSIGNMENT = 3,
+        e_QUEUE_UNASSIGNED   = 4,
+        e_COMMIT             = 5,
+        e_ACK                = 6
     };
 };
 
@@ -87,12 +88,15 @@ typedef bsl::pair<bmqp_ctrlmsg::ClusterMessage, int> RecordInfo;
 // FUNCTIONS
 
 /// Load into the specified `message` an artificial cluster message of the
-/// specified `advisoryType` having the specified `sequenceNumber`.  Return
-/// the appropriate cluster state record type for the message.
+/// specified `advisoryType` having the specified `sequenceNumber`, `queueUri`
+/// and `queueKey`.  Return the appropriate cluster state record type for the
+/// message.
 mqbc::ClusterStateRecordType::Enum
 createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
                      AdvisoryType::Enum                         advisoryType,
-                     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber)
+                     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+                     const bsl::string&                         queueUri,
+                     const bsl::string&                         queueKey)
 {
     switch (advisoryType) {
     case AdvisoryType::e_LEADER: {
@@ -103,10 +107,10 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
 
         bmqp_ctrlmsg::QueueInfo qinfo;
         qinfo.partitionId() = 2U;
-        qinfo.uri()         = "bmq://bmq.random.y/q2";
+        qinfo.uri()         = queueUri;
 
-        const mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
-                                   "54321");
+        const mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(),
+                                   queueKey.c_str());
         key.loadBinary(&qinfo.key());
 
         bmqp_ctrlmsg::LeaderAdvisory advisory;
@@ -135,10 +139,10 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
     case AdvisoryType::e_QUEUE_ASSIGNMENT: {
         bmqp_ctrlmsg::QueueInfo qinfo;
         qinfo.partitionId() = 1U;
-        qinfo.uri()         = "bmq://bmq.random.x/q1";
+        qinfo.uri()         = queueUri;
 
-        const mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
-                                   "12345");
+        const mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(),
+                                   queueKey.c_str());
         key.loadBinary(&qinfo.key());
 
         bmqp_ctrlmsg::QueueAssignmentAdvisory advisory;
@@ -149,13 +153,32 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
 
         return mqbc::ClusterStateRecordType::e_UPDATE;
     }
+    case AdvisoryType::e_QUEUE_UNASSIGNMENT: {
+        bmqp_ctrlmsg::QueueInfo qinfo;
+        qinfo.partitionId() = 1U;
+        qinfo.uri()         = queueUri;
+
+        const mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(),
+                                   queueKey.c_str());
+        key.loadBinary(&qinfo.key());
+
+        bmqp_ctrlmsg::QueueUnAssignmentAdvisory advisory;
+        advisory.primaryNodeId()  = 1;
+        advisory.partitionId()    = 1U;
+        advisory.primaryLeaseId() = 1U;
+        advisory.queues().push_back(qinfo);
+
+        message->choice().makeQueueUnAssignmentAdvisory(advisory);
+
+        return mqbc::ClusterStateRecordType::e_UPDATE;
+    }
     case AdvisoryType::e_QUEUE_UNASSIGNED: {
         bmqp_ctrlmsg::QueueInfo qinfo;
         qinfo.partitionId() = 1U;
-        qinfo.uri()         = "bmq://bmq.random.x/q1";
+        qinfo.uri()         = queueUri;
 
-        const mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
-                                   "12345");
+        const mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(),
+                                   queueKey.c_str());
         key.loadBinary(&qinfo.key());
 
         bmqp_ctrlmsg::QueueUnassignedAdvisory advisory;
@@ -211,20 +234,26 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
     return 0;
 }
 
-/// Write a record with the specified `sequenceNumber`, `timeStamp` and
-/// `advisoryType` to the specified `ledger` using the specified
-/// `bufferFactory`.  Load into the specified `recordInfos` the cluster
-/// message being written and the record length.
+/// Write a record with the specified `sequenceNumber`, `timeStamp`,
+/// `queueUri`, `queueKey`  and `advisoryType` to the specified `ledger` using
+/// the specified `bufferFactory`.  Load into the specified `recordInfos` the
+/// cluster message being written and the record length.
 void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
                  const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
                  bsls::Types::Uint64                        timeStamp,
+                 const bsl::string&                         queueUri,
+                 const bsl::string&                         queueKey,
                  AdvisoryType::Enum                         advisoryType,
                  mqbsi::Ledger*                             ledger,
                  bdlbb::BlobBufferFactory*                  bufferFactory)
 {
     bmqp_ctrlmsg::ClusterMessage             msg;
-    const mqbc::ClusterStateRecordType::Enum recordType =
-        createClusterMessage(&msg, advisoryType, sequenceNumber);
+    const mqbc::ClusterStateRecordType::Enum recordType = createClusterMessage(
+        &msg,
+        advisoryType,
+        sequenceNumber,
+        queueUri,
+        queueKey);
 
     bdlbb::Blob record(bufferFactory, s_allocator_p);
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(&record,
@@ -367,48 +396,72 @@ static void test1_breathingTest()
         bsls::Types::Uint64                d_electorTerm;
         bsls::Types::Uint64                d_sequenceNumber;
         bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
     } k_DATA[] = {{L_,
                    2U,
                    1U,
                    33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT},
                   {L_,
                    3U,
                    1U,
                    123456U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_PARTITION_PRIMARY,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
                    2U,
                    123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_QUEUE_ASSIGNMENT,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
                    3U,
                    123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_UNASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_QUEUE_UNASSIGNED,
                    mqbc::ClusterStateRecordType::e_UPDATE},
                   {L_,
                    3U,
                    4U,
                    123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_COMMIT,
                    mqbc::ClusterStateRecordType::e_COMMIT},
                   {L_,
                    3U,
                    5U,
                    33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT},
                   {L_,
                    3U,
                    6U,
                    123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
                    AdvisoryType::e_ACK,
                    mqbc::ClusterStateRecordType::e_ACK}};
 
@@ -426,6 +479,8 @@ static void test1_breathingTest()
         writeRecord(&recordInfos,
                     lms,
                     test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
                     test.d_advisoryType,
                     tester.ledger(),
                     tester.bufferFactory());
@@ -494,20 +549,595 @@ static void test1_breathingTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
-static void test2_searchMessagesByQueueKeyTest()
+static void test2_searchRecordsByTypeTest()
 // ------------------------------------------------------------------------
-// SEARCH MESSAGES BY QUEUE KEY TEST
+// SEARCH RECORDS BY QUEUE TYPE TEST
 //
 // Concerns:
-//   Search messages by queue key in CSL
+//   Search records by type in CSL
 //   file and output short result.
 //
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
+    bmqtst::TestHelper::printTestName("SEARCH RECORDS BY TYPE TEST");
 
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   2U,
+                   1U,
+                   33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   1U,
+                   123456U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_PARTITION_PRIMARY,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   2U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_ASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   4U,
+                   123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_COMMIT,
+                   mqbc::ClusterStateRecordType::e_COMMIT},
+                  {L_,
+                   3U,
+                   5U,
+                   33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   6U,
+                   123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_ACK,
+                   mqbc::ClusterStateRecordType::e_ACK}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write a record of each advisory type
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_processCslRecordTypes.d_commit   = true;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bsl::size_t        snapshotCount = 0;
+    bsl::size_t        commitCount   = 0;
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+        if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+            snapshotCount++;
+        }
+        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_COMMIT) {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+            commitCount++;
+        }
+        standardCslIt.next();
+    }
+    expectedStream << snapshotCount << " snapshot record(s) found.\n";
+    expectedStream << commitCount << " commit record(s) found.\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test3_searchRecordsByQueueKeyTest()
+// ------------------------------------------------------------------------
+// SEARCH RECORDS BY QUEUE KEY TEST
+//
+// Concerns:
+//   Search records by queue key in CSL
+//   file and output short result.
+//
+// Testing:
+//   CslFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH RECORDS BY QUEUE KEY TEST");
+
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   2U,
+                   1U,
+                   33333U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   2U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "2222222222",
+                   AdvisoryType::e_QUEUE_ASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   2U,
+                   123567U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_QUEUE_ASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q3",
+                   "3333333333",
+                   AdvisoryType::e_QUEUE_UNASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q3",
+                   "3333333333",
+                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   4U,
+                   123678U,
+                   "bmq://bmq.random.y/q4",
+                   "4444444444",
+                   AdvisoryType::e_COMMIT,
+                   mqbc::ClusterStateRecordType::e_COMMIT},
+                  {L_,
+                   3U,
+                   5U,
+                   33333U,
+                   "bmq://bmq.random.y/q3",
+                   "3333333333",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write a record of each advisory type
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_processCslRecordTypes.d_commit   = true;
+    params.d_processCslRecordTypes.d_update   = true;
+    params.d_queueKey.push_back("2222222222");
+    params.d_queueKey.push_back("3333333333");
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+        if (test.d_queueKey == "2222222222" ||
+            test.d_queueKey == "3333333333") {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+        }
+        standardCslIt.next();
+    }
+    expectedStream << "1 snapshot record(s) found.\n";
+    expectedStream << "3 update record(s) found.\n";
+    expectedStream << "No commit record(s) found.\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test4_searchRecordsByTimestampRangeTest()
+// ------------------------------------------------------------------------
+// SEARCH RECORDS BY TIMESTAMP RANGE TEST
+//
+// Concerns:
+//   Search records by timestamp range in CSL
+//   file and output short result.
+//
+// Testing:
+//   CslFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH RECORDS BY TIMESTAMP RANGE TEST");
+
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   2U,
+                   1U,
+                   100001U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100002U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100003U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100004U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100005U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write a record of each advisory type
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_range.d_type                     = Parameters::Range::e_TIMESTAMP;
+    params.d_range.d_timestampGt              = 100002U;
+    params.d_range.d_timestampLt              = 100005U;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+        if (test.d_timeStamp > params.d_range.d_timestampGt &&
+            test.d_timeStamp < params.d_range.d_timestampLt) {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+        }
+        standardCslIt.next();
+    }
+    expectedStream << "2 snapshot record(s) found.\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
+static void test5_searchRecordsByOffsetRangeTest()
+// ------------------------------------------------------------------------
+// SEARCH RECORDS BY OFFSET RANGE TEST
+//
+// Concerns:
+//   Search records by offset range in CSL
+//   file and output short result.
+//
+// Testing:
+//   CslFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SEARCH RECORDS BY OFFSET RANGE TEST");
+
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   2U,
+                   1U,
+                   100001U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100002U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100003U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100004U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   5U,
+                   100005U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write a record of each advisory type
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_range.d_type                     = Parameters::Range::e_OFFSET;
+    params.d_range.d_offsetGt                 = 100U;
+    params.d_range.d_offsetLt                 = 300U;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test&         test      = k_DATA[idx];
+        bsls::Types::Uint64 recOffset = static_cast<bsls::Types::Uint64>(
+            standardCslIt.currRecordId().offset());
+        if (recOffset > params.d_range.d_offsetGt &&
+            recOffset < params.d_range.d_offsetLt) {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+        }
+        standardCslIt.next();
+    }
+    expectedStream << "2 snapshot record(s) found.\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 // ============================================================================
@@ -525,7 +1155,10 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
-    case 2: test2_searchMessagesByQueueKeyTest(); break;
+    case 2: test2_searchRecordsByTypeTest(); break;
+    case 3: test3_searchRecordsByQueueKeyTest(); break;
+    case 4: test4_searchRecordsByTimestampRangeTest(); break;
+    case 5: test5_searchRecordsByOffsetRangeTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

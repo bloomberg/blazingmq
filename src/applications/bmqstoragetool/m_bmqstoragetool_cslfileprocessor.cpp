@@ -92,42 +92,58 @@ void CslFileProcessor::process()
                 // d_ostream << *iter << '\n';
                 // d_ostream << iter->header() << '\n';
                 // d_ostream << clusterMessage << '\n';
-                d_searchResult_p->processRecord(iter->header(),
-                                                clusterMessage,
-                                                iter->currRecordId());
+
+                // Apply filters
+                if (filters.apply(iter->header(),
+                                  clusterMessage,
+                                  iter->currRecordId().offset(),
+                                  &stopSearch)) {
+                    d_searchResult_p->processRecord(iter->header(),
+                                                    clusterMessage,
+                                                    iter->currRecordId());
+                }
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_UPDATE) {
             if (d_parameters->d_processCslRecordTypes.d_update) {
-                // d_ostream << *iter << '\n';
-                // d_ostream << iter->header() << '\n';
-                // d_ostream << clusterMessage << '\n';
-                d_searchResult_p->processRecord(iter->header(),
-                                                clusterMessage,
-                                                iter->currRecordId());
+                // Apply filters
+                if (filters.apply(iter->header(),
+                                  clusterMessage,
+                                  iter->currRecordId().offset(),
+                                  &stopSearch)) {
+                    d_searchResult_p->processRecord(iter->header(),
+                                                    clusterMessage,
+                                                    iter->currRecordId());
+                }
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_COMMIT) {
             if (d_parameters->d_processCslRecordTypes.d_commit) {
-                // d_ostream << *iter << '\n';
-                // d_ostream << iter->header() << '\n';
-                // d_ostream << clusterMessage << '\n';
-                d_searchResult_p->processRecord(iter->header(),
-                                                clusterMessage,
-                                                iter->currRecordId());
+                // Apply filters
+                if (filters.apply(iter->header(),
+                                  clusterMessage,
+                                  iter->currRecordId().offset(),
+                                  &stopSearch)) {
+                    d_searchResult_p->processRecord(iter->header(),
+                                                    clusterMessage,
+                                                    iter->currRecordId());
+                }
             }
         }
         else if (iter->header().recordType() ==
                  mqbc::ClusterStateRecordType::e_ACK) {
             if (d_parameters->d_processCslRecordTypes.d_ack) {
-                // d_ostream << *iter << '\n';
-                // d_ostream << iter->header() << '\n';
-                // d_ostream << clusterMessage << '\n';
-                d_searchResult_p->processRecord(iter->header(),
-                                                clusterMessage,
-                                                iter->currRecordId());
+                // Apply filters
+                if (filters.apply(iter->header(),
+                                  clusterMessage,
+                                  iter->currRecordId().offset(),
+                                  &stopSearch)) {
+                    d_searchResult_p->processRecord(iter->header(),
+                                                    clusterMessage,
+                                                    iter->currRecordId());
+                }
             }
         }
         else {

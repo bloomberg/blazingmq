@@ -173,12 +173,27 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
                                             d_queueKeys);
         }
         else if (recordHeader.recordType() ==
-                     mqbc::ClusterStateRecordType::e_UPDATE) {
+                 mqbc::ClusterStateRecordType::e_UPDATE) {
             if (record.choice().selectionId() ==
-                     ClusterMessageChoice::
-                         SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
                 const QueueAssignmentAdvisory& queueAdvisory =
                     record.choice().queueAssignmentAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
+            else if (record.choice().selectionId() ==
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY) {
+                const QueueUnassignedAdvisory& queueAdvisory =
+                    record.choice().queueUnassignedAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
+            else if (record.choice().selectionId() ==
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY) {
+                const QueueUnAssignmentAdvisory& queueAdvisory =
+                    record.choice().queueUnAssignmentAdvisory();
                 queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
                                                 d_queueKeys);
             }
