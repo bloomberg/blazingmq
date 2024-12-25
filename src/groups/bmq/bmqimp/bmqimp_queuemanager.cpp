@@ -294,7 +294,7 @@ QueueManager::observePushEvent(bmqt::CorrelationId* correlationId,
                                const bmqp::EventUtilQueueInfo& info)
 {
     // Update stats
-    const QueueSp queue = lookupQueueBySubscriptionIdLocked(
+    const QueueSp queue = lookupQueueBySubscriptionId(
         correlationId,
         subscriptionHandleId,
         info.d_header.queueId(),
