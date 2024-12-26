@@ -371,6 +371,10 @@ class Cluster : public DispatcherClient {
     /// Load the cluster state to the specified `out` object.
     virtual void loadClusterStatus(mqbcmd::ClusterResult* out) = 0;
 
+    /// Purge queues in this cluster on a given domain.
+    virtual void purgeQueueOnDomain(mqbcmd::ClusterResult* result,
+                                    const bsl::string&     domainName) = 0;
+
     /// Force GC queues in this cluster on a given domain.
     virtual int gcQueueOnDomain(mqbcmd::ClusterResult* result,
                                 const bsl::string&     domainName) = 0;

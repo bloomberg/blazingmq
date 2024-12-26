@@ -276,6 +276,13 @@ void StorageManager::gcUnrecognizedDomainQueues()
     // NOTHING
 }
 
+int StorageManager::purgeQueueOnDomain(
+    BSLS_ANNOTATION_UNUSED mqbcmd::StorageResult* result,
+    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+{
+    return 0;
+}
+
 // ACCESSORS
 mqbi::Dispatcher::ProcessorHandle StorageManager::processorForPartition(
     BSLS_ANNOTATION_UNUSED int partitionId) const

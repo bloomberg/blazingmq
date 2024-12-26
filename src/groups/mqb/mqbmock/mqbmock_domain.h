@@ -165,6 +165,8 @@ class Domain : public mqbi::Domain {
     /// Do some logging.
     void teardown(const Domain::TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
 
+    void teardownRemove(const TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
+
     /// Create/Open with the specified `handleParameters` the queue having
     /// the specified `uri` for the requester client represented with the
     /// specified `clientContext`.  Invoke the specified `callback` with the
@@ -210,10 +212,7 @@ class Domain : public mqbi::Domain {
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
     /// Mark the state of domain to be REMOVING
-    void removeDomainStart() BSLS_KEYWORD_OVERRIDE;
-
-    /// Mark the state of domain to be REMOVED
-    void removeDomainCompleted() BSLS_KEYWORD_OVERRIDE;
+    void removeDomainReset() BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `out`, if `out` is not 0, the queue
     /// corresponding to the specified `uri`, if found. Return 0 on success,
@@ -249,9 +248,9 @@ class Domain : public mqbi::Domain {
     void loadRoutingConfiguration(bmqp_ctrlmsg::RoutingConfiguration* config)
         const BSLS_KEYWORD_OVERRIDE;
 
-    /// Check the state of the current domain, return true if it's
-    /// active and accepts incoming connections.
-    bool hasActiveQueue() const BSLS_KEYWORD_OVERRIDE;
+    /// Check the state of the queues in this domain, return false if there's
+    /// queues opened or opening.
+    bool tryRemove() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===================

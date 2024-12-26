@@ -351,6 +351,16 @@ struct StorageUtil {
     static void executeForEachPartitions(const PerPartitionFunctor& job,
                                          const FileStores& fileStores);
 
+    /// For each partition which has the current node as the primary,
+    /// Execute the specified `job` in the specified `fileStores`.
+    /// Each partition will receive its partitionId and a latch
+    /// along with the `job`.  Each valid partition *must* call
+    /// `latch->arrive()` after it has finished executing the `job`.
+    ///
+    /// THREAD: Executed by the cluster-dispatcher thread.
+    static void executeForValidPartitions(const PerPartitionFunctor& job,
+                                          const FileStores& fileStores);
+
     /// Process the specified `command`, and load the result to the
     /// specified `replicationResult`.  The command might modify the
     /// specified `replicationFactor` and the corresponding value in each
@@ -792,6 +802,13 @@ struct StorageUtil {
                                             mqbs::FileStore*     fs,
                                             mqbnet::ClusterNode* destination,
                                             const PartitionInfo& pinfo);
+
+    /// Purge the queues on a given domain.
+    static void purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                   const bsl::string&     domainName,
+                                   FileStores*            fileStores,
+                                   StorageSpMapVec*       storageMapVec,
+                                   bslmt::Mutex*          storagesLock);
 };
 
 template <>
