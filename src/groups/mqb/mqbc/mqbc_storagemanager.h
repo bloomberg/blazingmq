@@ -999,6 +999,11 @@ class StorageManager BSLS_KEYWORD_FINAL
     /// GC the queues from unrecognized domains, if any.
     void gcUnrecognizedDomainQueues() BSLS_KEYWORD_OVERRIDE;
 
+    /// Purge the queues on a given domain.
+    int
+    purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                       const bsl::string& domainName) BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id. Note, this modifiable reference to partition is only

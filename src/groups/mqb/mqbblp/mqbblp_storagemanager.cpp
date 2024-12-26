@@ -2144,6 +2144,24 @@ void StorageManager::gcUnrecognizedDomainQueues()
                                                   d_unrecognizedDomains);
 }
 
+int StorageManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                       const bsl::string&     domainName)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
+
+    mqbc::StorageUtil::purgeQueueOnDomain(result,
+                                          domainName,
+                                          &d_fileStores,
+                                          &d_storages,
+                                          &d_storagesLock);
+
+    return 0;
+}
+
 // ACCESSORS
 bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
                                     int              partitionId) const

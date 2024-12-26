@@ -403,6 +403,10 @@ class StorageManager {
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;
 
+    /// Purge the queues on a given domain.
+    virtual int purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                   const bsl::string&     domainName) = 0;
+
     // ACCESSORS
 
     /// Return the processor handle in charge of the specified

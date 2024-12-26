@@ -82,6 +82,12 @@ void Domain::teardown(
     // NOTHING
 }
 
+void Domain::teardownRemove(
+    BSLS_ANNOTATION_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
+{
+    // NOTHING
+}
+
 void Domain::openQueue(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const
@@ -149,12 +155,7 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     return -1;
 }
 
-void Domain::removeDomainStart()
-{
-    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
-}
-
-void Domain::removeDomainCompleted()
+void Domain::removeDomainReset()
 {
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
@@ -230,7 +231,7 @@ void Domain::loadRoutingConfiguration(
     // NOTHING
 }
 
-bool Domain::hasActiveQueue() const
+bool Domain::tryRemove() const
 {
     return true;
 }

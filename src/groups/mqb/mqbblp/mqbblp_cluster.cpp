@@ -441,12 +441,10 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledFailedAckMessages,
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'"
-                          << ", correlationId: " << correlationId
+                          << "'" << ", correlationId: " << correlationId
                           << ", GUID: " << messageGUID << ", queue: '"
                           << (found ? uri : "** null **") << "' "
-                          << "(id: " << queueId << ")] "
-                          << "to node "
+                          << "(id: " << queueId << ")] " << "to node "
                           << nodeSession->clusterNode()->nodeDescription(););
     }
 
@@ -455,8 +453,8 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
                    << "[status: " << status << ", source: '" << source << "'"
                    << ", correlationId: " << correlationId
                    << ", GUID: " << messageGUID << ", queue: '" << uri
-                   << "' (id: " << queueId << ")] to "
-                   << "node " << nodeSession->clusterNode()->nodeDescription();
+                   << "' (id: " << queueId << ")] to " << "node "
+                   << nodeSession->clusterNode()->nodeDescription();
 
     // Update stats for the queue (or subStream of the queue)
     // TBD: We should collect all invalid stats (i.e. stats for queues that
@@ -494,8 +492,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledDroppedAckMessages,
             BALL_LOG_ERROR << description() << ": dropping ACK message "
                            << "[status: " << status << ", source: '" << source
-                           << "'"
-                           << ", correlationId: " << correlationId
+                           << "'" << ", correlationId: " << correlationId
                            << ", GUID: " << messageGUID
                            << ", queueId: " << queueId << "] to node "
                            << nodeSession->clusterNode()->nodeDescription()
@@ -3694,9 +3691,11 @@ void Cluster::gcQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
     // 'true' implies immediate
-    if (const int rc = d_clusterOrchestrator.queueHelper().gcExpiredQueues(
-            true,
-            domainName)) {
+    const int rc =
+        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true, domainName);
+    if (rc == -1 || rc == -3) {
+        // TBD: We allow the node to not be an active primary for *any*
+        // partition; this has to be changed once we allow leader != primary
         BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
                        << rc << ")";
         result->makeError().message() = "Failed to execute command (rc: " +
@@ -3704,9 +3703,27 @@ void Cluster::gcQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
     }
     else {
         // Otherwise the command succeeded.
-        BALL_LOG_INFO << "SUCCESS in Cluster::gcQueueOnDomainDispatched";
         result->makeSuccess();
     }
+}
+
+void Cluster::purgeQueueOnDomain(mqbcmd::ClusterResult* result,
+                                 const bsl::string&     domainName)
+{
+    // exected by *ANY* thread
+
+    mqbcmd::StorageResult storageResult;
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&mqbi::StorageManager::purgeQueueOnDomain,
+                             d_storageManager_mp.get(),
+                             &storageResult,
+                             domainName),
+        this);
+
+    dispatcher()->synchronize(this);
+
+    result->makeStorageResult(storageResult);
 }
 
 void Cluster::printClusterStateSummary(bsl::ostream& out,

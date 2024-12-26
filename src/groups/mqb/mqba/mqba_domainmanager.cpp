@@ -709,7 +709,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 
         if (0 != locateOrCreateDomain(&domainSp, name)) {
             bmqu::MemOutStream os;
-            os << "Trying to remove a nonexistent domain '" << name << "'";
+            os << "Domain '" << name << "' doesn't exist";
             result->makeError().message() = os.str();
             return -1;  // RETURN
         }
@@ -719,95 +719,82 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             BALL_LOG_INFO << "[First pass] DOMAINS REMOVE '" << name
                           << "' called!!!";
 
-            // TODO: broadcast to all other nodes
-
-            // 1. Reject if there's any opened queue
-            if (domainSp->hasActiveQueue()) {
+            // 1. Reject if there's any opened or opening queue
+            if (!domainSp->tryRemove()) {
                 bmqu::MemOutStream os;
                 os << "Trying to remove the domain '" << name
-                   << "' while there are queues open";
+                   << "' while there are queues opened or opening";
                 result->makeError().message() = os.str();
                 return -1;  // RETURN
             }
 
-            BALL_LOG_INFO << "BEFORE CHEKCING CLUSTER STATUS";
-
-            // 2. Reject if the state of cluster is not healthy
-            // Notice that the bad state can happen anywhere down the road,
-            // so this check is not enough to prevent a partial execution.
-            // It's inevitable, so we can only make sure the code doesn't
-            // break if we run this command again
-            // TODO: ask if this is necessary???
-            mqbi::Cluster*         cluster = domainSp->cluster();
-            mqbcmd::ClusterResult  clusterStatusResult;
-            mqbcmd::ClusterCommand clusterStatusCommand;
-            clusterStatusCommand.makeStatus();
-
-            int rc = cluster->processCommand(&clusterStatusResult,
-                                             clusterStatusCommand);
-            if (clusterStatusResult.isErrorValue()) {
-                result->makeError(clusterStatusResult.error());
-                return rc;  // RETURN
-            }
-
-            BALL_LOG_INFO << "AFTER CHEKCING CLUSTER STATUS";
-            BALL_LOG_INFO << clusterStatusResult.clusterStatus();
-
-            BSLS_ASSERT_SAFE(clusterStatusResult.isClusterStatusValue());
-
-            if (!clusterStatusResult.clusterStatus().isHealthy()) {
-                bmqu::MemOutStream os;
-                os << "Domain '" << name << "' in cluster '" << name
-                   << "' is not healthy";
-                result->makeError().message() = os.str();
-                return -1;  // RETURN
-            }
-
-            BALL_LOG_INFO << "BEFORE SETTING 'DELETED' FLAG";
-
-            // 3. Mark DOMAIN REMOVING to Block all incoming openQueue requests
-            // TODO: this idea requires a lot of getters and setters exposed in
-            // mqbi - better idea?
-            domainSp->removeDomainStart();
-
-            BALL_LOG_INFO << "BEFORE CLEAN DOMAINRESOLVER CACHE";
-
-            // 4. Mark domain for delete in domainResolver
-            d_domainResolver_mp->clearCache(name);
+            // 2. Mark DOMAIN PREREMOVE to block openQueue requests
+            domainSp->removeDomainReset();
 
             BALL_LOG_INFO << "BEFORE PURGE";
 
-            // 5. Purge inactive queues
+            // 3. Purge inactive queues
             // remove virtual storage; add a record in journal file
-            mqbcmd::DomainCommand domainCommand;
-            domainCommand.makePurge();
+            mqbcmd::DomainResult  domainResult;
+            mqbcmd::ClusterResult clusterResult;
+            mqbi::Cluster*        cluster = domainSp->cluster();
 
-            mqbcmd::DomainResult domainResult;
-            rc = domainSp->processCommand(&domainResult, domainCommand);
+            cluster->purgeQueueOnDomain(&clusterResult, name);
 
-            if (domainResult.isErrorValue()) {
-                result->makeError(domainResult.error());
-                return rc;  // RETURN
+            if (clusterResult.isErrorValue()) {
+                result->makeError(clusterResult.error());
+                return -1;  // RETURN
             }
-            else if (domainResult.isSuccessValue()) {
-                result->makeSuccess(domainResult.success());
-                return rc;  // RETURN
-            }
+
+            BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+            BSLS_ASSERT_SAFE(
+                clusterResult.storageResult().isPurgedQueuesValue());
+
+            mqbcmd::PurgedQueues& purgedQueues =
+                domainResult.makePurgedQueues();
+            purgedQueues.queues() =
+                clusterResult.storageResult().purgedQueues().queues();
             result->makeDomainResult(domainResult);
 
-            // 6. Force GC queues
-            // remove Queue from domain; remove storage from partition
-            // CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
-            // TODO: Do we want to have add another type of result?
+            BALL_LOG_INFO << "BEFORE GC";
+
+            // 4. Force GC queues
+            // unregister Queue from domain;
+            // remove queue storage from partition
             mqbcmd::ClusterResult clusterForceGCResult;
-            rc = cluster->gcQueueOnDomain(&clusterForceGCResult, name);
+            int rc = cluster->gcQueueOnDomain(&clusterForceGCResult, name);
             if (clusterForceGCResult.isErrorValue()) {
                 result->makeError(clusterForceGCResult.error());
                 return -1;  // RETURN
             }
 
-            // 7. Mark DOMAIN REMOVED to accecpt the second pass
-            domainSp->removeDomainCompleted();
+            // 5. Mark DOMAIN REMOVED to accecpt the second pass
+
+            BALL_LOG_INFO << "BEFORE WAIT FOR TEARDOWN";
+
+            bmqu::SharedResource<DomainManager> self(this);
+            bslmt::Latch latch(1, bsls::SystemClockType::e_MONOTONIC);
+
+            domainSp->teardownRemove(bdlf::BindUtil::bind(
+                bmqu::WeakMemFnUtil::weakMemFn(&DomainManager::onDomainClosed,
+                                               self.acquireWeak()),
+                bdlf::PlaceHolders::_1,  // Domain Name
+                &latch));
+
+            bsls::TimeInterval timeout =
+                bmqsys::Time::nowMonotonicClock().addSeconds(5);
+
+            rc = latch.timedWait(timeout);
+            if (0 != rc) {
+                BALL_LOG_ERROR << "DOMAINS REMOVE fail to finish in " << 5
+                               << " seconds. rc:  " << rc << ".";
+                return rc;
+            }
+
+            BALL_LOG_INFO << "BEFORE CLEAN DOMAINRESOLVER CACHE";
+
+            // 6. Mark domain for delete in domainResolver
+            d_domainResolver_mp->clearCache(name);
         }
         // Second pass
         else {
@@ -818,6 +805,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             result->makeSuccess();
             return 0;  // RETURN
         }
+
         return 0;
     }
 

@@ -142,6 +142,14 @@ class Domain {
     /// be.
     virtual void teardown(const TeardownCb& teardownCb) = 0;
 
+    /// Teardown this `Domain` instance and invoke the specified
+    /// `teardownCb` callback when done.  This method is called during
+    /// DOMAIN REMOVE command to offer Domain an opportunity to
+    /// sync, serialize it's queues in a graceful manner.  Note: the domain is
+    /// in charge of all the queues it owns, and hence must stop them if needs
+    /// be.
+    virtual void teardownRemove(const TeardownCb& teardownCb) = 0;
+
     /// Create/Open with the specified `handleParameters` the queue having
     /// the specified `uri` for the requester client represented with the
     /// specified `clientContext`.  Invoke the specified `callback` with the
@@ -178,10 +186,7 @@ class Domain {
                                const mqbcmd::DomainCommand& command) = 0;
 
     /// Mark the state of domain to be REMOVING
-    virtual void removeDomainStart() = 0;
-
-    /// Mark the state of domain to be REMOVED
-    virtual void removeDomainCompleted() = 0;
+    virtual void removeDomainReset() = 0;
 
     // ACCESSORS
 
@@ -219,9 +224,9 @@ class Domain {
     virtual void loadRoutingConfiguration(
         bmqp_ctrlmsg::RoutingConfiguration* config) const = 0;
 
-    /// Check the state of the queues in this domain, return true if
-    /// there's queue with valid queue handles.
-    virtual bool hasActiveQueue() const = 0;
+    /// Check the state of the queues in this domain, return false if there's
+    /// queues opened or opening.
+    virtual bool tryRemove() const = 0;
 };
 
 // ===================

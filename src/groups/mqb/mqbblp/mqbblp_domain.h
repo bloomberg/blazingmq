@@ -109,11 +109,12 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     typedef AppInfos::const_iterator AppInfosCIter;
 
     enum DomainState {
-        e_STARTED  = 0,
-        e_STOPPING = 1,
-        e_STOPPED  = 2,
-        e_REMOVING = 3,
-        e_REMOVED  = 4
+        e_STARTED   = 0,
+        e_STOPPING  = 1,
+        e_STOPPED   = 2,
+        e_PREREMOVE = 3,
+        e_REMOVING  = 4,
+        e_REMOVED   = 5
     };
 
   private:
@@ -178,6 +179,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     // destroyed.  This callback is
     // non-null only if 'd_state ==
     // DomainStats::e_STOPPING'.
+
+    mqbi::Domain::TeardownCb d_teardownRemoveCb;
 
     mutable bslmt::Mutex d_mutex;
     // Mutex for protecting the queues
@@ -284,6 +287,14 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     void
     teardown(const mqbi::Domain::TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
 
+    /// Teardown this `Domain` instance and invoke the specified
+    /// `teardownCb` callback when done.  This method is called during
+    /// DOMAIN REMOVE command to offer Domain an opportunity to
+    /// sync, serialize it's queues in a graceful manner.  Note: the domain is
+    /// in charge of all the queues it owns, and hence must stop them if needs
+    /// be.
+    void teardownRemove(const TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
+
     /// Create/Open with the specified `handleParameters` the queue having
     /// the specified `uri` for the requester client represented with the
     /// specified `clientContext`.  Invoke the specified `callback` with the
@@ -322,10 +333,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
     /// Mark the state of domain to be REMOVING
-    void removeDomainStart() BSLS_KEYWORD_OVERRIDE;
-
-    /// Mark the state of domain to be REMOVED
-    void removeDomainCompleted() BSLS_KEYWORD_OVERRIDE;
+    void removeDomainReset() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -363,9 +371,9 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     void loadRoutingConfiguration(bmqp_ctrlmsg::RoutingConfiguration* config)
         const BSLS_KEYWORD_OVERRIDE;
 
-    /// Check the state of the queues in this domain, return true if
-    /// there's queue with valid queue handles.
-    bool hasActiveQueue() const BSLS_KEYWORD_OVERRIDE;
+    /// Check the state of the queues in this domain, return false if there's
+    /// queues opened or opening.
+    bool tryRemove() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
