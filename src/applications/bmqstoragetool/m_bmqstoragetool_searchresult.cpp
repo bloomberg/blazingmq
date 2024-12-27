@@ -1066,7 +1066,7 @@ bool SearchOffsetDecorator::processDeletionRecord(
 void SearchOffsetDecorator::outputResult()
 {
     SearchResultDecorator::outputResult();
-    // Print non found offsets
+    // Print not found offsets
     if (!d_offsets.empty()) {
         d_ostream << '\n'
                   << "The following " << d_offsets.size()
@@ -1133,7 +1133,7 @@ bool SearchSequenceNumberDecorator::processDeletionRecord(
 void SearchSequenceNumberDecorator::outputResult()
 {
     SearchResultDecorator::outputResult();
-    // Print non found offsets
+    // Print not found sequence numbers
     if (!d_seqNums.empty()) {
         d_ostream << '\n'
                   << "The following " << d_seqNums.size()

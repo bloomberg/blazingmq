@@ -1140,6 +1140,144 @@ static void test5_searchRecordsByOffsetRangeTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
+static void test6_searchRecordsBySeqNumberRangeTest()
+// ------------------------------------------------------------------------
+// SEARCH RECORDS BY SEQUENCE NUMBER RANGE TEST
+//
+// Concerns:
+//   Search records by sequence number range in CSL
+//   file and output short result.
+//
+// Testing:
+//   CslFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "SEARCH RECORDS BY SEQUENCE NUMBER TEST");
+
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   1U,
+                   1U,
+                   100001U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   1U,
+                   2U,
+                   100002U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   2U,
+                   1U,
+                   100003U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   2U,
+                   2U,
+                   100004U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   2U,
+                   3U,
+                   100005U,
+                   "bmq://bmq.random.y/q1",
+                   "1111111111",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write a record of each advisory type
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
+    params.d_range.d_seqNumGt = CompositeSequenceNumber(1U, 2U);
+    params.d_range.d_seqNumLt = CompositeSequenceNumber(2U, 3U);
+    ;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test&             test = k_DATA[idx];
+        CompositeSequenceNumber recSeqNum(test.d_electorTerm,
+                                          test.d_sequenceNumber);
+        if (params.d_range.d_seqNumGt < recSeqNum &&
+            recSeqNum < params.d_range.d_seqNumLt) {
+            expectedStream << "[ recordType = " << test.d_recordType
+                           << " electorTerm = " << test.d_electorTerm
+                           << " sequenceNumber = " << test.d_sequenceNumber
+                           << " timestamp = " << test.d_timeStamp << " ]";
+            expectedStream << standardCslIt.currRecordId() << '\n';
+        }
+        standardCslIt.next();
+    }
+    expectedStream << "2 snapshot record(s) found.!\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1159,6 +1297,7 @@ int main(int argc, char* argv[])
     case 3: test3_searchRecordsByQueueKeyTest(); break;
     case 4: test4_searchRecordsByTimestampRangeTest(); break;
     case 5: test5_searchRecordsByOffsetRangeTest(); break;
+    case 6: test6_searchRecordsBySeqNumberRangeTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

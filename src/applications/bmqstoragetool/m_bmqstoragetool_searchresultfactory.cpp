@@ -97,7 +97,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else if (!params->d_seqNum.empty()) {
-        // Search offsets
+        // Search composite sequence numbers
         searchResult.reset(new (*alloc)
                                SearchSequenceNumberDecorator(searchResult,
                                                              params->d_seqNum,
@@ -107,7 +107,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else if (!params->d_offset.empty()) {
-        // Search composite sequence numbers
+        // Search offsets
         searchResult.reset(new (*alloc) SearchOffsetDecorator(searchResult,
                                                               params->d_offset,
                                                               ostream,
@@ -209,6 +209,25 @@ bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
                                               params->d_processCslRecordTypes,
                                               alloc),
             alloc);
+    }
+
+    if (!params->d_seqNum.empty()) {
+        // Search composite sequence numbers
+        cslSearchResult.reset(
+            new (*alloc) CslSearchSequenceNumberDecorator(cslSearchResult,
+                                                          params->d_seqNum,
+                                                          ostream,
+                                                          alloc),
+            alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search offsets
+        cslSearchResult.reset(new (*alloc)
+                                  CslSearchOffsetDecorator(cslSearchResult,
+                                                           params->d_offset,
+                                                           ostream,
+                                                           alloc),
+                              alloc);
     }
 
     BSLS_ASSERT(cslSearchResult);

@@ -172,6 +172,124 @@ class CslSearchDetailResult : public CslSearchResult {
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
 };
 
+// ==============================
+// class CslSearchResultDecorator
+// ==============================
+
+/// This class provides a base decorator that handles
+/// given `component`.
+class CslSearchResultDecorator : public CslSearchResult {
+  protected:
+    bsl::shared_ptr<CslSearchResult> d_searchResult;
+    // Pointer to object that is decorated.
+    bslma::Allocator* d_allocator_p;
+    // Pointer to allocator that is used inside the class.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component` and `allocator`.
+    CslSearchResultDecorator(const bsl::shared_ptr<CslSearchResult>& component,
+                             bslma::Allocator* allocator);
+
+    // MANIPULATORS
+
+    /// Process record with the specified `header`, `record` and
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Output result of a search.
+    void outputResult() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return 'false' if all required data is processed, e.g. all given
+    /// sequence numbers are output and search could be stopped. Return 'true'
+    /// to indicate that there is incomplete data.
+    // bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+};
+
+// ======================================
+// class CslSearchSequenceNumberDecorator
+// ======================================
+
+/// This class provides decorator to handle search of given composite sequence
+/// numbers.
+class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
+  private:
+    // PRIVATE DATA
+    bsl::vector<CompositeSequenceNumber> d_seqNums;
+    // List of composite sequence numbers to search for.
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `seqNums`, `ostream` and
+    /// `allocator`.
+    CslSearchSequenceNumberDecorator(
+        const bsl::shared_ptr<CslSearchResult>&     component,
+        const bsl::vector<CompositeSequenceNumber>& seqNums,
+        bsl::ostream&                               ostream,
+        bslma::Allocator*                           allocator);
+
+    // MANIPULATORS
+
+    /// Process record with the specified `header`, `record` and
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Output result of a search.
+    void outputResult() const BSLS_KEYWORD_OVERRIDE;
+};
+
+// ======================================
+// class CslSearchOffsetDecorator
+// ======================================
+
+/// This class provides decorator to handle search of given offsets.
+class CslSearchOffsetDecorator : public CslSearchResultDecorator {
+  private:
+    // PRIVATE DATA
+    bsl::vector<bsls::Types::Int64> d_offsets;
+    // List of offsets to search for.
+    bsl::ostream& d_ostream;
+    // Reference to output stream.
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `component`, `seqNums`, `ostream` and
+    /// `allocator`.
+    CslSearchOffsetDecorator(const bsl::shared_ptr<CslSearchResult>& component,
+                             const bsl::vector<bsls::Types::Int64>&  offsets,
+                             bsl::ostream&                           ostream,
+                             bslma::Allocator* allocator);
+
+    // MANIPULATORS
+
+    /// Process record with the specified `header`, `record` and
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Output result of a search.
+    void outputResult() const BSLS_KEYWORD_OVERRIDE;
+};
+
 }  // close package namespace
 }  // close enterprise namespace
 

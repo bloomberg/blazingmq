@@ -186,5 +186,132 @@ void CslSearchDetailResult::outputResult() const
     outputFooter(d_ostream, d_processCslRecordTypes, d_recordCount);
 }
 
+// ==============================
+// class CslSearchResultDecorator
+// ==============================
+
+CslSearchResultDecorator::CslSearchResultDecorator(
+    const bsl::shared_ptr<CslSearchResult>& component,
+    bslma::Allocator*                       allocator)
+: d_searchResult(component)
+, d_allocator_p(allocator)
+{
+}
+
+bool CslSearchResultDecorator::processRecord(
+    const mqbc::ClusterStateRecordHeader& header,
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbsi::LedgerRecordId&          recordId)
+{
+    return d_searchResult->processRecord(header, record, recordId);
+}
+
+void CslSearchResultDecorator::outputResult() const
+{
+    d_searchResult->outputResult();
+}
+
+// ======================================
+// class CslSearchSequenceNumberDecorator
+// ======================================
+
+CslSearchSequenceNumberDecorator::CslSearchSequenceNumberDecorator(
+    const bsl::shared_ptr<CslSearchResult>&     component,
+    const bsl::vector<CompositeSequenceNumber>& seqNums,
+    bsl::ostream&                               ostream,
+    bslma::Allocator*                           allocator)
+: CslSearchResultDecorator(component, allocator)
+, d_seqNums(seqNums, allocator)
+, d_ostream(ostream)
+{
+    // NOTHING
+}
+
+bool CslSearchSequenceNumberDecorator::processRecord(
+    const mqbc::ClusterStateRecordHeader& header,
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbsi::LedgerRecordId&          recordId)
+{
+    CompositeSequenceNumber seqNum(header.electorTerm(),
+                                   header.sequenceNumber());
+    bsl::vector<CompositeSequenceNumber>::const_iterator it =
+        bsl::find(d_seqNums.cbegin(), d_seqNums.cend(), seqNum);
+    if (it != d_seqNums.cend()) {
+        CslSearchResultDecorator::processRecord(header, record, recordId);
+        // Remove processed sequence number.
+        d_seqNums.erase(it);
+    }
+
+    // return true (stop search) if d_seqNums is empty.
+    return d_seqNums.empty();
+}
+
+void CslSearchSequenceNumberDecorator::outputResult() const
+{
+    CslSearchResultDecorator::outputResult();
+
+    // Print not found sequence numbers
+    if (!d_seqNums.empty()) {
+        d_ostream << '\n'
+                  << "The following " << d_seqNums.size()
+                  << " sequence number(s) not found:" << '\n';
+        bsl::vector<CompositeSequenceNumber>::const_iterator it =
+            d_seqNums.cbegin();
+        for (; it != d_seqNums.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
+// ==============================
+// class CslSearchOffsetDecorator
+// ==============================
+
+CslSearchOffsetDecorator::CslSearchOffsetDecorator(
+    const bsl::shared_ptr<CslSearchResult>& component,
+    const bsl::vector<bsls::Types::Int64>&  offsets,
+    bsl::ostream&                           ostream,
+    bslma::Allocator*                       allocator)
+: CslSearchResultDecorator(component, allocator)
+, d_offsets(offsets, allocator)
+, d_ostream(ostream)
+{
+    // NOTHING
+}
+
+bool CslSearchOffsetDecorator::processRecord(
+    const mqbc::ClusterStateRecordHeader& header,
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbsi::LedgerRecordId&          recordId)
+{
+    bsl::vector<bsls::Types::Int64>::const_iterator it =
+        bsl::find(d_offsets.cbegin(), d_offsets.cend(), recordId.offset());
+    if (it != d_offsets.cend()) {
+        CslSearchResultDecorator::processRecord(header, record, recordId);
+        // Remove processed offset.
+        d_offsets.erase(it);
+    }
+
+    // return true (stop search) if d_seqNums is empty.
+    return d_offsets.empty();
+}
+
+void CslSearchOffsetDecorator::outputResult() const
+{
+    CslSearchResultDecorator::outputResult();
+
+    // Print not found offsets
+    if (!d_offsets.empty()) {
+        d_ostream << '\n'
+                  << "The following " << d_offsets.size()
+                  << " offset(s) not found:" << '\n';
+        bsl::vector<bsls::Types::Int64>::const_iterator it =
+            d_offsets.cbegin();
+        for (; it != d_offsets.cend(); ++it) {
+            d_ostream << *it << '\n';
+        }
+    }
+}
+
 }  // close package namespace
 }  // close enterprise namespace
