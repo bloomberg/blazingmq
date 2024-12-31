@@ -36,6 +36,9 @@
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 
+// BDE
+#include <bsl_unordered_map.h>
+
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -95,14 +98,14 @@ class CslSearchShortResult : public CslSearchResult {
   private:
     // PRIVATE DATA
 
+    /// Reference to output stream.
     bsl::ostream& d_ostream;
-    // Reference to output stream.
+    /// Record types to process
     Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
-    // Record types to process
+    /// Record counters
     RecordCount d_recordCount;
-    // Record counters
+    /// Allocator used inside the class.
     bslma::Allocator* d_allocator_p;
-    // Allocator used inside the class.
 
   public:
     // CREATORS
@@ -138,14 +141,14 @@ class CslSearchDetailResult : public CslSearchResult {
   private:
     // PRIVATE DATA
 
+    /// Reference to output stream.
     bsl::ostream& d_ostream;
-    // Reference to output stream.
+    /// Record types to process
     Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
-    // Record types to process
+    /// Record counters
     RecordCount d_recordCount;
-    // Record counters
+    /// Allocator used inside the class.
     bslma::Allocator* d_allocator_p;
-    // Allocator used inside the class.
 
   public:
     // CREATORS
@@ -274,6 +277,56 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
                              const bsl::vector<bsls::Types::Int64>&  offsets,
                              bsl::ostream&                           ostream,
                              bslma::Allocator* allocator);
+
+    // MANIPULATORS
+
+    /// Process record with the specified `header`, `record` and
+    /// `recordId`.
+    bool
+    processRecord(const mqbc::ClusterStateRecordHeader& header,
+                  const bmqp_ctrlmsg::ClusterMessage&   record,
+                  const mqbsi::LedgerRecordId& recordId) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Output result of a search.
+    void outputResult() const BSLS_KEYWORD_OVERRIDE;
+};
+
+// ======================
+// class CslSummaryResult
+// ======================
+
+/// This class provides logic to process summary of CSL file.
+class CslSummaryResult : public CslSearchResult {
+  private:
+    // PRIVATE TYPES
+
+    /// Map of found update record choices.
+    typedef bsl::unordered_map<int, bsls::Types::Uint64> UpdateChoiceMap;
+
+    // PRIVATE DATA
+
+    /// Reference to output stream.
+    bsl::ostream& d_ostream;
+    /// CSL Record types to process.
+    Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
+    /// Record counters
+    RecordCount d_recordCount;
+    /// Map of found update record choices.
+    UpdateChoiceMap d_updateChoiceCount;
+    /// Pointer to allocator that is used inside the class.
+    bslma::Allocator* d_allocator_p;
+
+  public:
+    // CREATORS
+
+    /// Constructor using the specified `ostream`, `processCslRecordTypes` and
+    /// `allocator`.
+    explicit CslSummaryResult(
+        bsl::ostream&                            ostream,
+        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+        bslma::Allocator*                        allocator);
 
     // MANIPULATORS
 

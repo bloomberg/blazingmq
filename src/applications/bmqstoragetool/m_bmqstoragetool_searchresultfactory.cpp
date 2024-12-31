@@ -183,11 +183,10 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     return searchResult;
 }
 
-bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
-    const Parameters* params,
-    // const bslma::ManagedPtr<FileManager>& fileManager,
-    bsl::ostream&     ostream,
-    bslma::Allocator* allocator)
+bsl::shared_ptr<CslSearchResult>
+SearchResultFactory::createCslSearchResult(const Parameters* params,
+                                           bsl::ostream&     ostream,
+                                           bslma::Allocator* allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(params);
@@ -201,6 +200,13 @@ bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
             new (*alloc) CslSearchDetailResult(ostream,
                                                params->d_processCslRecordTypes,
                                                alloc),
+            alloc);
+    }
+    else if (params->d_summary) {
+        cslSearchResult.reset(
+            new (*alloc) CslSummaryResult(ostream,
+                                          params->d_processCslRecordTypes,
+                                          alloc),
             alloc);
     }
     else {

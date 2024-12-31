@@ -883,8 +883,8 @@ class SummaryProcessor : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`, `journalFile_p`,
-    /// `dataFile_p` and `allocator`.
+    /// Constructor using the specified `ostream`, `journalFile_p`,
+    /// `dataFile_p`, `processRecordTypes` and `allocator`.
     explicit SummaryProcessor(
         bsl::ostream&                         ostream,
         mqbs::JournalFileIterator*            journalFile_p,

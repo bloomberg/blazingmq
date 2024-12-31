@@ -4,6 +4,7 @@
 #include <m_bmqstoragetool_recordprinter.h>
 
 // BMQ
+#include <bmqu_alignedprinter.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -309,6 +310,103 @@ void CslSearchOffsetDecorator::outputResult() const
             d_offsets.cbegin();
         for (; it != d_offsets.cend(); ++it) {
             d_ostream << *it << '\n';
+        }
+    }
+}
+
+// ======================
+// class CslSummaryResult
+// ======================
+
+CslSummaryResult::CslSummaryResult(
+    bsl::ostream&                            ostream,
+    const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+    bslma::Allocator*                        allocator)
+: d_ostream(ostream)
+, d_processCslRecordTypes(processCslRecordTypes)
+, d_recordCount()
+, d_updateChoiceCount(allocator)
+, d_allocator_p(allocator)
+{
+    // NOTHING
+}
+
+bool CslSummaryResult::processRecord(
+    const mqbc::ClusterStateRecordHeader& header,
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    BSLS_ANNOTATION_UNUSED const mqbsi::LedgerRecordId& recordId)
+{
+    updateRecordCount(&d_recordCount, header.recordType());
+
+    if (header.recordType() == mqbc::ClusterStateRecordType::e_UPDATE) {
+        if (d_updateChoiceCount.count(record.choice().selectionId()) == 0) {
+            d_updateChoiceCount[record.choice().selectionId()] = 1;
+        }
+        else {
+            d_updateChoiceCount[record.choice().selectionId()] += 1;
+        }
+    }
+
+    return false;
+}
+
+void CslSummaryResult::outputResult() const
+{
+    if (d_processCslRecordTypes.d_snapshot) {
+        if (d_recordCount.d_snapshotCount == 0) {
+            d_ostream << "\nNo snapshot records found." << '\n';
+        }
+        else {
+            d_ostream << "\n"
+                      << d_recordCount.d_snapshotCount
+                      << " snapshot record(s) found." << '\n';
+        }
+    }
+    if (d_processCslRecordTypes.d_update) {
+        if (d_recordCount.d_updateCount == 0) {
+            d_ostream << "\nNo update records found." << '\n';
+        }
+        else {
+            d_ostream << "\n"
+                      << d_recordCount.d_updateCount
+                      << " update record(s) found, including:" << '\n';
+            bsl::vector<const char*>           fields(d_allocator_p);
+            bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
+                d_allocator_p);
+            for (UpdateChoiceMap::const_iterator it =
+                     d_updateChoiceCount.begin();
+                 it != d_updateChoiceCount.end();
+                 ++it) {
+                clusterMessageChoice.makeSelection(it->first);
+                fields.push_back(clusterMessageChoice.selectionName());
+            }
+            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            for (UpdateChoiceMap::const_iterator it =
+                     d_updateChoiceCount.begin();
+                 it != d_updateChoiceCount.end();
+                 ++it) {
+                printer << it->second;
+            }
+        }
+    }
+    if (d_processCslRecordTypes.d_commit) {
+        if (d_recordCount.d_commitCount == 0) {
+            d_ostream << "\nNo commit records found." << '\n';
+        }
+        else {
+            d_ostream << "\n"
+                      << d_recordCount.d_commitCount
+                      << " commit record(s) found." << '\n';
+        }
+    }
+    if (d_processCslRecordTypes.d_ack) {
+        if (d_recordCount.d_ackCount == 0) {
+            d_ostream << "\nNo ack records found." << '\n';
+        }
+        else {
+            d_ostream << "\n"
+                      << d_recordCount.d_ackCount << " ack record(s) found."
+                      << '\n';
         }
     }
 }

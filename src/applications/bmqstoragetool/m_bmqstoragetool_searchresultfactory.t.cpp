@@ -35,7 +35,8 @@ static void test1_breathingTest()
 // BREATHING TEST
 //
 // Concerns:
-//   Exercise the basic functionality of the component.
+//   Exercise the basic functionality of the component. Check that
+//   `SearchResult` object is created by default.
 //
 // Testing:
 //   Basic functionality
@@ -57,6 +58,30 @@ static void test1_breathingTest()
     ASSERT(dynamic_cast<SearchResult*>(searchResult.get()) != 0);
 }
 
+static void test2_cslSearchResultTest()
+// ------------------------------------------------------------------------
+// CSL SEARCH RESULT TEST
+//
+// Concerns:
+//  Check that `CslSearchResult` object is created for CSL mode parameters.
+//
+// Testing:
+//   Basic functionality
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CSL SEARCH RESULT TEST");
+    CommandLineArguments arguments(s_allocator_p);
+    Parameters           params(arguments, s_allocator_p);
+    // CSL mode parameters
+    params.d_cslMode = true;
+
+    bsl::shared_ptr<CslSearchResult> searchResult =
+        SearchResultFactory::createCslSearchResult(&params,
+                                                   bsl::cout,
+                                                   s_allocator_p);
+    ASSERT(dynamic_cast<CslSearchResult*>(searchResult.get()) != 0);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -68,6 +93,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
+    case 2: test2_cslSearchResultTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

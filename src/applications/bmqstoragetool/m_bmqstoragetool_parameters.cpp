@@ -167,10 +167,10 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
     if (!d_seqNum.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || !d_offset.empty() ||
          rangeArgPresent || d_summary)) {
-        stream
-            << "Secnum filter can't be combined with any other filters, as it "
-               "is "
-               "specific enough to find a particular record\n";
+        stream << "Sequence number filter can't be combined with any other "
+                  "filters, as it "
+                  "is "
+                  "specific enough to find a particular record\n";
     }
     if (!d_offset.empty() &&
         (!d_queueKey.empty() || !d_queueName.empty() || !d_seqNum.empty() ||

@@ -117,5 +117,15 @@ bool QueueMap::findKeyByUri(mqbu::StorageKey*  queueKey_p,
     return false;
 }
 
+bsl::vector<bmqp_ctrlmsg::QueueInfo> QueueMap::queueInfos() const
+{
+    bsl::vector<bmqp_ctrlmsg::QueueInfo> result(d_queueKeyToInfoMap.size());
+    QueueKeyToInfoMap::const_iterator    it = d_queueKeyToInfoMap.begin();
+    for (; it != d_queueKeyToInfoMap.end(); ++it) {
+        result.push_back(it->second);
+    }
+    return result;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

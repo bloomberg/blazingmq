@@ -79,6 +79,9 @@ class QueueMap {
     /// queueKey_p contains valid data, `false` otherwise.
     bool findKeyByUri(mqbu::StorageKey*  queueKey_p,
                       const bsl::string& uri) const;
+
+    /// Return all queues info
+    bsl::vector<bmqp_ctrlmsg::QueueInfo> queueInfos() const;
 };
 
 }  // close package namespace
