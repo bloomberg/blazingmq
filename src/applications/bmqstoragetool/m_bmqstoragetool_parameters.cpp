@@ -568,7 +568,11 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     // Set record types to process
     if (d_cslMode) {
         if (arguments.d_cslRecordType.empty()) {
+            // Set all CSL record types to process by default.
             d_processCslRecordTypes.d_snapshot = true;
+            d_processCslRecordTypes.d_update   = true;
+            d_processCslRecordTypes.d_commit   = true;
+            d_processCslRecordTypes.d_ack      = true;
         }
         else {
             for (bsl::vector<bsl::string>::const_iterator cit =

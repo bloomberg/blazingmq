@@ -5,11 +5,11 @@ BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
 files. It allows to search records in:
 - `journal` file (.bmq_journal) with the set of different filters and output found results in 
     the short or detail form;
-- cluster state ledger (CSL) file (*.bmq_csl) with the set of different filters and output 
+- `cluster state ledger` (CSL) file (*.bmq_csl) with the set of different filters and output 
     found results in the short or detail form;  
     NOTE: For this mode, `journal` file (.bmq_journal) **must not** be passed.
 
-As an input, either a `journal` file (*.bmq_journal) or cluster state ledger 
+As an input, either a `journal` file (*.bmq_journal) or `cluster state ledger` 
 (CSL) file (*.bmq_csl) is **always** required. To dump payload, `data` file (*.bmq_data) 
 is required. To filter by queue Uri, cluster state ledger (CSL) file (*.bmq_csl) is required.
 
@@ -48,7 +48,7 @@ Where:
   -r | --record-type          <record type>
           record type to search {<message>|queue-op|journal-op} (default: message)
        --csl-record-type      <csl record type>
-          CSL record type to search {<snapshot>|update|commit|ack} (default: snapshot)
+          CSL record type to search {<snapshot>|update|commit|ack} (default: all record types)
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
@@ -101,11 +101,11 @@ Where:
           print usage
 ```
 
-Scenarios of BMQStorageTool usage
-=================================
+Scenarios of BMQStorageTool usage for journal file
+==================================================
 
 Output summary for journal file
-----------------------------------------
+-------------------------------
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --summary
@@ -119,7 +119,7 @@ bmqstoragetool --journal-file=<path>
 ```
 
 Search and otput all queueOp/journalOp records or all records in journal file
---------------------------------------------------
+-----------------------------------------------------------------------------
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --record-type=queue-op
@@ -144,12 +144,45 @@ bmqstoragetool --journal-file=<path> --partially-confirmed
 ```
 
 Search all message GUIDs with payload dump in journal file
-----------------------------------------------------------------------
+----------------------------------------------------------
 Example:
 ```bash
 bmqstoragetool --journal-file=<journal-path> --data-file=<data-path> --dump-payload
 bmqstoragetool --journal-path=<path.*> --dump-payload
 bmqstoragetool --journal-path=<path.*> --dump-payload --dump-limit=64
+```
+
+Scenarios of BMQStorageTool usage for CSL file
+==============================================
+
+Output summary for CSL file
+---------------------------
+Example:
+```bash
+bmqstoragetool --csl-file=<path> --summary
+```
+
+Output records from the beginning of CSL file 
+---------------------------------------------
+Example:
+```bash
+bmqstoragetool --csl-file=<path> --csl-from-begin
+```
+NOTE: by default search is done from the latest snapshot.
+
+Search and otput only desired record types in CSL file
+------------------------------------------------------
+Example:
+```bash
+bmqstoragetool --csl-file=<path> --csl-record-type=snapshot --csl-record-type=update
+```
+NOTE: `snapshot`, `update`, `commit` and `ack ` are supported. Without this option all record types are selected.
+
+Search and otput records details in CSL file
+--------------------------------------------
+Example:
+```bash
+bmqstoragetool --csl-file=<path> --details
 ```
 
 Applying search filters to above scenarios
@@ -161,13 +194,14 @@ Example:
 ```bash
 bmqstoragetool --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
 ```
-NOTE: no other filters are allowed with this one
+NOTE: no other filters are allowed with this one. Not suitable for CSL file search.
 
-Filter messages with corresponding composite sequence numbers (defined in form <primaryLeaseId-sequenceNumber>)
----------------------------------------------------------------------------------------------------------------
+Filter messages with corresponding composite sequence numbers (defined in form `primaryLeaseId-sequenceNumber` for journal file or `electorTerm-sequenceNumber` for CSL file)
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnum=<leaseId-sequenceNumber_N>
+bmqstoragetool --journal-file=<path> --seqnum=<leaseId1-sequenceNumber_1> --seqnum=<leaseId_N-sequenceNumber_N>
+bmqstoragetool --csl-file=<path> --seqnum=<electorTerm1-sequenceNumber_1> --seqnum=<electorTerm_N-sequenceNumber_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -176,6 +210,7 @@ Filter messages with corresponding record offsets
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
+bmqstoragetool --csl-file=<path> --offset=<offset_1> --offset=<offset_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -186,15 +221,17 @@ Example:
 bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp>
 bmqstoragetool --journal-file=<path> --timestamp-gt=<stamp>
 bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
+bmqstoragetool --csl-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
 ```
 
-Filter messages within composite sequence numbers (primaryLeaseId, sequenceNumber) range
-----------------------------------------------------------------------------------------
+Filter messages within composite sequence numbers (primaryLeaseId/electorTerm, sequenceNumber) range
+----------------------------------------------------------------------------------------------------
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId-sequenceNumber>
 bmqstoragetool --journal-file=<path> --seqnum-gt=<leaseId-sequenceNumber>
 bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId1-sequenceNumber1> --seqnum-gt=<leaseId2-sequenceNumber2>
+bmqstoragetool --csl-file=<path> --seqnum-lt=<electorTerm1-sequenceNumber1> --seqnum-gt=<electorTerm2-sequenceNumber2>
 ```
 
 Filter messages within record offsets range
@@ -204,6 +241,7 @@ Example:
 bmqstoragetool --journal-file=<path> --offset-lt=<offset>
 bmqstoragetool --journal-file=<path> --offset-gt=<offset>
 bmqstoragetool --journal-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
+bmqstoragetool --csl-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
 ```
 
 Filter messages by queue key
@@ -211,6 +249,7 @@ Filter messages by queue key
 Example:
 ```bash
 bmqstoragetool --journal-file=<path> --queue-key=<key_1> --queue-key=<key_N>
+bmqstoragetool --csl-file=<path> --queue-key=<key_1> --queue-key=<key_N>
 ```
 
 Filter messages by queue Uri
@@ -218,5 +257,6 @@ Filter messages by queue Uri
 Example:
 ```bash
 bmqstoragetool --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
+bmqstoragetool --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
 ```
 NOTE: CSL file is required
