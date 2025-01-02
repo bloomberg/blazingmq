@@ -315,6 +315,8 @@ class CslSummaryResult : public CslSearchResult {
     RecordCount d_recordCount;
     /// Map of found update record choices.
     UpdateChoiceMap d_updateChoiceCount;
+    /// Reference to 'QueueMap' instance.
+    const QueueMap& d_queueMap;
     /// Pointer to allocator that is used inside the class.
     bslma::Allocator* d_allocator_p;
 
@@ -326,6 +328,7 @@ class CslSummaryResult : public CslSearchResult {
     explicit CslSummaryResult(
         bsl::ostream&                            ostream,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+        const QueueMap&                          d_queueMap,
         bslma::Allocator*                        allocator);
 
     // MANIPULATORS

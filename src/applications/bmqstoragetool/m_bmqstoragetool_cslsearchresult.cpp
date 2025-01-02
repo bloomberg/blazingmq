@@ -321,11 +321,13 @@ void CslSearchOffsetDecorator::outputResult() const
 CslSummaryResult::CslSummaryResult(
     bsl::ostream&                            ostream,
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+    const QueueMap&                          queueMap,
     bslma::Allocator*                        allocator)
 : d_ostream(ostream)
 , d_processCslRecordTypes(processCslRecordTypes)
 , d_recordCount()
 , d_updateChoiceCount(allocator)
+, d_queueMap(queueMap)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -407,6 +409,18 @@ void CslSummaryResult::outputResult() const
             d_ostream << "\n"
                       << d_recordCount.d_ackCount << " ack record(s) found."
                       << '\n';
+        }
+    }
+
+    // Print queues info
+    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
+        d_queueMap.queueInfos();
+    if (!queueInfos.empty()) {
+        d_ostream << '\n' << queueInfos.size() << " Queues found:" << '\n';
+        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
+            queueInfos.cbegin();
+        for (; it != queueInfos.cend(); ++it) {
+            d_ostream << *it << '\n';
         }
     }
 }

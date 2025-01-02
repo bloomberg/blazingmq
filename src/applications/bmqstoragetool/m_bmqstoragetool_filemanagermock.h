@@ -103,8 +103,6 @@ class FileManagerMock : public FileManager {
     cslFileIterator() BSLS_KEYWORD_OVERRIDE;
 
     MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
-    // MOCK_METHOD0(cslFileIterator,
-    // mqbc::IncoreClusterStateLedgerIterator*());
     MOCK_CONST_METHOD1(fillQueueMapFromCslFile, void(QueueMap*));
 };
 

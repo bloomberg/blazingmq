@@ -35,6 +35,7 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
+#include <bmqu_alignedprinter.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -384,7 +385,7 @@ static void test1_breathingTest()
 //   multiple records and output short records info.
 //
 // Testing:
-//   Basic functionality.
+//   CslFileProcessor::process()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -1546,6 +1547,184 @@ static void test8_searchRecordsBySeqNumberTest()
     ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
+static void test9_summaryTest()
+// ------------------------------------------------------------------------
+// SUMMARY TEST
+//
+// Concerns:
+//   Exercise summary functionality, i.e. process a ledger containing
+//   multiple records and output summary info.
+//
+// Testing:
+//   CslFileProcessor::process()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SUMMARY TEST");
+
+    Tester tester;
+
+    struct Test {
+        int                                d_line;
+        bsls::Types::Uint64                d_electorTerm;
+        bsls::Types::Uint64                d_sequenceNumber;
+        bsls::Types::Uint64                d_timeStamp;
+        bsl::string                        d_queueUri;
+        bsl::string                        d_queueKey;
+        AdvisoryType::Enum                 d_advisoryType;
+        mqbc::ClusterStateRecordType::Enum d_recordType;
+    } k_DATA[] = {{L_,
+                   2U,
+                   1U,
+                   33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   1U,
+                   123456U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_PARTITION_PRIMARY,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   2U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_ASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_UNASSIGNMENT,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   3U,
+                   123567U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_QUEUE_UNASSIGNED,
+                   mqbc::ClusterStateRecordType::e_UPDATE},
+                  {L_,
+                   3U,
+                   4U,
+                   123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_COMMIT,
+                   mqbc::ClusterStateRecordType::e_COMMIT},
+                  {L_,
+                   3U,
+                   5U,
+                   33333U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_LEADER,
+                   mqbc::ClusterStateRecordType::e_SNAPSHOT},
+                  {L_,
+                   3U,
+                   6U,
+                   123678U,
+                   "bmq://bmq.random.y/q2",
+                   "54321",
+                   AdvisoryType::e_ACK,
+                   mqbc::ClusterStateRecordType::e_ACK}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    // Write records to CSL
+    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    recordInfos.reserve(k_NUM_DATA);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        bmqp_ctrlmsg::LeaderMessageSequence lms;
+        lms.electorTerm()    = test.d_electorTerm;
+        lms.sequenceNumber() = test.d_sequenceNumber;
+        writeRecord(&recordInfos,
+                    lms,
+                    test.d_timeStamp,
+                    test.d_queueUri,
+                    test.d_queueKey,
+                    test.d_advisoryType,
+                    tester.ledger(),
+                    tester.bufferFactory());
+    }
+
+    mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
+    incoreCslIt.next();
+    ASSERT(incoreCslIt.isValid());
+
+    // Prepare parameters
+    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    params.d_cslMode                          = true;
+    params.d_processCslRecordTypes.d_snapshot = true;
+    params.d_processCslRecordTypes.d_update   = true;
+    params.d_processCslRecordTypes.d_commit   = true;
+    params.d_processCslRecordTypes.d_ack      = true;
+    params.d_summary                          = true;
+
+    // Prepare file manager
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
+        s_allocator_p);
+
+    // Run search
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        CommandProcessorFactory::createCommandProcessor(&params,
+                                                        fileManager,
+                                                        resultStream,
+                                                        s_allocator_p);
+    searchProcessor->process();
+
+    // Prepare expected output with list of snapshot records in CSL file
+    mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
+    standardCslIt.next();
+    bsl::size_t        snapshotCount = 0;
+    bsl::size_t        commitCount   = 0;
+    bsl::size_t        updateCount   = 0;
+    bsl::size_t        ackCount      = 0;
+    bmqu::MemOutStream expectedStream(s_allocator_p);
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+        if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            snapshotCount++;
+        }
+        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_UPDATE) {
+            updateCount++;
+        }
+        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_COMMIT) {
+            commitCount++;
+        }
+        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_ACK) {
+            ackCount++;
+        }
+        standardCslIt.next();
+    }
+    expectedStream << '\n'
+                   << snapshotCount << " snapshot record(s) found.\n\n";
+    expectedStream << updateCount << " update record(s) found, including:\n";
+    bsl::vector<const char*> fields(s_allocator_p);
+    fields.push_back("queueUnAssignmentAdvisory");
+    fields.push_back("queueUnassignedAdvisory");
+    fields.push_back("partitionPrimaryAdvisory");
+    fields.push_back("queueAssignmentAdvisory");
+    bmqu::AlignedPrinter printer(expectedStream, &fields);
+    printer << 1 << 1 << 1 << 1;
+    expectedStream << '\n' << commitCount << " commit record(s) found.\n\n";
+    expectedStream << ackCount << " ack record(s) found.\n";
+
+    ASSERT_EQ(resultStream.str(), expectedStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1568,6 +1747,7 @@ int main(int argc, char* argv[])
     case 6: test6_searchRecordsBySeqNumberRangeTest(); break;
     case 7: test7_searchRecordsByOffsetTest(); break;
     case 8: test8_searchRecordsBySeqNumberTest(); break;
+    case 9: test9_summaryTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         s_testStatus = -1;

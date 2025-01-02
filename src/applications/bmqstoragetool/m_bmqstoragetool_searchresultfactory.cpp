@@ -206,6 +206,7 @@ SearchResultFactory::createCslSearchResult(const Parameters* params,
         cslSearchResult.reset(
             new (*alloc) CslSummaryResult(ostream,
                                           params->d_processCslRecordTypes,
+                                          params->d_queueMap,
                                           alloc),
             alloc);
     }
