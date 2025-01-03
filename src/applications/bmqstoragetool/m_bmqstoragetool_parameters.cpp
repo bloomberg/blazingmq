@@ -222,14 +222,14 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
         }
     }
 
-    if (!d_guid.empty() || !d_offset.empty() || d_offsetGt || d_offsetLt ||
-        !d_dataFile.empty() || d_dumpPayload || d_outstanding || d_confirmed ||
-        d_partiallyConfirmed) {
-        // TODO: check can be supported by iter->currRecordId().offset()
-        stream << "--guid, --offset, --offset-gt, --offset-lt, --data-file, "
-                  "--dump-payload, --outstanding, --confirmed, "
-                  "--partially-confirmed options requere either journal path "
-                  "or journal file.\n";
+    if (!d_guid.empty() || !d_dataFile.empty() || d_dumpPayload ||
+        d_outstanding || d_confirmed || d_partiallyConfirmed) {
+        stream
+            << "--guid, --data-file, "
+               "--dump-payload, --outstanding, --confirmed, "
+               "--partially-confirmed options cannot be applied to CSL file "
+               "and requere either --journal-path "
+               "or --journal-file option.\n";
     }
 }
 
