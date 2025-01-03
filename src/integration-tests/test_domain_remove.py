@@ -31,38 +31,72 @@ from blazingmq.dev.it.process.client import Client
 import time
 
 
-def test_remove_domain_with_queue_close(cluster: Cluster):
+def write_messages(proxy, uri, n_msgs=5, do_confirm=True):
+    """
+    producer send a message, client confirm, then both close connection
+    """
+    producer = proxy.create_client("producer")
+    producer.open(uri, flags=["write"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri, flags=["read"], succeed=True)
+
+    producer.post(uri, [f"msg{i}" for i in range(n_msgs)], succeed=True, wait_ack=True)
+
+    if do_confirm:
+        consumer.confirm(uri, "*", succeed=True)
+
+    producer.close(uri, succeed=True)
+    consumer.close(uri, succeed=True)
+
+
+def test_remove_domain_with_queue_closed(cluster: Cluster):
+    """
+    send DOMAINS REMOVE command after both queue closed
+    command should succeed
+    """
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
 
     # producer and consumer open the queue,
     # post and confirm messages and both close
-    producer = proxy.create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
-
-    consumer = proxy.create_client("consumer")
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
-
-    producer.post(
-        tc.URI_PRIORITY,
-        [f"msg{i}" for i in range(3)],
-        succeed=True,
-        wait_ack=True,
-    )
-    consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)
-    producer.close(tc.URI_PRIORITY, succeed=True)
-    consumer.close(tc.URI_PRIORITY, succeed=True)
+    write_messages(proxy, tc.URI_PRIORITY)
 
     # send remove domain admin command
-    # command couldn't go through since there's a queue open
     admin = AdminClient()
     leader = cluster.last_known_leader
     admin.connect(leader.config.host, int(leader.config.port))
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
-    assert "while there are queues open" not in res
+    assert "Purged 0 message(s)" in res
+
+
+def test_remove_domain_with_queue_open(cluster: Cluster):
+    """
+    send DOMAINS REMOVE command with a queue still open
+    command should fail
+    """
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+
+    uri = tc.URI_PRIORITY
+    producer = proxy.create_client("producer")
+    producer.open(uri, flags=["write"], succeed=True)
+    producer.post(uri, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True)
+
+    # send remove domain admin command
+    admin = AdminClient()
+    leader = cluster.last_known_leader
+    admin.connect(leader.config.host, int(leader.config.port))
+    res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
+    assert "while there are queues open" in res
 
 
 def test_remove_domain_when_cluster_unhealthy(multi_node: Cluster):
+    """
+    send DOMAINS REMOVE command when the cluster is not healthy
+    the command fails with a routing error
+    resend the command and it should succeed
+    """
     proxies = multi_node.proxy_cycle()
     proxy = next(proxies)
 
@@ -71,22 +105,7 @@ def test_remove_domain_when_cluster_unhealthy(multi_node: Cluster):
     replicas = multi_node.nodes(exclude=leader)
     member = replicas[0]
 
-    def write_messages(uri):
-        # producer send a message, client confirm, then both close connection
-        producer = proxy.create_client("producer")
-        producer.open(uri, flags=["write"], succeed=True)
-
-        consumer = proxy.create_client("consumer")
-        consumer.open(uri, flags=["read"], succeed=True)
-
-        producer.post(uri, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True)
-
-        consumer.confirm(uri, "+1", succeed=True)
-
-        producer.close(uri, succeed=True)
-        consumer.close(uri, succeed=True)
-
-    write_messages(tc.URI_PRIORITY)
+    write_messages(proxy, tc.URI_PRIORITY, n_msgs=5, do_confirm=False)
 
     # set quorum to make it impossible to select a leader
     for node in multi_node.nodes():
@@ -100,7 +119,7 @@ def test_remove_domain_when_cluster_unhealthy(multi_node: Cluster):
     # send remove domain admin command
     # command couldn't go through since state is unhealthy
     admin = AdminClient()
-    admin.connect(member.config.host, int(member.config.port))
+    admin.connect(member.config.host, int(member.config.port))  # member = east2
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
     assert "Error occurred routing command to this node" in res
     assert res.split("\n").count("No queue purged.") == 3
@@ -110,18 +129,24 @@ def test_remove_domain_when_cluster_unhealthy(multi_node: Cluster):
     # wait until the cluster become healthy again
     leader.start()
     leader.wait()
-    replicas[1].set_quorum(1)
-    leader.wait_status(wait_leader=True, wait_ready=False)
+    replicas[1].set_quorum(1)  # Quorum set to 1 from 99
+    leader.wait_status(wait_leader=True, wait_ready=False)  # new leader = west1
 
     # send DOMAINS REMOVE admin command again
+    multi_node._logger.info("BEFORE SENDING ADMIN COMMAND AGAIN")
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
-    assert "Purged 4 message(s) for a total of 16  B from 1 queue(s):" in res
+    assert "Purged 5 message(s) for a total of 20  B from 1 queue(s):" in res
     assert res.split("\n").count("No queue purged.") == 3
 
 
 def test_remove_different_domain(cluster: Cluster):
+    """
+    send DOMAINS REMOVE command to remove a different domain
+    the original one should be intact
+    """
     proxies = cluster.proxy_cycle()
 
+    # open queue in PRIORITY domain but remove PRIORITY_SC
     # producer produces messages and then closes connection
     producer = next(proxies).create_client("producer")
     producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
@@ -132,10 +157,8 @@ def test_remove_different_domain(cluster: Cluster):
         succeed=True,
         wait_ack=True,
     )
-    producer.close(tc.URI_PRIORITY)
 
-    # send remove domain admin command
-    # for a different domain
+    # send DOMAINS REMOVE admin command to a different domain
     admin = AdminClient()
     leader = cluster.last_known_leader
     admin.connect(leader.config.host, int(leader.config.port))
@@ -143,7 +166,16 @@ def test_remove_different_domain(cluster: Cluster):
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY_SC}")
     assert "No queue purged." in res
 
+    # post message to the untouched domain
+    producer.post(
+        tc.URI_PRIORITY,
+        [f"msg{i}" for i in range(5)],
+        succeed=True,
+        wait_ack=True,
+    )
+
     # do the same things for a different pair reversely
+    # open queue in FANOUT_SC domain but remove FANOUT
     producer.open(tc.URI_FANOUT_SC, flags=["write"], succeed=True)
 
     producer.post(
@@ -152,34 +184,46 @@ def test_remove_different_domain(cluster: Cluster):
         succeed=True,
         wait_ack=True,
     )
-    producer.close(tc.URI_FANOUT_SC)
 
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_FANOUT}")
     assert "No queue purged." in res
 
+    # post message to the unremoved domain
+    producer.post(
+        tc.URI_FANOUT_SC,
+        [f"msg{i}" for i in range(5)],
+        succeed=True,
+        wait_ack=True,
+    )
+
 
 def test_open_queue_after_remove_domain(cluster: Cluster):
+    """
+    try to open a queue after the first round of DOMAINS REMOVE command
+    and it should fail since we started remove but not fully finished yet
+    """
     proxies = cluster.proxy_cycle()
     next(proxies)  # eastp
     proxy = next(proxies)  # westp
 
+    uri = tc.URI_PRIORITY
     # producer produces messages and consumer confirms
     # then both close connections
     producer = proxy.create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True)
+    producer.open(uri, flags=["write"], succeed=True)
 
     consumer = proxy.create_client("consumer")
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.open(uri, flags=["read"], succeed=True)
 
     producer.post(
-        tc.URI_PRIORITY,
+        uri,
         [f"msg{i}" for i in range(3)],
         succeed=True,
         wait_ack=True,
     )
-    consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)
-    producer.close(tc.URI_PRIORITY, succeed=True)
-    consumer.close(tc.URI_PRIORITY, succeed=True)
+    consumer.confirm(uri, "*", succeed=True)
+    producer.close(uri, succeed=True)
+    consumer.close(uri, succeed=True)
 
     # send remove domain admin command
     admin = AdminClient()
@@ -188,10 +232,14 @@ def test_open_queue_after_remove_domain(cluster: Cluster):
     admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
 
     # open queues on the removed domain should fail
-    assert producer.open(tc.URI_PRIORITY, flags=["write"], block=True) < 0
+    assert producer.open(uri, flags=["write"], block=True) != Client.e_SUCCESS
 
 
 def test_remove_domain_with_queue_open(cluster: Cluster):
+    """
+    issue DOMAINS REMOVE command when both producer and consumer close connections,
+    both open, or one of them has the connection open
+    """
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
 
@@ -272,6 +320,9 @@ def test_remove_domain_with_unconfirmed_message(cluster: Cluster):
 
 
 def test_remove_domain_not_on_disk(cluster: Cluster):
+    """
+    issue DOMAINS REMOVE command when the domain is not on disk
+    """
     admin = AdminClient()
     leader = cluster.last_known_leader
     admin.connect(leader.config.host, int(leader.config.port))
@@ -281,14 +332,22 @@ def test_remove_domain_not_on_disk(cluster: Cluster):
 
 
 def test_remove_domain_on_disk_not_in_cache(cluster: Cluster):
+    """
+    issue DOMAINS REMOVE command when the domain is not on disk
+    """
     admin = AdminClient()
     leader = cluster.last_known_leader
     admin.connect(leader.config.host, int(leader.config.port))
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_BROADCAST}")
     assert "Trying to remove a nonexistent domain" not in res
+    assert "No queue purged." in res
 
 
 def test_send_to_replicas(multi_node: Cluster):
+    """
+    send DOMAINS REMOVE admin command to replica instead of primary
+    replica will boardcast to all the nodes including the primary
+    """
     proxies = multi_node.proxy_cycle()
     proxy = next(proxies)
 
@@ -333,3 +392,90 @@ def test_send_to_replicas(multi_node: Cluster):
 
     res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
     assert "Purged" in res
+
+
+def test_second_round(cluster: Cluster):
+    """
+    issue DOMAINS REMOVE command, and later finalize the command
+    a queue and the removed domain can be opened after finalizing
+    and when the domain exists on the disk
+    """
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+
+    admin = AdminClient()
+    leader = cluster.last_known_leader
+    admin.connect(leader.config.host, int(leader.config.port))
+    uri = tc.URI_PRIORITY
+
+    def remove_from_disk_and_add_back():
+        """
+        remove the domain config file from the fisk,
+        send the finalize DOMAINS REMOVE command
+        check a producer can't open a queue under that domain
+        add the domain config file back to the disk
+        check now a producer can open a queue under that domain
+        """
+        # remove domain config file
+        domain_config = cluster.config.domains[tc.DOMAIN_PRIORITY]
+
+        for node in cluster.configurator.brokers.values():
+            del node.domains[tc.DOMAIN_PRIORITY]
+        cluster.deploy_domains()
+
+        # second round
+        res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY} FINALIZE")
+        assert "SUCCESS" in res
+
+        # producer can't open a queue since the domain config file doesn't exist
+        producer = proxy.create_client("producer")
+        assert producer.open(tc.URI_PRIORITY, flags=["write"], block=True) < 0
+
+        # add back the domain config file
+        for node in cluster.configurator.brokers.values():
+            node.domains[tc.DOMAIN_PRIORITY] = domain_config
+        cluster.deploy_domains()
+
+        # now the queue can be opened
+        assert producer.open(tc.URI_PRIORITY, flags=["write"], succeed=True) == 0
+
+        producer.close(uri=tc.URI_PRIORITY, succeed=True)
+
+    # put -> confirm -> admin command -> remove_from_disk_and_add_back
+    write_messages(proxy, uri)
+    res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
+    assert "Purged 0 message(s) for a total of 0  B from 1 queue(s)" in res
+    remove_from_disk_and_add_back()
+
+    # put -> no confirm -> admin command -> remove_from_disk_and_add_back
+    producer = proxy.create_client("producer")
+    producer.open(uri, flags=["write"], succeed=True)
+    producer.post(uri, [f"msg{i}" for i in range(3)], succeed=True, wait_ack=True)
+    producer.close(uri=uri, succeed=True)
+    res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
+    assert "Purged 3 message(s) for a total of 12  B from 1 queue(s)" in res
+    remove_from_disk_and_add_back()
+
+
+def test_purge_then_remove(cluster: Cluster):
+    """
+    purge queue then remove
+    """
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+    uri = tc.URI_PRIORITY
+
+    admin = AdminClient()
+    leader = cluster.last_known_leader
+    admin.connect(leader.config.host, int(leader.config.port))
+
+    producer = proxy.create_client("producer")
+    producer.open(uri, flags=["write"], succeed=True)
+    producer.post(uri, [f"msg{i}" for i in range(5)], succeed=True, wait_ack=True)
+    producer.close(uri=uri, succeed=True)
+
+    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+    assert f"Purged 5 message(s)" in res
+
+    res = admin.send_admin(f"DOMAINS REMOVE {tc.DOMAIN_PRIORITY}")
+    assert "Purged 0 message(s) for a total of 0  B from 1 queue(s)" in res

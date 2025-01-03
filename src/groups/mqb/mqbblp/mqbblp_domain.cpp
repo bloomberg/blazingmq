@@ -375,7 +375,8 @@ Domain::Domain(const bsl::string&                     name,
 
 Domain::~Domain()
 {
-    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state) &&
+    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state ||
+                      e_POSTREMOVE == d_state) &&
                      "'teardown' must be called before the destructor");
 }
 
@@ -564,8 +565,8 @@ void Domain::openQueue(
 
             bmqp_ctrlmsg::Status status;
 
-            if (d_state == e_PREREMOVE || d_state == e_REMOVING ||
-                d_state == e_REMOVED) {
+            if (d_state == e_REMOVING || d_state == e_REMOVED ||
+                d_state == e_PREREMOVE || d_state == e_POSTREMOVE) {
                 status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
                 status.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
                 status.message()  = k_DOMAIN_IS_REMOVING_OR_REMOVED;
@@ -927,6 +928,13 @@ void Domain::removeDomainReset()
     d_teardownRemoveCb = nullptr;
 }
 
+void Domain::removeDomainComplete()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    d_state = e_POSTREMOVE;
+}
+
 // ACCESSORS
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
@@ -1045,6 +1053,11 @@ bool Domain::tryRemove() const
     }
 
     return true;
+}
+
+bool Domain::isRemoveComplete() const
+{
+    return d_state == e_POSTREMOVE;
 }
 
 }  // close package namespace

@@ -160,6 +160,11 @@ void Domain::removeDomainReset()
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
 
+void Domain::removeDomainComplete()
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+}
+
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
 {
@@ -233,6 +238,13 @@ void Domain::loadRoutingConfiguration(
 
 bool Domain::tryRemove() const
 {
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+    return true;
+}
+
+bool Domain::isRemoveComplete() const
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
     return true;
 }
 

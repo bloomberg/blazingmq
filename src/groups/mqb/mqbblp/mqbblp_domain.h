@@ -109,12 +109,17 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     typedef AppInfos::const_iterator AppInfosCIter;
 
     enum DomainState {
-        e_STARTED   = 0,
-        e_STOPPING  = 1,
-        e_STOPPED   = 2,
-        e_PREREMOVE = 3,
-        e_REMOVING  = 4,
-        e_REMOVED   = 5
+        e_STARTED  = 0,
+        e_STOPPING = 1,
+        e_STOPPED  = 2,
+        // Used for teardownRemove function
+        e_REMOVING = 3,
+        e_REMOVED  = 4,
+        // Used as flags to indicate
+        // the start and finish of
+        // the first round for DOMAINS REMOVE
+        e_PREREMOVE  = 5,
+        e_POSTREMOVE = 6,
     };
 
   private:
@@ -332,8 +337,12 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     processCommand(mqbcmd::DomainResult*        result,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
-    /// Mark the state of domain to be REMOVING
+    /// Mark the state of domain to be PREREMOVE
     void removeDomainReset() BSLS_KEYWORD_OVERRIDE;
+
+    /// Mark the state of domain to be POSTREMOVE,
+    /// indicating the first round of DOMAINS REMOVE is completed
+    void removeDomainComplete() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -374,6 +383,10 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     /// Check the state of the queues in this domain, return false if there's
     /// queues opened or opening.
     bool tryRemove() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Check the state of the domain, return true if the first round
+    /// of DOMAINS REMOVE is completed
+    bool isRemoveComplete() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
