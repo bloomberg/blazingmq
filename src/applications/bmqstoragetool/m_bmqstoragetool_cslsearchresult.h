@@ -21,6 +21,16 @@
 //@CLASSES:
 // m_bmqstoragetool::CslSearchResult: an interface for cluster state ledger
 // (CSL) search processors.
+// m_bmqstoragetool::CslSearchShortResult: handles short result output.
+// m_bmqstoragetool::CslSearchDetailResult: handles detail result output.
+// m_bmqstoragetool::CslSearchResultDecorator: base decorator for search result
+//   decorators.
+// m_bmqstoragetool::CslSearchSequenceNumberDecorator: provides
+//   decorator to handle sequence numbers.
+// m_bmqstoragetool::CslSearchOffsetDecorator: provides decorator to handle
+//   offsets.
+// m_bmqstoragetool::CslSummaryResult: handles summary result
+//   output.
 //
 //@DESCRIPTION: 'CslSearchResult' interface and implementation classes provide
 // a logic of CSL search and output results.
@@ -37,7 +47,7 @@
 #include <mqbsi_ledger.h>
 
 // BDE
-#include <bsl_unordered_map.h>
+#include <bsl_map.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -57,16 +67,17 @@ class CslSearchResult {
 
     /// VST representing record counters.
     struct RecordCount {
+        /// Counter of snapshot records.
         bsls::Types::Uint64 d_snapshotCount;
-        // Counter of  snapshot records.
+        /// Counter of update records.
         bsls::Types::Uint64 d_updateCount;
-        // Counter of  update records.
+        /// Counter of commit records.
         bsls::Types::Uint64 d_commitCount;
-        // Counter of  commit records.
-        bsls::Types::Uint64 d_ackCount;
         // Counter of ack records.
+        bsls::Types::Uint64 d_ackCount;
 
         // CREATORS
+        /// Create a 'RecordCount' object with all counters set to 0.
         RecordCount();
     };
 
@@ -101,7 +112,7 @@ class CslSearchShortResult : public CslSearchResult {
     /// Reference to output stream.
     bsl::ostream& d_ostream;
     /// Record types to process
-    Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
+    const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
     RecordCount d_recordCount;
     /// Allocator used inside the class.
@@ -144,7 +155,7 @@ class CslSearchDetailResult : public CslSearchResult {
     /// Reference to output stream.
     bsl::ostream& d_ostream;
     /// Record types to process
-    Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
+    const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
     RecordCount d_recordCount;
     /// Allocator used inside the class.
@@ -183,10 +194,10 @@ class CslSearchDetailResult : public CslSearchResult {
 /// given `component`.
 class CslSearchResultDecorator : public CslSearchResult {
   protected:
+    /// Pointer to object that is decorated.
     bsl::shared_ptr<CslSearchResult> d_searchResult;
-    // Pointer to object that is decorated.
+    /// Pointer to allocator that is used inside the class.
     bslma::Allocator* d_allocator_p;
-    // Pointer to allocator that is used inside the class.
 
   public:
     // CREATORS
@@ -208,11 +219,6 @@ class CslSearchResultDecorator : public CslSearchResult {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return 'false' if all required data is processed, e.g. all given
-    /// sequence numbers are output and search could be stopped. Return 'true'
-    /// to indicate that there is incomplete data.
-    // bool hasCache() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ======================================
@@ -224,10 +230,11 @@ class CslSearchResultDecorator : public CslSearchResult {
 class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
   private:
     // PRIVATE DATA
+
+    /// List of composite sequence numbers to search for.
     bsl::vector<CompositeSequenceNumber> d_seqNums;
-    // List of composite sequence numbers to search for.
+    /// Reference to output stream.
     bsl::ostream& d_ostream;
-    // Reference to output stream.
 
   public:
     // CREATORS
@@ -255,18 +262,19 @@ class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
 };
 
-// ======================================
+// ==============================
 // class CslSearchOffsetDecorator
-// ======================================
+// ==============================
 
 /// This class provides decorator to handle search of given offsets.
 class CslSearchOffsetDecorator : public CslSearchResultDecorator {
   private:
     // PRIVATE DATA
+
+    /// List of offsets to search for.
     bsl::vector<bsls::Types::Int64> d_offsets;
-    // List of offsets to search for.
+    /// Reference to output stream.
     bsl::ostream& d_ostream;
-    // Reference to output stream.
 
   public:
     // CREATORS
@@ -303,14 +311,14 @@ class CslSummaryResult : public CslSearchResult {
     // PRIVATE TYPES
 
     /// Map of found update record choices.
-    typedef bsl::unordered_map<int, bsls::Types::Uint64> UpdateChoiceMap;
+    typedef bsl::map<int, bsls::Types::Uint64> UpdateChoiceMap;
 
     // PRIVATE DATA
 
     /// Reference to output stream.
     bsl::ostream& d_ostream;
     /// CSL Record types to process.
-    Parameters::ProcessCslRecordTypes d_processCslRecordTypes;
+    const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
     RecordCount d_recordCount;
     /// Map of found update record choices.

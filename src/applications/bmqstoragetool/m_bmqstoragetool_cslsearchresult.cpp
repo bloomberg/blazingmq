@@ -25,10 +25,7 @@ void printClusterStateRecordHeader(
 
     bslim::Printer printer(&ostream, level, spacesPerLevel);
     printer.start();
-    // printer.printAttribute("headerWords", header.headerWords());
     printer.printAttribute("recordType", header.recordType());
-    // printer.printAttribute("leaderAdvisoryWords",
-    //                     header.leaderAdvisoryWords());
     printer.printAttribute("electorTerm", header.electorTerm());
     printer.printAttribute("sequenceNumber", header.sequenceNumber());
     printer.printAttribute("timestamp", header.timestamp());
@@ -197,6 +194,7 @@ CslSearchResultDecorator::CslSearchResultDecorator(
 : d_searchResult(component)
 , d_allocator_p(allocator)
 {
+    // NOTHING
 }
 
 bool CslSearchResultDecorator::processRecord(
@@ -293,7 +291,7 @@ bool CslSearchOffsetDecorator::processRecord(
         d_offsets.erase(it);
     }
 
-    // return true (stop search) if d_seqNums is empty.
+    // return true (stop search) if d_offsets is empty.
     return d_offsets.empty();
 }
 
@@ -341,12 +339,7 @@ bool CslSummaryResult::processRecord(
     updateRecordCount(&d_recordCount, header.recordType());
 
     if (header.recordType() == mqbc::ClusterStateRecordType::e_UPDATE) {
-        if (d_updateChoiceCount.count(record.choice().selectionId()) == 0) {
-            d_updateChoiceCount[record.choice().selectionId()] = 1;
-        }
-        else {
-            d_updateChoiceCount[record.choice().selectionId()] += 1;
-        }
+        d_updateChoiceCount[record.choice().selectionId()] += 1;
     }
 
     return false;
@@ -355,21 +348,15 @@ bool CslSummaryResult::processRecord(
 void CslSummaryResult::outputResult() const
 {
     if (d_processCslRecordTypes.d_snapshot) {
-        if (d_recordCount.d_snapshotCount == 0) {
-            d_ostream << "\nNo snapshot records found." << '\n';
-        }
-        else {
-            d_ostream << "\n"
-                      << d_recordCount.d_snapshotCount
-                      << " snapshot record(s) found." << '\n';
-        }
+        d_recordCount.d_snapshotCount > 0
+            ? (d_ostream << '\n'
+                         << d_recordCount.d_snapshotCount << " snapshot")
+            : d_ostream << "\nNo snapshot";
+        d_ostream << " record(s) found.\n";
     }
     if (d_processCslRecordTypes.d_update) {
-        if (d_recordCount.d_updateCount == 0) {
-            d_ostream << "\nNo update records found." << '\n';
-        }
-        else {
-            d_ostream << "\n"
+        if (d_recordCount.d_updateCount > 0) {
+            d_ostream << '\n'
                       << d_recordCount.d_updateCount
                       << " update record(s) found, including:" << '\n';
             bsl::vector<const char*>           fields(d_allocator_p);
@@ -390,26 +377,23 @@ void CslSummaryResult::outputResult() const
                 printer << it->second;
             }
         }
+        else {
+            d_ostream << "\nNo update record(s) found." << '\n';
+        }
     }
     if (d_processCslRecordTypes.d_commit) {
-        if (d_recordCount.d_commitCount == 0) {
-            d_ostream << "\nNo commit records found." << '\n';
-        }
-        else {
-            d_ostream << "\n"
-                      << d_recordCount.d_commitCount
-                      << " commit record(s) found." << '\n';
-        }
+        d_recordCount.d_commitCount > 0
+            ? (d_ostream << '\n'
+                         << d_recordCount.d_commitCount << " commit")
+            : d_ostream << "\nNo commit";
+        d_ostream << " record(s) found.\n";
     }
     if (d_processCslRecordTypes.d_ack) {
-        if (d_recordCount.d_ackCount == 0) {
-            d_ostream << "\nNo ack records found." << '\n';
-        }
-        else {
-            d_ostream << "\n"
-                      << d_recordCount.d_ackCount << " ack record(s) found."
-                      << '\n';
-        }
+        d_recordCount.d_ackCount > 0
+            ? (d_ostream << '\n'
+                         << d_recordCount.d_ackCount << " ack")
+            : d_ostream << "\nNo ack";
+        d_ostream << " record(s) found.\n";
     }
 
     // Print queues info

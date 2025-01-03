@@ -89,7 +89,7 @@ class FileManagerMock : public FileManager {
     /// Construct using the specified `journalFile`.
     explicit FileManagerMock(const JournalFile& journalFile);
 
-    /// Construct using the specified `journalFile`.
+    /// Construct using the specified `cslFileIterator`.
     explicit FileManagerMock(
         mqbc::IncoreClusterStateLedgerIterator* cslFileIterator);
 

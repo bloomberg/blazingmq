@@ -1713,10 +1713,10 @@ static void test9_summaryTest()
                    << snapshotCount << " snapshot record(s) found.\n\n";
     expectedStream << updateCount << " update record(s) found, including:\n";
     bsl::vector<const char*> fields(s_allocator_p);
-    fields.push_back("queueUnAssignmentAdvisory");
-    fields.push_back("queueUnassignedAdvisory");
     fields.push_back("partitionPrimaryAdvisory");
     fields.push_back("queueAssignmentAdvisory");
+    fields.push_back("queueUnAssignmentAdvisory");
+    fields.push_back("queueUnassignedAdvisory");
     bmqu::AlignedPrinter printer(expectedStream, &fields);
     printer << 1 << 1 << 1 << 1;
     expectedStream << '\n' << commitCount << " commit record(s) found.\n\n";

@@ -16,20 +16,24 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 #define INCLUDED_M_BMQSTORAGETOOL_FILEMANAGER_H
 
-//@PURPOSE: Provide access to journal, data and cluster state ledger file
-// interators.
+//@PURPOSE: Provide access to journal, data and cluster state ledger (CSL) file
+// iterators and method to build queue key/uri map.
 //
 //@CLASSES:
 //  m_bmqstoragetool::FileManager                 : an interface class
 //  m_bmqstoragetool::FileManagerImpl             : an implementation class
-//  m_bmqstoragetool::FileManagerImpl::FileHandler: a RAII file wrapper class
+//  m_bmqstoragetool::FileManagerImpl::FileHandler: a RAII journal/data file
+//  wrapper class m_bmqstoragetool::FileManagerImpl::CslFileHandler: a RAII CSL
+//  file wrapper class
 //
 //@DESCRIPTION:
-//  'FileManager' provides an interface to access iterators.
-//  'FileManagerImpl' works with real files. Provides access to journal and
+//  'FileManager' provides an interface to access iterators and method to build
+//  queue key/uri map. 'FileManagerImpl' works with real files. Provides access
+//  to journal and
 //    data files interators. Also retrieves a map of queue keys and names from
 //    a CSL file.
-//  'FileHandler' opens and closes the required files in RAII technique.
+//  'FileHandler'/'CslFileHandler' opens and closes the required files in RAII
+//  technique.
 
 // bmqstoragetool
 #include <m_bmqstoragetool_queuemap.h>
@@ -61,11 +65,12 @@ class FileManager {
     virtual mqbs::DataFileIterator* dataFileIterator() = 0;
     /// Pointer to cluster state ledger file iterator. Note that
     /// `IncoreClusterStateLedgerIterator` type is used instead of
-    /// `ClusterStateLedgerIterator` to get access to records offset.
+    /// interface `ClusterStateLedgerIterator` to get additional access to
+    /// record offset.
     virtual mqbc::IncoreClusterStateLedgerIterator* cslFileIterator() = 0;
 
     // ACCESSORS
-    /// Fill the specified `queueMap_p` with data from CSL file.
+    /// Fill the specified `queueMap_p` with key/uri mapping from CSL file.
     virtual void fillQueueMapFromCslFile(QueueMap* queueMap_p) const = 0;
 };
 
@@ -104,6 +109,7 @@ class FileManagerImpl : public FileManager {
     class CslFileHandler {
       private:
         // PRIVATE DATA
+
         const bsl::string                                         d_path;
         bslma::ManagedPtr<mqbsl::Ledger>                          d_ledger_p;
         bslma::ManagedPtr<mqbc::IncoreClusterStateLedgerIterator> d_iter_p;
@@ -119,13 +125,15 @@ class FileManagerImpl : public FileManager {
         ~CslFileHandler();
 
         // MANIPULATORS
-        /// iterator resetter
+
+        /// Reset iterator to the initial state.
         bool resetIterator(bsl::ostream& errorDescription);
 
-        /// Incore cluster state ledger iterator
+        /// Return pointer to modifiable CSL file iterator.
         mqbc::IncoreClusterStateLedgerIterator* iterator();
 
         // ACCESSORS
+
         /// File path
         const bsl::string& path() const;
 
@@ -134,14 +142,15 @@ class FileManagerImpl : public FileManager {
     };
 
     // PRIVATE DATA
+
+    /// Handler of journal file
     FileHandler<mqbs::JournalFileIterator> d_journalFile;
-    // Handler of journal file
 
+    /// Handler of data file
     FileHandler<mqbs::DataFileIterator> d_dataFile;
-    // Handler of data file
 
+    /// Handler of CSL file
     CslFileHandler d_cslFile;
-    // Handler of CSL file
 
   public:
     // CREATORS
@@ -158,7 +167,7 @@ class FileManagerImpl : public FileManager {
     cslFileIterator() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    /// Fill the specified `queueMap_p` with data from CSL file.
+    /// Fill the specified `queueMap_p` with key/uri mapping from CSL file.
     void
     fillQueueMapFromCslFile(QueueMap* queueMap_p) const BSLS_KEYWORD_OVERRIDE;
 };

@@ -39,7 +39,7 @@ static void test1_breathingTest()
 //   `SearchResult` object is created by default.
 //
 // Testing:
-//   Basic functionality
+//   createSearchResult()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -66,7 +66,7 @@ static void test2_cslSearchResultTest()
 //  Check that `CslSearchResult` object is created for CSL mode parameters.
 //
 // Testing:
-//   Basic functionality
+//   createCslSearchResult()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CSL SEARCH RESULT TEST");

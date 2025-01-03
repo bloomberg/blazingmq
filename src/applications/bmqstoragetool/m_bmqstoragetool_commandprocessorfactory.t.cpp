@@ -40,7 +40,7 @@ static void test1_breathingTest()
 //   `JournalFileProcessor` object is created by defauilt.
 //
 // Testing:
-//   Basic functionality
+//   createCommandProcessor()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -67,7 +67,7 @@ static void test2_cslProcessorTest()
 //   Check that `CslFileProcessor` object is created for CSL mode parameters.
 //
 // Testing:
-//   Basic functionality
+//   createCommandProcessor()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CSL FILE PROCESSOR TEST");

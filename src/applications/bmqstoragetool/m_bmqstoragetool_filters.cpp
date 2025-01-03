@@ -29,19 +29,17 @@ typedef bsl::vector<QueueInfo> QueueInfos;
 bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
                      const bsl::unordered_set<mqbu::StorageKey>& queueKeys)
 {
-    bool queueKeyMatch = false;
-
     QueueInfos::const_iterator it = queuesInfo.cbegin();
     for (; it != queuesInfo.cend(); ++it) {
         mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
                              it->key().data());
         // Match by queueKey
         if (queueKeys.find(key) != queueKeys.end()) {
-            queueKeyMatch = true;
+            return true;  // RETURN
         }
     }
 
-    return queueKeyMatch;
+    return false;
 }
 
 // Helper method to apply range filter

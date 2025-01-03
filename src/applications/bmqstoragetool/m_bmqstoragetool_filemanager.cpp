@@ -188,7 +188,7 @@ bool FileManagerImpl::FileHandler<ITER>::resetIterator(
 }
 
 // =====================================
-// class FileManagerImpl::FileCslHandler
+// class FileManagerImpl::CslFileHandler
 // =====================================
 
 FileManagerImpl::CslFileHandler::CslFileHandler(const bsl::string& path,
@@ -307,6 +307,7 @@ inline const bsl::string& FileManagerImpl::CslFileHandler::path() const
 void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
 {
     if (!d_ledger_p) {
+        // Return if CSL file is not present.
         return;  // RETURN
     }
 
@@ -352,7 +353,7 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
         }
         if (rc < 0) {
             bmqu::MemOutStream errorDescr(d_allocator);
-            errorDescr << "CSL file is corrupted or incomplete: rc=" << rc;
+            errorDescr << "CSL file either corrupted or incomplete: rc=" << rc;
             throw bsl::runtime_error(errorDescr.str());  // THROW
         }
 

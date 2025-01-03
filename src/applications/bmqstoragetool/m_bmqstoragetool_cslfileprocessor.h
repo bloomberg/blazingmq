@@ -41,16 +41,16 @@ namespace m_bmqstoragetool {
 class CslFileProcessor : public CommandProcessor {
   private:
     // PRIVATE DATA
+
     const Parameters*                    d_parameters;
     const bslma::ManagedPtr<FileManager> d_fileManager;
     bsl::ostream&                        d_ostream;
     bsl::shared_ptr<CslSearchResult>     d_searchResult_p;
     bslma::Allocator*                    d_allocator_p;
 
-    // MANIPULATORS
-
   public:
     // CREATORS
+
     /// Constructor using the specified `params`, 'fileManager',
     /// 'searchResult_p', 'ostream' and 'allocator'.
     CslFileProcessor(const Parameters*                       params,
@@ -60,6 +60,7 @@ class CslFileProcessor : public CommandProcessor {
                      bslma::Allocator*                       allocator);
 
     // MANIPULATORS
+
     /// Process the CSL file and print result.
     void process() BSLS_KEYWORD_OVERRIDE;
 };

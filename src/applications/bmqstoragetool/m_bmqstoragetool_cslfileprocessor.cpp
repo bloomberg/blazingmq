@@ -69,12 +69,10 @@ void CslFileProcessor::process()
                     d_allocator_p);
 
     bool stopSearch = false;
-    // bool needMoveToLowerBound = d_parameters->d_range.d_timestampGt > 0 ||
-    //                             d_parameters->d_range.d_offsetGt > 0 ||
-    //                             d_parameters->d_range.d_seqNumGt.isSet();
 
     // Iterator points either to first record or to the last snapshot record
-    // depending on `parameters->d_cslFromBegin`
+    // depending on `csl-from-begin` command line option (by default: from last
+    // snapshot).
     mqbc::IncoreClusterStateLedgerIterator* iter =
         d_fileManager->cslFileIterator();
     BSLS_ASSERT(iter->isValid());
@@ -89,10 +87,6 @@ void CslFileProcessor::process()
         if (iter->header().recordType() ==
             mqbc::ClusterStateRecordType::e_SNAPSHOT) {
             if (d_parameters->d_processCslRecordTypes.d_snapshot) {
-                // d_ostream << *iter << '\n';
-                // d_ostream << iter->header() << '\n';
-                // d_ostream << clusterMessage << '\n';
-
                 // Apply filters
                 if (filters.apply(iter->header(),
                                   clusterMessage,
