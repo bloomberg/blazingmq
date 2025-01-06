@@ -174,7 +174,7 @@ EncryptionPair makeEncryption(ntci::Interface*  interface,
 
     ntca::EncryptionServerOptions encryptionServerOptions;
     encryptionServerOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
-    encryptionServerOptions.setMaxMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionServerOptions.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
     encryptionServerOptions.setAuthentication(
         ntca::EncryptionAuthentication::e_NONE);
 
@@ -203,7 +203,7 @@ EncryptionPair makeEncryption(ntci::Interface*  interface,
 
     ntca::EncryptionClientOptions encryptionClientOptions;
     encryptionClientOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
-    encryptionClientOptions.setMaxMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionClientOptions.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
     encryptionClientOptions.setAuthentication(
         ntca::EncryptionAuthentication::e_VERIFY);
 

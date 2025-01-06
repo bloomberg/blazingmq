@@ -81,9 +81,7 @@ class NegotiatedChannelFactoryConfig {
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
     bsls::TimeInterval               d_negotiationTimeout;
     BlobSpPool*                      d_blobSpPool_p;
-    bsl::reference_wrapper<const bsl::shared_ptr<ntci::EncryptionClient> >
-                      d_encryptionClient;
-    bslma::Allocator* d_allocator_p;
+    bslma::Allocator*                d_allocator_p;
 
     // FRIENDS
     friend class NegotiatedChannelFactory;
@@ -101,12 +99,11 @@ class NegotiatedChannelFactoryConfig {
     /// @pre base != NULL
     /// @pre bufferFactory != NULL
     NegotiatedChannelFactoryConfig(
-        bmqio::ChannelFactory*                         base,
-        const bmqp_ctrlmsg::NegotiationMessage&        negotiationMessage,
-        const bsls::TimeInterval&                      negotiationTimeout,
-        BlobSpPool*                                    blobSpPool_p,
-        const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
-        bslma::Allocator*                              basicAllocator = 0);
+        bmqio::ChannelFactory*                  base,
+        const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+        const bsls::TimeInterval&               negotiationTimeout,
+        BlobSpPool*                             blobSpPool_p,
+        bslma::Allocator*                       basicAllocator = 0);
 
     NegotiatedChannelFactoryConfig(
         const NegotiatedChannelFactoryConfig& original,
@@ -178,19 +175,6 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
         const bdlbb::Blob&                     packet,
         const ResultCallback&                  cb,
         const bsl::shared_ptr<bmqio::Channel>& channel) const;
-
-    /// @pre channel != NULL
-    void negotiateWithTls(const bsl::shared_ptr<bmqio::Channel>& channel,
-                          const ResultCallback&                  userCb) const;
-
-    /// @pre channel != NULL
-    void
-    negotiationWithTlsInit(const bsl::shared_ptr<bmqio::Channel>&   channel,
-                           const bsl::shared_ptr<ntci::Upgradable>& upgradable,
-                           const ntca::UpgradeEvent&                event,
-                           const ResultCallback& userCb) const;
-
-    bool isTlsSession() const;
 
   public:
     // CREATORS

@@ -215,9 +215,8 @@ class NtcChannel : public bmqio::Channel,
     bdlmt::Signaler<WatermarkFnType>      d_watermarkSignaler;
     bdlmt::Signaler<CloseFnType>          d_closeSignaler;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
-    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
-    ntci::UpgradeFunction                   d_upgradeCallback;
-    bslma::Allocator*                       d_allocator_p;
+    bsl::shared_ptr<ntci::Upgradable>     d_upgradable;
+    bslma::Allocator*                     d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -311,16 +310,6 @@ class NtcChannel : public bmqio::Channel,
         const bsl::shared_ptr<ntci::Interface>&      interface,
         const bmqio::ChannelFactory::ResultCallback& resultCallback,
         bslma::Allocator*                            basicAllocator = 0);
-
-    /// Create a new channel implemented by the specified `interface`.
-    /// Optionally specify a `basicAllocator` used to supply memory. Initialize
-    /// this channel's upgrade callback with `upgradeCallback`. If
-    /// 'basicAllocator is 0, the currently installed default allocator is
-    /// used.
-    NtcChannel(const bsl::shared_ptr<ntci::Interface>&      interface,
-               const bmqio::ChannelFactory::ResultCallback& resultCallback,
-               const ntci::UpgradeFunction&                 upgradeCallback,
-               bslma::Allocator* basicAllocator = 0);
 
     /// Destroy this object.
     ~NtcChannel() BSLS_KEYWORD_OVERRIDE;
@@ -431,6 +420,9 @@ class NtcChannel : public bmqio::Channel,
     /// Set the write queue high watermark to the specified `highWatermark`.
     void setWriteQueueHighWatermark(int highWatermark);
 
+    /// Set the upgradable handle if this channel has been upgraded.
+    void setUpgradable(const bsl::shared_ptr<ntci::Upgradable>& upgradable);
+
     /// Assume the TLS server role and begin upgrading the socket from
     /// being unencrypted to being encrypted with TLS. Invoke the specified
     /// `upgradeCallback` when the socket has completed upgrading to TLS.
@@ -472,6 +464,11 @@ class NtcChannel : public bmqio::Channel,
     /// Return the socket interface for this channel. This function is
     /// undefined unless the channel has succesfully established a connection.
     const ntci::StreamSocket& streamSocket() const;
+
+    /// Return the upgradable handle for the channel.
+    const bsl::shared_ptr<ntci::Upgradable>& upgradable() const;
+
+    bsl::shared_ptr<ntci::Upgradable>& upgradable();
 };
 
 // =====================
@@ -529,15 +526,15 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     };
 
     // INSTANCE DATA
-    bslmt::Mutex                          d_mutex;
-    bsl::shared_ptr<ntci::Interface>      d_interface_sp;
-    bsl::shared_ptr<ntci::ListenerSocket> d_listenerSocket_sp;
-    bsl::string                           d_localUri;
-    State                                 d_state;
-    bmqio::ListenOptions                  d_options;
-    bmqvt::PropertyBag                    d_properties;
-    bdlmt::Signaler<CloseFnType>          d_closeSignaler;
-    bmqio::ChannelFactory::ResultCallback d_resultCallback;
+    bslmt::Mutex                            d_mutex;
+    bsl::shared_ptr<ntci::Interface>        d_interface_sp;
+    bsl::shared_ptr<ntci::ListenerSocket>   d_listenerSocket_sp;
+    bsl::string                             d_localUri;
+    State                                   d_state;
+    bmqio::ListenOptions                    d_options;
+    bmqvt::PropertyBag                      d_properties;
+    bdlmt::Signaler<CloseFnType>            d_closeSignaler;
+    bmqio::ChannelFactory::ResultCallback   d_resultCallback;
     bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer_sp;
     ntci::UpgradeFunction                   d_upgradeCallback;
     bslma::Allocator*                       d_allocator_p;

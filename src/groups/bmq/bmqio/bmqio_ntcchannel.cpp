@@ -557,12 +557,6 @@ void NtcChannel::processConnect(
 
         d_peerUri = d_streamSocket_sp->remoteEndpoint().text();
 
-        if (d_encryptionClient_sp) {
-            this->upgrade(d_encryptionClient_sp,
-                          ntca::UpgradeOptions(),
-                          d_upgradeCallback);
-        }
-
         lock.release()->unlock();
 
         if (resultCallback) {
@@ -977,32 +971,7 @@ NtcChannel::NtcChannel(
 , d_watermarkSignaler(basicAllocator)
 , d_closeSignaler(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
-, d_encryptionClient_sp()
-, d_upgradeCallback(bsl::allocator_arg, basicAllocator)
-, d_allocator_p(bslma::Default::allocator(basicAllocator))
-{
-}
-
-NtcChannel::NtcChannel(
-    const bsl::shared_ptr<ntci::Interface>&      interface,
-    const bmqio::ChannelFactory::ResultCallback& resultCallback,
-    const ntci::UpgradeFunction&                 upgradeCallback,
-    bslma::Allocator*                            basicAllocator)
-: d_mutex()
-, d_interface_sp(interface)
-, d_streamSocket_sp()
-, d_readQueue(basicAllocator)
-, d_readCache(basicAllocator)
-, d_channelId(0)
-, d_peerUri(basicAllocator)
-, d_state(e_STATE_DEFAULT)
-, d_options(basicAllocator)
-, d_properties(basicAllocator)
-, d_watermarkSignaler(basicAllocator)
-, d_closeSignaler(basicAllocator)
-, d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
-, d_encryptionClient_sp()
-, d_upgradeCallback(bsl::allocator_arg, basicAllocator, upgradeCallback)
+, d_upgradable()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
@@ -1419,6 +1388,12 @@ void NtcChannel::processUpgrade(
             cb(upgradable, upgradeEvent);
         }
     }
+}
+
+void NtcChannel::setUpgradable(
+    const bsl::shared_ptr<ntci::Upgradable>& upgradable)
+{
+    d_upgradable = upgradable;
 }
 
 void NtcChannel::upgrade(
@@ -1959,6 +1934,16 @@ void NtcListenerUtil::fail(Status*                     status,
         status->properties().set("ntfOperation", operation);
         status->properties().set("tcpPlatformError", error.number());
     }
+}
+
+const bsl::shared_ptr<ntci::Upgradable>& NtcChannel::upgradable() const
+{
+    return d_upgradable;
+}
+
+bsl::shared_ptr<ntci::Upgradable>& NtcChannel::upgradable()
+{
+    return d_upgradable;
 }
 
 }  // close package namespace

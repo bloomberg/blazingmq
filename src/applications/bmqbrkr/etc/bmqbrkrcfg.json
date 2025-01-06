@@ -8,8 +8,8 @@
             "rotationBytes": 268435456,
             "logfileFormat": "%d (%t) %s %F:%l %m\n\n",
             "consoleFormat": "%d (%t) %s %F:%l %m\n",
-            "loggingVerbosity": "TRACE",
-            "consoleSeverityThreshold": "TRACE",
+            "loggingVerbosity": "INFO",
+            "consoleSeverityThreshold": "INFO",
             "categories": [
                 "BMQBRKR:INFO:green",
                 "BMQ*:INFO:green",
