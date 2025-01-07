@@ -351,10 +351,11 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bool checkForDuplicate(const App_State*         app,
                            const bmqt::MessageGUID& msgGUID);
 
-    void storePush(mqbi::StorageMessageAttributes*     attributes,
-                   const bmqt::MessageGUID&            msgGUID,
-                   const bsl::shared_ptr<bdlbb::Blob>& appData,
-                   bool                                isOutOfOrder);
+    void storePush(mqbi::StorageMessageAttributes*           attributes,
+                   const bmqt::MessageGUID&                  msgGUID,
+                   const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                   const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                   bool                                      isOutOfOrder);
 
     void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
 
@@ -541,11 +542,11 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // (`mqbi::AppMessage`, `upstreamSubQueueId`) pairs for each recognized App
     /// in the specified `subscriptions`.
     /// Return number of inserted PushStream Elements.
-    unsigned int push(mqbi::StorageMessageAttributes*           attributes,
-                      const bmqt::MessageGUID&                  msgGUID,
-                      const bsl::shared_ptr<bdlbb::Blob>&       appData,
-                      const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                      bool                                      isOutOfOrder);
+    unsigned int push(mqbi::StorageMessageAttributes*     attributes,
+                      const bmqt::MessageGUID&            msgGUID,
+                      const bsl::shared_ptr<bdlbb::Blob>& appData,
+                      bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                      bool                                isOutOfOrder);
     // ACCESSORS
 
     /// Return the reference count that should be applied to a message

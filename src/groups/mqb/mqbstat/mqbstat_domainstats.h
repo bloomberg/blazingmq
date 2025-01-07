@@ -28,6 +28,7 @@
 // exposing methods to initialize the stat contexts.
 
 // MQB
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -43,10 +44,6 @@ namespace BloombergLP {
 namespace mqbi {
 class Domain;
 }
-namespace bmqst {
-class StatContext;
-}
-
 namespace mqbstat {
 
 // =================
@@ -76,6 +73,14 @@ class DomainStats {
     // DATA
     bslma::ManagedPtr<bmqst::StatContext> d_statContext_mp;
     // StatContext
+
+    // PRIVATE TYPES
+
+    /// Namespace for the constants of stat values that applies to the queues
+    /// from the clients
+    struct DomainStatsIndex {
+        enum Enum { e_STAT_CFG_MSGS, e_STAT_CFG_BYTES, e_STAT_QUEUE_COUNT };
+    };
 
   private:
     // NOT IMPLEMENTED
@@ -115,7 +120,8 @@ class DomainStats {
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value` (depending on the `type`, `value` can represent
     /// the number of bytes, a counter, ...
-    void onEvent(EventType::Enum type, bsls::Types::Int64 value);
+    template <EventType::Enum type>
+    void onEvent(bsls::Types::Int64 value);
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
@@ -148,6 +154,30 @@ struct DomainStatsUtil {
 inline bmqst::StatContext* DomainStats::statContext()
 {
     return d_statContext_mp.get();
+}
+
+template <>
+inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_MSGS>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainStatsIndex::e_STAT_CFG_MSGS, value);
+}
+
+template <>
+inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_BYTES>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainStatsIndex::e_STAT_CFG_BYTES, value);
+}
+
+template <>
+inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_QUEUE_COUNT>(
+    bsls::Types::Int64 value)
+{
+    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
+    d_statContext_mp->setValue(DomainStatsIndex::e_STAT_QUEUE_COUNT, value);
 }
 
 }  // close package namespace

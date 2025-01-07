@@ -85,35 +85,6 @@ struct ClusterStatsIndex {
     };
 };
 
-// ----------------------------
-// struct ClusterNodeStatsIndex
-// ----------------------------
-
-/// Namespace for the constants of stat values that applies to the
-/// cluster node
-struct ClusterNodeStatsIndex {
-    enum Enum {
-        /// Value:      Number of ack messages delivered to the client
-        e_STAT_ACK
-
-        ,
-        e_STAT_CONFIRM
-        // Value:      Number of confirm messages delivered to the client
-
-        ,
-        e_STAT_PUSH
-        // Value:      Accumulated bytes of all messages ever pushed to
-        //             the client
-        // Increments: Number of messages ever pushed to the client
-
-        ,
-        e_STAT_PUT
-        // Value:      Accumulated bytes of all messages ever received from
-        //             the client
-        // Increments: Number of messages ever received from the client
-    };
-};
-
 //-------------------------
 // struct ClusterStatsIndex
 //-------------------------
@@ -515,34 +486,6 @@ void ClusterNodeStats::initialize(const bmqt::Uri&    uri,
 
     d_statContext_mp = clientStatContext->addSubcontext(
         bmqst::StatContextConfiguration(uri.asString(), &localAllocator));
-}
-
-void ClusterNodeStats::onEvent(EventType::Enum type, bsls::Types::Int64 value)
-{
-    BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
-
-    switch (type) {
-    case EventType::e_ACK: {
-        // For ACK, we don't have any bytes value, but we also wouldn't care ..
-        d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_ACK, 1);
-    } break;
-    case EventType::e_CONFIRM: {
-        // For CONFIRM, we don't care about the bytes value ..
-        d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_CONFIRM,
-                                      1);
-    } break;
-    case EventType::e_PUSH: {
-        d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_PUSH,
-                                      value);
-    } break;
-    case EventType::e_PUT: {
-        d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_PUT,
-                                      value);
-    } break;
-    default: {
-        BSLS_ASSERT_SAFE(false && "Unknown event type");
-    } break;
-    };
 }
 
 // ----------------------

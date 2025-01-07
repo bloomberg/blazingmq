@@ -1301,9 +1301,10 @@ void RootQueueEngine::afterNewMessage(
         }
         if (!d_appsDeliveryContext.isEmpty()) {
             // Report 'queue time' metric for the entire queue
-            d_queueState_p->queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME,
-                d_appsDeliveryContext.timeDelta());
+            d_queueState_p->queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_QUEUE_TIME>(
+                    d_appsDeliveryContext.timeDelta());
         }
         d_appsDeliveryContext.deliverMessage();
     }
@@ -1518,9 +1519,9 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
                         d_queueState_p,
                         d_allocator_p));
                 }
-                d_queueState_p->stats()->onEvent(
-                    mqbstat::QueueStatsDomain::EventType::e_REJECT,
-                    1);
+                d_queueState_p->stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::e_REJECT>(
+                        1);
 
                 // Lastly, if message reached a ref count of zero in the
                 // storage (i.e., all appIds have confirmed the message),

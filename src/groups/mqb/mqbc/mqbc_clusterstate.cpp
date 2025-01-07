@@ -47,6 +47,7 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
     printer.printAttribute("appIdInfos", appInfos());
+    printer.printAttribute("stateOfAssignment", state());
     printer.end();
 
     return stream;
@@ -94,7 +95,7 @@ void ClusterStateObserver::onQueueUpdated(
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLS_ANNOTATION_UNUSED size_t partitiondId)
+    BSLS_ANNOTATION_UNUSED size_t partitionId)
 {
     // NOTHING
 }
@@ -552,9 +553,10 @@ void ClusterState::DomainState::adjustQueueCount(int by)
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
-        d_domain_p->domainStats()->onEvent(
-            mqbstat::DomainStats::EventType::e_QUEUE_COUNT,
-            d_numAssignedQueues);
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
+
+                d_numAssignedQueues);
     }
 }
 
