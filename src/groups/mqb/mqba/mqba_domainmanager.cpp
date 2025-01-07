@@ -785,11 +785,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 return rc;
             }
 
-            // 6. Clear cache in domainResolver and configProvider
-            d_domainResolver_mp->clearCache(name);
-            d_configProvider_p->clearCache(name);
-
-            // 7. Mark DOMAINS REMOVE command first round as complete
+            // 6. Mark DOMAINS REMOVE command first round as complete
             domainSp->removeDomainComplete();
         }
         // Second pass
@@ -805,10 +801,16 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             }
 
             if (!domainSp->isRemoveComplete()) {
-                BALL_LOG_ERROR
-                    << "First pass of DOMAINS REMOVE is not completed.";
+                bmqu::MemOutStream os;
+                os << "First pass of DOMAINS REMOVE '" << name
+                   << "' is not completed.";
+                result->makeError().message() = os.str();
                 return -1;  // RETURN
             }
+
+            // Clear cache in domainResolver and configProvider
+            d_domainResolver_mp->clearCache(name);
+            d_configProvider_p->clearCache(name);
 
             rc = removeDomain(name);
             if (0 != rc) {

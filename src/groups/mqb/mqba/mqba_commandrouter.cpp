@@ -317,7 +317,7 @@ void CommandRouter::setCommandRoutingMode()
         }
         else if (domains.isRemoveValue()) {
             d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
-            // DOMAINS REMOVE <domain> [finalize]
+            // DOMAINS REMOVE <domain> [FINALIZE]
         }
     }
     else if (commandChoice.isClustersValue()) {
