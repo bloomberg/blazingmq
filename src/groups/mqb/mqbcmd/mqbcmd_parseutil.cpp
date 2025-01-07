@@ -586,12 +586,12 @@ int parseDomainRemove(DomainRemove* remove,
 
     remove->domain() = domain;
 
-    if (equalCaseless(finalize, "finalize")) {
+    if (equalCaseless(finalize, "FINALIZE")) {
         remove->finalize().makeValue(true);
     }
     else if (!finalize.empty()) {
         *error = "Invalid optional key word '" + finalize +
-                 "' for DOMAINS REMOVE <domain> [finalize]";
+                 "' for DOMAINS REMOVE <domain> [FINALIZE]";
         return -1;
     }
 
