@@ -120,10 +120,20 @@ struct PushStream {
     struct App {
         Elements                                   d_elements;
         bsl::shared_ptr<RelayQueueEngine_AppState> d_app;
+        /// Replica deduplicates PUSH for the same App in the same batch.
+        bmqt::MessageGUID d_lastGUID;
 
         App(const bsl::shared_ptr<RelayQueueEngine_AppState>& app);
         void add(Element* element);
         void remove(Element* element);
+
+        /// Return 'true' if the specified `guid` is the same as in the last
+        /// `setLastPush` call.
+        bool isLastPush(const bmqt::MessageGUID& guid);
+
+        /// Cache the specified `guid` for subsequent checks by `isLastPush`.
+        void setLastPush(const bmqt::MessageGUID& guid);
+
         const Element* last() const;
     };
 
@@ -144,9 +154,10 @@ struct PushStream {
         const Apps::iterator d_iteratorApp;
 
       public:
-        Element(const bmqp::SubQueueInfo& subscription,
-                const iterator&           iterator,
-                const Apps::iterator&     iteratorApp);
+        Element(const bmqp::RdaInfo&  rda,
+                unsigned int          subscriptionId,
+                const iterator&       iterator,
+                const Apps::iterator& iteratorApp);
 
         /// Return a modifiable reference to the App state associated with this
         /// Element.
@@ -215,11 +226,13 @@ struct PushStream {
     /// Remove all Elements, Apps, and GUIDs.
     unsigned int removeAll();
 
-    /// Create new Element associated with the specified `info`,
-    // `upstreamSubQueueId`, and `iterator`.
-    Element* create(const bmqp::SubQueueInfo& info,
-                    const iterator&           iterator,
-                    const Apps::iterator&     iteratorApp);
+    /// Create new Element associated with the specified `rda`,
+    /// 'subscriptionId`, `iterator` pointing to the corresponding GUID, and
+    /// `iteratorApp` pointing to the corresponding App.
+    Element* create(const bmqp::RdaInfo&  rda,
+                    unsigned int          subscriptionId,
+                    const iterator&       iterator,
+                    const Apps::iterator& iteratorApp);
 };
 
 // ========================
@@ -430,14 +443,15 @@ inline PushStream::ElementBase::ElementBase()
     // NOTHING
 }
 
-inline PushStream::Element::Element(const bmqp::SubQueueInfo& subscription,
-                                    const iterator&           iterator,
-                                    const Apps::iterator&     iteratorApp)
-: d_app(subscription.rdaInfo())
+inline PushStream::Element::Element(const bmqp::RdaInfo&  rda,
+                                    unsigned int          subscriptionId,
+                                    const iterator&       iterator,
+                                    const Apps::iterator& iteratorApp)
+: d_app(rda)
 , d_iteratorGuid(iterator)
 , d_iteratorApp(iteratorApp)
 {
-    d_app.d_subscriptionId = subscription.id();
+    d_app.d_subscriptionId = subscriptionId;
 }
 
 inline void PushStream::Element::eraseGuid(PushStream::Stream& stream)
@@ -610,6 +624,16 @@ inline void PushStream::App::remove(Element* element)
     d_elements.remove(element, e_APP);
 }
 
+inline bool PushStream::App::isLastPush(const bmqt::MessageGUID& lastGUID)
+{
+    return d_lastGUID == lastGUID;
+}
+
+inline void PushStream::App::setLastPush(const bmqt::MessageGUID& lastGUID)
+{
+    d_lastGUID = lastGUID;
+}
+
 inline const PushStream::Element* PushStream::App::last() const
 {
     return d_elements.back();
@@ -620,14 +644,15 @@ inline const PushStream::Element* PushStream::App::last() const
 // -----------------
 
 inline PushStream::Element*
-PushStream::create(const bmqp::SubQueueInfo& subscription,
-                   const iterator&           it,
-                   const Apps::iterator&     iteratorApp)
+PushStream::create(const bmqp::RdaInfo&  rda,
+                   unsigned int          subscriptionId,
+                   const iterator&       it,
+                   const Apps::iterator& iteratorApp)
 {
     BSLS_ASSERT_SAFE(it != d_stream.end());
 
     Element* element = new (d_pushElementsPool_sp->allocate())
-        Element(subscription, it, iteratorApp);
+        Element(rda, subscriptionId, it, iteratorApp);
     return element;
 }
 
