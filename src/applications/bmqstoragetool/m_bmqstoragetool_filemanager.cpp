@@ -71,7 +71,8 @@ bool findLastSnapshot(bsl::ostream&                           errorDescription,
         }
         if (rc < 0) {
             errorDescription
-                << "CSL file is corrupted or incomplete: rc=" << rc << '\n';
+                << "CSL file is either corrupted or incomplete: rc=" << rc
+                << '\n';
             return false;  // RETURN
         }
 

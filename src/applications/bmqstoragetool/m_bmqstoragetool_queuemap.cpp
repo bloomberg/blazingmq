@@ -120,9 +120,10 @@ bool QueueMap::findKeyByUri(mqbu::StorageKey*  queueKey_p,
 
 bsl::vector<bmqp_ctrlmsg::QueueInfo> QueueMap::queueInfos() const
 {
-    bsl::vector<bmqp_ctrlmsg::QueueInfo> result(d_queueKeyToInfoMap.size(),
-                                                d_allocator_p);
-    QueueKeyToInfoMap::const_iterator    it = d_queueKeyToInfoMap.begin();
+    bsl::vector<bmqp_ctrlmsg::QueueInfo> result(d_allocator_p);
+    result.reserve(d_queueKeyToInfoMap.size());
+
+    QueueKeyToInfoMap::const_iterator it = d_queueKeyToInfoMap.begin();
     for (; it != d_queueKeyToInfoMap.end(); ++it) {
         result.push_back(it->second);
     }
