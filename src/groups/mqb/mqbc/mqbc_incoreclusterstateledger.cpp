@@ -1208,7 +1208,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
         clusterDefinition.partitionConfig();
     d_ledgerConfig.setLocation(partitionCfg.location())
         .setPattern(k_FILE_PATTERN)
-        .setMaxLogSize(partitionCfg.maxQlistFileSize())
+        .setMaxLogSize(partitionCfg.maxCSLFileSize())
         .setReserveOnDisk(partitionCfg.preallocate())
         .setPrefaultPages(partitionCfg.prefaultPages())
         .setLogIdGenerator(logIdGenerator)
