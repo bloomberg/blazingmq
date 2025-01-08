@@ -1,4 +1,4 @@
-// Copyright 2024 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -3285,6 +3285,9 @@ LogController::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 const char PartitionConfig::CLASS_NAME[] = "PartitionConfig";
 
+const bsls::Types::Uint64
+    PartitionConfig::DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE = 67108864;
+
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREALLOCATE = false;
 
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREFAULT_PAGES = false;
@@ -3322,6 +3325,11 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("maxQlistFileSize") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE,
+     "maxCSLFileSize",
+     sizeof("maxCSLFileSize") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_PREALLOCATE,
      "preallocate",
      sizeof("preallocate") - 1,
@@ -3353,7 +3361,7 @@ const bdlat_AttributeInfo PartitionConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 PartitionConfig::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 11; ++i) {
+    for (int i = 0; i < 12; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             PartitionConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -3381,6 +3389,8 @@ const bdlat_AttributeInfo* PartitionConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE];
     case ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE];
+    case ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE];
     case ATTRIBUTE_ID_PREALLOCATE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE];
     case ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS:
@@ -3401,6 +3411,7 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 : d_maxDataFileSize()
 , d_maxJournalFileSize()
 , d_maxQlistFileSize()
+, d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
@@ -3417,6 +3428,7 @@ PartitionConfig::PartitionConfig(const PartitionConfig& original,
 : d_maxDataFileSize(original.d_maxDataFileSize)
 , d_maxJournalFileSize(original.d_maxJournalFileSize)
 , d_maxQlistFileSize(original.d_maxQlistFileSize)
+, d_maxCSLFileSize(original.d_maxCSLFileSize)
 , d_location(original.d_location, basicAllocator)
 , d_archiveLocation(original.d_archiveLocation, basicAllocator)
 , d_syncConfig(original.d_syncConfig)
@@ -3434,6 +3446,7 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original) noexcept
 : d_maxDataFileSize(bsl::move(original.d_maxDataFileSize)),
   d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize)),
   d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize)),
+  d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize)),
   d_location(bsl::move(original.d_location)),
   d_archiveLocation(bsl::move(original.d_archiveLocation)),
   d_syncConfig(bsl::move(original.d_syncConfig)),
@@ -3450,6 +3463,7 @@ PartitionConfig::PartitionConfig(PartitionConfig&& original,
 : d_maxDataFileSize(bsl::move(original.d_maxDataFileSize))
 , d_maxJournalFileSize(bsl::move(original.d_maxJournalFileSize))
 , d_maxQlistFileSize(bsl::move(original.d_maxQlistFileSize))
+, d_maxCSLFileSize(bsl::move(original.d_maxCSLFileSize))
 , d_location(bsl::move(original.d_location), basicAllocator)
 , d_archiveLocation(bsl::move(original.d_archiveLocation), basicAllocator)
 , d_syncConfig(bsl::move(original.d_syncConfig))
@@ -3477,6 +3491,7 @@ PartitionConfig& PartitionConfig::operator=(const PartitionConfig& rhs)
         d_maxDataFileSize     = rhs.d_maxDataFileSize;
         d_maxJournalFileSize  = rhs.d_maxJournalFileSize;
         d_maxQlistFileSize    = rhs.d_maxQlistFileSize;
+        d_maxCSLFileSize      = rhs.d_maxCSLFileSize;
         d_preallocate         = rhs.d_preallocate;
         d_maxArchivedFileSets = rhs.d_maxArchivedFileSets;
         d_prefaultPages       = rhs.d_prefaultPages;
@@ -3498,6 +3513,7 @@ PartitionConfig& PartitionConfig::operator=(PartitionConfig&& rhs)
         d_maxDataFileSize     = bsl::move(rhs.d_maxDataFileSize);
         d_maxJournalFileSize  = bsl::move(rhs.d_maxJournalFileSize);
         d_maxQlistFileSize    = bsl::move(rhs.d_maxQlistFileSize);
+        d_maxCSLFileSize      = bsl::move(rhs.d_maxCSLFileSize);
         d_preallocate         = bsl::move(rhs.d_preallocate);
         d_maxArchivedFileSets = bsl::move(rhs.d_maxArchivedFileSets);
         d_prefaultPages       = bsl::move(rhs.d_prefaultPages);
@@ -3517,6 +3533,7 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxDataFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
+    d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
     d_preallocate = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
     d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;
@@ -3538,6 +3555,7 @@ bsl::ostream& PartitionConfig::print(bsl::ostream& stream,
     printer.printAttribute("maxDataFileSize", this->maxDataFileSize());
     printer.printAttribute("maxJournalFileSize", this->maxJournalFileSize());
     printer.printAttribute("maxQlistFileSize", this->maxQlistFileSize());
+    printer.printAttribute("maxCSLFileSize", this->maxCSLFileSize());
     printer.printAttribute("preallocate", this->preallocate());
     printer.printAttribute("maxArchivedFileSets", this->maxArchivedFileSets());
     printer.printAttribute("prefaultPages", this->prefaultPages());
@@ -6131,6 +6149,7 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.10.17
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
+// ----------------------------------------------------------------------------
