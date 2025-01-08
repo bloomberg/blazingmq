@@ -267,16 +267,15 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         return rc_SUCCESS;  // RETURN
     }
 
-    // Determine the correct LSN to put in the cluster state snapshot, which is
-    // the maximum of current LSN from ElectorInfo and the largest LSN from
-    // uncommitted advisories.
-    bmqp_ctrlmsg::LeaderMessageSequence snapshotLSN =
-        d_clusterData_p->electorInfo().leaderMessageSequence();
+    bmqp_ctrlmsg::LeaderMessageSequence snapshotLSN;
+    d_clusterData_p->electorInfo().nextLeaderMessageSequence(&snapshotLSN);
 
     // Write uncommitted advisories into ledger
     for (AdvisoriesMapIter advisoryIt = d_uncommittedAdvisories.begin();
          advisoryIt != d_uncommittedAdvisories.end();
          ++advisoryIt) {
+        BSLS_ASSERT_SAFE(advisoryIt->first < snapshotLSN);
+
         ClusterMessageInfo& info = advisoryIt->second;
 
         bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
@@ -299,11 +298,6 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
                                       record->length());
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
-        }
-
-        // Increment snapshot LSN if needed
-        if (advisoryIt->first > snapshotLSN) {
-            snapshotLSN = advisoryIt->first;
         }
     }
 
@@ -339,13 +333,25 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
                  domCit->second->queuesInfo().cbegin();
              citer != domCit->second->queuesInfo().cend();
              ++citer) {
-            const mqbc::ClusterState::QueueInfoSp& infoSp = citer->second;
+            const ClusterState::QueueInfoSp& infoSp = citer->second;
 
             if (infoSp->state() == ClusterStateQueueInfo::State::k_ASSIGNED) {
                 bmqp_ctrlmsg::QueueInfo queueInfo;
                 infoSp->key().loadBinary(&queueInfo.key());
                 queueInfo.uri()         = infoSp->uri().asString();
                 queueInfo.partitionId() = infoSp->partitionId();
+
+                queueInfo.appIds().resize(infoSp->appInfos().size());
+                size_t i = 0;
+                for (ClusterStateQueueInfo::AppInfosCIter appCIt =
+                         infoSp->appInfos().cbegin();
+                     appCIt != infoSp->appInfos().cend();
+                     ++appCIt) {
+                    queueInfo.appIds().at(i).appId() = appCIt->first;
+                    appCIt->second.loadBinary(
+                        &queueInfo.appIds().at(i).appKey());
+                    ++i;
+                }
 
                 leaderAdvisory.queues().push_back(queueInfo);
             }
