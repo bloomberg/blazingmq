@@ -397,6 +397,37 @@ class Heartbeat:
     )
 
 
+@dataclass
+class LogDumpConfig:
+    record_buffer_size: int = field(
+        default=32768,
+        metadata={
+            "name": "recordBufferSize",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    recording_level: str = field(
+        default="OFF",
+        metadata={
+            "name": "recordingLevel",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    trigger_level: str = field(
+        default="OFF",
+        metadata={
+            "name": "triggerLevel",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
 class MasterAssignmentAlgorithm(Enum):
     """Enumeration of the various algorithm's used for assigning a master to.
 
@@ -1157,6 +1188,15 @@ class LogController:
             "required": True,
         },
     )
+    log_dump: Optional[LogDumpConfig] = field(
+        default=None,
+        metadata={
+            "name": "logDump",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
 
 
 @dataclass
@@ -1169,6 +1209,7 @@ class PartitionConfig:
     maxDataFileSize......: maximum size of partitions' data file
     maxJournalFileSize...: maximum size of partitions' journal file
     maxQlistFileSize.....: maximum size of partitions' qlist file
+    maxCSLFileSize.......: maximum size of partitions' CSL file
     preallocate..........: flag to indicate whether files should be
     preallocated on disk
     maxArchivedFileSets..: maximum number of archived file sets per
@@ -1229,6 +1270,15 @@ class PartitionConfig:
         default=None,
         metadata={
             "name": "maxQlistFileSize",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    max_cslfile_size: int = field(
+        default=67108864,
+        metadata={
+            "name": "maxCSLFileSize",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
@@ -1855,7 +1905,8 @@ class AppConfig:
     plugins..............: configuration for the plugins
     msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
     configureStream......: send new ConfigureStream instead of old ConfigureQueue
-    advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK/&gt;
+    advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
+    routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
     """
 
     broker_instance_name: Optional[str] = field(
@@ -2013,6 +2064,15 @@ class AppConfig:
         default=False,
         metadata={
             "name": "advertiseSubscriptions",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    route_command_timeout_ms: int = field(
+        default=3000,
+        metadata={
+            "name": "routeCommandTimeoutMs",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
