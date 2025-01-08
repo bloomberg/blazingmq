@@ -29,7 +29,7 @@ pytestmark = order(2)
 timeout = 10
 
 
-@tweak.cluster.partition_config.max_qlist_file_size(2000)
+@tweak.cluster.partition_config.max_cslfile_size(2000)
 def test_csl_cleanup(cluster: Cluster):
     leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
