@@ -868,7 +868,6 @@ static void test11_searchMessagesByTimestamp()
     Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_timestampGt = ts1;
     params.d_range.d_timestampLt = ts2;
-    params.d_range.d_type        = Parameters::Range::e_TIMESTAMP;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1244,7 +1243,6 @@ static void test15_timestampSearchTest()
         BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
 
         Parameters::Range range;
-        range.d_type        = Parameters::Range::e_TIMESTAMP;
         range.d_timestampGt = ts;
         LessThanLowerBoundFn lessThanLowerBoundFn(range);
 
@@ -1277,10 +1275,9 @@ static void test15_timestampSearchTest()
         // specified iterator, which is initially forward
         BMQTST_ASSERT_GT(journalFileIt.recordHeader().timestamp(), ts1);
 
-        Parameters::Range range;
-        range.d_type        = Parameters::Range::e_TIMESTAMP;
-        range.d_timestampGt = ts1;
-        LessThanLowerBoundFn lessThanLowerBoundFn(range);
+        Parameters::Range range1;
+        range1.d_timestampGt = ts1;
+        LessThanLowerBoundFn lessThanLowerBoundFn(range1);
 
         BMQTST_ASSERT_EQ(
             m_bmqstoragetool::moveToLowerBound(&journalFileIt,
@@ -1291,9 +1288,10 @@ static void test15_timestampSearchTest()
         // Find record with higher timestamp than the record pointed by the
         // specified iterator, which is initially forward
         BMQTST_ASSERT_LT(journalFileIt.recordHeader().timestamp(), ts2);
-        range.d_timestampGt = ts2;
+        Parameters::Range range2;
+        range2.d_timestampGt = ts2;
 
-        LessThanLowerBoundFn lessThanLowerBoundFn2(range);
+        LessThanLowerBoundFn lessThanLowerBoundFn2(range2);
         BMQTST_ASSERT_EQ(
             m_bmqstoragetool::moveToLowerBound(&journalFileIt,
                                                lessThanLowerBoundFn2),
@@ -1335,7 +1333,6 @@ static void test15_timestampSearchTest()
         BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
 
         Parameters::Range range;
-        range.d_type        = Parameters::Range::e_TIMESTAMP;
         range.d_timestampGt = ts;
         LessThanLowerBoundFn lessThanLowerBoundFn(range);
 
@@ -1359,7 +1356,6 @@ static void test15_timestampSearchTest()
         BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
 
         Parameters::Range range;
-        range.d_type        = Parameters::Range::e_TIMESTAMP;
         range.d_timestampGt = ts;
         LessThanLowerBoundFn lessThanLowerBoundFn(range);
 
@@ -1439,7 +1435,6 @@ static void test16_sequenceNumberLowerBoundTest()
         BMQTST_ASSERT_EQ(journalFileIt.nextRecord(), 1);
 
         Parameters::Range range;
-        range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
         range.d_seqNumGt = seqNumGt;
         LessThanLowerBoundFn lessThanLowerBoundFn(range);
 
@@ -1476,7 +1471,6 @@ static void test16_sequenceNumberLowerBoundTest()
 
         CompositeSequenceNumber seqNumGt(1, k_NUM_RECORDS);
         Parameters::Range       range;
-        range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
         range.d_seqNumGt = seqNumGt;
         LessThanLowerBoundFn lessThanLowerBoundFn(range);
 
@@ -1518,7 +1512,6 @@ static void test17_searchMessagesBySequenceNumbersRange()
     Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
-    params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1591,7 +1584,6 @@ static void test18_searchMessagesByOffsetsRange()
     Parameters params(bmqtst::TestHelperUtil::allocator());
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
-    params.d_range.d_type     = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1666,7 +1658,6 @@ static void test19_searchQueueOpRecords()
     params.d_processRecordTypes.d_queueOp = true;
     params.d_range.d_offsetGt             = offsetGt;
     params.d_range.d_offsetLt             = offsetLt;
-    params.d_range.d_type                 = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1743,7 +1734,6 @@ static void test20_searchJournalOpRecords()
     params.d_processRecordTypes.d_journalOp = true;
     params.d_range.d_offsetGt               = offsetGt;
     params.d_range.d_offsetLt               = offsetLt;
-    params.d_range.d_type                   = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1821,7 +1811,6 @@ static void test21_searchAllTypesRecords()
     params.d_processRecordTypes.d_journalOp = true;
     params.d_range.d_offsetGt               = offsetGt;
     params.d_range.d_offsetLt               = offsetLt;
-    params.d_range.d_type                   = Parameters::Range::e_OFFSET;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())

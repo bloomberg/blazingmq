@@ -147,33 +147,27 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Add TimestampDecorator if 'timestampLt' is given and value type is
-    // `e_TIMESTAMP`.
-    if (params->d_range.d_type == Parameters::Range::e_TIMESTAMP &&
-        params->d_range.d_timestampLt > 0) {
+    // Add TimestampDecorator if 'timestampLt' is given.
+    if (params->d_range.d_timestampLt) {
         searchResult.reset(new (*alloc) SearchResultTimestampDecorator(
                                searchResult,
-                               params->d_range.d_timestampLt,
+                               params->d_range.d_timestampLt.value(),
                                alloc),
                            alloc);
     }
-    else if (params->d_range.d_type == Parameters::Range::e_OFFSET &&
-             params->d_range.d_offsetLt > 0) {
-        // Add OffsetDecorator if 'offsetLt' is given and value type is
-        // `e_OFFSET`.
+    else if (params->d_range.d_offsetLt) {
+        // Add OffsetDecorator if 'offsetLt' is given.
         searchResult.reset(new (*alloc) SearchResultOffsetDecorator(
                                searchResult,
-                               params->d_range.d_offsetLt,
+                               params->d_range.d_offsetLt.value(),
                                alloc),
                            alloc);
     }
-    else if (params->d_range.d_type == Parameters::Range::e_SEQUENCE_NUM &&
-             params->d_range.d_seqNumLt.isSet()) {
-        // Add SequenceNumberDecorator if 'seqNumLt' is given and value type is
-        // `e_SEQUENCE_NUM`.
+    else if (params->d_range.d_seqNumLt) {
+        // Add SequenceNumberDecorator if 'seqNumLt' is given.
         searchResult.reset(new (*alloc) SearchResultSequenceNumberDecorator(
                                searchResult,
-                               params->d_range.d_seqNumLt,
+                               params->d_range.d_seqNumLt.value(),
                                alloc),
                            alloc);
     }

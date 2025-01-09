@@ -40,6 +40,7 @@
 
 // BDE
 #include <bsl_iosfwd.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bsls_types.h>
@@ -131,29 +132,20 @@ struct Parameters {
 
     /// VST representing search range parameters
     struct Range {
-        // PUBLIC TYPES
-        enum Type {
-            e_NONE         = 0,
-            e_TIMESTAMP    = 1,
-            e_SEQUENCE_NUM = 2,
-            e_OFFSET       = 3
-        };
-
         // PUBLIC DATA
-        /// Range type
-        Type d_type;
+
         /// Filter messages greater than timestamp value
-        bsls::Types::Uint64 d_timestampGt;
+        bsl::optional<bsls::Types::Uint64> d_timestampGt;
         /// Filter messages less than timestamp value
-        bsls::Types::Uint64 d_timestampLt;
+        bsl::optional<bsls::Types::Uint64> d_timestampLt;
         /// Filter messages greater than offset value
-        bsls::Types::Uint64 d_offsetGt;
+        bsl::optional<bsls::Types::Uint64> d_offsetGt;
         /// Filter messages less than offset value
-        bsls::Types::Uint64 d_offsetLt;
+        bsl::optional<bsls::Types::Uint64> d_offsetLt;
         /// Filter messages greater than sequence number
-        CompositeSequenceNumber d_seqNumGt;
+        bsl::optional<CompositeSequenceNumber> d_seqNumGt;
         /// Filter messages less than sequence number
-        CompositeSequenceNumber d_seqNumLt;
+        bsl::optional<CompositeSequenceNumber> d_seqNumLt;
 
         // CREATORS
         /// Default constructor
