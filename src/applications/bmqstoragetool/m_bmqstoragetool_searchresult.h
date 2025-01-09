@@ -120,10 +120,6 @@ class SearchResult {
                                         bsls::Types::Uint64 recordIndex,
                                         bsls::Types::Uint64 recordOffset) = 0;
 
-    /// Process `other` record with the specified `record`, `recordIndex`
-    /// and `recordOffset`.
-    virtual bool processOtherRecord(mqbs::RecordType::Enum recordType);
-                                        
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -922,8 +918,6 @@ class SummaryProcessor : public SearchResult {
     // Counter of total number of records.
 
     QueueRecordsMap d_queueRecordsMap;
-    // Map containing total records counts per queue
-    OtherRecordsMap d_otherRecordsCounts;
     // Map containing counts per record type which are not processed by default
     QueueAppRecordsMap d_queueAppRecordsMap;
     // Map containing counts of records per Queue/App
@@ -957,13 +951,14 @@ class SummaryProcessor : public SearchResult {
 
     /// Constructor using the specified `component`, `journalFile_p`,
     /// `dataFile_p` and `allocator`.
-    explicit SummaryProcessor(bsl::ostream&              ostream,
-                              mqbs::JournalFileIterator* journalFile_p,
-                              mqbs::DataFileIterator*    dataFile_p,
-                              const Parameters::ProcessRecordTypes& processRecordTypes,
-                              const QueueMap&            queueMap,
-                              bsls::Types::Uint64        minRecordsPerQueue,
-                              bslma::Allocator*          allocator);
+    explicit SummaryProcessor(
+        bsl::ostream&                         ostream,
+        mqbs::JournalFileIterator*            journalFile_p,
+        mqbs::DataFileIterator*               dataFile_p,
+        const Parameters::ProcessRecordTypes& processRecordTypes,
+        const QueueMap&                       queueMap,
+        bsls::Types::Uint64                   minRecordsPerQueue,
+        bslma::Allocator*                     allocator);
 
     // MANIPULATORS
 
@@ -996,10 +991,6 @@ class SummaryProcessor : public SearchResult {
     bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
                                 bsls::Types::Uint64          recordIndex,
                                 bsls::Types::Uint64          recordOffset)
-        BSLS_KEYWORD_OVERRIDE;
-    /// Process `deletion` record with the specified `record`, `recordIndex`
-    /// and `recordOffset`.
-    bool processOtherRecord(mqbs::RecordType::Enum recordType)
         BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search.
     void outputResult() BSLS_KEYWORD_OVERRIDE;

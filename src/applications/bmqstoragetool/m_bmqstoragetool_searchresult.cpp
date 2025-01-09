@@ -220,12 +220,6 @@ bool SearchResult::processJournalOpRecord(
     return false;
 }
 
-bool SearchResult::processOtherRecord(
-    BSLS_ANNOTATION_UNUSED mqbs::RecordType::Enum recordType)
-{
-    return false;
-}
-
 SearchResult::~SearchResult()
 {
     // NOTHING
@@ -1262,13 +1256,14 @@ void SearchSequenceNumberDecorator::outputResult()
 // class SummaryProcessor
 // ======================
 
-SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
-                                   mqbs::JournalFileIterator* journalFile_p,
-                                   mqbs::DataFileIterator*    dataFile_p,
-                                   const Parameters::ProcessRecordTypes& processRecordTypes,
-                                   const QueueMap&            queueMap,
-                                   bsls::Types::Uint64 minRecordsPerQueue,
-                                   bslma::Allocator*   allocator)
+SummaryProcessor::SummaryProcessor(
+    bsl::ostream&                         ostream,
+    mqbs::JournalFileIterator*            journalFile_p,
+    mqbs::DataFileIterator*               dataFile_p,
+    const Parameters::ProcessRecordTypes& processRecordTypes,
+    const QueueMap&                       queueMap,
+    bsls::Types::Uint64                   minRecordsPerQueue,
+    bslma::Allocator*                     allocator)
 : d_ostream(ostream)
 , d_journalFile_p(journalFile_p)
 , d_dataFile_p(dataFile_p)
@@ -1282,7 +1277,6 @@ SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
 , d_partiallyConfirmedGuids(allocator)
 , d_totalRecordsCount(0)
 , d_queueRecordsMap(allocator)
-, d_otherRecordsCounts(allocator)
 , d_queueAppRecordsMap(allocator)
 , d_queueQueueOpRecordsMap(allocator)
 , d_queueMessageRecordsMap(allocator)
@@ -1361,6 +1355,8 @@ bool SummaryProcessor::processQueueOpRecord(
 {
     updateTotalRecordsCounter();
 
+    d_queueOpRecordsCount++;
+    d_queueOpCountsMap[record.type()]++;
     d_queueRecordsMap[record.queueKey()]++;
     d_queueQueueOpRecordsMap[record.queueKey()]++;
 
@@ -1374,36 +1370,6 @@ bool SummaryProcessor::processJournalOpRecord(
 {
     updateTotalRecordsCounter();
 
-    d_otherRecordsCounts[mqbs::RecordType::Enum::e_JOURNAL_OP]++;
-
-    return false;
-}
-
-bool SummaryProcessor::processOtherRecord(mqbs::RecordType::Enum recordType)
-{
-    updateTotalRecordsCounter();
-
-    d_otherRecordsCounts[recordType]++;
-
-    return false;
-}
-
-bool SummaryProcessor::processQueueOpRecord(
-    const mqbs::QueueOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
-{
-    d_queueOpRecordsCount++;
-    d_queueOpCountsMap[record.type()]++;
-
-    return false;
-}
-
-bool SummaryProcessor::processJournalOpRecord(
-    BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
-{
     d_journalOpRecordsCount++;
 
     return false;
@@ -1468,16 +1434,9 @@ void SummaryProcessor::outputResult()
     }
 
     d_ostream << "Total number of records: " << d_totalRecordsCount << "\n";
-    for (OtherRecordsMap::const_iterator it = d_otherRecordsCounts.cbegin();
-         it != d_otherRecordsCounts.cend();
-         ++it) {
-        d_ostream << "Number of " << it->first << " records: " << it->second
-                  << "\n";
-    }
 
     // Print information per Queue:
     d_ostream << "Number of records per Queue:\n";
-
     for (QueueRecordsMap::const_iterator it = d_queueRecordsMap.cbegin();
          it != d_queueRecordsMap.cend();
          ++it) {
