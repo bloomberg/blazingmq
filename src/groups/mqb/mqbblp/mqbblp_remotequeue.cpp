@@ -914,7 +914,29 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                       << putHeader.messageGUID() << "'] for unknown upstream";
         return;  // RETURN
     }
+
+    bool isInvalid = false;
+
     if (ctx.d_state == SubStreamContext::e_CLOSED) {
+        isInvalid = true;
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                 d_pendingMessages.find(putHeader.messageGUID()) !=
+                 d_pendingMessages.end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        isInvalid = true;
+
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_INFO << "[THROTTLED] Remote queue " << d_state_p->uri()
+                          << " (id: " << d_state_p->id()
+                          << ") discarding a duplicate PUT from client ["
+                          << source->client()->description() << "] for guid "
+                          << putHeader.messageGUID();
+        }
+    }
+
+    if (isInvalid) {
         if (!d_state_p->isAtMostOnce()) {
             bmqp::AckMessage ackMessage;
 
