@@ -51,15 +51,13 @@ BlobPoolUtil::createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
-    return bsl::shared_ptr<BlobSpPool>(
-        new BlobSpPool(
-            bdlf::BindUtil::bind(&createBlob,
-                                 blobBufferFactory_p,
-                                 bdlf::PlaceHolders::_1,   // arena
-                                 bdlf::PlaceHolders::_2),  // allocator
-            k_BLOB_POOL_GROWTH_STRATEGY,
-            alloc),
-        alloc);
+    return bsl::allocate_shared<BlobSpPool>(
+        alloc,
+        bdlf::BindUtil::bind(&createBlob,
+                             blobBufferFactory_p,
+                             bdlf::PlaceHolders::_1,   // arena
+                             bdlf::PlaceHolders::_2),  // allocator
+        k_BLOB_POOL_GROWTH_STRATEGY);
 }
 
 }  // close package namespace
