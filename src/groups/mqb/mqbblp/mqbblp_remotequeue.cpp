@@ -43,6 +43,7 @@
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_severity.h>
@@ -454,7 +455,8 @@ RemoteQueue::RemoteQueue(QueueState*       state,
                          int               ackWindowSize,
                          StateSpPool*      statePool,
                          bslma::Allocator* allocator)
-: d_state_p(state)
+: d_self(this, allocator)
+, d_state_p(state)
 , d_queueEngine_mp(0)
 , d_pendingMessages(allocator)
 , d_pendingConfirms(allocator)
@@ -553,6 +555,7 @@ void RemoteQueue::resetState()
 
     erasePendingMessages(d_pendingMessages.end());
 
+    d_self.invalidate();
     if (d_pendingMessagesTimerEventHandle) {
         scheduler()->cancelEventAndWait(&d_pendingMessagesTimerEventHandle);
         // 'expirePendingMessagesDispatched' does not restart timer if
@@ -585,6 +588,7 @@ void RemoteQueue::close()
 
     BSLS_ASSERT_SAFE(d_pendingMessages.size() == 0);
 
+    d_self.invalidate();
     if (d_pendingMessagesTimerEventHandle) {
         scheduler()->cancelEventAndWait(&d_pendingMessagesTimerEventHandle);
         // 'expirePendingMessagesDispatched' does not restart timer if
@@ -992,8 +996,9 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             scheduler()->scheduleEvent(
                 &d_pendingMessagesTimerEventHandle,
                 time,
-                bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages,
-                                     this));
+                bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                    &RemoteQueue::expirePendingMessages,
+                    d_self.acquireWeak())));
         }
     }
 
@@ -1377,7 +1382,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
         scheduler()->scheduleEvent(
             &d_pendingMessagesTimerEventHandle,
             time,
-            bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages, this));
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                &RemoteQueue::expirePendingMessages,
+                d_self.acquireWeak())));
 
         BALL_LOG_DEBUG << d_state_p->uri() << ": will check again to expire"
                        << " pending PUSH messages in "
