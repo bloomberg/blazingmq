@@ -916,25 +916,26 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
     bsl::vector<bsl::string> msgs(d_allocator_p);
     parseMessages(&msgs, messages);
 
-    bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
-
-    if (d_subIds.empty()) {
-        subscriptions.push_back(
-            bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID));
-    }
-    else {
-        // Assume, RelayQueueEngine will use upstreamSubQueueIds as the
-        // subscriptionIds.
-        // This needs to be in accord with the 'configureHandle' logic.
-
-        for (SubIdsMap::const_iterator cit = d_subIds.cbegin();
-             cit != d_subIds.cend();
-             ++cit) {
-            subscriptions.push_back(bmqp::SubQueueInfo(cit->second));
-        }
-    }
-
     for (unsigned int i = 0; i < msgs.size(); ++i) {
+        // Each message must have its own 'subscriptions'.
+        bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
+
+        if (d_subIds.empty()) {
+            subscriptions.push_back(
+                bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID));
+        }
+        else {
+            // Assume, RelayQueueEngine will use upstreamSubQueueIds as the
+            // subscriptionIds.
+            // This needs to be in accord with the 'configureHandle' logic.
+
+            for (SubIdsMap::const_iterator cit = d_subIds.cbegin();
+                 cit != d_subIds.cend();
+                 ++cit) {
+                subscriptions.push_back(bmqp::SubQueueInfo(cit->second));
+            }
+        }
+
         // Put in storage
         bmqt::MessageGUID              msgGUID;
         mqbi::StorageMessageAttributes msgAttributes;

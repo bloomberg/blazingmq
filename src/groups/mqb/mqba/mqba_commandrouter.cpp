@@ -315,6 +315,10 @@ void CommandRouter::setCommandRoutingMode()
             d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
             // DOMAINS RECONFIGURE <domain>
         }
+        else if (domains.isRemoveValue()) {
+            d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
+            // DOMAINS REMOVE <domain> [FINALIZE]
+        }
     }
     else if (commandChoice.isClustersValue()) {
         const mqbcmd::ClustersCommand& clusters = commandChoice.clusters();

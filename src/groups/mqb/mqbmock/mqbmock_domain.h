@@ -165,6 +165,8 @@ class Domain : public mqbi::Domain {
     /// Do some logging.
     void teardown(const Domain::TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
 
+    void teardownRemove(const TeardownCb& teardownCb) BSLS_KEYWORD_OVERRIDE;
+
     /// Create/Open with the specified `handleParameters` the queue having
     /// the specified `uri` for the requester client represented with the
     /// specified `clientContext`.  Invoke the specified `callback` with the
@@ -209,6 +211,13 @@ class Domain : public mqbi::Domain {
     processCommand(mqbcmd::DomainResult*        result,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
+    /// Mark the state of domain to be PREREMOVE
+    void removeDomainReset() BSLS_KEYWORD_OVERRIDE;
+
+    /// Mark the state of domain to be POSTREMOVE,
+    /// indicating the first round of DOMAINS REMOVE is completed
+    void removeDomainComplete() BSLS_KEYWORD_OVERRIDE;
+
     /// Load into the specified `out`, if `out` is not 0, the queue
     /// corresponding to the specified `uri`, if found. Return 0 on success,
     /// or a non-zero return code otherwise.
@@ -242,6 +251,14 @@ class Domain : public mqbi::Domain {
     /// should be used by all queues under this domain.
     void loadRoutingConfiguration(bmqp_ctrlmsg::RoutingConfiguration* config)
         const BSLS_KEYWORD_OVERRIDE;
+
+    /// Check the state of the queues in this domain, return false if there's
+    /// queues opened or opening.
+    bool tryRemove() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Check the state of the domain, return true if the first round
+    /// of DOMAINS REMOVE is completed
+    bool isRemoveComplete() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===================

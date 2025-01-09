@@ -2,8 +2,8 @@ BMQStorageTool
 ==============
 
 BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
-files. It allows to search messages in `journal` file with set of different 
-filters and output found message GUIDs or message detail information.
+files. It allows to search records in `journal` file with set of different 
+filters and output found results in the short or detail form.
 As input, a `journal` file (*.bmq_journal) is *always* required. To dump 
 payload, `data` file (*.bmq_data) is required. To filter by queue Uri, cluster
 state ledger (CSL) file (*.bmq_csl) is required.
@@ -13,7 +13,8 @@ the project. From the command-line, there are a few options you can use when
 invoking the tool.
 
 ```bash
-Usage:   bmqstoragetool [--journal-path <journal path>]
+Usage:   bmqstoragetool [-r|record-type <record type>]*
+                        [--journal-path <journal path>]
                         [--journal-file <journal file>]
                         [--data-file <data file>]
                         [--csl-file <csl file>]
@@ -38,6 +39,8 @@ Usage:   bmqstoragetool [--journal-path <journal path>]
                         [--summary]
                         [-h|help]
 Where:
+  -r | --record-type          <record type>
+          record type to search {message|queue-op|journal-op} (default: message)
        --journal-path         <pattern>
           '*'-ended file path pattern, where the tool will try to find journal
           and data files
@@ -105,6 +108,15 @@ Search and otput all message GUIDs in journal file
 Example:
 ```bash
 bmqstoragetool --journal-file=<path>
+```
+
+Search and otput all queueOp/journalOp records or all records in journal file
+--------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --record-type=queue-op
+bmqstoragetool --journal-file=<path> --record-type=journal-op
+bmqstoragetool --journal-file=<path> --record-type=journal-op --record-type=queue-op --record-type=message
 ```
 
 Search and otput all messages details in journal file

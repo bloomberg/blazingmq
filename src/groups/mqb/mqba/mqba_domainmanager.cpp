@@ -59,7 +59,8 @@ namespace BloombergLP {
 namespace mqba {
 
 namespace {
-const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN = 40;
+const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN      = 40;
+const int k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE = 5;
 
 /// This function is a callback passed to domain manager for
 /// synchronization.  The specified 'status' is a return status
@@ -702,11 +703,155 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             return 0;  // RETURN
         }
     }
+    else if (command.isRemoveValue()) {
+        const bsl::string& name = command.remove().domain();
+
+        // First pass
+        if (command.remove().finalize().isNull()) {
+            DomainSp domainSp;
+
+            if (0 != locateOrCreateDomain(&domainSp, name)) {
+                bmqu::MemOutStream os;
+                os << "Domain '" << name << "' doesn't exist";
+                result->makeError().message() = os.str();
+                return -1;  // RETURN
+            }
+
+            // 1. Reject if there's any opened or opening queue
+            if (!domainSp->tryRemove()) {
+                bmqu::MemOutStream os;
+                os << "Trying to remove the domain '" << name
+                   << "' while there are queues opened or opening";
+                result->makeError().message() = os.str();
+                return -1;  // RETURN
+            }
+
+            // 2. Mark DOMAIN PREREMOVE to block openQueue requests
+            domainSp->removeDomainReset();
+
+            // 3. Purge inactive queues
+            // remove virtual storage; add a record in journal file
+            mqbcmd::DomainResult  domainResult;
+            mqbcmd::ClusterResult clusterResult;
+            mqbi::Cluster*        cluster = domainSp->cluster();
+
+            cluster->purgeQueueOnDomain(&clusterResult, name);
+
+            if (clusterResult.isErrorValue()) {
+                result->makeError(clusterResult.error());
+                return -1;  // RETURN
+            }
+
+            BSLS_ASSERT_SAFE(clusterResult.isStorageResultValue());
+            BSLS_ASSERT_SAFE(
+                clusterResult.storageResult().isPurgedQueuesValue());
+
+            mqbcmd::PurgedQueues& purgedQueues =
+                domainResult.makePurgedQueues();
+            purgedQueues.queues() =
+                clusterResult.storageResult().purgedQueues().queues();
+            result->makeDomainResult(domainResult);
+
+            // 4. Force GC queues
+            // unregister Queue from domain;
+            // remove queue storage from partition
+            mqbcmd::ClusterResult clusterForceGCResult;
+            int rc = cluster->gcQueueOnDomain(&clusterForceGCResult, name);
+            if (clusterForceGCResult.isErrorValue()) {
+                result->makeError(clusterForceGCResult.error());
+                return -1;  // RETURN
+            }
+
+            // 5. Mark DOMAIN REMOVED to accecpt the second pass
+
+            bmqu::SharedResource<DomainManager> self(this);
+            bslmt::Latch latch(1, bsls::SystemClockType::e_MONOTONIC);
+
+            domainSp->teardownRemove(bdlf::BindUtil::bind(
+                bmqu::WeakMemFnUtil::weakMemFn(&DomainManager::onDomainClosed,
+                                               self.acquireWeak()),
+                bdlf::PlaceHolders::_1,  // Domain Name
+                &latch));
+
+            bsls::TimeInterval timeout =
+                bmqsys::Time::nowMonotonicClock().addSeconds(
+                    k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE);
+
+            rc = latch.timedWait(timeout);
+            if (0 != rc) {
+                BALL_LOG_ERROR << "DOMAINS REMOVE fail to finish in "
+                               << k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE
+                               << " seconds. rc:  " << rc << ".";
+                return rc;
+            }
+
+            // 6. Mark DOMAINS REMOVE command first round as complete
+            domainSp->removeDomainComplete();
+        }
+        // Second pass
+        else {
+            DomainSp domainSp;
+
+            int rc = locateDomain(&domainSp, name);
+            if (0 != rc) {
+                bmqu::MemOutStream os;
+                os << "Domain '" << name << "' doesn't exist";
+                result->makeError().message() = os.str();
+                return rc;  // RETURN
+            }
+
+            if (!domainSp->isRemoveComplete()) {
+                bmqu::MemOutStream os;
+                os << "First pass of DOMAINS REMOVE '" << name
+                   << "' is not completed.";
+                result->makeError().message() = os.str();
+                return -1;  // RETURN
+            }
+
+            // Clear cache in domainResolver and configProvider
+            d_domainResolver_mp->clearCache(name);
+            d_configProvider_p->clearCache(name);
+
+            rc = removeDomain(name);
+            if (0 != rc) {
+                bmqu::MemOutStream os;
+                os << "Domain '" << name << "' doesn't exist";
+                result->makeError().message() = os.str();
+                return rc;  // RETURN
+            }
+
+            result->makeSuccess();
+            return 0;  // RETURN
+        }
+
+        return 0;
+    }
 
     bmqu::MemOutStream os;
     os << "Unknown command '" << command << "'";
     result->makeError().message() = os.str();
     return -1;
+}
+
+int DomainManager::removeDomain(const bsl::string& domainName)
+{
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS          = 0,
+        rc_DOMAIN_NOT_FOUND = -1
+    };
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
+
+    DomainSpMap::const_iterator it = d_domains.find(domainName);
+
+    if (it == d_domains.end()) {
+        return rc_DOMAIN_NOT_FOUND;  // RETURN
+    }
+
+    d_domains.erase(domainName);
+
+    return rc_SUCCESS;
 }
 
 void DomainManager::qualifyDomain(

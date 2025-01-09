@@ -343,6 +343,9 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     int processCommand(mqbcmd::DomainsResult*        result,
                        const mqbcmd::DomainsCommand& command);
 
+    /// Remove the `domainSp` from DomainSpMap.
+    int removeDomain(const bsl::string& domainName);
+
     // MANIPULATORS
     //   (virtual: mqbi::DomainFactory)
 

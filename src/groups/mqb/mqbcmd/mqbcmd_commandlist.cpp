@@ -73,6 +73,18 @@ struct CommandDefinition {
      "Clear the domain resolution cache entry of the optionally specified "
      "'domain', or clear all domain resolution cache entries if 'ALL' is "
      "specified."},
+    {"DOMAINS REMOVE <domain> [FINALIZE]",
+     "Remove a domain with an optional keyword 'FINALIZE'",
+     "Remove a domain from the cluster.  If the keyword 'FINALIZE' is not "
+     "supplied, perform the first phase of domain deletion, failing if there "
+     "is an open queue on this domain and blocking any open queue requests "
+     "subsequent to the command being issued.  After the first phase of "
+     "domain deletion, it is safe to remove the domain configuration file "
+     "from disk.  If the keyword 'FINALIZE' is specified, perform the second "
+     "phase of domain deletion, failing if the domain has not had the first "
+     "phase of domain deletion performed.  After the second phase of domain "
+     "deletion, it is safe to create a new domain reusing the same name and "
+     "to connect to it."},
     // ConfigProvider
     {"CONFIGPROVIDER CACHE_CLEAR (<domain>|ALL)",
      "Clear domain's cached configuration.",

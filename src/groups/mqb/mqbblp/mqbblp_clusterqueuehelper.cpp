@@ -5992,7 +5992,8 @@ void ClusterQueueHelper::onCloseQueueResponse(
                   << contextSp->d_peer->nodeDescription();
 }
 
-int ClusterQueueHelper::gcExpiredQueues(bool immediate)
+int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
+                                        const bsl::string& domainName)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -6004,6 +6005,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
         rc_SUCCESS             = 0,
         rc_CLUSTER_IS_STOPPING = -1,
         rc_SELF_IS_NOT_PRIMARY = -2,
+        rc_SELF_IS_NOT_LEADER  = -3,
     };
 
     if (d_cluster_p->isStopping()) {
@@ -6026,6 +6028,11 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
         QueueContextSp& queueContextSp = it->second;
         QueueLiveState& qinfo          = queueContextSp->d_liveQInfo;
         const int       pid            = queueContextSp->partitionId();
+
+        if (domainName != "" &&
+            it->second->uri().qualifiedDomain().compare(domainName) != 0) {
+            continue;  // CONTINUE
+        }
 
         if (!isQueueAssigned(*queueContextSp)) {
             continue;  // CONTINUE
@@ -6172,7 +6179,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool immediate)
             d_primaryNotLeaderAlarmRaised = true;
         }
 
-        return rc_SUCCESS;  // RETURN
+        return rc_SELF_IS_NOT_LEADER;  // RETURN
     }
 
     for (size_t i = 0; i < queuesToGc.size(); ++i) {

@@ -453,8 +453,8 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
                    << "[status: " << status << ", source: '" << source << "'"
                    << ", correlationId: " << correlationId
                    << ", GUID: " << messageGUID << ", queue: '" << uri
-                   << "' (id: " << queueId << ")] to "
-                   << "node " << nodeSession->clusterNode()->nodeDescription();
+                   << "' (id: " << queueId << ")] to " << "node "
+                   << nodeSession->clusterNode()->nodeDescription();
 
     // Update stats for the queue (or subStream of the queue)
     // TBD: We should collect all invalid stats (i.e. stats for queues that
@@ -3663,6 +3663,67 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     d_storageManager_mp->processCommand(&storageResult, cmd);
     clusterStatus.clusterStorageSummary() =
         storageResult.clusterStorageSummary();
+}
+
+int Cluster::gcQueueOnDomain(mqbcmd::ClusterResult* result,
+                             const bsl::string&     domainName)
+{
+    // exected by *ANY* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Cluster::gcQueueOnDomainDispatched,
+                             this,
+                             result,
+                             domainName),
+        this);
+
+    dispatcher()->synchronize(this);
+
+    return 0;
+}
+
+void Cluster::gcQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
+                                        const bsl::string&     domainName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    // 'true' implies immediate
+    const int rc =
+        d_clusterOrchestrator.queueHelper().gcExpiredQueues(true, domainName);
+    if (rc == -1 || rc == -3) {
+        // TBD: We allow the node to not be an active primary for *any*
+        // partition; this has to be changed once we allow leader != primary
+        BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
+                       << rc << ")";
+        result->makeError().message() = "Failed to execute command (rc: " +
+                                        bsl::to_string(rc) + ")";
+    }
+    else {
+        // Otherwise the command succeeded.
+        result->makeSuccess();
+    }
+}
+
+void Cluster::purgeQueueOnDomain(mqbcmd::ClusterResult* result,
+                                 const bsl::string&     domainName)
+{
+    // exected by *ANY* thread
+
+    mqbcmd::StorageResult storageResult;
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&mqbi::StorageManager::purgeQueueOnDomain,
+                             d_storageManager_mp.get(),
+                             &storageResult,
+                             domainName),
+        this);
+
+    dispatcher()->synchronize(this);
+
+    result->makeStorageResult(storageResult);
 }
 
 void Cluster::printClusterStateSummary(bsl::ostream& out,

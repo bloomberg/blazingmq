@@ -699,6 +699,37 @@ void StorageUtil::executeForEachPartitions(const PerPartitionFunctor& job,
     latch.wait();
 }
 
+void StorageUtil::executeForValidPartitions(const PerPartitionFunctor& job,
+                                            const FileStores& fileStores)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    bsl::vector<int> validPartitionIds;
+    validPartitionIds.reserve(fileStores.size());
+
+    for (unsigned int i = 0; i < fileStores.size(); ++i) {
+        FileStoreSp fileStore = fileStores[i];
+        if (fileStore->primaryNode() && fileStore->primaryNode()->nodeId() ==
+                                            fileStore->config().nodeId()) {
+            validPartitionIds.push_back(i);
+        }
+    }
+
+    bslmt::Latch latch(validPartitionIds.size());
+
+    BALL_LOG_INFO << "StorageUtil::executeForValidPartitions for "
+                  << fileStores.size() << " partitions!";
+
+    for (unsigned int i = 0; i < validPartitionIds.size(); ++i) {
+        int partitionId = validPartitionIds[i];
+        fileStores[partitionId]->execute(
+            bdlf::BindUtil::bind(job, partitionId, &latch));
+    }
+
+    // Wait
+    latch.wait();
+}
+
 int StorageUtil::processReplicationCommand(
     mqbcmd::ReplicationResult*        replicationResult,
     int*                              replicationFactor,
@@ -3881,6 +3912,43 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
         BALL_LOG_ERROR << clusterData->identity().description()
                        << "Partition [" << fs->config().partitionId()
                        << "]: failed to force-issue SyncPt, rc: " << rc;
+    }
+}
+
+void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                     const bsl::string&     domainName,
+                                     FileStores*            fileStores,
+                                     StorageSpMapVec*       storageMapVec,
+                                     bslmt::Mutex*          storagesLock)
+{
+    bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> > purgedQueuesVec;
+    purgedQueuesVec.resize(fileStores->size());
+
+    // To purge a domain, we have to purge queues in each partition
+    // where the current node is the primary
+    // from the correct thread.  This is achieved by parallel launch
+    // of `purgeDomainDispatched` across all valid FileStore's threads.
+    // We need to wait here, using `latch`, until the command completes
+    // in all valid threads.
+    executeForValidPartitions(
+        bdlf::BindUtil::bind(&purgeDomainDispatched,
+                             &purgedQueuesVec,
+                             bdlf::PlaceHolders::_2,  // latch
+                             bdlf::PlaceHolders::_1,  // partitionId
+                             storageMapVec,
+                             storagesLock,
+                             fileStores,
+                             domainName),
+        *fileStores);
+
+    mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
+    for (size_t i = 0; i < purgedQueuesVec.size(); ++i) {
+        const bsl::vector<mqbcmd::PurgeQueueResult>& purgedQs =
+            purgedQueuesVec[i];
+
+        purgedQueues.queues().insert(purgedQueues.queues().begin(),
+                                     purgedQs.begin(),
+                                     purgedQs.end());
     }
 }
 

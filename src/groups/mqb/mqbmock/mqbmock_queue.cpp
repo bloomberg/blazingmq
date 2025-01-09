@@ -527,6 +527,13 @@ bmqp::SchemaLearner& Queue::schemaLearner() const
     return d_schemaLearner;
 }
 
+bool Queue::hasActiveHandle() const
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+
+    return false;
+}
+
 // -------------------
 // class HandleFactory
 // -------------------

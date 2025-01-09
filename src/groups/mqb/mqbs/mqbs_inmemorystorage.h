@@ -302,13 +302,16 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Save the message contained in the specified 'appData', 'options' and
     /// the associated 'attributes' and 'msgGUID' into this storage and the
     /// associated virtual storage.  The 'attributes' is an in/out parameter
-    /// and storage layer can populate certain fields of that struct.
+    /// and storage layer can populate certain fields of that struct.  If the
+    /// optionally specified `out` is not zero, load the created
+    /// `DataStreamMessage` into the 'out'.
     /// Return 0 on success or an non-zero error code on failure.
     mqbi::StorageResult::Enum
     put(mqbi::StorageMessageAttributes*     attributes,
         const bmqt::MessageGUID&            msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options) BSLS_KEYWORD_OVERRIDE;
+        const bsl::shared_ptr<bdlbb::Blob>& options,
+        mqbi::DataStreamMessage**           out = 0) BSLS_KEYWORD_OVERRIDE;
 
     /// Update the App state corresponding to the specified 'msgGUID' and the
     /// specified 'appKey' in the DataStream.  Decrement the reference count of

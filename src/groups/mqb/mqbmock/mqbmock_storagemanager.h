@@ -269,6 +269,11 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// GC the queues from unrecognized domains, if any.
     void gcUnrecognizedDomainQueues() BSLS_KEYWORD_OVERRIDE;
 
+    /// Purge the queues on a given domain.
+    int
+    purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                       const bsl::string& domainName) BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
 
     /// Return the processor handle in charge of the specified
