@@ -864,14 +864,14 @@ static void test11_parseMessageProperties()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
     bmqp::MessageProperties in(bmqtst::TestHelperUtil::allocator());
     encode(&in);
     const int             queueId = 4;
-    bmqp::PutEventBuilder peb(&blobSpPool,
+    bmqp::PutEventBuilder peb(blobSpPool.get(),
                               bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 

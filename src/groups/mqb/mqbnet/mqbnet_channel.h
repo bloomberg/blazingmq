@@ -127,7 +127,7 @@ class Channel {
         bdlcc::SingleConsumerQueue<bslma::ManagedPtr<Item> > >
         ItemQueue;
 
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
     /// Const references to everything needed to writeBufferedItem PUT.
     /// This is template parameter to generalized writing code.
@@ -370,7 +370,7 @@ class Channel {
     /// Counting allocator
     bslma::Allocator* d_allocator_p;
 
-    BlobSpPool d_blobSpPool;
+    BlobSpPoolSp d_blobSpPool_sp;
 
     bmqp::PutEventBuilder d_putBuilder;
 

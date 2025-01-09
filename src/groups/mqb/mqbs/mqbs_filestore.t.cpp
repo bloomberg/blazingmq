@@ -142,7 +142,7 @@ struct Tester {
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
     bsl::string                            d_clusterLocation;
     bsl::string                            d_clusterArchiveLocation;
-    bmqp::BlobPoolUtil::BlobSpPool         d_blobSpPool;
+    bmqp::BlobPoolUtil::BlobSpPoolSp       d_blobSpPool_sp;
     mqbcfg::PartitionConfig                d_partitionCfg;
     mqbcfg::ClusterDefinition              d_clusterCfg;
     bsl::vector<mqbcfg::ClusterNode>       d_clusterNodesCfg;
@@ -167,7 +167,7 @@ struct Tester {
     , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_clusterLocation(location, bmqtst::TestHelperUtil::allocator())
     , d_clusterArchiveLocation(location, bmqtst::TestHelperUtil::allocator())
-    , d_blobSpPool(bmqp::BlobPoolUtil::createBlobPool(
+    , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(
           &d_bufferFactory,
           bmqtst::TestHelperUtil::allocator()))
     , d_partitionCfg(bmqtst::TestHelperUtil::allocator())
@@ -264,7 +264,7 @@ struct Tester {
                                          &d_dispatcher,
                                          d_cluster_mp.get(),
                                          &d_clusterStats,
-                                         &d_blobSpPool,
+                                         d_blobSpPool_sp.get(),
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
                                          false,  // isCSLModeEnabled

@@ -273,7 +273,7 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -296,7 +296,7 @@ static void test1_breathingTest()
                      bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -401,7 +401,7 @@ static void test2_buildEventBackwardsCompatibility()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -424,7 +424,7 @@ static void test2_buildEventBackwardsCompatibility()
                      bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -530,7 +530,7 @@ static void test3_buildEventWithPackedOption()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -549,7 +549,7 @@ static void test3_buildEventWithPackedOption()
                      bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -646,11 +646,11 @@ static void test4_buildEventWithMultipleMessages()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -770,7 +770,7 @@ static void test5_buildEventWithPayloadTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -794,7 +794,7 @@ static void test5_buildEventWithPayloadTooBig()
                      bigMsgPayload.length());
 
     // Create PutEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -894,7 +894,7 @@ static void test6_buildEventWithImplicitPayload()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -903,7 +903,7 @@ static void test6_buildEventWithImplicitPayload()
     const int flags = bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD;
 
     // Create PutEventBuilder
-    bmqp::PushEventBuilder         peb(&blobSpPool,
+    bmqp::PushEventBuilder         peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     bmqt::EventBuilderResult::Enum rc = peb.packMessage(
         queueId,
@@ -980,7 +980,7 @@ static void test7_buildEventOptionTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -1004,7 +1004,7 @@ static void test7_buildEventOptionTooBig()
     generateSubQueueInfos(&subQueueInfos, numSubQueueInfos);
 
     // Create PutEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
 
     // Add option larger than maximum allowed
@@ -1164,7 +1164,7 @@ static void test8_buildEventTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -1184,7 +1184,7 @@ static void test8_buildEventTooBig()
     bdlbb::BlobUtil::append(&validPayload1, s.c_str(), validLen);
 
     // Create PutEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
 
     // Add message with valid payload size
@@ -1256,7 +1256,7 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -1273,7 +1273,7 @@ static void testN1_decodeFromFile()
     bdlbb::BlobUtil::append(&payloadBlob, k_PAYLOAD, k_PAYLOAD_LEN);
 
     // Create PutEventBuilder
-    bmqp::PushEventBuilder obj(&blobSpPool,
+    bmqp::PushEventBuilder obj(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
 
     // Pack one msg

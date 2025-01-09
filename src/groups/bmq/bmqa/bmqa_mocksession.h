@@ -823,6 +823,9 @@ class MockSession : public AbstractSession {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
+    /// Shared pointer to a pool of shared pointers to Blobs
+    typedef bsl::shared_ptr<BlobSpPool> BlobSpPoolSp;
+
     /// Aligned buffer holding the two key hash map
     typedef bsls::AlignedBuffer<k_MAX_SIZEOF_BMQC_TWOKEYHASHMAP>
         TwoKeyHashMapBuffer;
@@ -1035,8 +1038,8 @@ class MockSession : public AbstractSession {
     /// Buffer factory used to build Blobs with `d_blobSpPool`
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
 
-    /// Pool of shared pointers to blobs
-    BlobSpPool d_blobSpPool;
+    /// Shared pointer to the pool of shared pointers to blobs
+    BlobSpPoolSp d_blobSpPool_sp;
 
     /// Event handler (set only in asynchronous mode)
     bslma::ManagedPtr<SessionEventHandler> d_eventHandler_mp;
