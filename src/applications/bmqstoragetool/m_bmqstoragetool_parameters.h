@@ -54,6 +54,13 @@ namespace m_bmqstoragetool {
 
 struct CommandLineArguments {
     // PUBLIC DATA
+
+    /// Record types constants
+    static const char* k_MESSAGE_TYPE;
+    static const char* k_QUEUEOP_TYPE;
+    static const char* k_JOURNALOP_TYPE;
+    /// List of record types to process (message, journalOp, queueOp)
+    bsl::vector<bsl::string> d_recordType;
     /// Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampGt;
     /// Filter messages by maximum timestamp
@@ -105,6 +112,18 @@ struct CommandLineArguments {
     // MANIPULATORS
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
+
+    // CLASS METHODS
+    /// Return true if the specified `recordType` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `recordType` is
+    /// invalid.
+    static bool isValidRecordType(const bsl::string* recordType,
+                                  bsl::ostream&      stream);
+    /// Return true if the specified `fileName` is valid (file exists), false
+    /// otherwise. Error message is written into the specified `stream` if
+    /// `fileName` is invalid.
+    static bool isValidFileName(const bsl::string* fileName,
+                                bsl::ostream&      stream);
 };
 
 struct Parameters {
@@ -141,7 +160,25 @@ struct Parameters {
         explicit Range();
     };
 
+    // VST representing record types to process
+    struct ProcessRecordTypes {
+        // PUBLIC DATA
+
+        /// Flag to process records of type message
+        bool d_message;
+        /// Flag to process records of type queueOp
+        bool d_queueOp;
+        /// Flag to process records of type journalOp
+        bool d_journalOp;
+
+        // CREATORS
+        explicit ProcessRecordTypes(bool enableDefault = true);
+    };
+
     // PUBLIC DATA
+
+    /// Record types to process
+    ProcessRecordTypes d_processRecordTypes;
     /// Queue map containing uri to key and key to info mappings
     QueueMap d_queueMap;
     /// Range parameters for filtering

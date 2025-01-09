@@ -63,22 +63,26 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
     if (details) {
-        searchResult.reset(new (*alloc) SearchDetailResult(ostream,
-                                                           params->d_queueMap,
-                                                           payloadDumper,
-                                                           printImmediately,
-                                                           eraseDeleted,
-                                                           cleanUnprinted,
-                                                           alloc),
+        searchResult.reset(new (*alloc)
+                               SearchDetailResult(ostream,
+                                                  params->d_processRecordTypes,
+                                                  params->d_queueMap,
+                                                  payloadDumper,
+                                                  printImmediately,
+                                                  eraseDeleted,
+                                                  cleanUnprinted,
+                                                  alloc),
                            alloc);
     }
     else {
-        searchResult.reset(new (*alloc) SearchShortResult(ostream,
-                                                          payloadDumper,
-                                                          printImmediately,
-                                                          eraseDeleted,
-                                                          printOnDelete,
-                                                          alloc),
+        searchResult.reset(new (*alloc)
+                               SearchShortResult(ostream,
+                                                 params->d_processRecordTypes,
+                                                 payloadDumper,
+                                                 printImmediately,
+                                                 eraseDeleted,
+                                                 printOnDelete,
+                                                 alloc),
                            alloc);
     }
 
@@ -117,6 +121,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
             new (*alloc) SummaryProcessor(ostream,
                                           fileManager->journalFileIterator(),
                                           fileManager->dataFileIterator(),
+                                          params->d_processRecordTypes,
                                           alloc),
             alloc);
     }

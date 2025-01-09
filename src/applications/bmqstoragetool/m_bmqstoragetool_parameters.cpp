@@ -74,8 +74,13 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // class CommandLineArguments
 // ==========================
 
+const char* CommandLineArguments::k_MESSAGE_TYPE   = "message";
+const char* CommandLineArguments::k_QUEUEOP_TYPE   = "queue-op";
+const char* CommandLineArguments::k_JOURNALOP_TYPE = "journal-op";
+
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
-: d_timestampGt(0)
+: d_recordType(allocator)
+, d_timestampGt(0)
 , d_timestampLt(0)
 , d_seqNumGt(allocator)
 , d_seqNumLt(allocator)
@@ -98,12 +103,18 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 {
+    // NOTHING
 }
 
 bool CommandLineArguments::validate(bsl::string*      error,
                                     bslma::Allocator* allocator)
 {
     bmqu::MemOutStream ss(allocator);
+
+    if (d_recordType.size() > 3) {
+        ss << "Up to 3 types of record are supported, passed: "
+           << d_recordType.size() << "\n";
+    }
 
     if (d_journalPath.empty() && d_journalFile.empty()) {
         ss << "Neither journal path nor journal file are specified\n";
@@ -145,21 +156,6 @@ bool CommandLineArguments::validate(bsl::string*      error,
             ss << "Both path and particular files are specified which is "
                   "controversial. Specify only one\n";
         }
-    }
-
-    // Check if the specified files exist
-    if (!d_journalFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_journalFile)) {
-        ss << "The specified journal file does not exist: " << d_journalFile
-           << "\n";
-    }
-    if (!d_dataFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_dataFile)) {
-        ss << "The specified data file does not exist: " << d_dataFile << "\n";
-    }
-    if (!d_cslFile.empty() &&
-        !bdls::FilesystemUtil::isRegularFile(d_cslFile)) {
-        ss << "The specified CSL file does not exist: " << d_cslFile << "\n";
     }
 
     // Sanity check
@@ -299,6 +295,32 @@ bool CommandLineArguments::validate(bsl::string*      error,
     return error->empty();
 }
 
+bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
+                                             bsl::ostream&      stream)
+{
+    if (*recordType != k_MESSAGE_TYPE && *recordType != k_QUEUEOP_TYPE &&
+        *recordType != k_JOURNALOP_TYPE) {
+        stream << "--record-type invalid: " << *recordType << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
+                                           bsl::ostream&      stream)
+{
+    if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
+        stream << "The specified file does not exist: " << *fileName
+               << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
 Parameters::Range::Range()
 : d_type(Range::e_NONE)
 , d_timestampGt(0)
@@ -311,8 +333,17 @@ Parameters::Range::Range()
     // NOTHING
 }
 
+Parameters::ProcessRecordTypes::ProcessRecordTypes(bool enableDefault)
+: d_message(enableDefault)
+, d_queueOp(false)
+, d_journalOp(false)
+{
+    // NOTHING
+}
+
 Parameters::Parameters(bslma::Allocator* allocator)
-: d_queueMap(allocator)
+: d_processRecordTypes()
+, d_queueMap(allocator)
 , d_range()
 , d_guid(allocator)
 , d_seqNum(allocator)
@@ -332,7 +363,8 @@ Parameters::Parameters(bslma::Allocator* allocator)
 
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
-: d_queueMap(allocator)
+: d_processRecordTypes(false)
+, d_queueMap(allocator)
 , d_range()
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
@@ -347,6 +379,25 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
+    // Set record types to process
+    for (bsl::vector<bsl::string>::const_iterator cit =
+             arguments.d_recordType.begin();
+         cit != arguments.d_recordType.end();
+         ++cit) {
+        if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {
+            d_processRecordTypes.d_message = true;
+        }
+        else if (*cit == CommandLineArguments::k_QUEUEOP_TYPE) {
+            d_processRecordTypes.d_queueOp = true;
+        }
+        else if (*cit == CommandLineArguments::k_JOURNALOP_TYPE) {
+            d_processRecordTypes.d_journalOp = true;
+        }
+        else {
+            BSLS_ASSERT(false && "Unknown journal record type");
+        }
+    }
+
     // Set search range type and values if present
     if (arguments.d_timestampLt || arguments.d_timestampGt) {
         d_range.d_type        = Range::e_TIMESTAMP;

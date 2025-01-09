@@ -197,33 +197,70 @@ void JournalFileProcessor::process()
             needMoveToLowerBound = false;
         }
 
-        // MessageRecord
-        if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
-            const mqbs::MessageRecord& record = iter->asMessageRecord();
+        // Process Message records
+        if (d_parameters->d_processRecordTypes.d_message) {
+            // MessageRecord
+            if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
+                const mqbs::MessageRecord& record = iter->asMessageRecord();
 
-            // Apply filters
-            if (filters.apply(record, iter->recordOffset())) {
-                stopSearch = d_searchResult_p->processMessageRecord(
+                // Apply filters
+                if (filters.apply(iter->recordHeader(),
+                                  iter->recordOffset(),
+                                  record.queueKey())) {
+                    stopSearch = d_searchResult_p->processMessageRecord(
+                        record,
+                        iter->recordIndex(),
+                        iter->recordOffset());
+                }
+            }
+            // ConfirmRecord
+            else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
+                const mqbs::ConfirmRecord& record = iter->asConfirmRecord();
+                stopSearch = d_searchResult_p->processConfirmRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
+            }
+            // DeletionRecord
+            else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
+                const mqbs::DeletionRecord& record = iter->asDeletionRecord();
+                stopSearch = d_searchResult_p->processDeletionRecord(
                     record,
                     iter->recordIndex(),
                     iter->recordOffset());
             }
         }
-        // ConfirmRecord
-        else if (iter->recordType() == mqbs::RecordType::e_CONFIRM) {
-            const mqbs::ConfirmRecord& record = iter->asConfirmRecord();
-            stopSearch = d_searchResult_p->processConfirmRecord(
-                record,
-                iter->recordIndex(),
-                iter->recordOffset());
+        // Process QueueOp record
+        if (d_parameters->d_processRecordTypes.d_queueOp &&
+            iter->recordType() == mqbs::RecordType::e_QUEUE_OP) {
+            const mqbs::QueueOpRecord& record = iter->asQueueOpRecord();
+
+            // Apply filters
+            if (filters.apply(iter->recordHeader(),
+                              iter->recordOffset(),
+                              record.queueKey(),
+                              &stopSearch)) {
+                stopSearch = d_searchResult_p->processQueueOpRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
+            }
         }
-        // DeletionRecord
-        else if (iter->recordType() == mqbs::RecordType::e_DELETION) {
-            const mqbs::DeletionRecord& record = iter->asDeletionRecord();
-            stopSearch = d_searchResult_p->processDeletionRecord(
-                record,
-                iter->recordIndex(),
-                iter->recordOffset());
+        // Process JournalOp record
+        if (d_parameters->d_processRecordTypes.d_journalOp &&
+            iter->recordType() == mqbs::RecordType::e_JOURNAL_OP) {
+            const mqbs::JournalOpRecord& record = iter->asJournalOpRecord();
+
+            // Apply filters
+            if (filters.apply(iter->recordHeader(),
+                              iter->recordOffset(),
+                              mqbu::StorageKey::k_NULL_KEY,
+                              &stopSearch)) {
+                stopSearch = d_searchResult_p->processJournalOpRecord(
+                    record,
+                    iter->recordIndex(),
+                    iter->recordOffset());
+            }
         }
     }
 }
