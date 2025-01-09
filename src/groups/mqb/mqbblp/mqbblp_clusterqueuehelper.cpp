@@ -5551,10 +5551,6 @@ void ClusterQueueHelper::deconfigureUri(
         }
         BSLS_ASSERT(pinfo.primaryNode() == contextSp->d_peer);
     }
-    else {
-        BSLS_ASSERT(d_clusterData_p->electorInfo().leaderNode() ==
-                    contextSp->d_peer);
-    }
 
     // Primary is active; send configure-queue request, wait for response,
     // send close-queue request
