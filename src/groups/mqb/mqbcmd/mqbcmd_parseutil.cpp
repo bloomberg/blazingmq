@@ -442,7 +442,7 @@ int parseDomainQueue(DomainQueue*  queue,
 
     const bslstl::StringRef subcommand = next();
 
-    if (name.empty()) {
+    if (subcommand.empty()) {
         *error = "DOMAINS DOMAIN <name> QUEUE <queue_name> command must have "
                  "a subcommand, such as PURGE, INTERNALS, or LIST.";
         return -1;  // RETURN
