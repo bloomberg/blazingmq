@@ -174,21 +174,23 @@ bool CommandLineArguments::validate(bsl::string*      error,
     if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
         bmqu::MemOutStream      errorDescr(allocator);
         CompositeSequenceNumber seqNumLt, seqNumGt;
+        bool                    successLt = false;
         if (!d_seqNumLt.empty()) {
-            seqNumLt.fromString(errorDescr, d_seqNumLt);
-            if (!seqNumLt.isSet()) {
+            seqNumLt.fromString(&successLt, errorDescr, d_seqNumLt);
+            if (!successLt) {
                 ss << "--seqnum-lt: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
         }
+        bool successGt = false;
         if (!d_seqNumGt.empty()) {
-            seqNumGt.fromString(errorDescr, d_seqNumGt);
-            if (!seqNumGt.isSet()) {
+            seqNumGt.fromString(&successGt, errorDescr, d_seqNumGt);
+            if (!successGt) {
                 ss << "--seqnum-gt: " << errorDescr.str() << "\n";
             }
         }
 
-        if (seqNumLt.isSet() && seqNumGt.isSet()) {
+        if (successLt && successGt) {
             if (seqNumLt <= seqNumGt) {
                 ss << "Invalid sequence number range specified\n";
             }
@@ -239,12 +241,13 @@ bool CommandLineArguments::validate(bsl::string*      error,
     }
     if (!d_seqNum.empty()) {
         CompositeSequenceNumber seqNum;
+        bool                    success = false;
         bmqu::MemOutStream      errorDescr(allocator);
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
              cit != d_seqNum.end();
              ++cit) {
-            seqNum.fromString(errorDescr, *cit);
-            if (!seqNum.isSet()) {
+            seqNum.fromString(&success, errorDescr, *cit);
+            if (!success) {
                 ss << "--seqnum: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
@@ -413,13 +416,16 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
         bmqu::MemOutStream errorDescr(allocator);
+        bool               success = false;
         if (!arguments.d_seqNumLt.empty()) {
             d_range.d_seqNumLt = CompositeSequenceNumber().fromString(
+                &success,
                 errorDescr,
                 arguments.d_seqNumLt);
         }
         if (!arguments.d_seqNumGt.empty()) {
             d_range.d_seqNumGt = CompositeSequenceNumber().fromString(
+                &success,
                 errorDescr,
                 arguments.d_seqNumGt);
         }
@@ -429,11 +435,12 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     if (!arguments.d_seqNum.empty()) {
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
+        bool                    success = false;
         for (bsl::vector<bsl::string>::const_iterator cit =
                  arguments.d_seqNum.begin();
              cit != arguments.d_seqNum.end();
              ++cit) {
-            seqNum.fromString(errorDescr, *cit);
+            seqNum.fromString(&success, errorDescr, *cit);
             d_seqNum.push_back(seqNum);
         }
     }
