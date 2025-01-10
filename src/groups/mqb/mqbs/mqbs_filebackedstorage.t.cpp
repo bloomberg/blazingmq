@@ -299,7 +299,7 @@ class MockDataStore : public mqbs::DataStore {
         *options = d_options.at(id);
     }
 
-    mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE { return nullptr; }
+    mqbi::Dispatcher* dispatcher() BSLS_KEYWORD_OVERRIDE { return NULL; }
 
     mqbi::DispatcherClientData& dispatcherClientData() BSLS_KEYWORD_OVERRIDE
     {
@@ -314,7 +314,7 @@ class MockDataStore : public mqbs::DataStore {
 
     const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE
     {
-        return nullptr;
+        return NULL;
     }
 
     const mqbi::DispatcherClientData&

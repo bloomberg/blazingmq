@@ -115,7 +115,7 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -130,7 +130,7 @@ static void test1_breathingTest()
 
     // Create RecoveryEventBuilder.
 
-    bmqp::RecoveryEventBuilder reb(&blobSpPool,
+    bmqp::RecoveryEventBuilder reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(reb.eventSize()));
@@ -211,11 +211,11 @@ static void test2_multipleMessagesTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::RecoveryEventBuilder     reb(&blobSpPool,
+    bmqp::RecoveryEventBuilder     reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
@@ -299,11 +299,11 @@ static void test3_eventTooBigTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::RecoveryEventBuilder reb(&blobSpPool,
+    bmqp::RecoveryEventBuilder reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
     bsl::string                bigChunk(bmqtst::TestHelperUtil::allocator());
     bigChunk.resize(bmqp::RecoveryHeader::k_MAX_PAYLOAD_SIZE_SOFT + 4, 'a');
@@ -396,11 +396,11 @@ static void test4_emptyPayloadTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::RecoveryEventBuilder reb(&blobSpPool,
+    bmqp::RecoveryEventBuilder reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<char> chunkBufferSp(

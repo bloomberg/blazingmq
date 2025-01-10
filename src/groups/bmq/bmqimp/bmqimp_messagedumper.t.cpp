@@ -141,7 +141,7 @@ struct Tester BSLS_CPP11_FINAL {
     // various builders
 
     /// Blob shared pointer pool used in event builders.
-    bmqp::BlobPoolUtil::BlobSpPool d_blobSpPool;
+    bmqp::BlobPoolUtil::BlobSpPoolSp d_blobSpPool_sp;
 
     bmqp::PushEventBuilder d_pushEventBuilder;
     // PUSH event builder
@@ -336,11 +336,12 @@ Tester::Tester(bslma::Allocator* allocator)
 , d_nextCorrelationId(0)
 , d_time(0, 0)
 , d_bufferFactory(1024, allocator)
-, d_blobSpPool(bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
-, d_pushEventBuilder(&d_blobSpPool, allocator)
-, d_ackEventBuilder(&d_blobSpPool, allocator)
-, d_putEventBuilder(&d_blobSpPool, allocator)
-, d_confirmEventBuilder(&d_blobSpPool, allocator)
+, d_blobSpPool_sp(
+      bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
+, d_pushEventBuilder(d_blobSpPool_sp.get(), allocator)
+, d_ackEventBuilder(d_blobSpPool_sp.get(), allocator)
+, d_putEventBuilder(d_blobSpPool_sp.get(), allocator)
+, d_confirmEventBuilder(d_blobSpPool_sp.get(), allocator)
 , d_allocator_p(allocator)
 {
     bmqsys::Time::initialize(

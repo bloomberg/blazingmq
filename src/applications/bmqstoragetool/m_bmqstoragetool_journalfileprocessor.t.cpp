@@ -923,7 +923,7 @@ static void test12_printMessagesDetailsTest()
     bmqtst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
 #if defined(BSLS_PLATFORM_OS_SOLARIS)
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Disable default allocator check for this test until we can debug
     // it on Solaris
 #endif

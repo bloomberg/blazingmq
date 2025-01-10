@@ -270,8 +270,13 @@ void Tester::init()
     ntca::InterfaceConfig config = ntcCreateInterfaceConfig(d_allocator_p);
     config.setThreadName("test");
 
+    // Solaris: disambiguate by using the expected interface type
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> bufferFactory_sp =
+        bsl::static_pointer_cast<bdlbb::BlobBufferFactory>(
+            d_blobBufferFactory_sp);
+
     d_interface_sp    = ntcf::System::createInterface(config,
-                                                   d_blobBufferFactory_sp,
+                                                   bufferFactory_sp,
                                                    d_allocator_p);
     ntsa::Error error = d_interface_sp->start();
     BMQTST_ASSERT_EQ(error, ntsa::Error::e_OK);

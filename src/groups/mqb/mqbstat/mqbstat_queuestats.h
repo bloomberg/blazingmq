@@ -527,8 +527,7 @@ inline bmqst::StatContext* QueueStatsDomain::statContext()
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_ACK>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -536,8 +535,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK_TIME>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_ACK_TIME>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -545,8 +543,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ACK_TIME>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NACK>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_NACK>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -555,8 +552,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NACK>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CONFIRM>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -566,7 +562,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM_TIME>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CONFIRM_TIME>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -575,8 +571,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CONFIRM_TIME>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_REJECT>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_REJECT>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -586,7 +581,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_REJECT>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_QUEUE_TIME>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_QUEUE_TIME>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -594,8 +589,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_QUEUE_TIME>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUSH>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_PUSH>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -603,8 +597,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUSH>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUT>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_PUT>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -613,7 +606,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PUT>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ADD_MESSAGE>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_ADD_MESSAGE>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -631,7 +624,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_ADD_MESSAGE>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_DEL_MESSAGE>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_DEL_MESSAGE>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -641,7 +634,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_DEL_MESSAGE>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_GC_MESSAGE>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_GC_MESSAGE>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -649,8 +642,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_GC_MESSAGE>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PURGE>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_PURGE>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -670,7 +662,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_PURGE>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CHANGE_ROLE>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CHANGE_ROLE>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -678,8 +670,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CHANGE_ROLE>(
 }
 
 template <>
-inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_MSGS>(
+inline void QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CFG_MSGS>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -688,7 +679,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_MSGS>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_BYTES>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_CFG_BYTES>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -697,7 +688,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_CFG_BYTES>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NO_SC_MESSAGE>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_NO_SC_MESSAGE>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -706,7 +697,7 @@ QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_NO_SC_MESSAGE>(
 
 template <>
 inline void
-QueueStatsDomain::onEvent<QueueStatsDomain::EventType::Enum::e_UPDATE_HISTORY>(
+QueueStatsDomain::onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");

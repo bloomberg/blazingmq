@@ -81,6 +81,7 @@ class Application {
   public:
     // PUBLIC TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
   private:
     // PRIVATE TYPES
@@ -118,8 +119,8 @@ class Application {
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
     // Factory for blob buffers
 
-    /// Pool of shared pointers to blobs.
-    BlobSpPool d_blobSpPool;
+    /// Shared pointer to the pool of shared pointers to blobs.
+    BlobSpPoolSp d_blobSpPool_sp;
 
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
@@ -324,7 +325,7 @@ inline bool Application::isStarted() const
 
 inline Application::BlobSpPool* Application::blobSpPool()
 {
-    return &d_blobSpPool;
+    return d_blobSpPool_sp.get();
 }
 
 }  // close package namespace

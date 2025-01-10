@@ -58,7 +58,7 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -78,7 +78,7 @@ static void test1_breathingTest()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
-        bmqp::SchemaEventBuilder obj(&blobSpPool,
+        bmqp::SchemaEventBuilder obj(blobSpPool.get(),
                                      test.d_encodingType,
                                      bmqtst::TestHelperUtil::allocator());
 
@@ -288,7 +288,7 @@ static void testN1_decodeFromFile()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         k_SIZE,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -308,7 +308,7 @@ static void testN1_decodeFromFile()
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << " encoding");
 
-        bmqp::SchemaEventBuilder obj(&blobSpPool,
+        bmqp::SchemaEventBuilder obj(blobSpPool.get(),
                                      test.d_encodingType,
                                      bmqtst::TestHelperUtil::allocator());
 

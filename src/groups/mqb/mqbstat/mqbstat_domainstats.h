@@ -157,7 +157,7 @@ inline bmqst::StatContext* DomainStats::statContext()
 }
 
 template <>
-inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_MSGS>(
+inline void DomainStats::onEvent<DomainStats::EventType::e_CFG_MSGS>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -165,7 +165,7 @@ inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_MSGS>(
 }
 
 template <>
-inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_BYTES>(
+inline void DomainStats::onEvent<DomainStats::EventType::e_CFG_BYTES>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
@@ -173,7 +173,7 @@ inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_CFG_BYTES>(
 }
 
 template <>
-inline void DomainStats::onEvent<DomainStats::EventType::Enum::e_QUEUE_COUNT>(
+inline void DomainStats::onEvent<DomainStats::EventType::e_QUEUE_COUNT>(
     bsls::Types::Int64 value)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");

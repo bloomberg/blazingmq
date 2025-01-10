@@ -418,32 +418,28 @@ inline bmqst::StatContext* ClusterNodeStats::statContext()
 }
 
 template <>
-inline void
-ClusterNodeStats::onEvent<ClusterNodeStats::EventType::Enum::e_ACK>(
+inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_ACK>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_ACK, 1);
 }
 
 template <>
-inline void
-ClusterNodeStats::onEvent<ClusterNodeStats::EventType::Enum::e_CONFIRM>(
+inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_CONFIRM>(
     BSLS_ANNOTATION_UNUSED bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_CONFIRM, 1);
 }
 
 template <>
-inline void
-ClusterNodeStats::onEvent<ClusterNodeStats::EventType::Enum::e_PUSH>(
+inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_PUSH>(
     bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_PUSH, value);
 }
 
 template <>
-inline void
-ClusterNodeStats::onEvent<ClusterNodeStats::EventType::Enum::e_PUT>(
+inline void ClusterNodeStats::onEvent<ClusterNodeStats::EventType::e_PUT>(
     bsls::Types::Int64 value)
 {
     d_statContext_mp->adjustValue(ClusterNodeStatsIndex::e_STAT_PUT, value);

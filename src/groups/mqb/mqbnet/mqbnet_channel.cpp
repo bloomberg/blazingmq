@@ -67,14 +67,14 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
                  bslma::Allocator*         allocator)
 : d_allocators(allocator)
 , d_allocator_p(d_allocators.get("Channel"))
-, d_blobSpPool(
+, d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(blobBufferFactory,
                                          d_allocators.get("BlobSpPool")))
-, d_putBuilder(&d_blobSpPool, d_allocator_p)
-, d_pushBuilder(&d_blobSpPool, d_allocator_p)
-, d_ackBuilder(&d_blobSpPool, d_allocator_p)
-, d_confirmBuilder(&d_blobSpPool, d_allocator_p)
-, d_rejectBuilder(&d_blobSpPool, d_allocator_p)
+, d_putBuilder(d_blobSpPool_sp.get(), d_allocator_p)
+, d_pushBuilder(d_blobSpPool_sp.get(), d_allocator_p)
+, d_ackBuilder(d_blobSpPool_sp.get(), d_allocator_p)
+, d_confirmBuilder(d_blobSpPool_sp.get(), d_allocator_p)
+, d_rejectBuilder(d_blobSpPool_sp.get(), d_allocator_p)
 , d_itemPool(sizeof(Item),
              bsls::BlockGrowth::BSLS_CONSTANT,
              d_allocators.get("ItemPool"))

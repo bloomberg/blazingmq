@@ -42,20 +42,22 @@ void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
 // class BlobPoolUtil
 // ------------------
 
-BlobPoolUtil::BlobSpPool
+BlobPoolUtil::BlobSpPoolSp
 BlobPoolUtil::createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
                              bslma::Allocator*         allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(blobBufferFactory_p);
 
-    return BlobSpPool(
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    return bsl::allocate_shared<BlobSpPool>(
+        alloc,
         bdlf::BindUtil::bind(&createBlob,
                              blobBufferFactory_p,
                              bdlf::PlaceHolders::_1,   // arena
                              bdlf::PlaceHolders::_2),  // allocator
-        k_BLOB_POOL_GROWTH_STRATEGY,
-        bslma::Default::allocator(allocator));
+        k_BLOB_POOL_GROWTH_STRATEGY);
 }
 
 }  // close package namespace

@@ -774,7 +774,7 @@ static void test6_comparisonOperatorTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -818,8 +818,8 @@ static void test6_comparisonOperatorTest()
     PV("Configure as MesageEvent");
     bmqimp::Event obj3(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqimp::Event obj4(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj3.configureAsMessageEvent(&blobSpPool);
-    obj4.configureAsMessageEvent(&blobSpPool);
+    obj3.configureAsMessageEvent(blobSpPool.get());
+    obj4.configureAsMessageEvent(blobSpPool.get());
 
     // NOTE: Message event can not be equal. Is it expected?
     BMQTST_ASSERT(obj3 != obj4);
@@ -1112,7 +1112,7 @@ static void test8_putEventBuilder()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -1145,7 +1145,7 @@ static void test8_putEventBuilder()
 
     // Create PutEventBuilder
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    obj.configureAsMessageEvent(&blobSpPool);
+    obj.configureAsMessageEvent(blobSpPool.get());
     bmqp::PutEventBuilder& builder = *(obj.putEventBuilder());
 
     builder.startMessage();
@@ -1569,7 +1569,7 @@ static void test12_upgradeDowngradeMessageEvent()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -1578,7 +1578,7 @@ static void test12_upgradeDowngradeMessageEvent()
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // 2. Configure event as message event in WRITE mode.
-    obj.configureAsMessageEvent(&blobSpPool);
+    obj.configureAsMessageEvent(blobSpPool.get());
     BMQTST_ASSERT_EQ(bmqimp::Event::MessageEventMode::e_WRITE,
                      obj.messageEventMode());
 

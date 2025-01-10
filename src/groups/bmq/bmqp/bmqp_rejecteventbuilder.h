@@ -41,10 +41,10 @@
 /// Usage
 ///-----
 //..
-//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-//  bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+//  bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+//  bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
 //        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, s_allocator_p));
-//  bmqp::RejectEventBuilder builder(&blobSpPool, d_allocator_p);
+//  bmqp::RejectEventBuilder builder(blobSpPool.get(), d_allocator_p);
 //
 //  // Append multiple messages, from same or different queue
 //  builder.appendMessage(k_QUEUEID1, k_SUBQUEUEID1, bmqt::MessageGUID(), 5);
