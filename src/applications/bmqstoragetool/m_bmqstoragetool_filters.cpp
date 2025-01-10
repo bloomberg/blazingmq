@@ -72,37 +72,38 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     }
 
     // Apply `range` filter
-    bsls::Types::Uint64 value, valueGt, valueLt;
-    switch (d_range.d_type) {
-    case Parameters::Range::e_TIMESTAMP:
-        value   = recordHeader.timestamp();
-        valueGt = d_range.d_timestampGt;
-        valueLt = d_range.d_timestampLt;
-        break;
-    case Parameters::Range::e_OFFSET:
-        value   = recordOffset;
-        valueGt = d_range.d_offsetGt;
-        valueLt = d_range.d_offsetLt;
-        break;
-    case Parameters::Range::e_SEQUENCE_NUM: {
-        CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
-                                       recordHeader.sequenceNumber());
-        const bool greaterOrEqualToHigherBound = d_range.d_seqNumLt.isSet() &&
-                                                 d_range.d_seqNumLt <= seqNum;
+    // Check timestamp range
+    const bsls::Types::Uint64 timestamp = recordHeader.timestamp();
+    bool greaterOrEqualToHigherBound    = d_range.d_timestampLt &&
+                                       timestamp >= *d_range.d_timestampLt;
+    if ((d_range.d_timestampGt && timestamp <= *d_range.d_timestampGt) ||
+        greaterOrEqualToHigherBound) {
         if (highBoundReached_p && greaterOrEqualToHigherBound) {
             *highBoundReached_p = true;
         }
-
-        return !(
-            (d_range.d_seqNumGt.isSet() && seqNum <= d_range.d_seqNumGt) ||
-            greaterOrEqualToHigherBound);  // RETURN
-    } break;
-    default:
-        // No range filter defined
-        return true;  // RETURN
+        // Not inside range
+        return false;  // RETURN
     }
-    const bool greaterOrEqualToHigherBound = valueLt > 0 && value >= valueLt;
-    if ((valueGt > 0 && value <= valueGt) || greaterOrEqualToHigherBound) {
+
+    // Check offset range
+    greaterOrEqualToHigherBound = d_range.d_offsetLt &&
+                                  recordOffset >= *d_range.d_offsetLt;
+    if ((d_range.d_offsetGt && recordOffset <= *d_range.d_offsetGt) ||
+        greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+        // Not inside range
+        return false;  // RETURN
+    }
+
+    // Check sequence number range
+    const CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
+                                         recordHeader.sequenceNumber());
+    greaterOrEqualToHigherBound = d_range.d_seqNumLt &&
+                                  d_range.d_seqNumLt <= seqNum;
+    if ((d_range.d_seqNumGt && seqNum <= *d_range.d_seqNumGt) ||
+        greaterOrEqualToHigherBound) {
         if (highBoundReached_p && greaterOrEqualToHigherBound) {
             *highBoundReached_p = true;
         }

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include <m_bmqstoragetool_parameters.h>
 
 // BMQ
@@ -322,11 +323,10 @@ bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
 }
 
 Parameters::Range::Range()
-: d_type(Range::e_NONE)
-, d_timestampGt(0)
-, d_timestampLt(0)
-, d_offsetGt(0)
-, d_offsetLt(0)
+: d_timestampGt()
+, d_timestampLt()
+, d_offsetGt()
+, d_offsetLt()
 , d_seqNumGt()
 , d_seqNumLt()
 {
@@ -400,27 +400,28 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 
     // Set search range type and values if present
     if (arguments.d_timestampLt || arguments.d_timestampGt) {
-        d_range.d_type        = Range::e_TIMESTAMP;
         d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
             arguments.d_timestampLt);
         d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
             arguments.d_timestampGt);
     }
     else if (arguments.d_offsetLt || arguments.d_offsetGt) {
-        d_range.d_type     = Range::e_OFFSET;
         d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
             arguments.d_offsetLt);
         d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
             arguments.d_offsetGt);
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
-        d_range.d_type = Range::e_SEQUENCE_NUM;
         bmqu::MemOutStream errorDescr(allocator);
         if (!arguments.d_seqNumLt.empty()) {
-            d_range.d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
+            d_range.d_seqNumLt = CompositeSequenceNumber().fromString(
+                errorDescr,
+                arguments.d_seqNumLt);
         }
         if (!arguments.d_seqNumGt.empty()) {
-            d_range.d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
+            d_range.d_seqNumGt = CompositeSequenceNumber().fromString(
+                errorDescr,
+                arguments.d_seqNumGt);
         }
     }
 
