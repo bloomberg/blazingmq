@@ -514,7 +514,6 @@ static void test5_searchOutstandingMessagesTest()
     expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
                    << outstandingGUIDS.size() << "/" << messageCount << ")"
                    << bsl::endl;
-
     BMQTST_ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
@@ -2125,6 +2124,9 @@ static void test24_summaryWithQueueDetailsTest()
 
     params.d_summary            = true;
     params.d_minRecordsPerQueue = 0;
+
+    params.d_processRecordTypes.d_message = true;
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -2143,11 +2145,17 @@ static void test24_summaryWithQueueDetailsTest()
 
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    expectedStream << "5 message(s) found.\n";
+    bsl::vector<const char*> fields(bmqtst::TestHelperUtil::allocator());
+    fields.push_back("Number of partially confirmed messages");
+    fields.push_back("Number of confirmed messages");
+    fields.push_back("Number of outstanding messages");
+    bmqu::AlignedPrinter printer(expectedStream, &fields);
+    printer << 3 << 2 << 2;
+    expectedStream << "Outstanding ratio: 40% (2/5)\n";
+    
     expectedStream
-        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
-           "partially confirmed messages: 2\n"
-           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n"
-           "Total number of records: 15\n"
+        << "Total number of records: 15\n"
            "Number of records per Queue:\n"
            "    Queue Key             : 6162636465\n"
            "    Total Records         : 15\n"
