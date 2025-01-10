@@ -580,6 +580,12 @@ void RemoteQueue::close()
     // (unless StopRequest has timed out) all downstreams have closed all
     // queues.
 
+    // `close()` might be called multiple times
+    if (!d_self.isValid()) {
+        return;  // RETURN
+    }
+    d_self.invalidate();
+
     size_t numMessages = erasePendingMessages(d_pendingMessages.end());
 
     BALL_LOG_INFO << d_state_p->uri() << ": erased all " << numMessages
@@ -588,7 +594,6 @@ void RemoteQueue::close()
 
     BSLS_ASSERT_SAFE(d_pendingMessages.size() == 0);
 
-    d_self.invalidate();
     if (d_pendingMessagesTimerEventHandle) {
         scheduler()->cancelEventAndWait(&d_pendingMessagesTimerEventHandle);
         // 'expirePendingMessagesDispatched' does not restart timer if
