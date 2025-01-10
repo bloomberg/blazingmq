@@ -67,42 +67,44 @@ CompositeSequenceNumber::fromString(bool*              success,
         const bsl::string secondPart = seqNumString.substr(separatorPos + 1);
 
         // Convert parts to numbers
+        size_t              posFirst, posSecond;
+        unsigned long       uLong;
+        bsls::Types::Uint64 seqNumber;
         try {
-            size_t posFirst, posSecond;
-
-            const unsigned long       uLong = bsl::stoul(firstPart, &posFirst);
-            const bsls::Types::Uint64 seqNumber = bsl::stoul(secondPart,
-                                                             &posSecond);
-            if (posFirst != firstPart.size() ||
-                posSecond != secondPart.size()) {
-                errorDescription
-                    << "Invalid input: non-numeric values encountered.";
-                break;  // BREAK
-            }
-
-            unsigned int leaseId = static_cast<unsigned int>(uLong);
-            if (uLong != leaseId) {
-                errorDescription << "Invalid input: number out of range.";
-                break;  // BREAK
-            }
-
-            if (leaseId == 0 || seqNumber == 0) {
-                errorDescription << "Invalid input: zero values encountered.";
-                break;  // BREAK
-            }
-
-            d_compositeSequenceNumber = bsl::make_pair(leaseId, seqNumber);
-
-            *success = true;
-            return *this;  // RETURN
+            uLong     = bsl::stoul(firstPart, &posFirst);
+            seqNumber = bsl::stoul(secondPart, &posSecond);
         }
         catch (const bsl::invalid_argument& e) {
             errorDescription
                 << "Invalid input: non-numeric values encountered.";
+            break;  // BREAK
         }
         catch (const bsl::out_of_range& e) {
             errorDescription << "Invalid input: number out of range.";
+            break;  // BREAK
         }
+
+        if (posFirst != firstPart.size() || posSecond != secondPart.size()) {
+            errorDescription
+                << "Invalid input: non-numeric values encountered.";
+            break;  // BREAK
+        }
+
+        unsigned int leaseId = static_cast<unsigned int>(uLong);
+        if (uLong != leaseId) {
+            errorDescription << "Invalid input: number out of range.";
+            break;  // BREAK
+        }
+
+        if (leaseId == 0 || seqNumber == 0) {
+            errorDescription << "Invalid input: zero values encountered.";
+            break;  // BREAK
+        }
+
+        d_compositeSequenceNumber = bsl::make_pair(leaseId, seqNumber);
+
+        *success = true;
+        return *this;  // RETURN
     } while (false);
 
     *success = false;
