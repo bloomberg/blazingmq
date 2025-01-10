@@ -17,20 +17,17 @@
 #ifndef INCLUDED_MQBA_ADMINSESSION
 #define INCLUDED_MQBA_ADMINSESSION
 
-//@PURPOSE: Provide a session for interaction with BlazingMQ broker admin
-// clients.
-//
-//@CLASSES:
-//  mqba::AdminSession     : mechanism representing a session with an admin
-//  mqba::AdminSessionState: VST representing the state of a session
-//
-//@DESCRIPTION: This component provides a mechanism, 'mqba::AdminSession', that
-// allows BlazingMQ broker to send and receive messages from an admin connected
-// to the broker.  'mqba::AdminSessionState' is a value semantic type holding
-// the state associated to an 'mqba::Session'.
+/// @file mqba_adminsession.h
+///
+/// @brief Provide a session for interaction with BlazingMQ broker admin
+/// clients.
+///
+/// This component provides a mechanism, @bbref{mqba::AdminSession}, that
+/// allows BlazingMQ broker to send and receive messages from an admin
+/// connected to the broker.  @bbref{mqba::AdminSessionState} is a value
+/// semantic type holding the state associated to an 'mqba::Session'.
 
 // MQB
-
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 #include <mqbnet_session.h>
@@ -85,21 +82,19 @@ struct AdminSessionState {
 
   public:
     // PUBLIC DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
+    /// Dispatcher client data associated to this session.
     mqbi::DispatcherClientData d_dispatcherClientData;
-    // Dispatcher client data associated to
-    // this session.
 
+    /// Pool of shared pointers to blobs to use.
     BlobSpPool* d_blobSpPool_p;
-    // Pool of shared pointers to blob to
-    // use.
 
+    /// Builder for schema messages.  To be used only in client dispatcher
+    /// thread.
     bmqp::SchemaEventBuilder d_schemaEventBuilder;
-    // Builder for schema messages.  To be
-    // used only in client dispatcher
-    // thread.
 
   private:
     // NOT IMPLEMENTED
@@ -136,43 +131,36 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
 
   private:
     // DATA
+
+    /// This object is used to avoid executing a callback if the session has
+    /// been destroyed: this is *ONLY* to be used with the callbacks that will
+    /// be called from outside of the dispatcher's thread.
     bmqu::SharedResource<AdminSession> d_self;
-    // This object is used to avoid
-    // executing a callback if the session
-    // has been destroyed: this is *ONLY* to
-    // be used with the callbacks that will
-    // be called from outside of the
-    // dispatcher's thread.
 
+    /// Show whether the session is running.
     bool d_running;
-    // Show whether the session is running.
 
+    /// Negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
-    // Negotiation message received from the
-    // remote peer.
 
+    /// Raw pointer to the right field in `d_negotiationMessage` (depending on
+    /// whether it's a `client` or a `broker`).
     bmqp_ctrlmsg::ClientIdentity* d_clientIdentity_p;
-    // Raw pointer to the right field in
-    // 'd_negotiationMessage' (depending
-    // whether it's a 'client' or a
-    // 'broker').
 
+    /// Short identifier for this session.
     bsl::string d_description;
-    // Short identifier for this session.
 
+    /// Channel associated to this session.
     bsl::shared_ptr<bmqio::Channel> d_channel_sp;
-    // Channel associated to this session.
 
+    /// The state associated to this session.
     AdminSessionState d_state;
-    // The state associated to this session.
 
+    /// Pointer to the event scheduler to use (held, not owned).
     bdlmt::EventScheduler* d_scheduler_p;
-    // Pointer to the event scheduler to
-    // use (held, not owned)
 
+    /// The callback to invoke on received admin command.
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
-    // The callback to invoke on received
-    // admin command.
 
   private:
     // NOT IMPLEMENTED

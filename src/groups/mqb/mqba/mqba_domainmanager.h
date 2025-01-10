@@ -17,20 +17,20 @@
 #ifndef INCLUDED_MQBA_DOMAINMANAGER
 #define INCLUDED_MQBA_DOMAINMANAGER
 
-//@PURPOSE: Provide a manager for all queue domains.
-//
-//@CLASSES:
-//  mqba::DomainManager: Manager for all queue domains.
-//
-//@DESCRIPTION: The 'mqba::DomainManager' provides a manager for all queue
-// domains.  The 'DomainManager' exposes a factory-method 'getDomain' to
-// retrieve a 'mqbi::Domain' (if already previously opened and still active),
-// or will try to create and configure one using one of the registered factory
-// methods.
-//
-/// Thread Safety
-///-------------
-// This component is thread safe.
+/// @file mqba_domainmanager.h
+///
+/// @brief Provide a manager for all queue domains.
+///
+/// The @bbref{mqba::DomainManager} provides a manager for all queue domains.
+/// The `DomainManager` exposes a factory-method `getDomain` to retrieve a
+/// @bbref{mqbi::Domain} (if already previously opened and still active), or
+/// will try to create and configure one using one of the registered factory
+/// methods.
+///
+/// Thread Safety                                  {#mqba_domainmanager_thread}
+/// =============
+///
+/// This component is thread safe.
 
 // MQB
 #include <mqbconfm_messages.h>
@@ -144,51 +144,52 @@ class DomainManager BSLS_CPP11_FINAL : public mqbi::DomainFactory {
     /// if an insert was performed or `false` otherwise.
     typedef bsl::pair<DomainSp, bool> UpsertDomainSuccess;
 
+    /// A type with details on errors for `upsertDomain()`.
     struct Error;
-    // A type with details on errors for 'upsertDomain()'.
 
     /// The return type for `upsertDomain()` might be a value or an error.
     typedef bmqvt::ValueOrError<UpsertDomainSuccess, Error> UpsertDomainValue;
 
+    /// The return type for `decodeAndUpsert()`, which might be a value or an
+    /// error.
     typedef bmqvt::ValueOrError<DomainSp, Error> DecodeAndUpsertValue;
-    // The return type for 'decodeAndUpsert()' might be a value or an error.
 
   private:
     // DATA
+
+    /// ConfigProvider to use, held not owned.
     ConfigProvider* d_configProvider_p;
-    // ConfigProvider to use, held not owned
 
+    /// BlobBufferFactory to use, held not owned.
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
-    // BlobBufferFactory to use, held not owned
 
+    /// DomainResolver
     DomainResolverMp d_domainResolver_mp;
-    // DomainResolver
 
+    /// ClusterCatalog to use, held not owned.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
     // ClusterCatalog to use, held, not owned
 
+    /// Top-level stat context for all domains stats.
     bmqst::StatContext* d_domainsStatContext_p;
-    // Top-level stat context for all
-    // domains stats
 
+    /// Top-level stat context for all domains/queues stats.
     bmqst::StatContext* d_queuesStatContext_p;
-    // Top-level stat context for all
-    // domains/queues stats
 
+    /// Dispatcher to use, held not owned.
     mqbi::Dispatcher* d_dispatcher_p;
-    // Dispatcher to use, held not owned
 
+    /// Mutex for thread-safety of this component.
     mutable bslmt::Mutex d_mutex;
-    // Mutex for thread-safety of this component
 
+    /// Map of domains.
     DomainSpMap d_domains;
-    // Map of domains
 
+    /// Is the domain manager started.
     bsls::AtomicBool d_isStarted;
-    // Is the domain manager started
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // PRIVATE MANIPULATORS

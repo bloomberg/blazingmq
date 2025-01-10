@@ -1,0 +1,6 @@
+/**
+@dir mqba
+
+@brief The `MBQA` (BlazingMQ Broker) package provides the components
+       constituting the broker.
+*/

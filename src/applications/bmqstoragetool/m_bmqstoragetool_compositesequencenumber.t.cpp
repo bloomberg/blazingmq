@@ -46,12 +46,12 @@ static void test1_breathingTest()
 
     {
         CompositeSequenceNumber compositeSeqNum;
-        BMQTST_ASSERT(!compositeSeqNum.isSet());
+        BMQTST_ASSERT(compositeSeqNum.leaseId() == 0);
+        BMQTST_ASSERT(compositeSeqNum.sequenceNumber() == 0);
     }
 
     {
         CompositeSequenceNumber compositeSeqNum(1, 2);
-        BMQTST_ASSERT(compositeSeqNum.isSet());
         BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 1ul);
         BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 2ul);
     }
@@ -73,6 +73,8 @@ static void test2_fromStringTest()
 
     bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
 
+    bool success = false;
+
     // Valid string
     {
         CompositeSequenceNumber compositeSeqNum;
@@ -80,8 +82,8 @@ static void test2_fromStringTest()
         bsl::string inputString("123-456",
                                 bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT(compositeSeqNum.isSet());
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT(success);
         BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
         BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
         BMQTST_ASSERT(errorDescription.str().empty());
@@ -94,8 +96,8 @@ static void test2_fromStringTest()
         bsl::string inputString("00123-000456",
                                 bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT(compositeSeqNum.isSet());
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT(success);
         BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
         BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
         BMQTST_ASSERT(errorDescription.str().empty());
@@ -107,8 +109,8 @@ static void test2_fromStringTest()
 
         bsl::string inputString("", bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: empty string.");
@@ -121,8 +123,8 @@ static void test2_fromStringTest()
         bsl::string inputString("123456", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid format: no '-' separator found.");
@@ -136,8 +138,8 @@ static void test2_fromStringTest()
                                 bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid format: no '-' separator found.");
@@ -151,8 +153,8 @@ static void test2_fromStringTest()
                                 bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: non-numeric values encountered.");
@@ -166,8 +168,8 @@ static void test2_fromStringTest()
                                 bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: non-numeric values encountered.");
@@ -180,8 +182,8 @@ static void test2_fromStringTest()
         bsl::string inputString("0-456", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: zero values encountered.");
@@ -194,8 +196,8 @@ static void test2_fromStringTest()
         bsl::string inputString("123-0", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: zero values encountered.");
@@ -210,8 +212,8 @@ static void test2_fromStringTest()
                                 bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: number out of range.");
@@ -226,8 +228,8 @@ static void test2_fromStringTest()
                                 bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        BMQTST_ASSERT_EQ(compositeSeqNum.isSet(), false);
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
         BMQTST_ASSERT(!errorDescription.str().empty());
         BMQTST_ASSERT_EQ(errorDescription.str(),
                          "Invalid input: number out of range.");

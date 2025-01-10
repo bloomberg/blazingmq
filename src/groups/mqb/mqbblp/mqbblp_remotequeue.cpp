@@ -43,6 +43,7 @@
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_severity.h>
@@ -454,7 +455,8 @@ RemoteQueue::RemoteQueue(QueueState*       state,
                          int               ackWindowSize,
                          StateSpPool*      statePool,
                          bslma::Allocator* allocator)
-: d_state_p(state)
+: d_self(this, allocator)
+, d_state_p(state)
 , d_queueEngine_mp(0)
 , d_pendingMessages(allocator)
 , d_pendingConfirms(allocator)
@@ -553,6 +555,7 @@ void RemoteQueue::resetState()
 
     erasePendingMessages(d_pendingMessages.end());
 
+    d_self.invalidate();
     if (d_pendingMessagesTimerEventHandle) {
         scheduler()->cancelEventAndWait(&d_pendingMessagesTimerEventHandle);
         // 'expirePendingMessagesDispatched' does not restart timer if
@@ -576,6 +579,12 @@ void RemoteQueue::close()
     // e_STOPPING state meaning it has received all StopResponses meaning
     // (unless StopRequest has timed out) all downstreams have closed all
     // queues.
+
+    // `close()` might be called multiple times
+    if (!d_self.isValid()) {
+        return;  // RETURN
+    }
+    d_self.invalidate();
 
     size_t numMessages = erasePendingMessages(d_pendingMessages.end());
 
@@ -914,7 +923,29 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                       << putHeader.messageGUID() << "'] for unknown upstream";
         return;  // RETURN
     }
+
+    bool isInvalid = false;
+
     if (ctx.d_state == SubStreamContext::e_CLOSED) {
+        isInvalid = true;
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                 d_pendingMessages.find(putHeader.messageGUID()) !=
+                 d_pendingMessages.end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        isInvalid = true;
+
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_INFO << "[THROTTLED] Remote queue " << d_state_p->uri()
+                          << " (id: " << d_state_p->id()
+                          << ") discarding a duplicate PUT from client ["
+                          << source->client()->description() << "] for guid "
+                          << putHeader.messageGUID();
+        }
+    }
+
+    if (isInvalid) {
         if (!d_state_p->isAtMostOnce()) {
             bmqp::AckMessage ackMessage;
 
@@ -970,8 +1001,9 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             scheduler()->scheduleEvent(
                 &d_pendingMessagesTimerEventHandle,
                 time,
-                bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages,
-                                     this));
+                bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                    &RemoteQueue::expirePendingMessages,
+                    d_self.acquireWeak())));
         }
     }
 
@@ -1355,7 +1387,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
         scheduler()->scheduleEvent(
             &d_pendingMessagesTimerEventHandle,
             time,
-            bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages, this));
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                &RemoteQueue::expirePendingMessages,
+                d_self.acquireWeak())));
 
         BALL_LOG_DEBUG << d_state_p->uri() << ": will check again to expire"
                        << " pending PUSH messages in "
