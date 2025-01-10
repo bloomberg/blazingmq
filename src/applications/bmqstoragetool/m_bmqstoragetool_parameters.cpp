@@ -422,12 +422,14 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                 &success,
                 errorDescr,
                 arguments.d_seqNumLt);
+            BSLS_ASSERT(success);
         }
         if (!arguments.d_seqNumGt.empty()) {
             d_range.d_seqNumGt = CompositeSequenceNumber().fromString(
                 &success,
                 errorDescr,
                 arguments.d_seqNumGt);
+            BSLS_ASSERT(success);
         }
     }
 

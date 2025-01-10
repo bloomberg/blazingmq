@@ -34,8 +34,8 @@ CompositeSequenceNumber::CompositeSequenceNumber()
 }
 
 CompositeSequenceNumber::CompositeSequenceNumber(
-    const unsigned int        leaseId,
-    const bsls::Types::Uint64 sequenceNumber)
+    unsigned int        leaseId,
+    bsls::Types::Uint64 sequenceNumber)
 : d_compositeSequenceNumber(leaseId, sequenceNumber)
 {
     // NOTHING
@@ -49,57 +49,63 @@ CompositeSequenceNumber::fromString(bool*              success,
     // PRECONDITION
     BSLS_ASSERT(success);
 
-    *success = false;
-
-    if (seqNumString.empty()) {
-        errorDescription << "Invalid input: empty string.";
-        return *this;  // RETURN
-    }
-
-    // Find the position of the separator
-    const size_t separatorPos = seqNumString.find('-');
-    if (separatorPos == bsl::string::npos) {
-        errorDescription << "Invalid format: no '-' separator found.";
-        return *this;  // RETURN
-    }
-
-    // Extract parts
-    const bsl::string firstPart  = seqNumString.substr(0, separatorPos);
-    const bsl::string secondPart = seqNumString.substr(separatorPos + 1);
-
-    // Convert parts to numbers
-    try {
-        size_t posFirst, posSecond;
-
-        const unsigned long       uLong     = bsl::stoul(firstPart, &posFirst);
-        const bsls::Types::Uint64 seqNumber = bsl::stoul(secondPart,
-                                                         &posSecond);
-
-        if (posFirst != firstPart.size() || posSecond != secondPart.size()) {
-            throw bsl::invalid_argument("");  // THROW
+    do {
+        if (seqNumString.empty()) {
+            errorDescription << "Invalid input: empty string.";
+            break;  // BREAK
         }
 
-        unsigned int leaseId = static_cast<unsigned int>(uLong);
-        if (uLong != leaseId) {
-            throw bsl::out_of_range("");  // THROW
+        // Find the position of the separator
+        const size_t separatorPos = seqNumString.find('-');
+        if (separatorPos == bsl::string::npos) {
+            errorDescription << "Invalid format: no '-' separator found.";
+            break;  // BREAK
         }
 
-        if (leaseId == 0 || seqNumber == 0) {
-            errorDescription << "Invalid input: zero values encountered.";
+        // Extract parts
+        const bsl::string firstPart  = seqNumString.substr(0, separatorPos);
+        const bsl::string secondPart = seqNumString.substr(separatorPos + 1);
+
+        // Convert parts to numbers
+        try {
+            size_t posFirst, posSecond;
+
+            const unsigned long       uLong = bsl::stoul(firstPart, &posFirst);
+            const bsls::Types::Uint64 seqNumber = bsl::stoul(secondPart,
+                                                             &posSecond);
+            if (posFirst != firstPart.size() ||
+                posSecond != secondPart.size()) {
+                errorDescription
+                    << "Invalid input: non-numeric values encountered.";
+                break;  // BREAK
+            }
+
+            unsigned int leaseId = static_cast<unsigned int>(uLong);
+            if (uLong != leaseId) {
+                errorDescription << "Invalid input: number out of range.";
+                break;  // BREAK
+            }
+
+            if (leaseId == 0 || seqNumber == 0) {
+                errorDescription << "Invalid input: zero values encountered.";
+                break;  // BREAK
+            }
+
+            d_compositeSequenceNumber = bsl::make_pair(leaseId, seqNumber);
+
+            *success = true;
             return *this;  // RETURN
         }
+        catch (const bsl::invalid_argument& e) {
+            errorDescription
+                << "Invalid input: non-numeric values encountered.";
+        }
+        catch (const bsl::out_of_range& e) {
+            errorDescription << "Invalid input: number out of range.";
+        }
+    } while (false);
 
-        d_compositeSequenceNumber = bsl::make_pair(leaseId, seqNumber);
-
-        *success = true;
-    }
-    catch (const bsl::invalid_argument& e) {
-        errorDescription << "Invalid input: non-numeric values encountered.";
-    }
-    catch (const bsl::out_of_range& e) {
-        errorDescription << "Invalid input: number out of range.";
-    }
-
+    *success = false;
     return *this;
 }
 

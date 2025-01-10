@@ -57,8 +57,8 @@ class CompositeSequenceNumber {
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
     /// `sequenceNumber`
-    CompositeSequenceNumber(const unsigned int        leaseId,
-                            const bsls::Types::Uint64 sequenceNumber);
+    CompositeSequenceNumber(unsigned int        leaseId,
+                            bsls::Types::Uint64 sequenceNumber);
 
     // MANIPULATORS
 
@@ -80,9 +80,9 @@ class CompositeSequenceNumber {
     /// Return sequence number value.
     bsls::Types::Uint64 sequenceNumber() const;
 
-    /// Return the composite sequence number as a pair of primary lease Id and
-    /// sequence number.
-    bsl::pair<unsigned int, bsls::Types::Uint64>
+    /// Return the const reference to composite sequence number as a pair of
+    /// primary lease Id and sequence number.
+    const bsl::pair<unsigned int, bsls::Types::Uint64>&
     compositeSequenceNumber() const;
 
     /// Write the value of this object to the specified output `stream` in a
@@ -148,7 +148,7 @@ inline bsls::Types::Uint64 CompositeSequenceNumber::sequenceNumber() const
     return d_compositeSequenceNumber.second;
 }
 
-inline bsl::pair<unsigned int, bsls::Types::Uint64>
+inline const bsl::pair<unsigned int, bsls::Types::Uint64>&
 CompositeSequenceNumber::compositeSequenceNumber() const
 {
     return d_compositeSequenceNumber;
