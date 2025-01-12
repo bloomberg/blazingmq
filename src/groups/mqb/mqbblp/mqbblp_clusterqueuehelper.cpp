@@ -103,24 +103,6 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
-/// This function is a simple wrapper around the specified `callback`, to
-/// ensure that the specified `refCount` is decremented after it gets
-/// invoked with the specified `status`, `queue` and `confirmationCookie`.
-void openQueueContextCallbackWrapper(
-    int*                                              refCount,
-    const mqbi::Cluster::OpenQueueCallback&           callback,
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::Queue*                                      queue,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(*refCount >= 1);
-
-    callback(status, queue, openQueueResponse, confirmationCookie);
-    --(*refCount);
-}
-
 /// Populate the specified `out` with the queueUriKey corresponding to the
 /// specified `uri` for the specified `cluster`; that is the canonical URI.
 /// The reason is that different queues with the same canonical URI are just
@@ -177,6 +159,40 @@ void countUnconfirmed(bsls::Types::Int64* result, mqbi::Queue* queue)
 }
 
 }  // close unnamed namespace
+
+// -------------------------------------------
+// struct ClusterQueueHelper::OpenQueueContext
+// -------------------------------------------
+
+ClusterQueueHelper::OpenQueueContext::OpenQueueContext(
+    mqbi::Domain*                                             domain,
+    const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
+    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
+    const mqbi::Cluster::OpenQueueCallback&                   callback)
+: d_queueContext_p(0)
+, d_domain_p(domain)
+, d_handleParameters(handleParameters)
+, d_upstreamSubQueueId(bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID)
+, d_clientContext(clientContext)
+, d_callback(callback)
+{
+    // NOTHING
+}
+
+ClusterQueueHelper::OpenQueueContext::~OpenQueueContext()
+{
+    BSLS_ASSERT_SAFE(d_queueContext_p);
+
+    --d_queueContext_p->d_liveQInfo.d_inFlight;
+}
+
+void ClusterQueueHelper::OpenQueueContext::setQueueContext(
+    QueueContext* queueContext)
+{
+    d_queueContext_p = queueContext;
+    // Bump 'd_inFlight' counter
+    ++(d_queueContext_p->d_liveQInfo.d_inFlight);
+}
 
 // -----------------------------------------
 // struct ClusterQueueHelper::QueueLiveState
@@ -276,7 +292,8 @@ unsigned int ClusterQueueHelper::getNextQueueId()
     return res;
 }
 
-unsigned int ClusterQueueHelper::getNextSubQueueId(OpenQueueContext* context)
+unsigned int
+ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -769,17 +786,18 @@ void ClusterQueueHelper::processPendingContexts(
     // Swap the contexts to process them one by one and also clear the
     // pendingContexts of the queue info: they will be enqueued back, if
     // needed.
-    bsl::vector<OpenQueueContext> contexts(d_allocator_p);
+    bsl::vector<OpenQueueContextSp> contexts(d_allocator_p);
     contexts.swap(queueContext->d_liveQInfo.d_pending);
 
-    for (bsl::vector<OpenQueueContext>::iterator it = contexts.begin();
+    for (bsl::vector<OpenQueueContextSp>::iterator it = contexts.begin();
          it != contexts.end();
          ++it) {
         processOpenQueueRequest(*it);
     }
 }
 
-void ClusterQueueHelper::assignUpstreamSubqueueId(OpenQueueContext* context)
+void ClusterQueueHelper::assignUpstreamSubqueueId(
+    const OpenQueueContextSp& context)
 {
     QueueLiveState&   info  = context->d_queueContext_p->d_liveQInfo;
     const bsl::string appId = bmqp::QueueUtil::extractAppId(
@@ -826,44 +844,44 @@ void ClusterQueueHelper::assignUpstreamSubqueueId(OpenQueueContext* context)
 }
 
 void ClusterQueueHelper::processOpenQueueRequest(
-    const OpenQueueContext& context)
+    const OpenQueueContextSp& context)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(context.d_queueContext_p)));
+    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->d_queueContext_p)));
     // At this time, the Queue must have been assigned an id/partition.
-
-    OpenQueueContext* context_p = &const_cast<OpenQueueContext&>(context);
 
     if (d_cluster_p->isRemote()) {
         BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().hasActiveLeader());
 
-        assignUpstreamSubqueueId(context_p);
+        assignUpstreamSubqueueId(context);
 
         sendOpenQueueRequest(context);
         return;  // RETURN
     }
 
-    const int pid = context.d_queueContext_p->partitionId();
+    const int pid = context->d_queueContext_p->partitionId();
 
     if (hasActiveAvailablePrimary(pid)) {
         if (d_clusterState_p->isSelfPrimary(pid)) {
-            // At primary.  Load the routing configuration and inject the
-            // downstream handle parameters into the "response"
-            BSLS_ASSERT_SAFE(context.d_domain_p);
+            // At primary.
+
+            // Load the routing configuration and inject the downstream
+            // handle parameters into the "response"
+            BSLS_ASSERT_SAFE(context->d_domain_p);
 
             bmqp_ctrlmsg::OpenQueueResponse openQueueResp;
 
-            context.d_domain_p->loadRoutingConfiguration(
+            context->d_domain_p->loadRoutingConfiguration(
                 &openQueueResp.routingConfiguration());
 
             openQueueResp.deduplicationTimeMs() =
-                context.d_domain_p->config().deduplicationTimeMs();
+                context->d_domain_p->config().deduplicationTimeMs();
             openQueueResp.originalRequest().handleParameters() =
-                context.d_handleParameters;
+                context->d_handleParameters;
             openQueueResp.originalRequest().handleParameters().qId() =
                 bmqp::QueueId::k_PRIMARY_QUEUE_ID;
 
@@ -877,19 +895,20 @@ void ClusterQueueHelper::processOpenQueueRequest(
             // upstream id associated, if we haven't already done so, assign
             // one now.
 
-            if (context.d_queueContext_p->d_liveQInfo.d_id ==
+            if (context->d_queueContext_p->d_liveQInfo.d_id ==
                 bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
-                context.d_queueContext_p->d_liveQInfo.d_id = getNextQueueId();
+                context->d_queueContext_p->d_liveQInfo.d_id = getNextQueueId();
             }
 
-            assignUpstreamSubqueueId(context_p);
+            assignUpstreamSubqueueId(context);
 
             sendOpenQueueRequest(context);
         }
     }
 }
 
-void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
+void ClusterQueueHelper::sendOpenQueueRequest(
+    const OpenQueueContextSp& context)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -897,10 +916,10 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    QueueLiveState& qinfo = context.d_queueContext_p->d_liveQInfo;
-    const int       pid   = context.d_queueContext_p->partitionId();
+    QueueLiveState& qinfo = context->d_queueContext_p->d_liveQInfo;
+    const int       pid   = context->d_queueContext_p->partitionId();
 
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(context.d_queueContext_p)));
+    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->d_queueContext_p)));
     BSLS_ASSERT_SAFE(qinfo.d_id != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
     BSLS_ASSERT_SAFE((d_cluster_p->isRemote() &&
                       d_clusterData_p->electorInfo().hasActiveLeader()) ||
@@ -920,13 +939,13 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
         failure.code()     = RC;                                              \
         failure.message().assign(os.str().data(), os.str().length());         \
                                                                               \
-        context.d_callback(failure,                                           \
-                           0,                                                 \
-                           bmqp_ctrlmsg::OpenQueueResponse(),                 \
-                           mqbi::Cluster::OpenQueueConfirmationCookie());     \
+        context->d_callback(failure,                                          \
+                            0,                                                \
+                            bmqp_ctrlmsg::OpenQueueResponse(),                \
+                            mqbi::Cluster::OpenQueueConfirmationCookie());    \
     } while (0)
 
-    if (bmqp::QueueUtil::isEmpty(context.d_handleParameters)) {
+    if (bmqp::QueueUtil::isEmpty(context->d_handleParameters)) {
         BALL_LOG_INFO << "#INVALID_OPENQUEUE_REQ "
                       << d_cluster_p->description()
                       << ": Not sending openQueueRequest to "
@@ -934,7 +953,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
                              .primaryNode()
                              ->nodeDescription()
                       << "[context.d_handleParameters: "
-                      << context.d_handleParameters
+                      << context->d_handleParameters
                       << ", reason: 'All read,write,admin counts are <= 0]";
         CALLBACK_FAILURE(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
                          bmqt::GenericResult::e_INVALID_ARGUMENT,
@@ -947,18 +966,19 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
     bmqp_ctrlmsg::OpenQueue& openQueue =
         request->request().choice().makeOpenQueue();
 
-    openQueue.handleParameters()       = context.d_handleParameters;
+    openQueue.handleParameters()       = context->d_handleParameters;
     openQueue.handleParameters().qId() = qinfo.d_id;
 
     // If we previously generated an upstream subQueueId, then set it here
     // before sending to upstream.
-    if (context.d_upstreamSubQueueId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
-        BSLS_ASSERT_SAFE(!context.d_handleParameters.subIdInfo().isNull());
+    if (context->d_upstreamSubQueueId !=
+        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+        BSLS_ASSERT_SAFE(!context->d_handleParameters.subIdInfo().isNull());
         openQueue.handleParameters().subIdInfo().makeValue(
-            context.d_handleParameters.subIdInfo().value());
+            context->d_handleParameters.subIdInfo().value());
 
         openQueue.handleParameters().subIdInfo().value().subId() =
-            context.d_upstreamSubQueueId;
+            context->d_upstreamSubQueueId;
     }
 
     mqbnet::ClusterNode* targetNode = 0;
@@ -988,7 +1008,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
     if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
         // Put back the context to the pending list so that it will get
         // re-processed later.
-        context.d_queueContext_p->d_liveQInfo.d_pending.push_back(context);
+        context->d_queueContext_p->d_liveQInfo.d_pending.push_back(context);
         return;  // RETURN
     }
 
@@ -1001,10 +1021,10 @@ void ClusterQueueHelper::sendOpenQueueRequest(const OpenQueueContext& context)
 
     // Success.   Update _upstream_ view on that particular subQueueId.
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
-        context.d_upstreamSubQueueId);
+        context->d_upstreamSubQueueId);
 
     bmqp::QueueUtil::mergeHandleParameters(&subStreamIt->value().d_parameters,
-                                           context.d_handleParameters);
+                                           context->d_handleParameters);
 
 #undef CALLBACK_FAILURE
 }
@@ -1060,7 +1080,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
 
 void ClusterQueueHelper::onOpenQueueResponse(
     const RequestManagerType::RequestSp& requestContext,
-    const OpenQueueContext&              context,
+    const OpenQueueContextSp&            context,
     mqbnet::ClusterNode*                 responder)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -1141,12 +1161,12 @@ void ClusterQueueHelper::onOpenQueueResponse(
         failure = false;
     }
 
-    QueueContext&           qcontext = *context.d_queueContext_p;
+    QueueContext&           qcontext = *context->d_queueContext_p;
     QueueLiveState&         qinfo    = qcontext.d_liveQInfo;
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::OpenQueue& req =
         requestContext->request().choice().openQueue();
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
-        context.d_upstreamSubQueueId);
+        context->d_upstreamSubQueueId);
 
     BSLS_ASSERT_SAFE(bmqp::QueueUtil::extractAppId(req.handleParameters()) ==
                      subStreamIt->appId());
@@ -1161,13 +1181,13 @@ void ClusterQueueHelper::onOpenQueueResponse(
 
         bmqp::QueueUtil::subtractHandleParameters(
             &subStreamIt->value().d_parameters,
-            context.d_handleParameters);
+            context->d_handleParameters);
 
         if (d_cluster_p->isStopping() || (!retry && !pushBack)) {
-            context.d_callback(requestContext->response().choice().status(),
-                               0,
-                               bmqp_ctrlmsg::OpenQueueResponse(),
-                               mqbi::Cluster::OpenQueueConfirmationCookie());
+            context->d_callback(requestContext->response().choice().status(),
+                                0,
+                                bmqp_ctrlmsg::OpenQueueResponse(),
+                                mqbi::Cluster::OpenQueueConfirmationCookie());
 
             return;  // RETURN
         }
@@ -1814,7 +1834,7 @@ void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
 }
 
 bool ClusterQueueHelper::createQueue(
-    const OpenQueueContext&                context,
+    const OpenQueueContextSp&              context,
     const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
     mqbnet::ClusterNode*                   upstreamNode)
 {
@@ -1824,15 +1844,16 @@ bool ClusterQueueHelper::createQueue(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    const unsigned int upstreamQueueId =
-        openQueueResponse.originalRequest().handleParameters().qId();
+    const bmqp_ctrlmsg::QueueHandleParameters& parameters =
+        openQueueResponse.originalRequest().handleParameters();
+    const unsigned int upstreamQueueId = parameters.qId();
 
     BALL_LOG_INFO << d_cluster_p->description()
                   << ": createQueue called [upstreamQueueId: "
                   << upstreamQueueId
                   << ", openQueueResponse: " << openQueueResponse << ", "
                   << "context.d_handleParameters: "
-                  << context.d_handleParameters << "]";
+                  << context->d_handleParameters << "]";
 
     mqbi::Cluster::OpenQueueConfirmationCookie confirmationCookie(
         new (*d_allocator_p) mqbi::QueueHandle * (0),
@@ -1840,22 +1861,20 @@ bool ClusterQueueHelper::createQueue(
             &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
             this,
             bdlf::PlaceHolders::_1,  // queue handle*
-            context.d_handleParameters),
+            context->d_handleParameters),
         d_allocator_p);
 
     bdlma::LocalSequentialAllocator<1024>      la(d_allocator_p);
     bmqu::MemOutStream                         errorDescription(&la);
     bmqp_ctrlmsg::Status                       status;
-    const bmqp_ctrlmsg::QueueHandleParameters& parameters =
-        openQueueResponse.originalRequest().handleParameters();
 
-    QueueContext*   queueContext = context.d_queueContext_p;
+    QueueContext*   queueContext = context->d_queueContext_p;
     QueueLiveState& qinfo        = queueContext->d_liveQInfo;
     const int       pid          = queueContext->partitionId();
     const bool      isPrimary    = !d_cluster_p->isRemote() &&
                            d_clusterState_p->isSelfPrimary(pid);
     bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
-                                                            context,
+                                                            *context,
                                                             openQueueResponse);
 
     if (queue) {
@@ -1883,10 +1902,20 @@ bool ClusterQueueHelper::createQueue(
                         true);  // isWriterOnly
         }
 
-        context.d_callback(status,
-                           queue.get(),
-                           openQueueResponse,
-                           confirmationCookie);
+        const unsigned int upstreamSubQueueId =
+            bmqp::QueueUtil::extractSubQueueId(parameters);
+
+        queue->getHandle(
+            context->d_clientContext,
+            context->d_handleParameters,
+            upstreamSubQueueId,
+            bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandle,
+                                 this,
+                                 bdlf::PlaceHolders::_1,  // status
+                                 bdlf::PlaceHolders::_2,  // handle
+                                 context,
+                                 openQueueResponse,
+                                 confirmationCookie));
 
         return true;  // RETURN
     }
@@ -1896,10 +1925,13 @@ bool ClusterQueueHelper::createQueue(
     status.code()     = -1;
     status.message().assign(errorDescription.str().data(),
                             errorDescription.str().length());
-    context.d_callback(status,
-                       0,
-                       openQueueResponse,
-                       mqbi::Cluster::OpenQueueConfirmationCookie());
+
+    // Explicitly call the callback with the status
+    onGetQueueHandle(status,
+                     0,
+                     context,
+                     openQueueResponse,
+                     mqbi::Cluster::OpenQueueConfirmationCookie());
 
     if (isPrimary) {
         // No further cleanup required.
@@ -1914,7 +1946,7 @@ bool ClusterQueueHelper::createQueue(
 
     // Update _upstream_ view on that particular subQueueId
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
-        context.d_upstreamSubQueueId);
+        context->d_upstreamSubQueueId);
 
     subtractCounters(&qinfo, parameters, subStreamIt);
     sendCloseQueueRequest(parameters,
@@ -1934,6 +1966,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(isQueueAssigned(*(context.d_queueContext_p)));
+    BSLS_ASSERT_SAFE(context.d_domain_p);
 
     const int pid = context.d_queueContext_p->partitionId();
     if (!d_cluster_p->isRemote()) {
@@ -2291,11 +2324,44 @@ void ClusterQueueHelper::onGetDomainDispatched(
     const bmqp_ctrlmsg::QueueHandleParameters& handleParams =
         request.choice().openQueue().handleParameters();
 
+    //  CQH::processPeerOpenQueueRequest  QueueSessionManager::processOpenQueue
+    //              \                       /
+    //               V                     V
+    //              DomainFactory::createDomain
+    //              /                      \
+    //             V                        V
+    //  CQH::onGetDomain                  QueueSessionManager::onDomainOpenCb
+    //          |                           /
+    //          V                          /
+    //      CQH::onGetDomainDispatched    /
+    //                      \            /
+    //                       V          V
+    //                      Domain::openQueue
+    //                              |
+    //                              V
+    //                          Cluster::openQueue
+    //                              |
+    //                              V
+    //                              CQH::openQueue
+    //                                      \
+    //                                       V
+    //                                  Queue::getHandle
+    //                                      /
+    //                                     V
+    //                              CQH::onGetQueueHandle
+    //                                    /
+    //                                   V
+    //                      Domain::onOpenQueueResponse
+    //                        /                 \
+    //                       V                   V
+    //  CQH::onGetQueueHandleDispatched     QueueSessionManager::onQueueOpenCb
+    //
+
     domain->openQueue(
         bmqt::Uri(handleParams.uri()),
         requester->handleRequesterContext(),
         handleParams,
-        bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandle,
+        bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandleDispatched,
                              this,
                              bdlf::PlaceHolders::_1,  // status
                              bdlf::PlaceHolders::_2,  // queueHandle
@@ -2309,19 +2375,19 @@ void ClusterQueueHelper::onGetDomainDispatched(
 void ClusterQueueHelper::onGetQueueHandle(
     const bmqp_ctrlmsg::Status&                      status,
     mqbi::QueueHandle*                               queueHandle,
+    const OpenQueueContextSp&                        context,
     const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-    const bmqp_ctrlmsg::ControlMessage&              request,
-    mqbc::ClusterNodeSession*                        requester,
-    const int                                        peerInstanceId)
+    const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie)
 {
     // executed by *ANY* thread
+
+    BSLS_ASSERT_SAFE(context);
 
     // First step in this routine is to update the cookie with the queue handle
     // if 'confirmationCookie' is valid.  If this open-queue request has
     // succeeded, this object should eventually set 'confirmationCookie' to 0
-    // (see 'onGetQueueHandleDispatched').  Note that this is similar to what
-    // 'mqba::ClientSession' is doing in 'onQueueOpenCb'.  The rough equivalent
+    // (see 'onGetQueueHandleDispatched').  Note that this also applies to the
+    // 'mqba::ClientSession' case ('onQueueOpenCb').  The rough equivalent
     // of a client session here is the cluster node session represented by
     // 'requester'.
 
@@ -2329,17 +2395,21 @@ void ClusterQueueHelper::onGetQueueHandle(
         *confirmationCookie = queueHandle;
     }
 
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterQueueHelper::onGetQueueHandleDispatched,
-                             this,
-                             status,
-                             queueHandle,
-                             openQueueResponse,
-                             confirmationCookie,
-                             request,
-                             requester,
-                             peerInstanceId),
-        d_cluster_p);
+    if (context->d_clientContext->isClusterMember()) {
+        d_cluster_p->dispatcher()->execute(
+            bdlf::BindUtil::bind(context->d_callback,
+                                 status,
+                                 queueHandle,
+                                 openQueueResponse,
+                                 confirmationCookie),
+            d_cluster_p);
+    }
+    else {
+        context->d_callback(status,
+                            queueHandle,
+                            openQueueResponse,
+                            confirmationCookie);
+    }
 }
 
 void ClusterQueueHelper::onGetQueueHandleDispatched(
@@ -3232,6 +3302,7 @@ bool ClusterQueueHelper::subtractCounters(
     StreamsMap::iterator&                      itSubStream)
 {
     BSLS_ASSERT_SAFE(qinfo);
+    BSLS_ASSERT_SAFE(qinfo->d_queue_sp);
 
     bmqp::QueueUtil::subtractHandleParameters(
         &itSubStream->value().d_parameters,
@@ -3295,15 +3366,15 @@ void ClusterQueueHelper::processRejectedQueueAssignments(
     for (bsl::vector<QueueContext*>::const_iterator sIt = rejected.begin();
          sIt != rejected.end();
          ++sIt) {
-        for (bsl::vector<OpenQueueContext>::iterator
+        for (bsl::vector<OpenQueueContextSp>::iterator
                  cIt   = (*sIt)->d_liveQInfo.d_pending.begin(),
                  cLast = (*sIt)->d_liveQInfo.d_pending.end();
              cIt != cLast;
              ++cIt) {
-            cIt->d_callback(failure,
-                            0,
-                            bmqp_ctrlmsg::OpenQueueResponse(),
-                            mqbi::Cluster::OpenQueueConfirmationCookie());
+            (*cIt)->d_callback(failure,
+                               0,
+                               bmqp_ctrlmsg::OpenQueueResponse(),
+                               mqbi::Cluster::OpenQueueConfirmationCookie());
         }
         d_queues.erase((*sIt)->uri());
     }
@@ -3948,6 +4019,9 @@ void ClusterQueueHelper::onQueueAssigned(
     QueueContextSp      queueContext;
     QueueContextMapIter queueContextIt = d_queues.find(info->uri());
 
+    mqbc::ClusterState::DomainState& domainState =
+        *d_clusterState_p->domainStates().at(info->uri().qualifiedDomain());
+
     if (queueContextIt != d_queues.end()) {
         // We already have a queueContext created for that queue
         queueContext = queueContextIt->second;
@@ -4019,8 +4093,6 @@ void ClusterQueueHelper::onQueueAssigned(
 
         d_queues[info->uri()] = queueContext;
     }
-    mqbc::ClusterState::DomainState& domainState =
-        *d_clusterState_p->domainStates().at(info->uri().qualifiedDomain());
 
     domainState.adjustQueueCount(1);
 
@@ -4042,24 +4114,18 @@ void ClusterQueueHelper::onQueueAssigned(
             // in the StorageMgr if it was a queue found during storage
             // recovery. Therefore, we will allow for duplicate registration
             // which will simply result in a no-op.
-            d_storageManager_p->registerQueueReplica(
-                info->partitionId(),
-                info->uri(),
-                info->key(),
-                d_clusterState_p->domainStates()
-                    .at(info->uri().qualifiedDomain())
-                    ->domain(),
-                true);  // allowDuplicate
+            d_storageManager_p->registerQueueReplica(info->partitionId(),
+                                                     info->uri(),
+                                                     info->key(),
+                                                     domainState.domain(),
+                                                     true);  // allowDuplicate
 
-            d_storageManager_p->updateQueueReplica(
-                info->partitionId(),
-                info->uri(),
-                info->key(),
-                info->appInfos(),
-                d_clusterState_p->domainStates()
-                    .at(info->uri().qualifiedDomain())
-                    ->domain(),
-                true);  // allowDuplicate
+            d_storageManager_p->updateQueueReplica(info->partitionId(),
+                                                   info->uri(),
+                                                   info->key(),
+                                                   info->appInfos(),
+                                                   domainState.domain(),
+                                                   true);  // allowDuplicate
         }
     }
 
@@ -4496,31 +4562,20 @@ void ClusterQueueHelper::openQueue(
     }
 
     // Create an OpenQueue context for that request.
-    OpenQueueContext context;
-    context.d_domain_p           = domain;
-    context.d_handleParameters   = handleParameters;
-    context.d_upstreamSubQueueId = bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID;
+    OpenQueueContextSp context(new (*d_allocator_p)
+                                   OpenQueueContext(domain,
+                                                    handleParameters,
+                                                    clientContext,
+                                                    callback),
+                               d_allocator_p);
 
-    // NOTE: We wrap the 'callback' into the 'openQueueContextCallbackWrapper'
-    //       so that we guarantee the 'd_inFlight' counter will always be
-    //       decremented after the user provided 'callback' has been invoked.
+    // 'OpenQueueContext::~OpenQueueContext' decrements 'd_inFlight' counter.
 
     // Check if we are already aware of the queue.
     if (queueContextIt != d_queues.end()) {
         // Already aware of the queue; but the queue may not yet have been
         // assigned.
-        context.d_queueContext_p = queueContextIt->second.get();
-        context.d_callback       = bdlf::BindUtil::bind(
-            &openQueueContextCallbackWrapper,
-            &context.d_queueContext_p->d_liveQInfo.d_inFlight,
-            callback,
-            bdlf::PlaceHolders::_1,   // status
-            bdlf::PlaceHolders::_2,   // queue
-            bdlf::PlaceHolders::_3,   // openQueueResponse
-            bdlf::PlaceHolders::_4);  // confirmationCookie
-
-        // Bump 'd_inFlight' counter
-        ++(context.d_queueContext_p->d_liveQInfo.d_inFlight);
+        context->setQueueContext(queueContextIt->second.get());
 
         // In case queue was marked for expiration, explicitly unmark it.  Note
         // that self may be a replica or a passive primary, but it's ok to
@@ -4529,7 +4584,7 @@ void ClusterQueueHelper::openQueue(
         // point.
         queueContextIt->second->d_liveQInfo.d_queueExpirationTimestampMs = 0;
 
-        if (isQueuePrimaryAvailable(*(context.d_queueContext_p))) {
+        if (isQueuePrimaryAvailable(*(context->d_queueContext_p))) {
             // Queue is already assigned and the primary is AVAILABLE, all
             // good; move on to next step, i.e., processing the open request.
             processOpenQueueRequest(context);
@@ -4605,18 +4660,7 @@ void ClusterQueueHelper::openQueue(
         queueContext.createInplace(d_allocator_p, uriKey, d_allocator_p);
 
         d_queues[uriKey]         = queueContext;
-        context.d_queueContext_p = queueContext.get();
-        context.d_callback       = bdlf::BindUtil::bind(
-            &openQueueContextCallbackWrapper,
-            &context.d_queueContext_p->d_liveQInfo.d_inFlight,
-            callback,
-            bdlf::PlaceHolders::_1,   // status
-            bdlf::PlaceHolders::_2,   // queue
-            bdlf::PlaceHolders::_3,   // openQueueResponse
-            bdlf::PlaceHolders::_4);  // confirmationCookie
-
-        // Bump 'd_inFlight' counter
-        ++(context.d_queueContext_p->d_liveQInfo.d_inFlight);
+        context->setQueueContext(queueContext.get());
 
         // Register the context to the pending list.
         queueContext->d_liveQInfo.d_pending.push_back(context);
@@ -6324,7 +6368,7 @@ void ClusterQueueHelper::loadState(
     for (QueueContextMapConstIter it = d_queues.begin(); it != d_queues.end();
          ++it, ++qIdx) {
         const QueueLiveState&                info = it->second->d_liveQInfo;
-        const bsl::vector<OpenQueueContext>& contexts =
+        const bsl::vector<OpenQueueContextSp>& contexts =
             it->second->d_liveQInfo.d_pending;
         const int pid = it->second->partitionId();
 
@@ -6374,7 +6418,7 @@ void ClusterQueueHelper::loadState(
         // Contexts
         clusterQueue.contexts().resize(contexts.size());
         for (size_t ctxId = 0; ctxId != contexts.size(); ++ctxId) {
-            const OpenQueueContext& context = contexts[ctxId];
+            const OpenQueueContext& context = *contexts[ctxId];
             os << context.d_handleParameters;
             clusterQueue.contexts()[ctxId].queueHandleParametersJson() =
                 os.str();

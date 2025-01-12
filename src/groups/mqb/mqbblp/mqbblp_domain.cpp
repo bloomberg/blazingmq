@@ -194,149 +194,26 @@ int normalizeConfig(mqbconfm::Domain* defn,
 
 void Domain::onOpenQueueResponse(
     const bmqp_ctrlmsg::Status&                       status,
-    mqbi::Queue*                                      queue,
+    mqbi::QueueHandle*                                queuehandle,
     const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
     const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
-    const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
-    const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
-    const mqbi::Domain::OpenQueueCallback&                    callback)
+    const mqbi::Domain::OpenQueueCallback&            callback)
 {
-    // executed by the associated CLUSTER's DISPATCHER thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    // executed by *ANY* thread
 
     --d_pendingRequests;
-    if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        // Failed to open queue
-        callback(status,
-                 static_cast<mqbi::QueueHandle*>(0),
-                 openQueueResponse,
-                 confirmationCookie);
-        return;  // RETURN
+    if (status.category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        // VALIDATION: The queue must exist at this point, i.e., have been
+        //             registered.FE(
+        BSLS_ASSERT_SAFE(queuehandle);
+        BSLS_ASSERT_SAFE(queuehandle->queue());
+        BSLS_ASSERT_SAFE(lookupQueue(0, queuehandle->queue()->uri()) == 0);
+    }
+    else {
+        queuehandle = 0;
     }
 
-    // VALIDATION: The queue must exist at this point, i.e., have been
-    //             registered.
-    BSLS_ASSERT_SAFE(queue);
-    BSLS_ASSERT_SAFE(lookupQueue(0, queue->uri()) == 0);
-
-    const bmqp_ctrlmsg::QueueHandleParameters& upstreamHandleParams =
-        openQueueResponse.originalRequest().handleParameters();
-    const unsigned int upstreamSubQueueId = bmqp::QueueUtil::extractSubQueueId(
-        upstreamHandleParams);
-
-    queue->getHandle(clientContext,
-                     handleParameters,
-                     upstreamSubQueueId,
-                     bdlf::BindUtil::bind(callback,
-                                          bdlf::PlaceHolders::_1,  // status
-                                          bdlf::PlaceHolders::_2,  // handle
-                                          openQueueResponse,
-                                          confirmationCookie));
-}
-
-void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
-                                    const AppInfos& removedAppIds)
-{
-    mqbconfm::QueueMode& queueMode = d_config.value().mode();
-    if (!queueMode.isFanoutValue()) {
-        return;  // RETURN
-    }
-    bsl::vector<bsl::string>& authorizedAppIds = queueMode.fanout().appIDs();
-
-    for (AppInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
-         ++cit) {
-        if (bsl::find(authorizedAppIds.begin(),
-                      authorizedAppIds.end(),
-                      cit->first) != authorizedAppIds.end()) {
-            // No need to log error here. When a new appId is registered for a
-            // domain, multiple queues will be affected, so duplicate calls to
-            // this method is expected.
-
-            continue;  // CONTINUE
-        }
-        authorizedAppIds.push_back(cit->first);
-    }
-
-    for (AppInfosCIter cit = removedAppIds.cbegin();
-         cit != removedAppIds.cend();
-         ++cit) {
-        const bsl::vector<bsl::string>::const_iterator it = bsl::find(
-            authorizedAppIds.begin(),
-            authorizedAppIds.end(),
-            cit->first);
-        if (it == authorizedAppIds.end()) {
-            // No need to log error here. When an appId is unregistered from a
-            // domain, multiple queues will be affected, so duplicate calls to
-            // this method is expected.
-
-            continue;  // CONTINUE
-        }
-        authorizedAppIds.erase(it);
-    }
-}
-
-void Domain::onQueueAssigned(
-    const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
-{
-    // executed by the associated CLUSTER's DISPATCHER thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
-    BSLS_ASSERT_SAFE(info);
-
-    if (!d_cluster_sp->isCSLModeEnabled()) {
-        return;  // RETURN
-    }
-
-    if (d_state != e_STARTED) {
-        return;  // RETURN
-    }
-
-    if (info->uri().domain() != d_name) {
-        // Note: This method will fire on all domains which belong to the
-        //       cluster having the queue assignment, but we examine the domain
-        //       name from the 'uri' to guarantee that only one domain is
-        //       updated.
-
-        return;  // RETURN
-    }
-
-    updateAuthorizedAppIds(info->appInfos());
-}
-
-void Domain::onQueueUpdated(const bmqt::Uri&   uri,
-                            const bsl::string& domain,
-                            const AppInfos&    addedAppIds,
-                            const AppInfos&    removedAppIds)
-{
-    // executed by the associated CLUSTER's DISPATCHER thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(
-        d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
-
-    if (!d_cluster_sp->isCSLModeEnabled()) {
-        return;  // RETURN
-    }
-
-    if (d_state != e_STARTED) {
-        return;  // RETURN
-    }
-
-    if (uri.isValid()) {
-        BSLS_ASSERT_SAFE(uri.qualifiedDomain() == domain);
-    }
-
-    // Note: This method will fire on all domains which belong to the cluster
-    //       having the queue update, but we examine the domain name to
-    //       guarantee that only one domain is updated.
-    if (d_name == domain) {
-        updateAuthorizedAppIds(addedAppIds, removedAppIds);
-    }
+    callback(status, queuehandle, openQueueResponse, confirmationCookie);
 }
 
 Domain::Domain(const bsl::string&                     name,
@@ -370,8 +247,6 @@ Domain::Domain(const bsl::string&                     name,
 
     // Initialize stats
     d_domainsStats.initialize(this, d_domainsStatContext_p, allocator);
-
-    d_cluster_sp->registerStateObserver(this);
 }
 
 Domain::~Domain()
@@ -503,8 +378,6 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
     d_teardownCb = teardownCb;
     d_state      = e_STOPPING;
 
-    d_cluster_sp->unregisterStateObserver(this);
-
     if (d_queues.empty()) {
         d_teardownCb(d_name);
         d_teardownCb = bsl::nullptr_t();
@@ -530,8 +403,6 @@ void Domain::teardownRemove(const TeardownCb& teardownCb)
                   << d_queues.size() << " registered queues.";
 
     d_teardownRemoveCb = teardownCb;
-
-    d_cluster_sp->unregisterStateObserver(this);
 
     if (d_queues.empty()) {
         d_teardownRemoveCb(d_name);
@@ -598,8 +469,6 @@ void Domain::openQueue(
                              bdlf::PlaceHolders::_2,  // queue
                              bdlf::PlaceHolders::_3,  // openQueueResponse
                              bdlf::PlaceHolders::_4,  // confirmationCookie
-                             clientContext,
-                             handleParameters,
                              callback));
 }
 

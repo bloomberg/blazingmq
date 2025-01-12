@@ -224,7 +224,7 @@ class Cluster : public DispatcherClient {
     /// above).
     typedef bsl::function<void(
         const bmqp_ctrlmsg::Status&            status,
-        Queue*                                 queue,
+        QueueHandle*                           queueHandle,
         const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
         const OpenQueueConfirmationCookie&     confirmationCookie)>
         OpenQueueCallback;
