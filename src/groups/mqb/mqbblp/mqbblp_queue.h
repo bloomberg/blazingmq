@@ -448,9 +448,6 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return true if there's queue handle and they're actively used.
-    bool hasActiveHandle() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================================================================
@@ -600,11 +597,6 @@ inline const mqbi::Dispatcher* Queue::dispatcher() const
 inline bmqp::SchemaLearner& Queue::schemaLearner() const
 {
     return d_schemaLearner;
-}
-
-inline bool Queue::hasActiveHandle() const
-{
-    return d_state.handleCatalog().handlesCount() != 0;
 }
 
 }  // close package namespace
