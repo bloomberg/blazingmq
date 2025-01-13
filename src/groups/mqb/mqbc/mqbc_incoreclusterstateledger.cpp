@@ -208,10 +208,20 @@ void IncoreClusterStateLeger_LogIdGenerator::generateLogId(
 // ------------------------------
 
 // PRIVATE MANIPULATORS
-int IncoreClusterStateLedger::cleanupLog(
-    BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 {
-    // TODO: Implement
+    const bsl::string& cluster = d_clusterData_p->cluster().name();
+
+    int rc = bdls::FilesystemUtil::remove(logPath);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << cluster << ": Failed to remove [" << logPath
+            << "] file during log file cleanup, rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+    }
+
+    BALL_LOG_INFO << cluster << ": Removed file [" << logPath
+                  << "] during log file cleanup";
 
     return 0;
 }
