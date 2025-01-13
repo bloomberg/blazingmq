@@ -2141,16 +2141,15 @@ static void test24_summaryWithQueueDetailsTest()
     bmqu::AlignedPrinter printer(expectedStream, &fields);
     printer << 3 << 2 << 2;
     expectedStream << "Outstanding ratio: 40% (2/5)\n";
-    
-    expectedStream
-        << "Total number of records: 15\n"
-           "Number of records per Queue:\n"
-           "    Queue Key             : 6162636465\n"
-           "    Total Records         : 15\n"
-           "    Num Queue Op Records  : 0\n"
-           "    Num Message Records   : 5\n"
-           "    Num Confirm Records   : 5\n"
-           "    Num Delete Records    : 5";
+
+    expectedStream << "Total number of records: 15\n"
+                      "Number of records per Queue:\n"
+                      "    Queue Key             : 6162636465\n"
+                      "    Total Records         : 15\n"
+                      "    Num Queue Op Records  : 0\n"
+                      "    Num Message Records   : 5\n"
+                      "    Num Confirm Records   : 5\n"
+                      "    Num Delete Records    : 5";
 
     bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
     ASSERT(res.starts_with(expectedStream.str()));
