@@ -539,14 +539,10 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Load the cluster state in the specified `out` object.
     void loadClusterStatus(mqbcmd::ClusterResult* out) BSLS_KEYWORD_OVERRIDE;
 
-    /// Purge queues in this cluster on a given domain.
-    void
-    purgeQueueOnDomain(mqbcmd::ClusterResult* result,
-                       const bsl::string& domainName) BSLS_KEYWORD_OVERRIDE;
-
-    /// Force GC queues in this cluster on a given domain.
-    int gcQueueOnDomain(mqbcmd::ClusterResult* result,
-                        const bsl::string& domainName) BSLS_KEYWORD_OVERRIDE;
+    /// Purge and force GC queues in this cluster on a given domain.
+    void purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
+                                 const bsl::string&     domainName)
+        BSLS_KEYWORD_OVERRIDE;
 
     void getPrimaryNodes(int*                               rc,
                          bsl::ostream&                      errorDescription,

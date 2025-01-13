@@ -6222,6 +6222,47 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
     return rc_SUCCESS;  // RETURN
 }
 
+bool ClusterQueueHelper::hasActiveQueue(const bsl::string& domainName)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    const mqbc::ClusterState::DomainStates& domainStates =
+        d_clusterState_p->domainStates();
+
+    DomainStatesCIter domCit = domainStates.find(domainName);
+
+    if (domCit == domainStates.end()) {
+        return false;  // RETURN
+    }
+
+    const UriToQueueInfoMap& queuesInfoPerDomain =
+        domCit->second->queuesInfo();
+
+    for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
+         qCit != queuesInfoPerDomain.cend();
+         ++qCit) {
+        QueueContextMapConstIter queueContextCIt = d_queues.find(
+            qCit->second->uri());
+
+        if (queueContextCIt == d_queues.end()) {
+            continue;
+        }
+
+        if (queueContextCIt->second->d_liveQInfo.d_inFlight != 0 ||
+            queueContextCIt->second->d_liveQInfo
+                    .d_numHandleCreationsInProgress != 0 ||
+            queueContextCIt->second->d_liveQInfo.d_numQueueHandles != 0) {
+            return true;  // RETURN
+        }
+    }
+
+    return false;  // RETURN
+}
+
 void ClusterQueueHelper::loadQueuesInfo(mqbcmd::StorageContent* out) const
 {
     // executed by the cluster *DISPATCHER* thread
