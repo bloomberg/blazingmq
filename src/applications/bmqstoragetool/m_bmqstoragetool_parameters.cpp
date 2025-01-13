@@ -346,7 +346,7 @@ Parameters::ProcessRecordTypes::ProcessRecordTypes(bool enableDefault)
 
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
-: d_processRecordTypes(true)
+: d_processRecordTypes(false)
 , d_queueMap(allocator)
 , d_range()
 , d_guid(arguments.d_guid, allocator)
