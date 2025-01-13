@@ -156,11 +156,12 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
             clusterDefinition.clusterAttributes().isCSLModeEnabled()) {
             // CSL and FSM must be both true or both false, other combinations
             // are not supported
-            errorDescription << "Cluster ('" << name << "') has incompatible CSL ("
-                             << clusterDefinition.clusterAttributes().isCSLModeEnabled()
-                             << ") and FSM ("
-                             << clusterDefinition.clusterAttributes().isFSMWorkflow()
-                             << ") modes, not creating cluster.";
+            errorDescription
+                << "Cluster ('" << name << "') has incompatible CSL ("
+                << clusterDefinition.clusterAttributes().isCSLModeEnabled()
+                << ") and FSM ("
+                << clusterDefinition.clusterAttributes().isFSMWorkflow()
+                << ") modes, not creating cluster.";
             return (rc * 10) + rc_FETCH_DEFINITION_FAILED;  // RETURN
         }
 
