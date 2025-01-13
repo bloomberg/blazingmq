@@ -6,5 +6,5 @@ var classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder =
     [ "addMessageConfirmation", "classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#ab23d1e0f1c8e959273a80343daac25bb", null ],
     [ "reset", "classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#abd52c4815836c3253b7e09f94b9b32b8", null ],
     [ "messageCount", "classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#a88c3924f43e4d324c7824a44cbff1cbe", null ],
-    [ "blob", "classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#a0964bb5955d650d9f72557d941bac7b5", null ]
+    [ "blob", "classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#a1bb076232b2c8907c9f5a2f89bc9db63", null ]
 ];

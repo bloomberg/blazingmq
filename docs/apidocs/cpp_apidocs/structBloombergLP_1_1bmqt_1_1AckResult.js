@@ -18,7 +18,7 @@ var structBloombergLP_1_1bmqt_1_1AckResult =
       [ "e_LIMIT_QUEUE_BYTES", "structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aaee2cb712fac6813a8472e3fc2c8fbb1c", null ],
       [ "e_STORAGE_FAILURE", "structBloombergLP_1_1bmqt_1_1AckResult.html#a1232d58884a451e4d58238115beaf70aa94c019c57b990519b028fc9fb3c10e46", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1AckResult.html#a9d28bdea7d5f180f8545a13cc95d5aac", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1AckResult.html#abf7ccd2ab7231decefb5472caf4c05b7", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1AckResult.html#a5827d73ca1f9feef8aa146e54b020977", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1AckResult.html#acb60dc482b7ef00f22d4f42b30025e2d", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1AckResult.html#ad98e756468a1740a933b69cd3e8e38a4", null ]
 ];

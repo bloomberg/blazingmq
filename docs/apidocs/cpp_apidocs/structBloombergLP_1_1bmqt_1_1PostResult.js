@@ -12,7 +12,7 @@ var structBloombergLP_1_1bmqt_1_1PostResult =
       [ "e_NOT_READY", "structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a7078e4cf069576365b6815b53fc44f5b", null ],
       [ "e_BW_LIMIT", "structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1PostResult.html#ae6bcd7a424b1eccf9c03539fc05648fb", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1PostResult.html#a97d8ed80c1a82a75d62a7ce7658e4cf4", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1PostResult.html#a8cf70e5443de2b9765fea697f97c4a5f", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1PostResult.html#a39956f8ec25e90758c07100175652c0e", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1PostResult.html#aee80bbae12264a654ad74780b474cb20", null ]
 ];

@@ -42,7 +42,7 @@ var NAVTREE =
         [ "Typedefs", "functions_type.html", null ],
         [ "Enumerations", "functions_enum.html", null ],
         [ "Enumerator", "functions_eval.html", null ],
-        [ "Related Functions", "functions_rela.html", null ]
+        [ "Related Symbols", "functions_rela.html", null ]
       ] ]
     ] ],
     [ "Files", "files.html", [
@@ -58,10 +58,13 @@ var NAVTREE =
 var NAVTREEINDEX =
 [
 "annotated.html",
-"classBloombergLP_1_1bmqa_1_1MessageEventBuilder.html#a12f61310671544ae0d292cf3a12e4589",
-"classBloombergLP_1_1bmqt_1_1CorrelationId.html#a70e34a633a6b0307ca504a75fb9c8d89",
-"globals.html",
-"structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5"
+"classBloombergLP_1_1bmqa_1_1ConfirmEventBuilder.html#a1bb076232b2c8907c9f5a2f89bc9db63",
+"classBloombergLP_1_1bmqa_1_1MockSession.html#a019ca79a33961783a1b581877388e2ca",
+"classBloombergLP_1_1bmqa_1_1Session.html#acbb3ff4925157b559fe6ec59bda12e6e",
+"classBloombergLP_1_1bmqt_1_1QueueOptions.html#ac82f72cd34682fae81a4d63eaaa3084a",
+"classBloombergLP_1_1bmqt_1_1Version.html#ae047c166ba08db182ff510534e2e1eb0",
+"structBloombergLP_1_1bmqt_1_1CloseQueueResult.html#a8a5f62a265c19e07a6f061c26ae47620acb991e2d63db47d03b728d2307997615",
+"structBloombergLP_1_1bmqt_1_1PostResult.html#a647fe12951a2f54917cc1b98e3ca94d3a63a81e2e7d834f17001478b5f5d3112c"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

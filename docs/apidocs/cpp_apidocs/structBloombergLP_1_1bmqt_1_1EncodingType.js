@@ -10,8 +10,8 @@ var structBloombergLP_1_1bmqt_1_1EncodingType =
       [ "e_TEXT", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a58519a0170da37bf7aff93f8782ac066acfdbe8d3703fe5e2a0527d25fcbe7d98", null ],
       [ "e_MULTIPARTS", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a58519a0170da37bf7aff93f8782ac066a830bbc9ca677bd5bd3123a359bb96ccd", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1EncodingType.html#ab5bc54d67ad7f954e240129865174140", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a3d88c815bea85aaba44e4de4d694c4c2", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a3e72ec17d851a2ab6e2ed12b2a74584a", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1EncodingType.html#ab133fcc8736929384b0d88eeb9d1789d", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a6b766073163e057204e46dfd4358f1bb", null ],
     [ "isValid", "structBloombergLP_1_1bmqt_1_1EncodingType.html#a23effea62e9c9315504a09247dc419d2", null ],
     [ "k_LOWEST_SUPPORTED_ENCODING_TYPE", "structBloombergLP_1_1bmqt_1_1EncodingType.html#ab2ee6d688a454841e9816db22a688550", null ],

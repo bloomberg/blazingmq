@@ -22,7 +22,7 @@ var structBloombergLP_1_1bmqt_1_1SessionEventType =
       [ "e_QUEUE_SUSPENDED", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#ae92327d931cc88d7adb05afdbc5f0431a1c77d3dd86d383b795a945ecc123fa86", null ],
       [ "e_QUEUE_RESUMED", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#ae92327d931cc88d7adb05afdbc5f0431a673871da070c26105fe5eb41ced493bc", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#ad04d27473830ee7c19aec64cdc4543be", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#a8ef48acb76f761d7f8dc1e50f0afa46d", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#a8d400440e939c43a595d77f857914fda", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#afe17e8eb14a06a78a50673c6dd13aecd", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1SessionEventType.html#a2ca41809eff53c41dd8e5ab55e71e3ea", null ]
 ];

@@ -10,8 +10,8 @@ var structBloombergLP_1_1bmqt_1_1PropertyType =
       [ "e_STRING", "structBloombergLP_1_1bmqt_1_1PropertyType.html#a38a96cd3ce3d7dc6ed902bd2192709bca7ae3c7a374fe93111422b5d8c282e3ce", null ],
       [ "e_BINARY", "structBloombergLP_1_1bmqt_1_1PropertyType.html#a38a96cd3ce3d7dc6ed902bd2192709bca1002a55fda82c5ccf67e5b3b0080e56d", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1PropertyType.html#a9972008a30ab0e2592adf77da1f58ee3", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1PropertyType.html#af0a5e41813c6ecfa0ceac3d7960d21eb", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1PropertyType.html#aca90306473e80a20b9ec9d1ee2f06e38", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1PropertyType.html#a967a05029239a194fed85506d97c5b9d", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1PropertyType.html#a099211789cd9baeaa9dda8d6ff91f036", null ],
     [ "k_LOWEST_SUPPORTED_PROPERTY_TYPE", "structBloombergLP_1_1bmqt_1_1PropertyType.html#acb380425324a92e156fc3ce08363480f", null ],
     [ "k_HIGHEST_SUPPORTED_PROPERTY_TYPE", "structBloombergLP_1_1bmqt_1_1PropertyType.html#ac7a6d86d21050dcd5efabcedec7fbbb0", null ]

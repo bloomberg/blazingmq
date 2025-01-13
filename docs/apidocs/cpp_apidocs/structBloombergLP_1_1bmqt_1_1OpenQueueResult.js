@@ -16,7 +16,7 @@ var structBloombergLP_1_1bmqt_1_1OpenQueueResult =
       [ "e_INVALID_FLAGS", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286aa6f6d12adda15ef89d876258a5e11ad6", null ],
       [ "e_CORRELATIONID_NOT_UNIQUE", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a4516648a84ec19ab09dd3975c0641286ad756c9f834ffb587e4b771a3feb237b6", null ]
     ] ],
-    [ "print", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#aa6dbf12740d4a447d78d367c214fb8d1", null ],
-    [ "toAscii", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a0fe0bbab6dadb2bbaa4fbf84350ddaf8", null ],
+    [ "print", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#ab48c57c4f00a81dabc8031682f7275f0", null ],
+    [ "toAscii", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a84772be4a954cff3dbc159d56e136ae8", null ],
     [ "fromAscii", "structBloombergLP_1_1bmqt_1_1OpenQueueResult.html#a899dbe6eb3c04f3de1092d713e9910c5", null ]
 ];
