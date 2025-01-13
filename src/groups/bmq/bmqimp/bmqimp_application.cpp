@@ -553,7 +553,7 @@ Application::Application(
 , d_channelsTip(&d_allocator)
 , d_blobBufferFactory(sessionOptions.blobBufferSize(),
                       d_allocators.get("BlobBufferFactory"))
-, d_blobSpPool(
+, d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
                                          d_allocators.get("BlobSpPool")))
 , d_scheduler(bsls::SystemClockType::e_MONOTONIC, &d_allocator)
@@ -584,13 +584,13 @@ Application::Application(
       NegotiatedChannelFactoryConfig(&d_statChannelFactory,
                                      negotiationMessage,
                                      sessionOptions.connectTimeout(),
-                                     &d_blobSpPool,
+                                     d_blobSpPool_sp.get(),
                                      allocator),
       allocator)
 , d_connectHandle_mp()
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
-                  &d_blobSpPool,
+                  d_blobSpPool_sp.get(),
                   d_sessionOptions,
                   eventHandlerCB,
                   bdlf::MemFnUtil::memFn(&Application::stateCb, this),

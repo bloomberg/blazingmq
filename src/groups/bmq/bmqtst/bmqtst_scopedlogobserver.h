@@ -145,6 +145,14 @@ class ScopedLogObserver : public ball::ObserverAdapter {
     void publish(const ball::Record&  record,
                  const ball::Context& context) BSLS_KEYWORD_OVERRIDE;
 
+    /// Note: this member is overriden to get rid of the "hides the virtual
+    ///       function" warning.
+    inline void publish(const bsl::shared_ptr<const ball::Record>& record,
+                        const ball::Context& context) BSLS_KEYWORD_OVERRIDE
+    {
+        publish(*record, context);
+    }
+
   public:
     // ACCESSORS
 

@@ -123,7 +123,7 @@ class TestContext {
     // Buffer factory provided to the various builders
 
     /// Blob shared pointer pool used in event builders.
-    bmqp::BlobPoolUtil::BlobSpPool d_blobSpPool;
+    bmqp::BlobPoolUtil::BlobSpPoolSp d_blobSpPool_sp;
 
     ReqManagerTypeSp d_requestManager;
     // RequestManager object under testing
@@ -236,7 +236,7 @@ class TestContext {
 
 TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 : d_blobBufferFactory(1024, allocator)
-, d_blobSpPool(
+, d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
                                          bmqtst::TestHelperUtil::allocator()))
 , d_requestManager(0)
@@ -266,7 +266,7 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 
     d_requestManager = bsl::make_shared<ReqManagerType>(
         bmqp::EventType::e_CONTROL,
-        &d_blobSpPool,
+        d_blobSpPool_sp.get(),
         &d_cluster_mp->_scheduler(),
         false,  // lateResponseMode
         d_allocator_p);

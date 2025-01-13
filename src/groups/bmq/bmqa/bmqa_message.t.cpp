@@ -166,7 +166,7 @@ static void test2_validPushMessagePrint()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -192,7 +192,7 @@ static void test2_validPushMessagePrint()
                      bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -256,7 +256,7 @@ static void test3_messageProperties()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -290,7 +290,7 @@ static void test3_messageProperties()
     bdlbb::BlobUtil::append(&payload, buffer, bsl::strlen(buffer));
 
     // Create PushEventBuilder
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
 
     // Add SubQueueInfo option
@@ -432,7 +432,7 @@ static void test4_subscriptionHandle()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -459,7 +459,7 @@ static void test4_subscriptionHandle()
             bmqtst::TestHelperUtil::allocator());
 
         // Create PushEventBuilder
-        bmqp::PushEventBuilder peb(&blobSpPool,
+        bmqp::PushEventBuilder peb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, peb.messageCount());
 
@@ -525,7 +525,7 @@ static void test4_subscriptionHandle()
             bmqtst::TestHelperUtil::allocator());
 
         // Create PushEventBuilder
-        bmqp::PushEventBuilder peb(&blobSpPool,
+        bmqp::PushEventBuilder peb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, peb.messageCount());
 
@@ -573,7 +573,7 @@ static void test4_subscriptionHandle()
             bmqtst::TestHelperUtil::allocator());
 
         // Create PutEventBuilder
-        bmqp::PutEventBuilder builder(&blobSpPool,
+        bmqp::PutEventBuilder builder(blobSpPool.get(),
                                       bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, builder.messageCount());
 
@@ -614,7 +614,7 @@ static void test4_subscriptionHandle()
             bmqtst::TestHelperUtil::allocator());
 
         // Create AckEventBuilder
-        bmqp::AckEventBuilder builder(&blobSpPool,
+        bmqp::AckEventBuilder builder(blobSpPool.get(),
                                       bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, builder.messageCount());
 

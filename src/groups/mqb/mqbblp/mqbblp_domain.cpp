@@ -925,7 +925,7 @@ void Domain::removeDomainReset()
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     d_state            = e_PREREMOVE;
-    d_teardownRemoveCb = nullptr;
+    d_teardownRemoveCb = bsl::nullptr_t();
 }
 
 void Domain::removeDomainComplete()

@@ -187,7 +187,7 @@ static void test1_breathingTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -202,7 +202,7 @@ static void test1_breathingTest()
     // Create StorageEventBuilder
     bmqp::StorageEventBuilder seb(1,  // storage protocol version
                                   bmqp::EventType::e_STORAGE,
-                                  &blobSpPool,
+                                  blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(seb.eventSize(),
                      static_cast<int>(sizeof(bmqp::EventHeader)));
@@ -295,14 +295,14 @@ static void test2_storageEventHavingMultipleMessages()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
 
     bmqp::StorageEventBuilder      seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &blobSpPool,
+                                  blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
@@ -396,7 +396,7 @@ static void test3_packMessage_payloadTooBig()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -410,7 +410,7 @@ static void test3_packMessage_payloadTooBig()
 
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &blobSpPool,
+                                  blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
     bsl::string               bigPayload(bmqtst::TestHelperUtil::allocator());
     bigPayload.resize(bmqp::StorageHeader::k_MAX_PAYLOAD_SIZE_SOFT + 4, 'a');
@@ -536,13 +536,13 @@ static void test4_packMessageRaw()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
     bmqp::StorageEventBuilder      sebA(k_SPV,
                                    bmqp::EventType::e_STORAGE,
-                                   &blobSpPool,
+                                   blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
     bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
     const size_t                   NUM_MSGS = 1000;
@@ -571,7 +571,7 @@ static void test4_packMessageRaw()
     // Iterate over event 'A', and create event 'B' using 'packMessageRaw'.
     bmqp::StorageEventBuilder sebB(k_SPV,
                                    bmqp::EventType::e_STORAGE,
-                                   &blobSpPool,
+                                   blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
 
     while (1 == iterA.next() && dataIndex < NUM_MSGS) {
@@ -681,13 +681,13 @@ static void test5_packMessageRaw_emptyMessage()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &blobSpPool,
+                                  blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
 
     bdlbb::Blob emptyBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -728,7 +728,7 @@ static void test6_packMessageRaw_invalidPosition()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
@@ -736,7 +736,7 @@ static void test6_packMessageRaw_invalidPosition()
                              bmqtst::TestHelperUtil::allocator());
     bmqp::StorageEventBuilder seb(k_SPV,
                                   bmqp::EventType::e_STORAGE,
-                                  &blobSpPool,
+                                  blobSpPool.get(),
                                   bmqtst::TestHelperUtil::allocator());
 
     // 1.

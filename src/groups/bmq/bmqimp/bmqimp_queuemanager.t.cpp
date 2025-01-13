@@ -595,11 +595,11 @@ static void test9_pushStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::PushEventBuilder peb(&blobSpPool,
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
                                bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqt::Uri   uri(k_URI, bmqtst::TestHelperUtil::allocator());
@@ -713,11 +713,11 @@ static void test10_putStatsTest()
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPool blobSpPool(
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
-    bmqp::PutEventBuilder peb(&blobSpPool,
+    bmqp::PutEventBuilder peb(blobSpPool.get(),
                               bmqtst::TestHelperUtil::allocator());
     bmqt::Uri             uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp  queueSp;

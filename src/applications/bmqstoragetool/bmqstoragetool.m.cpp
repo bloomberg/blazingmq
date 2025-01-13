@@ -38,14 +38,16 @@ static bool parseArgs(CommandLineArguments& arguments,
 {
     bool showHelp = false;
 
+    bsl::vector<bsl::string> defaultRecordType(allocator);
+    defaultRecordType.push_back(CommandLineArguments::k_MESSAGE_TYPE);
+
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
          "record type",
          "record type to search {message|queue-op|journal-op}",
          balcl::TypeInfo(&arguments.d_recordType,
                          CommandLineArguments::isValidRecordType),
-         balcl::OccurrenceInfo(bsl::vector<bsl::string>(
-             {CommandLineArguments::k_MESSAGE_TYPE}))},
+         balcl::OccurrenceInfo(defaultRecordType)},
         {"journal-path",
          "journal path",
          "'*'-ended file path pattern, where the tool will try to find "

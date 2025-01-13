@@ -165,8 +165,7 @@ inline bmqst::StatContext* BrokerStats::statContext()
 }
 
 template <>
-inline void
-BrokerStats::onEvent<BrokerStats::EventType::Enum::e_CLIENT_CREATED>()
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_CLIENT_CREATED>()
 {
     BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
 
@@ -174,8 +173,7 @@ BrokerStats::onEvent<BrokerStats::EventType::Enum::e_CLIENT_CREATED>()
 }
 
 template <>
-inline void
-BrokerStats::onEvent<BrokerStats::EventType::Enum::e_CLIENT_DESTROYED>()
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_CLIENT_DESTROYED>()
 {
     BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
 
@@ -183,8 +181,7 @@ BrokerStats::onEvent<BrokerStats::EventType::Enum::e_CLIENT_DESTROYED>()
 }
 
 template <>
-inline void
-BrokerStats::onEvent<BrokerStats::EventType::Enum::e_QUEUE_CREATED>()
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_QUEUE_CREATED>()
 {
     BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
 
@@ -192,8 +189,7 @@ BrokerStats::onEvent<BrokerStats::EventType::Enum::e_QUEUE_CREATED>()
 }
 
 template <>
-inline void
-BrokerStats::onEvent<BrokerStats::EventType::Enum::e_QUEUE_DESTROYED>()
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_QUEUE_DESTROYED>()
 {
     BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
 

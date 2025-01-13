@@ -35,7 +35,7 @@ namespace BloombergLP {
 namespace bmqp {
 
 struct BlobPoolUtil {
-    // TYPES
+    // PUBLIC TYPES
 
     /// Pool of shared pointers to Blobs
     typedef bdlcc::SharedObjectPool<
@@ -44,12 +44,15 @@ struct BlobPoolUtil {
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
 
+    /// Shared pointer to the pool of shared pointers to Blobs
+    typedef bsl::shared_ptr<BlobSpPool> BlobSpPoolSp;
+
     // CLASS METHODS
 
-    /// Create a blob shared pointer pool, using the specified
-    /// `blobBufferFactory_p`.  Use the optionally specified `allocator`
-    /// for memory allocations.
-    static BlobSpPool
+    /// Create a pool of shared pointers to blobs, using the specified
+    /// `blobBufferFactory_p`, and return it as a shared pointer.
+    /// Use the optionally specified `allocator` for memory allocations.
+    static BlobSpPoolSp
     createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
                    bslma::Allocator*         allocator = 0);
 };
