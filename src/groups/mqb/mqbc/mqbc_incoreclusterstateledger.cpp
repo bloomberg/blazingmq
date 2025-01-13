@@ -210,6 +210,13 @@ void IncoreClusterStateLeger_LogIdGenerator::generateLogId(
 // PRIVATE MANIPULATORS
 int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 {
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS = 0  // Success
+        ,
+        rc_REMOVE_FILE_FAILURE = -1  // Fail to remove log file
+    };
+
     const bsl::string& cluster = d_clusterData_p->cluster().name();
 
     int rc = bdls::FilesystemUtil::remove(logPath);
@@ -218,12 +225,13 @@ int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
             << cluster << ": Failed to remove [" << logPath
             << "] file during log file cleanup, rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        return rc_REMOVE_FILE_FAILURE;
     }
 
     BALL_LOG_INFO << cluster << ": Removed file [" << logPath
                   << "] during log file cleanup";
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
