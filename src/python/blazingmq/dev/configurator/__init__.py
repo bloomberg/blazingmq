@@ -305,7 +305,7 @@ def _cluster_definition_partial_prototype(partition_config: mqbcfg.PartitionConf
             ack_window_size=500,
         ),
         cluster_attributes=mqbcfg.ClusterAttributes(
-            is_cslmode_enabled=True, is_fsmworkflow=False
+            is_cslmode_enabled=True, is_fsmworkflow=True
         ),
         cluster_monitor_config=mqbcfg.ClusterMonitorConfig(
             max_time_leader=15,
