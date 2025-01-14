@@ -185,9 +185,8 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
                         OFFSET          offset,
                         int             length);
 
-    /// Cleanup after optionally close a log. Return 0 on success,
-    /// or a negative `mqbsi::LedgerOpResult::Enum` value otherwise.
-    void closeAndCleanup(LogSp& log, bool close);
+    /// Close and cleanup a log. Scheduled to run in seperate thread.
+    void closeAndCleanup(LogSp& log);
 
     // PRIVATE ACCESSORS
 

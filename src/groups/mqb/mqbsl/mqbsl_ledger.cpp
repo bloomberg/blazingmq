@@ -284,10 +284,7 @@ int Ledger::rollOver()
     if (!d_config.keepOldLogs()) {
         d_config.scheduler()->scheduleEvent(
             bmqsys::Time::nowMonotonicClock(),
-            bdlf::BindUtil::bind(&Ledger::closeAndCleanup,
-                                 this,
-                                 lastLog,
-                                 true));
+            bdlf::BindUtil::bind(&Ledger::closeAndCleanup, this, lastLog));
     }
 
     return LedgerOpResult::e_SUCCESS;
@@ -337,20 +334,19 @@ int Ledger::writeRecordImpl(LedgerRecordId* recordId,
     return LedgerOpResult::e_SUCCESS;
 }
 
-void Ledger::closeAndCleanup(LogSp& log, bool close)
+void Ledger::closeAndCleanup(LogSp& log)
 {
-    int                      rc      = LogOpResult::e_SUCCESS;
     const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
     const bsl::string&       logPath = log->logConfig().location();
-    if (close) {
-        rc = log->close();
-        if (rc != LogOpResult::e_SUCCESS) {
-            BALL_LOG_ERROR << "Failed to close the log " << logPath;
-            return;  // RETURN
-        }
+
+    int rc = log->close();
+    if (rc != LogOpResult::e_SUCCESS) {
+        BALL_LOG_ERROR << "Failed to close the log " << logPath;
+        return;  // RETURN
     }
+
     rc = d_config.cleanupCallback()(logPath);
-    if (rc != 0) {
+    if (d_config.cleanupCallback()(logPath) != 0) {
         BALL_LOG_ERROR << "Failed to clean up the log " << logPath;
         return;  // RETURN
     }
@@ -453,13 +449,12 @@ int Ledger::open(int flags)
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to extract the logID of '" << logFullPath
                            << "' [rc: " << rc << "]";
-            const LogSp& log = d_logs.find(logId)->second;
-            d_config.scheduler()->scheduleEvent(
-                bmqsys::Time::nowMonotonicClock(),
-                bdlf::BindUtil::bind(&Ledger::closeAndCleanup,
-                                     this,
-                                     log,
-                                     false));
+            rc = d_config.cleanupCallback()(logFullPath);
+            if (rc != 0) {
+                BALL_LOG_ERROR << "Failed to clean up the log '" << logFullPath
+                               << "' after failing to extract "
+                               << "its logID. [rc: " << rc << "]";
+            }
             return LedgerOpResult::e_LOG_OPEN_FAILURE;  // RETURN
         }
         d_config.logIdGenerator()->registerLogId(logId);

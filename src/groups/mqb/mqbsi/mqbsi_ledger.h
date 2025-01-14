@@ -461,7 +461,7 @@ class Ledger {
     virtual int writeRecord(LedgerRecordId*           recordId,
                             const bdlbb::Blob&        record,
                             const bmqu::BlobPosition& offset,
-                            int                       length) = 0;
+                            int                       length)             = 0;
 
     /// Write the specified `section` of the specified `record` into this
     /// ledger and load into `recordId` an identifier which can be used to
