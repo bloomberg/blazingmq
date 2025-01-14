@@ -152,6 +152,7 @@ void CslFileProcessor::process()
             return;  // RETURN
         }
         if (rc < 0) {
+            d_searchResult_p->outputResult();
             d_ostream
                 << "CSL file is either corrupted or incomplete at offset="
                 << iter->currRecordId().offset()
