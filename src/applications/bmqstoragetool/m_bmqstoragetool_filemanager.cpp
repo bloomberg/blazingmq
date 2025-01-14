@@ -52,7 +52,7 @@ int cleanupCallback(BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
 
 // Iterate through each record in the cluster state ledger to find the last
 // snapshot record and set it to the specified `lastSnapshotIt_p`. Return false
-// if snapshot record is not found or error occurred, true otherwise.
+// if snapshot record is not found, true otherwise.
 bool findLastSnapshot(bsl::ostream&                           errorDescription,
                       mqbc::IncoreClusterStateLedgerIterator* lastSnapshotIt_p,
                       mqbsl::Ledger*                          ledger_p)
@@ -63,6 +63,11 @@ bool findLastSnapshot(bsl::ostream&                           errorDescription,
         const int rc = cslIt.next();
         if (rc == 1 || rc < 0) {
             // End iterator reached or error occured.
+            if (rc < 0) {
+                errorDescription
+                    << "CSL file either corrupted or incomplete at offset="
+                    << cslIt.currRecordId().offset() << ". rc=" << rc << '\n';
+            }
             if (!lastSnapshotIt_p->isValid()) {
                 errorDescription << "No Snapshot record found in csl file\n";
                 return false;  // RETURN
@@ -342,15 +347,8 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
     // Iterate from last snapshot to get updates
     while (true) {
         const int rc = lastSnapshotIt.next();
-        if (rc == 1) {
-            // End iterator reached
-            break;  // BREAK
-        }
-        if (rc < 0) {
-            bmqu::MemOutStream errorDescr(d_allocator);
-            errorDescr << "CSL file either corrupted or incomplete at offset="
-                       << lastSnapshotIt.currRecordId().offset()
-                       << ". rc=" << rc << '\n';
+        if (rc == 1 || rc < 0) {
+            // End iterator reached or error occured.
             break;  // BREAK
         }
 
