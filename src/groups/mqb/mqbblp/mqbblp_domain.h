@@ -88,7 +88,7 @@ namespace mqbblp {
 // ============
 
 /// Domain implementation
-class Domain : public mqbi::Domain {
+class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.DOMAIN");

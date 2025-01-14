@@ -214,7 +214,7 @@ class Cluster : public DispatcherClient {
 
     /// Signature of the callback passed to the `openQueue()` method: if the
     /// specified `status` is SUCCESS, the operation was a success and the
-    /// specified `queue` contains the resulting queue, and the specified
+    /// specified `queueHandle` contains the queue handle, and the specified
     /// `openQueueResponse` contains the upstream response (if applicable,
     /// otherwise an injected response having valid routing configuration);
     /// otherwise `status` contains the category, error code and description

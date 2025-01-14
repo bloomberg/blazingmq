@@ -176,6 +176,7 @@ ClusterQueueHelper::OpenQueueContext::OpenQueueContext(
 , d_clientContext(clientContext)
 , d_callback(callback)
 {
+    BSLS_ASSERT_SAFE(domain);
     // NOTHING
 }
 
@@ -189,9 +190,20 @@ ClusterQueueHelper::OpenQueueContext::~OpenQueueContext()
 void ClusterQueueHelper::OpenQueueContext::setQueueContext(
     QueueContext* queueContext)
 {
+    BSLS_ASSERT_SAFE(!d_queueContext_p);
+    BSLS_ASSERT_SAFE(queueContext);
+
     d_queueContext_p = queueContext;
     // Bump 'd_inFlight' counter
     ++(d_queueContext_p->d_liveQInfo.d_inFlight);
+}
+
+ClusterQueueHelper::QueueContext*
+ClusterQueueHelper::OpenQueueContext::queueContext() const
+{
+    BSLS_ASSERT_SAFE(d_queueContext_p);
+
+    return d_queueContext_p;
 }
 
 // -----------------------------------------
@@ -302,7 +314,7 @@ ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(context);
 
-    QueueLiveState* queueInfo = &context->d_queueContext_p->d_liveQInfo;
+    QueueLiveState* queueInfo = &context->queueContext()->d_liveQInfo;
 
     // We use a unique subQueue id for every subStream of the queue opened with
     // upstream, and this is used to correlate messages with the subStream.
@@ -321,7 +333,7 @@ ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
         bsl::numeric_limits<unsigned int>::max() / 2) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_cluster_p->description() << " nextSubQueueId for queue "
-            << context->d_queueContext_p->uri()
+            << context->queueContext()->uri()
             << " in cluster is at 50% capacity, please schedule a bounce of"
             << " this broker." << BMQTSK_ALARMLOG_END;
     }
@@ -329,7 +341,7 @@ ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
              bsl::numeric_limits<unsigned int>::max() / 10 * 9) {
         BMQTSK_ALARMLOG_PANIC("CLUSTER_STATE")
             << d_cluster_p->description() << " nextSubQueueId for queue "
-            << context->d_queueContext_p->uri()
+            << context->queueContext()->uri()
             << " in cluster is at 90% capacity, please urgently schedule a"
             << " bounce of this broker." << BMQTSK_ALARMLOG_END;
     }
@@ -338,7 +350,7 @@ ClusterQueueHelper::getNextSubQueueId(const OpenQueueContextSp& context)
               bmqp::QueueId::k_RESERVED_SUBQUEUE_ID)) {
         BALL_LOG_ERROR << d_cluster_p->description()
                        << " nextSubQueueId for queue "
-                       << context->d_queueContext_p->uri() << " in cluster "
+                       << context->queueContext()->uri() << " in cluster "
                        << d_cluster_p->name()
                        << " has reached capacity, aborting the broker to"
                        << " contain the damage !";
@@ -799,7 +811,7 @@ void ClusterQueueHelper::processPendingContexts(
 void ClusterQueueHelper::assignUpstreamSubqueueId(
     const OpenQueueContextSp& context)
 {
-    QueueLiveState&   info  = context->d_queueContext_p->d_liveQInfo;
+    QueueLiveState&   info  = context->queueContext()->d_liveQInfo;
     const bsl::string appId = bmqp::QueueUtil::extractAppId(
         context->d_handleParameters);
     StreamsMap::const_iterator it = info.d_subQueueIds.findByAppIdSafe(appId);
@@ -823,7 +835,7 @@ void ClusterQueueHelper::assignUpstreamSubqueueId(
             info.d_subQueueIds.insert(
                 appId,
                 upstreamSubId,
-                SubQueueContext(context->d_queueContext_p->uri(),
+                SubQueueContext(context->queueContext()->uri(),
                                 subQueueIdInfo,
                                 d_allocator_p));
         }
@@ -837,7 +849,7 @@ void ClusterQueueHelper::assignUpstreamSubqueueId(
         info.d_subQueueIds.insert(
             appId,
             context->d_upstreamSubQueueId,
-            SubQueueContext(context->d_queueContext_p->uri(),
+            SubQueueContext(context->queueContext()->uri(),
                             context->d_handleParameters.subIdInfo(),
                             d_allocator_p));
     }
@@ -851,7 +863,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->d_queueContext_p)));
+    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->queueContext())));
     // At this time, the Queue must have been assigned an id/partition.
 
     if (d_cluster_p->isRemote()) {
@@ -863,7 +875,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
         return;  // RETURN
     }
 
-    const int pid = context->d_queueContext_p->partitionId();
+    const int pid = context->queueContext()->partitionId();
 
     if (hasActiveAvailablePrimary(pid)) {
         if (d_clusterState_p->isSelfPrimary(pid)) {
@@ -895,9 +907,9 @@ void ClusterQueueHelper::processOpenQueueRequest(
             // upstream id associated, if we haven't already done so, assign
             // one now.
 
-            if (context->d_queueContext_p->d_liveQInfo.d_id ==
+            if (context->queueContext()->d_liveQInfo.d_id ==
                 bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
-                context->d_queueContext_p->d_liveQInfo.d_id = getNextQueueId();
+                context->queueContext()->d_liveQInfo.d_id = getNextQueueId();
             }
 
             assignUpstreamSubqueueId(context);
@@ -916,10 +928,10 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    QueueLiveState& qinfo = context->d_queueContext_p->d_liveQInfo;
-    const int       pid   = context->d_queueContext_p->partitionId();
+    QueueLiveState& qinfo = context->queueContext()->d_liveQInfo;
+    const int       pid   = context->queueContext()->partitionId();
 
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->d_queueContext_p)));
+    BSLS_ASSERT_SAFE(isQueueAssigned(*(context->queueContext())));
     BSLS_ASSERT_SAFE(qinfo.d_id != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
     BSLS_ASSERT_SAFE((d_cluster_p->isRemote() &&
                       d_clusterData_p->electorInfo().hasActiveLeader()) ||
@@ -1008,7 +1020,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
         // Put back the context to the pending list so that it will get
         // re-processed later.
-        context->d_queueContext_p->d_liveQInfo.d_pending.push_back(context);
+        context->queueContext()->d_liveQInfo.d_pending.push_back(context);
         return;  // RETURN
     }
 
@@ -1161,7 +1173,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
         failure = false;
     }
 
-    QueueContext&           qcontext = *context->d_queueContext_p;
+    QueueContext&           qcontext = *context->queueContext();
     QueueLiveState&         qinfo    = qcontext.d_liveQInfo;
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::OpenQueue& req =
         requestContext->request().choice().openQueue();
@@ -1868,7 +1880,7 @@ bool ClusterQueueHelper::createQueue(
     bmqu::MemOutStream                         errorDescription(&la);
     bmqp_ctrlmsg::Status                       status;
 
-    QueueContext*   queueContext = context->d_queueContext_p;
+    QueueContext*   queueContext = context->queueContext();
     QueueLiveState& qinfo        = queueContext->d_liveQInfo;
     const int       pid          = queueContext->partitionId();
     const bool      isPrimary    = !d_cluster_p->isRemote() &&
@@ -1965,24 +1977,25 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(isQueueAssigned(*(context.d_queueContext_p)));
+
+    QueueContext* queueContext = context.queueContext();
+
+    BSLS_ASSERT_SAFE(isQueueAssigned(*(queueContext)));
     BSLS_ASSERT_SAFE(context.d_domain_p);
 
-    const int pid = context.d_queueContext_p->partitionId();
+    const int pid = queueContext->partitionId();
     if (!d_cluster_p->isRemote()) {
         BSLS_ASSERT_SAFE(d_clusterState_p->hasActivePrimary(pid));
     }
 
     // Queue already created, reuse it.
-    if (context.d_queueContext_p->d_liveQInfo.d_queue_sp) {
-        return context.d_queueContext_p->d_liveQInfo.d_queue_sp;  // RETURN
+    if (queueContext->d_liveQInfo.d_queue_sp) {
+        return queueContext->d_liveQInfo.d_queue_sp;  // RETURN
     }
 
     // Domain is already aware of the queue, reuse it.
     bsl::shared_ptr<mqbi::Queue> iQueueSp;
-    if (context.d_domain_p->lookupQueue(&iQueueSp,
-                                        context.d_queueContext_p->uri()) ==
-        0) {
+    if (context.d_domain_p->lookupQueue(&iQueueSp, queueContext->uri()) == 0) {
         return iQueueSp;  // RETURN
     }
 
@@ -1990,16 +2003,15 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
                            d_clusterState_p->isSelfPrimary(pid);
 
     if (isPrimary) {
-        context.d_queueContext_p->d_liveQInfo.d_id =
-            bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+        queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
     }
 
     // Create the queue
     bsl::shared_ptr<mqbblp::Queue> queueSp(
-        new (*d_allocator_p) Queue(context.d_queueContext_p->uri(),
-                                   context.d_queueContext_p->d_liveQInfo.d_id,
-                                   context.d_queueContext_p->key(),
-                                   context.d_queueContext_p->partitionId(),
+        new (*d_allocator_p) Queue(queueContext->uri(),
+                                   queueContext->d_liveQInfo.d_id,
+                                   queueContext->key(),
+                                   queueContext->partitionId(),
                                    context.d_domain_p,
                                    d_storageManager_p,
                                    d_clusterData_p->resources(),
@@ -2019,9 +2031,8 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             return 0;  // RETURN
         }
 
-        context.d_queueContext_p->d_liveQInfo.d_queue_sp = queueSp;
-        d_queuesById[context.d_queueContext_p->d_liveQInfo.d_id] =
-            context.d_queueContext_p;
+        queueContext->d_liveQInfo.d_queue_sp         = queueSp;
+        d_queuesById[queueContext->d_liveQInfo.d_id] = queueContext;
     }
     else {
         // This is the primary of the queue.
@@ -2045,10 +2056,10 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         // non-CSL consistent.
 
         d_storageManager_p->registerQueue(
-            context.d_queueContext_p->uri(),
-            context.d_queueContext_p->key(),
-            context.d_queueContext_p->partitionId(),
-            context.d_queueContext_p->d_stateQInfo_sp->appInfos(),
+            queueContext->uri(),
+            queueContext->key(),
+            queueContext->partitionId(),
+            queueContext->d_stateQInfo_sp->appInfos(),
             context.d_domain_p);
 
         // Queue must have been registered with storage manager before
@@ -2060,14 +2071,14 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
             return 0;  // RETURN
         }
 
-        context.d_queueContext_p->d_liveQInfo.d_queue_sp = queueSp;
+        queueContext->d_liveQInfo.d_queue_sp = queueSp;
         // No need to insert in d_queuesById since those queues will never
         // be looked up by id (and all have k_PRIMARY_QUEUE_ID id).
     }
 
     if (!d_cluster_p->isRemote()) {
         d_clusterState_p->updatePartitionNumActiveQueues(
-            context.d_queueContext_p->partitionId(),
+            queueContext->partitionId(),
             1);
     }
 
@@ -4584,7 +4595,7 @@ void ClusterQueueHelper::openQueue(
         // point.
         queueContextIt->second->d_liveQInfo.d_queueExpirationTimestampMs = 0;
 
-        if (isQueuePrimaryAvailable(*(context->d_queueContext_p))) {
+        if (isQueuePrimaryAvailable(*(context->queueContext()))) {
             // Queue is already assigned and the primary is AVAILABLE, all
             // good; move on to next step, i.e., processing the open request.
             processOpenQueueRequest(context);

@@ -204,7 +204,7 @@ void Domain::onOpenQueueResponse(
     --d_pendingRequests;
     if (status.category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         // VALIDATION: The queue must exist at this point, i.e., have been
-        //             registered.FE(
+        //             registered.
         BSLS_ASSERT_SAFE(queuehandle);
         BSLS_ASSERT_SAFE(queuehandle->queue());
         BSLS_ASSERT_SAFE(lookupQueue(0, queuehandle->queue()->uri()) == 0);
