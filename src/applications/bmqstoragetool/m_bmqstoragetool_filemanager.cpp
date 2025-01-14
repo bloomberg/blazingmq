@@ -349,7 +349,7 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
         if (rc < 0) {
             bmqu::MemOutStream errorDescr(d_allocator);
             errorDescr << "CSL file either corrupted or incomplete at offset="
-                       << lastSnapshotIt->currRecordId().offset()
+                       << lastSnapshotIt.currRecordId().offset()
                        << ". rc=" << rc << '\n';
             break;  // BREAK
         }
