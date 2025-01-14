@@ -1,0 +1,8 @@
+/**
+@dir mqbblp
+
+@brief The `MQBBLP` (Message Queue Broker Bloomberg LP) package provides
+Bloomberg implementation of queue management.
+
+This package provides implementation of queues.
+*/
