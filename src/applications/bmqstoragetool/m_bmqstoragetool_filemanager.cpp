@@ -62,7 +62,7 @@ bool findLastSnapshot(bsl::ostream&                           errorDescription,
     while (true) {
         const int rc = cslIt.next();
         if (rc == 1 || rc < 0) {
-            // End iterator reached or error
+            // End iterator reached or error occured.
             if (!lastSnapshotIt_p->isValid()) {
                 errorDescription << "No Snapshot record found in csl file\n";
                 return false;  // RETURN
@@ -348,8 +348,10 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
         }
         if (rc < 0) {
             bmqu::MemOutStream errorDescr(d_allocator);
-            errorDescr << "CSL file either corrupted or incomplete: rc=" << rc;
-            throw bsl::runtime_error(errorDescr.str());  // THROW
+            errorDescr << "CSL file either corrupted or incomplete at offset="
+                       << lastSnapshotIt->currRecordId().offset()
+                       << ". rc=" << rc << '\n';
+            break;  // BREAK
         }
 
         if (lastSnapshotIt.header().recordType() ==

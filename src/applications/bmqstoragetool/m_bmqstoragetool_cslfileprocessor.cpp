@@ -157,7 +157,7 @@ void CslFileProcessor::process()
                 << iter->currRecordId().offset()
                 << ". Iteration "
                    "aborted (rc="
-                << rc << ").";
+                << rc << ").\n";
             return;  // RETURN
         }
     }
