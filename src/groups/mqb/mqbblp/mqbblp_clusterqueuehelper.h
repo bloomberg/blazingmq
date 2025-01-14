@@ -366,6 +366,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // Callback to invoke when the queue is
         // opened (whether success or failure).
 
+        // NOT IMPLEMENTED
+        OpenQueueContext(const OpenQueueContext&) BSLS_CPP11_DELETED;
+
+        /// Copy constructor and assignment operator are not implemented.
+        OpenQueueContext&
+        operator=(const OpenQueueContext&) BSLS_CPP11_DELETED;
+
         OpenQueueContext(
             mqbi::Domain*                              domain,
             const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
@@ -376,6 +383,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         ~OpenQueueContext();
 
         void setQueueContext(QueueContext* queueContext);
+
+        QueueContext* queueContext() const;
     };
 
     typedef bsl::shared_ptr<OpenQueueContext> OpenQueueContextSp;
