@@ -43,11 +43,12 @@ bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
 }
 
 // Helper method to apply range filter
-bool applyRangeFilter(const Parameters::Range&       range,
-                      const bsls::Types::Uint64      timestamp,
-                      const bsls::Types::Uint64      offset,
-                      const CompositeSequenceNumber& compositeSequenceNumber,
-                      bool*                          highBoundReached_p)
+bool applyRangeFilter(const Parameters::Range& range,
+                      bsls::Types::Uint64      timestamp,
+                      bsls::Types::Uint64      offset,
+                      unsigned int             primaryLeaseId,
+                      bsls::Types::Uint64      sequenceNumber,
+                      bool*                    highBoundReached_p)
 {
     bsls::Types::Uint64 value, valueGt, valueLt;
     switch (range.d_type) {
@@ -62,6 +63,8 @@ bool applyRangeFilter(const Parameters::Range&       range,
         valueLt = range.d_offsetLt;
         break;
     case Parameters::Range::e_SEQUENCE_NUM: {
+        const CompositeSequenceNumber compositeSequenceNumber(primaryLeaseId,
+                                                              sequenceNumber);
         const bool greaterOrEqualToHigherBound = range.d_seqNumLt.isSet() &&
                                                  range.d_seqNumLt <=
                                                      compositeSequenceNumber;
@@ -144,13 +147,12 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     }
 
     // Apply `range` filter
-    return applyRangeFilter(
-        d_range,
-        recordHeader.timestamp(),
-        recordOffset,
-        CompositeSequenceNumber(recordHeader.primaryLeaseId(),
-                                recordHeader.sequenceNumber()),
-        highBoundReached_p);
+    return applyRangeFilter(d_range,
+                            recordHeader.timestamp(),
+                            recordOffset,
+                            recordHeader.primaryLeaseId(),
+                            recordHeader.sequenceNumber(),
+                            highBoundReached_p);
 }
 
 bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
@@ -204,13 +206,12 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
     }
 
     // Apply `range` filter
-    return applyRangeFilter(
-        d_range,
-        recordHeader.timestamp(),
-        recordOffset,
-        CompositeSequenceNumber(recordHeader.electorTerm(),
-                                recordHeader.sequenceNumber()),
-        highBoundReached_p);
+    return applyRangeFilter(d_range,
+                            recordHeader.timestamp(),
+                            recordOffset,
+                            recordHeader.electorTerm(),
+                            recordHeader.sequenceNumber(),
+                            highBoundReached_p);
 }
 
 }  // close package namespace

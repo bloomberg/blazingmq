@@ -41,8 +41,8 @@ CompositeSequenceNumber::CompositeSequenceNumber(
 : d_leaseId(leaseId)
 , d_seqNumber(sequenceNumber)
 {
-    BSLS_ASSERT(d_leaseId > 0 && d_seqNumber > 0);
-    d_isSet = d_leaseId > 0 && d_seqNumber > 0;
+    BSLS_ASSERT(d_seqNumber > 0);
+    d_isSet = d_seqNumber > 0;
 }
 
 CompositeSequenceNumber&

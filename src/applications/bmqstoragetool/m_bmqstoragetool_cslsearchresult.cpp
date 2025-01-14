@@ -339,7 +339,7 @@ bool CslSummaryResult::processRecord(
     updateRecordCount(&d_recordCount, header.recordType());
 
     if (header.recordType() == mqbc::ClusterStateRecordType::e_UPDATE) {
-        d_updateChoiceCount[record.choice().selectionId()] += 1;
+        ++d_updateChoiceCount[record.choice().selectionId()];
     }
 
     return false;
