@@ -266,6 +266,15 @@ LedgerConfig& LedgerConfig::setLogIdGenerator(
     return *this;
 }
 
+LedgerConfig& LedgerConfig::setScheduler(bdlmt::EventScheduler* value)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value->clockType() == bsls::SystemClockType::e_MONOTONIC);
+
+    d_scheduler_p = value;
+    return *this;
+}
+
 LedgerConfig&
 LedgerConfig::setExtractLogIdCallback(const ExtractLogIdCb& value)
 {
@@ -330,6 +339,11 @@ mqbsi::LogFactory* LedgerConfig::logFactory() const
 mqbsi::LogIdGenerator* LedgerConfig::logIdGenerator() const
 {
     return d_logIdGenerator_sp.get();
+}
+
+bdlmt::EventScheduler* LedgerConfig::scheduler() const
+{
+    return d_scheduler_p;
 }
 
 const LedgerConfig::ExtractLogIdCb& LedgerConfig::extractLogIdCallback() const

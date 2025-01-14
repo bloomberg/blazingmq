@@ -28,6 +28,7 @@
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbnet_cluster.h>
+#include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_storageutil.h>
 #include <mqbsi_log.h>
@@ -1212,6 +1213,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
         .setReserveOnDisk(partitionCfg.preallocate())
         .setPrefaultPages(partitionCfg.prefaultPages())
         .setLogIdGenerator(logIdGenerator)
+        .setScheduler(&clusterData->scheduler())
         .setLogFactory(logFactory)
         .setExtractLogIdCallback(ClusterStateLedgerUtil::extractLogId)
         .setValidateLogCallback(ClusterStateLedgerUtil::validateLog)
