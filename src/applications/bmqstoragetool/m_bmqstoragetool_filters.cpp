@@ -46,7 +46,7 @@ bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
 bool applyRangeFilter(const Parameters::Range& range,
                       bsls::Types::Uint64      timestamp,
                       bsls::Types::Uint64      offset,
-                      unsigned int             primaryLeaseId,
+                      bsls::Types::Uint64      primaryLeaseId,
                       bsls::Types::Uint64      sequenceNumber,
                       bool*                    highBoundReached_p)
 {

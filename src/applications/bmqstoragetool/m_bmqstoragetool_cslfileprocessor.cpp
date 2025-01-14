@@ -152,9 +152,12 @@ void CslFileProcessor::process()
             return;  // RETURN
         }
         if (rc < 0) {
-            d_ostream << "CSL file is corrupted or incomplete. Iteration "
-                         "aborted (rc="
-                      << rc << ").";
+            d_ostream
+                << "CSL file is either corrupted or incomplete at offset="
+                << iter->currRecordId().offset()
+                << ". Iteration "
+                   "aborted (rc="
+                << rc << ").";
             return;  // RETURN
         }
     }

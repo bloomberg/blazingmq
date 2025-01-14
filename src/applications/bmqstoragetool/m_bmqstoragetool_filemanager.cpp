@@ -61,19 +61,13 @@ bool findLastSnapshot(bsl::ostream&                           errorDescription,
 
     while (true) {
         const int rc = cslIt.next();
-        if (rc == 1) {
-            // End iterator reached
+        if (rc == 1 || rc < 0) {
+            // End iterator reached or error
             if (!lastSnapshotIt_p->isValid()) {
                 errorDescription << "No Snapshot record found in csl file\n";
-                return false;
+                return false;  // RETURN
             }
             break;  // BREAK
-        }
-        if (rc < 0) {
-            errorDescription
-                << "CSL file is either corrupted or incomplete: rc=" << rc
-                << '\n';
-            return false;  // RETURN
         }
 
         if (cslIt.header().recordType() ==
