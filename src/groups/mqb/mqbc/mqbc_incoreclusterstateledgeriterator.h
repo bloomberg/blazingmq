@@ -17,29 +17,28 @@
 #ifndef INCLUDED_MQBC_INCORECLUSTERSTATELEDGERITERATOR
 #define INCLUDED_MQBC_INCORECLUSTERSTATELEDGERITERATOR
 
-//@PURPOSE: Provide an iterator through an 'mqbc::IncoreClusterStateLedger'
-//
-//@CLASSES:
-//  mqbc::IncoreClusterStateLedgerIterator: Iterator through an
-//                                          'mqbc::IncoreClusterStateLedger'
-//
-//@SEE_ALSO:
-//  mqbc::ClusterStateLedgerIterator
-//  mqbc::IncoreClusterStateLedger
-//
-//@DESCRIPTION: The 'mqbc::IncoreClusterStateLedgerIterator' class is a
-// concrete implementation of the 'mqbc::ClusterStateLedgerIterator' interface
-// to iterate through an 'mqbc::IncoreClusterStateLedger'.  Note that any
-// ledger iterated by this component *must* support aliasing.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::IncoreClusterStateLedgerIterator' object is not thread safe and
-// should always be manipulated from the associated cluster's dispatcher
-// thread, unless explicitly documented in a method's contract.
+/// @file mqbc_incoreclusterstateledgeriterator.h
+///
+/// @brief Provide an iterator through an
+/// @bbref{mqbc::IncoreClusterStateLedger}.
+///
+/// The @bbref{mqbc::IncoreClusterStateLedgerIterator} class is a
+/// concrete implementation of the @bbref{mqbc::ClusterStateLedgerIterator}
+/// interface to iterate through an @bbref{mqbc::IncoreClusterStateLedger}.
+/// Note that any ledger iterated by this component *must* support aliasing.
+///
+/// @see @bbref{mqbc::ClusterStateLedgerIterator}
+/// @see @bbref{mqbc::IncoreClusterStateLedger}
+///
+///
+/// Thread Safety                    {#mqbc_incoreclusterledgeriterator_thread}
+/// =============
+///
+/// The @bbref{mqbc::IncoreClusterStateLedgerIterator} object is not thread
+/// safe and should always be manipulated from the associated cluster's
+/// dispatcher thread, unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbsi_ledger.h>
 #include <mqbsi_log.h>
@@ -55,30 +54,28 @@ namespace mqbc {
 // =======================================
 
 /// Provide a concrete implementation of the
-/// `mqbc::ClusterStateLedgerIterator` interface to iterate through an
-/// `mqbc::IncoreClusterStateLedger`.  Note that any ledger iterated by this
-/// component *must* support aliasing.
+/// @bbref{mqbc::ClusterStateLedgerIterator} interface to iterate through an
+/// @bbref{mqbc::IncoreClusterStateLedger}.  Note that any ledger iterated by
+/// this component *must* support aliasing.
 class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
 : public ClusterStateLedgerIterator {
   private:
     // DATA
+
+    /// Whether the next call to `next()` is the first invocation.
     bool d_firstInvocation;
-    // Whether the next call to 'next()' is the
-    // first invocation.
 
+    /// Whether this iterator is in a valid state.
     bool d_isValid;
-    // Whether this iterator is in a valid state.
 
+    /// Ledger to iterate through.
     const mqbsi::Ledger* d_ledger_p;
-    // Ledger to iterate through.
 
+    /// Id of the record at the current iterator position.
     mqbsi::LedgerRecordId d_currRecordId;
-    // Id of the record at the current iterator
-    // position.
 
+    /// Header of the record at the current iterator position.
     ClusterStateRecordHeader* d_currRecordHeader_p;
-    // Header of the record at the current
-    // iterator position.
 
   public:
     // CREATORS
@@ -112,7 +109,7 @@ class IncoreClusterStateLedgerIterator BSLS_KEYWORD_FINAL
     // MANIPULATORS
     //   (virtual mqbc::ClusterStateLedgerIterator)
 
-    /// Iterate to the next record in the `mqbc::ClusterStateLedger`.
+    /// Iterate to the next record in the @bbref{mqbc::ClusterStateLedger}.
     /// Return 0 if a record is found, 1 if the end of the ledger
     /// is reached, or < 0 if an error was encountered.  If this method
     /// returns a non-zero value, this iterator becomes invalid and

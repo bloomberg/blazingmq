@@ -17,22 +17,18 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATELEDGERUTIL
 #define INCLUDED_MQBC_CLUSTERSTATELEDGERUTIL
 
-//@PURPOSE: Provide utilities for BlazingMQ cluster state ledger protocol.
-//
-//@CLASSES:
-//  mqbc::ClusterStateLedgerUtil:   Utilities for BlazingMQ cluster state
-//  ledger mqbc::ClusterStateLedgerUtilRc: Return code for utility component
-//
-//@SEE ALSO:
-//  mqbc::ClusterStateLedgerProtocol
-//
-//@DESCRIPTION: 'mqbc::ClusterStateLedgerUtil' provides utilities for BlazingMQ
-// cluster state ledger, including how to read/write/validate a cluster state
-// ledger file.  Note that any ledger using this compomemt *must* support
-// aliasing.
+/// @file mqbc_clusterstateledgerutil.h
+///
+/// @brief Provide utilities for BlazingMQ cluster state ledger protocol.
+///
+/// @bbref{mqbc::ClusterStateLedgerUtil} provides utilities for BlazingMQ
+/// cluster state ledger, including how to read/write/validate a cluster state
+/// ledger file.  Note that any ledger using this component *must* support
+/// aliasing.
+///
+/// @see @bbref{mqbc::ClusterStateLedgerProtocol}
 
 // MQB
-
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 #include <mqbsi_log.h>
@@ -56,93 +52,93 @@ namespace mqbc {
 // ===============================
 
 /// This enum represents the return codes for the
-/// `mqbc::ClusterStateLedgerUtil` component.
+/// @bbref{mqbc::ClusterStateLedgerUtil} component.
 struct ClusterStateLedgerUtilRc {
     // TYPES
     enum Enum {
-        // Generic
-        // - - - -
-        e_SUCCESS = 0
-        // Success
 
-        /// Unknown result
-        ,
-        e_UNKNOWN = -1
+        /// @name ClusterStateLedgerUtilRc_Enum_Generic
+        /// Generic
+        /// @{
 
-        // File operations
-        // - - - - - - - -
+        /// Success.
+        e_SUCCESS = 0,
 
-        /// Failure to open the log file
-        ,
+        /// Unknown result.
+        e_UNKNOWN = -1,
+
+        /// @}
+
+        /// @name ClusterStateLedgerUtilRc_Enum_File
+        /// File operations
+        /// @{
+
+        /// Failure to open the log file.
         e_FILE_OPEN_FAILURE = -2,
-        e_BYTE_READ_FAILURE = -3
-        // Failed to read bytes from the log file
+        /// Failed to read bytes from the log file.
+        e_BYTE_READ_FAILURE = -3,
 
-        // Header validity
-        // - - - - - - - -
+        /// @}
 
-        /// Record header is missing
-        ,
-        e_MISSING_HEADER = -4
+        /// @name ClusterStateLedgerUtilRc_Enum_Header
+        /// Header validity
+        /// @{
 
-        /// Invalid protocol version in the header
-        ,
-        e_INVALID_PROTOCOL_VERSION = -5
+        /// Record header is missing.
+        e_MISSING_HEADER = -4,
 
-        /// Invalid log ID in the header
-        ,
-        e_INVALID_LOG_ID = -6
+        /// Invalid protocol version in the header.
+        e_INVALID_PROTOCOL_VERSION = -5,
 
-        /// Invalid header words in the header
-        ,
-        e_INVALID_HEADER_WORDS = -7
+        /// Invalid log ID in the header.
+        e_INVALID_LOG_ID = -6,
 
-        /// Invalid record type in the header
-        ,
-        e_INVALID_RECORD_TYPE = -8
+        /// Invalid header words in the header.
+        e_INVALID_HEADER_WORDS = -7,
 
-        /// Invalid leader advisory words in the header
-        ,
-        e_INVALID_LEADER_ADVISORY_WORDS = -9
+        /// Invalid record type in the header.
+        e_INVALID_RECORD_TYPE = -8,
 
-        /// Invalid checksum over the record
-        ,
-        e_INVALID_CHECKSUM = -10
+        /// Invalid leader advisory words in the header.
+        e_INVALID_LEADER_ADVISORY_WORDS = -9,
 
-        // Record read/write
-        // - - - - - - - - -
+        /// Invalid checksum over the record.
+        e_INVALID_CHECKSUM = -10,
 
-        /// Failure to encode advisory to blob
-        ,
-        e_ENCODING_FAILURE = -11
+        /// @}
 
-        /// Failure to write advisory to ledger
-        ,
-        e_WRITE_FAILURE = -12
+        /// @name ClusterStateLedgerUtilRc_Enum_Record
+        /// Record read/write
+        /// @{
 
-        /// Failure to alias the record
-        ,
-        e_RECORD_ALIAS_FAILURE = -13
+        /// Failure to encode advisory to blob.
+        e_ENCODING_FAILURE = -11,
 
-        /// Failure to decode the cluster message
-        ,
+        /// Failure to write advisory to ledger.
+        e_WRITE_FAILURE = -12,
+
+        /// Failure to alias the record.
+        e_RECORD_ALIAS_FAILURE = -13,
+
+        /// Failure to decode the cluster message.
         e_DECODE_FAILURE = -14
+
+        /// @}
     };
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value is incremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `LogOpResult::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// is incremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{LogOpResult::Enum} value.
     static bsl::ostream& print(bsl::ostream&                  stream,
                                ClusterStateLedgerUtilRc::Enum value,
                                int                            level = 0,

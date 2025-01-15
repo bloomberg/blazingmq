@@ -17,16 +17,14 @@
 #ifndef INCLUDED_MQBC_PARTITIONFSMOBSERVER
 #define INCLUDED_MQBC_PARTITIONFSMOBSERVER
 
-//@PURPOSE: Provide an Interface for PartitionFSM Observer.
-//
-//@CLASSES:
-//  mqbc::PartitionFSMObserver: Interface for a PartitionFSM observer
-//
-//@DESCRIPTION: 'mqbc::PartitionFSMObserver' is an interface used to notify
-// observer events for PartitionFSM.
+/// @file mqbc_partitionfsmobserver.h
+///
+/// @brief Provide an observer to listen to state changes in PartitionFSM.
+///
+/// @bbref{mqbc::PartitionFSMObserver} is an interface used to notify observer
+/// events for PartitionFSM.
 
 // MQB
-
 #include <mqbc_partitionstatetable.h>
 
 namespace BloombergLP {
@@ -40,9 +38,9 @@ namespace mqbc {
 /// This interface exposes notifications of events happening on in
 /// PartitionFSM.
 ///
-/// NOTE: This is purposely not a pure interface, each method has a default
-///       void implementation, so that clients only need to implement the
-///       ones they care about.
+/// @note This is purposely not a pure interface, each method has a default
+///       void implementation, so that clients only need to implement the ones
+///       they care about.
 class PartitionFSMObserver {
   public:
     // CREATORS

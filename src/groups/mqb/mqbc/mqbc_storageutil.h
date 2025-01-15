@@ -17,15 +17,13 @@
 #ifndef INCLUDED_MQBC_STORAGEUTIL
 #define INCLUDED_MQBC_STORAGEUTIL
 
-//@PURPOSE: Provide generic utilities used for storage operations.
-//
-//@CLASSES:
-//  mqbc::StorageUtil: Generic utilities for storage related operations.
-//
-//@DESCRIPTION: 'mqbc::StorageUtil' provides generic utilities.
+/// @file mqbc_storageutil.h
+///
+/// @brief Provide generic utilities used for storage operations.
+///
+/// @bbref{mqbc::StorageUtil} provides generic utilities.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
@@ -44,12 +42,11 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_uri.h>
-
-#include <bmqma_countingallocatorstore.h>
 
 // BDE
 #include <ball_log.h>
@@ -135,10 +132,10 @@ struct StorageUtil {
 
     typedef mqbs::FileStore::StorageFilters StorageFilters;
 
+    /// @note It is important that we use an associative container where
+    ///       iterators don't get invalidated, because `onDomain` routine
+    ///       implementation depends on this assumption.
     typedef bsl::map<bsl::string, mqbi::Domain*> DomainMap;
-    // Above, it is important that we use an associative container where
-    // iterators don't get invalidated, because 'onDomain' routine
-    // implementation depends on this assumption.
     typedef DomainMap::iterator DomainMapIter;
 
     typedef mqbs::StorageUtil::DomainQueueMessagesCountMap
@@ -607,9 +604,9 @@ struct StorageUtil {
     /// `partitionId` from the specified `fileStores` by using the specified
     /// `latch`, and the specified `clusterConfig`. The cluster information
     /// is printed using the specified `clusterDescription`.
-    //
-    // THREAD: executed by *QUEUE_DISPATCHER* thread with the specified
-    //         'partitionId'.
+    ///
+    /// THREAD: Executed by *QUEUE_DISPATCHER* thread with the specified
+    ///         `partitionId`.
     static void shutdown(int                              partitionId,
                          bslmt::Latch*                    latch,
                          FileStores*                      fileStores,
@@ -796,8 +793,7 @@ struct StorageUtil {
                          int                         partitionId);
 
     /// THREAD: Executed by the Queue's dispatcher thread for the partitionId
-    /// of
-    ///         the specified `fs`.
+    ///         of the specified `fs`.
     static void forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
                                             mqbs::FileStore*     fs,
                                             mqbnet::ClusterNode* destination,
