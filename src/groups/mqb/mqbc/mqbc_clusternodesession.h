@@ -17,15 +17,13 @@
 #ifndef INCLUDED_MQBC_CLUSTERNODESESSION
 #define INCLUDED_MQBC_CLUSTERNODESESSION
 
-//@PURPOSE:
-//
-//@CLASSES:
-//
-//@DESCRIPTION:
-//
+/// @file mqbc_clusternodesession.h
+///
+/// @brief Provide a session for interaction with BlazingMQ cluster node.
+///
+/// @todo Document this component.
 
 // MQB
-
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
@@ -36,7 +34,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
-
 #include <bmqst_statcontextuserdata.h>
 
 // BDE
@@ -74,9 +71,8 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Struct holding information associated to a subStream of a queue
     /// opened in this session.
     struct SubQueueInfo {
+        /// Stats of this SubQueue, with regards to the client.
         bsl::shared_ptr<mqbstat::ClusterNodeStats> d_clientStats;
-        // Stats of this SubQueue, with regards
-        // to the client.
 
         // CREATORS
 
@@ -92,28 +88,23 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
         typedef bmqp::ProtocolUtil::QueueInfo<SubQueueInfo> StreamsMap;
 
         // PUBLIC DATA
-        mqbi::QueueHandle* d_handle_p;  // QueueHandle of the queue
 
+        /// QueueHandle of this queue.
+        mqbi::QueueHandle* d_handle_p;
+
+        /// Flag to indicate if the final `closeQueue` request for this handle
+        /// has been received.  This flag can be used to reject PUT & CONFIRM
+        /// messages which some clients try to post after closing a queue
+        /// (under certain conditions, such incorrect usage cannot be caught in
+        /// the SDK eg, if messages are being posted from one app thread, while
+        /// `closeQueue` request is being sent from another app thread).  This
+        /// flag can also be used by the queue or queue engine for sanity
+        /// checking.
         bool d_isFinalCloseQueueReceived;
-        // Flag to indicate if the 'final'
-        // closeQueue request for this handle
-        // has been received. This flag can be
-        // used to reject PUT & CONFIRM
-        // messages which some clients try to
-        // post after closing a queue (under
-        // certain conditions, such incorrect
-        // usage cannot be caught in the SDK
-        // eg, if messages are being posted
-        // from one app thread, while
-        // closeQueue request is being sent
-        // from another app thread).  This flag
-        // can also be used by the queue or
-        // queue engine for sanity checking.
 
+        /// Map of subQueueId to information associated to a substream of a
+        /// queue opened in this session.
         StreamsMap d_subQueueInfosMap;
-        // Map of subQueueId to information
-        // associated to a substream of a queue
-        // opened in this session
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(QueueState, bslma::UsesBslmaAllocator)
@@ -144,50 +135,38 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
 
   private:
     // DATA
+
+    /// The corresponding cluster (held as dispatcher client).
     mqbi::DispatcherClient* d_cluster_p;
-    // The corresponding cluster (held as
-    // dispatcher client)
 
+    /// The corresponding cluster node.
     mqbnet::ClusterNode* d_clusterNode_p;
-    // The corresponding cluster node
 
+    /// ID of the peer's instance.  This ID is changed everytime the channel
+    /// with the peer is reset.  This instance ID is used to discriminate
+    /// against old instance of the peer.  Note that unlike
+    /// @bbref{mqba::ClientSession}, an instance of `ClusterNodeSession` is not
+    /// destroyed every time channel b/w self node and peer goes down, and thus
+    /// self node may contain state associated with peer's old instance.  Also
+    /// note that there is no invalid value for this ID, and its value alone
+    /// cannot be used to determine if the channel with the peer is up or not.
     int d_peerInstanceId;
-    // ID of the peer's instance.  This ID
-    // is changed everytime the channel
-    // with the peer is reset.  This
-    // instance ID is used to discriminate
-    // against old instance of the peer.
-    // Note that unlike
-    // 'mqba::ClientSession', an instance
-    // of 'ClusterNodeSession' is not
-    // destroyed every time channel b/w
-    // self node and peer goes down, and
-    // thus self node may contain state
-    // associated with peer's old instance.
-    // Also note that there is no invalid
-    // value for this ID, and its value
-    // alone cannot be used to determine if
-    // the channel with the peer is up or
-    // not.
 
+    /// Context used to uniquely identify this client when requesting a queue
+    /// handle.
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>
         d_queueHandleRequesterContext_sp;
-    // Context used to uniquely identify
-    // this client when requesting a queue
-    // handle.
 
+    /// Node status.
     bmqp_ctrlmsg::NodeStatus::Value d_nodeStatus;
-    // Node status
 
     StatContextSp d_statContext_sp;
 
+    /// PartitionIds for which this node is the primary.
     bsl::vector<int> d_primaryPartitions;
-    // PartitionIds for which this node is
-    // the primary
 
+    /// List of queue handles opened on this node by `d_clusterNode_p`.
     QueueHandleMap d_queueHandles;
-    // List of queue handles opened on this
-    // node by 'd_clusterNode_p'
 
   private:
     // NOT IMPLEMENTED
@@ -271,9 +250,9 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     /// Return a pointer to the dispatcher this client is associated with.
     const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference to the dispatcherClientData.
     const mqbi::DispatcherClientData&
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
-    // Return a reference to the dispatcherClientData.
 
     /// Return a printable description of the client (e.g. for logging).
     const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;

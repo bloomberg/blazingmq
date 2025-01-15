@@ -17,17 +17,13 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATE
 #define INCLUDED_MQBC_CLUSTERSTATE
 
-//@PURPOSE: Provide a VST representing the persistent state of a cluster.
-//
-//@CLASSES:
-//  mqbc::ClusterStatePartitionInfo: VST for partition information
-//  mqbc::ClusterStateQueueInfo    : VST for queue information
-//  mqbc::ClusterStateObserver     : Interface for a ClusterState observer
-//  mqbc::ClusterState             : VST for persistent state of a cluster
-//
-//@DESCRIPTION: 'mqbc::ClusterState' is a value-semantic type representing the
-// persistent state of a cluster.  Important state changes can be notified to
-// observers, implementing the 'mqbblp::ClusterStateObserver' interface.
+/// @file mqbc_clusterstate.h
+///
+/// @brief Provide a VST representing the persistent state of a cluster.
+///
+/// @bbref{mqbc::ClusterState} is a value-semantic type representing the
+/// persistent state of a cluster.  Important state changes can be notified to
+/// observers, implementing the @bbref{mqbblp::ClusterStateObserver} interface.
 
 // MQB
 #include <mqbi_cluster.h>
@@ -70,48 +66,45 @@ namespace mqbc {
 /// This class provides a VST representing the persistent state associated
 /// to a partition of a cluster.
 ///
-/// TBD: If needed, we can add a ctor in this class which takes
-/// `bmqp_ctrlmsg::PartitionPrimaryInfo`.  Doing vice versa will not be
-/// possible because we don't want to edit generated file.  Perhaps we can
-/// place the converter routine in `ClusterUtil`.
+/// @todo If needed, we can add a ctor in this class which takes
+///       @bbref{bmqp_ctrlmsg::PartitionPrimaryInfo}.  Doing vice versa will
+///       not be possible because we don't want to edit generated file.
+///       Perhaps we can place the converter routine in `ClusterUtil`.
 class ClusterStatePartitionInfo {
   private:
     // DATA
+
+    /// Partition id.
+    ///
+    /// @todo Can be removed if we index @bbref{ClusterState::PartitionsInfo}
+    ///       by partitionId
     int d_partitionId;
-    // Partition id
-    //
-    // TBD: Can be removed if we index
-    // ClusterState::PartitionsInfo by partitionId
 
+    /// LeaseId (generation count) of the primary; zero is invalid/null.
     unsigned int d_primaryLeaseId;
-    // LeaseId (generation count) of the primary; zero is
-    // invalid/null
 
+    /// Node id of the primary.
     int d_primaryNodeId;
-    // Node id of the primary
 
+    /// Number of queues currently mapped to the partition.
     int d_numQueuesMapped;
-    // Number of queues currently mapped to the partition
 
+    /// Number of active queues on the partition: a queue may be mapped, but
+    /// not active (if there are no clients of that queue connected to the
+    /// broker).  Therefore, the number of active queues should always be less
+    /// than or equal to the number of queues mapped.  While the number of
+    /// queues mapped to a partition is global and the same on all nodes of the
+    /// cluster, the number of active queues is independent for each node.
+    /// Note that this attributed is manipulated from the cluster dispatcher
+    /// thread only.
     int d_numActiveQueues;
-    // Number of active queues on the partition: a queue
-    // may be mapped, but not active (if there are no
-    // clients of that queue connected to the broker).
-    // Therefore, the number of active queues should
-    // always be less than or equal to the number of
-    // queues mapped.  While the number of queues mapped
-    // to a partition is global and the same on all nodes
-    // of the cluster, the number of active queues is
-    // independent for each node.  Note that this
-    // attributed is manipulated from the cluster
-    // dispatcher thread only
 
+    /// Pointer to primary node for the partition; null if no primary
+    /// associated.
     mqbnet::ClusterNode* d_primaryNode_p;
-    // Pointer to primary node for the partition; null if
-    // no primary associated
 
+    // Status of the primary.
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
-    // Status of the primary
 
   public:
     // CREATORS
@@ -151,10 +144,10 @@ class ClusterStatePartitionInfo {
 /// This class provides a VST representing the state associated to a queue
 /// in a cluster.
 ///
-/// TBD: If needed, we can add a ctor in this class which takes
-/// `bmqp_ctrlmsg::QueueInfo`.  Doing vice versa will not be possible
-/// because we don't want to edit generated file.  Perhaps we can place the
-/// converter routine in `ClusterUtil`.
+/// @todo If needed, we can add a ctor in this class which takes
+///       @bbref{bmqp_ctrlmsg::QueueInfo}.  Doing vice versa will not be
+///       possible because we don't want to edit generated file.  Perhaps we
+///       can place the converter routine in `ClusterUtil`.
 class ClusterStateQueueInfo {
   public:
     // TYPES
@@ -164,13 +157,11 @@ class ClusterStateQueueInfo {
 
     struct State {
       public:
+        /// State of Assignment.  In CSL, assignment and unassignment are
+        /// asynchronous, hence the need for `k_ASSIGNING`/`k_UNASSIGNING`
+        /// Assigning following unassigning is also supported.  On Replica, the
+        /// only possible state is `k_ASSIGNED`.
         enum Enum {
-            // State of Assignment.  In CSL, assignment and unassignment are
-            // async,
-            // hence the need for k_ASSIGNING/k_UNASSIGNING
-            // Assigning following unassigning is also supported.
-            // On Replica, the only possible state is k_ASSIGNED.
-
             k_NONE        = 0,
             k_ASSIGNING   = -1,
             k_ASSIGNED    = -2,
@@ -178,8 +169,7 @@ class ClusterStateQueueInfo {
         };
 
         /// Write the string representation of the specified enumeration
-        /// `value`
-        /// to the specified output `stream`, and return a reference to
+        /// `value` to the specified output `stream`, and return a reference to
         /// `stream`.  Optionally specify an initial indentation `level`, whose
         /// absolute value is incremented recursively for nested objects.  If
         /// `level` is specified, optionally specify `spacesPerLevel`, whose
@@ -189,7 +179,7 @@ class ClusterStateQueueInfo {
         /// negative, format the entire output on one line, suppressing all but
         /// the initial indentation (as governed by `level`).  See `toAscii`
         /// for what constitutes the string representation of a
-        /// `ClusterStateQueueInfo::State` value.
+        /// @bbref{mbqc::ClusterStateQueueInfo::State} value.
         static bsl::ostream& print(bsl::ostream&                      stream,
                                    ClusterStateQueueInfo::State::Enum value,
                                    int level          = 0,
@@ -215,25 +205,25 @@ class ClusterStateQueueInfo {
 
   private:
     // DATA
+
+    /// Canonical URI of the queue.
     bmqt::Uri d_uri;
-    // Canonical URI of the queue
 
+    /// Assigned queue key, only if cluster member (null if unassigned).
     mqbu::StorageKey d_key;
-    // Assigned queue key, only if cluster member (null if
-    // unassigned)
 
+    /// Assigned partitionId (@bbref{mqbs::DataStore::k_INVALID_PARTITION_ID}
+    /// if unassigned).
     int d_partitionId;
-    // Assigned partitionId
-    // (mqbs::DataStore::k_INVALID_PARTITION_ID if unassigned)
 
+    /// List of App id and key pairs.
+    ///
+    /// @todo Should also be added to @bbref{mqbconfm::Domain}.
     AppInfos d_appInfos;
-    // List of App id and key pairs
-    //
-    // TBD: Should also be added to mqbconfm::Domain
 
+    /// Flag indicating whether this queue is in the process of being assigned
+    /// / unassigned.
     State::Enum d_state;
-    // Flag indicating whether this queue is in the process of
-    // being assigned / unassigned.
 
   private:
     // NOT IMPLEMENTED
@@ -331,9 +321,9 @@ bool operator!=(const ClusterStateQueueInfo& lhs,
 
 /// This interface exposes notifications of events happening on the cluster.
 ///
-/// NOTE: This is purposely not a pure interface, each method has a default
-///       void implementation, so that clients only need to implement the
-///       ones they care about.
+/// @note This is purposely not a pure interface, each method has a default
+///       void implementation, so that clients only need to implement the ones
+///       they care about.
 class ClusterStateObserver {
   public:
     // TYPES
@@ -491,10 +481,10 @@ class ClusterState {
       private:
         // DATA
 
-        // Allocator to be used.
+        /// Allocator to be used.
         bslma::Allocator* d_allocator_p;
 
-        // Regex used to find partitionId.
+        /// Regex used to find partitionId.
         bdlpcre::RegEx d_regex;
 
       public:
@@ -532,26 +522,27 @@ class ClusterState {
 
   private:
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Associated cluster.
     mqbi::Cluster* d_cluster_p;
-    // Associated cluster
 
+    /// Partition information.
     PartitionsInfo d_partitionsInfo;
-    // Partition information
 
+    /// Domains information.
     DomainStates d_domainStates;
-    // Domains information
 
+    /// Set of all existing queue keys.
     QueueKeys d_queueKeys;
-    // Set of all existing queue keys.
 
+    /// Observers of the cluster state.
     ObserversSet d_observers;
-    // Observers of the cluster state.
 
+    /// Regexp wrapper used to get partition Id.
     PartitionIdExtractor d_partitionIdExtractor;
-    // Regexp wrapper used to get partition Id.
 
   public:
     // TRAITS
@@ -559,7 +550,7 @@ class ClusterState {
 
     // CREATORS
 
-    /// Create a `mqbc::ClusterState` with the specified `cluster` and
+    /// Create a @bbref{mqbc::ClusterState} with the specified `cluster` and
     /// `partitionsCount`.  Use the specified `allocator` for any memory
     /// allocation.
     explicit ClusterState(mqbi::Cluster*    cluster,

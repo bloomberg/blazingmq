@@ -17,22 +17,19 @@
 #ifndef INCLUDED_MQBC_CLUSTERFSM
 #define INCLUDED_MQBC_CLUSTERFSM
 
-//@PURPOSE: Provide a finite state machine for controlling cluster state.
-//
-//@CLASSES:
-//  mqbc::ClusterFSMObserver:      Interface for a Cluster FSM observer.
-//  mqbc::ClusterFSMEventMetadata: Metadata of a Cluster FSM event.
-//  mqbc::ClusterFSM:              FSM for controlling cluster state.
-//
-//@DESCRIPTION: 'mqbc::ClusterFSM' is a finite state machine for controlling
-// cluster state.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterFSM' object is not thread safe.
+/// @file mqbc_clusterfsm.h
+///
+/// @brief Provide a finite state machine for controlling cluster state.
+///
+/// @bbref{mqbc::ClusterFSM} is a finite state machine for controlling cluster
+/// state.
+///
+/// Thread Safety                                     {#mqbc_clusterfsm_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterFSM} object is not thread safe.
 
 // MQB
-
 #include <mqbc_clusterstatetable.h>
 
 // BMQ
@@ -110,20 +107,20 @@ class ClusterFSMEventMetadata {
     typedef InputMessages::iterator       InputMessagesIter;
     typedef InputMessages::const_iterator InputMessagesCIter;
 
-    /// Thie struct defines an input cluster message which triggers the
+    /// This struct defines an input cluster message which triggers the
     /// Cluster FSM event.
     struct InputMessage {
       private:
         // DATA
+
+        /// Source of the message.
         mqbnet::ClusterNode* d_source;
-        // Source of the message
 
+        /// Id of the associated request, if any.
         int d_requestId;
-        // Id of the associated request,
-        // if any
 
+        /// Associated LSN.
         bmqp_ctrlmsg::LeaderMessageSequence d_leaderSequenceNumber;
-        // Associated LSN
 
       public:
         // CREATORS
@@ -154,18 +151,18 @@ class ClusterFSMEventMetadata {
 
   private:
     // DATA
+
+    /// Input cluster messages which triggers this Cluster FSM event.
     InputMessages d_messages;
-    // Input cluster messages which triggers
-    // this Cluster FSM event
 
+    /// Node with the highest LSN.
     mqbnet::ClusterNode* d_highestLSNNode;
-    // Node with the highest LSN
 
+    /// Follower node who crashed, if any.
     mqbnet::ClusterNode* d_crashedFollowerNode;
-    // Follower node who crashed, if any
 
+    /// Cluster state snapshot.
     bmqp_ctrlmsg::LeaderAdvisory d_clusterStateSnapshot;
-    // Cluster state snapshot
 
   public:
     // TRAITS
@@ -178,9 +175,9 @@ class ClusterFSMEventMetadata {
     /// `allocator`.
     explicit ClusterFSMEventMetadata(bslma::Allocator* allocator = 0);
 
-    /// Create a new instance of `ClusterFSMEventMetadata` with the
-    /// specified `inputMessages`, and optionally specified `highestLSNNode`
-    /// , `crashedFollowerNode` and `clusterStateSnapshot`.
+    /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
+    /// specified `inputMessages`, and optionally specified `highestLSNNode`,
+    /// `crashedFollowerNode` and `clusterStateSnapshot`.
     explicit ClusterFSMEventMetadata(
         const InputMessages&                inputMessages,
         mqbnet::ClusterNode*                highestLSNNode      = 0,
@@ -188,7 +185,7 @@ class ClusterFSMEventMetadata {
         const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot =
             bmqp_ctrlmsg::LeaderAdvisory());
 
-    /// Create a new instance of `ClusterFSMEventMetadata` with the
+    /// Create a new instance of @bbref{mqbc::ClusterFSMEventMetadata} with the
     /// specified `highestLSNNode`, and optionally specified
     /// `crashedFollowerNode`, `clusterStateSnapshot` and `allocator`.
     explicit ClusterFSMEventMetadata(
@@ -235,25 +232,24 @@ class ClusterFSM {
     typedef StateTable::ActionFunctor           ActionFunctor;
     typedef StateTable::Transition              Transition;
 
+    /// A set of ClusterFSM observers.
     typedef bsl::unordered_set<ClusterFSMObserver*> ObserversSet;
-    // A set of ClusterFSM observers.
     typedef ObserversSet::iterator ObserversSetIter;
 
   private:
     // DATA
+
+    /// State table of FSM transitions.
     StateTable d_stateTable;
-    // State table of FSM
-    // transitions
 
+    /// Current state of this FSM.
     State::Enum d_state;
-    // Current state of this FSM
 
+    /// Actions to perform as part of FSM transitions.
     ClusterStateTableActions<ClusterFSMArgsSp>& d_actions;
-    // Actions to perform as part
-    // of FSM transitions
 
+    /// Observers of this object.
     ObserversSet d_observers;
-    // Observers of this object
 
   public:
     // CREATORS

@@ -17,25 +17,24 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATELEDGERITERATOR
 #define INCLUDED_MQBC_CLUSTERSTATELEDGERITERATOR
 
-//@PURPOSE: Provide an interface to iterate through 'mqbc::ClusterStateLedger'.
-//
-//@CLASSES:
-//  mqbc::ClusterStateLedgerIterator: Iterator thru 'mqbc::ClusterStateLedger'
-//
-//@SEE_ALSO:
-//  mqbc::ClusterStateLedger
-//
-//@DESCRIPTION: The 'mqbc::ClusterStateLedgerIterator' base protocol is the
-// interface for a mechanism to iterate through an 'mqbc::ClusterStateLedger'.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterStateLedgerIterator' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless explicitly documented in a method's contract.
+/// @file mqbc_clusterstateledgeriterator.h
+///
+/// @brief Provide an interface to iterate through an
+/// @bbref{mqbc::ClusterStateLedger}.
+///
+/// The @bbref{mqbc::ClusterStateLedgerIterator} base protocol is the interface
+/// for a mechanism to iterate through an @bbref{mqbc::ClusterStateLedger}.
+///
+/// @see @bbref{mqbc::ClusterStateLedger}.
+///
+/// Thread Safety                     {#mqbc_clusterstateledgeriterator_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterStateLedgerIterator} object is not thread safe and
+/// should always be manipulated from the associated cluster's dispatcher
+/// thread, unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterstateledgerprotocol.h>
 
 // BMQ
@@ -53,7 +52,8 @@ namespace mqbc {
 // struct ClusterStateLedgerIterator
 // =================================
 
-/// Provide an interface to iterate through an `mqbc::ClusterStateLedger`.
+/// Provide an interface to iterate through an
+/// @bbref{mqbc::ClusterStateLedger}.
 class ClusterStateLedgerIterator {
   public:
     // CREATORS
@@ -63,7 +63,7 @@ class ClusterStateLedgerIterator {
 
     // MANIPULATORS
 
-    /// Iterate to the next record in the `mqbc::ClusterStateLedger`.
+    /// Iterate to the next record in the @bbref{mqbc::ClusterStateLedger}.
     /// Return 0 if a record is found, 1 if the end of the ledger
     /// is reached, or < 0 if an error was encountered.  If this method
     /// returns a non-zero value, this iterator becomes invalid and
