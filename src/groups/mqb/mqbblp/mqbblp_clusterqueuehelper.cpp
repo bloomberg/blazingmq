@@ -4029,7 +4029,7 @@ void ClusterQueueHelper::onQueueAssigned(
     // above
 
     BALL_LOG_INFO << d_cluster_p->description()
-                  << ": Assigned queue: " << info;
+                  << ": Assigned queue: " << *info;
 
     // Note: In non-CSL mode, the queue creation callback is instead invoked at
     // replica nodes when they receive a queue creation record from the primary
@@ -4093,7 +4093,7 @@ void ClusterQueueHelper::onQueueUnassigned(
         //       unassignment advisory from the leader.
         BALL_LOG_ERROR << d_cluster_p->description()
                        << ": Ignoring queue unassignment from leader "
-                       << leaderDesc << ", for unknown queue: " << info;
+                       << leaderDesc << ", for unknown queue: " << *info;
 
         BSLS_ASSERT_SAFE(0 ==
                          d_clusterState_p->queueKeys().count(info->key()));
@@ -4118,7 +4118,7 @@ void ClusterQueueHelper::onQueueUnassigned(
 
         BALL_LOG_ERROR << d_cluster_p->description()
                        << ": Ignoring queue unassignment from leader "
-                       << leaderDesc << ", for queue: " << info
+                       << leaderDesc << ", for queue: " << *info
                        << " because self node sees queue as unassigned.";
         return;  // RETURN
     }
@@ -4132,7 +4132,7 @@ void ClusterQueueHelper::onQueueUnassigned(
 
         BALL_LOG_WARN << d_cluster_p->description()
                       << ": Received queue unassignment from leader "
-                      << leaderDesc << ", for queue: " << info
+                      << leaderDesc << ", for queue: " << *info
                       << " but num handle count is ["
                       << qinfo.d_numQueueHandles << "].";
     }
@@ -4170,7 +4170,7 @@ void ClusterQueueHelper::onQueueUnassigned(
 
             BALL_LOG_INFO << d_cluster_p->description()
                           << ": While processing queue assignment from leader "
-                          << leaderDesc << ", for queue: " << info
+                          << leaderDesc << ", for queue: " << *info
                           << ", resetting queue info:"
                           << " [in-flight contexts: " << qinfo.d_inFlight
                           << ", pending contexts: " << qinfo.d_pending.size()
@@ -4191,7 +4191,7 @@ void ClusterQueueHelper::onQueueUnassigned(
         else {
             // Nothing is pending, it is safe to delete all references.
             BALL_LOG_INFO << d_cluster_p->description()
-                          << ": All references to queue: " << info
+                          << ": All references to queue: " << *info
                           << " removed.";
 
             removeQueueRaw(queueContextIt);
@@ -4215,7 +4215,7 @@ void ClusterQueueHelper::onQueueUnassigned(
         ->adjustQueueCount(-1);
 
     BALL_LOG_INFO << d_cluster_p->description()
-                  << ": Unassigned queue: " << info;
+                  << ": Unassigned queue: " << *info;
 }
 
 void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
