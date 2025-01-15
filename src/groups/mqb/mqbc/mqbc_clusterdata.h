@@ -17,17 +17,14 @@
 #ifndef INCLUDED_MQBC_CLUSTERDATA
 #define INCLUDED_MQBC_CLUSTERDATA
 
-//@PURPOSE: Provide a VST representing the non-persistent state of a cluster.
-//
-//@CLASSES:
-//  mqbc::ClusterDataIdentity: VST for the identity of a cluster
-//  mqbc::ClusterData:         VST for non-persistent state of a cluster
-//
-//@DESCRIPTION: 'mqbc::ClusterData' is a value-semantic type representing the
-// non-persistent state of a cluster.
+/// @file mqbc_clusterdata.h
+///
+/// @brief Provide a VST representing the non-persistent state of a cluster.
+///
+/// @bbref{mqbc::ClusterData} is a value-semantic type representing the
+/// non-persistent state of a cluster.
 
 // MQB
-
 #include <mqbc_clustermembership.h>
 #include <mqbc_controlmessagetransmitter.h>
 #include <mqbc_electorinfo.h>
@@ -44,7 +41,6 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
-
 #include <bmqst_statcontext.h>
 #include <bmqu_atomicstate.h>
 #include <bmqu_memoutstream.h>
@@ -79,21 +75,20 @@ class ClusterDataIdentity {
   private:
     // DATA
 
+    /// Name of the cluster
     bsl::string d_name;
-    // Name of the cluster
 
+    /// Description of the cluster.
     bsl::string d_description;
-    // Description of the cluster
 
+    /// Information sent to the primary node of a queue while sending a
+    /// `clusterOpenQueue` request to that node.
     bmqp_ctrlmsg::ClientIdentity d_identity;
-    // Information sent to the primary node of
-    // a queue while sending a clusterOpenQueue
-    // request to that node
 
   public:
     // CREATORS
 
-    /// Create a `mqbc::ClusterDataIdentity` with the specified `name`,
+    /// Create a @bbref{mqbc::ClusterDataIdentity} with the specified `name`,
     /// `description` and `identity`.
     ClusterDataIdentity(const bsl::string&                  name,
                         const bsl::string&                  description,
@@ -149,61 +144,57 @@ class ClusterData {
   private:
     // DATA
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
     const mqbi::ClusterResources d_resources;
 
+    /// Dispatcher client data associated to this session.
     mqbi::DispatcherClientData d_dispatcherClientData;
-    // Dispatcher client data associated to this
-    // session
 
+    /// Cluster configuration to use.
     mqbcfg::ClusterDefinition d_clusterConfig;
-    // Cluster configuration to use
 
+    /// Cluster proxy configuration to use.
     mqbcfg::ClusterProxyDefinition d_clusterProxyConfig;
-    // Cluster proxy configuration to use
 
+    /// Elector information.
     ElectorInfo d_electorInfo;
-    // Elector information
 
+    /// The membership information of the cluster.
     ClusterMembership d_membership;
-    // The membership information of the cluster
 
+    /// The identity of the cluster.
     const ClusterDataIdentity d_identity;
-    // The identity of the cluster
 
+    /// Associated cluster.
     mqbi::Cluster* d_cluster_p;
-    // Associated cluster
 
+    /// Control message transmitter to use.
     ControlMessageTransmitter d_messageTransmitter;
-    // Control message transmitter to use
 
+    /// Request manager to use.
     RequestManagerType d_requestManager;
-    // Request manager to use
 
+    /// MultiRequest manager to use.
     MultiRequestManagerType d_multiRequestManager;
-    // MultiRequest manager to use
 
-    mqbi::DomainFactory* d_domainFactory_p;  // from mqbblp::Cluster
-                                             // Domain factory to use
+    /// Domain factory to use (from @bbref{mqbblp::Cluster}).
+    mqbi::DomainFactory* d_domainFactory_p;
 
     mqbnet::TransportManager* d_transportManager_p;
 
+    /// Object encapsulating the statistics recorded for this cluster.
     mqbstat::ClusterStats d_stats;
-    // Object encapsulating the statistics
-    // recorded for this cluster
 
+    /// Top-level `StatContext` pointer for all nodes of this cluster.
     StatContextMp d_clusterNodesStatContext_mp;
-    // Top level StatContext pointer for all
-    // nodes of this cluster
 
     StateSpPool d_stateSpPool;
 
+    /// Thread pool used for any standalone work that can be offloaded to any
+    /// non-dispatcher therads.
     bdlmt::FixedThreadPool d_miscWorkThreadPool;
-    // Thread pool used for any standalone
-    // work that can be offloaded to any
-    // non-dispatcher threads.
 
   private:
     // NOT IMPLEMENTED

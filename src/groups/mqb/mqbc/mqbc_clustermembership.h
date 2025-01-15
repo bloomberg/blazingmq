@@ -17,28 +17,28 @@
 #ifndef INCLUDED_MQBC_CLUSTERMEMBERSHIP
 #define INCLUDED_MQBC_CLUSTERMEMBERSHIP
 
-//@PURPOSE: Provide a VST representing the membership state of a cluster.
-//
-//@CLASSES:
-//  mqbc::ClusterMembershipObserver: Interface for a ClusterMembership observer
-//  mqbc::ClusterMembership        : VST for cluster membership information
-//
-//@DESCRIPTION: 'mqbc::ClusterMembership' is a value-semantic type representing
-// the membership state of a cluster.  Important changes in membership state
-// can be notified to observers, implementing the
-// 'mqbc::ClusterMembershipObserver' interface.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterMembership' object is not thread safe and should always be
-// manipulated from the associated cluster's dispatcher thread.
+/// @file mqbc_clustermembership.h
+///
+/// @brief Provide a VST representing the membership state of a cluster.
+///
+/// @bbref{mqbc::ClusterMembership} is a value-semantic type representing the
+/// membership state of a cluster.  Important changes in membership state can
+/// be notified to observers, implementing the
+/// @bbref{mqbc::ClusterMembershipObserver} interface.
+///
+/// Thread Safety                              {#mqbc_clustermembership_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterMembership} object is not thread safe and should
+/// always be manipulated from the associated cluster's dispatcher thread.
 
 // MQB
-
-#include <bmqp_ctrlmsg_messages.h>
 #include <mqbc_clusternodesession.h>
 #include <mqbcfg_messages.h>
 #include <mqbstat_clusterstats.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -68,9 +68,9 @@ class ClusterNodeSession;
 /// This interface exposes notifications of events happening on the cluster
 /// membership state.
 ///
-/// NOTE: This is purposely not a pure interface, each method has a default
-///       void implementation, so that clients only need to implement the
-///       ones they care about.
+/// @note This is purposely not a pure interface, each method has a default
+///       void implementation, so that clients only need to implement the ones
+///       they care about.
 class ClusterMembershipObserver {
   public:
     // CREATORS
@@ -113,19 +113,18 @@ class ClusterMembership {
   private:
     // DATA
 
-    // from mqbblp::ClusterState
+    /// The network cluster this cluster operates on (from
+    /// @bbref{mqbblp::ClusterState}).
     bslma::ManagedPtr<mqbnet::Cluster> d_netCluster_mp;
-    // The network cluster this cluster
-    // operates on
 
+    /// Node session of self node.
     mqbc::ClusterNodeSession* d_selfNodeSession_p;
-    // Node session of self node
 
+    /// Map: `ClusterNode -> NodeSession`.
     ClusterNodeSessionMap d_nodeSessionMap;
-    // Map: ClusterNode -> NodeSession
 
+    /// Observers of this object.
     ObserversSet d_observers;
-    // Observers of this object
 
   public:
     // CREATORS
@@ -152,11 +151,11 @@ class ClusterMembership {
     /// cluster's dispatcher thread.
     ClusterMembership& unregisterObserver(ClusterMembershipObserver* observer);
 
+    /// Set the corresponding member to the specified `value` and return a
+    /// reference offering modifiable access to this object.
     ClusterMembership& setSelfNodeSession(mqbc::ClusterNodeSession* value);
     ClusterMembership&
     setSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value);
-    // Set the corresponding member to the specified 'value' and return a
-    // reference offering modifiable access to this object.
 
     /// Get a modifiable reference to this object's net cluster.
     mqbnet::Cluster* netCluster();
