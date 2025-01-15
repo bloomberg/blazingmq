@@ -186,7 +186,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
                         int             length);
 
     /// Close and cleanup a log. Scheduled to run in seperate thread.
-    void closeAndCleanup(LogSp& log);
+    void closeAndCleanup(const LogSp& log);
 
     // PRIVATE ACCESSORS
 

@@ -185,6 +185,7 @@ LedgerConfig::LedgerConfig(bslma::Allocator* allocator)
 , d_keepOldLogs(false)
 , d_logFactory_sp()
 , d_logIdGenerator_sp()
+, d_scheduler_p()
 , d_extractLogIdCallback(bsl::allocator_arg, allocator)
 , d_validateLogCallback(bsl::allocator_arg, allocator)
 , d_rolloverCallback(bsl::allocator_arg, allocator)
@@ -203,6 +204,7 @@ LedgerConfig::LedgerConfig(const LedgerConfig& other,
 , d_keepOldLogs(other.d_keepOldLogs)
 , d_logFactory_sp(other.d_logFactory_sp)
 , d_logIdGenerator_sp(other.d_logIdGenerator_sp)
+, d_scheduler_p(other.d_scheduler_p)
 , d_extractLogIdCallback(bsl::allocator_arg,
                          allocator,
                          other.d_extractLogIdCallback)
@@ -269,6 +271,7 @@ LedgerConfig& LedgerConfig::setLogIdGenerator(
 LedgerConfig& LedgerConfig::setScheduler(bdlmt::EventScheduler* value)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(value);
     BSLS_ASSERT_SAFE(value->clockType() == bsls::SystemClockType::e_MONOTONIC);
 
     d_scheduler_p = value;

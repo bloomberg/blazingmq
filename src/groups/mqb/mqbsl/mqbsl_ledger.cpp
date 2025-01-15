@@ -334,7 +334,7 @@ int Ledger::writeRecordImpl(LedgerRecordId* recordId,
     return LedgerOpResult::e_SUCCESS;
 }
 
-void Ledger::closeAndCleanup(LogSp& log)
+void Ledger::closeAndCleanup(const LogSp& log)
 {
     const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
     const bsl::string&       logPath = log->logConfig().location();
@@ -346,7 +346,7 @@ void Ledger::closeAndCleanup(LogSp& log)
     }
 
     rc = d_config.cleanupCallback()(logPath);
-    if (d_config.cleanupCallback()(logPath) != 0) {
+    if (rc != 0) {
         BALL_LOG_ERROR << "Failed to clean up the log " << logPath;
         return;  // RETURN
     }
