@@ -152,11 +152,16 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
         // 1. Fetch the cluster definition
         const mqbcfg::ClusterDefinition& clusterDefinition =
             *clusterDefinitionIter;
-        if (clusterDefinition.clusterAttributes().isFSMWorkflow() &&
-            !clusterDefinition.clusterAttributes().isCSLModeEnabled()) {
-            errorDescription << "Cluster ('" << name
-                             << "') has incompatible CSL and FSM modes, not "
-                                "creating cluster.";
+        if (clusterDefinition.clusterAttributes().isFSMWorkflow() !=
+            clusterDefinition.clusterAttributes().isCSLModeEnabled()) {
+            // CSL and FSM must be both true or both false, other combinations
+            // are not supported
+            errorDescription
+                << "Cluster ('" << name << "') has incompatible CSL ("
+                << clusterDefinition.clusterAttributes().isCSLModeEnabled()
+                << ") and FSM ("
+                << clusterDefinition.clusterAttributes().isFSMWorkflow()
+                << ") modes, not creating cluster.";
             return (rc * 10) + rc_FETCH_DEFINITION_FAILED;  // RETURN
         }
 
@@ -378,7 +383,7 @@ ClusterCatalog::ClusterCatalog(mqbi::Dispatcher*             dispatcher,
 , d_resources(resources)
 , d_adminCb()
 , d_requestManager(bmqp::EventType::e_CONTROL,
-                   resources.bufferFactory(),
+                   resources.blobSpPool(),
                    resources.scheduler(),
                    false,  // lateResponseMode
                    d_allocator_p)

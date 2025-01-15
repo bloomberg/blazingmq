@@ -65,10 +65,10 @@ static void test1_contains()
         PVV(test.d_line << ": checking if '" << test.d_substr << "' "
                         << "is a substring of '" << test.d_str << "'");
 
-        bsl::string str(test.d_str, s_allocator_p);
-        ASSERT_EQ_D("line " << test.d_line,
-                    bmqu::StringUtil::contains(str, test.d_substr),
-                    test.d_result);
+        bsl::string str(test.d_str, bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::StringUtil::contains(str, test.d_substr),
+                           test.d_result);
     }
 }
 
@@ -116,11 +116,11 @@ static void test2_startsWith()
                         << "starts with '" << test.d_prefix << "' "
                         << "from offset " << test.d_offset);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    bmqu::StringUtil::startsWith(test.d_str,
-                                                 test.d_prefix,
-                                                 test.d_offset),
-                    test.d_result);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::StringUtil::startsWith(test.d_str,
+                                                        test.d_prefix,
+                                                        test.d_offset),
+                           test.d_result);
     }
 }
 
@@ -163,9 +163,10 @@ static void test3_endsWith()
         PVV(test.d_line << ": checking if '" << test.d_str << "' "
                         << "ends with '" << test.d_suffix << "'");
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    bmqu::StringUtil::endsWith(test.d_str, test.d_suffix),
-                    test.d_result);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::StringUtil::endsWith(test.d_str,
+                                                      test.d_suffix),
+                           test.d_result);
     }
 }
 
@@ -204,9 +205,9 @@ static void test4_trim()
 
         PVV(test.d_line << ": trimming '" << test.d_str << "'");
 
-        bsl::string input(test.d_str, s_allocator_p);
+        bsl::string input(test.d_str, bmqtst::TestHelperUtil::allocator());
         bmqu::StringUtil::trim(&input);
-        ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
 }
 
@@ -245,9 +246,9 @@ static void test5_ltrim()
 
         PVV(test.d_line << ": ltrimming '" << test.d_str << "'");
 
-        bsl::string input(test.d_str, s_allocator_p);
+        bsl::string input(test.d_str, bmqtst::TestHelperUtil::allocator());
         bmqu::StringUtil::ltrim(&input);
-        ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
 }
 
@@ -286,9 +287,9 @@ static void test6_rtrim()
 
         PVV(test.d_line << ": rtrimming '" << test.d_str << "'");
 
-        bsl::string input(test.d_str, s_allocator_p);
+        bsl::string input(test.d_str, bmqtst::TestHelperUtil::allocator());
         bmqu::StringUtil::rtrim(&input);
-        ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
 }
 
@@ -306,14 +307,14 @@ static void test7_strTokenizeRef()
 //   Proper behavior of the 'strTokenizeRef(str, delims)' method.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The vector returned by 'bmqu::StringUtil::strTokenizeRef' uses the
     // default allocator.
 
     bmqtst::TestHelper::printTestName("strTokenizeRef");
 
-    bsl::string                    string(s_allocator_p);
-    bsl::vector<bslstl::StringRef> tokens(s_allocator_p);
+    bsl::string                    string(bmqtst::TestHelperUtil::allocator());
+    bsl::vector<bslstl::StringRef> tokens(bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int         d_line;
@@ -343,18 +344,26 @@ static void test7_strTokenizeRef()
 
         PVV(test.d_line << ": tokenizing '" << test.d_input << "'");
 
-        bsl::string input(test.d_input, s_allocator_p);
+        bsl::string input(test.d_input, bmqtst::TestHelperUtil::allocator());
         tokens = bmqu::StringUtil::strTokenizeRef(input, test.d_delims);
 
-        ASSERT_EQ_D("line " << test.d_line, tokens.size(), test.d_nbTokens);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           tokens.size(),
+                           test.d_nbTokens);
         if (test.d_nbTokens >= 1) {
-            ASSERT_EQ_D("line " << test.d_line, tokens[0], test.d_token1);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               tokens[0],
+                               test.d_token1);
         }
         if (test.d_nbTokens >= 2) {
-            ASSERT_EQ_D("line " << test.d_line, tokens[1], test.d_token2);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               tokens[1],
+                               test.d_token2);
         }
         if (test.d_nbTokens >= 3) {
-            ASSERT_EQ_D("line " << test.d_line, tokens[2], test.d_token3);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               tokens[2],
+                               test.d_token3);
         }
     }
 }
@@ -454,11 +463,11 @@ static void test8_match()
         PVV(test.d_line << ": matching '" << test.d_input << "'" << " with '"
                         << test.d_pattern << "'");
 
-        ASSERT_EQ_D("line " << test.d_line << ": when matching '"
-                            << test.d_input << "' against the pattern '"
-                            << test.d_pattern << "'",
-                    bmqu::StringUtil::match(test.d_input, test.d_pattern),
-                    test.d_expected);
+        BMQTST_ASSERT_EQ_D(
+            "line " << test.d_line << ": when matching '" << test.d_input
+                    << "' against the pattern '" << test.d_pattern << "'",
+            bmqu::StringUtil::match(test.d_input, test.d_pattern),
+            test.d_expected);
     }
 }
 
@@ -505,14 +514,14 @@ static void test9_squeeze()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
-        bsl::string str(test.d_str, s_allocator_p);
+        bsl::string str(test.d_str, bmqtst::TestHelperUtil::allocator());
 
         PVV(test.d_line << ": squeeze(\"" << str << "\", \""
                         << test.d_characters << "\")");
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    bmqu::StringUtil::squeeze(&str, test.d_characters),
-                    test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::StringUtil::squeeze(&str, test.d_characters),
+                           test.d_expected);
     }
 }
 
@@ -537,7 +546,7 @@ int main(int argc, char* argv[])
     case 1: test1_contains(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

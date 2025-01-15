@@ -17,33 +17,31 @@
 #ifndef INCLUDED_MQBA_SESSIONNEGOTIATOR
 #define INCLUDED_MQBA_SESSIONNEGOTIATOR
 
-//@PURPOSE: Provide a negotiator for establishing sessions.
-//
-//@CLASSES:
-//  mqba::SessionNegotiator: Negotiator for a BlazingMQ session with client or
-//  broker
-//
-//@DESCRIPTION: 'mqba::SessionNegotiator' implements the 'mqbnet::Negotiator'
-// interface to negotiate a connection with a BlazingMQ client or another
-// bmqbrkr.  From a 'bmqio::Channel', it will exchange negotiation identity
-// message, and create a session associated to the channel on success.
-//
-/// Thread Safety
-///-------------
-// The implementation must be thread safe as 'negotiate()' may be called
-// concurrently from many IO threads.
+/// @file mqba_sessionnegotiator.h
+///
+/// @brief Provide a negotiator for establishing sessions.
+///
+/// @bbref{mqba::SessionNegotiator} implements the @bbref{mqbnet::Negotiator}
+/// interface to negotiate a connection with a BlazingMQ client or another
+/// bmqbrkr.  From a @bbref{bmqio::Channel}, it will exchange negotiation
+/// identity message, and create a session associated to the channel on
+/// success.
+///
+/// Thread Safety                              {#mqba_sessionnegotiator_thread}
+/// =============
+///
+/// The implementation must be thread safe as 'negotiate()' may be called
+/// concurrently from many IO threads.
 
 // MQB
-
 #include <mqbconfm_messages.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -95,9 +93,9 @@ class SessionNegotiator : public mqbnet::Negotiator {
   private:
     // PRIVATE TYPES
     struct ConnectionType {
+        // Enum representing the type of session being negotiated, from that
+        // side of the connection's point of view.
         enum Enum {
-            // enum representing the type of session being negotiated, from
-            // that side of the connection's point of view
             e_UNKNOWN,
             e_CLUSTER_PROXY,
             e_CLUSTER_MEMBER,
@@ -110,77 +108,65 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// negotiated
     struct NegotiationContext {
         // PUBLIC DATA
+
+        /// The associated negotiatorContext, passed in by the caller.
         mqbnet::NegotiatorContext* d_negotiatorContext_p;
-        // The associated
-        // negotiatorContext, passed in by
-        // the caller
 
+        /// The channel to use for the negotiation.
         bsl::shared_ptr<bmqio::Channel> d_channelSp;
-        // The channel to use for the
-        // negotiation
 
+        /// The callback to invoke to notify of the status of the negotiation.
         mqbnet::Negotiator::NegotiationCb d_negotiationCb;
-        // The callback to invoke to
-        // notify of the status of the
-        // negotiation
 
+        /// The negotiation message received from the remote peer.
         bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
-        // The negotiation message
-        // received from the remote peer
 
+        /// The cluster involved in the session being negotiated, or empty if
+        /// none.
         bsl::string d_clusterName;
-        // The cluster involved in the
-        // session being negotiated, or
-        // empty is none.
 
+        /// True if this is a "reversed" connection (on either side of the
+        /// connection).
         bool d_isReversed;
-        // True if this is a 'reversed'
-        // connection (on either side of
-        // the connection).
 
+        /// The type of the session being negotiated.
         ConnectionType::Enum d_connectionType;
-        // The type of the session being
-        // negotiated.
     };
 
     typedef bsl::shared_ptr<NegotiationContext> NegotiationContextSp;
 
   private:
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Buffer factory to use in constructed client sessions
+    ///
+    /// @todo This field should be removed once we retire the code for message
+    ///       properties conversion in @bbref{mqba::ClientSession}.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory to inject into new client
-    // sessions
 
+    /// Dispatcher to inject into new client session.s
     mqbi::Dispatcher* d_dispatcher_p;
-    // Dispatcher to inject into new client
-    // sessions
 
+    /// Domain factory to inject into new client sessions.
     mqbi::DomainFactory* d_domainFactory_p;
-    // Domain factory to inject into new client
-    // sessions
 
+    /// Top-level stat context for all clients/queue stats.
     bmqst::StatContext* d_statContext_p;
-    // Top-level stat context for all
-    // clients/queues stats
 
+    /// Shared object pool of blobs to inject into new client sessions.
     BlobSpPool* d_blobSpPool_p;
-    // Shared object pool of blobs to inject
-    // into new client sessions
 
+    /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
-    // Cluster catalog to query for cluster
-    // information
 
+    /// Pointer to the event scheduler to use (held, not owned).
     bdlmt::EventScheduler* d_scheduler_p;
-    // Pointer to the event scheduler to
-    // use (held, not owned)
 
+    /// The callback to invoke on received admin command.
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
-    // The callback to invoke on received
-    // admin command.
 
   private:
     // NOT IMPLEMENTED

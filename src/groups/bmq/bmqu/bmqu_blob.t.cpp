@@ -77,42 +77,42 @@ static void test1_positionBreathingTest()
     {
         PVV("Default constructor");
         bmqu::BlobPosition obj;
-        ASSERT_EQ(obj.buffer(), 0);
-        ASSERT_EQ(obj.byte(), 0);
+        BMQTST_ASSERT_EQ(obj.buffer(), 0);
+        BMQTST_ASSERT_EQ(obj.byte(), 0);
         obj.setBuffer(123);
         obj.setByte(987);
-        ASSERT_EQ(obj.buffer(), 123);
-        ASSERT_EQ(obj.byte(), 987);
+        BMQTST_ASSERT_EQ(obj.buffer(), 123);
+        BMQTST_ASSERT_EQ(obj.byte(), 987);
     }
 
     {
         PVV("Initialized constructor");
         bmqu::BlobPosition obj(12, 98);
-        ASSERT_EQ(obj.buffer(), 12);
-        ASSERT_EQ(obj.byte(), 98);
+        BMQTST_ASSERT_EQ(obj.buffer(), 12);
+        BMQTST_ASSERT_EQ(obj.byte(), 98);
         obj.setBuffer(123);
         obj.setByte(987);
-        ASSERT_EQ(obj.buffer(), 123);
-        ASSERT_EQ(obj.byte(), 987);
+        BMQTST_ASSERT_EQ(obj.buffer(), 123);
+        BMQTST_ASSERT_EQ(obj.byte(), 987);
     }
 
     // Verifying printing
     bmqu::BlobPosition position(1, 2);
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << position;
         PV("position = " << os.str());
-        ASSERT_EQ(os.str(), "[ buffer = 1 byte = 2 ]");
+        BMQTST_ASSERT_EQ(os.str(), "[ buffer = 1 byte = 2 ]");
     }
 
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         bslim::Printer     printer(&os, 0, -1);
         printer.start();
         printer.printAttribute("position", position);
         printer.end();
         PV("position = " << os.str());
-        ASSERT_EQ(os.str(), "[ position = [ buffer = 1 byte = 2 ] ]");
+        BMQTST_ASSERT_EQ(os.str(), "[ position = [ buffer = 1 byte = 2 ] ]");
     }
 }
 
@@ -162,15 +162,15 @@ static void test2_positionComparison()
         PVV(test.d_line << ": comparing " << test.d_lhs << " vs "
                         << test.d_rhs);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    test.d_lhs < test.d_rhs,
-                    test.d_less);
-        ASSERT_EQ_D("line " << test.d_line,
-                    test.d_lhs == test.d_rhs,
-                    test.d_equal);
-        ASSERT_EQ_D("line " << test.d_line,
-                    test.d_lhs != test.d_rhs,
-                    test.d_different);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           test.d_lhs < test.d_rhs,
+                           test.d_less);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           test.d_lhs == test.d_rhs,
+                           test.d_equal);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           test.d_lhs != test.d_rhs,
+                           test.d_different);
     }
 }
 
@@ -194,47 +194,47 @@ static void test3_sectionBreathingTest()
     {
         PVV("Default constructor");
         bmqu::BlobSection obj;
-        ASSERT_EQ(obj.start(), bmqu::BlobPosition());
-        ASSERT_EQ(obj.end(), bmqu::BlobPosition());
+        BMQTST_ASSERT_EQ(obj.start(), bmqu::BlobPosition());
+        BMQTST_ASSERT_EQ(obj.end(), bmqu::BlobPosition());
         obj.start() = bmqu::BlobPosition(1, 2);
         obj.end()   = bmqu::BlobPosition(9, 8);
-        ASSERT_EQ(obj.start(), bmqu::BlobPosition(1, 2));
-        ASSERT_EQ(obj.end(), bmqu::BlobPosition(9, 8));
+        BMQTST_ASSERT_EQ(obj.start(), bmqu::BlobPosition(1, 2));
+        BMQTST_ASSERT_EQ(obj.end(), bmqu::BlobPosition(9, 8));
     }
 
     {
         PVV("Initialized constructor");
         bmqu::BlobSection obj(bmqu::BlobPosition(1, 2),
                               bmqu::BlobPosition(9, 8));
-        ASSERT_EQ(obj.start(), bmqu::BlobPosition(1, 2));
-        ASSERT_EQ(obj.end(), bmqu::BlobPosition(9, 8));
+        BMQTST_ASSERT_EQ(obj.start(), bmqu::BlobPosition(1, 2));
+        BMQTST_ASSERT_EQ(obj.end(), bmqu::BlobPosition(9, 8));
         obj.start() = bmqu::BlobPosition(3, 4);
         obj.end()   = bmqu::BlobPosition(8, 9);
-        ASSERT_EQ(obj.start(), bmqu::BlobPosition(3, 4));
-        ASSERT_EQ(obj.end(), bmqu::BlobPosition(8, 9));
+        BMQTST_ASSERT_EQ(obj.start(), bmqu::BlobPosition(3, 4));
+        BMQTST_ASSERT_EQ(obj.end(), bmqu::BlobPosition(8, 9));
     }
 
     // Verifying printing
     bmqu::BlobSection obj(bmqu::BlobPosition(1, 2), bmqu::BlobPosition(9, 8));
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << obj;
         PV("section = " << os.str());
-        ASSERT_EQ(os.str(),
-                  "[ start = [ buffer = 1 byte = 2 ] "
-                  "end = [ buffer = 9 byte = 8 ] ]");
+        BMQTST_ASSERT_EQ(os.str(),
+                         "[ start = [ buffer = 1 byte = 2 ] "
+                         "end = [ buffer = 9 byte = 8 ] ]");
     }
 
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         bslim::Printer     printer(&os, 0, -1);
         printer.start();
         printer.printAttribute("section", obj);
         printer.end();
         PV("section = " << os.str());
-        ASSERT_EQ(os.str(),
-                  "[ section = [ start = [ buffer = 1 byte = 2 ] "
-                  "end = [ buffer = 9 byte = 8 ] ] ]");
+        BMQTST_ASSERT_EQ(os.str(),
+                         "[ section = [ start = [ buffer = 1 byte = 2 ] "
+                         "end = [ buffer = 9 byte = 8 ] ] ]");
     }
 }
 
@@ -276,15 +276,15 @@ static void test4_bufferSize()
 
         PVV(test.d_line << ": checking blob '" << test.d_blobFormat << "'");
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobFormat,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         for (int bufIdx = 0; test.d_bufSizes[bufIdx] != -1; ++bufIdx) {
-            ASSERT_EQ_D("line " << test.d_line << ", bufIdx " << bufIdx,
-                        bmqu::BlobUtil::bufferSize(blob, bufIdx),
-                        test.d_bufSizes[bufIdx]);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line << ", bufIdx " << bufIdx,
+                               bmqu::BlobUtil::bufferSize(blob, bufIdx),
+                               test.d_bufSizes[bufIdx]);
         }
     }
 }
@@ -306,8 +306,10 @@ static void test5_isValidPos()
 {
     bmqtst::TestHelper::printTestName("Is Valid Pos Test");
 
-    bdlbb::Blob blob(s_allocator_p);
-    bmqtst::BlobTestUtil::fromString(&blob, "ab|cde|f|ghiXX", s_allocator_p);
+    bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+    bmqtst::BlobTestUtil::fromString(&blob,
+                                     "ab|cde|f|ghiXX",
+                                     bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                d_line;
@@ -341,9 +343,9 @@ static void test5_isValidPos()
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking validity of " << test.d_position);
-        ASSERT_EQ_D("line " << test.d_line,
-                    bmqu::BlobUtil::isValidPos(blob, test.d_position),
-                    test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::BlobUtil::isValidPos(blob, test.d_position),
+                           test.d_expected);
     }
 }
 
@@ -366,8 +368,10 @@ static void test6_positionToOffset()
 {
     bmqtst::TestHelper::printTestName("Position To Offset Test");
 
-    bdlbb::Blob blob(s_allocator_p);
-    bmqtst::BlobTestUtil::fromString(&blob, "ab|cde|f|ghiXX", s_allocator_p);
+    bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+    bmqtst::BlobTestUtil::fromString(&blob,
+                                     "ab|cde|f|ghiXX",
+                                     bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                d_line;
@@ -406,19 +410,21 @@ static void test6_positionToOffset()
         int rc     = bmqu::BlobUtil::positionToOffsetSafe(&offset,
                                                       blob,
                                                       test.d_position);
-        ASSERT_EQ_D("line " << test.d_line, offset, test.d_expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, offset, test.d_expected);
 
         if (test.d_expected >= 0) {
-            ASSERT_EQ_D("line " << test.d_line, rc, 0);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, 0);
 
             // If valid, also ensure 'raw' isOffset works
             offset = -1;
             bmqu::BlobUtil::positionToOffset(&offset, blob, test.d_position);
-            ASSERT_EQ_D("line " << test.d_line, offset, test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               offset,
+                               test.d_expected);
         }
         else {
             // if invalid, just check return code
-            ASSERT_EQ_D("line " << test.d_line, rc, -1);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, -1);
         }
     }
 }
@@ -441,8 +447,10 @@ static void test7_findOffset()
 {
     bmqtst::TestHelper::printTestName("Find Offset Test");
 
-    bdlbb::Blob blob(s_allocator_p);
-    bmqtst::BlobTestUtil::fromString(&blob, "ab|cde|f|ghiXX", s_allocator_p);
+    bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+    bmqtst::BlobTestUtil::fromString(&blob,
+                                     "ab|cde|f|ghiXX",
+                                     bmqtst::TestHelperUtil::allocator());
 
     PV("Without a start offset");
     {
@@ -480,17 +488,23 @@ static void test7_findOffset()
             int                rc = bmqu::BlobUtil::findOffsetSafe(&position,
                                                     blob,
                                                     test.d_offset);
-            ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
             if (test.d_expectedRc == 0) {
-                ASSERT_EQ_D("line " << test.d_line, position, test.d_expected);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   position,
+                                   test.d_expected);
 
                 // Verify the non-safe method
                 rc = bmqu::BlobUtil::findOffset(&position,
                                                 blob,
                                                 test.d_offset);
-                ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
-                ASSERT_EQ_D("line " << test.d_line, position, test.d_expected);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   rc,
+                                   test.d_expectedRc);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   position,
+                                   test.d_expected);
             }
         }
     }
@@ -561,18 +575,24 @@ static void test7_findOffset()
                                                     blob,
                                                     test.d_start,
                                                     test.d_offset);
-            ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
             if (test.d_expectedRc == 0) {
-                ASSERT_EQ_D("line " << test.d_line, position, test.d_expected);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   position,
+                                   test.d_expected);
 
                 // Verify the non-safe method
                 rc = bmqu::BlobUtil::findOffset(&position,
                                                 blob,
                                                 test.d_start,
                                                 test.d_offset);
-                ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
-                ASSERT_EQ_D("line " << test.d_line, position, test.d_expected);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   rc,
+                                   test.d_expectedRc);
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   position,
+                                   test.d_expected);
             }
         }
     }
@@ -594,7 +614,9 @@ static void test8_reserve()
 {
     bmqtst::TestHelper::printTestName("Reserve Test");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4,
+        bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                d_line;
@@ -620,31 +642,35 @@ static void test8_reserve()
 
         PVVV("reserve");
         {
-            bdlbb::Blob blob(&bufferFactory, s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&blob,
-                                             test.d_blobPattern,
-                                             s_allocator_p);
+            bdlbb::Blob blob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &blob,
+                test.d_blobPattern,
+                bmqtst::TestHelperUtil::allocator());
 
             int length = blob.length();
             bmqu::BlobUtil::reserve(&blob, test.d_reserveLength);
-            ASSERT_EQ_D("line " << test.d_line,
-                        blob.length(),
-                        length + test.d_reserveLength);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               blob.length(),
+                               length + test.d_reserveLength);
         }
         PVVV("reserve and load the position");
         {
-            bdlbb::Blob blob(&bufferFactory, s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&blob,
-                                             test.d_blobPattern,
-                                             s_allocator_p);
+            bdlbb::Blob blob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &blob,
+                test.d_blobPattern,
+                bmqtst::TestHelperUtil::allocator());
 
             int                length = blob.length();
             bmqu::BlobPosition pos;
             bmqu::BlobUtil::reserve(&pos, &blob, test.d_reserveLength);
-            ASSERT_EQ_D("line " << test.d_line,
-                        blob.length(),
-                        length + test.d_reserveLength);
-            ASSERT_EQ_D("line " << test.d_line, pos, test.d_expected);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               blob.length(),
+                               length + test.d_reserveLength);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, pos, test.d_expected);
         }
     }
 }
@@ -712,22 +738,23 @@ static void test9_writeBytes()
                         << test.d_data << "'  bytes starting from  "
                         << test.d_position);
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         int rc = bmqu::BlobUtil::writeBytes(&blob,
                                             test.d_position,
                                             test.d_data,
                                             bsl::strlen(test.d_data));
-        ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
-        bsl::string resultBlob(s_allocator_p);
+        bsl::string resultBlob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::toString(&resultBlob, blob);
-        ASSERT_EQ_D("line " << test.d_line,
-                    resultBlob,
-                    bsl::string(test.d_resultBlob, s_allocator_p));
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           resultBlob,
+                           bsl::string(test.d_resultBlob,
+                                       bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -750,7 +777,9 @@ static void test10_appendBlobFromIndex()
 
     using namespace bmqu;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4,
+        bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int         d_line;
@@ -784,13 +813,15 @@ static void test10_appendBlobFromIndex()
                         << "' blob starting from  (" << test.d_index << ", "
                         << test.d_byte << ") position");
 
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
-        bdlbb::Blob src(s_allocator_p);
-        bmqtst::BlobTestUtil::fromString(&src, test.d_data, s_allocator_p);
+        bdlbb::Blob src(bmqtst::TestHelperUtil::allocator());
+        bmqtst::BlobTestUtil::fromString(&src,
+                                         test.d_data,
+                                         bmqtst::TestHelperUtil::allocator());
 
         bmqu::BlobUtil::appendBlobFromIndex(&blob,
                                             src,
@@ -798,11 +829,12 @@ static void test10_appendBlobFromIndex()
                                             test.d_byte,
                                             test.d_length);
 
-        bsl::string resultBlob(s_allocator_p);
+        bsl::string resultBlob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::toString(&resultBlob, blob, true);
-        ASSERT_EQ_D("line " << test.d_line,
-                    resultBlob,
-                    bsl::string(test.d_resultBlob, s_allocator_p));
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           resultBlob,
+                           bsl::string(test.d_resultBlob,
+                                       bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -851,17 +883,17 @@ static void test11_sectionSize()
                         << "size from " << test.d_start << " to "
                         << test.d_end);
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         const BlobSection section(test.d_start, test.d_end);
         int               size = 0;
         const int rc = bmqu::BlobUtil::sectionSize(&size, blob, section);
 
-        ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
-        ASSERT_EQ_D("line " << test.d_line, size, test.d_size);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, size, test.d_size);
     }
 }
 
@@ -908,10 +940,10 @@ static void test12_compareSection()
                         << test.d_length << " bytes with '" << test.d_data
                         << "' starting from " << test.d_pos);
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         int       cmpResult = 0;
         const int rc        = bmqu::BlobUtil::compareSection(&cmpResult,
@@ -920,8 +952,10 @@ static void test12_compareSection()
                                                       test.d_data,
                                                       test.d_length);
 
-        ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
-        ASSERT_EQ_D("line " << test.d_line, cmpResult, test.d_cmpResult);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           cmpResult,
+                           test.d_cmpResult);
     }
 }
 
@@ -984,10 +1018,10 @@ static void test13_copyToRawBufferFromIndex()
                         << "' blob starting from  (" << test.d_index << ", "
                         << test.d_byte << ") position");
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         bmqu::BlobUtil::copyToRawBufferFromIndex(dst + test.d_rawBufferOffset,
                                                  blob,
@@ -995,9 +1029,10 @@ static void test13_copyToRawBufferFromIndex()
                                                  test.d_byte,
                                                  test.d_length);
 
-        ASSERT_EQ_D("line " << test.d_line,
-                    bsl::string(dst, NUM, s_allocator_p),
-                    bsl::string(test.d_result, s_allocator_p));
+        BMQTST_ASSERT_EQ_D(
+            "line " << test.d_line,
+            bsl::string(dst, NUM, bmqtst::TestHelperUtil::allocator()),
+            bsl::string(test.d_result, bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -1021,9 +1056,11 @@ static void test14_readUpToNBytes()
 
     using namespace bmqu;
 
-    bdlbb::Blob blob(s_allocator_p);
+    bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
     const char* blobPattern = "ab|cde|f|ghiXX";
-    bmqtst::BlobTestUtil::fromString(&blob, blobPattern, s_allocator_p);
+    bmqtst::BlobTestUtil::fromString(&blob,
+                                     blobPattern,
+                                     bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                d_line;
@@ -1072,12 +1109,16 @@ static void test14_readUpToNBytes()
                                                 test.d_start,
                                                 test.d_length);
 
-        ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
         if (test.d_expectedRc == 0) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bsl::string(buffer, test.d_length, s_allocator_p),
-                        bsl::string(test.d_expected, s_allocator_p));
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bsl::string(buffer,
+                            test.d_length,
+                            bmqtst::TestHelperUtil::allocator()),
+                bsl::string(test.d_expected,
+                            bmqtst::TestHelperUtil::allocator()));
         }
     }
 }
@@ -1102,9 +1143,11 @@ static void test15_readNBytes()
 
     using namespace bmqu;
 
-    bdlbb::Blob blob(s_allocator_p);
+    bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
     const char* blobPattern = "ab|cde|f|ghiXX";
-    bmqtst::BlobTestUtil::fromString(&blob, blobPattern, s_allocator_p);
+    bmqtst::BlobTestUtil::fromString(&blob,
+                                     blobPattern,
+                                     bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         int                d_line;
@@ -1155,12 +1198,16 @@ static void test15_readNBytes()
                                             test.d_start,
                                             test.d_length);
 
-        ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_expectedRc);
 
         if (test.d_expectedRc == 0) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bsl::string(buffer, test.d_length, s_allocator_p),
-                        bsl::string(test.d_expected, s_allocator_p));
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bsl::string(buffer,
+                            test.d_length,
+                            bmqtst::TestHelperUtil::allocator()),
+                bsl::string(test.d_expected,
+                            bmqtst::TestHelperUtil::allocator()));
         }
     }
 }
@@ -1184,7 +1231,9 @@ static void test16_appendToBlob()
 
     using namespace bmqu;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(4, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        4,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         PVV("appendToBlob with length");
@@ -1221,28 +1270,33 @@ static void test16_appendToBlob()
                             << test.d_index << ", " << test.d_byte
                             << ") position");
 
-            bdlbb::Blob blob(&bufferFactory, s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&blob,
-                                             test.d_destPattern,
-                                             s_allocator_p);
+            bdlbb::Blob blob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &blob,
+                test.d_destPattern,
+                bmqtst::TestHelperUtil::allocator());
 
-            bdlbb::Blob src(s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&src,
-                                             test.d_srcPattern,
-                                             s_allocator_p);
+            bdlbb::Blob src(bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &src,
+                test.d_srcPattern,
+                bmqtst::TestHelperUtil::allocator());
 
             const BlobPosition start(test.d_index, test.d_byte);
 
             const int rc =
                 bmqu::BlobUtil::appendToBlob(&blob, src, start, test.d_length);
 
-            bsl::string resultBlob(s_allocator_p);
+            bsl::string resultBlob(bmqtst::TestHelperUtil::allocator());
             bmqtst::BlobTestUtil::toString(&resultBlob, blob, true);
 
-            ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
-            ASSERT_EQ_D("line " << test.d_line,
-                        resultBlob,
-                        bsl::string(test.d_resultPattern, s_allocator_p));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                resultBlob,
+                bsl::string(test.d_resultPattern,
+                            bmqtst::TestHelperUtil::allocator()));
         }
     }
 
@@ -1277,27 +1331,32 @@ static void test16_appendToBlob()
                             << "' blob starting from  (" << test.d_index
                             << ", " << test.d_byte << ") position");
 
-            bdlbb::Blob blob(&bufferFactory, s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&blob,
-                                             test.d_destPattern,
-                                             s_allocator_p);
+            bdlbb::Blob blob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &blob,
+                test.d_destPattern,
+                bmqtst::TestHelperUtil::allocator());
 
-            bdlbb::Blob src(s_allocator_p);
-            bmqtst::BlobTestUtil::fromString(&src,
-                                             test.d_srcPattern,
-                                             s_allocator_p);
+            bdlbb::Blob src(bmqtst::TestHelperUtil::allocator());
+            bmqtst::BlobTestUtil::fromString(
+                &src,
+                test.d_srcPattern,
+                bmqtst::TestHelperUtil::allocator());
 
             const BlobPosition start(test.d_index, test.d_byte);
 
             const int rc = bmqu::BlobUtil::appendToBlob(&blob, src, start);
 
-            bsl::string resultBlob(s_allocator_p);
+            bsl::string resultBlob(bmqtst::TestHelperUtil::allocator());
             bmqtst::BlobTestUtil::toString(&resultBlob, blob, true);
 
-            ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
-            ASSERT_EQ_D("line " << test.d_line,
-                        resultBlob,
-                        bsl::string(test.d_resultPattern, s_allocator_p));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, test.d_rc);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                resultBlob,
+                bsl::string(test.d_resultPattern,
+                            bmqtst::TestHelperUtil::allocator()));
         }
     }
 }
@@ -1363,10 +1422,10 @@ static void test17_getAlignedSection()
                         << test.d_byte
                         << ") position with copy: " << test.d_copyFromBlob);
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         const BlobPosition start(test.d_index, test.d_byte);
 
@@ -1381,7 +1440,7 @@ static void test17_getAlignedSection()
 
         if (test.d_res == Test::e_NULL) {
             PVVV("null result")
-            ASSERT_D("line " << test.d_line, !resSafe);
+            BMQTST_ASSERT_D("line " << test.d_line, !resSafe);
             continue;
         }
 
@@ -1398,31 +1457,32 @@ static void test17_getAlignedSection()
         char      expected[10];
         const int rc =
             bmqu::BlobUtil::readNBytes(expected, blob, start, test.d_length);
-        ASSERT_EQ_D("line " << test.d_line, rc, 0);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, rc, 0);
 
         if (test.d_res == Test::e_BUFFER) {
             PVVV("pointer to blob buffer data")
-            ASSERT_EQ_D("line " << test.d_line,
-                        resSafe,
-                        blob.buffer(start.buffer()).data() + start.byte());
-            ASSERT_EQ_D("line " << test.d_line,
-                        bsl::string(resSafe, test.d_length),
-                        bsl::string(expected, test.d_length));
-            ASSERT_EQ_D("line " << test.d_line, resSafe, res);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               resSafe,
+                               blob.buffer(start.buffer()).data() +
+                                   start.byte());
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               bsl::string(resSafe, test.d_length),
+                               bsl::string(expected, test.d_length));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, resSafe, res);
         }
         else {
             PVVV("pointer to storage")
-            ASSERT_EQ_D("line " << test.d_line, resSafe, storageSafe);
-            ASSERT_EQ_D("line " << test.d_line, res, storage);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, resSafe, storageSafe);
+            BMQTST_ASSERT_EQ_D("line " << test.d_line, res, storage);
 
             if (test.d_copyFromBlob) {
                 PVVV("copy to storage")
-                ASSERT_EQ_D("line " << test.d_line,
-                            bsl::string(resSafe, test.d_length),
-                            bsl::string(expected, test.d_length));
-                ASSERT_EQ_D("line " << test.d_line,
-                            bsl::string(res, test.d_length),
-                            bsl::string(expected, test.d_length));
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   bsl::string(resSafe, test.d_length),
+                                   bsl::string(expected, test.d_length));
+                BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                                   bsl::string(res, test.d_length),
+                                   bsl::string(expected, test.d_length));
             }
         }
     }
@@ -1449,7 +1509,7 @@ static void test18_getAlignedObject()
 
     // It is assumed that TestObject alignment is 1.
     size_t alignment = bsls::AlignmentFromType<TestObject>::VALUE;
-    ASSERT_EQ_D("TestObject alignment", size_t(1), alignment);
+    BMQTST_ASSERT_EQ_D("TestObject alignment", size_t(1), alignment);
 
     using namespace bmqu;
 
@@ -1483,10 +1543,10 @@ static void test18_getAlignedObject()
                         << "from  (" << test.d_index << ", " << test.d_byte
                         << ") position with copy: " << test.d_copyFromBlob);
 
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          test.d_blobPattern,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
         const BlobPosition start(test.d_index, test.d_byte);
 
@@ -1499,12 +1559,12 @@ static void test18_getAlignedObject()
 
         if (!test.d_resData) {
             PVVV("null result")
-            ASSERT_D("line " << test.d_line, !resSafe);
+            BMQTST_ASSERT_D("line " << test.d_line, !resSafe);
             continue;
         }
 
         TestObject expected = {test.d_resData[0], test.d_resData[1]};
-        ASSERT_EQ_D("line " << test.d_line, *resSafe, expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, *resSafe, expected);
 
         // Also call "unsafe" version
         TestObject  storage = {'_', '_'};
@@ -1514,7 +1574,7 @@ static void test18_getAlignedObject()
             start,
             test.d_copyFromBlob);
 
-        ASSERT_EQ_D("line " << test.d_line, *res, expected);
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, *res, expected);
     }
 }
 
@@ -1538,42 +1598,42 @@ static void test19_blobStartHexDumper()
 
     {
         PVV("Print zero length blob");
-        bdlbb::Blob        blob(s_allocator_p);
-        bmqu::MemOutStream os(s_allocator_p);
+        bdlbb::Blob        blob(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
         os << bmqu::BlobStartHexDumper(&blob);
-        ASSERT_EQ(os.str(), "");
+        BMQTST_ASSERT_EQ(os.str(), "");
     }
 
     {
         PVV("Print the whole blob (size <= limit)");
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          "abcd|efghXXXX",
-                                         s_allocator_p);
-        bmqu::MemOutStream os(s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
         os << bmqu::BlobStartHexDumper(&blob, 8);
-        ASSERT_EQ(os.str(),
-                  "     0:   "
-                  "61626364 65666768                       "
-                  "|abcdefgh        |\n");
+        BMQTST_ASSERT_EQ(os.str(),
+                         "     0:   "
+                         "61626364 65666768                       "
+                         "|abcdefgh        |\n");
     }
 
     {
         PVV("Print the whole blob (size > limit)");
-        bdlbb::Blob blob(s_allocator_p);
+        bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
         bmqtst::BlobTestUtil::fromString(&blob,
                                          "abcd|efghXXXX",
-                                         s_allocator_p);
-        bmqu::MemOutStream os(s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
         os << bmqu::BlobStartHexDumper(&blob, 6);
-        ASSERT_EQ(os.str(),
-                  "     0:   "
-                  "61626364 6566                           "
-                  "|abcdef          |\n"
-                  "\t+ 2 more bytes. (8 total)");
+        BMQTST_ASSERT_EQ(os.str(),
+                         "     0:   "
+                         "61626364 6566                           "
+                         "|abcdef          |\n"
+                         "\t+ 2 more bytes. (8 total)");
     }
 }
 
@@ -1608,7 +1668,7 @@ int main(int argc, char* argv[])
     case 1: test1_positionBreathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -196,8 +196,9 @@ class MultiRequestManager {
 
   private:
     // PRIVATE MANIPULATORS
-    static bmqt::GenericResult::Enum sendHelper(bmqio::Channel*    channel,
-                                                const bdlbb::Blob& blob);
+    static bmqt::GenericResult::Enum
+    sendHelper(bmqio::Channel*                     channel,
+               const bsl::shared_ptr<bdlbb::Blob>& blob);
 
     /// Create a `MultiRequestManagerRequestContext` object at the specified
     /// `address` using the supplied `allocator`.  This is used by the
@@ -336,11 +337,11 @@ MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::response() const
 template <class REQUEST, class RESPONSE, class TARGET>
 inline bmqt::GenericResult::Enum
 MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendHelper(
-    bmqio::Channel*    channel,
-    const bdlbb::Blob& blob)
+    bmqio::Channel*                     channel,
+    const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
     bmqio::Status status;
-    channel->write(&status, blob);
+    channel->write(&status, *blob);
 
     switch (status.category()) {
     case bmqio::StatusCategory::e_SUCCESS:

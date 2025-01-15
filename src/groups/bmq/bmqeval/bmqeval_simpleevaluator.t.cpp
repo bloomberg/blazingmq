@@ -88,10 +88,10 @@ static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
     CompilationContext compilationContext(&localAllocator);
     SimpleEvaluator    evaluator;
 
-    ASSERT(evaluator.compile("false || (i64_42==42 && s_foo==\"foo\")",
-                             compilationContext) == 0);
+    BMQTST_ASSERT(evaluator.compile("false || (i64_42==42 && s_foo==\"foo\")",
+                                    compilationContext) == 0);
 
-    ASSERT_EQ(evaluator.evaluate(evaluationContext), true);
+    BMQTST_ASSERT_EQ(evaluator.evaluate(evaluationContext), true);
 
     // <time>
     for (auto _ : state) {
@@ -113,7 +113,7 @@ static void testN1_SimpleEvaluator()
 
 static bsl::string makeTooManyOperators()
 {
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
     for (size_t i = 0; i < SimpleEvaluator::k_MAX_OPERATORS + 1; ++i) {
         os << "!";
@@ -126,7 +126,7 @@ static bsl::string makeTooManyOperators()
 
 static bsl::string makeTooLongExpression()
 {
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
     // Note that we want to create `k_STACK_SIZE` nested NOT objects in AST,
     // and when we call destructor chain for all these objects, we'll need
@@ -135,7 +135,7 @@ static bsl::string makeTooLongExpression()
     // pairs. But the initial guess of `k_STACK_SIZE` is more than sufficient
     // to cause segfault if this case is not handled properly.
     const size_t k_STACK_SIZE = 1024 * 1024;
-    ASSERT(SimpleEvaluator::k_MAX_EXPRESSION_LENGTH < k_STACK_SIZE);
+    BMQTST_ASSERT(SimpleEvaluator::k_MAX_EXPRESSION_LENGTH < k_STACK_SIZE);
 
     for (size_t i = 0; i < k_STACK_SIZE; i += 16) {
         // Combining `!` and `~` differently in case we want to introduce
@@ -216,14 +216,15 @@ static void test1_compilationErrors()
         PV(bsl::string("TESTING ") + parameters->expression);
 
         {
-            CompilationContext compilationContext(s_allocator_p);
+            CompilationContext compilationContext(
+                bmqtst::TestHelperUtil::allocator());
             SimpleEvaluator    evaluator;
 
             evaluator.compile(parameters->expression, compilationContext);
             PV(compilationContext.lastErrorMessage());
-            ASSERT(!evaluator.isValid());
-            ASSERT_EQ(compilationContext.lastErrorMessage(),
-                      parameters->errorMessage);
+            BMQTST_ASSERT(!evaluator.isValid());
+            BMQTST_ASSERT_EQ(compilationContext.lastErrorMessage(),
+                             parameters->errorMessage);
         }
     }
 }
@@ -355,7 +356,7 @@ static void test2_propertyNames()
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
                                                   sizeof(*testParameters);
-    CompilationContext compilationContext(s_allocator_p);
+    CompilationContext compilationContext(bmqtst::TestHelperUtil::allocator());
 
     for (const TestParameters* parameters = testParameters;
          parameters < testParametersEnd;
@@ -364,15 +365,16 @@ static void test2_propertyNames()
         {
             bool valid = SimpleEvaluator::validate(parameters->expression,
                                                    compilationContext);
-            ASSERT_EQ(valid, parameters->valid);
+            BMQTST_ASSERT_EQ(valid, parameters->valid);
         }
     }
 }
 
 static void test3_evaluation()
 {
-    MockPropertiesReader reader(s_allocator_p);
-    EvaluationContext    evaluationContext(&reader, s_allocator_p);
+    MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
+    EvaluationContext    evaluationContext(&reader,
+                                        bmqtst::TestHelperUtil::allocator());
 
     const bool runtimeErrorResult = false;
 
@@ -528,20 +530,21 @@ static void test3_evaluation()
          ++parameters) {
         PV(bsl::string("TESTING ") + parameters->expression);
 
-        CompilationContext compilationContext(s_allocator_p);
+        CompilationContext compilationContext(
+            bmqtst::TestHelperUtil::allocator());
         SimpleEvaluator    evaluator;
 
-        ASSERT(!evaluator.isValid());
+        BMQTST_ASSERT(!evaluator.isValid());
 
         if (evaluator.compile(parameters->expression, compilationContext)) {
             PV(bsl::string("UNEXPECTED: ") +
                compilationContext.lastErrorMessage());
-            ASSERT(false);
+            BMQTST_ASSERT(false);
         }
         else {
-            ASSERT(evaluator.isValid());
-            ASSERT_EQ(evaluator.evaluate(evaluationContext),
-                      parameters->expected);
+            BMQTST_ASSERT(evaluator.isValid());
+            BMQTST_ASSERT_EQ(evaluator.evaluate(evaluationContext),
+                             parameters->expected);
         }
     }
 }
@@ -562,7 +565,7 @@ int main(int argc, char* argv[])
     case -1: BMQTST_BENCHMARK(testN1_SimpleEvaluator); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

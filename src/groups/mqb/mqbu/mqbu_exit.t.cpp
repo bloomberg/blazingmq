@@ -75,7 +75,7 @@ static void dummySignalHandler(int signal)
                                  << ")]\n");
 
     // We only expect 'SIGINT' signal
-    ASSERT_EQ(signal, SIGINT);
+    BMQTST_ASSERT_EQ(signal, SIGINT);
 
     ++g_signalCount;
     g_semaphore.object().post();
@@ -131,10 +131,10 @@ static void test1_exitCode_toAscii()
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
                         << ") == " << test.d_expected);
 
-        bsl::string ascii(s_allocator_p);
+        bsl::string ascii(bmqtst::TestHelperUtil::allocator());
         ascii = mqbu::ExitCode::toAscii(mqbu::ExitCode::Enum(test.d_value));
 
-        ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
 }
 
@@ -187,11 +187,13 @@ static void test2_exitCode_fromAscii()
                         << ") == " << test.d_expected);
 
         mqbu::ExitCode::Enum obj;
-        ASSERT_EQ_D(test.d_line,
-                    mqbu::ExitCode::fromAscii(&obj, test.d_input),
-                    test.d_isValid);
+        BMQTST_ASSERT_EQ_D(test.d_line,
+                           mqbu::ExitCode::fromAscii(&obj, test.d_input),
+                           test.d_isValid);
         if (test.d_isValid) {
-            ASSERT_EQ_D(test.d_line, static_cast<int>(obj), test.d_expected);
+            BMQTST_ASSERT_EQ_D(test.d_line,
+                               static_cast<int>(obj),
+                               test.d_expected);
         }
     }
 }
@@ -245,7 +247,7 @@ static void test3_exitCode_print()
                         << ") == " << test.d_expected);
 
         // 1.
-        bmqu::MemOutStream   out(s_allocator_p);
+        bmqu::MemOutStream   out(bmqtst::TestHelperUtil::allocator());
         mqbu::ExitCode::Enum obj(
             static_cast<mqbu::ExitCode::Enum>(test.d_value));
 
@@ -254,23 +256,23 @@ static void test3_exitCode_print()
 
         PVV(test.d_line << ": '" << out.str());
 
-        bsl::string expected(s_allocator_p);
+        bsl::string expected(bmqtst::TestHelperUtil::allocator());
         expected.assign(test.d_expected);
         expected.append("\n");
-        ASSERT_EQ_D(test.d_line, out.str(), expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), expected);
 
         // operator<<
         out.reset();
         out << obj;
 
-        ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), test.d_expected);
 
         // 2. 'badbit' set
         out.reset();
         out.setstate(bsl::ios_base::badbit);
         mqbu::ExitCode::print(out, obj, 0, -1);
 
-        ASSERT_EQ_D(test.d_line, out.str(), "");
+        BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
 }
 
@@ -360,10 +362,11 @@ static void test4_exit_terminate(int argc, char* argv[])
             PVV("child pid: " << pid);
 
             int status = -1;
-            ASSERT_EQ(pid, waitpid(pid, &status, 0));
+            BMQTST_ASSERT_EQ(pid, waitpid(pid, &status, 0));
 
-            ASSERT(WIFEXITED(status));
-            ASSERT_EQ(static_cast<int>(test.d_reason), WEXITSTATUS(status));
+            BMQTST_ASSERT(WIFEXITED(status));
+            BMQTST_ASSERT_EQ(static_cast<int>(test.d_reason),
+                             WEXITSTATUS(status));
         }
     }
 }
@@ -385,8 +388,8 @@ static void test5_exit_shutdown()
 //   'ExitUtil::shutdown'
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // For an unknown reason, this test case fails the default allocator
     // check, and whenever main sets '_da.setAllocationLimit(0)', it
     // suddenly passes the default allocator check.
@@ -411,7 +414,7 @@ static void test5_exit_shutdown()
         BSLS_ASSERT_OPT(false);
     }
 
-    ASSERT_EQ(g_signalCount, 0);
+    BMQTST_ASSERT_EQ(g_signalCount, 0);
 
     {
         PV("Calling 'ExitUtil::shutdown(" << mqbu::ExitCode::e_SUCCESS << ")'"
@@ -429,7 +432,7 @@ static void test5_exit_shutdown()
                   << k_MAX_WAIT_SECONDS_AT_SHUTDOWN << " seconds");
         }
 
-        ASSERT_EQ(g_signalCount, 1);
+        BMQTST_ASSERT_EQ(g_signalCount, 1);
     }
 
     {
@@ -458,7 +461,7 @@ static void test5_exit_shutdown()
                   << k_MAX_WAIT_SECONDS_AT_SHUTDOWN << " seconds");
         }
 
-        ASSERT_EQ(g_signalCount, 2);
+        BMQTST_ASSERT_EQ(g_signalCount, 2);
         bslmt::ThreadUtil::join(threadHandle);
     }
 }
@@ -480,7 +483,7 @@ int main(int argc, char* argv[])
     case 1: test1_exitCode_toAscii(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

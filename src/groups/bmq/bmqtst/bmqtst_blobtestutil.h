@@ -35,21 +35,22 @@
 // specifying the internal breakdown of the blob buffers in the string.
 //
 //..
-//  bdlbb::Blob blob(s_allocator_p);
-//  bmqtst::BlobTestUtil::fromString(&blob, "a|b", s_allocator_p);
+//  bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+//  bmqtst::BlobTestUtil::fromString(&blob, "a|b",
+//  bmqtst::TestHelperUtil::allocator());
 //
-//  ASSERT_EQ(blob.length(),         2);
-//  ASSERT_EQ(blob.numDataBuffers(), 2);
+//  BMQTST_ASSERT_EQ(blob.length(),         2);
+//  BMQTST_ASSERT_EQ(blob.numDataBuffers(), 2);
 //
 //  // First buffer
 //  bsl::string buf1(blob.buffer(0).data(), 1U);
-//  ASSERT_EQ(blob.buffer(0).size(), 1);
-//  ASSERT_EQ(buf1,                  "a");
+//  BMQTST_ASSERT_EQ(blob.buffer(0).size(), 1);
+//  BMQTST_ASSERT_EQ(buf1,                  "a");
 //
 //  // Second buffer
 //  bsl::string buf2(blob.buffer(1).data(), 1U);
-//  ASSERT_EQ(blob.buffer(1).size(), 1);
-//  ASSERT_EQ(buf2,                  "b");
+//  BMQTST_ASSERT_EQ(blob.buffer(1).size(), 1);
+//  BMQTST_ASSERT_EQ(buf2,                  "b");
 //..
 //
 /// Example 2: Blob to string
@@ -58,15 +59,15 @@
 //
 // First, let's put the string 'abcdefg' into the blob.
 //..
-//  bdlbb::Blob blob(s_allocator_p);
-//  bmqtst::BlobTestUtil::fromString(&blob, "abcdefg", s_allocator_p);
-//  BSLS_ASSERT_OPT(blob.length() == 7);
+//  bdlbb::Blob blob(bmqtst::TestHelperUtil::allocator());
+//  bmqtst::BlobTestUtil::fromString(&blob, "abcdefg",
+//  bmqtst::TestHelperUtil::allocator()); BSLS_ASSERT_OPT(blob.length() == 7);
 //  BSLS_ASSERT_OPT(blob.numDataBuffers() == 1);
 //..
 // Finally, we can convert the blob to a string using the 'toString' method.
 //..
-//  bsl::string str(s_allocator_p);
-//  ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&str, blob));
+//  bsl::string str(bmqtst::TestHelperUtil::allocator());
+//  BMQTST_ASSERT_EQ("abcdefg", bmqtst::BlobTestUtil::toString(&str, blob));
 //..
 
 // BDE

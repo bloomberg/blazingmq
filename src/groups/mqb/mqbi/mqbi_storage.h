@@ -292,6 +292,26 @@ struct AppMessage {
     bool isPushing() const;
 };
 
+struct DataStreamMessage {
+    // VST to track the state associated with a GUID (for all Apps).
+
+    int d_size;
+    // The message size
+
+    bsl::vector<mqbi::AppMessage> d_apps;
+    // App states for the message
+
+    DataStreamMessage(int size, bslma::Allocator* allocator);
+
+    /// Return reference to the modifiable state of the App corresponding
+    /// to the specified 'ordinal.
+    mqbi::AppMessage& app(unsigned int appOrdinal);
+
+    /// Return reference to the non-modifiable state of the App
+    /// corresponding to the specified 'ordinal.
+    const mqbi::AppMessage& app(unsigned int appOrdinal) const;
+};
+
 // =====================
 // class StorageIterator
 // =====================
@@ -375,12 +395,8 @@ class Storage {
   public:
     // PUBLIC TYPES
 
-    /// `AppInfo` is an alias for an (appId, appKey) pairing
-    /// representing unique virtual storage identification.
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-
-    /// `AppInfos` is an alias for a set of pairs of appId and appKey
-    typedef bsl::unordered_set<AppInfo> AppInfos;
+    /// `AppInfos` is an alias for a map [appId] -> appKey
+    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
 
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
@@ -407,6 +423,10 @@ class Storage {
                           const mqbconfm::Limits&  limits,
                           const bsls::Types::Int64 messageTtl,
                           const int                maxDeliveryAttempts) = 0;
+
+    /// Set the consistency level associated to this storage to the specified
+    /// `value`.
+    virtual void setConsistency(const mqbconfm::Consistency& value) = 0;
 
     virtual void setQueue(mqbi::Queue* queue) = 0;
 
@@ -437,13 +457,16 @@ class Storage {
     /// Save the message contained in the specified `appData`, `options` and
     /// the associated `attributes` and `msgGUID` into this storage and the
     /// associated virtual storage.  The `attributes` is an in/out parameter
-    /// and storage layer can populate certain fields of that struct.
+    /// and storage layer can populate certain fields of that struct.  If the
+    /// optionally specified `out` is not zero, load the created
+    /// `DataStreamMessage` into the 'out'.
     /// Return 0 on success or an non-zero error code on failure.
     virtual StorageResult::Enum
     put(StorageMessageAttributes*           attributes,
         const bmqt::MessageGUID&            msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
+        const bsl::shared_ptr<bdlbb::Blob>& options,
+        mqbi::DataStreamMessage**           out = 0) = 0;
 
     /// Update the App state corresponding to the specified `msgGUID` and the
     /// specified `appKey` in the DataStream.  Decrement the reference count of
@@ -503,11 +526,9 @@ class Storage {
     /// * e_APPKEY_NOT_FOUND : Invalid `appKey` specified
     virtual StorageResult::Enum removeAll(const mqbu::StorageKey& appKey) = 0;
 
-    /// If the specified `storage` is `true`, flush any buffered replication
-    /// messages to the peers.  If the specified `queues` is `true`, `flush`
-    /// all associated queues.  Behavior is undefined unless this node is
-    /// the primary for this partition.
-    virtual void dispatcherFlush(bool storage, bool queues) = 0;
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
 
     /// Return the resource capacity meter associated to this storage.
     virtual mqbu::CapacityMeter* capacityMeter() = 0;
@@ -698,6 +719,33 @@ inline bool AppMessage::isNew() const
 inline bool AppMessage::isPushing() const
 {
     return d_state == e_PUSH;
+}
+
+// -----------------------
+// class DataStreamMessage
+// -----------------------
+
+inline DataStreamMessage::DataStreamMessage(int               size,
+                                            bslma::Allocator* allocator)
+: d_size(size)
+, d_apps(allocator)
+{
+    // NOTHING
+}
+
+inline mqbi::AppMessage& DataStreamMessage::app(unsigned int appOrdinal)
+{
+    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
+
+    return d_apps[appOrdinal];
+}
+
+inline const mqbi::AppMessage&
+DataStreamMessage::app(unsigned int appOrdinal) const
+{
+    BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
+
+    return d_apps[appOrdinal];
 }
 
 // ------------------------------

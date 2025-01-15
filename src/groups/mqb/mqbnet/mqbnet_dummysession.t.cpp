@@ -45,45 +45,51 @@ static void test1_BreathingTest()
     bmqtst::TestHelper::printTestName("BreathingTest");
 
     // Create some needed dummy/mocked objects
-    bsl::string description("DummyDescription", s_allocator_p);
+    bsl::string description("DummyDescription",
+                            bmqtst::TestHelperUtil::allocator());
 
-    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(s_allocator_p);
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     negotiationMessage.makeClientIdentity().hostName() = "dummyIdentity";
 
-    mqbcfg::ClusterDefinition      clusterConfig(s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbnet::MockCluster            mockCluster(clusterConfig,
+    mqbcfg::ClusterDefinition clusterConfig(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::MockCluster mockCluster(clusterConfig,
                                     &bufferFactory,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
-    mqbcfg::ClusterNode     clusterNodeConfig(s_allocator_p);
-    mqbnet::MockClusterNode mockClusterNode(&mockCluster,
-                                            clusterNodeConfig,
-                                            &bufferFactory,
-                                            s_allocator_p);
+    mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
+    mqbnet::MockClusterNode mockClusterNode(
+        &mockCluster,
+        clusterNodeConfig,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqio::TestChannel> testChannel;
-    testChannel.createInplace(s_allocator_p);
+    testChannel.createInplace(bmqtst::TestHelperUtil::allocator());
 
     // Create a test object
     mqbnet::DummySession obj(testChannel,
                              negotiationMessage,
                              &mockClusterNode,
                              description,
-                             s_allocator_p);
+                             bmqtst::TestHelperUtil::allocator());
 
     {
         PV("Test Accessors");
-        ASSERT_EQ(obj.negotiationMessage(), negotiationMessage);
-        ASSERT_EQ(obj.description(), description);
-        ASSERT_EQ(obj.clusterNode(), &mockClusterNode);
-        ASSERT_EQ(obj.channel(), testChannel);
+        BMQTST_ASSERT_EQ(obj.negotiationMessage(), negotiationMessage);
+        BMQTST_ASSERT_EQ(obj.description(), description);
+        BMQTST_ASSERT_EQ(obj.clusterNode(), &mockClusterNode);
+        BMQTST_ASSERT_EQ(obj.channel(), testChannel);
     }
 
     {
         PV("Ensure that processEvent asserts");
-        bmqp::Event event(s_allocator_p);
-        ASSERT_OPT_FAIL(obj.processEvent(event, &mockClusterNode));
+        bmqp::Event event(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_OPT_FAIL(obj.processEvent(event, &mockClusterNode));
     }
 
     {  // teardown is a no-op, just invoke it for coverage's sake
@@ -105,7 +111,7 @@ int main(int argc, char* argv[])
     case 1: test1_BreathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

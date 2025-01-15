@@ -1522,7 +1522,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
 
     unsigned int               sequenceNumber = 0;
     bsls::Types::Uint64        currOffset     = beginOffset;
-    bmqp::RecoveryEventBuilder builder(&d_clusterData_p->bufferFactory(),
+    bmqp::RecoveryEventBuilder builder(&d_clusterData_p->blobSpPool(),
                                        d_allocator_p);
 
     while ((currOffset + chunkSize) < endOffset) {
@@ -1707,7 +1707,7 @@ int RecoveryManager::replayPartition(
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
                                       bmqp::EventType::e_PARTITION_SYNC,
-                                      &d_clusterData_p->bufferFactory(),
+                                      &d_clusterData_p->blobSpPool(),
                                       d_allocator_p);
 
     // Note that partition has to be replayed from the record *after*
@@ -3271,7 +3271,7 @@ void RecoveryManager::processStorageEvent(
 
     bmqp::StorageEventBuilder seb(mqbs::FileStoreProtocol::k_VERSION,
                                   bmqp::EventType::e_STORAGE,
-                                  &d_clusterData_p->bufferFactory(),
+                                  &d_clusterData_p->blobSpPool(),
                                   d_allocator_p);
 
     while (1 == iter.next()) {
@@ -3297,12 +3297,7 @@ void RecoveryManager::processStorageEvent(
     // nothing to buffer in this event.
 
     if (0 < seb.messageCount()) {
-        bsl::shared_ptr<bdlbb::Blob> blobSp;
-        blobSp.createInplace(d_allocator_p,
-                             &d_clusterData_p->bufferFactory(),
-                             d_allocator_p);
-        *blobSp = seb.blob();
-        recoveryCtx.addStorageEvent(blobSp);
+        recoveryCtx.addStorageEvent(seb.blob());
     }
 
     recoveryCtx.setNewSyncPoint(syncPoint);

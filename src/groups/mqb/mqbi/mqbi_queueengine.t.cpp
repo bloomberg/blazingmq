@@ -54,25 +54,28 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bsl::string emptyString("", s_allocator_p);
+    bsl::string emptyString("", bmqtst::TestHelperUtil::allocator());
 
     // App id
-    ASSERT(emptyString == bmqp::ProtocolUtil::k_NULL_APP_ID);
-    ASSERT(emptyString !=
-           bmqp_ctrlmsg::SubQueueIdInfo::DEFAULT_INITIALIZER_APP_ID);
+    BMQTST_ASSERT(emptyString == bmqp::ProtocolUtil::k_NULL_APP_ID);
+    BMQTST_ASSERT(emptyString !=
+                  bmqp_ctrlmsg::SubQueueIdInfo::DEFAULT_INITIALIZER_APP_ID);
 
-    ASSERT_NE(bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, s_allocator_p),
-              bsl::string(bmqp::ProtocolUtil::k_NULL_APP_ID, s_allocator_p));
-    ASSERT_EQ(
-        bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, s_allocator_p),
+    BMQTST_ASSERT_NE(bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
+                                 bmqtst::TestHelperUtil::allocator()),
+                     bsl::string(bmqp::ProtocolUtil::k_NULL_APP_ID,
+                                 bmqtst::TestHelperUtil::allocator()));
+    BMQTST_ASSERT_EQ(
+        bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
+                    bmqtst::TestHelperUtil::allocator()),
         bsl::string(bmqp_ctrlmsg::SubQueueIdInfo ::DEFAULT_INITIALIZER_APP_ID,
-                    s_allocator_p));
+                    bmqtst::TestHelperUtil::allocator()));
 
     // App key
-    ASSERT_EQ(mqbi::QueueEngine::k_DEFAULT_APP_KEY,
-              mqbu::StorageKey(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID));
-    ASSERT_NE(mqbu::StorageKey::k_NULL_KEY,
-              mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+    BMQTST_ASSERT_EQ(mqbi::QueueEngine::k_DEFAULT_APP_KEY,
+                     mqbu::StorageKey(bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID));
+    BMQTST_ASSERT_NE(mqbu::StorageKey::k_NULL_KEY,
+                     mqbi::QueueEngine::k_DEFAULT_APP_KEY);
 }
 
 // ============================================================================
@@ -88,7 +91,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

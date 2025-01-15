@@ -46,14 +46,14 @@ static void test1_breathingTest()
 
     {
         CompositeSequenceNumber compositeSeqNum;
-        ASSERT(!compositeSeqNum.isSet());
+        BMQTST_ASSERT(compositeSeqNum.leaseId() == 0);
+        BMQTST_ASSERT(compositeSeqNum.sequenceNumber() == 0);
     }
 
     {
         CompositeSequenceNumber compositeSeqNum(1, 2);
-        ASSERT(compositeSeqNum.isSet());
-        ASSERT_EQ(compositeSeqNum.leaseId(), 1ul);
-        ASSERT_EQ(compositeSeqNum.sequenceNumber(), 2ul);
+        BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 1ul);
+        BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 2ul);
     }
 }
 
@@ -71,143 +71,152 @@ static void test2_fromStringTest()
 {
     bmqtst::TestHelper::printTestName("FROM STRING TEST");
 
-    bmqu::MemOutStream errorDescription(s_allocator_p);
+    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
+
+    bool success = false;
 
     // Valid string
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123-456", s_allocator_p);
+        bsl::string inputString("123-456",
+                                bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT(compositeSeqNum.isSet());
-        ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
-        ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
-        ASSERT(errorDescription.str().empty());
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT(success);
+        BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
+        BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
+        BMQTST_ASSERT(errorDescription.str().empty());
     }
 
     // Valid string with leading zeros
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("00123-000456", s_allocator_p);
+        bsl::string inputString("00123-000456",
+                                bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT(compositeSeqNum.isSet());
-        ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
-        ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
-        ASSERT(errorDescription.str().empty());
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT(success);
+        BMQTST_ASSERT_EQ(compositeSeqNum.leaseId(), 123u);
+        BMQTST_ASSERT_EQ(compositeSeqNum.sequenceNumber(), 456u);
+        BMQTST_ASSERT(errorDescription.str().empty());
     }
 
     // Empty string
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("", s_allocator_p);
+        bsl::string inputString("", bmqtst::TestHelperUtil::allocator());
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(), "Invalid input: empty string.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: empty string.");
     }
 
     // Invalid string with missed separator
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123456", s_allocator_p);
+        bsl::string inputString("123456", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid format: no '-' separator found.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid format: no '-' separator found.");
     }
 
     // Invalid string with wrong separator
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123_456", s_allocator_p);
+        bsl::string inputString("123_456",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid format: no '-' separator found.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid format: no '-' separator found.");
     }
 
     // Invalid string with non-numeric value in first part
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("1a23-456", s_allocator_p);
+        bsl::string inputString("1a23-456",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: non-numeric values encountered.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: non-numeric values encountered.");
     }
 
     // Invalid string with non-numeric value in second part
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123-45a6", s_allocator_p);
+        bsl::string inputString("123-45a6",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: non-numeric values encountered.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: non-numeric values encountered.");
     }
 
     // Invalid string with zero value in first part
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("0-456", s_allocator_p);
+        bsl::string inputString("0-456", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: zero values encountered.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: zero values encountered.");
     }
 
     // Invalid string with zero value in second part
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        bsl::string inputString("123-0", s_allocator_p);
+        bsl::string inputString("123-0", bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: zero values encountered.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: zero values encountered.");
     }
 
     // Invalid string with out of range value in first part
     {
         CompositeSequenceNumber compositeSeqNum;
 
-        // Simulate bsls::Types::Uint64 overflow
-        bsl::string inputString("111111111111111111111-123", s_allocator_p);
+        // Simulate unsigned int overflow
+        bsl::string inputString("11111111111-123",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: number out of range.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: number out of range.");
     }
 
     // Invalid string with out of range value in second part
@@ -215,14 +224,15 @@ static void test2_fromStringTest()
         CompositeSequenceNumber compositeSeqNum;
 
         // Simulate bsls::Types::Uint64 overflow
-        bsl::string inputString("123-111111111111111111111", s_allocator_p);
+        bsl::string inputString("123-111111111111111111111",
+                                bmqtst::TestHelperUtil::allocator());
         errorDescription.reset();
 
-        compositeSeqNum.fromString(errorDescription, inputString);
-        ASSERT_EQ(compositeSeqNum.isSet(), false);
-        ASSERT(!errorDescription.str().empty());
-        ASSERT_EQ(errorDescription.str(),
-                  "Invalid input: number out of range.");
+        compositeSeqNum.fromString(&success, errorDescription, inputString);
+        BMQTST_ASSERT_EQ(success, false);
+        BMQTST_ASSERT(!errorDescription.str().empty());
+        BMQTST_ASSERT_EQ(errorDescription.str(),
+                         "Invalid input: number out of range.");
     }
 }
 
@@ -243,56 +253,56 @@ static void test3_comparisonTest()
     {
         CompositeSequenceNumber lhs(1, 2);
         CompositeSequenceNumber rhs(2, 1);
-        ASSERT(lhs < rhs);
+        BMQTST_ASSERT(lhs < rhs);
     }
 
     // leaseId is less, seqNumber is less
     {
         CompositeSequenceNumber lhs(1, 1);
         CompositeSequenceNumber rhs(2, 2);
-        ASSERT(lhs < rhs);
+        BMQTST_ASSERT(lhs < rhs);
     }
 
     // leaseId is greater, seqNumber is greater
     {
         CompositeSequenceNumber lhs(3, 2);
         CompositeSequenceNumber rhs(2, 1);
-        ASSERT_EQ((lhs < rhs), false);
+        BMQTST_ASSERT_EQ((lhs < rhs), false);
     }
 
     // leaseId is greater, seqNumber is less
     {
         CompositeSequenceNumber lhs(3, 1);
         CompositeSequenceNumber rhs(2, 2);
-        ASSERT_EQ((lhs < rhs), false);
+        BMQTST_ASSERT_EQ((lhs < rhs), false);
     }
 
     // leaseId is equal, seqNumber is less
     {
         CompositeSequenceNumber lhs(1, 1);
         CompositeSequenceNumber rhs(1, 2);
-        ASSERT(lhs < rhs);
+        BMQTST_ASSERT(lhs < rhs);
     }
 
     // leaseId is equal, seqNumber is greater
     {
         CompositeSequenceNumber lhs(1, 2);
         CompositeSequenceNumber rhs(1, 1);
-        ASSERT_EQ((lhs < rhs), false);
+        BMQTST_ASSERT_EQ((lhs < rhs), false);
     }
 
     // Compare for equality: leaseId is equal, seqNumber is equal
     {
         CompositeSequenceNumber lhs(1, 2);
         CompositeSequenceNumber rhs(1, 2);
-        ASSERT_EQ((lhs == rhs), true);
+        BMQTST_ASSERT_EQ((lhs == rhs), true);
     }
 
     // Compare for equality using '<=': leaseId is equal, seqNumber is equal
     {
         CompositeSequenceNumber lhs(1, 2);
         CompositeSequenceNumber rhs(1, 2);
-        ASSERT_EQ((lhs <= rhs), true);
+        BMQTST_ASSERT_EQ((lhs <= rhs), true);
     }
 }
 
@@ -311,7 +321,7 @@ int main(int argc, char* argv[])
     case 3: test3_comparisonTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -44,14 +44,15 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Create a default application
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 }
 
 static void test2_startStopTest()
@@ -76,33 +77,35 @@ static void test2_startStopTest()
     bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 
     // Stop without previous start
     obj.stop();
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     int rc = obj.start(bsls::TimeInterval(0.1));
 
-    ASSERT_EQ(rc, bmqt::GenericResult::e_TIMEOUT);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     obj.stop();
 
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
 
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
 }
 
 static void test3_startStopAsyncTest()
@@ -126,14 +129,15 @@ static void test3_startStopAsyncTest()
     bmqtst::TestHelper::printTestName("START STOP TEST");
 
     // Create a default application, make sure it can start/stop
-    bmqt::SessionOptions                     options(s_allocator_p);
-    bmqp_ctrlmsg::NegotiationMessage         negotiationMessage(s_allocator_p);
+    bmqt::SessionOptions options(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
 
     bmqimp::Application obj(options,
                             negotiationMessage,
                             emptyEventHandler,
-                            s_allocator_p);
+                            bmqtst::TestHelperUtil::allocator());
 
     // Stop without previous start
     obj.stopAsync();
@@ -142,32 +146,34 @@ static void test3_startStopAsyncTest()
     bsl::shared_ptr<bmqimp::Event> event = obj.brokerSession().nextEvent(
         bsls::TimeInterval(0.1));
 
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     int rc = obj.startAsync(bsls::TimeInterval(0.1));
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     // Expect CONNECTION_TIMEOUT event
     event = obj.brokerSession().nextEvent(bsls::TimeInterval(1));
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(),
-              bmqt::SessionEventType::e_CONNECTION_TIMEOUT);
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_CONNECTION_TIMEOUT);
 
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(!obj.isStarted());
 
     // Interrupted start
     rc = obj.startAsync(bsls::TimeInterval(0.5));
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     obj.stop();
 
     event = obj.brokerSession().nextEvent(bsls::TimeInterval(1));
-    ASSERT(event);
-    ASSERT_EQ(event->sessionEventType(), bmqt::SessionEventType::e_TIMEOUT);
-    ASSERT(!obj.isStarted());
+    BMQTST_ASSERT(event);
+    BMQTST_ASSERT_EQ(event->sessionEventType(),
+                     bmqt::SessionEventType::e_TIMEOUT);
+    BMQTST_ASSERT(!obj.isStarted());
 }
 
 // ============================================================================
@@ -185,7 +191,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

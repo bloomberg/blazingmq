@@ -60,9 +60,9 @@ static void test1_policy_constructor()
         &allocator);
 
     // check postconditions
-    ASSERT_EQ(p.blocking(), bmqex::ExecutionProperty::e_NEVER_BLOCKING);
-    ASSERT_EQ(p.executor(), executor);
-    ASSERT_EQ(p.allocator(), &allocator);
+    BMQTST_ASSERT_EQ(p.blocking(), bmqex::ExecutionProperty::e_NEVER_BLOCKING);
+    BMQTST_ASSERT_EQ(p.executor(), executor);
+    BMQTST_ASSERT_EQ(p.allocator(), &allocator);
 }
 
 static void test2_policy_copyConstructor()
@@ -100,9 +100,9 @@ static void test2_policy_copyConstructor()
             copy = original;
 
         // check the copy
-        ASSERT_EQ(copy.blocking(), original.blocking());
-        ASSERT_EQ(copy.executor(), original.executor());
-        ASSERT_EQ(copy.allocator(), original.allocator());
+        BMQTST_ASSERT_EQ(copy.blocking(), original.blocking());
+        BMQTST_ASSERT_EQ(copy.executor(), original.executor());
+        BMQTST_ASSERT_EQ(copy.allocator(), original.allocator());
     }
 
     // executor-converting copy
@@ -118,10 +118,10 @@ static void test2_policy_copyConstructor()
             copy = original;
 
         // check the copy
-        ASSERT_EQ(copy.blocking(), original.blocking());
-        ASSERT_EQ(copy.executor(),
-                  static_cast<ExecutorType1>(original.executor()));
-        ASSERT_EQ(copy.allocator(), original.allocator());
+        BMQTST_ASSERT_EQ(copy.blocking(), original.blocking());
+        BMQTST_ASSERT_EQ(copy.executor(),
+                         static_cast<ExecutorType1>(original.executor()));
+        BMQTST_ASSERT_EQ(copy.allocator(), original.allocator());
     }
 }
 
@@ -168,9 +168,9 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType1>
             p2 = p1.oneWay();
 
-        ASSERT_EQ(p2.blocking(), p1.blocking());
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(), p1.blocking());
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // twoWay
@@ -183,9 +183,9 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::TwoWay, ExecutorType1>
             p2 = p1.twoWay();
 
-        ASSERT_EQ(p2.blocking(), p1.blocking());
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(), p1.blocking());
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // twoWayR
@@ -199,9 +199,9 @@ static void test3_policy_transformations()
                                ExecutorType1>
             p2 = p1.twoWayR<int>();
 
-        ASSERT_EQ(p2.blocking(), p1.blocking());
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(), p1.blocking());
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // neverBlocking
@@ -214,9 +214,10 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType1>
             p2 = p1.neverBlocking();
 
-        ASSERT_EQ(p2.blocking(), bmqex::ExecutionProperty::e_NEVER_BLOCKING);
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(),
+                         bmqex::ExecutionProperty::e_NEVER_BLOCKING);
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // possiblyBlocking
@@ -229,10 +230,10 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType1>
             p2 = p1.possiblyBlocking();
 
-        ASSERT_EQ(p2.blocking(),
-                  bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(),
+                         bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // alwaysBlocking
@@ -245,9 +246,10 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType1>
             p2 = p1.alwaysBlocking();
 
-        ASSERT_EQ(p2.blocking(), bmqex::ExecutionProperty::e_ALWAYS_BLOCKING);
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.blocking(),
+                         bmqex::ExecutionProperty::e_ALWAYS_BLOCKING);
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // useExecutor
@@ -260,11 +262,11 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType2>
             p2 = p1.useExecutor(executor2);
 
-        ASSERT_EQ(p2.blocking(), p1.blocking());
-        ASSERT_EQ(static_cast<int>(p2.executor()),
-                  static_cast<int>(executor2));
+        BMQTST_ASSERT_EQ(p2.blocking(), p1.blocking());
+        BMQTST_ASSERT_EQ(static_cast<int>(p2.executor()),
+                         static_cast<int>(executor2));
         // NOTE: casting to int to avoid floating-point comparison.
-        ASSERT_EQ(p2.allocator(), p1.allocator());
+        BMQTST_ASSERT_EQ(p2.allocator(), p1.allocator());
     }
 
     // useAllocator
@@ -277,9 +279,9 @@ static void test3_policy_transformations()
         bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay, ExecutorType1>
             p2 = p1.useAllocator(&allocator2);
 
-        ASSERT_EQ(p2.blocking(), p1.blocking());
-        ASSERT_EQ(p2.executor(), p1.executor());
-        ASSERT_EQ(p2.allocator(), &allocator2);
+        BMQTST_ASSERT_EQ(p2.blocking(), p1.blocking());
+        BMQTST_ASSERT_EQ(p2.executor(), p1.executor());
+        BMQTST_ASSERT_EQ(p2.allocator(), &allocator2);
     }
 }
 
@@ -307,12 +309,12 @@ static void test4_policy_traits()
     typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::TwoWayR<int> >
         TwoWayPolicyWithResult;
 
-    ASSERT(OneWayPolicy::k_IS_ONE_WAY && !OneWayPolicy::k_IS_TWO_WAY);
+    BMQTST_ASSERT(OneWayPolicy::k_IS_ONE_WAY && !OneWayPolicy::k_IS_TWO_WAY);
 
-    ASSERT(TwoWayPolicy::k_IS_TWO_WAY && !TwoWayPolicy::k_IS_ONE_WAY);
+    BMQTST_ASSERT(TwoWayPolicy::k_IS_TWO_WAY && !TwoWayPolicy::k_IS_ONE_WAY);
 
-    ASSERT(TwoWayPolicyWithResult::k_IS_TWO_WAY &&
-           !TwoWayPolicyWithResult::k_IS_ONE_WAY);
+    BMQTST_ASSERT(TwoWayPolicyWithResult::k_IS_TWO_WAY &&
+                  !TwoWayPolicyWithResult::k_IS_ONE_WAY);
 }
 
 static void test5_util()
@@ -352,10 +354,11 @@ static void test5_util()
 
     // defaultPolicy
     {
-        ASSERT_EQ(defaultPolicy.blocking(),
-                  bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
-        ASSERT(defaultPolicy.executor() == bmqex::SystemExecutor());
-        ASSERT_EQ(defaultPolicy.allocator(), bslma::Default::allocator());
+        BMQTST_ASSERT_EQ(defaultPolicy.blocking(),
+                         bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
+        BMQTST_ASSERT(defaultPolicy.executor() == bmqex::SystemExecutor());
+        BMQTST_ASSERT_EQ(defaultPolicy.allocator(),
+                         bslma::Default::allocator());
     }
 
     // oneWay
@@ -363,9 +366,9 @@ static void test5_util()
         DefaultPolicyType::RebindOneWay::Type p =
             bmqex::ExecutionPolicyUtil::oneWay();
 
-        ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // twoWay
@@ -373,9 +376,9 @@ static void test5_util()
         DefaultPolicyType::RebindTwoWay::Type p =
             bmqex::ExecutionPolicyUtil::twoWay();
 
-        ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // twoWayR
@@ -383,36 +386,39 @@ static void test5_util()
         DefaultPolicyType::RebindTwoWayR<int>::Type p =
             bmqex::ExecutionPolicyUtil::twoWayR<int>();
 
-        ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // neverBlocking
     {
         DefaultPolicyType p = bmqex::ExecutionPolicyUtil::neverBlocking();
 
-        ASSERT_EQ(p.blocking(), bmqex::ExecutionProperty::e_NEVER_BLOCKING);
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(),
+                         bmqex::ExecutionProperty::e_NEVER_BLOCKING);
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // possiblyBlocking
     {
         DefaultPolicyType p = bmqex::ExecutionPolicyUtil::possiblyBlocking();
 
-        ASSERT_EQ(p.blocking(), bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(),
+                         bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // alwaysBlocking
     {
         DefaultPolicyType p = bmqex::ExecutionPolicyUtil::alwaysBlocking();
 
-        ASSERT_EQ(p.blocking(), bmqex::ExecutionProperty::e_ALWAYS_BLOCKING);
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(),
+                         bmqex::ExecutionProperty::e_ALWAYS_BLOCKING);
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // useExecutor
@@ -420,9 +426,9 @@ static void test5_util()
         DefaultPolicyType::RebindExecutor<ExecutorType>::Type p =
             bmqex::ExecutionPolicyUtil::useExecutor(executor);
 
-        ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        ASSERT_EQ(p.executor(), executor);
-        ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
+        BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
+        BMQTST_ASSERT_EQ(p.executor(), executor);
+        BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
     // useAllocator
@@ -430,9 +436,9 @@ static void test5_util()
         DefaultPolicyType p = bmqex::ExecutionPolicyUtil::useAllocator(
             &allocator);
 
-        ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        ASSERT(p.executor() == defaultPolicy.executor());
-        ASSERT_EQ(p.allocator(), &allocator);
+        BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
+        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+        BMQTST_ASSERT_EQ(p.allocator(), &allocator);
     }
 }
 
@@ -454,7 +460,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

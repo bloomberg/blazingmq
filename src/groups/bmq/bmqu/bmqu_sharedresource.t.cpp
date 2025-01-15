@@ -162,41 +162,41 @@ static void test1_resource_creators()
     // 1. empty resource (default-constructed)
     {
         // no memory allocated yet
-        ASSERT(alloc.numBytesInUse() == 0);
+        BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
         {
             // create shared resource
             bmqu::SharedResource<int> sharedResource(&alloc);
 
             // no memory allocated still
-            ASSERT(alloc.numBytesInUse() == 0);
+            BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
             // the resource is invalid
-            ASSERT(!sharedResource.isValid());
+            BMQTST_ASSERT(!sharedResource.isValid());
         }
     }
 
     // 2. empty resource (nullptr-constructed)
     {
         // no memory allocated yet
-        ASSERT(alloc.numBytesInUse() == 0);
+        BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
         {
             // create shared resource
             bmqu::SharedResource<int> sharedResource(bsl::nullptr_t(), &alloc);
 
             // no memory allocated still
-            ASSERT(alloc.numBytesInUse() == 0);
+            BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
             // the resource is invalid
-            ASSERT(!sharedResource.isValid());
+            BMQTST_ASSERT(!sharedResource.isValid());
         }
     }
 
     // 3. non-empty resource
     {
         // no memory allocated yet
-        ASSERT(alloc.numBytesInUse() == 0);
+        BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
         {
             int resource = 42;
@@ -205,17 +205,17 @@ static void test1_resource_creators()
             bmqu::SharedResource<int> sharedResource(&resource, &alloc);
 
             // memory allocated
-            ASSERT(alloc.numBytesInUse() != 0);
+            BMQTST_ASSERT(alloc.numBytesInUse() != 0);
 
             // the resource is valid
-            ASSERT(sharedResource.isValid() &&
-                   *sharedResource.acquire() == 42);
+            BMQTST_ASSERT(sharedResource.isValid() &&
+                          *sharedResource.acquire() == 42);
 
             // destroy the shared resource
         }
 
         // memory freed
-        ASSERT(alloc.numBytesInUse() == 0);
+        BMQTST_ASSERT(alloc.numBytesInUse() == 0);
     }
 
     // 4. exception safety
@@ -249,7 +249,7 @@ static void test1_resource_creators()
 
         // allocate a resource
         int* resource = new (resourceFactory) int(42);
-        ASSERT(resourceFactory.numBytesInUse() != 0);
+        BMQTST_ASSERT(resourceFactory.numBytesInUse() != 0);
 
         // try to create a 'bmqu::SharedResource', which should fail
         bool exceptionThrown = false;
@@ -264,10 +264,10 @@ static void test1_resource_creators()
         }
 
         // creation failed
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // resource freed using its factory
-        ASSERT(resourceFactory.numBytesInUse() == 0);
+        BMQTST_ASSERT(resourceFactory.numBytesInUse() == 0);
     }
 }
 
@@ -302,10 +302,11 @@ static void test2_resource_acquire()
     // 1. acquire before invalidating
     {
         // the resource can be acquired
-        ASSERT(sharedResource.acquire() && *sharedResource.acquire() == 42);
+        BMQTST_ASSERT(sharedResource.acquire() &&
+                      *sharedResource.acquire() == 42);
 
-        ASSERT(sharedResource.acquireWeak().lock() &&
-               *sharedResource.acquireWeak().lock() == 42);
+        BMQTST_ASSERT(sharedResource.acquireWeak().lock() &&
+                      *sharedResource.acquireWeak().lock() == 42);
     }
 
     // 2. acquire while invalidating
@@ -326,10 +327,11 @@ static void test2_resource_acquire()
         bslmt::ThreadUtil::sleep(bsls::TimeInterval(0.2));
 
         // the resource can still be acquired
-        ASSERT(sharedResource.acquire() && *sharedResource.acquire() == 42);
+        BMQTST_ASSERT(sharedResource.acquire() &&
+                      *sharedResource.acquire() == 42);
 
-        ASSERT(sharedResource.acquireWeak().lock() &&
-               *sharedResource.acquireWeak().lock() == 42);
+        BMQTST_ASSERT(sharedResource.acquireWeak().lock() &&
+                      *sharedResource.acquireWeak().lock() == 42);
 
         // release the resource
         resourceSP.reset();
@@ -343,8 +345,8 @@ static void test2_resource_acquire()
         // NOTE: The resource has been invalidated at this point.
 
         // the resource can not be acquired
-        ASSERT(!sharedResource.acquire());
-        ASSERT(!sharedResource.acquireWeak().lock());
+        BMQTST_ASSERT(!sharedResource.acquire());
+        BMQTST_ASSERT(!sharedResource.acquireWeak().lock());
     }
 }
 
@@ -379,7 +381,7 @@ static void test3_resource_invalidate()
         sharedResource.invalidate();
 
         // the resource was invalidated
-        ASSERT(!sharedResource.isValid());
+        BMQTST_ASSERT(!sharedResource.isValid());
     }
 
     // 2. invalidate used resource
@@ -394,7 +396,7 @@ static void test3_resource_invalidate()
         // allocate the resource
         bslma::TestAllocator resourceFactory;
         Sleep*               sleep = new (resourceFactory) Sleep();
-        ASSERT(resourceFactory.numBytesInUse() != 0);
+        BMQTST_ASSERT(resourceFactory.numBytesInUse() != 0);
 
         // create shared resource
         bmqu::SharedResource<Sleep, Deleter> sharedResource(
@@ -419,10 +421,10 @@ static void test3_resource_invalidate()
         BSLS_ASSERT(resourceWP.expired());
 
         // the resource was invalidated
-        ASSERT(!sharedResource.isValid());
+        BMQTST_ASSERT(!sharedResource.isValid());
 
         // the resource was freed using the supplied deleter
-        ASSERT(resourceFactory.numBytesInUse() == 0);
+        BMQTST_ASSERT(resourceFactory.numBytesInUse() == 0);
     }
 }
 
@@ -482,7 +484,7 @@ static void test4_resource_reset()
         sharedResource.reset();
 
         // memory freed
-        ASSERT(alloc.numBytesInUse() == 0);
+        BMQTST_ASSERT(alloc.numBytesInUse() == 0);
 
         // resource is empty
         BSLS_ASSERT(!sharedResource.isValid());
@@ -553,8 +555,8 @@ static void test4_resource_reset()
         // allocate resources
         int* resource1 = new (resourceFactory1) int(42);
         int* resource2 = new (resourceFactory2) int(42);
-        ASSERT(resourceFactory1.numBytesInUse() != 0);
-        ASSERT(resourceFactory2.numBytesInUse() != 0);
+        BMQTST_ASSERT(resourceFactory1.numBytesInUse() != 0);
+        BMQTST_ASSERT(resourceFactory2.numBytesInUse() != 0);
 
         // create a 'bmqu::SharedResource'
         bmqu::SharedResource<int, Deleter> sharedResource(
@@ -572,14 +574,14 @@ static void test4_resource_reset()
         }
 
         // creation failed
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // both resources freed using their respective factories
-        ASSERT(resourceFactory1.numBytesInUse() == 0);
-        ASSERT(resourceFactory2.numBytesInUse() == 0);
+        BMQTST_ASSERT(resourceFactory1.numBytesInUse() == 0);
+        BMQTST_ASSERT(resourceFactory2.numBytesInUse() == 0);
 
         // the 'bmqu::SharedResource' is left invalid
-        ASSERT(!sharedResource.isValid());
+        BMQTST_ASSERT(!sharedResource.isValid());
     }
 }
 
@@ -604,7 +606,7 @@ static void test5_factoryDeleter()
     int*                 resource = new (factory) int(42);
 
     // memory allocated
-    ASSERT(factory.numBytesInUse() != 0);
+    BMQTST_ASSERT(factory.numBytesInUse() != 0);
 
     // create deleter and free resource
     bmqu::SharedResourceFactoryDeleter<int, bslma::Allocator> deleter(
@@ -612,7 +614,7 @@ static void test5_factoryDeleter()
     deleter(resource);
 
     // memory freed
-    ASSERT(factory.numBytesInUse() == 0);
+    BMQTST_ASSERT(factory.numBytesInUse() == 0);
 }
 
 // ============================================================================
@@ -636,7 +638,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

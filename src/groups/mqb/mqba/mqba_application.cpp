@@ -657,6 +657,9 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
         else if (domains.isReconfigureValue()) {
             domainName = domains.reconfigure().domain();
         }
+        else if (domains.isRemoveValue()) {
+            domainName = domains.remove().domain();
+        }
         else {
             errorDescription << "Cannot extract cluster for that command";
             return NULL;  // RETURN

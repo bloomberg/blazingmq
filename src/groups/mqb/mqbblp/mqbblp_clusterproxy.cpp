@@ -392,6 +392,10 @@ void ClusterProxy::onActiveNodeUp(mqbnet::ClusterNode* activeNode)
         mqbnet::ElectorState::e_LEADER,
         d_clusterData.electorInfo().electorTerm() + 1,
         activeNode,
+        mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+    // It is **prohibited** to set leader status directly from e_UNDEFINED
+    // to e_ACTIVE.  Hence, we do: e_UNDEFINED -> e_PASSIVE -> e_ACTIVE
+    d_clusterData.electorInfo().setLeaderStatus(
         mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
 }
 
@@ -1336,6 +1340,29 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
 
     // Print queue status
     loadQueuesInfo(&clusterProxyStatus.queuesInfo());
+}
+
+void ClusterProxy::purgeQueueOnDomain(
+    mqbcmd::ClusterResult*       result,
+    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+{
+    bmqu::MemOutStream os;
+    os << "MockCluster::gcQueueOnDomain not implemented!";
+    result->makeError().message() = os.str();
+}
+
+int ClusterProxy::gcQueueOnDomain(
+    mqbcmd::ClusterResult*       result,
+    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+{
+    // exected by *ANY* thread
+
+    bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                   os(&localAllocator);
+    os << "GC Queue not supported on a Proxy.";
+    result->makeError().message() = os.str();
+
+    return 0;
 }
 
 // MANIPULATORS

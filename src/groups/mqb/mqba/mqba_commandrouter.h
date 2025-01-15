@@ -13,40 +13,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbblp_messagegroupidmanager.h                                     -*-C++-*-
+// mqba_commandrouter.h                                               -*-C++-*-
 #ifndef INCLUDED_MQBA_COMMANDROUTER
 #define INCLUDED_MQBA_COMMANDROUTER
 
-//@PURPOSE: Provide a class responsible for routing admin commands to the
-// subset of cluster nodes that should execute that command.
-//
-// This currently only supports routing cluster related commands (i.e. cluster
-// commands and domain commands). There are 2 main routing modes supported:
-// routing to primary node(s) or to all nodes in the cluster. The following
-// commands are supported:
-// * Primary commands
-//   * DOMAINS DOMAIN <domain> PURGE
-//   * DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
-//   * CLUSTERS CLUSTER <name> FORCE_GC_QUEUES
-//   * CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> [ENABLE|DISABLE]
-// * Cluster-wide commands
-//   * DOMAINS RECONFIGURE <domain>
-//   * CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <parameter> <value>
-//   * CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <parameter>
-//   * CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <parameter> <value>
-//   * CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <parameter>
-//
-// Routing operates on mqbnet::ClusterNode pointers, which currently limits our
-// ability to route non-cluster commands. In order to support routing non
-// cluster related commands, this class would need to be generalized or add
-// specialized cases for routing using a more fundamental abstraction (i.e. a
-// Session or Channel). This is beyond the scope of current needs at the time
-// of writing this feature.
-//
-//@CLASSES:
-//  mqbcmd::CommandRouter: Manages routing a single admin command. This class
-//    is designed to be used once per command and should be destructed after
-//    the command has been processed.
+/// @file mqba_commandrouter.h
+///
+/// @brief Provide a class responsible for routing admin commands to the subset
+/// of cluster nodes that should execute that command.
+///
+/// This currently only supports routing cluster related commands (i.e. cluster
+/// commands and domain commands).  There are 2 main routing modes supported:
+/// routing to primary node(s) or routing to all nodes in the cluster. The
+/// following commands are supported:
+///
+/// * Primary commands
+///   * `DOMAINS DOMAIN <domain> PURGE`
+///   * `DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>`
+///   * `CLUSTERS CLUSTER <name> FORCE_GC_QUEUES`
+///   * `CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId>
+///     [ENABLE|DISABLE]`
+/// * Cluster-wide commands
+///   * `DOMAINS RECONFIGURE <domain>`
+///   * `CLUSTERS CLUSTER <name> STORAGE REPLICATION SET_ALL <parameter>
+///     <value>`
+///   * `CLUSTERS CLUSTER <name> STORAGE REPLICATION GET_ALL <parameter>`
+///   * `CLUSTERS CLUSTER <name> STATE ELECTOR SET_ALL <parameter> <value>`
+///   * `CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <parameter>`
+///
+/// Routing operates on @bbref{mqbnet::ClusterNode} pointers, which currently
+/// limits our ability to route non-cluster commands.  In order to support
+/// routing non-cluster-related commands, this class would need to be
+/// generalized or add specialized cases for routing using a more fundamental
+/// abstraction (i.e. a @bbref{mqbnet::Session} or a @bbref{mqbnet::Channel}).
+/// This is beyond the scope of current needs at the time of writing this
+/// feature.
 
 // BDE
 #include <ball_log.h>
@@ -79,29 +80,33 @@ class MultiRequestManagerRequestContext;
 
 namespace mqba {
 
+/// Manages routing a single admin command.  This class is designed to be used
+/// once per command and should be destructed after the command has been
+/// processed.
 class CommandRouter {
   private:
     // PRIVATE TYPES
 
     /// Shared pointer to the correct multirequest context for routing control
-    /// messages to `mqbnet::ClusterNode`s
+    /// messages to @bbref{mqbnet::ClusterNode}s.
     typedef bsl::shared_ptr<
         mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
                                                   bmqp_ctrlmsg::ControlMessage,
                                                   mqbnet::ClusterNode*> >
         MultiRequestContextSp;
 
-    /// Vector of `mqbnet::ClusterNode` pointers used for routing
+    /// Vector of @bbref{mqbnet::ClusterNode} pointers used for routing.
     typedef bsl::vector<mqbnet::ClusterNode*> NodesVector;
 
   private:
-    /// Struct representing which nodes a command should be routed to. Contains
+    /// VST representing which nodes a command should be routed to.  Contains
     /// both a list of external nodes to route to and a flag indicating whether
     /// the self node should execute the command.
     struct RouteTargets {
-        NodesVector d_nodes;  // Proxy nodes and the self node should never be
-                              // route members.
-        bool d_self;  // True if the command should execute on the self node.
+        /// Proxy nodes and the self node should never be route members.
+        NodesVector d_nodes;
+        /// True if the command should execute on the self node.
+        bool d_self;
     };
 
     // ==================
@@ -113,7 +118,7 @@ class CommandRouter {
     class RoutingMode {
       public:
         RoutingMode();
-        virtual ~RoutingMode() = 0;
+        virtual ~RoutingMode();
 
         /// Populates the given `routeMembers` struct with the proper nodes to
         /// route to from the given `cluster`. Returns 0 on success or a

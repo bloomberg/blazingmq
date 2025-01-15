@@ -40,6 +40,7 @@
 
 // BDE
 #include <bsl_iosfwd.h>
+#include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bsls_types.h>
@@ -55,6 +56,8 @@ namespace m_bmqstoragetool {
 class CommandLineArguments {
   public:
     // PUBLIC DATA
+
+    /// Record types constants
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
     static const char* k_JOURNALOP_TYPE;
@@ -62,65 +65,64 @@ class CommandLineArguments {
     static const char* k_CSL_UPDATE_TYPE;
     static const char* k_CSL_COMMIT_TYPE;
     static const char* k_CSL_ACK_TYPE;
-    // Record types constants
+    /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
-    // List of record types to process (message, journalOp, queueOp)
+    /// List of CSL record types to process (snapshot, update, commit, ack)
     bsl::vector<bsl::string> d_cslRecordType;
-    // List of CSL record types to process (snapshot, update, commit, ack)
+    /// Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampGt;
-    // Filter messages by minimum timestamp
+    /// Filter messages by maximum timestamp
     bsls::Types::Int64 d_timestampLt;
-    // Filter messages by maximum timestamp
+    /// Filter messages by minimum record composite sequence number
     bsl::string d_seqNumGt;
-    // Filter messages by minimum record composite sequence number
+    /// Filter messages by maximum record composite sequence number
     bsl::string d_seqNumLt;
-    // Filter messages by maximum record composite sequence number
+    /// Filter messages by minimum record offset
     bsls::Types::Int64 d_offsetGt;
-    // Filter messages by minimum record offset
+    /// Filter messages by maximum record offset
     bsls::Types::Int64 d_offsetLt;
-    // Filter messages by maximum record offset
+    /// Path to find all files from
     bsl::string d_journalPath;
-    // Path to find all files from
+    /// Path to read journal files from
     bsl::string d_journalFile;
-    // Path to read journal files from
+    /// Path to read data files from
     bsl::string d_dataFile;
-    // Path to read data files from
+    /// Path to read CSL files from
     bsl::string d_cslFile;
-    // Path to read CSL files from
+    /// If true force to iterate CSL file from the beginning, otherwise iterate
+    /// from the latest snapshot
     bool d_cslFromBegin;
-    // If true force to iterate CSL file from the beginning, otherwise iterate
-    // from the latest snapshot
+    /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
-    // Filter messages by message guids
+    /// Filter messages by record composite sequence numbers
     bsl::vector<bsl::string> d_seqNum;
-    // Filter messages by record composite sequence numbers
+    /// Filter messages by record offsets
     bsl::vector<bsls::Types::Int64> d_offset;
-    // Filter messages by record offsets
+    /// Filter messages by queue keys
     bsl::vector<bsl::string> d_queueKey;
-    // Filter messages by queue keys
+    /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;
-    // Filter messages by queue names
+    /// Limit number of bytes to
     int d_dumpLimit;
-    // Limit number of bytes to
+    /// Print message details
     bool d_details;
-    // Print message details
+    /// Print message payload
     bool d_dumpPayload;
-    // Print message payload
+    /// Print summary of messages
     bool d_summary;
-    // Print summary of messages
+    /// Show only outstanding messages (not deleted)
     bool d_outstanding;
-    // Show only outstanding messages (not deleted)
+    /// Show only messages, confirmed by all the appId's
     bool d_confirmed;
-    // Show only messages, confirmed by all the appId's
+    /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
-    // Show only messages, confirmed by some of the appId's
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
     /// Validate the consistency of all settings.
-    bool validate(bsl::string* error_p, bslma::Allocator* allocator = 0);
+    bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
 
   private:
     // PRIVATE MANIPULATORS
@@ -166,45 +168,38 @@ class CommandLineArguments {
 struct Parameters {
     // PUBLIC TYPES
 
-    // VST representing search range parameters
+    /// VST representing search range parameters
     struct Range {
-        // PUBLIC TYPES
-        enum Type {
-            e_NONE         = 0,
-            e_TIMESTAMP    = 1,
-            e_SEQUENCE_NUM = 2,
-            e_OFFSET       = 3
-        };
-
         // PUBLIC DATA
-        Type d_type;
-        /// Range type
-        bsls::Types::Uint64 d_timestampGt;
-        // Filter messages greater than timestamp value
-        bsls::Types::Uint64 d_timestampLt;
-        // Filter messages less than timestamp value
-        bsls::Types::Uint64 d_offsetGt;
-        // Filter messages greater than offset value
-        bsls::Types::Uint64 d_offsetLt;
-        // Filter messages less than offset value
-        CompositeSequenceNumber d_seqNumGt;
-        // Filter messages greater than sequence number
-        CompositeSequenceNumber d_seqNumLt;
-        // Filter messages less than sequence number
+
+        /// Filter messages greater than timestamp value
+        bsl::optional<bsls::Types::Uint64> d_timestampGt;
+        /// Filter messages less than timestamp value
+        bsl::optional<bsls::Types::Uint64> d_timestampLt;
+        /// Filter messages greater than offset value
+        bsl::optional<bsls::Types::Uint64> d_offsetGt;
+        /// Filter messages less than offset value
+        bsl::optional<bsls::Types::Uint64> d_offsetLt;
+        /// Filter messages greater than sequence number
+        bsl::optional<CompositeSequenceNumber> d_seqNumGt;
+        /// Filter messages less than sequence number
+        bsl::optional<CompositeSequenceNumber> d_seqNumLt;
 
         // CREATORS
+        /// Default constructor
         explicit Range();
     };
 
     // VST representing record types to process
     struct ProcessRecordTypes {
         // PUBLIC DATA
+
+        /// Flag to process records of type message
         bool d_message;
-        // Flag to process records of type message
+        /// Flag to process records of type queueOp
         bool d_queueOp;
-        // Flag to process records of type queueOp
+        /// Flag to process records of type journalOp
         bool d_journalOp;
-        // Flag to process records of type journalOp
 
         // CREATORS
         explicit ProcessRecordTypes();
@@ -244,23 +239,22 @@ struct Parameters {
     bsl::vector<bsls::Types::Int64> d_offset;
     // Filter messages by message offsets
     bsl::vector<bsl::string> d_queueKey;
-    // Filter messages by queue keys
+    /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;
-    // Filter messages by queue names
+    /// Limit number of bytes to dump
     unsigned int d_dumpLimit;
-    // Limit number of bytes to dump
+    /// Print message details
     bool d_details;
-    // Print message details
+    /// Print message payload
     bool d_dumpPayload;
-    // Print message payload
+    /// Print summary of messages
     bool d_summary;
-    // Print summary of messages
+    /// Show only outstanding messages (not deleted)
     bool d_outstanding;
-    // Show only outstanding messages (not deleted)
+    /// Show only messages, confirmed by all the appId's
     bool d_confirmed;
-    // Show only messages, confirmed by all the appId's
+    /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
-    // Show only messages, confirmed by some of the appId's
 
     // CREATORS
     /// Default constructor

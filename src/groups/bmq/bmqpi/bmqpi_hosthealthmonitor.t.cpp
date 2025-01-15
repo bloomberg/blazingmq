@@ -86,7 +86,7 @@ static void test1_breathingTest()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
     // 'markDone' methods of AbstractSession may sometimes return a
     // memory-aware object without utilizing the parameter allocator.
@@ -97,13 +97,13 @@ static void test1_breathingTest()
     bsls::ProtocolTest<HostHealthMonitorTestImp> monitor;
 
     PV("Verify that the protocol is abstract");
-    ASSERT(monitor.testAbstract());
+    BMQTST_ASSERT(monitor.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(monitor.testNoDataMembers());
+    BMQTST_ASSERT(monitor.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(monitor.testVirtualDestructor());
+    BMQTST_ASSERT(monitor.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
 
@@ -126,7 +126,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

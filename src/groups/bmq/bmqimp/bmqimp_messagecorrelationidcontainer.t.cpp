@@ -85,7 +85,8 @@ static void test1_addFindRemove()
 {
     bmqtst::TestHelper::printTestName("ADD FIND REMOVE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID emptyGuid;
@@ -95,44 +96,44 @@ static void test1_addFindRemove()
     {
         PVV("Find");
         bmqt::CorrelationId corrId;
-        ASSERT_EQ(container.find(&corrId, guid), 0);
-        ASSERT_EQ(corrId, bmqt::CorrelationId(1));
+        BMQTST_ASSERT_EQ(container.find(&corrId, guid), 0);
+        BMQTST_ASSERT_EQ(corrId, bmqt::CorrelationId(1));
     }
 
     {
         PVV("Negative find");
         bmqt::CorrelationId corrId;
-        ASSERT_NE(container.find(&corrId, emptyGuid), 0);
+        BMQTST_ASSERT_NE(container.find(&corrId, emptyGuid), 0);
     }
 
     {
         PVV("Remove");
         bmqt::CorrelationId corrId;
-        ASSERT_EQ(container.remove(guid, &corrId), 0);
-        ASSERT_EQ(corrId, bmqt::CorrelationId(1));
-        ASSERT_EQ(container.size(), 0U);
+        BMQTST_ASSERT_EQ(container.remove(guid, &corrId), 0);
+        BMQTST_ASSERT_EQ(corrId, bmqt::CorrelationId(1));
+        BMQTST_ASSERT_EQ(container.size(), 0U);
 
-        ASSERT_NE(container.remove(guid, &corrId), 0);
+        BMQTST_ASSERT_NE(container.remove(guid, &corrId), 0);
     }
 
     {
         PVV("Rewriting add");
         container.add(guid, bmqt::CorrelationId(2), bmqp::QueueId(1));
         container.add(guid, bmqt::CorrelationId(2), bmqp::QueueId(1));
-        ASSERT_EQ(container.size(), 1U);
+        BMQTST_ASSERT_EQ(container.size(), 1U);
     }
 
     {
         PVV("Repeated add");
         container.add(guid, bmqt::CorrelationId(2), bmqp::QueueId(1));
         container.add(emptyGuid, bmqt::CorrelationId(2), bmqp::QueueId(1));
-        ASSERT_EQ(container.size(), 2U);
+        BMQTST_ASSERT_EQ(container.size(), 2U);
     }
 
     {
         PVV("Clear");
         container.reset();
-        ASSERT_EQ(container.size(), 0U);
+        BMQTST_ASSERT_EQ(container.size(), 0U);
     }
 }
 
@@ -140,8 +141,9 @@ static void test2_iterateAndInvoke()
 {
     bmqtst::TestHelper::printTestName("ITERATE AND INVOKE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
-    IterateAndInvokeHelper                helper(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
+    IterateAndInvokeHelper helper(bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
@@ -161,24 +163,25 @@ static void test2_iterateAndInvoke()
     // correct and that iterateAndInvoke is invoked correctly.
     container.iterateAndInvoke(callback);
 
-    ASSERT_EQ(container.size(), helper.d_corrIdMap.size());
-    ASSERT_EQ(container.size(), 2U);
+    BMQTST_ASSERT_EQ(container.size(), helper.d_corrIdMap.size());
+    BMQTST_ASSERT_EQ(container.size(), 2U);
 
-    ASSERT_EQ(helper.d_corrIdMap[guid1].d_correlationId,
-              bmqt::CorrelationId(1));
-    ASSERT_EQ(helper.d_corrIdMap[guid1].d_queueId, bmqp::QueueId(1));
+    BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid1].d_correlationId,
+                     bmqt::CorrelationId(1));
+    BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid1].d_queueId, bmqp::QueueId(1));
 
-    ASSERT_EQ(helper.d_corrIdMap[guid2].d_correlationId,
-              bmqt::CorrelationId(2));
-    ASSERT_EQ(helper.d_corrIdMap[guid2].d_queueId, bmqp::QueueId(2));
+    BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid2].d_correlationId,
+                     bmqt::CorrelationId(2));
+    BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid2].d_queueId, bmqp::QueueId(2));
 }
 
 static void test3_associate()
 {
     bmqtst::TestHelper::printTestName("ASSOCIATE");
 
-    bmqimp::MessageCorrelationIdContainer container(s_allocator_p);
-    IterateAndInvokeHelper                helper(s_allocator_p);
+    bmqimp::MessageCorrelationIdContainer container(
+        bmqtst::TestHelperUtil::allocator());
+    IterateAndInvokeHelper helper(bmqtst::TestHelperUtil::allocator());
 
     bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
@@ -201,15 +204,16 @@ static void test3_associate()
         PVV("Successful associate");
         container.iterateAndInvoke(callback);
 
-        ASSERT_EQ(container.size(), helper.d_corrIdMap.size());
-        ASSERT_EQ(container.size(), 2U);
+        BMQTST_ASSERT_EQ(container.size(), helper.d_corrIdMap.size());
+        BMQTST_ASSERT_EQ(container.size(), 2U);
 
-        ASSERT_EQ(helper.d_corrIdMap[guid1].d_correlationId,
-                  bmqt::CorrelationId(1));
-        ASSERT_EQ(helper.d_corrIdMap[guid1].d_queueId, bmqp::QueueId(1));
+        BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid1].d_correlationId,
+                         bmqt::CorrelationId(1));
+        BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid1].d_queueId,
+                         bmqp::QueueId(1));
 
-        ASSERT_EQ(helper.d_corrIdMap[guid2].d_queueId.id(),
-                  bmqimp::Queue::k_INVALID_QUEUE_ID);
+        BMQTST_ASSERT_EQ(helper.d_corrIdMap[guid2].d_queueId.id(),
+                         bmqimp::Queue::k_INVALID_QUEUE_ID);
     }
 }
 
@@ -228,7 +232,7 @@ int main(int argc, char* argv[])
     case 1: test1_addFindRemove(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

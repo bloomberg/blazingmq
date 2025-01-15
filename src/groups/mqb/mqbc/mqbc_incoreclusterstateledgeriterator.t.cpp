@@ -213,7 +213,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
     const mqbc::ClusterStateRecordType::Enum recordType =
         createClusterMessage(&msg, advisoryType, sequenceNumber);
 
-    bdlbb::Blob record(bufferFactory, s_allocator_p);
+    bdlbb::Blob record(bufferFactory, bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(&record,
                                                         msg,
                                                         sequenceNumber,
@@ -249,7 +249,7 @@ struct Tester {
   public:
     // CREATORS
     Tester(bsls::Types::Int64 maxLogSize = k_LOG_MAX_SIZE,
-           bslma::Allocator*  allocator  = s_allocator_p)
+           bslma::Allocator*  allocator  = bmqtst::TestHelperUtil::allocator())
     : d_logIdGenerator_sp(0)
     , d_logFactory_sp(0)
     , d_tempDir(allocator)
@@ -405,22 +405,22 @@ static void test1_breathingTest()
     }
 
     mqbc::IncoreClusterStateLedgerIterator incoreCslIt(tester.ledger());
-    ASSERT(!incoreCslIt.isValid());
+    BMQTST_ASSERT(!incoreCslIt.isValid());
 
     // Iterate through each record in the ledger
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        ASSERT_EQ(incoreCslIt.next(), 0);
-        ASSERT(incoreCslIt.isValid());
+        BMQTST_ASSERT_EQ(incoreCslIt.next(), 0);
+        BMQTST_ASSERT(incoreCslIt.isValid());
 
         const Test&                           test   = k_DATA[idx];
         const mqbc::ClusterStateRecordHeader& header = incoreCslIt.header();
-        ASSERT_EQ(header.headerWords(),
-                  mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS);
-        ASSERT_EQ(header.recordType(), test.d_recordType);
-        ASSERT_GT(header.leaderAdvisoryWords(), 0U);
-        ASSERT_EQ(header.electorTerm(), test.d_electorTerm);
-        ASSERT_EQ(header.sequenceNumber(), test.d_sequenceNumber);
-        ASSERT_EQ(header.timestamp(), test.d_timeStamp);
+        BMQTST_ASSERT_EQ(header.headerWords(),
+                         mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS);
+        BMQTST_ASSERT_EQ(header.recordType(), test.d_recordType);
+        BMQTST_ASSERT_GT(header.leaderAdvisoryWords(), 0U);
+        BMQTST_ASSERT_EQ(header.electorTerm(), test.d_electorTerm);
+        BMQTST_ASSERT_EQ(header.sequenceNumber(), test.d_sequenceNumber);
+        BMQTST_ASSERT_EQ(header.timestamp(), test.d_timeStamp);
 
         const unsigned int leaderAdvisoryWords =
             (recordInfos[idx].second -
@@ -435,15 +435,15 @@ static void test1_breathingTest()
                << " electorTerm = " << test.d_electorTerm
                << " sequenceNumber = " << test.d_sequenceNumber
                << " timestamp = " << test.d_timeStamp << " ]";
-        ASSERT_EQ(expected.str(), actual.str());
+        BMQTST_ASSERT_EQ(expected.str(), actual.str());
 
         bmqp_ctrlmsg::ClusterMessage clusterMessage;
-        ASSERT_EQ(incoreCslIt.loadClusterMessage(&clusterMessage), 0);
-        ASSERT_EQ(clusterMessage, recordInfos[idx].first);
+        BMQTST_ASSERT_EQ(incoreCslIt.loadClusterMessage(&clusterMessage), 0);
+        BMQTST_ASSERT_EQ(clusterMessage, recordInfos[idx].first);
     }
 
-    ASSERT_EQ(incoreCslIt.next(), 1);  // 1 means end of ledger
-    ASSERT(!incoreCslIt.isValid());
+    BMQTST_ASSERT_EQ(incoreCslIt.next(), 1);  // 1 means end of ledger
+    BMQTST_ASSERT(!incoreCslIt.isValid());
 }
 
 // ============================================================================
@@ -454,8 +454,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -463,7 +463,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

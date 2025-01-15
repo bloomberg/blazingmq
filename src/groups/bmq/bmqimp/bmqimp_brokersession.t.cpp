@@ -21,6 +21,7 @@
 #include <bmqimp_manualhosthealthmonitor.h>
 #include <bmqimp_queue.h>
 #include <bmqp_ackeventbuilder.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_confirmeventbuilder.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
@@ -128,14 +129,14 @@ static void eventHandlerSyncCall(bsl::shared_ptr<bmqimp::Event>* resultEvent,
     *resultEvent = event;
 
     // Check SYNC queue API
-    ASSERT_EQ(session->openQueue(queue, timeout),
-              bmqt::OpenQueueResult::e_NOT_CONNECTED);
+    BMQTST_ASSERT_EQ(session->openQueue(queue, timeout),
+                     bmqt::OpenQueueResult::e_NOT_CONNECTED);
 
-    ASSERT_EQ(session->configureQueue(queue, queueOptions, timeout),
-              bmqt::ConfigureQueueResult::e_INVALID_QUEUE);
+    BMQTST_ASSERT_EQ(session->configureQueue(queue, queueOptions, timeout),
+                     bmqt::ConfigureQueueResult::e_INVALID_QUEUE);
 
-    ASSERT_EQ(session->closeQueue(queue, timeout),
-              bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
+    BMQTST_ASSERT_EQ(session->closeQueue(queue, timeout),
+                     bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
 
     eventSem.post();
 }
@@ -193,19 +194,19 @@ void channelSetEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
 
     PV_SAFE("Incoming event: " << *event);
 
-    ASSERT(event != 0);
-    ASSERT_EQ(event->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT(event != 0);
+    BMQTST_ASSERT_EQ(event->type(), bmqimp::Event::EventType::e_SESSION);
 
     ++eventCounter;
     if (eventCounter == maxEvents) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTION_LOST);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTION_LOST);
         return;  // RETURN
     }
 
     if (eventCounter + 1 > maxEvents) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_DISCONNECTED);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_DISCONNECTED);
         stopSem.post();
         return;  // RETURN
     }
@@ -213,31 +214,31 @@ void channelSetEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
     int order = eventCounter % 3;
 
     if (eventCounter == 1) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTED);
     }
     else if (eventCounter == 2) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTION_LOST);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTION_LOST);
     }
     else if (order == 0) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_RECONNECTED);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_RECONNECTED);
     }
     else if (order == 1) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_STATE_RESTORED);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_STATE_RESTORED);
     }
     else if (order == 2) {
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTION_LOST);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTION_LOST);
     }
     else {
         BSLS_ASSERT_OPT(false && "Unreachable by design");
     }
 
-    ASSERT_EQ(event->statusCode(), 0);
-    ASSERT_EQ(event->correlationId(), k_EMPTY_CORRID);
+    BMQTST_ASSERT_EQ(event->statusCode(), 0);
+    BMQTST_ASSERT_EQ(event->correlationId(), k_EMPTY_CORRID);
 }
 
 void channelEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
@@ -252,7 +253,7 @@ void sessionEventHandler(
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> >* eventQueue,
     const bsl::shared_ptr<bmqimp::Event>&          event)
 {
-    ASSERT(event);
+    BMQTST_ASSERT(event);
 
     // May be Session or Message event
     PV_SAFE("Incoming event: " << *event);
@@ -262,7 +263,7 @@ void sessionEventHandler(
 
 bool waitRealTime(bslmt::TimedSemaphore* sem)
 {
-    ASSERT(sem);
+    BMQTST_ASSERT(sem);
 
     const bsls::TimeInterval k_REALTIME_TIMEOUT = bsls::TimeInterval(15);
 
@@ -282,7 +283,7 @@ bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 void makeResponse(bmqp_ctrlmsg::ControlMessage*       response,
                   const bmqp_ctrlmsg::ControlMessage& request)
 {
-    ASSERT(!request.rId().isNull());
+    BMQTST_ASSERT(!request.rId().isNull());
     response->rId().makeValue(request.rId().value());
 
     if (request.choice().isConfigureStreamValue()) {
@@ -396,6 +397,9 @@ struct TestSession BSLS_CPP11_FINAL {
     // Buffer factory provided to the
     // various builders
 
+    /// Blob pool used to provide blobs to event builders.
+    bmqp::BlobPoolUtil::BlobSpPoolSp d_blobSpPool_sp;
+
     bdlmt::EventScheduler& d_scheduler;
     // event scheduler used in the
     // broker session
@@ -431,25 +435,27 @@ struct TestSession BSLS_CPP11_FINAL {
 
     /// Create a `TestSession` object using the specified `sessionOptions`,
     /// `scheduler`, and `allocator` to supply memory.
-    explicit TestSession(const bmqt::SessionOptions& sessionOptions,
-                         bdlmt::EventScheduler&      scheduler,
-                         bool                        useEventHandler = true,
-                         bslma::Allocator* allocator = s_allocator_p);
+    explicit TestSession(
+        const bmqt::SessionOptions& sessionOptions,
+        bdlmt::EventScheduler&      scheduler,
+        bool                        useEventHandler = true,
+        bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator());
 
     /// Create a `TestSession` object using the specified `sessionOptions`,
     /// `clockPtr`, and `allocator` to supply memory.
-    explicit TestSession(const bmqt::SessionOptions& sessionOptions,
-                         TestClock&                  testClock,
-                         bool                        useEventHandler = true,
-                         bslma::Allocator* allocator = s_allocator_p);
+    explicit TestSession(
+        const bmqt::SessionOptions& sessionOptions,
+        TestClock&                  testClock,
+        bool                        useEventHandler = true,
+        bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator());
 
     ~TestSession();
 
     // ACCESSORS
     bmqimp::BrokerSession&    session();
     bmqio::TestChannel&       channel();
-    bslma::Allocator*         allocator();
-    bdlbb::BlobBufferFactory& blobBufferFactory();
+    bslma::Allocator*               allocator();
+    bmqp::BlobPoolUtil::BlobSpPool& blobSpPool();
 
     // MANIPULATORS
 
@@ -796,7 +802,7 @@ void TestSession::advanceTime(const bsls::TimeInterval& step)
     // By return of this call the FSM queue is expected to be empty and there
     // should be no in progress requests.
     int rc = session()._synchronize();
-    ASSERT(rc);
+    BMQTST_ASSERT(rc);
 
     if (!d_testClock_p) {
         // System time source is used.  Cannot advance time manually.
@@ -836,11 +842,15 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_blobBufferFactory(1024, d_allocator_p)
+, d_blobSpPool_sp(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator()))
 , d_scheduler(scheduler)
 , d_testChannel(d_allocator_p)
 , d_eventQueue(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
+                  d_blobSpPool_sp.get(),
                   sessionOptions,
                   useEventHandler
                       ? bdlf::BindUtil::bind(&sessionEventHandler,
@@ -859,7 +869,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
     d_testChannel.setPeerUri("tcp://testHost:1234");
 
     int rc = d_scheduler.start();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 }
 
 TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
@@ -868,11 +878,15 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_blobBufferFactory(1024, d_allocator_p)
+, d_blobSpPool_sp(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
+                                         bmqtst::TestHelperUtil::allocator()))
 , d_scheduler(testClock.d_scheduler)
 , d_testChannel(d_allocator_p)
 , d_eventQueue(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
 , d_brokerSession(&d_scheduler,
                   &d_blobBufferFactory,
+                  d_blobSpPool_sp.get(),
                   sessionOptions,
                   useEventHandler
                       ? bdlf::BindUtil::bind(&sessionEventHandler,
@@ -898,7 +912,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
         d_allocator_p);
 
     int rc = d_scheduler.start();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 }
 
 TestSession::~TestSession()
@@ -924,9 +938,9 @@ bslma::Allocator* TestSession::allocator()
     return d_allocator_p;
 }
 
-bdlbb::BlobBufferFactory& TestSession::blobBufferFactory()
+bmqp::BlobPoolUtil::BlobSpPool& TestSession::blobSpPool()
 {
-    return d_blobBufferFactory;
+    return *d_blobSpPool_sp;
 }
 
 // MANIPULATORS
@@ -938,9 +952,10 @@ void TestSession::startAndConnect(bool expectHostUnhealthy)
 
     int rc = session().startAsync();
 
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(d_startCounter, 1);
-    ASSERT_EQ(session().state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(d_startCounter, 1);
+    BMQTST_ASSERT_EQ(session().state(),
+                     bmqimp::BrokerSession::State::e_STARTING);
 
     PVV_SAFE("Session started...");
 
@@ -949,10 +964,10 @@ void TestSession::startAndConnect(bool expectHostUnhealthy)
     setChannel();
 
     if (expectHostUnhealthy) {
-        ASSERT(waitHostUnhealthyEvent());
+        BMQTST_ASSERT(waitHostUnhealthyEvent());
     }
 
-    ASSERT(waitConnectedEvent());
+    BMQTST_ASSERT(waitConnectedEvent());
 
     PVVV_SAFE("Channel connected");
 }
@@ -1004,11 +1019,12 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
                                      const ErrorResult         errorResult,
                                      const bsls::TimeInterval& timeout)
 {
-    ASSERT(queue);
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(queue);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // open queue request is not sent
     if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_NOT_SENT) {
@@ -1020,7 +1036,7 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     PVVV_SAFE("Open the queue async");
     int rc = d_brokerSession.openQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
     // Verify open request (TODO: check handle queue parameters)
     PVVV_SAFE("Ensure open queue request has been sent");
@@ -1045,8 +1061,8 @@ void TestSession::openQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         return;  // RETURN
     }
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     // bad open queue response
     if (requestType == e_REQ_OPEN_QUEUE && errorResult == e_ERR_BAD_RESPONSE) {
@@ -1153,14 +1169,14 @@ void TestSession::reopenQueue(
     bsl::shared_ptr<bmqimp::Queue> queue,
     BSLS_ANNOTATION_UNUSED const bsls::TimeInterval& timeout)
 {
-    ASSERT(queue);
+    BMQTST_ASSERT(queue);
 
     PVVV_SAFE("Reopening: verify first part of open request is sent");
     bmqp_ctrlmsg::ControlMessage request = getNextOutboundRequest(
         TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_REOPENING_OPN);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_REOPENING_OPN);
+    BMQTST_ASSERT(queue->isValid());
 
     PVVV_SAFE("Reopening: send open queue response");
     sendResponse(request);
@@ -1174,34 +1190,35 @@ void TestSession::reopenQueue(
     }
 
     PVVV_SAFE("Reopening: wait for reopen queue result");
-    ASSERT(verifyOperationResult(bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-                                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
+    BMQTST_ASSERT(
+        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
+                              bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(queue->isValid());
 }
 
 void TestSession::closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                              const bsls::TimeInterval&      timeout,
                              bool                           isFinal)
 {
-    ASSERT(queue);
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT(queue);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(queue->isValid());
 
     bmqp_ctrlmsg::ControlMessage request(d_allocator_p);
 
     PVVV_SAFE("Closing: Close queue async");
     int rc = session().closeQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     // Deconfigure only for reader
     if (bmqt::QueueFlagsUtil::isReader(queue->flags())) {
         PVVV_SAFE("Closing: Check configure request was sent");
         request = getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
-        ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-        ASSERT_EQ(queue->isValid(), false);
+        BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CFG);
+        BMQTST_ASSERT_EQ(queue->isValid(), false);
 
         PVVV_SAFE("Closing: Send valid configure queue response message");
         sendResponse(request);
@@ -1223,11 +1240,12 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
                                       bool                      isFinal,
                                       const bsls::TimeInterval& timeout)
 {
-    ASSERT(queue);
-    ASSERT(queue->isValid());
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(queue);
+    BMQTST_ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // configure queue request is not sent
     if (requestType == e_REQ_CONFIG_QUEUE && errorResult == e_ERR_NOT_SENT) {
@@ -1239,7 +1257,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 
     PVVV_SAFE(L_ << " Close the queue async");
     int rc = d_brokerSession.closeQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
 
     // Verify configure request (todo: check stream parameters and qid)
     PVVV_SAFE(L_ << " Ensure configure queue request has been sent");
@@ -1257,7 +1275,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
         d_testChannel.setWriteStatus(bmqio::Status());
 
         PVVV_SAFE(L_ << " Verify there is no close queue request");
-        ASSERT(isChannelEmpty());
+        BMQTST_ASSERT(isChannelEmpty());
 
         return;  // RETURN
     }
@@ -1295,7 +1313,7 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
                                bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
 
         PVVV_SAFE(L_ << " Verify close queue request is not sent");
-        ASSERT(isChannelEmpty());
+        BMQTST_ASSERT(isChannelEmpty());
 
         return;  // RETURN
     }
@@ -1364,13 +1382,13 @@ void TestSession::closeQueueWithError(bsl::shared_ptr<bmqimp::Queue> queue,
 void TestSession::closeDeconfiguredQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
 {
-    ASSERT(queue);
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(queue);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVVV_SAFE("ClosingDcfg: Close queue async");
     int rc = session().closeQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVVV_SAFE("ClosingDcfg: Check close request was sent");
     bmqp_ctrlmsg::ControlMessage request = getNextOutboundRequest(
@@ -1382,15 +1400,15 @@ void TestSession::closeDeconfiguredQueue(bsl::shared_ptr<bmqimp::Queue> queue,
     PVVV_SAFE("ClosingDcfg: Wait close queue result");
     verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, queue);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 }
 
 void TestSession::configureQueueSync(bsl::shared_ptr<bmqimp::Queue>& queue,
                                      const bmqt::QueueOptions&       options,
                                      const bsls::TimeInterval&       timeout)
 {
-    ASSERT(queue);
+    BMQTST_ASSERT(queue);
     session().configureQueueSync(
         queue,
         options,
@@ -1405,21 +1423,22 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::openQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue,
                                 const bsls::TimeInterval&      timeout)
 {
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     PVVV_SAFE(L_ << " Open the queue async");
     int rc = d_brokerSession.openQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
     // Verify open request (TODO: check handle queue parameters)
     PVVV_SAFE(L_ << "Ensure open queue request has been sent");
     currentRequest = getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     return currentRequest;
 }
@@ -1428,20 +1447,22 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                        const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Start with a queue in OPENING state and pending open request
     currentRequest = arriveAtStep(queue, e_OPEN_OPENING, timeout);
 
-    ASSERT(currentRequest.choice().isOpenQueueValue());
+    BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
 
     // Emulate request timeout.
     advanceTime(timeout);
 
     PVVV_SAFE(L_ << " Verify open request timed out");
 
-    ASSERT(verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
-                                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
+    BMQTST_ASSERT(
+        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
+                              bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
     PVVV_SAFE(L_ << " Send back late open queue response");
     sendResponse(currentRequest);
@@ -1449,8 +1470,8 @@ TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
     PVVV_SAFE(L_ << " Ensure close queue request is sent");
     currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     return currentRequest;
 }
@@ -1459,7 +1480,8 @@ bmqp_ctrlmsg::ControlMessage
 TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Go to the state with pending reopen request
     currentRequest = arriveAtStep(queue, e_REOPEN_OPENING, timeout);
@@ -1468,16 +1490,18 @@ TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
     advanceTime(timeout);
 
     PVVV_SAFE(L_ << " Verify reopen request timed out");
-    ASSERT(verifyOperationResult(bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
-                                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
+    BMQTST_ASSERT(
+        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
+                              bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(),
+                     bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     // We assume there is only one queue under the test and it has failed to
     // reopen.  That means the session should emit STATE_RESTORED event because
     // there are no more queues for reopening.
-    ASSERT(waitStateRestoredEvent());
+    BMQTST_ASSERT(waitStateRestoredEvent());
 
     PVVV_SAFE(L_ << " Send back late reopen queue response");
     sendResponse(currentRequest);
@@ -1485,8 +1509,8 @@ TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
     PVVV_SAFE(L_ << " Ensure close queue request is sent");
     currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     return currentRequest;
 }
@@ -1494,29 +1518,30 @@ TestSession::reopenQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
 bmqp_ctrlmsg::ControlMessage
 TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
 {
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(queue->isValid());
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     PVVV_SAFE(L_ << " Trigger channel drop");
     session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(waitConnectionLostEvent());
+    BMQTST_ASSERT(waitConnectionLostEvent());
 
-    ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+    BMQTST_ASSERT(queue->isValid());
 
     PVVV_SAFE(L_ << " Restore the connection");
     setChannel();
 
-    ASSERT(waitReconnectedEvent());
+    BMQTST_ASSERT(waitReconnectedEvent());
 
     PVVV_SAFE(L_ << " Check open part of open request is sent");
     currentRequest = getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_REOPENING_OPN);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_REOPENING_OPN);
+    BMQTST_ASSERT(queue->isValid());
 
     return currentRequest;
 }
@@ -1526,55 +1551,58 @@ void TestSession::closeQueueSecondStep(
     const bmqp_ctrlmsg::ControlMessage& closeRequest,
     bool                                waitCloseEvent)
 {
-    ASSERT(closeRequest.choice().isCloseQueueValue());
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(closeRequest.choice().isCloseQueueValue());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVVV_SAFE(L_ << " Send valid close queue response");
     sendResponse(closeRequest);
 
     if (waitCloseEvent) {
         PVVV_SAFE(L_ << " Wait for close queue result");
-        ASSERT(
+        BMQTST_ASSERT(
             verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
     }
-    ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 }
 
 bmqp_ctrlmsg::ControlMessage
 TestSession::closeQueueSecondStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
 
     // Go to the step with pending 2nd phase close request
     currentRequest = arriveAtStep(queue, e_CLOSE_CLOSING, timeout);
 
-    ASSERT(currentRequest.choice().isCloseQueueValue());
+    BMQTST_ASSERT(currentRequest.choice().isCloseQueueValue());
 
     // Emulate request timeout.
     advanceTime(timeout);
 
     PVVV_SAFE(L_ << " Verify close request timed out");
 
-    ASSERT(verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
-                                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
+    BMQTST_ASSERT(
+        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
+                              bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->state(),
+                     bmqimp::QueueState::e_CLOSING_CLS_EXPIRED);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVVV_SAFE(L_ << " Send back late close queue response");
     sendResponse(currentRequest);
 
-    ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     // Late close response has arrived, and there should be no more close
     // requests
     PVVV_SAFE(L_ << " Ensure no more requests are sent");
-    ASSERT(isChannelEmpty());
+    BMQTST_ASSERT(isChannelEmpty());
 
     return currentRequest;
 }
@@ -1586,7 +1614,8 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 {
     BSLS_ASSERT_OPT(bmqt::QueueFlagsUtil::isReader(queue->flags()));
 
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -1595,7 +1624,7 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             currentRequest = openQueueFirstStep(queue, timeout);
         } break;
         case e_OPEN_CONFIGURING: {
-            ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
 
             PVVV_SAFE("arriveAtStep: Send back open queue response");
             sendResponse(currentRequest);
@@ -1603,26 +1632,27 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             PVVV_SAFE("arriveAtStep: Ensure configure queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENING_CFG);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_OPENING_CFG);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_OPEN_OPENED: {
             PVVV_SAFE("arriveAtStep: Send back configure queue response");
             sendResponse(currentRequest);
 
             PVVV_SAFE("arriveAtStep: Waiting QUEUE_OPEN_RESULT event...");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_REOPEN_OPENING: {
             currentRequest = reopenQueueFirstStep(queue);
         } break;
         case e_REOPEN_CONFIGURING: {
-            ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
 
             PVVV_SAFE("arriveAtStep: Send back open queue response");
             sendResponse(currentRequest);
@@ -1630,35 +1660,36 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             PVVV_SAFE("arriveAtStep: Ensure configure queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_REOPENING_CFG);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_REOPENING_CFG);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_REOPEN_REOPENED: {
             PVVV_SAFE("arriveAtStep: Send back configure queue response");
             sendResponse(currentRequest);
 
             PVVV_SAFE("arriveAtStep: Waiting QUEUE_REOPEN_RESULT event...");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-            ASSERT(waitStateRestoredEvent());
+            BMQTST_ASSERT(waitStateRestoredEvent());
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURING: {
             PVVV_SAFE("arriveAtStep: Standalone configure queue async");
             int rc = session().configureQueueAsync(queue,
                                                    queue->options(),
                                                    timeout);
-            ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+            BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
             PVVV_SAFE("arriveAtStep: Check configure request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURING_RECONFIGURING: {
             PVVV_SAFE("arriveAtStep: Verify configure request timed out");
@@ -1666,7 +1697,7 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             // Emulate request timeout.
             advanceTime(timeout);
 
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
@@ -1686,29 +1717,30 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             PVV_SAFE("arriveAtStep: Check reconfigure request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURED: {
             PVVV_SAFE("arriveAtStep: Send back configure queue response");
             sendResponse(currentRequest);
 
             PVVV_SAFE("arriveAtStep: expect no queue event for reconfigure");
-            ASSERT(checkNoEvent());
+            BMQTST_ASSERT(checkNoEvent());
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CLOSE_CONFIGURING: {
             PVVV_SAFE("arriveAtStep: Close queue async");
             int rc = session().closeQueueAsync(queue, timeout);
-            ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+            BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
             PVVV_SAFE("arriveAtStep: Check configure request was sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CFG);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_CLOSE_CLOSING: {
             PVVV_SAFE("arriveAtStep: Send valid configure queue response");
@@ -1717,8 +1749,9 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             PVVV_SAFE("arriveAtStep: Check close request was sent");
             currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_CLOSE_CLOSED: {
             // waitCloseEvent = true
@@ -1739,7 +1772,8 @@ TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
                                      const QueueTestStep            step,
                                      const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -1748,83 +1782,85 @@ TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
             currentRequest = openQueueFirstStep(queue, timeout);
         } break;
         case e_OPEN_CONFIGURING: {
-            ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
 
             PVVV_SAFE("arriveAtStep: Send back open queue response");
             sendResponse(currentRequest);
 
             PVVV_SAFE("arriveAtStep: Waiting QUEUE_OPEN_RESULT event...");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
         } break;
         case e_OPEN_OPENED: {
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_REOPEN_OPENING: {
             currentRequest = reopenQueueFirstStep(queue);
         } break;
         case e_REOPEN_CONFIGURING: {
-            ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
 
             PVVV_SAFE("arriveAtStep: Send back open queue response");
             sendResponse(currentRequest);
 
             PVVV_SAFE("arriveAtStep: Waiting QUEUE_REOPEN_RESULT event...");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_REOPEN_REOPENED: {
-            ASSERT(waitStateRestoredEvent());
+            BMQTST_ASSERT(waitStateRestoredEvent());
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURING: {
             PVVV_SAFE("arriveAtStep: Standalone configure queue async");
             int rc = session().configureQueueAsync(queue,
                                                    queue->options(),
                                                    timeout);
-            ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+            BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
             // Configure request is skipped for the writer
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURING_RECONFIGURING: {
             // No reconfigure for writer
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CONFIGURED: {
             // No reconfigure for writer
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_CLOSE_CONFIGURING: {
             PVVV_SAFE("arriveAtStep: Close queue async");
             int rc = session().closeQueueAsync(queue, timeout);
-            ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+            BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
             // Deconfiguring is for reader only, writer sends close request
             PVVV_SAFE("arriveAtStep: Check close request was sent");
             currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_CLOSE_CLOSING: {
             // Nothing to do for the writer
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_CLOSE_CLOSED: {
             // waitCloseEvent = true
@@ -1875,7 +1911,8 @@ void TestSession::arriveAtLateResponseStepReader(
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -1891,14 +1928,14 @@ void TestSession::arriveAtLateResponseStepReader(
             // Move the queue to opening state and pending configure request
             currentRequest = arriveAtStep(queue, e_OPEN_CONFIGURING, timeout);
 
-            ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT(isConfigure(currentRequest));
 
             // Emulate request timeout.
             advanceTime(timeout);
 
             PVVV_SAFE("Step: " << currentStep
                                << " Verify open request timed out");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
@@ -1912,12 +1949,13 @@ void TestSession::arriveAtLateResponseStepReader(
 
             PVVV_SAFE("Deconfigure request sent: " << currentRequest);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CFG);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_OPEN_CONFIGURING_CLS: {
             // Handle pending request from the previous step
-            ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT(isConfigure(currentRequest));
 
             PVVV_SAFE("Step: " << currentStep
                                << " Send back deconfigure queue response");
@@ -1927,8 +1965,9 @@ void TestSession::arriveAtLateResponseStepReader(
                                << " Ensure close queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_REOPEN_OPENING: {
             // Handle pending request from the previous step
@@ -1952,19 +1991,19 @@ void TestSession::arriveAtLateResponseStepReader(
 
             PVVV_SAFE("Step: " << currentStep
                                << " Verify reopen request timed out");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-            ASSERT_EQ(queue->state(),
-                      bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
 
             // We assume there is only one queue under the test and it has
             // failed to reopen.  That means the session should emit
             // STATE_RESTORED event because there are no more queues for
             // reopening.
-            ASSERT(waitStateRestoredEvent());
+            BMQTST_ASSERT(waitStateRestoredEvent());
 
             PVVV_SAFE("Step: " << currentStep
                                << " Send back late configure queue response");
@@ -1974,12 +2013,13 @@ void TestSession::arriveAtLateResponseStepReader(
                                << " Ensure deconfigure queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CONFIG_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CFG);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_REOPEN_CONFIGURING_CLS: {
             // Handle pending request from the previous step
-            ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT(isConfigure(currentRequest));
 
             PVVV_SAFE("Step: " << currentStep
                                << " Send back deconfigure queue response");
@@ -1990,8 +2030,9 @@ void TestSession::arriveAtLateResponseStepReader(
                                << " Ensure close queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_RECONFIGURING: {
             // Handle pending request from the previous step
@@ -2003,13 +2044,13 @@ void TestSession::arriveAtLateResponseStepReader(
                                           e_CONFIGURING_RECONFIGURING,
                                           timeout);
 
-            ASSERT(isConfigure(currentRequest));
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_LATE_CLOSE_CONFIGURING: {
             // Cleanup pending reconfigure request from the previous step
-            ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT(isConfigure(currentRequest));
 
             PVVV_SAFE("Step: " << currentStep
                                << " Send back reconfigure queue response");
@@ -2018,20 +2059,20 @@ void TestSession::arriveAtLateResponseStepReader(
             // Go to state with pending deconfigure request
             currentRequest = arriveAtStep(queue, e_CLOSE_CONFIGURING, timeout);
 
-            ASSERT(isConfigure(currentRequest));
+            BMQTST_ASSERT(isConfigure(currentRequest));
 
             // Emulate request timeout.
             advanceTime(timeout);
 
             PVVV_SAFE("Step: " << currentStep
                                << " Verify deconfigure request timed out");
-            ASSERT(verifyOperationResult(
+            BMQTST_ASSERT(verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-            ASSERT_EQ(queue->state(),
-                      bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CFG_EXPIRED);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
 
             // Send late deconfigure response
             PVVV_SAFE("Step: "
@@ -2043,8 +2084,9 @@ void TestSession::arriveAtLateResponseStepReader(
                                << " Ensure close queue request is sent");
             currentRequest = getNextOutboundRequest(e_REQ_CLOSE_QUEUE);
 
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT_EQ(queue->state(),
+                             bmqimp::QueueState::e_CLOSING_CLS);
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         } break;
         case e_LATE_CLOSE_CLOSING: {
             // Handle pending request from the previous step
@@ -2068,7 +2110,8 @@ void TestSession::arriveAtLateResponseStepWriter(
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
 {
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     int                          currentStep = e_LATE_OPEN_OPENING;
 
     while (currentStep <= step) {
@@ -2085,12 +2128,12 @@ void TestSession::arriveAtLateResponseStepWriter(
             currentRequest = arriveAtStep(queue, e_OPEN_CONFIGURING, timeout);
 
             // For writer there should be no pending configure request
-            ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
         } break;
         case e_LATE_OPEN_CONFIGURING_CLS: {
             // Skip the step for the writer
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_LATE_REOPEN_OPENING: {
             currentRequest = reopenQueueFirstStepExpired(queue, timeout);
@@ -2106,26 +2149,26 @@ void TestSession::arriveAtLateResponseStepWriter(
                                           timeout);
 
             // No reopen-configure for the writer
-            ASSERT(currentRequest.choice().isOpenQueueValue());
-            ASSERT(waitStateRestoredEvent());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT(waitStateRestoredEvent());
         } break;
         case e_LATE_REOPEN_CONFIGURING_CLS: {
             // No reopen-configure for the writer
-            ASSERT(currentRequest.choice().isOpenQueueValue());
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_LATE_RECONFIGURING: {
             // No reconfigure for the writer
-            ASSERT(currentRequest.choice().isOpenQueueValue());
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_LATE_CLOSE_CONFIGURING: {
             // No configuring for the writer
-            ASSERT(currentRequest.choice().isOpenQueueValue());
-            ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT(currentRequest.choice().isOpenQueueValue());
+            BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+            BMQTST_ASSERT(queue->isValid());
         } break;
         case e_LATE_CLOSE_CLOSING: {
             // Go to the step with pending 2nd phase close request
@@ -2144,12 +2187,13 @@ TestSession::createQueue(const char*               name,
                          bsls::Types::Uint64       flags,
                          const bmqt::QueueOptions& options)
 {
-    ASSERT(name);
+    BMQTST_ASSERT(name);
 
-    bmqt::Uri                      uri(name, s_allocator_p);
+    bmqt::Uri uri(name, bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqimp::Queue> pQueue;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(flags);
     pQueue->setOptions(options);
@@ -2255,26 +2299,28 @@ void TestSession::stopGracefully(bool waitForDisconnected)
     session().stopAsync();
 
     PVVV_SAFE("Stopping: Verify disconnect request is sent");
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     getOutboundControlMessage(&disconnectMessage);
 
-    ASSERT(!disconnectMessage.rId().isNull());
-    ASSERT(disconnectMessage.choice().isDisconnectValue());
+    BMQTST_ASSERT(!disconnectMessage.rId().isNull());
+    BMQTST_ASSERT(disconnectMessage.choice().isDisconnectValue());
 
     PVVV_SAFE("Stopping: Prepare and send disconnect response message");
-    bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+        bmqtst::TestHelperUtil::allocator());
     disconnectResponseMessage.rId().makeValue(disconnectMessage.rId().value());
     disconnectResponseMessage.choice().makeDisconnectResponse();
 
     sendControlMessage(disconnectResponseMessage);
 
     if (waitForDisconnected) {
-        ASSERT(waitForChannelClose());
+        BMQTST_ASSERT(waitForChannelClose());
 
         PVVV_SAFE("Stopping: Waiting DISCONNECTED event");
-        ASSERT(waitDisconnectedEvent());
+        BMQTST_ASSERT(waitDisconnectedEvent());
         PVVV_SAFE("Stopping: Waiting session stop CB");
-        ASSERT(verifySessionIsStopped());
+        BMQTST_ASSERT(verifySessionIsStopped());
     }
 
     PVVV_SAFE("Session stopped...");
@@ -2385,10 +2431,10 @@ bool TestSession::isChannelEmpty()
 
 void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
 {
-    ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, true, bsls::TimeInterval(1)));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
-    bmqp::Event                   ev(&wc.d_blob, s_allocator_p, true);
+    bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator(), true);
 
     *rawEvent = ev;
 }
@@ -2396,25 +2442,27 @@ void TestSession::getOutboundEvent(bmqp::Event* rawEvent)
 void TestSession::getOutboundControlMessage(
     bmqp_ctrlmsg::ControlMessage* outMsg)
 {
-    ASSERT(d_testChannel.waitFor(1, true, k_EVENT_TIMEOUT));
+    BMQTST_ASSERT(d_testChannel.waitFor(1, true, k_EVENT_TIMEOUT));
 
     bmqio::TestChannel::WriteCall wc = d_testChannel.popWriteCall();
-    bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
+    bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT(ev.isControlEvent());
+    BMQTST_ASSERT(ev.isControlEvent());
 
     int rc = ev.loadControlEvent(outMsg);
-    ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(0, rc);
 }
 
 void TestSession::sendControlMessage(
     const bmqp_ctrlmsg::ControlMessage& message)
 {
-    bmqp::SchemaEventBuilder builder(&d_blobBufferFactory, d_allocator_p);
+    bmqp::SchemaEventBuilder builder(d_blobSpPool_sp.get(),
+                                     bmqp::EncodingType::e_BER,
+                                     d_allocator_p);
     int rc = builder.setMessage(message, bmqp::EventType::e_CONTROL);
-    ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(0, rc);
 
-    const bdlbb::Blob& packet = builder.blob();
+    const bdlbb::Blob& packet = *builder.blob();
 
     PVVV_SAFE("Send control message");
     d_brokerSession.processPacket(packet);
@@ -2422,7 +2470,8 @@ void TestSession::sendControlMessage(
 
 void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     responseMessage.rId() = request.rId();
 
     if (request.choice().isOpenQueueValue()) {
@@ -2441,7 +2490,8 @@ void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
 
 void TestSession::sendStatus(const bmqp_ctrlmsg::ControlMessage& request)
 {
-    bmqp_ctrlmsg::ControlMessage statusMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage statusMessage(
+        bmqtst::TestHelperUtil::allocator());
     statusMessage.rId() = request.rId();
     statusMessage.choice().makeStatus();
     statusMessage.choice().status().category() =
@@ -2455,25 +2505,26 @@ void TestSession::sendStatus(const bmqp_ctrlmsg::ControlMessage& request)
 bmqp_ctrlmsg::ControlMessage
 TestSession::getNextOutboundRequest(const RequestType requestType)
 {
-    bmqp_ctrlmsg::ControlMessage controlMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage controlMessage(
+        bmqtst::TestHelperUtil::allocator());
     getOutboundControlMessage(&controlMessage);
 
     PVVV_SAFE("Outbound request: " << controlMessage);
 
-    ASSERT(!controlMessage.rId().isNull());
+    BMQTST_ASSERT(!controlMessage.rId().isNull());
 
     switch (requestType) {
     case e_REQ_OPEN_QUEUE: {
-        ASSERT(controlMessage.choice().isOpenQueueValue());
+        BMQTST_ASSERT(controlMessage.choice().isOpenQueueValue());
     } break;
     case e_REQ_CONFIG_QUEUE: {
-        ASSERT(isConfigure(controlMessage));
+        BMQTST_ASSERT(isConfigure(controlMessage));
     } break;
     case e_REQ_CLOSE_QUEUE: {
-        ASSERT(controlMessage.choice().isCloseQueueValue());
+        BMQTST_ASSERT(controlMessage.choice().isCloseQueueValue());
     } break;
     case e_REQ_DISCONNECT: {
-        ASSERT(controlMessage.choice().isDisconnectValue());
+        BMQTST_ASSERT(controlMessage.choice().isDisconnectValue());
     } break;
     case e_REQ_UNDEFINED:
     default: {
@@ -2493,7 +2544,7 @@ bmqp_ctrlmsg::ControlMessage TestSession::verifyCloseRequestSent(bool isFinal)
     bmqp_ctrlmsg::ControlMessage request = getNextOutboundRequest(
         e_REQ_CLOSE_QUEUE);
 
-    ASSERT_EQ(request.choice().closeQueue().isFinal(), isFinal);
+    BMQTST_ASSERT_EQ(request.choice().closeQueue().isFinal(), isFinal);
 
     return request;
 }
@@ -2528,18 +2579,19 @@ void TestSession::verifyOpenQueueErrorResult(
     const bsl::shared_ptr<bmqimp::Queue>&     queue,
     const bmqimp::QueueState::Enum            queueState)
 {
-    ASSERT(queue);
+    BMQTST_ASSERT(queue);
 
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
-    ASSERT(verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
-                                 eventStatus));
+    BMQTST_ASSERT(
+        verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
+                              eventStatus));
 
-    ASSERT(waitForQueueState(queue, queueState));
+    BMQTST_ASSERT(waitForQueueState(queue, queueState));
 
     if (queueState == bmqimp::QueueState::e_CLOSED) {
         // Verify that the queue is removed from the active queue list
-        ASSERT(waitForQueueRemoved(queue));
+        BMQTST_ASSERT(waitForQueueRemoved(queue));
     }
 }
 
@@ -2580,18 +2632,18 @@ void TestSession::verifyCloseQueueResult(
 {
     bsl::shared_ptr<bmqimp::Event> queueCloseEvent = getInboundEvent();
 
-    ASSERT_EQ(queueCloseEvent->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
+    BMQTST_ASSERT_EQ(queueCloseEvent->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
 
-    ASSERT_EQ(queueCloseEvent->statusCode(), status);
+    BMQTST_ASSERT_EQ(queueCloseEvent->statusCode(), status);
 
-    ASSERT(waitForQueueState(queue, state));
+    BMQTST_ASSERT(waitForQueueState(queue, state));
 
     if (state == bmqimp::QueueState::e_CLOSED) {
         // Verify that the queue is removed from the active queue list
-        ASSERT(waitForQueueRemoved(queue));
+        BMQTST_ASSERT(waitForQueueRemoved(queue));
     }
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 }
 
 void TestSession::setChannelLowWaterMark(
@@ -2608,11 +2660,13 @@ static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
 {
     bmqt::SessionOptions  sessionOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     sessionOptions.setNumProcessingThreads(1).setDisconnectTimeout(
         bsls::TimeInterval(0.01));
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
@@ -2627,10 +2681,10 @@ static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
     // verify disconnect message
     obj.verifyRequestSent(TestSession::e_REQ_DISCONNECT);
 
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitDisconnectedEvent());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitDisconnectedEvent());
 
-    ASSERT(obj.verifySessionIsStopped());
+    BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
 
 struct AsyncCancelTestData {
@@ -2793,10 +2847,16 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     scheduler.start();
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
@@ -2807,6 +2867,7 @@ static void test1_breathingTest()
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         emptyEventHandler,  // emptyEventHandler,
         bdlf::BindUtil::bind(&stateCb,
@@ -2814,12 +2875,13 @@ static void test1_breathingTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     PVV_SAFE("Starting session...");
     int rc = session.startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
     // Session changes its state synchronously.
-    ASSERT_EQ(session.state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(session.state(),
+                     bmqimp::BrokerSession::State::e_STARTING);
 
     PVV_SAFE("Session starting...: " << rc);
 
@@ -2829,9 +2891,9 @@ static void test1_breathingTest()
     // 'stop' is synchronous and there is no IO connection.
     PVV_SAFE("Session stopped...");
 
-    ASSERT_EQ(session.state(), bmqimp::BrokerSession::State::e_STOPPED);
-    ASSERT_EQ(startCounter, 1);
-    ASSERT_EQ(stopCounter, 1);
+    BMQTST_ASSERT_EQ(session.state(), bmqimp::BrokerSession::State::e_STOPPED);
+    BMQTST_ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(stopCounter, 1);
 
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
@@ -2855,30 +2917,37 @@ static void test2_basicAccessorsTest()
 {
     bmqtst::TestHelper::printTestName("BASIC ACCESSORS");
 
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqp::QueueId            k_QUEUE_ID(0, 0);
     const bmqt::CorrelationId      corrId(bmqt::CorrelationId::autoValue());
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
     bmqimp::BrokerSession::StateFunctor      emptyStateCb;
 
     bmqimp::BrokerSession obj(&scheduler,
                               &blobBufferFactory,
+                              blobSpPool.get(),
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
-    ASSERT(!obj.isUsingSessionEventHandler());
+    BMQTST_ASSERT(!obj.isUsingSessionEventHandler());
 
-    ASSERT(obj.lookupQueue(uri) == 0);
-    ASSERT(obj.lookupQueue(k_QUEUE_ID) == 0);
-    ASSERT(obj.lookupQueue(corrId) == 0);
+    BMQTST_ASSERT(obj.lookupQueue(uri) == 0);
+    BMQTST_ASSERT(obj.lookupQueue(k_QUEUE_ID) == 0);
+    BMQTST_ASSERT(obj.lookupQueue(corrId) == 0);
 }
 
 static void test3_nullChannelTest()
@@ -2902,7 +2971,13 @@ static void test3_nullChannelTest()
     bmqtst::TestHelper::printTestName("NULL CHANNEL");
 
     const int                      k_NUM_EVENTS = 3;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
@@ -2910,11 +2985,12 @@ static void test3_nullChannelTest()
     bslmt::TimedSemaphore          eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         bdlf::BindUtil::bind(&channelEventHandler,
                              bdlf::PlaceHolders::_1,
@@ -2924,9 +3000,9 @@ static void test3_nullChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
+    BMQTST_ASSERT_EQ(obj.isUsingSessionEventHandler(), true);
 
     // Should not emit CONNECTION_LOST
     obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -2936,16 +3012,16 @@ static void test3_nullChannelTest()
     obj.stop();
 
     // 'stop' is synchronous and there is no IO connection.
-    ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STOPPED);
-    ASSERT_EQ(stopCounter, 1);
+    BMQTST_ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STOPPED);
+    BMQTST_ASSERT_EQ(stopCounter, 1);
 
     PVV_SAFE("Starting session...");
     int rc = obj.startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     // Session changes its state synchronously.
-    ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
-    ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(startCounter, 1);
 
     PVV_SAFE("Resetting channel...");
     // Expect no CONNECTION_LOST events if a valid channel is never being set
@@ -2960,15 +3036,15 @@ static void test3_nullChannelTest()
                                   bsls::TimeInterval(0.1));
 
     // Timeout since there are no events
-    ASSERT(rc != 0);
+    BMQTST_ASSERT(rc != 0);
 
     PVV_SAFE("Stopping session...");
     obj.stop();
 
     // 'stop' is synchronous and there is no IO connection.
 
-    ASSERT_EQ(startCounter, 1);
-    ASSERT_EQ(stopCounter, 3);
+    BMQTST_ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(stopCounter, 3);
 }
 
 static void test4_createEventTest()
@@ -2992,9 +3068,15 @@ static void test4_createEventTest()
     bmqtst::TestHelper::printTestName("CREATE EVENT TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
 
     bmqimp::EventQueue::EventHandlerCallback emptyEventHandler;
@@ -3002,21 +3084,28 @@ static void test4_createEventTest()
 
     bmqimp::BrokerSession obj(&scheduler,
                               &blobBufferFactory,
+                              blobSpPool.get(),
                               sessionOptions,
                               emptyEventHandler,
                               emptyStateCb,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Event> ev = obj.createEvent();
-    ASSERT_EQ(bmqimp::Event::EventType::e_UNINITIALIZED, ev->type());
+    BMQTST_ASSERT_EQ(bmqimp::Event::EventType::e_UNINITIALIZED, ev->type());
 }
 
 static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
 {
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval&      timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -3024,13 +3113,14 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     bsls::AtomicInt                stopCounter(0);
     bslmt::TimedSemaphore          semaphore;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(queueFlags);
     pQueue->setOptions(queueOptions);
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     scheduler.start();
 
@@ -3045,6 +3135,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         eventCallback,
         bdlf::BindUtil::bind(&stateCb,
@@ -3052,105 +3143,109 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
     int rc = session.startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     // Session changes its state synchronously.
-    ASSERT_EQ(session.state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(session.state(),
+                     bmqimp::BrokerSession::State::e_STARTING);
 
-    ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(startCounter, 1);
     PVV_SAFE("Session starting...: " << rc);  // Session did not start.
 
     PVV_SAFE("Step 2a. Checking deprecated sync open queue...");
     rc = session.openQueue(pQueue, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
 
     PVV_SAFE("Step 2b. Checking sync open queue...");
     session.openQueueSync(pQueue, timeout, eventCallback);
     // use the same callback to capture event
-    ASSERT(waitRealTime(&semaphore));
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT(waitRealTime(&semaphore));
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
 
-    ASSERT(eventSp);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
-    ASSERT_EQ(eventSp->statusCode(), bmqt::OpenQueueResult::e_REFUSED);
+    BMQTST_ASSERT(eventSp);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(), bmqt::OpenQueueResult::e_REFUSED);
 
     eventSp.reset();
 
     PVV_SAFE("Step 3. Checking async open...");
     rc = session.openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
 
-    ASSERT(session.lookupQueue(uri) == 0);
+    BMQTST_ASSERT(session.lookupQueue(uri) == 0);
 
     PVV_SAFE("Step 4a. Checking deprecated sync configure...");
     queueOptions.setMaxUnconfirmedMessages(0).setMaxUnconfirmedBytes(0);
 
     rc = session.configureQueue(pQueue, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 4b. Checking sync configure...");
     session.configureQueueSync(pQueue, queueOptions, timeout, eventCallback);
 
-    ASSERT(waitRealTime(&semaphore));
+    BMQTST_ASSERT(waitRealTime(&semaphore));
 
-    ASSERT(eventSp);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
-    ASSERT_EQ(eventSp->statusCode(), bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT(eventSp);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqt::ConfigureQueueResult::e_REFUSED);
     eventSp.reset();
 
     PVV_SAFE("Step 5. Checking async configure...");
-    ASSERT_EQ(session.configureQueueAsync(pQueue, queueOptions, timeout),
-              bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(
+        session.configureQueueAsync(pQueue, queueOptions, timeout),
+        bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 6a. Checking deprecated sync configure...");
     rc = session.configureQueue(pQueue, queueOptions, timeout);
 
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 6b. Checking sync configure...");
     session.configureQueueSync(pQueue, queueOptions, timeout, eventCallback);
 
-    ASSERT(waitRealTime(&semaphore));
+    BMQTST_ASSERT(waitRealTime(&semaphore));
 
-    ASSERT(eventSp);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
+    BMQTST_ASSERT(eventSp);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
 
-    ASSERT_EQ(eventSp->statusCode(), bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqt::ConfigureQueueResult::e_REFUSED);
 
     eventSp.reset();
 
     PVV_SAFE("Step 7. Checking async configure...");
     rc = session.configureQueueAsync(pQueue, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 8a. Checking deprecated sync close...");
     rc = session.closeQueue(pQueue, timeout);
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 8b. Checking sync close...");
 
     session.closeQueueSync(pQueue, timeout, eventCallback);
 
-    ASSERT(waitRealTime(&semaphore));
+    BMQTST_ASSERT(waitRealTime(&semaphore));
 
-    ASSERT(eventSp != 0);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
-    ASSERT_EQ(eventSp->statusCode(), bmqt::CloseQueueResult::e_REFUSED);
+    BMQTST_ASSERT(eventSp != 0);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(), bmqt::CloseQueueResult::e_REFUSED);
 
     eventSp.reset();
 
     PVV_SAFE("Step 9. Checking async close...");
     rc = session.closeQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_REFUSED);
 
     PVV_SAFE("Step 10. Stopping session...");
     session.stop();
@@ -3158,8 +3253,8 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     // 'stop' is synchronous and there is no IO connection.
     PVV_SAFE("Session stopped...");
 
-    ASSERT_EQ(startCounter, 1);
-    ASSERT_EQ(stopCounter, 1);
+    BMQTST_ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(stopCounter, 1);
 
     // need to reset eventSp before the event pool destructs
     eventSp.clear();
@@ -3244,20 +3339,27 @@ static void test6_setChannelTest()
     // - CONNECTION_LOST
     const int                      k_NUM_CALLS  = 4;
     const int                      k_NUM_EVENTS = 2 + 3 * (k_NUM_CALLS - 1);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bsls::AtomicInt                eventCounter(0);
     bsls::AtomicInt                startCounter(0);
     bsls::AtomicInt                stopCounter(0);
-    bmqio::TestChannel             testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     bslmt::TimedSemaphore          eventSemaphore;
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         bdlf::BindUtil::bind(&channelSetEventHandler,
                              bdlf::PlaceHolders::_1,
@@ -3269,15 +3371,15 @@ static void test6_setChannelTest()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Starting session...");
     int rc = obj.startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     // Session changes its state synchronously.
-    ASSERT_EQ(startCounter, 1);
-    ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
 
     for (int i = 0; i < k_NUM_CALLS; i++) {
         obj.setChannel(
@@ -3290,10 +3392,10 @@ static void test6_setChannelTest()
     obj.stop();
     // 'stop' is synchronous and there is no IO connection.
     // 'stop' should unblock _after_ e_DISCONNECTED event
-    ASSERT_EQ(stopCounter, 1);
+    BMQTST_ASSERT_EQ(stopCounter, 1);
 
     // Expect one more event - DISCONNECTED
-    ASSERT_EQ(eventCounter, k_NUM_EVENTS + 1);
+    BMQTST_ASSERT_EQ(eventCounter, k_NUM_EVENTS + 1);
 }
 
 static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
@@ -3302,12 +3404,14 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3316,56 +3420,58 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 2. Check async open first part timeout");
     {
         int rc = obj.session().openQueueAsync(pQueue, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
         PVV_SAFE("Step 3. Verify open request was sent");
         obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
 
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-        ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
         // Emulate request timeout.
         obj.advanceTime(timeout);
 
         PVV_SAFE("Step 4. Waiting QUEUE_OPEN_RESULT event...");
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
-        ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT_EQ(pQueue->state(),
+                         bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
         PVV_SAFE("Step 5. Reset the channel to make the queue CLOSED");
         // Reset channel to force closing of the expired queue
         obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
-        ASSERT(obj.waitConnectionLostEvent());
+        BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
-        ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
-        ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT(
+            obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
         // Restore the channel, the queue is closed and can be reused
         obj.setChannel();
-        ASSERT(obj.waitReconnectedEvent());
-        ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT(obj.waitReconnectedEvent());
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
     }
 
     PVV_SAFE("Step 6. Check async open second part timeout");
     {
         int rc = obj.session().openQueueAsync(pQueue, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
         PVV_SAFE("Step 8. Verify open request was sent");
         bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
             TestSession::e_REQ_OPEN_QUEUE);
 
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-        ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
         PVV_SAFE("Step 9. Send open queue response message");
         obj.sendResponse(request);
@@ -3373,18 +3479,19 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
         // Writer queue will be opened without configuring
         if (!bmqt::QueueFlagsUtil::isReader(queueFlags)) {
             PVV_SAFE("Step 10. Waiting QUEUE_OPEN_RESULT event...");
-            ASSERT(obj.verifyOperationResult(
+            BMQTST_ASSERT(obj.verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-            ASSERT(
+            BMQTST_ASSERT(
                 obj.waitForQueueState(pQueue, bmqimp::QueueState::e_OPENED));
-            ASSERT(pQueue->isValid());
+            BMQTST_ASSERT(pQueue->isValid());
         }
         else {
-            ASSERT(obj.waitForQueueState(pQueue,
-                                         bmqimp::QueueState::e_OPENING_CFG));
-            ASSERT_EQ(pQueue->isValid(), false);
+            BMQTST_ASSERT(
+                obj.waitForQueueState(pQueue,
+                                      bmqimp::QueueState::e_OPENING_CFG));
+            BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
             PVV_SAFE("Step 10. Verify config request was sent");
             obj.verifyRequestSent(TestSession::e_REQ_CONFIG_QUEUE);
@@ -3393,12 +3500,12 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
             obj.advanceTime(timeout);
 
             PVV_SAFE("Step 11. Waiting QUEUE_OPEN_RESULT event...");
-            ASSERT(obj.verifyOperationResult(
+            BMQTST_ASSERT(obj.verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
-            ASSERT_EQ(pQueue->state(),
-                      bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
-            ASSERT_EQ(pQueue->isValid(), false);
+            BMQTST_ASSERT_EQ(pQueue->state(),
+                             bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
+            BMQTST_ASSERT_EQ(pQueue->isValid(), false);
         }
     }
 
@@ -3459,11 +3566,13 @@ static void test8_queueWriterConfigureTest()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE);
@@ -3477,21 +3586,21 @@ static void test8_queueWriterConfigureTest()
 
     PVV_SAFE("Starting session...");
     rc = obj.session().startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     PVV_SAFE("Calling configure queue when no channel");
     rc = obj.session().configureQueue(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Setting channel");
     obj.setChannel();
 
     // Consume the connected event (so that stop gracefully will be able to
     // work and pop the 'disconnected' event)
-    ASSERT(obj.waitConnectedEvent());
+    BMQTST_ASSERT(obj.waitConnectedEvent());
 
     // We empty any outbound message now, so that we can then ensure no
     // messages was sent as part of the following configures).
@@ -3499,15 +3608,15 @@ static void test8_queueWriterConfigureTest()
 
     PVV_SAFE("Calling configure queue when channel");
     rc = obj.session().configureQueue(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT(obj.channel().writeCalls().empty());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT(obj.channel().writeCalls().empty());
 
     // Async configure should have enqueued a configure result of value success
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
@@ -3520,7 +3629,7 @@ static void test8_queueWriterConfigureTest()
     PVV_SAFE("Checking deprecated sync configure...");
 
     rc = obj.session().configureQueue(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     PVV_SAFE("Checking sync configure...");
     obj.configureQueueSync(pQueue, pQueue->options(), timeout);
@@ -3530,11 +3639,11 @@ static void test8_queueWriterConfigureTest()
 
     PVV_SAFE("Checking async configure...");
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_REFUSED);
 
     // The non-callback 'configureQueueAsync' versions _must_ _not_ generate
     /// an event on failure
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     // Now really stop
     obj.stopGracefully();
@@ -3548,11 +3657,13 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3561,22 +3672,23 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 2. Check async open first part error");
     int rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 3. Check open request was sent");
     const int openReqId1 = obj.verifyRequestSent(
         TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 4. Send open queue response with error");
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     responseMessage.rId().makeValue(openReqId1);
     responseMessage.choice().makeStatus();
     responseMessage.choice().status().category() =
@@ -3591,14 +3703,14 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
 
     PVV_SAFE("Step 6. Check async open second part error");
     rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 7. Check open request was sent");
     bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
         TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 8. Send open queue response message");
     obj.sendResponse(request);
@@ -3606,12 +3718,13 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     // Writer queue is already opened, reader queue should be configured
     if (!bmqt::QueueFlagsUtil::isReader(queueFlags)) {
         PVV_SAFE("Step 9. Waiting QUEUE_OPEN_RESULT event...");
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-        ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_OPENED));
-        ASSERT(pQueue->isValid());
+        BMQTST_ASSERT(
+            obj.waitForQueueState(pQueue, bmqimp::QueueState::e_OPENED));
+        BMQTST_ASSERT(pQueue->isValid());
     }
     else {
         PVV_SAFE("Step 9. Check config request was sent");
@@ -3634,7 +3747,8 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
         obj.sendResponse(request);
 
         PVV_SAFE("Step 14. Check the queue gets closed");
-        ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
+        BMQTST_ASSERT(
+            obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
     }
 
     PVV_SAFE("Step 15. Stop the session");
@@ -3683,11 +3797,13 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -3696,17 +3812,17 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Start the session");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Close unopened queue async");
     int rc = obj.session().closeQueueAsync(pQueue, timeout);
 
     // Verify the result
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
 
     PVV_SAFE("Waiting QUEUE_CLOSE_RESULT event...");
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT,
                                   bmqt::CloseQueueResult::e_UNKNOWN_QUEUE));
 
@@ -3714,25 +3830,28 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     rc = obj.session().openQueueAsync(pQueue, timeout);
 
     // Verify the result
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
     // Verify open request (todo: check handle queue parameters)
     PVV_SAFE("Ensure open queue request has been sent");
     const int openId = obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     // Prepare and process open queue response
     PVV_SAFE("Prepare and send back open queue response");
-    bmqp_ctrlmsg::ControlMessage openQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage openQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
     openQueueResponse.rId().makeValue(openId);
     openQueueResponse.choice().makeOpenQueueResponse();
 
     obj.sendControlMessage(openQueueResponse);
 
-    bmqp_ctrlmsg::ControlMessage configureQueueMessage(s_allocator_p);
-    bmqp_ctrlmsg::ControlMessage configureQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage configureQueueMessage(
+        bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::ControlMessage configureQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
 
     // For reader queue there is a configuring phase
     if (bmqt::QueueFlagsUtil::isReader(queueFlags)) {
@@ -3740,8 +3859,8 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
         PVV_SAFE("Ensure configure queue request has been sent");
         obj.getOutboundControlMessage(&configureQueueMessage);
 
-        ASSERT(!configureQueueMessage.rId().isNull());
-        ASSERT(isConfigure(configureQueueMessage));
+        BMQTST_ASSERT(!configureQueueMessage.rId().isNull());
+        BMQTST_ASSERT(isConfigure(configureQueueMessage));
 
         // Prepare and process configure queue response
         PVV_SAFE("Prepare and send back configure queue response");
@@ -3752,19 +3871,19 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
     }
 
     PVV_SAFE("Waiting QUEUE_OPEN_RESULT event...");
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(pQueue->isValid());
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(pQueue->isValid());
 
     // Close the queue async
     PVV_SAFE("Close the queue async");
     rc = obj.session().closeQueueAsync(pQueue, timeout);
 
     // Verify the result
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
 
     // For reader queue there is a deconfiguring phase
     if (bmqt::QueueFlagsUtil::isReader(queueFlags)) {
@@ -3773,11 +3892,11 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
         configureQueueMessage.reset();
         obj.getOutboundControlMessage(&configureQueueMessage);
 
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-        ASSERT_EQ(pQueue->isValid(), false);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CFG);
+        BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
-        ASSERT(!configureQueueMessage.rId().isNull());
-        ASSERT(isConfigure(configureQueueMessage));
+        BMQTST_ASSERT(!configureQueueMessage.rId().isNull());
+        BMQTST_ASSERT(isConfigure(configureQueueMessage));
 
         // Prepare and process configure queue response
         PVV_SAFE("Prepare and send back configure queue response");
@@ -3790,16 +3909,18 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
 
     // Verify close request (todo: check handle queue parameters)
     PVV_SAFE("Ensure close queue request has been sent");
-    bmqp_ctrlmsg::ControlMessage closeQueueMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage closeQueueMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&closeQueueMessage);
 
-    ASSERT(!closeQueueMessage.rId().isNull());
-    ASSERT(closeQueueMessage.choice().isCloseQueueValue());
-    ASSERT(closeQueueMessage.choice().closeQueue().isFinal());
+    BMQTST_ASSERT(!closeQueueMessage.rId().isNull());
+    BMQTST_ASSERT(closeQueueMessage.choice().isCloseQueueValue());
+    BMQTST_ASSERT(closeQueueMessage.choice().closeQueue().isFinal());
 
     // Prepare and process close queue response
     PVV_SAFE("Prepare and send back close queue response");
-    bmqp_ctrlmsg::ControlMessage closeQueueResponse(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage closeQueueResponse(
+        bmqtst::TestHelperUtil::allocator());
     closeQueueResponse.rId().makeValue(closeQueueMessage.rId().value());
     closeQueueResponse.choice().makeCloseQueueResponse();
 
@@ -3893,17 +4014,23 @@ static void test11_disconnect()
     bmqtst::TestHelper::printTestName("DISCONNECT");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > eventQueue(
         bsls::SystemClockType::e_MONOTONIC,
-        s_allocator_p);
-    bmqio::TestChannel testChannel(s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     bsls::AtomicInt    startCounter(0);
     bsls::AtomicInt    stopCounter(0);
 
     int rc = scheduler.start();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     testChannel.setPeerUri("tcp://testHost:1234");  // for better logging
 
@@ -3917,6 +4044,7 @@ static void test11_disconnect()
         bmqimp::BrokerSession obj(
             &scheduler,
             &blobBufferFactory,
+            blobSpPool.get(),
             options,
             bdlf::BindUtil::bind(&sessionEventHandler,
                                  &eventQueue,
@@ -3926,16 +4054,17 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Start the session
         PVV_SAFE("Starting session");
         rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Session changes its state synchronously.
-        ASSERT_EQ(startCounter, 1);
-        ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
+        BMQTST_ASSERT_EQ(startCounter, 1);
+        BMQTST_ASSERT_EQ(obj.state(),
+                         bmqimp::BrokerSession::State::e_STARTING);
 
         // Set channel
         obj.setChannel(
@@ -3947,10 +4076,10 @@ static void test11_disconnect()
         rc = eventQueue.timedPopFront(&event,
                                       bmqsys::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(event->statusCode(), 0);
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(event->statusCode(), 0);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTED);
         PVV_SAFE("Channel connected!");
 
         // Stop the session
@@ -3962,30 +4091,34 @@ static void test11_disconnect()
         eventQueue.timedPopFront(&event,
                                  bmqsys::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
-        ASSERT(!event);
+        BMQTST_ASSERT(!event);
 
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
-        bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
-        ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
+        bmqp_ctrlmsg::ControlMessage disconnectMessage(
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
-        bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
-        ASSERT(ev.isControlEvent());
+        bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(ev.isControlEvent());
 
         rc = ev.loadControlEvent(&disconnectMessage);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         PVV_SAFE("Send the disconnect response");
-        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+            bmqtst::TestHelperUtil::allocator());
         disconnectResponseMessage.rId().makeValue(
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory, s_allocator_p);
+        bmqp::SchemaEventBuilder builder(blobSpPool.get(),
+                                         bmqp::EncodingType::e_BER,
+                                         bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
-        obj.processPacket(builder.blob());
+        obj.processPacket(*builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -3994,21 +4127,21 @@ static void test11_disconnect()
         rc = eventQueue.timedPopFront(&event,
                                       bmqsys::Time::nowMonotonicClock() +
                                           bsls::TimeInterval(5));
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(event->statusCode(), 0);
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_DISCONNECTED);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(event->statusCode(), 0);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_DISCONNECTED);
 
         // Ensure no more  events are delivered to the user
         event.reset();
         eventQueue.timedPopFront(&event,
                                  bmqsys::Time::nowMonotonicClock() +
                                      bsls::TimeInterval(0.1));
-        ASSERT(!event);
+        BMQTST_ASSERT(!event);
 
-        ASSERT_EQ(startCounter, 1);
+        BMQTST_ASSERT_EQ(startCounter, 1);
         // Ensure stateCb was called
-        ASSERT_EQ(stopCounter, 1);
+        BMQTST_ASSERT_EQ(stopCounter, 1);
     }
 
     {
@@ -4019,6 +4152,7 @@ static void test11_disconnect()
         bmqimp::BrokerSession obj(
             &scheduler,
             &blobBufferFactory,
+            blobSpPool.get(),
             options,
             bmqimp::EventQueue::EventHandlerCallback(),
             bdlf::BindUtil::bind(&stateCb,
@@ -4026,16 +4160,17 @@ static void test11_disconnect()
                                  bdlf::PlaceHolders::_2,  // new state
                                  &startCounter,
                                  &stopCounter),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         // Start the session
         PVV_SAFE("Starting session");
         rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Session changes its state synchronously.
-        ASSERT_EQ(obj.state(), bmqimp::BrokerSession::State::e_STARTING);
-        ASSERT_EQ(startCounter, 2);
+        BMQTST_ASSERT_EQ(obj.state(),
+                         bmqimp::BrokerSession::State::e_STARTING);
+        BMQTST_ASSERT_EQ(startCounter, 2);
 
         // Set channel
         obj.setChannel(
@@ -4045,10 +4180,10 @@ static void test11_disconnect()
         PVV_SAFE("Waiting CONNECTED event...");
         bsl::shared_ptr<bmqimp::Event> event;
         event = obj.nextEvent(bsls::TimeInterval(5));
-        ASSERT(event);
-        ASSERT_EQ(event->statusCode(), 0);
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT(event);
+        BMQTST_ASSERT_EQ(event->statusCode(), 0);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_CONNECTED);
         PV_SAFE("Channel connected!");
 
         // Stop the session
@@ -4058,31 +4193,35 @@ static void test11_disconnect()
         // Ensure no event is yet emitted to the user
         event.reset();
         event = obj.nextEvent(bsls::TimeInterval(0.1));
-        ASSERT_EQ(event->sessionEventType(),
-                  bmqt::SessionEventType::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(event->sessionEventType(),
+                         bmqt::SessionEventType::e_TIMEOUT);
 
         PVV_SAFE("Ensure a disconnectMessage was sent to the broker");
-        bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
-        ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
+        bmqp_ctrlmsg::ControlMessage disconnectMessage(
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(testChannel.waitFor(1, true, bsls::TimeInterval(5)));
         bmqio::TestChannel::WriteCall wc = testChannel.popWriteCall();
-        bmqp::Event                   ev(&wc.d_blob, s_allocator_p);
-        ASSERT(ev.isControlEvent());
+        bmqp::Event ev(&wc.d_blob, bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(ev.isControlEvent());
 
         rc = ev.loadControlEvent(&disconnectMessage);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         PVV_SAFE("Send the disconnect response");
-        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage disconnectResponseMessage(
+            bmqtst::TestHelperUtil::allocator());
         disconnectResponseMessage.rId().makeValue(
             disconnectMessage.rId().value());
         disconnectResponseMessage.choice().makeDisconnectResponse();
 
-        bmqp::SchemaEventBuilder builder(&blobBufferFactory, s_allocator_p);
+        bmqp::SchemaEventBuilder builder(blobSpPool.get(),
+                                         bmqp::EncodingType::e_BER,
+                                         bmqtst::TestHelperUtil::allocator());
         rc = builder.setMessage(disconnectResponseMessage,
                                 bmqp::EventType::e_CONTROL);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
-        obj.processPacket(builder.blob());
+        obj.processPacket(*builder.blob());
 
         // Reset the channel
         obj.setChannel(bsl::shared_ptr<bmqio::Channel>());
@@ -4092,15 +4231,15 @@ static void test11_disconnect()
         // 'disconnected' events now.
         for (int i = 0; i < 5; ++i) {
             event = obj.nextEvent(bsls::TimeInterval(5));
-            ASSERT(event);
-            ASSERT_EQ(event->statusCode(), 0);
-            ASSERT_EQ(event->sessionEventType(),
-                      bmqt::SessionEventType::e_DISCONNECTED);
+            BMQTST_ASSERT(event);
+            BMQTST_ASSERT_EQ(event->statusCode(), 0);
+            BMQTST_ASSERT_EQ(event->sessionEventType(),
+                             bmqt::SessionEventType::e_DISCONNECTED);
         }
 
-        ASSERT_EQ(startCounter, 2);
+        BMQTST_ASSERT_EQ(startCounter, 2);
         // Ensure stateCb was called
-        ASSERT_EQ(stopCounter, 2);
+        BMQTST_ASSERT_EQ(stopCounter, 2);
     }
 
     scheduler.cancelAllEventsAndWait();
@@ -4134,25 +4273,29 @@ static void test12_disconnectStatus()
     bmqtst::TestHelper::printTestName("DISCONNECT STATUS MESSAGE");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
     PVV_SAFE("Stopping session...");
     obj.session().stopAsync();
 
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&disconnectMessage);
 
-    ASSERT(!disconnectMessage.rId().isNull());
-    ASSERT(disconnectMessage.choice().isDisconnectValue());
+    BMQTST_ASSERT(!disconnectMessage.rId().isNull());
+    BMQTST_ASSERT(disconnectMessage.choice().isDisconnectValue());
 
     // prepare status message
-    bmqp_ctrlmsg::ControlMessage statusMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage statusMessage(
+        bmqtst::TestHelperUtil::allocator());
     statusMessage.rId().makeValue(disconnectMessage.rId().value());
     statusMessage.choice().makeStatus();
     statusMessage.choice().status().category() =
@@ -4163,10 +4306,10 @@ static void test12_disconnectStatus()
     // process status message
     obj.sendControlMessage(statusMessage);
 
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitDisconnectedEvent());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitDisconnectedEvent());
 
-    ASSERT(obj.verifySessionIsStopped());
+    BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
 
 static void test13_disconnectTimeout()
@@ -4198,30 +4341,33 @@ static void test13_disconnectTimeout()
     const bsls::TimeInterval timeout = bsls::TimeInterval(5);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
     sessionOptions.setNumProcessingThreads(1).setDisconnectTimeout(timeout);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     obj.startAndConnect();
 
     PVV_SAFE("Stopping session...");
     obj.session().stopAsync();
 
-    bmqp_ctrlmsg::ControlMessage disconnectMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
     obj.getOutboundControlMessage(&disconnectMessage);
 
-    ASSERT(!disconnectMessage.rId().isNull());
-    ASSERT(disconnectMessage.choice().isDisconnectValue());
+    BMQTST_ASSERT(!disconnectMessage.rId().isNull());
+    BMQTST_ASSERT(disconnectMessage.choice().isDisconnectValue());
 
     // Emulate disconnect request timeout.
     obj.advanceTime(timeout);
 
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitDisconnectedEvent());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitDisconnectedEvent());
 
-    ASSERT(obj.verifySessionIsStopped());
+    BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
 
 static void test14_disconnectRequestGenericErr()
@@ -4372,42 +4518,45 @@ static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI, queueFlags);
 
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 2. Check async open error");
     int rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 3. Check open request was sent");
     bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
         TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     // Emulate request timeout.
     obj.advanceTime(timeout);
 
     PVV_SAFE("Step 4. Waiting QUEUE_OPEN_RESULT event...");
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(),
+                     bmqimp::QueueState::e_OPENING_OPN_EXPIRED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 5. Send late open queue response message");
     obj.sendResponse(request);
@@ -4415,16 +4564,16 @@ static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 6. Check close request was sent");
     request = obj.verifyCloseRequestSent(true);  // ifFinal
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CLS);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CLS);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
-    ASSERT(obj.session().lookupQueue(pQueue->uri()) != 0);
+    BMQTST_ASSERT(obj.session().lookupQueue(pQueue->uri()) != 0);
 
     PVV_SAFE("Step 7. Send close response");
     obj.sendResponse(request);
 
     PVV_SAFE("Step 8. Check the queue gets closed");
-    ASSERT(obj.waitForQueueRemoved(pQueue));
+    BMQTST_ASSERT(obj.waitForQueueRemoved(pQueue));
 
     PVV_SAFE("Step 9. Stop the session");
     obj.stopGracefully();
@@ -4490,17 +4639,20 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
 
-    bmqt::Uri                    uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage responseMessage(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage responseMessage(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                    testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     // The test case is applicable only for the reader queue
     bsl::shared_ptr<bmqimp::Queue> pQueue =
@@ -4509,19 +4661,19 @@ static void test20_queueOpen_LateConfigureQueueResponse()
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 2. Check async open first part error");
     int rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 3. Check open request was sent");
     bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
         TestSession::e_REQ_OPEN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_OPN);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 4. Send valid open queue response message");
     obj.sendResponse(request);
@@ -4533,12 +4685,13 @@ static void test20_queueOpen_LateConfigureQueueResponse()
     obj.advanceTime(timeout);
 
     PVV_SAFE("Step 6. Waiting QUEUE_OPEN_RESULT event...");
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(),
+                     bmqimp::QueueState::e_OPENING_CFG_EXPIRED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 7. Send late configure queue response message");
     obj.sendResponse(request);
@@ -4546,10 +4699,10 @@ static void test20_queueOpen_LateConfigureQueueResponse()
     PVV_SAFE("Step 8. Check close request (config part) was sent");
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CFG);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSING_CFG);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
-    ASSERT(obj.session().lookupQueue(uri) != 0);
+    BMQTST_ASSERT(obj.session().lookupQueue(uri) != 0);
 
     PVV_SAFE("Step 9. Send close response (config part)");
     obj.sendResponse(request);
@@ -4561,7 +4714,7 @@ static void test20_queueOpen_LateConfigureQueueResponse()
     obj.sendResponse(request);
 
     PVV_SAFE("Step 12. Check the queue gets closed");
-    ASSERT(obj.waitForQueueRemoved(pQueue));
+    BMQTST_ASSERT(obj.waitForQueueRemoved(pQueue));
 
     PVV_SAFE("Step 13. Stop the session");
     obj.stopGracefully();
@@ -4601,12 +4754,14 @@ static void test21_post_Limit()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
     // Create test session with the system time source
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -4622,7 +4777,7 @@ static void test21_post_Limit()
 
     PVV_SAFE("Step 4. Create and post PUT message");
     bmqp::Crc32c::initialize();
-    bmqp::PutEventBuilder builder(&obj.blobBufferFactory(), obj.allocator());
+    bmqp::PutEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
     const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
     const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
@@ -4630,28 +4785,28 @@ static void test21_post_Limit()
     builder.startMessage();
     builder.setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN)
         .setMessageGUID(bmqp::MessageGUIDGenerator::testGUID());
-    ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS,
-              builder.packMessage(pQueue->id()));
+    BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS,
+                     builder.packMessage(pQueue->id()));
 
-    int rc = obj.session().post(builder.blob(), postTimeout);
+    int rc = obj.session().post(*builder.blob(), postTimeout);
 
     PVV_SAFE("Step 5. Ensure the PUT message is accepted");
-    ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     // Check PUT event is sent
-    bmqp::Event rawEvent(s_allocator_p);
+    bmqp::Event rawEvent(bmqtst::TestHelperUtil::allocator());
     obj.getOutboundEvent(&rawEvent);
 
-    ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 6. Ensure e_BW_LIMIT is returned for the second post");
-    rc = obj.session().post(builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob(), postTimeout);
 
-    ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
-    ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_BW_LIMIT);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PVV_SAFE("Step 7. Schedule LWM and post PUT again");
     scheduler.scheduleEvent(
@@ -4662,39 +4817,39 @@ static void test21_post_Limit()
 
     // Call post with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().post(builder.blob(), timeout);
+    rc = obj.session().post(*builder.blob(), timeout);
 
     PVV_SAFE("Step 8. Ensure e_SUCCESS is returned");
-    ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     // Expect two PUT events in the test channel - one from the attempt that
     // returned E_LIMIT and the second one after LWM event.
     for (int i = 0; i < 2; i++) {
         rawEvent.clear();
         obj.getOutboundEvent(&rawEvent);
-        ASSERT(rawEvent.isPutEvent());
+        BMQTST_ASSERT(rawEvent.isPutEvent());
     }
-    ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PVV_SAFE("Step 9. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().post(builder.blob(), postTimeout);
+    rc = obj.session().post(*builder.blob(), postTimeout);
 
     PVV_SAFE("Step 10. Ensure e_SUCCESS is returned");
-    ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::PostResult::e_SUCCESS);
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     // Verify the channel is closed after write error
     rawEvent.clear();
     obj.getOutboundEvent(&rawEvent);
-    ASSERT(rawEvent.isPutEvent());
-    ASSERT_EQ(obj.channel().closeCalls().size(), 1u);
+    BMQTST_ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT_EQ(obj.channel().closeCalls().size(), 1u);
 
     // Set write status back to e_SUCCESS
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
@@ -4738,11 +4893,13 @@ static void test22_confirm_Limit()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -4757,23 +4914,22 @@ static void test22_confirm_Limit()
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
     PVV_SAFE("Step 4. Create the blob and confirm messages");
-    bmqp::ConfirmEventBuilder builder(&obj.blobBufferFactory(),
-                                      obj.allocator());
+    bmqp::ConfirmEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
     int rc = builder.appendMessage(pQueue->id(),
                                    pQueue->subQueueId(),
                                    bmqt::MessageGUID());
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
-    rc = obj.session().confirmMessages(builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
 
     PVV_SAFE("Step 5. Ensure e_SUCCESS is returned");
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
-    ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
 
     // Clear test channel write queue
     obj.channel().writeCalls().clear();
@@ -4789,17 +4945,17 @@ static void test22_confirm_Limit()
 
     // Call confirm with a bigger timeout so that LWM event arrives before it
     // expires.
-    rc = obj.session().confirmMessages(builder.blob(), timeout);
+    rc = obj.session().confirmMessages(*builder.blob(), timeout);
 
     PVV_SAFE("Step 7. Ensure e_SUCCESS is returned");
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     // Expect two write calls in the test channel - one from the first attempt
     // that returned E_LIMIT and the second one after LWM event.
-    ASSERT_EQ(obj.channel().writeCalls().size(), 2u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 2u);
 
     // Clear test channel write queue
     obj.channel().writeCalls().clear();
@@ -4807,15 +4963,15 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 8. Set the channel to return e_GENERIC_ERROR on write");
     obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
 
-    rc = obj.session().confirmMessages(builder.blob(), confirmTimeout);
+    rc = obj.session().confirmMessages(*builder.blob(), confirmTimeout);
 
     PVV_SAFE("Step 9. Ensure e_SUCCESS");
 
     // Drain the FSM queue
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
-    ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
-    ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
+    BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 1u);
 
     // Clear test channel write queue
     obj.channel().writeCalls().clear();
@@ -4835,11 +4991,13 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -4848,8 +5006,8 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 2. Open the queue");
     obj.openQueue(pQueue, timeout);
@@ -4857,31 +5015,32 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 3. Trigger channel drop");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
-    ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_PENDING));
-    ASSERT(pQueue->isValid());
+    BMQTST_ASSERT(
+        obj.waitForQueueState(pQueue, bmqimp::QueueState::e_PENDING));
+    BMQTST_ASSERT(pQueue->isValid());
 
     PVV_SAFE("Step 4. Close the queue");
     int rc = obj.session().closeQueue(pQueue, timeout);
 
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_SUCCESS);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 5. Try to close the queue again");
     rc = obj.session().closeQueue(pQueue, timeout);
 
-    ASSERT_EQ(rc, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
+    BMQTST_ASSERT_EQ(rc, bmqt::CloseQueueResult::e_UNKNOWN_QUEUE);
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 
     PVV_SAFE("Step 6. Stop the session");
-    ASSERT(obj.stop());
+    BMQTST_ASSERT(obj.stop());
 
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
 
 static void test23_queueCloseSync()
@@ -4938,12 +5097,14 @@ queueAsyncCanceled(int                          lineNum,
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("==================\n"
              << "Starting test " << lineNum << "\n"
@@ -4962,36 +5123,36 @@ queueAsyncCanceled(int                          lineNum,
     PVV_SAFE(lineNum << ": Step 4. Waiting queue operation result"
                      << " STATE_RESTORED and CONNECTION_LOST events");
 
-    ASSERT(obj.waitForQueueState(pQueue, queueStateAfterDisconnect));
+    BMQTST_ASSERT(obj.waitForQueueState(pQueue, queueStateAfterDisconnect));
 
     if (waitOperationResultOnChannelDown) {
         PVV_SAFE(lineNum << ": Step 4.1. Waiting queue operation result");
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             eventType,
             bmqp_ctrlmsg::StatusCategory::E_CANCELED));
     }
 
     if (waitStateRestoredOnChannelDown) {
         PVV_SAFE(lineNum << ": Step 4.2. Waiting STATE_RESTORED event");
-        ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
     }
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     PVV_SAFE(lineNum << ": Step 5. Restore the connection");
     obj.setChannel();
 
     PVV_SAFE(lineNum << ": Step 6. Waiting RECONNECTED and STATE_RESTORED "
                         "events");
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     if (queueStateAfterDisconnect == bmqimp::QueueState::e_PENDING) {
         PVV_SAFE(lineNum << ": Step 6.1. process queue reopening");
         obj.reopenQueue(pQueue);
     }
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     if (retransmittedRequest != TestSession::e_REQ_UNDEFINED) {
         PVV_SAFE(lineNum << ": Step 7. Check retransmitted request");
@@ -5010,24 +5171,24 @@ queueAsyncCanceled(int                          lineNum,
 
     if (waitOperationResultOnDisconnect) {
         PVV_SAFE(lineNum << ": Step 9.1. Waiting queue operation result");
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             eventType,
             bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED));
     }
 
     if (waitStateRestoredOnDisconnect) {
         PVV_SAFE(lineNum << ": Step 9.2. Waiting STATE_RESTORED event");
-        ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
     }
 
     PVV_SAFE(lineNum << ": Step 10. Waiting DISCONNECTED event");
 
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitDisconnectedEvent());
-    ASSERT(obj.verifySessionIsStopped());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitDisconnectedEvent());
+    BMQTST_ASSERT(obj.verifySessionIsStopped());
 
-    ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
 
 static void queueAsyncCanceled_OPEN_OPENING()
@@ -5623,16 +5784,24 @@ static void test25_sessionFsmTable()
     bmqtst::TestHelper::printTestName("SESSION FSM TRANSITION TABLE TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     scheduler.start();
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
@@ -5641,12 +5810,13 @@ static void test25_sessionFsmTable()
     bslmt::TimedSemaphore                               doneSemaphore;
     bsls::AtomicInt                                     tcpRc(0);
 
-    bmqio::TestChannel testChannel(s_allocator_p);
+    bmqio::TestChannel testChannel(bmqtst::TestHelperUtil::allocator());
     testChannel.setPeerUri("tcp://testHost:1234");  // for better logging
 
     bmqimp::BrokerSession obj(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         emptyEventHandler,  // emptyEventHandler,
         bdlf::BindUtil::bind(&transitionCb,
@@ -5655,7 +5825,7 @@ static void test25_sessionFsmTable()
                              &table,
                              &tcpRc,
                              &doneSemaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     table = obj.getSessionFsmTransitionTable();
 
@@ -5665,10 +5835,10 @@ static void test25_sessionFsmTable()
 
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         rc = obj.startAsync();
-        ASSERT_EQ(rc, bmqt::GenericResult::e_NOT_SUPPORTED);
+        BMQTST_ASSERT_EQ(rc, bmqt::GenericResult::e_NOT_SUPPORTED);
 
         // STOPPED -> STOPPED
         obj.stop();
@@ -5677,7 +5847,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED  -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Reset the channel
         // STARTING -> STOPPED
@@ -5687,7 +5857,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED  -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Start timeout
         // STARTING     -> STOPPED
@@ -5699,7 +5869,7 @@ static void test25_sessionFsmTable()
         tcpRc = 11;
 
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, tcpRc);
+        BMQTST_ASSERT_EQ(rc, tcpRc);
 
         // Start failure
         // STARTING -> STOPPED
@@ -5710,7 +5880,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED  -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Set valid channel
         // STARTING -> STARTED
@@ -5720,7 +5890,7 @@ static void test25_sessionFsmTable()
 
         // STARTED -> STARTED
         rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Reset the channel
         // STARTING -> RECONNECTING
@@ -5749,7 +5919,7 @@ static void test25_sessionFsmTable()
 
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Set valid channel
         // STARTING -> STARTED
@@ -5769,7 +5939,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Set valid channel
         // STARTING -> STARTED
@@ -5788,7 +5958,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // STARTING -> STARTING
         monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
@@ -5802,7 +5972,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Set valid channel
         // STARTING -> STARTED
@@ -5826,7 +5996,7 @@ static void test25_sessionFsmTable()
     {
         // STOPPED -> STARTING
         int rc = obj.startAsync();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
 
         // Set valid channel
         // STARTING -> STARTED
@@ -5859,7 +6029,7 @@ static void test25_sessionFsmTable()
     }
 
     PVV_SAFE("Waiting for empty transition table");
-    ASSERT(waitRealTime(&doneSemaphore));
+    BMQTST_ASSERT(waitRealTime(&doneSemaphore));
 
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
@@ -5891,11 +6061,13 @@ static void test26_openCloseMultipleSubqueues()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueFoo = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=foo",
@@ -5967,12 +6139,14 @@ static void test27_openCloseMultipleSubqueuesWithErrors()
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueValid = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=valid",
@@ -6163,7 +6337,7 @@ queueLateAsyncCanceled(int                               testId,
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     // Set timeouts used for implicit reopening, reconfiguring and closing
@@ -6172,7 +6346,9 @@ queueLateAsyncCanceled(int                               testId,
         .setConfigureQueueTimeout(timeout)
         .setCloseQueueTimeout(timeout);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE(testId << ": Step 1. Starting session...");
     obj.startAndConnect();
@@ -6187,9 +6363,9 @@ queueLateAsyncCanceled(int                               testId,
 
     PVV_SAFE(testId << ": Step 4. Waiting queue operation result"
                     << " STATE_RESTORED and CONNECTION_LOST events");
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
-    ASSERT(obj.waitForQueueState(pQueue, queueStateAfterDisconnect));
+    BMQTST_ASSERT(obj.waitForQueueState(pQueue, queueStateAfterDisconnect));
 
     PVV_SAFE(testId << ": Step 5. Restore the connection");
     obj.setChannel();
@@ -6197,16 +6373,16 @@ queueLateAsyncCanceled(int                               testId,
     PVV_SAFE(
         testId << ": Step 6. Waiting RECONNECTED and STATE_RESTORED events");
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     if (queueStateAfterDisconnect == bmqimp::QueueState::e_PENDING) {
         PVV_SAFE(testId << ": Step 6.1. process queue reopening");
         obj.reopenQueue(pQueue);
     }
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE(testId << ": Step 7. Setup the queue again");
 
@@ -6227,8 +6403,8 @@ queueLateAsyncCanceled(int                               testId,
     PVV_SAFE(testId << ": Step 8. Stop the session");
     obj.stopGracefully();
 
-    ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
 
 static void test28_queueLateAsyncCanceledReader1()
@@ -6352,11 +6528,13 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI,
                                                              queueFlags,
@@ -6368,23 +6546,23 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue1->isValid(), false);
-    ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue2->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue1->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue2->isValid(), false);
 
     PVV_SAFE("Step 2. Open the first  queue");
     obj.openQueue(pQueue1, timeout);
 
     PVV_SAFE("Step 3. Open the second queue and check the error");
     int rc = obj.session().openQueue(pQueue2, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_ALREADY_OPENED);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_ALREADY_OPENED);
 
-    ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(pQueue1->isValid());
+    BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(pQueue1->isValid());
 
-    ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue2->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue2->isValid(), false);
 
     PVV_SAFE("Step 4. Stop the session");
     obj.stopGracefully();
@@ -6437,11 +6615,13 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions      sessionOptions;
     bmqt::QueueOptions        queueOptions;
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI1,
                                                              queueFlags,
@@ -6456,23 +6636,23 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
 
-    ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue1->isValid(), false);
-    ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue2->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue1->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue2->isValid(), false);
 
     PVV_SAFE("Step 2. Open the first  queue");
     obj.openQueue(pQueue1, timeout);
 
     PVV_SAFE("Step 3. Open the second queue and check the error");
     int rc = obj.session().openQueue(pQueue2, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_CORRELATIONID_NOT_UNIQUE);
 
-    ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(pQueue1->isValid());
+    BMQTST_ASSERT_EQ(pQueue1->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(pQueue1->isValid());
 
-    ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue2->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue2->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue2->isValid(), false);
 
     PVV_SAFE("Step 4. Stop the session");
     obj.stopGracefully();
@@ -6548,16 +6728,25 @@ static void test33_queueNackTest()
     const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder          eventBuilder(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder          eventBuilder(blobSpPool.get(),
+                                       bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId      corrId(243);
     bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -6592,72 +6781,72 @@ static void test33_queueNackTest()
 
     bmqt::EventBuilderResult::Enum rc = eventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using just event blob
-    int res = obj.session().post(eventBuilder.blob(), timeout);
+    int res = obj.session().post(*eventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     PVV_SAFE("Step 4. Verify PUT event is sent");
-    bmqp::Event rawEvent(s_allocator_p);
+    bmqp::Event rawEvent(bmqtst::TestHelperUtil::allocator());
     obj.getOutboundEvent(&rawEvent);
 
-    ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     // Restore the connection
     obj.setChannel();
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     PVV_SAFE("Step 6. Reopen the queue");
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 7. Verify PUT event is sent again");
     rawEvent.clear();
     obj.getOutboundEvent(&rawEvent);
 
-    ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 8. Trigger channel drop, close the queue and verify NACK "
              "event");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     obj.session().closeQueueAsync(pQueue, timeout);
 
     bsl::shared_ptr<bmqimp::Event> nackEvent = obj.waitAckEvent();
 
-    ASSERT(nackEvent);
+    BMQTST_ASSERT(nackEvent);
 
     const int k_ACK_STATUS_UNKNOWN = bmqp::ProtocolUtil::ackResultToCode(
         bmqt::AckResult::e_UNKNOWN);
 
     bmqp::AckMessageIterator* iter = nackEvent->ackMessageIterator();
-    ASSERT_EQ(1, iter->next());
-    ASSERT_EQ(pQueue->id(), iter->message().queueId());
-    ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    ASSERT_EQ(corrId, nackEvent->correlationId(0));
-    ASSERT_EQ(0, iter->next());
+    BMQTST_ASSERT_EQ(1, iter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
+    BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 9. Waiting QUEUE_CLOSE_RESULT event...");
     obj.verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS,
                                pQueue);
 
     PVV_SAFE("Step 10. Stop the session when not connected");
-    ASSERT(obj.stop());
+    BMQTST_ASSERT(obj.stop());
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
 
@@ -6669,11 +6858,13 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queue = obj.createQueue(k_URI,
                                                            queueFlags,
@@ -6690,10 +6881,11 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         PVV_SAFE("Step 4. Reset the channel");
         obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-        ASSERT(obj.waitConnectionLostEvent());
+        BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
-        ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
-        ASSERT(queue->isValid());
+        BMQTST_ASSERT(
+            obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+        BMQTST_ASSERT(queue->isValid());
 
         // Set write error condition
         obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
@@ -6701,19 +6893,19 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         // Restore the connection
         obj.setChannel();
 
-        ASSERT(obj.waitReconnectedEvent());
+        BMQTST_ASSERT(obj.waitReconnectedEvent());
 
         PVV_SAFE("Step 5. Verify reopen request was sent");
         obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
 
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED));
 
-        ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
         PVV_SAFE("Step 6. Verify the queue gets closed");
-        ASSERT(obj.waitForQueueRemoved(queue, timeout));
+        BMQTST_ASSERT(obj.waitForQueueRemoved(queue, timeout));
 
         // Set normal write status
         obj.channel().setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
@@ -6727,15 +6919,16 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
         PVV_SAFE("Step 9. Reset the channel");
         obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-        ASSERT(obj.waitConnectionLostEvent());
+        BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
-        ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
-        ASSERT(queue->isValid());
+        BMQTST_ASSERT(
+            obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+        BMQTST_ASSERT(queue->isValid());
 
         // Restore the connection
         obj.setChannel();
 
-        ASSERT(obj.waitReconnectedEvent());
+        BMQTST_ASSERT(obj.waitReconnectedEvent());
 
         PVV_SAFE("Step 10. Verify reopen request was sent");
         bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
@@ -6752,26 +6945,28 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
             PVV_SAFE("Step 12. Verify configure request was sent");
             obj.verifyRequestSent(TestSession::e_REQ_CONFIG_QUEUE);
 
-            ASSERT(obj.verifyOperationResult(
+            BMQTST_ASSERT(obj.verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED));
 
-            ASSERT(obj.waitStateRestoredEvent());
+            BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
             PVV_SAFE("Step 13. Verify the queue is e_CLOSING_CLS");
             obj.verifyRequestSent(TestSession::e_REQ_CLOSE_QUEUE);
 
-            ASSERT(obj.waitForQueueState(queue,
-                                         bmqimp::QueueState::e_CLOSING_CLS));
-            ASSERT_EQ(queue->isValid(), false);
+            BMQTST_ASSERT(
+                obj.waitForQueueState(queue,
+                                      bmqimp::QueueState::e_CLOSING_CLS));
+            BMQTST_ASSERT_EQ(queue->isValid(), false);
         }
         else {
-            ASSERT(obj.verifyOperationResult(
+            BMQTST_ASSERT(obj.verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-            ASSERT(obj.waitStateRestoredEvent());
-            ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
-            ASSERT(queue->isValid());
+            BMQTST_ASSERT(obj.waitStateRestoredEvent());
+            BMQTST_ASSERT(
+                obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
+            BMQTST_ASSERT(queue->isValid());
         }
 
         // Set normal write status
@@ -6859,44 +7054,48 @@ static void test35_hostHealthMonitoring()
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession with "
              "bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Set new host health state");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
 
     PVV_SAFE("Step 4. Ensure that event arrives");
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     PVV_SAFE(
         "Ensure that flipping to unknown state does not re-publish event");
     monitor->setState(bmqt::HostHealthState::e_UNKNOWN);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 5. Stop the session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 6. Validate reopening session re-adds callback");
     obj.startAndConnect(true);
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 7. Verify that opening a queue initializes into suspend "
              "state");
@@ -6907,74 +7106,74 @@ static void test35_hostHealthMonitoring()
         "bmq://ts.trades.myapp/my.queue?id=foo",
         bmqt::QueueFlags::e_READ,
         queueOptions);
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     obj.openQueue(queue, bsls::TimeInterval(5), true);
-    ASSERT(queue->isSuspended());
+    BMQTST_ASSERT(queue->isSuspended());
 
     size_t before = obj.channel().writeCalls().size();
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
     queueOptions.setMaxUnconfirmedMessages(321);
-    ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
-              obj.session().configureQueue(queue,
-                                           queueOptions,
-                                           bsls::TimeInterval(5)));
-    ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 321);
-    ASSERT(obj.checkNoEvent());
-    ASSERT_EQ(obj.channel().writeCalls().size(), before);
+    BMQTST_ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
+                     obj.session().configureQueue(queue,
+                                                  queueOptions,
+                                                  bsls::TimeInterval(5)));
+    BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 321);
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), before);
 
     queueOptions.setMaxUnconfirmedMessages(123);
-    ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
-              obj.session().configureQueueAsync(queue,
-                                                queueOptions,
-                                                bsls::TimeInterval(5)));
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
+                     obj.session().configureQueueAsync(queue,
+                                                       queueOptions,
+                                                       bsls::TimeInterval(5)));
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 123);
-    ASSERT(obj.checkNoEvent());
-    ASSERT_EQ(obj.channel().writeCalls().size(), before);
+    BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 123);
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), before);
 
     PVV_SAFE("Step 8. "
              "Verify that queue resumes when the host becomes healthy");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
 
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
 
     getConsumerInfo(&ci, request);
-    ASSERT_EQ(ci.consumerPriority(), 0);
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 123);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(), 0);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 123);
 
-    ASSERT(queue->isSuspended());
+    BMQTST_ASSERT(queue->isSuspended());
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(!queue->isSuspended());
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
 
     PVV_SAFE("Step 9. "
              "Verify that resumed queue can again configure with broker");
-    ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
-              obj.session().configureQueueAsync(queue,
-                                                queueOptions,
-                                                bsls::TimeInterval(5)));
+    BMQTST_ASSERT_EQ(bmqt::GenericResult::e_SUCCESS,
+                     obj.session().configureQueueAsync(queue,
+                                                       queueOptions,
+                                                       bsls::TimeInterval(5)));
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
     PVV_SAFE("Step 10. Queue deconfigures on host again becoming unhealthy");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(!queue->isSuspended());
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueSuspendedEvent());
-    ASSERT(queue->isSuspended());
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(queue->isSuspended());
 
     PVV_SAFE("Step 11. "
              "Queue defers host-health changes if configure in progress");
@@ -6983,21 +7182,21 @@ static void test35_hostHealthMonitoring()
 
     getConsumerInfo(&ci, request);
     // Do not care about 'subId'
-    ASSERT_EQ(ci.consumerPriority(), 0);
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 123);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(), 0);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 123);
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(!queue->isSuspended());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     getConsumerInfo(&ci, request);
-    ASSERT_EQ(ci.consumerPriority(),
-              bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(),
+                     bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
 
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueSuspendedEvent());
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
     // No HOST_HEALTH_RESUMED or additional HOST_UNHEALTHY, since session
     // never returned to a fully healthy state: All queues were never
     // resumed concurrently with a healthy host state.
@@ -7007,37 +7206,37 @@ static void test35_hostHealthMonitoring()
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     getConsumerInfo(&ci, request);
 
-    ASSERT_EQ(ci.consumerPriority(), 0);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(), 0);
     // request := resume
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
     obj.sendResponse(request);
     // responding to resume
-    ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     getConsumerInfo(&ci, request);
-    ASSERT_EQ(ci.consumerPriority(),
-              bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(),
+                     bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
     // request := suspend
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
     obj.sendResponse(request);
     // responding to suspend
-    ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     getConsumerInfo(&ci, request);
     // request := resume
     obj.sendResponse(request);
     // responding to resume
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
     // This time, we arrive back into a state in which the host is healthy
     // and all queues have managed to resume: We therefore issue the
     // HOST_HEALTH_RESTORED event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 13. Re-close session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void test36_closingAfterConfigTimeout()
@@ -7069,14 +7268,17 @@ static void test36_closingAfterConfigTimeout()
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                    testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Test step: Start the session");
     obj.startAndConnect();
@@ -7089,7 +7291,7 @@ static void test36_closingAfterConfigTimeout()
 
     PVV_SAFE("Test step: Do standalone configure");
     int rc = obj.session().configureQueueAsync(queue, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
     // Get standalone configure request
     currentRequest = obj.getNextOutboundRequest(
@@ -7100,19 +7302,20 @@ static void test36_closingAfterConfigTimeout()
     // Emulate request timeout.
     obj.advanceTime(timeout);
 
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
-    ASSERT(queue->isValid());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(queue->isValid());
 
     PVV_SAFE("Test step: Do queue closing");
     rc = obj.session().closeQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CFG));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CFG));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Send late standalone configure response");
     obj.sendResponse(currentRequest);
@@ -7123,16 +7326,17 @@ static void test36_closingAfterConfigTimeout()
 
     obj.sendResponse(currentRequest);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CLS));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CLS));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Send close response");
     currentRequest = obj.verifyCloseRequestSent(true);  // isFinal
 
     obj.sendResponse(currentRequest);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Waiting QUEUE_CLOSE_RESULT event...");
     obj.verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, queue);
@@ -7170,13 +7374,16 @@ static void test37_closingPendingConfig()
     const bsls::TimeInterval     timeout = bsls::TimeInterval(15);
     bmqt::QueueOptions           queueOptions;
     bmqt::SessionOptions         sessionOptions;
-    bmqp_ctrlmsg::ControlMessage currentRequest(s_allocator_p);
-    bdlmt::EventScheduler        scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage currentRequest(
+        bmqtst::TestHelperUtil::allocator());
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Test step: Start the session");
     obj.startAndConnect();
@@ -7189,7 +7396,7 @@ static void test37_closingPendingConfig()
 
     PVV_SAFE("Test step: Do standalone configure");
     int rc = obj.session().configureQueueAsync(queue, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
     // Get standalone configure request
     currentRequest = obj.getNextOutboundRequest(
@@ -7197,14 +7404,15 @@ static void test37_closingPendingConfig()
 
     PVV_SAFE("Test step: Do queue closing");
     rc = obj.session().closeQueueAsync(queue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CFG));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CFG));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Verify configure request is rejected");
 
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED));
 
@@ -7218,16 +7426,17 @@ static void test37_closingPendingConfig()
 
     obj.sendResponse(currentRequest);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CLS));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSING_CLS));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Send close response");
     currentRequest = obj.verifyCloseRequestSent(true);  // ifFinal
 
     obj.sendResponse(currentRequest);
 
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
-    ASSERT_EQ(queue->isValid(), false);
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
+    BMQTST_ASSERT_EQ(queue->isValid(), false);
 
     PVV_SAFE("Test step: Waiting QUEUE_CLOSE_RESULT event...");
     obj.verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, queue);
@@ -7267,12 +7476,13 @@ static void responderMockup(TestSession*                   obj,
         bmqp_ctrlmsg::ControlMessage request = obj->getNextOutboundRequest(
             type[i]);
         if (TestSession::e_REQ_DISCONNECT == type[i]) {
-            bmqp_ctrlmsg::ControlMessage response(s_allocator_p);
+            bmqp_ctrlmsg::ControlMessage response(
+                bmqtst::TestHelperUtil::allocator());
             response.rId().makeValue(request.rId().value());
             response.choice().makeDisconnectResponse();
 
             obj->sendControlMessage(response);
-            ASSERT(obj->waitForChannelClose(bsls::TimeInterval(1)));
+            BMQTST_ASSERT(obj->waitForChannelClose(bsls::TimeInterval(1)));
 
             break;
         }
@@ -7304,9 +7514,10 @@ static void test_syncOpenConfigureClose(bool withHandler)
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
     bmqt::SessionOptions           sessionOptions;
-    bmqp_ctrlmsg::ControlMessage   currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage   currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestSession           obj(sessionOptions, scheduler, withHandler);
 
     sessionOptions.setNumProcessingThreads(1);
@@ -7336,57 +7547,60 @@ static void test_syncOpenConfigureClose(bool withHandler)
     bslmt::ThreadUtil::createWithAllocator(
         &threadHandle,
         bdlf::BindUtil::bind(&responderMockup, &obj, 6, requestType),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     obj.session().openQueueSync(queueSp, timeout, cb);
 
-    ASSERT_EQ(calls, 1);
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+    BMQTST_ASSERT_EQ(calls, 1);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("3: Configure");
     calls = 0;
     obj.session().configureQueueSync(queueSp, queueOptions, timeout, cb);
 
-    ASSERT_EQ(calls, 1);
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
+    BMQTST_ASSERT_EQ(calls, 1);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("4: Close");
     calls = 0;
 
     obj.session().closeQueueSync(queueSp, timeout, cb);
 
-    ASSERT_EQ(calls, 1);
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
+    BMQTST_ASSERT_EQ(calls, 1);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("5: Stop");
     calls = 0;
 
     if (withHandler) {
-        ASSERT(obj.stop());
+        BMQTST_ASSERT(obj.stop());
     }
     else {
         // since this is nextEvent mode, 'stop' unblock _before_ the event
         obj.session().stop();
-        ASSERT(obj.waitDisconnectedEvent());
+        BMQTST_ASSERT(obj.waitDisconnectedEvent());
     }
 
-    ASSERT_EQ(queueSp->isValid(), false);
-    ASSERT_EQ(calls, 0);
+    BMQTST_ASSERT_EQ(queueSp->isValid(), false);
+    BMQTST_ASSERT_EQ(calls, 0);
     bslmt::ThreadUtil::join(threadHandle);
     eventSp.clear();
 }
@@ -7415,11 +7629,14 @@ static void test_asyncOpenConfigureClose(bool withHandler)
     bsl::shared_ptr<bmqimp::Event> eventSp;
     bsl::shared_ptr<bmqimp::Event> dummy;
     bmqt::SessionOptions           sessionOptions;
-    bmqp_ctrlmsg::ControlMessage   currentRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage   currentRequest(
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestSession           obj(sessionOptions, scheduler, withHandler);
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
@@ -7440,88 +7657,94 @@ static void test_asyncOpenConfigureClose(bool withHandler)
         &obj.session(),
         bdlf::PlaceHolders::_1);  // event
 
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
 
     obj.session().openQueueAsync(queueSp, timeout, cb);
 
-    ASSERT_EQ(calls, 0);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(calls, 0);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
     obj.sendResponse(request);
 
-    ASSERT_EQ(calls, 0);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(calls, 0);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
 
     dummy = obj.getInboundEvent();
-    ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(dummy->sessionEventType(), bmqt::SessionEventType::e_UNDEFINED);
-    ASSERT_EQ(calls, 1);
+    BMQTST_ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(dummy->sessionEventType(),
+                     bmqt::SessionEventType::e_UNDEFINED);
+    BMQTST_ASSERT_EQ(calls, 1);
 
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("3: Configure");
     obj.session().configureQueueAsync(queueSp, queueOptions, timeout, cb);
 
-    ASSERT_EQ(calls, 1);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(calls, 1);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
 
     dummy = obj.getInboundEvent();
-    ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(dummy->sessionEventType(), bmqt::SessionEventType::e_UNDEFINED);
-    ASSERT_EQ(calls, 2);
+    BMQTST_ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(dummy->sessionEventType(),
+                     bmqt::SessionEventType::e_UNDEFINED);
+    BMQTST_ASSERT_EQ(calls, 2);
 
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("4: Close");
     obj.session().closeQueueAsync(queueSp, timeout, cb);
 
-    ASSERT_EQ(calls, 2);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(calls, 2);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
 
-    ASSERT_EQ(calls, 2);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(calls, 2);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CLOSE_QUEUE);
     obj.sendResponse(request);
 
     dummy = obj.getInboundEvent();
-    ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(dummy->sessionEventType(), bmqt::SessionEventType::e_UNDEFINED);
-    ASSERT_EQ(calls, 3);
+    BMQTST_ASSERT_EQ(dummy->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(dummy->sessionEventType(),
+                     bmqt::SessionEventType::e_UNDEFINED);
+    BMQTST_ASSERT_EQ(calls, 3);
 
-    ASSERT_EQ(eventSp->statusCode(), bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
-    ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
-    ASSERT_EQ(eventSp->sessionEventType(),
-              bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
+    BMQTST_ASSERT_EQ(eventSp->statusCode(),
+                     bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(eventSp->type(), bmqimp::Event::EventType::e_SESSION);
+    BMQTST_ASSERT_EQ(eventSp->sessionEventType(),
+                     bmqt::SessionEventType::e_QUEUE_CLOSE_RESULT);
     // There is no user event.
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("5: Stop");
 
     obj.stopGracefully();
 
-    ASSERT_EQ(queueSp->isValid(), false);
-    ASSERT_EQ(calls, 3);
+    BMQTST_ASSERT_EQ(queueSp->isValid(), false);
+    BMQTST_ASSERT_EQ(calls, 3);
     eventSp.clear();
     dummy.clear();
 }
@@ -7613,10 +7836,16 @@ static void test40_syncCalledFromEventHandler()
     bmqtst::TestHelper::printTestName(
         "SYNC API CALLED FROM EVENT HANDLER TEST");
 
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval&      timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
-    bdlbb::PooledBlobBufferFactory blobBufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory blobBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &blobBufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
     bsl::shared_ptr<bmqimp::Event> eventSp;
@@ -7624,13 +7853,14 @@ static void test40_syncCalledFromEventHandler()
     bsls::AtomicInt                stopCounter(0);
     bslmt::TimedSemaphore          semaphore;
 
-    pQueue.createInplace(s_allocator_p, s_allocator_p);
+    pQueue.createInplace(bmqtst::TestHelperUtil::allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     pQueue->setUri(uri);
     pQueue->setFlags(bmqt::QueueFlags::e_WRITE);
     pQueue->setOptions(queueOptions);
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     scheduler.start();
 
@@ -7639,6 +7869,7 @@ static void test40_syncCalledFromEventHandler()
     bmqimp::BrokerSession session(
         &scheduler,
         &blobBufferFactory,
+        blobSpPool.get(),
         sessionOptions,
         bdlf::BindUtil::bind(&eventHandlerSyncCall,
                              &eventSp,
@@ -7651,21 +7882,22 @@ static void test40_syncCalledFromEventHandler()
                              bdlf::PlaceHolders::_2,  // new state
                              &startCounter,
                              &stopCounter),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 1. Starting session...");
     int rc = session.startAsync();
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
 
     // Session changes its state synchronously.
-    ASSERT_EQ(session.state(), bmqimp::BrokerSession::State::e_STARTING);
+    BMQTST_ASSERT_EQ(session.state(),
+                     bmqimp::BrokerSession::State::e_STARTING);
 
-    ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(startCounter, 1);
     PVV_SAFE("Session starting...: " << rc);
 
     PVV_SAFE("Step 3. Checking async open...");
     rc = session.openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_REFUSED);
 
     // Need to clear eventSp before the event pool destructs
     eventSp.clear();
@@ -7676,8 +7908,8 @@ static void test40_syncCalledFromEventHandler()
     // 'stop' is synchronous and there is no IO connection.
     PVV_SAFE("Session stopped...");
 
-    ASSERT_EQ(startCounter, 1);
-    ASSERT_EQ(stopCounter, 1);
+    BMQTST_ASSERT_EQ(startCounter, 1);
+    BMQTST_ASSERT_EQ(stopCounter, 1);
 
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
@@ -7778,14 +8010,16 @@ static void test43_hostHealthMonitoringErrors()
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING ERRORS TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -7795,12 +8029,14 @@ static void test43_hostHealthMonitoringErrors()
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession with "
              "bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Open a queue");
     bmqt::QueueOptions queueOptions;
@@ -7811,54 +8047,54 @@ static void test43_hostHealthMonitoringErrors()
         bmqt::QueueFlags::e_READ,
         queueOptions);
     obj.openQueue(queue);
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     PVV_SAFE("Step 4. Set host to an unhealthy state");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     PVV_SAFE("Step 5. Provide an error response from the broker");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendStatus(request);
 
     PVV_SAFE("Step 6. Verify channel dropped, etc");
-    ASSERT(obj.waitQueueSuspendedEvent(bmqt::GenericResult::e_UNKNOWN));
-    ASSERT(queue->isSuspended());
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitConnectionLostEvent());
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent(bmqt::GenericResult::e_UNKNOWN));
+    BMQTST_ASSERT(queue->isSuspended());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
 
     PVV_SAFE("Step 7. "
              "Ensure queue is not reconfigured when channel comes back");
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 8. Verify same flow with response timeout");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
 
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     // Emulate request timeout.
     obj.advanceTime(timeout);
 
-    ASSERT(obj.waitQueueSuspendedEvent(bmqt::GenericResult::e_TIMEOUT));
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitConnectionLostEvent());
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent(bmqt::GenericResult::e_TIMEOUT));
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_PENDING));
 
     // Ensure late response is no-op.
     obj.checkNoEvent();
@@ -7866,14 +8102,14 @@ static void test43_hostHealthMonitoringErrors()
     obj.checkNoEvent();
 
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_REOPEN_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitForQueueState(queue, bmqimp::QueueState::e_OPENED));
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 9. Provide monitor with a healthy host health state");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
@@ -7883,16 +8119,16 @@ static void test43_hostHealthMonitoringErrors()
     obj.sendStatus(request);
 
     PVV_SAFE("Step 11. Verify that channel is not dropped, etc");
-    ASSERT(obj.waitQueueResumedEvent(bmqt::GenericResult::e_UNKNOWN));
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitQueueResumedEvent(bmqt::GenericResult::e_UNKNOWN));
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
 
     PVV_SAFE("Step 12. Verify same behavior with a timeout response");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueSuspendedEvent());
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
@@ -7900,12 +8136,12 @@ static void test43_hostHealthMonitoringErrors()
     // Emulate request timeout.
     obj.advanceTime(timeout);
 
-    ASSERT(obj.waitQueueResumedEvent(bmqt::GenericResult::e_TIMEOUT));
-    ASSERT(obj.waitHostHealthRestoredEvent());
-    ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
+    BMQTST_ASSERT(obj.waitQueueResumedEvent(bmqt::GenericResult::e_TIMEOUT));
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
 
     const int k_INVALID_CONFIGURE_ID = bmqimp::Queue::k_INVALID_CONFIGURE_ID;
-    ASSERT_EQ(queue->pendingConfigureId(), k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT_EQ(queue->pendingConfigureId(), k_INVALID_CONFIGURE_ID);
 
     // Ensure late response is no-op.
     obj.checkNoEvent();
@@ -7914,7 +8150,7 @@ static void test43_hostHealthMonitoringErrors()
 
     PVV_SAFE("Step 13. Close session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void testHostHealthWithMultipleQueues(
@@ -7936,10 +8172,10 @@ static void testHostHealthWithMultipleQueues(
 
     PVV_SAFE("Step 1. Set host to an unhealthy state");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
-    ASSERT(testSession->waitHostUnhealthyEvent());
+    BMQTST_ASSERT(testSession->waitHostUnhealthyEvent());
 
     PVV_SAFE("Step 2. Verify that only two queues are suspended");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         request = testSession->getNextOutboundRequest(
             TestSession::e_REQ_CONFIG_QUEUE);
@@ -7947,19 +8183,19 @@ static void testHostHealthWithMultipleQueues(
     }
     for (size_t k = 0; k < numSensitiveQueues; k++) {
         PVV_SAFE("Waiting on event #" << k);
-        ASSERT(testSession->waitQueueSuspendedEvent());
+        BMQTST_ASSERT(testSession->waitQueueSuspendedEvent());
     }
     for (size_t k = 0; k < numSensitiveReaders; k++) {
-        ASSERT(sensitiveReaders[k]->isSuspended());
+        BMQTST_ASSERT(sensitiveReaders[k]->isSuspended());
     }
     for (size_t k = 0; k < numSensitiveWriters; k++) {
-        ASSERT(sensitiveWriters[k]->isSuspended());
+        BMQTST_ASSERT(sensitiveWriters[k]->isSuspended());
     }
     for (size_t k = 0; k < numNaiveReaders; k++) {
-        ASSERT(!naiveReaders[k]->isSuspended());
+        BMQTST_ASSERT(!naiveReaders[k]->isSuspended());
     }
     for (size_t k = 0; k < numNaiveWriters; k++) {
-        ASSERT(!naiveWriters[k]->isSuspended());
+        BMQTST_ASSERT(!naiveWriters[k]->isSuspended());
     }
 
     PVV_SAFE("Step 3. "
@@ -7967,7 +8203,7 @@ static void testHostHealthWithMultipleQueues(
     bmqt::QueueOptions naiveOptions;
     naiveOptions.setSuspendsOnBadHostHealth(false);
     for (size_t k = 0; k < numNaiveReaders; k++) {
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqt::GenericResult::e_SUCCESS,
             testSession->session().configureQueueAsync(naiveReaders[k],
                                                        naiveOptions,
@@ -7975,7 +8211,7 @@ static void testHostHealthWithMultipleQueues(
         request = testSession->getNextOutboundRequest(
             TestSession::e_REQ_CONFIG_QUEUE);
         testSession->sendResponse(request);
-        ASSERT(testSession->verifyOperationResult(
+        BMQTST_ASSERT(testSession->verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
     }
@@ -7988,22 +8224,22 @@ static void testHostHealthWithMultipleQueues(
         testSession->sendResponse(request);
     }
     for (size_t k = 0; k < numSensitiveQueues; k++) {
-        ASSERT(testSession->waitQueueResumedEvent());
+        BMQTST_ASSERT(testSession->waitQueueResumedEvent());
     }
-    ASSERT(testSession->waitHostHealthRestoredEvent());
-    ASSERT(testSession->checkNoEvent());
+    BMQTST_ASSERT(testSession->waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(testSession->checkNoEvent());
 
     for (size_t k = 0; k < numSensitiveReaders; k++) {
-        ASSERT(!sensitiveReaders[k]->isSuspended());
+        BMQTST_ASSERT(!sensitiveReaders[k]->isSuspended());
     }
     for (size_t k = 0; k < numSensitiveWriters; k++) {
-        ASSERT(!sensitiveWriters[k]->isSuspended());
+        BMQTST_ASSERT(!sensitiveWriters[k]->isSuspended());
     }
     for (size_t k = 0; k < numNaiveReaders; k++) {
-        ASSERT(!naiveReaders[k]->isSuspended());
+        BMQTST_ASSERT(!naiveReaders[k]->isSuspended());
     }
     for (size_t k = 0; k < numNaiveWriters; k++) {
-        ASSERT(!naiveWriters[k]->isSuspended());
+        BMQTST_ASSERT(!naiveWriters[k]->isSuspended());
     }
 }
 
@@ -8038,14 +8274,16 @@ static void test44_hostHealthMonitoringMultipleQueues()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING MULTIPLE QUEUES TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval                  timeout = bsls::TimeInterval(15);
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1)
@@ -8054,12 +8292,14 @@ static void test44_hostHealthMonitoringMultipleQueues()
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Open several different kinds of queues");
     bmqt::QueueOptions naiveOptions;
@@ -8168,7 +8408,7 @@ static void test44_hostHealthMonitoringMultipleQueues()
 
     PVV_SAFE("Step 7. Close session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void test45_hostHealthMonitoringPendingStandalone()
@@ -8205,26 +8445,30 @@ static void test45_hostHealthMonitoringPendingStandalone()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING PENDING STANDALONE TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Open queue (reader)");
     bmqt::QueueOptions queueOptions;
@@ -8236,17 +8480,18 @@ static void test45_hostHealthMonitoringPendingStandalone()
         "bmq://ts.trades.myapp/my.queue",
         bmqt::QueueFlags::e_READ,
         queueOptions);
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(!queue->isSuspended());
     obj.openQueue(queue, timeout, false);
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     PVV_SAFE("Step 4. Send standalone configure request.");
     int rc = obj.session().configureQueueAsync(queue,
                                                queue->options(),
                                                timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
-    bmqp_ctrlmsg::ControlMessage configureRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage configureRequest(
+        bmqtst::TestHelperUtil::allocator());
     configureRequest = obj.getNextOutboundRequest(
         TestSession::e_REQ_CONFIG_QUEUE);
 
@@ -8254,41 +8499,41 @@ static void test45_hostHealthMonitoringPendingStandalone()
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
 
     PVV_SAFE("Step 6. Verify HOST_UNHEALTHY session event is issued.");
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     PVV_SAFE("Step 7. Verify the queue defers to suspend.");
-    ASSERT(obj.checkNoEvent());
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     PVV_SAFE("Step 8. Set the host health back to healthy.");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
 
     PVV_SAFE("Step 9. Verify e_HOST_HEALTH_RESTORED event is issued.");
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
 
     PVV_SAFE("Step 10. Verify the queue defers to resume.");
-    ASSERT(obj.checkNoEvent());
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     PVV_SAFE("Step 11. Send standalone configure response.");
     obj.sendResponse(configureRequest);
 
     PVVV_SAFE("the queue should receive standalone configure response.");
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
     PVV_SAFE("Step 12. "
              "Verify the queue has not sent suspend/resume requests.");
-    ASSERT(obj.isChannelEmpty());
-    ASSERT(!queue->isSuspended());
+    BMQTST_ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(!queue->isSuspended());
 
     PVV_SAFE("Step 13. Check there should be no more events.");
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 14. Stop the session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void test46_hostHealthMonitoringDeferredResumeClose()
@@ -8322,26 +8567,30 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING DEFERRED SUSPEND RESUME TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Open queue (reader)");
     bmqt::QueueOptions queueOptions;
@@ -8357,64 +8606,67 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
         "bmq://ts.trades.myapp/other.queue",
         bmqt::QueueFlags::e_READ,
         queueOptions);
-    ASSERT(!queue1->isSuspended());
-    ASSERT(!queue2->isSuspended());
+    BMQTST_ASSERT(!queue1->isSuspended());
+    BMQTST_ASSERT(!queue2->isSuspended());
     obj.openQueue(queue1, timeout, false);
     obj.openQueue(queue2, timeout, false);
-    ASSERT(!queue1->isSuspended());
-    ASSERT(!queue2->isSuspended());
+    BMQTST_ASSERT(!queue1->isSuspended());
+    BMQTST_ASSERT(!queue2->isSuspended());
 
     PVV_SAFE("Step 4. Set the host health to unhealthy");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
 
     PVV_SAFE("Step 5. Verify HOST_UNHEALTHY session event is issued.");
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     PVVV_SAFE("The queue should send suspend request.");
-    bmqp_ctrlmsg::ControlMessage suspendRequest(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage suspendRequest(
+        bmqtst::TestHelperUtil::allocator());
     suspendRequest = obj.getNextOutboundRequest(
         TestSession::e_REQ_CONFIG_QUEUE);
     suspendRequest = obj.getNextOutboundRequest(
         TestSession::e_REQ_CONFIG_QUEUE);
 
     PVVV_SAFE("There should be no e_QUEUE_SUSPENDED event.");
-    ASSERT(obj.checkNoEvent());
-    ASSERT(!queue1->isSuspended());
-    ASSERT(!queue2->isSuspended());
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(!queue1->isSuspended());
+    BMQTST_ASSERT(!queue2->isSuspended());
 
     PVV_SAFE("Step 6. Set the host health back to healthy.");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
 
     // Drain the FSM queue to verify the health state event is handled.
-    ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
+    BMQTST_ASSERT_EQ(obj.session().start(bsls::TimeInterval(1)), 0);
 
     PVV_SAFE("Step 7. Verify the queue defers to resume.");
-    ASSERT(obj.checkNoEvent());
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     // Use _SAFE version to avoid std::cout race with logging from 'stateCb()'.
     PVV_SAFE("Step 8. Close the queue.");
     {
         int rc = obj.session().closeQueueAsync(queue1, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
         rc = obj.session().closeQueueAsync(queue2, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
         PVVV_SAFE("Closing: Check configure request was sent");
-        bmqp_ctrlmsg::ControlMessage request1(s_allocator_p);
-        bmqp_ctrlmsg::ControlMessage request2(s_allocator_p);
+        bmqp_ctrlmsg::ControlMessage request1(
+            bmqtst::TestHelperUtil::allocator());
+        bmqp_ctrlmsg::ControlMessage request2(
+            bmqtst::TestHelperUtil::allocator());
         request1 = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
         request2 = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
-        ASSERT_EQ(queue1->state(), bmqimp::QueueState::e_CLOSING_CFG);
-        ASSERT_EQ(queue2->state(), bmqimp::QueueState::e_CLOSING_CFG);
-        ASSERT_EQ(queue1->isValid(), false);
-        ASSERT_EQ(queue2->isValid(), false);
+        BMQTST_ASSERT_EQ(queue1->state(), bmqimp::QueueState::e_CLOSING_CFG);
+        BMQTST_ASSERT_EQ(queue2->state(), bmqimp::QueueState::e_CLOSING_CFG);
+        BMQTST_ASSERT_EQ(queue1->isValid(), false);
+        BMQTST_ASSERT_EQ(queue2->isValid(), false);
 
-        ASSERT(!queue1->isSuspended());
-        ASSERT(!queue2->isSuspended());
-        ASSERT(obj.waitHostHealthRestoredEvent());
-        ASSERT(obj.checkNoEvent());
+        BMQTST_ASSERT(!queue1->isSuspended());
+        BMQTST_ASSERT(!queue2->isSuspended());
+        BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
+        BMQTST_ASSERT(obj.checkNoEvent());
 
         PVVV_SAFE("Closing: Send valid configure queue response message");
         obj.sendResponse(request1);
@@ -8436,11 +8688,11 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     }
 
     PVV_SAFE("Step 10. Check there should be no more events.");
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 11. Stop the session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void test47_configureMergesQueueOptions()
@@ -8469,13 +8721,15 @@ static void test47_configureMergesQueueOptions()
     bmqtst::TestHelper::printTestName("CONFIGURE MERGED QUEUE OPTIONS TEST");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1);
 
     PVV_SAFE("Step 1. Set up bmqimp::BrokerSession");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
@@ -8491,10 +8745,10 @@ static void test47_configureMergesQueueOptions()
         bmqt::QueueFlags::e_READ,
         queueOptions);
     obj.openQueue(queue, timeout, false);
-    ASSERT(queue->options().hasMaxUnconfirmedMessages());
-    ASSERT(!queue->options().hasMaxUnconfirmedBytes());
-    ASSERT(!queue->options().hasConsumerPriority());
-    ASSERT(!queue->options().hasSuspendsOnBadHostHealth());
+    BMQTST_ASSERT(queue->options().hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT(!queue->options().hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT(!queue->options().hasConsumerPriority());
+    BMQTST_ASSERT(!queue->options().hasSuspendsOnBadHostHealth());
 
     PVV_SAFE("Step 4. "
              "Configure queue with only 'maxUnconfirmedBytes' modified");
@@ -8502,31 +8756,31 @@ static void test47_configureMergesQueueOptions()
     updates.setMaxUnconfirmedBytes(500);
 
     int rc = obj.session().configureQueueAsync(queue, updates, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 5. "
              "Verify that request and queue finish with merged options");
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
     getConsumerInfo(&ci, request);
 
-    ASSERT_EQ(ci.maxUnconfirmedBytes(), 500);
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 300);
-    ASSERT_EQ(ci.consumerPriority(),
-              bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedBytes(), 500);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 300);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(),
+                     bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY);
 
     obj.sendResponse(request);
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(queue->options().maxUnconfirmedBytes(), 500);
-    ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 300);
-    ASSERT(!queue->options().hasConsumerPriority());
-    ASSERT(!queue->options().hasSuspendsOnBadHostHealth());
+    BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedBytes(), 500);
+    BMQTST_ASSERT_EQ(queue->options().maxUnconfirmedMessages(), 300);
+    BMQTST_ASSERT(!queue->options().hasConsumerPriority());
+    BMQTST_ASSERT(!queue->options().hasSuspendsOnBadHostHealth());
 
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 6. Stop the session");
     obj.stopGracefully();
@@ -8565,26 +8819,30 @@ static void test48_hostHealthSensitivityReconfiguration()
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH SENSITIVITY RECONFIGURATION TEST");
 
-    ManualHostHealthMonitor* monitor = new (*s_allocator_p)
+    ManualHostHealthMonitor* monitor = new (
+        *bmqtst::TestHelperUtil::allocator())
         ManualHostHealthMonitor(bmqt::HostHealthState::e_HEALTHY,
-                                s_allocator_p);
-    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(monitor,
-                                                         s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<bmqpi::HostHealthMonitor> monitor_sp(
+        monitor,
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
     bmqt::SessionOptions  sessionOptions;
     sessionOptions.setNumProcessingThreads(1).setHostHealthMonitor(monitor_sp);
 
     PVV_SAFE("Step 1. "
              "Set up bmqimp::BrokerSession with bmqpi::HostHealthMonitor");
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 
     PVV_SAFE("Step 2. Start the session");
     obj.startAndConnect();
-    ASSERT_EQ(monitor->numRegistrants(), 1u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 1u);
 
     PVV_SAFE("Step 3. Open queue (reader)");
     bmqt::QueueOptions queueOptions;
@@ -8597,39 +8855,39 @@ static void test48_hostHealthSensitivityReconfiguration()
         bmqt::QueueFlags::e_READ,
         queueOptions);
     obj.openQueue(reader, timeout, false);
-    ASSERT(!reader->isSuspended());
+    BMQTST_ASSERT(!reader->isSuspended());
 
     bsl::shared_ptr<bmqimp::Queue> writer = obj.createQueue(
         "bmq://ts.trades.myapp/writer.queue",
         bmqt::QueueFlags::e_WRITE,
         queueOptions);
     obj.openQueue(writer, timeout, false);
-    ASSERT(!writer->isSuspended());
+    BMQTST_ASSERT(!writer->isSuspended());
 
     PVV_SAFE("Step 4. Set the host health to unhealthy");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
 
     PVV_SAFE("Step 5. Verify that queues suspend");
-    ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
 
     // Writer should suspend immediately without configure request.
     obj.waitQueueSuspendedEvent();
     // Reader needs to wait for the configure-roundtrip.
-    bmqp_ctrlmsg::ControlMessage request(s_allocator_p);
+    bmqp_ctrlmsg::ControlMessage request(bmqtst::TestHelperUtil::allocator());
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     bmqp_ctrlmsg::ConsumerInfo ci;
     getConsumerInfo(&ci, request);
 
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 0);
-    ASSERT_EQ(ci.consumerPriority(),
-              bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 0);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(),
+                     bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
 
-    ASSERT(reader->isSuspended());
-    ASSERT(writer->isSuspended());
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(reader->isSuspended());
+    BMQTST_ASSERT(writer->isSuspended());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE(
         "Step 6. Configure each queue as no longer host health sensitive");
@@ -8637,79 +8895,79 @@ static void test48_hostHealthSensitivityReconfiguration()
     queueOptions.setMaxUnconfirmedMessages(456);
 
     int rc = obj.session().configureQueueAsync(reader, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     rc = obj.session().configureQueueAsync(writer, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     getConsumerInfo(&ci, request);
 
-    ASSERT_EQ(ci.consumerPriority(), 0);
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 456);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(), 0);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 456);
 
     PVV_SAFE(
         "Step 7. Verify each queue resumes, with no HOST_HEALTH_RESTORED");
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(writer->options(), queueOptions);
+    BMQTST_ASSERT_EQ(writer->options(), queueOptions);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueResumedEvent());
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.waitQueueResumedEvent());
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(reader->options(), queueOptions);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(reader->options(), queueOptions);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 8. Set the host health back to healthy");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
 
     PVV_SAFE("Step 9. Verify HOST_HEALTH_RESTORED event is issued");
-    ASSERT(obj.waitHostHealthRestoredEvent());
+    BMQTST_ASSERT(obj.waitHostHealthRestoredEvent());
 
     PVV_SAFE("Step 10. Set the host back to unhealthy");
     monitor->setState(bmqt::HostHealthState::e_UNHEALTHY);
 
     PVV_SAFE("Step 11. Verify HOST_UNHEALTHY with no QUEUE_SUSPENDED events");
-    ASSERT(obj.waitHostUnhealthyEvent());
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT(obj.waitHostUnhealthyEvent());
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 12. Configure each queue back to host health sensitive");
     queueOptions.setSuspendsOnBadHostHealth(true);
     queueOptions.setMaxUnconfirmedMessages(789);
 
     rc = obj.session().configureQueueAsync(writer, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     rc = obj.session().configureQueueAsync(reader, queueOptions, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     getConsumerInfo(&ci, request);
 
-    ASSERT_EQ(ci.consumerPriority(),
-              bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
-    ASSERT_EQ(ci.maxUnconfirmedMessages(), 0);
+    BMQTST_ASSERT_EQ(ci.consumerPriority(),
+                     bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
+    BMQTST_ASSERT_EQ(ci.maxUnconfirmedMessages(), 0);
 
     PVV_SAFE("Step 13. Verify that queues suspend");
-    ASSERT(obj.waitQueueSuspendedEvent());
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(writer->options(), queueOptions);
+    BMQTST_ASSERT_EQ(writer->options(), queueOptions);
     obj.sendResponse(request);
-    ASSERT(obj.waitQueueSuspendedEvent());
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.waitQueueSuspendedEvent());
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT_EQ(reader->options(), queueOptions);
-    ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(reader->options(), queueOptions);
+    BMQTST_ASSERT(obj.checkNoEvent());
 
     PVV_SAFE("Step 14. Stop the session");
     obj.stopGracefully();
-    ASSERT_EQ(monitor->numRegistrants(), 0u);
+    BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
 
 static void test49_controlsBuffering()
@@ -8740,12 +8998,14 @@ static void test49_controlsBuffering()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
 
     sessionOptions.setNumProcessingThreads(1);
 
     // Create test session with the system time source
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> queueFoo = obj.createQueue(
         "bmq://ts.trades.myapp/my.queue?id=foo",
@@ -8770,21 +9030,24 @@ static void test49_controlsBuffering()
 
     PVV_SAFE("Step 3. Open the queues async");
     int rc = obj.session().openQueueAsync(queueFoo, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
     rc = obj.session().openQueueAsync(queueBar, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
     rc = obj.session().openQueueAsync(queueBaz, timeout);
-    ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::OpenQueueResult::e_SUCCESS);
 
-    ASSERT(obj.waitForQueueState(queueFoo, bmqimp::QueueState::e_OPENING_OPN));
-    ASSERT(obj.waitForQueueState(queueBar, bmqimp::QueueState::e_OPENING_OPN));
-    ASSERT(obj.waitForQueueState(queueBaz, bmqimp::QueueState::e_OPENING_OPN));
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queueFoo, bmqimp::QueueState::e_OPENING_OPN));
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queueBar, bmqimp::QueueState::e_OPENING_OPN));
+    BMQTST_ASSERT(
+        obj.waitForQueueState(queueBaz, bmqimp::QueueState::e_OPENING_OPN));
 
     // Verify there is only 1 outstanding request
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PVV_SAFE("Step 4. Schedule LWM and check control requests");
 
@@ -8797,7 +9060,7 @@ static void test49_controlsBuffering()
 
     // Only one write attempt happened
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PVV_SAFE("Step 5. Schedule LWM and check all requests proceeded");
 
@@ -8812,7 +9075,7 @@ static void test49_controlsBuffering()
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
     obj.verifyRequestSent(TestSession::e_REQ_OPEN_QUEUE);
-    ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
+    BMQTST_ASSERT_EQ(obj.channel().writeCalls().size(), 0u);
 
     PV_SAFE("Step 6. Stop the session");
     obj.stopGracefully(false);  // don't wait for DISCONNECTED event
@@ -8830,8 +9093,8 @@ static void test49_controlsBuffering()
                                    queueBaz,
                                    bmqimp::QueueState::e_CLOSED);
 
-    ASSERT(obj.waitForChannelClose());
-    ASSERT(obj.waitDisconnectedEvent());
+    BMQTST_ASSERT(obj.waitForChannelClose());
+    BMQTST_ASSERT(obj.waitDisconnectedEvent());
 }
 
 static void test50_putRetransmittingTest()
@@ -8882,17 +9145,26 @@ static void test50_putRetransmittingTest()
     int                            phFlags = 0;
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::PutMessageIterator  putIter(&bufferFactory, s_allocator_p);
-    bmqp::AckEventBuilder     ackEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::Event               rawEvent(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder     putEventBuilder(blobSpPool.get(),
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::PutMessageIterator  putIter(&bufferFactory,
+                                     bmqtst::TestHelperUtil::allocator());
+    bmqp::AckEventBuilder     ackEventBuilder(blobSpPool.get(),
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::Event               rawEvent(bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId corrIdFirst(243);
     const bmqt::CorrelationId corrIdSecond(987);
     const bmqt::CorrelationId corrIdThird(591);
     const bmqt::CorrelationId corrIdFourth(193);
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                 testClock(scheduler);
 
     bmqt::MessageGUID guidFirst  = bmqp::MessageGUIDGenerator::testGUID();
@@ -8902,7 +9174,9 @@ static void test50_putRetransmittingTest()
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -8940,7 +9214,7 @@ static void test50_putRetransmittingTest()
     bmqt::EventBuilderResult::Enum rc = putEventBuilder.packMessage(
         pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     putEventBuilder.startMessage();
     putEventBuilder.setMessageGUID(guidSecond)
@@ -8948,17 +9222,17 @@ static void test50_putRetransmittingTest()
         .setFlags(phFlags);
     rc = putEventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     PVV_SAFE("Step 4. Verify PUT event is sent");
     obj.getOutboundEvent(&rawEvent);
 
-    ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT(rawEvent.isPutEvent());
 
     // Send ACK for one message
     ackEventBuilder.appendMessage(k_ACK_STATUS_SUCCESS,
@@ -8966,25 +9240,25 @@ static void test50_putRetransmittingTest()
                                   guidFirst,
                                   pQueue->id());
 
-    obj.session().processPacket(ackEventBuilder.blob());
+    obj.session().processPacket(*ackEventBuilder.blob());
 
     bsl::shared_ptr<bmqimp::Event> ackEvent = obj.waitAckEvent();
 
-    ASSERT(ackEvent);
+    BMQTST_ASSERT(ackEvent);
 
     bmqp::AckMessageIterator* ackIter = ackEvent->ackMessageIterator();
-    ASSERT_EQ(1, ackIter->next());
-    ASSERT_EQ(pQueue->id(), ackIter->message().queueId());
-    ASSERT_EQ(k_ACK_STATUS_SUCCESS, ackIter->message().status());
-    ASSERT_EQ(guidFirst, ackIter->message().messageGUID());
-    ASSERT_EQ(1, ackEvent->numCorrrelationIds());
-    ASSERT_EQ(corrIdFirst, ackEvent->correlationId(0));
-    ASSERT_EQ(0, ackIter->next());
+    BMQTST_ASSERT_EQ(1, ackIter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), ackIter->message().queueId());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_SUCCESS, ackIter->message().status());
+    BMQTST_ASSERT_EQ(guidFirst, ackIter->message().messageGUID());
+    BMQTST_ASSERT_EQ(1, ackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(0, ackIter->next());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     PVV_SAFE("Step 6. Send one more PUT message while the channel is down");
     putEventBuilder.reset();
@@ -8994,22 +9268,22 @@ static void test50_putRetransmittingTest()
         .setFlags(phFlags);
     rc = putEventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     // Restore the connection
     obj.setChannel();
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     PVV_SAFE("Step 7. Reopen the queue");
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 8. Verify PUT event is sent with two messages");
     rawEvent.clear();
@@ -9018,19 +9292,19 @@ static void test50_putRetransmittingTest()
 
     rawEvent.loadPutMessageIterator(&putIter, true);
 
-    ASSERT(putIter.isValid());
-    ASSERT_EQ(1, putIter.next());
-    ASSERT_EQ(pQueue->id(), putIter.header().queueId());
-    ASSERT_EQ(guidSecond, putIter.header().messageGUID());
-    ASSERT_EQ(1, putIter.next());
-    ASSERT_EQ(pQueue->id(), putIter.header().queueId());
-    ASSERT_EQ(guidThird, putIter.header().messageGUID());
-    ASSERT_EQ(0, putIter.next());
+    BMQTST_ASSERT(putIter.isValid());
+    BMQTST_ASSERT_EQ(1, putIter.next());
+    BMQTST_ASSERT_EQ(pQueue->id(), putIter.header().queueId());
+    BMQTST_ASSERT_EQ(guidSecond, putIter.header().messageGUID());
+    BMQTST_ASSERT_EQ(1, putIter.next());
+    BMQTST_ASSERT_EQ(pQueue->id(), putIter.header().queueId());
+    BMQTST_ASSERT_EQ(guidThird, putIter.header().messageGUID());
+    BMQTST_ASSERT_EQ(0, putIter.next());
 
     PVV_SAFE("Step 9. Trigger channel drop and advance the time");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     // Advance the time to emulate retransmission timeout
     bsls::TimeInterval retransmissionTimeout(0);
@@ -9042,22 +9316,22 @@ static void test50_putRetransmittingTest()
     PVV_SAFE("Step 10. Verify NACKs for expired messages");
     bsl::shared_ptr<bmqimp::Event> nackEvent = obj.waitAckEvent();
 
-    ASSERT(nackEvent);
+    BMQTST_ASSERT(nackEvent);
 
     bmqp::AckMessageIterator* iter = nackEvent->ackMessageIterator();
-    ASSERT_EQ(1, iter->next());
-    ASSERT_EQ(pQueue->id(), iter->message().queueId());
-    ASSERT_EQ(guidSecond, iter->message().messageGUID());
-    ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    ASSERT_EQ(2, nackEvent->numCorrrelationIds());
-    ASSERT_EQ(corrIdSecond, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(1, iter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
+    BMQTST_ASSERT_EQ(guidSecond, iter->message().messageGUID());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
+    BMQTST_ASSERT_EQ(2, nackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrIdSecond, nackEvent->correlationId(0));
 
-    ASSERT_EQ(1, iter->next());
-    ASSERT_EQ(pQueue->id(), iter->message().queueId());
-    ASSERT_EQ(guidThird, iter->message().messageGUID());
-    ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    ASSERT_EQ(corrIdThird, nackEvent->correlationId(1));
-    ASSERT_EQ(0, iter->next());
+    BMQTST_ASSERT_EQ(1, iter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
+    BMQTST_ASSERT_EQ(guidThird, iter->message().messageGUID());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
+    BMQTST_ASSERT_EQ(corrIdThird, nackEvent->correlationId(1));
+    BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 11. Send one more PUT message while the channel is down");
     putEventBuilder.reset();
@@ -9067,53 +9341,53 @@ static void test50_putRetransmittingTest()
         .setFlags(phFlags);
     rc = putEventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     // Restore the connection
     obj.setChannel();
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     PVV_SAFE("Step 12. Reopen the queue");
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 13. "
              "Drop the channel, close the queue and verify NACK event");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     obj.session().closeQueueAsync(pQueue, timeout);
 
     nackEvent = obj.waitAckEvent();
 
-    ASSERT(nackEvent);
+    BMQTST_ASSERT(nackEvent);
 
     iter = nackEvent->ackMessageIterator();
-    ASSERT_EQ(1, iter->next());
-    ASSERT_EQ(pQueue->id(), iter->message().queueId());
-    ASSERT_EQ(guidFourth, iter->message().messageGUID());
-    ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    ASSERT_EQ(corrIdFourth, nackEvent->correlationId(0));
-    ASSERT_EQ(0, iter->next());
+    BMQTST_ASSERT_EQ(1, iter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
+    BMQTST_ASSERT_EQ(guidFourth, iter->message().messageGUID());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
+    BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrIdFourth, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 14. Waiting QUEUE_CLOSE_RESULT event...");
     obj.verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS,
                                pQueue);
 
     PVV_SAFE("Step 15. Stop the session when not connected");
-    ASSERT(obj.stop());
+    BMQTST_ASSERT(obj.stop());
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
 
@@ -9164,20 +9438,30 @@ static void test51_putRetransmittingNoAckTest()
     int                            phFlags = 0;
     bmqt::SessionOptions           sessionOptions;
     bmqt::QueueOptions             queueOptions;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder     putEventBuilder(&bufferFactory, s_allocator_p);
-    bmqp::PutMessageIterator  putIter(&bufferFactory, s_allocator_p);
-    bmqp::Event               rawEvent(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder     putEventBuilder(blobSpPool.get(),
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqp::PutMessageIterator  putIter(&bufferFactory,
+                                     bmqtst::TestHelperUtil::allocator());
+    bmqp::Event               rawEvent(bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId corrId(243);
     bdlmt::EventScheduler     scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     bmqt::MessageGUID         guid1 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID         guid2 = bmqp::MessageGUIDGenerator::testGUID();
     bmqt::MessageGUID         guid3 = bmqp::MessageGUIDGenerator::testGUID();
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, scheduler, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
@@ -9212,7 +9496,7 @@ static void test51_putRetransmittingNoAckTest()
     bmqt::EventBuilderResult::Enum rc = putEventBuilder.packMessage(
         pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // The second message has associated CorrelationId and ACK_REQUESTED flag
     putEventBuilder.startMessage();
@@ -9221,22 +9505,22 @@ static void test51_putRetransmittingNoAckTest()
         .setFlags(phFlags);
     rc = putEventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    int res = obj.session().post(putEventBuilder.blob(), timeout);
+    int res = obj.session().post(*putEventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     PVV_SAFE("Step 4. Verify PUT event is sent");
     obj.getOutboundEvent(&rawEvent);
 
-    ASSERT(rawEvent.isPutEvent());
+    BMQTST_ASSERT(rawEvent.isPutEvent());
 
     PVV_SAFE("Step 5. Trigger channel drop and verify no NACK event is sent");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     PVV_SAFE("Step 6. Send one more PUT message while the channel is down");
     putEventBuilder.reset();
@@ -9246,22 +9530,22 @@ static void test51_putRetransmittingNoAckTest()
 
     rc = putEventBuilder.packMessage(pQueue->id());
 
-    ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     // Post the event using event blob
-    res = obj.session().post(putEventBuilder.blob(), timeout);
+    res = obj.session().post(*putEventBuilder.blob(), timeout);
 
-    ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
 
     // Restore the connection
     obj.setChannel();
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     PVV_SAFE("Step 7. Reopen the queue");
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 8. Verify two PUT events are retransmitted");
     rawEvent.clear();
@@ -9270,30 +9554,30 @@ static void test51_putRetransmittingNoAckTest()
 
     rawEvent.loadPutMessageIterator(&putIter, true);
 
-    ASSERT(putIter.isValid());
-    ASSERT_EQ(1, putIter.next());
-    ASSERT_EQ(pQueue->id(), putIter.header().queueId());
-    ASSERT_EQ(guid2, putIter.header().messageGUID());
+    BMQTST_ASSERT(putIter.isValid());
+    BMQTST_ASSERT_EQ(1, putIter.next());
+    BMQTST_ASSERT_EQ(pQueue->id(), putIter.header().queueId());
+    BMQTST_ASSERT_EQ(guid2, putIter.header().messageGUID());
 
-    ASSERT_EQ(1, putIter.next());
-    ASSERT_EQ(pQueue->id(), putIter.header().queueId());
-    ASSERT_EQ(guid3, putIter.header().messageGUID());
-    ASSERT_EQ(0, putIter.next());
+    BMQTST_ASSERT_EQ(1, putIter.next());
+    BMQTST_ASSERT_EQ(pQueue->id(), putIter.header().queueId());
+    BMQTST_ASSERT_EQ(guid3, putIter.header().messageGUID());
+    BMQTST_ASSERT_EQ(0, putIter.next());
 
     PVV_SAFE("Step 9. Trigger channel restart once again");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     // Restore the connection
     obj.setChannel();
 
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     PVV_SAFE("Step 10. Reopen the queue");
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     PVV_SAFE("Step 11. Verify single PUT event is retransmitted");
     rawEvent.clear();
@@ -9302,42 +9586,42 @@ static void test51_putRetransmittingNoAckTest()
 
     rawEvent.loadPutMessageIterator(&putIter, true);
 
-    ASSERT(putIter.isValid());
-    ASSERT_EQ(1, putIter.next());
-    ASSERT_EQ(pQueue->id(), putIter.header().queueId());
-    ASSERT_EQ(guid2, putIter.header().messageGUID());
-    ASSERT_EQ(0, putIter.next());
+    BMQTST_ASSERT(putIter.isValid());
+    BMQTST_ASSERT_EQ(1, putIter.next());
+    BMQTST_ASSERT_EQ(pQueue->id(), putIter.header().queueId());
+    BMQTST_ASSERT_EQ(guid2, putIter.header().messageGUID());
+    BMQTST_ASSERT_EQ(0, putIter.next());
 
     PVV_SAFE("Step 12. "
              "Drop the channel, close the queue and verify NACK event");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     obj.session().closeQueueAsync(pQueue, timeout);
 
     bsl::shared_ptr<bmqimp::Event> nackEvent = obj.waitAckEvent();
 
-    ASSERT(nackEvent);
+    BMQTST_ASSERT(nackEvent);
 
     bmqp::AckMessageIterator* iter = nackEvent->ackMessageIterator();
-    ASSERT_EQ(1, iter->next());
-    ASSERT_EQ(pQueue->id(), iter->message().queueId());
-    ASSERT_EQ(guid2, iter->message().messageGUID());
-    ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
-    ASSERT_EQ(1, nackEvent->numCorrrelationIds());
-    ASSERT_EQ(corrId, nackEvent->correlationId(0));
-    ASSERT_EQ(0, iter->next());
+    BMQTST_ASSERT_EQ(1, iter->next());
+    BMQTST_ASSERT_EQ(pQueue->id(), iter->message().queueId());
+    BMQTST_ASSERT_EQ(guid2, iter->message().messageGUID());
+    BMQTST_ASSERT_EQ(k_ACK_STATUS_UNKNOWN, iter->message().status());
+    BMQTST_ASSERT_EQ(1, nackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrId, nackEvent->correlationId(0));
+    BMQTST_ASSERT_EQ(0, iter->next());
 
     PVV_SAFE("Step 13. Waiting QUEUE_CLOSE_RESULT event...");
     obj.verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS,
                                pQueue);
 
     PVV_SAFE("Step 14. Stop the session when not connected");
-    ASSERT(obj.stop());
+    BMQTST_ASSERT(obj.stop());
 
-    ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
-    ASSERT_EQ(pQueue->isValid(), false);
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+    BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
 
@@ -9378,12 +9662,14 @@ static void test52_controlRetransmission()
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
@@ -9394,16 +9680,16 @@ static void test52_controlRetransmission()
     PVV_SAFE("Step 2. Reset the channel and open a queue");
 
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     int rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     PVV_SAFE("Step 3. Restore the channel and finish queue opening");
 
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
         TestSession::e_REQ_OPEN_QUEUE);
@@ -9414,108 +9700,108 @@ static void test52_controlRetransmission()
     // Advance time to verify the request is handled in the FSM.
     obj.advanceTime(TestSession::k_TIME_SOURCE_STEP);
 
-    ASSERT(pQueue->pendingConfigureId() !=
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() !=
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     obj.sendResponse(request);
 
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-    ASSERT(pQueue->pendingConfigureId() ==
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() ==
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     PVV_SAFE("Step 4. Reset the channel and configure the queue");
 
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
     PVV_SAFE("Step 5. Restore the channel and check the queue is configured");
 
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     // Advance time to verify the request is handled in the FSM.
     obj.advanceTime(TestSession::k_TIME_SOURCE_STEP);
 
-    ASSERT(pQueue->pendingConfigureId() !=
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() !=
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     obj.sendResponse(request);
 
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
 
-    ASSERT(pQueue->pendingConfigureId() ==
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() ==
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     PVV_SAFE("Step 6. "
              "Reset the channel, configure the queue, emulate timeout");
 
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
     // Emulate request timeout.
     obj.advanceTime(timeout);
 
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
-    ASSERT(pQueue->pendingConfigureId() ==
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() ==
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     PVV_SAFE("Step 7. "
              "Restore the channel and check there is no configure request");
 
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
 
     obj.reopenQueue(pQueue, timeout);
 
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     PVV_SAFE("Step 8. Reset the channel, configure the queue, then close it");
 
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     rc = obj.session().configureQueueAsync(pQueue, pQueue->options(), timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
     rc = obj.session().closeQueue(pQueue, timeout);
 
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED));
 
-    ASSERT(pQueue->pendingConfigureId() ==
-           bmqimp::Queue::k_INVALID_CONFIGURE_ID);
+    BMQTST_ASSERT(pQueue->pendingConfigureId() ==
+                  bmqimp::Queue::k_INVALID_CONFIGURE_ID);
 
     PVV_SAFE("Step 9. Restore the channel and check there is no configure "
              "request");
 
     obj.setChannel();
-    ASSERT(obj.waitReconnectedEvent());
-    ASSERT(obj.waitStateRestoredEvent());
+    BMQTST_ASSERT(obj.waitReconnectedEvent());
+    BMQTST_ASSERT(obj.waitStateRestoredEvent());
 
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     PVV_SAFE("Step 10. Stop the session");
 
@@ -9531,12 +9817,14 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
     bmqt::SessionOptions  sessionOptions;
     bmqt::QueueOptions    queueOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock             testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
@@ -9548,29 +9836,29 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 2. Trigger channel drop");
     obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-    ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
     PVV_SAFE("Step 3. Check expired open request");
     {
         int rc = obj.session().openQueueAsync(pQueue, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
         // Emulate request timeout.
         obj.advanceTime(timeout);
 
         PVV_SAFE("Step 4. Waiting QUEUE_OPEN_RESULT event...");
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
         // The queue is closed and can be reused
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
 
         PVV_SAFE("Step 5. Restore the channel");
 
         obj.setChannel();
-        ASSERT(obj.waitReconnectedEvent());
-        ASSERT(obj.waitStateRestoredEvent());
+        BMQTST_ASSERT(obj.waitReconnectedEvent());
+        BMQTST_ASSERT(obj.waitStateRestoredEvent());
     }
 
     PVV_SAFE("Step 6. Check expired open-configure request");
@@ -9579,7 +9867,7 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
         if (bmqt::QueueFlagsUtil::isReader(queueFlags)) {
             int rc = obj.session().openQueueAsync(pQueue, timeout);
 
-            ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+            BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
             obj.sendResponse(
                 obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE));
@@ -9590,24 +9878,24 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
             PVV_SAFE("Step 8. Trigger channel drop");
             obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-            ASSERT(obj.waitConnectionLostEvent());
+            BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
             // Emulate request timeout.
             obj.advanceTime(timeout);
 
             PVV_SAFE("Step 9. Waiting QUEUE_OPEN_RESULT event...");
-            ASSERT(obj.verifyOperationResult(
+            BMQTST_ASSERT(obj.verifyOperationResult(
                 bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                 bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
 
             // The queue should be closed
-            ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
+            BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_CLOSED);
 
             PVV_SAFE("Step 10. Restore the channel");
 
             obj.setChannel();
-            ASSERT(obj.waitReconnectedEvent());
-            ASSERT(obj.waitStateRestoredEvent());
+            BMQTST_ASSERT(obj.waitReconnectedEvent());
+            BMQTST_ASSERT(obj.waitStateRestoredEvent());
         }
     }
 
@@ -9618,13 +9906,13 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
         PVV_SAFE("Step 12. Trigger channel drop");
         obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 
-        ASSERT(obj.waitConnectionLostEvent());
+        BMQTST_ASSERT(obj.waitConnectionLostEvent());
 
         PVV_SAFE("Step 13. Checking async configure...");
         int rc = obj.session().configureQueueAsync(pQueue,
                                                    queueOptions,
                                                    timeout);
-        ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
 
         // Emulate request timeout.
         obj.advanceTime(timeout);
@@ -9639,16 +9927,16 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
             configRes = bmqp_ctrlmsg::StatusCategory::E_TIMEOUT;
         }
 
-        ASSERT(obj.verifyOperationResult(
+        BMQTST_ASSERT(obj.verifyOperationResult(
             bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
             configRes));
 
         // The queue is PENDING
-        ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_PENDING);
+        BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_PENDING);
     }
 
     PVV_SAFE("Step 15. Stop the session");
-    ASSERT(obj.stop());
+    BMQTST_ASSERT(obj.stop());
 }
 
 static void test53_queueExpired()
@@ -9776,9 +10064,9 @@ static void test54_distributedTrace()
 
         static void getSpacer(bdlcc::Deque<bsl::string>& events)
         {
-            bsl::string spacer(s_allocator_p);
-            ASSERT_EQ(events.tryPopFront(&spacer), 0);
-            ASSERT_EQ(spacer, "spacer");
+            bsl::string spacer(bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ(events.tryPopFront(&spacer), 0);
+            BMQTST_ASSERT_EQ(spacer, "spacer");
         }
 
         static void fillEventBufferFn(bsl::vector<bsl::string>&  buffer,
@@ -9792,10 +10080,11 @@ static void test54_distributedTrace()
             // with the given default timeout.
             buffer.resize(expectedNum);
             for (size_t i = 0; i < expectedNum; i++) {
-                ASSERT_EQ(events.timedPopFront(&buffer[i],
-                                               bdlt::CurrentTime::now() +
-                                                   bsls::TimeInterval(0.1)),
-                          0);
+                BMQTST_ASSERT_EQ(
+                    events.timedPopFront(&buffer[i],
+                                         bdlt::CurrentTime::now() +
+                                             bsls::TimeInterval(0.1)),
+                    0);
             }
 
             addSpacer(events);
@@ -9806,16 +10095,18 @@ static void test54_distributedTrace()
             getSpacer(events);
 
             // Make sure no other events arrive with the given default timeout.
-            bsl::string emptyStr(s_allocator_p);
-            ASSERT_NE(events.timedPopFront(&emptyStr,
-                                           bdlt::CurrentTime::now() +
-                                               bsls::TimeInterval(0.01)),
-                      0);
+            bsl::string emptyStr(bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_NE(
+                events.timedPopFront(&emptyStr,
+                                     bdlt::CurrentTime::now() +
+                                         bsls::TimeInterval(0.01)),
+                0);
         }
     };
 
-    bsl::vector<bsl::string>  dtEvents(s_allocator_p);
-    bdlcc::Deque<bsl::string> dtEventsQueue(s_allocator_p);
+    bsl::vector<bsl::string>  dtEvents(bmqtst::TestHelperUtil::allocator());
+    bdlcc::Deque<bsl::string> dtEventsQueue(
+        bmqtst::TestHelperUtil::allocator());
 
     // Contract.  Each event buffer fill is surrounded by spacers:
     // > addSpacer        (first spacer for convenience)
@@ -9829,55 +10120,62 @@ static void test54_distributedTrace()
     localFns::addSpacer(dtEventsQueue);
 
     bsl::shared_ptr<bmqpi::DTContext> dtContext(
-        new (*s_allocator_p) DTTestContext(s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            DTTestContext(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<bmqpi::DTTracer> dtTracer(
-        new (*s_allocator_p) DTTestTracer(&dtEventsQueue, s_allocator_p),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            DTTestTracer(&dtEventsQueue, bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
     bmqt::QueueOptions       queueOptions;
     bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     TestClock                testClock(scheduler);
 
     sessionOptions.setNumProcessingThreads(1).setTraceOptions(dtContext,
                                                               dtTracer);
 
-    TestSession obj(sessionOptions, testClock, s_allocator_p);
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
 
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 2u);
-    ASSERT_EQ(dtEvents[0], "START bmq.session.start");
-    ASSERT_EQ(dtEvents[1], "END bmq.session.start");
+    BMQTST_ASSERT_EQ(dtEvents[0], "START bmq.session.start");
+    BMQTST_ASSERT_EQ(dtEvents[1], "END bmq.session.start");
     dtEvents.clear();
     {
-        bmqpi::DTSpan::Baggage baggage(s_allocator_p);
+        bmqpi::DTSpan::Baggage baggage(bmqtst::TestHelperUtil::allocator());
         baggage.put("tag", "value");
 
         bsl::shared_ptr<bmqpi::DTSpan> span(
-            new (*s_allocator_p)
-                DTTestSpan("test54", baggage, &dtEventsQueue, s_allocator_p),
-            s_allocator_p);
+            new (*bmqtst::TestHelperUtil::allocator())
+                DTTestSpan("test54",
+                           baggage,
+                           &dtEventsQueue,
+                           bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
         bslma::ManagedPtr<void> scopeGuard(dtContext->scope(span));
 
         PVV_SAFE("Step 2. Open a queue...");
         int rc = obj.session().openQueueAsync(pQueue, timeout);
-        ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+        BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
     }
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 3u);
-    ASSERT_EQ(dtEvents[0], "START test54; tag=value");
-    ASSERT_EQ(dtEvents[1],
-              "START bmq.queue.open < test54; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
-    ASSERT_EQ(dtEvents[2], "END test54");
+    BMQTST_ASSERT_EQ(dtEvents[0], "START test54; tag=value");
+    BMQTST_ASSERT_EQ(dtEvents[1],
+                     "START bmq.queue.open < test54; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[2], "END test54");
     dtEvents.clear();
 
     bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
@@ -9886,106 +10184,108 @@ static void test54_distributedTrace()
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
-    ASSERT_EQ(dtEvents[0],
-              "START bmq.queue.openConfigure < bmq.queue.open < test54; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(
+        dtEvents[0],
+        "START bmq.queue.openConfigure < bmq.queue.open < test54; "
+        "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
     dtEvents.clear();
 
     obj.sendResponse(request);
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 2u);
-    ASSERT_EQ(dtEvents[0], "END bmq.queue.open < test54");
-    ASSERT_EQ(dtEvents[1],
-              "END bmq.queue.openConfigure < bmq.queue.open < test54");
+    BMQTST_ASSERT_EQ(dtEvents[0], "END bmq.queue.open < test54");
+    BMQTST_ASSERT_EQ(dtEvents[1],
+                     "END bmq.queue.openConfigure < bmq.queue.open < test54");
     dtEvents.clear();
 
     PVV_SAFE("Step 3. Configure a queue");
-    ASSERT(obj.channel().writeCalls().empty());
+    BMQTST_ASSERT(obj.channel().writeCalls().empty());
     int rc = obj.session().configureQueueAsync(pQueue,
                                                pQueue->options(),
                                                timeout);
-    ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
-    ASSERT(obj.channel().waitFor(1, false, bsls::TimeInterval(1)));
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+    BMQTST_ASSERT(obj.channel().waitFor(1, false, bsls::TimeInterval(1)));
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
-    ASSERT_EQ(dtEvents[0],
-              "START bmq.queue.configure; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[0],
+                     "START bmq.queue.configure; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
     dtEvents.clear();
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_CONFIG_QUEUE);
     obj.sendResponse(request);
-    ASSERT(obj.verifyOperationResult(
+    BMQTST_ASSERT(obj.verifyOperationResult(
         bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 1u);
-    ASSERT_EQ(dtEvents[0], "END bmq.queue.configure");
+    BMQTST_ASSERT_EQ(dtEvents[0], "END bmq.queue.configure");
     dtEvents.clear();
 
     PVV_SAFE("Step 4. Close a queue");
     obj.closeQueue(pQueue, timeout, true);
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 4u);
-    ASSERT_EQ(dtEvents[0],
-              "START bmq.queue.close; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
-    ASSERT_EQ(dtEvents[1],
-              "START bmq.queue.closeConfigure < bmq.queue.close; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
-    ASSERT_EQ(dtEvents[2], "END bmq.queue.closeConfigure < bmq.queue.close");
-    ASSERT_EQ(dtEvents[3], "END bmq.queue.close");
+    BMQTST_ASSERT_EQ(dtEvents[0],
+                     "START bmq.queue.close; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[1],
+                     "START bmq.queue.closeConfigure < bmq.queue.close; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[2],
+                     "END bmq.queue.closeConfigure < bmq.queue.close");
+    BMQTST_ASSERT_EQ(dtEvents[3], "END bmq.queue.close");
     dtEvents.clear();
 
     PVV_SAFE("Step 5. Fail to open a queue");
     rc = obj.session().openQueueAsync(pQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
     obj.sendStatus(request);
     obj.verifyOpenQueueErrorResult(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
                                    pQueue,
                                    bmqimp::QueueState::e_CLOSED);
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 2u);
-    ASSERT_EQ(dtEvents[0],
-              "START bmq.queue.open; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
-    ASSERT_EQ(dtEvents[1], "END bmq.queue.open");
+    BMQTST_ASSERT_EQ(dtEvents[0],
+                     "START bmq.queue.open; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[1], "END bmq.queue.open");
     dtEvents.clear();
 
     PVV_SAFE("Step 6. Open a write-only queue");
     bsl::shared_ptr<bmqimp::Queue> pWriterQueue =
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
     rc = obj.session().openQueueAsync(pWriterQueue, timeout);
-    ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
+    BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 
     request = obj.getNextOutboundRequest(TestSession::e_REQ_OPEN_QUEUE);
     obj.sendResponse(request);
-    ASSERT(
+    BMQTST_ASSERT(
         obj.verifyOperationResult(bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
                                   bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
-    ASSERT(obj.isChannelEmpty());
+    BMQTST_ASSERT(obj.isChannelEmpty());
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 2u);
-    ASSERT_EQ(dtEvents[0],
-              "START bmq.queue.open; "
-              "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
-    ASSERT_EQ(dtEvents[1], "END bmq.queue.open");
+    BMQTST_ASSERT_EQ(dtEvents[0],
+                     "START bmq.queue.open; "
+                     "bmq.queue.uri=bmq://ts.trades.myapp/my.queue?id=my.app");
+    BMQTST_ASSERT_EQ(dtEvents[1], "END bmq.queue.open");
     dtEvents.clear();
 
     PVV_SAFE("Step 7. Stop the session (with queue open)");
     obj.stopGracefully();
 
     localFns::fillEventBufferFn(dtEvents, dtEventsQueue, 2u);
-    ASSERT_EQ(dtEvents[0], "START bmq.session.stop");
-    ASSERT_EQ(dtEvents[1], "END bmq.session.stop");
+    BMQTST_ASSERT_EQ(dtEvents[0], "START bmq.session.stop");
+    BMQTST_ASSERT_EQ(dtEvents[1], "END bmq.session.stop");
     dtEvents.clear();
 
     PVV_SAFE("Step 8. Re-stopping the session does not produce more events");
@@ -10212,8 +10512,8 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     bmqsys::Time::initialize();
-    bmqt::UriParser::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -10290,7 +10590,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

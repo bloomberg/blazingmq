@@ -276,6 +276,13 @@ void StorageManager::gcUnrecognizedDomainQueues()
     // NOTHING
 }
 
+int StorageManager::purgeQueueOnDomain(
+    BSLS_ANNOTATION_UNUSED mqbcmd::StorageResult* result,
+    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
+{
+    return 0;
+}
+
 // ACCESSORS
 mqbi::Dispatcher::ProcessorHandle StorageManager::processorForPartition(
     BSLS_ANNOTATION_UNUSED int partitionId) const
@@ -293,6 +300,7 @@ bool StorageManager::isStorageEmpty(
 const mqbs::FileStore&
 StorageManager::fileStore(BSLS_ANNOTATION_UNUSED int partitionId) const
 {
+    BSLS_ASSERT_INVOKE_NORETURN("Unimplemented");
 }
 
 bslma::ManagedPtr<mqbi::StorageManagerIterator>

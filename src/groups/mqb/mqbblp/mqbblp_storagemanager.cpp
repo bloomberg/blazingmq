@@ -408,15 +408,12 @@ void StorageManager::queueCreationCb(int*                    status,
         status,
         &d_storages[partitionId],
         &d_storagesLock,
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_domainFactory_p,
         d_clusterData_p->identity().description(),
         partitionId,
         uri,
         queueKey,
-        appIdKeyPairs,
-        d_cluster_p->isCSLModeEnabled());
+        appIdKeyPairs);
 }
 
 void StorageManager::queueDeletionCb(int*                    status,
@@ -446,8 +443,6 @@ void StorageManager::queueDeletionCb(int*                    status,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_clusterData_p->identity().description(),
         partitionId,
         uri,
@@ -479,8 +474,6 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_domainFactory_p,
         &d_unrecognizedDomainsLock,
         &d_unrecognizedDomains[partitionId],
@@ -1002,8 +995,6 @@ StorageManager::StorageManager(
 , d_partitionPrimaryStatusCb(partitionPrimaryStatusCb)
 , d_storagesLock()
 , d_storages(allocator)
-, d_appKeysLock()
-, d_appKeysVec(allocator)
 , d_storageMonitorEventHandle()
 , d_gcMessagesEventHandle()
 , d_recoveredPrimaryLeaseIds(allocator)
@@ -1025,7 +1016,6 @@ StorageManager::StorageManager(
     d_storages.resize(partitionCfg.numPartitions());
     d_recoveredPrimaryLeaseIds.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
-    d_appKeysVec.resize(partitionCfg.numPartitions());
 
     d_minimumRequiredDiskSpace = mqbc::StorageUtil::findMinReqDiskSpace(
         partitionCfg);
@@ -1066,8 +1056,6 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                                      &d_storages[partitionId],
                                      &d_storagesLock,
                                      d_fileStores[partitionId].get(),
-                                     &d_appKeysVec[partitionId],
-                                     &d_appKeysLock,
                                      &d_allocators,
                                      processorForPartition(partitionId),
                                      uri,
@@ -1123,15 +1111,12 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_clusterData_p->identity().description(),
         uri,
         queueKey,
         partitionId,
         addedIdKeyPairs,
-        removedIdKeyPairs,
-        d_cluster_p->isCSLModeEnabled());
+        removedIdKeyPairs);
 }
 
 void StorageManager::registerQueueReplica(int                     partitionId,
@@ -1211,8 +1196,6 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
-            &d_appKeysVec[partitionId],
-            &d_appKeysLock,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
@@ -1256,15 +1239,12 @@ void StorageManager::updateQueueReplica(int                     partitionId,
             static_cast<int*>(0),
             &d_storages[partitionId],
             &d_storagesLock,
-            &d_appKeysVec[partitionId],
-            &d_appKeysLock,
             d_domainFactory_p,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
             queueKey,
             appIdKeyPairs,
-            d_cluster_p->isCSLModeEnabled(),
             domain,
             allowDuplicate));
 
@@ -1340,7 +1320,10 @@ int StorageManager::start(bsl::ostream& errorDescription)
         rc_RECOVERY_MANAGER_FAILURE       = -2,
         rc_FILE_STORE_OPEN_FAILURE        = -3,
         rc_FILE_STORE_RECOVERY_FAILURE    = -4,
-        rc_NOT_ENOUGH_DISK_SPACE          = -5
+        rc_NOT_ENOUGH_DISK_SPACE          = -5,
+        rc_OVERFLOW_MAX_DATA_FILE_SIZE    = -6,
+        rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE = -7,
+        rc_OVERFLOW_MAX_QLIST_FILE_SIZE   = -8
     };
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -1349,6 +1332,37 @@ int StorageManager::start(bsl::ostream& errorDescription)
     // For convenience:
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
+
+    // Validate file size limits before checking the available disk space
+    if (mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD <
+        partitionCfg.maxDataFileSize()) {
+        BALL_LOG_ERROR << "Configured maxDataFileSize ("
+                       << partitionCfg.maxDataFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
+        partitionCfg.maxJournalFileSize()) {
+        BALL_LOG_ERROR << "Configured maxJournalFileSize ("
+                       << partitionCfg.maxJournalFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
+        partitionCfg.maxQlistFileSize()) {
+        BALL_LOG_ERROR << "Configured maxQlistFileSize ("
+                       << partitionCfg.maxQlistFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;  // RETURN
+    }
 
     int rc = mqbc::StorageUtil::validatePartitionDirectory(partitionCfg,
                                                            errorDescription);
@@ -2128,6 +2142,24 @@ void StorageManager::gcUnrecognizedDomainQueues()
     mqbc::StorageUtil::gcUnrecognizedDomainQueues(&d_fileStores,
                                                   &d_unrecognizedDomainsLock,
                                                   d_unrecognizedDomains);
+}
+
+int StorageManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                       const bsl::string&     domainName)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
+
+    mqbc::StorageUtil::purgeQueueOnDomain(result,
+                                          domainName,
+                                          &d_fileStores,
+                                          &d_storages,
+                                          &d_storagesLock);
+
+    return 0;
 }
 
 // ACCESSORS

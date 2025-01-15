@@ -82,6 +82,12 @@ void Domain::teardown(
     // NOTHING
 }
 
+void Domain::teardownRemove(
+    BSLS_ANNOTATION_UNUSED const mqbi::Domain::TeardownCb& teardownCb)
+{
+    // NOTHING
+}
+
 void Domain::openQueue(
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const
@@ -147,6 +153,16 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     os << "MockDomain::processCommand '" << command << "' not implemented!";
     result->makeError().message() = os.str();
     return -1;
+}
+
+void Domain::removeDomainReset()
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+}
+
+void Domain::removeDomainComplete()
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
 }
 
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
@@ -218,6 +234,18 @@ void Domain::loadRoutingConfiguration(
     BSLS_ANNOTATION_UNUSED bmqp_ctrlmsg::RoutingConfiguration* config) const
 {
     // NOTHING
+}
+
+bool Domain::tryRemove() const
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+    return true;
+}
+
+bool Domain::isRemoveComplete() const
+{
+    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
+    return true;
 }
 
 // -------------------

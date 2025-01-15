@@ -56,7 +56,8 @@ namespace mqbblp {
 namespace {
 const char k_LOG_CATEGORY[] = "MQBBLP.DOMAIN";
 
-const char k_NODE_IS_STOPPING[] = "Node is stopping";
+const char k_NODE_IS_STOPPING[]              = "Node is stopping";
+const char k_DOMAIN_IS_REMOVING_OR_REMOVED[] = "Domain is removing or removed";
 
 /// This method does nothing.. it's just used so that we can control the
 /// destruction of the specified `queue` to happen once we guarantee the
@@ -276,13 +277,15 @@ void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
     }
 }
 
-void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+void Domain::onQueueAssigned(
+    const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
 {
     // executed by the associated CLUSTER's DISPATCHER thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_sp->dispatcher()->inDispatcherThread(d_cluster_sp.get()));
+    BSLS_ASSERT_SAFE(info);
 
     if (!d_cluster_sp->isCSLModeEnabled()) {
         return;  // RETURN
@@ -292,7 +295,7 @@ void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         return;  // RETURN
     }
 
-    if (info.uri().domain() != d_name) {
+    if (info->uri().domain() != d_name) {
         // Note: This method will fire on all domains which belong to the
         //       cluster having the queue assignment, but we examine the domain
         //       name from the 'uri' to guarantee that only one domain is
@@ -301,7 +304,7 @@ void Domain::onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
         return;  // RETURN
     }
 
-    updateAuthorizedAppIds(info.appInfos());
+    updateAuthorizedAppIds(info->appInfos());
 }
 
 void Domain::onQueueUpdated(const bmqt::Uri&   uri,
@@ -355,6 +358,7 @@ Domain::Domain(const bsl::string&                     name,
 , d_queues(allocator)
 , d_pendingRequests(0)
 , d_teardownCb()
+, d_teardownRemoveCb()
 , d_mutex()
 {
     if (d_cluster_sp->isRemote()) {
@@ -371,7 +375,8 @@ Domain::Domain(const bsl::string&                     name,
 
 Domain::~Domain()
 {
-    BSLS_ASSERT_SAFE(e_STARTED != d_state &&
+    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state ||
+                      e_POSTREMOVE == d_state) &&
                      "'teardown' must be called before the destructor");
 }
 
@@ -428,10 +433,10 @@ int Domain::configure(bsl::ostream&           errorDescription,
     d_capacityMeter.setLimits(limits.messages(), limits.bytes())
         .setWatermarkThresholds(limits.messagesWatermarkRatio(),
                                 limits.bytesWatermarkRatio());
-    d_domainsStats.onEvent(mqbstat::DomainStats::EventType::e_CFG_MSGS,
-                           limits.messages());
-    d_domainsStats.onEvent(mqbstat::DomainStats::EventType::e_CFG_BYTES,
-                           limits.bytes());
+    d_domainsStats.onEvent<mqbstat::DomainStats::EventType::e_CFG_MSGS>(
+        limits.messages());
+    d_domainsStats.onEvent<mqbstat::DomainStats::EventType::e_CFG_BYTES>(
+        limits.bytes());
 
     if (isReconfigure) {
         BSLS_ASSERT_OPT(oldConfig.has_value());
@@ -512,6 +517,34 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
     }
 }
 
+void Domain::teardownRemove(const TeardownCb& teardownCb)
+{
+    BSLS_ASSERT_SAFE(d_state != e_REMOVING && d_state != e_REMOVED);
+    BSLS_ASSERT_SAFE(!d_teardownRemoveCb);
+    BSLS_ASSERT_SAFE(teardownCb);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
+
+    BALL_LOG_INFO << "Removing domain '" << d_name << "' having "
+                  << d_queues.size() << " registered queues.";
+
+    d_teardownRemoveCb = teardownCb;
+    d_state            = e_REMOVING;
+
+    d_cluster_sp->unregisterStateObserver(this);
+
+    if (d_queues.empty()) {
+        d_teardownRemoveCb(d_name);
+        d_state = e_REMOVED;
+        return;  // RETURN
+    }
+
+    for (QueueMap::iterator it = d_queues.begin(); it != d_queues.end();
+         ++it) {
+        it->second->close();
+    }
+}
+
 void Domain::openQueue(
     const bmqt::Uri&                                          uri,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>& clientContext,
@@ -524,22 +557,36 @@ void Domain::openQueue(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(uri.asString() == handleParameters.uri());
 
-    if (d_state != e_STARTED) {
-        // Reject this open-queue request with a soft failure status.
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-        bmqp_ctrlmsg::Status status;
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
-        status.message()  = k_NODE_IS_STOPPING;
+        if (d_state != e_STARTED) {
+            // Reject this open-queue request with a soft failure status.
 
-        callback(status,
-                 static_cast<mqbi::QueueHandle*>(0),
-                 bmqp_ctrlmsg::OpenQueueResponse(),
-                 mqbi::Cluster::OpenQueueConfirmationCookie());
-        return;  // RETURN
+            bmqp_ctrlmsg::Status status;
+
+            if (d_state == e_REMOVING || d_state == e_REMOVED ||
+                d_state == e_PREREMOVE || d_state == e_POSTREMOVE) {
+                status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                status.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
+                status.message()  = k_DOMAIN_IS_REMOVING_OR_REMOVED;
+            }
+            else {
+                status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+                status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+                status.message()  = k_NODE_IS_STOPPING;
+            }
+
+            callback(status,
+                     static_cast<mqbi::QueueHandle*>(0),
+                     bmqp_ctrlmsg::OpenQueueResponse(),
+                     mqbi::Cluster::OpenQueueConfirmationCookie());
+            return;  // RETURN
+        }
+
+        ++d_pendingRequests;
     }
 
-    ++d_pendingRequests;
     d_cluster_sp->openQueue(
         uri,
         this,
@@ -690,6 +737,14 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
         if (d_queues.empty()) {
             d_teardownCb(d_name);
             d_state = e_STOPPED;
+        }
+    }
+    else if (d_state == e_REMOVING) {
+        BSLS_ASSERT_SAFE(d_teardownRemoveCb);
+
+        if (d_queues.empty()) {
+            d_teardownRemoveCb(d_name);
+            d_state = e_REMOVED;
         }
     }
 }
@@ -865,6 +920,21 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     return -1;
 }
 
+void Domain::removeDomainReset()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    d_state            = e_PREREMOVE;
+    d_teardownRemoveCb = bsl::nullptr_t();
+}
+
+void Domain::removeDomainComplete()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    d_state = e_POSTREMOVE;
+}
+
 // ACCESSORS
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
@@ -958,6 +1028,36 @@ void Domain::loadRoutingConfiguration(
                        << "'.";
     }
     }
+}
+
+bool Domain::tryRemove() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    if (d_pendingRequests != 0) {
+        return false;
+    }
+
+    // If there's queue in this domain, check to see if there's any active
+    // handle to it
+    if (!d_queues.empty()) {
+        for (QueueMapCIter it = d_queues.begin(); it != d_queues.end(); ++it) {
+            // Looks like in RootQueueEngine::releaseHandle, queueHandle is
+            // removed and r/w counts reset (in `proctor.releaseHandle`) before
+            // substreams are unregistered; should we check substream?
+            // handle->subStreamInfos().size() == 0
+            if (it->second->hasActiveHandle()) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool Domain::isRemoveComplete() const
+{
+    return d_state == e_POSTREMOVE;
 }
 
 }  // close package namespace

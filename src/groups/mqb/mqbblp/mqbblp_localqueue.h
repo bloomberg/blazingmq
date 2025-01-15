@@ -85,7 +85,6 @@ class LocalQueue BSLS_CPP11_FINAL {
     QueueState*                          d_state_p;
     bslma::ManagedPtr<mqbi::QueueEngine> d_queueEngine_mp;
     bmqu::ThrottledActionParams          d_throttledFailedPutMessages;
-    bool                                 d_hasNewMessages;
     bdlmt::Throttle                      d_throttledDuplicateMessages;
     // Throttler for duplicates.
     bool d_haveStrongConsistency;

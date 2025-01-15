@@ -104,8 +104,12 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    bdlbb::PooledBlobBufferFactory smallFactory(2, s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bigFactory(128, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory smallFactory(
+        2,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bigFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
 
     TestHeader        hdr;
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
@@ -113,99 +117,99 @@ static void test1_breathingTest()
     {
         PVV("Test reading a complete, aligned object from blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob);
-        ASSERT(pxy.isInBlob());
-        ASSERT_EQ(pxy->d_member1, 1u);
-        ASSERT_EQ(pxy->d_member2, 2u);
-        ASSERT(pxy.hasMember(&TestHeader::d_length));
-        ASSERT(pxy.hasMember(&TestHeader::d_member2));
+        BMQTST_ASSERT(pxy.isInBlob());
+        BMQTST_ASSERT_EQ(pxy->d_member1, 1u);
+        BMQTST_ASSERT_EQ(pxy->d_member2, 2u);
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_length));
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member2));
     }
 
     {
         PVV("Test reading an incomplete object from a blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(9, 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob, 9);
-        ASSERT(!pxy.isInBlob());
-        ASSERT_EQ(pxy->d_member1, 1u);
-        ASSERT_EQ(pxy->d_member2, 0u);
-        ASSERT(pxy.hasMember(&TestHeader::d_member1));
-        ASSERT(!pxy.hasMember(&TestHeader::d_member2));
+        BMQTST_ASSERT(!pxy.isInBlob());
+        BMQTST_ASSERT_EQ(pxy->d_member1, 1u);
+        BMQTST_ASSERT_EQ(pxy->d_member2, 0u);
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member1));
+        BMQTST_ASSERT(!pxy.hasMember(&TestHeader::d_member2));
     }
 
     {
         PVV("Test 'resize'");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob, -1);
-        ASSERT(pxy.isInBlob());
+        BMQTST_ASSERT(pxy.isInBlob());
 
         pxy.resize(128);
-        ASSERT(pxy.isInBlob());
-        ASSERT(pxy.hasMember(&TestHeader::d_member2));
+        BMQTST_ASSERT(pxy.isInBlob());
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member2));
 
         pxy.resize(8);
-        ASSERT(!pxy.isInBlob());
-        ASSERT(pxy.hasMember(&TestHeader::d_member1));
-        ASSERT(!pxy.hasMember(&TestHeader::d_member2));
-        ASSERT_EQ(pxy->d_member1, 1u);
+        BMQTST_ASSERT(!pxy.isInBlob());
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member1));
+        BMQTST_ASSERT(!pxy.hasMember(&TestHeader::d_member2));
+        BMQTST_ASSERT_EQ(pxy->d_member1, 1u);
     }
 
     {
         PVV("Test writing out changes to the blob");
 
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(sizeof(hdr), 1, 2);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         // Modify without 'write' mode
         bmqu::BlobObjectProxy<TestHeader> pxy(&blob, 8);
-        ASSERT(!pxy.isInBlob());
-        ASSERT(pxy.hasMember(&TestHeader::d_member1));
-        ASSERT(!pxy.hasMember(&TestHeader::d_member2));
+        BMQTST_ASSERT(!pxy.isInBlob());
+        BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member1));
+        BMQTST_ASSERT(!pxy.hasMember(&TestHeader::d_member2));
 
         pxy->reset(8, 11, 22);
         pxy.reset();
-        ASSERT(!pxy.isSet());
+        BMQTST_ASSERT(!pxy.isSet());
 
         // Modify with 'write' mode
         pxy.reset(&blob, 8, true, true);
-        ASSERT(pxy.isSet());
-        ASSERT(!pxy.isInBlob());
-        ASSERT_EQ(size_t(pxy->d_length), sizeof(hdr));
-        ASSERT_EQ(pxy->d_member1, 1u);
-        ASSERT_EQ(pxy->d_member2, 0u);
+        BMQTST_ASSERT(pxy.isSet());
+        BMQTST_ASSERT(!pxy.isInBlob());
+        BMQTST_ASSERT_EQ(size_t(pxy->d_length), sizeof(hdr));
+        BMQTST_ASSERT_EQ(pxy->d_member1, 1u);
+        BMQTST_ASSERT_EQ(pxy->d_member2, 0u);
 
         pxy->reset(17, 11, 22);
         pxy.reset();
-        ASSERT(!pxy.isSet());
+        BMQTST_ASSERT(!pxy.isSet());
 
         // Verify that only the proxied fields were written out
         pxy.reset(&blob);
-        ASSERT(pxy.isSet());
-        ASSERT(pxy.isInBlob());
-        ASSERT_EQ(pxy->d_length, 17);
-        ASSERT_EQ(pxy->d_member1, 11u);
-        ASSERT_EQ(pxy->d_member2, 2u);
+        BMQTST_ASSERT(pxy.isSet());
+        BMQTST_ASSERT(pxy.isInBlob());
+        BMQTST_ASSERT_EQ(pxy->d_length, 17);
+        BMQTST_ASSERT_EQ(pxy->d_member1, 11u);
+        BMQTST_ASSERT_EQ(pxy->d_member2, 2u);
     }
 
     {
         PVV("Test 'reset' with a blob shorter than specified TYPE's length");
 
         // Create a blob length 1
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob, "a", 1);
-        ASSERT_EQ(1, blob.length());
+        BMQTST_ASSERT_EQ(1, blob.length());
 
         bmqu::BlobObjectProxy<TestHeader> pxy;
         pxy.reset(&blob,
@@ -214,15 +218,15 @@ static void test1_breathingTest()
                   true,    // read
                   false);  // write
 
-        ASSERT_EQ(1, pxy.length());
-        ASSERT_EQ(true, pxy.isSet());
+        BMQTST_ASSERT_EQ(1, pxy.length());
+        BMQTST_ASSERT_EQ(true, pxy.isSet());
     }
 
     {
         PVV("Test 'reset' with speicfying minimum length to read");
 
         // Create blob containing complete TestHeader
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
 
         bmqu::BlobObjectProxy<TestHeader> pxy;
@@ -232,8 +236,8 @@ static void test1_breathingTest()
                   true,    // read
                   false);  // write
 
-        ASSERT_EQ(true, pxy.isSet());
-        ASSERT_EQ(sizeof(hdr), size_t(pxy.length()));
+        BMQTST_ASSERT_EQ(true, pxy.isSet());
+        BMQTST_ASSERT_EQ(sizeof(hdr), size_t(pxy.length()));
 
         // Create blob containing partial TestHeader
         blob.removeAll();
@@ -246,14 +250,14 @@ static void test1_breathingTest()
                   true,    // read
                   false);  // write
 
-        ASSERT_EQ(false, pxy.isSet());
+        BMQTST_ASSERT_EQ(false, pxy.isSet());
     }
 
     {
         PVV("Test 'loadEndPosition'");
 
         // Create blob containing complete TestHeader
-        bdlbb::Blob blob(&bigFactory, s_allocator_p);
+        bdlbb::Blob blob(&bigFactory, bmqtst::TestHelperUtil::allocator());
         hdr.reset(1, 2, 3);
         bdlbb::BlobUtil::append(&blob, ptr, sizeof(hdr));
         hdr.reset(4, 5, 6);
@@ -265,17 +269,17 @@ static void test1_breathingTest()
         // Looking at whole object
         pxy.reset(&blob);
         pxy.loadEndPosition(&pos);
-        ASSERT_EQ(pos, bmqu::BlobPosition(0, sizeof(TestHeader)));
+        BMQTST_ASSERT_EQ(pos, bmqu::BlobPosition(0, sizeof(TestHeader)));
 
         // Looking at part of an object
         pxy.reset(&blob, 10);
         pxy.loadEndPosition(&pos);
-        ASSERT_EQ(pos, bmqu::BlobPosition(0, 10));
+        BMQTST_ASSERT_EQ(pos, bmqu::BlobPosition(0, 10));
 
         // Looking at an object at the end of the blob
         pxy.reset(&blob, bmqu::BlobPosition(0, sizeof(TestHeader)));
         pxy.loadEndPosition(&pos);
-        ASSERT_EQ(pos, bmqu::BlobPosition(1, 0));
+        BMQTST_ASSERT_EQ(pos, bmqu::BlobPosition(1, 0));
     }
 }
 
@@ -303,8 +307,10 @@ static void test2_usageExample1()
     // First, we initialize our blob by writing a single 'TestHeader' object to
     // it with some test values.
     //..
-    bdlbb::PooledBlobBufferFactory factory(0xFF, s_allocator_p);
-    bdlbb::Blob                    blob(&factory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory factory(
+        0xFF,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
     TestHeader hdr;
     bsl::memset(&hdr, 0, sizeof(hdr));
@@ -319,10 +325,10 @@ static void test2_usageExample1()
     // contained at the beginning of 'blob' and access its fields.
     //..
     bmqu::BlobObjectProxy<TestHeader> pxy(&blob);
-    ASSERT(pxy.isSet());
-    ASSERT(pxy->d_length == sizeof(hdr));
-    ASSERT(pxy->d_member1 == 1);
-    ASSERT(pxy->d_member2 == 2);
+    BMQTST_ASSERT(pxy.isSet());
+    BMQTST_ASSERT(pxy->d_length == sizeof(hdr));
+    BMQTST_ASSERT(pxy->d_member1 == 1);
+    BMQTST_ASSERT(pxy->d_member2 == 2);
     //..
     // Now, suppose we know that our blob only contains up to 'd_member1' of
     // our 'TestHeader'.  We can reset (or construct) a 'BlobObjectProxy' with
@@ -333,23 +339,23 @@ static void test2_usageExample1()
     // allow us to read up to 'd_member1' of our structure.
     //..
     pxy.reset(&blob, 8);
-    ASSERT(pxy->d_length == sizeof(hdr));
-    ASSERT(pxy->d_member1 == 1);
+    BMQTST_ASSERT(pxy->d_length == sizeof(hdr));
+    BMQTST_ASSERT(pxy->d_member1 == 1);
     //..
     // When configured this way, the 'BlobObjectProxy' will zero out the
     // remaining fields in its internal buffer (the 'blob' is not modified in
     // any way).
     //..
-    ASSERT(pxy->d_member2 == 0);
+    BMQTST_ASSERT(pxy->d_member2 == 0);
     //..
     // In most cases, having the extraneous members return a value of '0'
     // should be enough, however in some cases it might be desirable to
     // explicitly check whether a field is actually present in the proxied
     // object.  This can be accomplished using 'hasMember' as follows:
     //..
-    ASSERT(pxy.hasMember(&TestHeader::d_length));
-    ASSERT(pxy.hasMember(&TestHeader::d_member1));
-    ASSERT(!pxy.hasMember(&TestHeader::d_member2));
+    BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_length));
+    BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_member1));
+    BMQTST_ASSERT(!pxy.hasMember(&TestHeader::d_member2));
     //..
     // Finally, we will demonstrate the proper way of reading a blob object
     // whose length is one of its members and can't be known until the object
@@ -366,7 +372,7 @@ static void test2_usageExample1()
     // but we still need to ensure that 'd_length' is one of the proxied fields
     // (for example, if the blob was only 2 bytes long).
     //..
-    ASSERT(pxy.hasMember(&TestHeader::d_length));
+    BMQTST_ASSERT(pxy.hasMember(&TestHeader::d_length));
     //..
     // Now we can safely access 'd_length' in our object, and update the
     // proxied object's size appropriately.
@@ -401,8 +407,10 @@ static void test3_usageExample2()
     // efficiently.  To do this, we need to create our blob with enough room to
     // store an instance of our 'TestHeader'.
     //..
-    bdlbb::PooledBlobBufferFactory factory(0xFF, s_allocator_p);
-    bdlbb::Blob                    blob(&factory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory factory(
+        0xFF,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&factory, bmqtst::TestHelperUtil::allocator());
 
     TestHeader        hdr;
     const char* const ptr = reinterpret_cast<const char*>(&hdr);
@@ -430,14 +438,14 @@ static void test3_usageExample2()
     //..
     // Finally, we verify that the blob contains our changes.
     //..
-    bdlbb::Blob expectedBlob(&factory, s_allocator_p);
+    bdlbb::Blob expectedBlob(&factory, bmqtst::TestHelperUtil::allocator());
 
     bsl::memset(&hdr, 0, sizeof(hdr));
     hdr.d_length  = sizeof(TestHeader);
     hdr.d_member1 = 17;
     hdr.d_member2 = 32;
     bdlbb::BlobUtil::append(&expectedBlob, ptr, sizeof(hdr));
-    ASSERT(!bdlbb::BlobUtil::compare(blob, expectedBlob));
+    BMQTST_ASSERT(!bdlbb::BlobUtil::compare(blob, expectedBlob));
     //..
 }
 
@@ -456,7 +464,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -77,12 +77,15 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("breathing test");
 
     // Create a default StatController, make sure it can start/stop
-    mqbcfg::AppConfig cfg(s_allocator_p);  // empty default config
+    mqbcfg::AppConfig cfg(
+        bmqtst::TestHelperUtil::allocator());  // empty default config
     mqbcfg::BrokerConfig::set(cfg);
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
     bdlmt::EventScheduler  scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     mqbplug::PluginManager pluginManager;
 
     scheduler.start();
@@ -95,11 +98,11 @@ static void test1_breathingTest()
         &bufferFactory,
         0,  // no allocatorsStatContext
         &scheduler,
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
-    bmqu::MemOutStream errStream(s_allocator_p);
+    bmqu::MemOutStream errStream(bmqtst::TestHelperUtil::allocator());
     int                rc = obj.start(errStream);
-    ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(rc, 0);
     obj.stop();
     scheduler.stop();
 }
@@ -119,7 +122,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

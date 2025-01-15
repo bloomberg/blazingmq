@@ -61,18 +61,18 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Prior to initialization, calling the accessors is undefined behavior.
-    ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::globalStatContext());
-    ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::topAllocatorStore());
+    BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::globalStatContext());
+    BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::topAllocatorStore());
 
     bmqma::CountingAllocatorUtil::initGlobalAllocators("testStatContext",
                                                        "testAllocatorName");
 
-    ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::initGlobalAllocators(
+    BMQTST_ASSERT_SAFE_FAIL(bmqma::CountingAllocatorUtil::initGlobalAllocators(
         "testStatContext",
         "testAllocatorName"));
-    ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
-    ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
-              "testStatContext");
+    BMQTST_ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
+    BMQTST_ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
+                     "testStatContext");
 }
 
 static void test2_initGlobalAllocators()
@@ -101,9 +101,9 @@ static void test2_initGlobalAllocators()
     bmqma::CountingAllocatorUtil::initGlobalAllocators("testStatContext",
                                                        "testAllocatorName");
 
-    ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
-    ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
-              "testStatContext");
+    BMQTST_ASSERT(bmqma::CountingAllocatorUtil::globalStatContext() != 0);
+    BMQTST_ASSERT_EQ(bmqma::CountingAllocatorUtil::globalStatContext()->name(),
+                     "testStatContext");
 
     bmqma::CountingAllocatorStore& topAllocatorStore =
         bmqma::CountingAllocatorUtil::topAllocatorStore();
@@ -116,11 +116,11 @@ static void test2_initGlobalAllocators()
     bslma::Allocator* defaultAlloc = topAllocatorStore.get(
         "Default Allocator");
 
-    ASSERT(dynamic_cast<bmqma::CountingAllocator*>(globalAlloc) != 0);
-    ASSERT(dynamic_cast<bmqma::CountingAllocator*>(defaultAlloc) != 0);
+    BMQTST_ASSERT(dynamic_cast<bmqma::CountingAllocator*>(globalAlloc) != 0);
+    BMQTST_ASSERT(dynamic_cast<bmqma::CountingAllocator*>(defaultAlloc) != 0);
 
-    ASSERT_EQ(globalAlloc, bslma::Default::globalAllocator());
-    ASSERT_EQ(defaultAlloc, bslma::Default::defaultAllocator());
+    BMQTST_ASSERT_EQ(globalAlloc, bslma::Default::globalAllocator());
+    BMQTST_ASSERT_EQ(defaultAlloc, bslma::Default::defaultAllocator());
 
     // Check that the corresponding statContexts have been properly registered
     // under the top-level counting allocator for the default and global
@@ -130,14 +130,15 @@ static void test2_initGlobalAllocators()
     const bmqst::StatContext* topAllocatorStatContext =
         bmqma::CountingAllocatorUtil::globalStatContext()->getSubcontext(
             "testAllocatorName");
-    ASSERT(topAllocatorStatContext != 0);
+    BMQTST_ASSERT(topAllocatorStatContext != 0);
 
-    ASSERT_EQ(topAllocatorStatContext->numSubcontexts(), 2);
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(topAllocatorStatContext->numSubcontexts(), 2);
+    BMQTST_ASSERT_EQ(
         topAllocatorStatContext->getSubcontext("Default Allocator"),
         dynamic_cast<bmqma::CountingAllocator*>(defaultAlloc)->context());
-    ASSERT_EQ(topAllocatorStatContext->getSubcontext("Global Allocator"),
-              dynamic_cast<bmqma::CountingAllocator*>(globalAlloc)->context());
+    BMQTST_ASSERT_EQ(
+        topAllocatorStatContext->getSubcontext("Global Allocator"),
+        dynamic_cast<bmqma::CountingAllocator*>(globalAlloc)->context());
 }
 
 //=============================================================================
@@ -154,7 +155,7 @@ int main(int argc, char** argv)
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

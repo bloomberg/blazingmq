@@ -40,23 +40,27 @@
 /// Usage
 ///-----
 //..
-//  bdlbb::PooledBlobBufferFactory bufferFactory(1024, d_allocator_p);
-//  bmqp::PushEventBuilder builder(&bufferFactory, d_allocator_p);
+//  bdlbb::PooledBlobBufferFactory   bufferFactory(1024, s_allocator_p);
+//  bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+//        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, s_allocator_p));
+//  bmqp::PushEventBuilder builder(blobSpPool.get(), d_allocator_p);
 //
 //  // Append multiple messages
 //  builder.packMessage("hello", 5, 0, bmqt::MessageGUID());
 //  builder.packMessage(myBlob, 0, bmqt::MessageGUID());
 //
-//  const bdlbb::Blob& eventBlob = builder.blob();
+//  const bsl::shared_ptr<bdlbb::Blob>& eventBlob = builder.blob();
 //  // Send the blob ...
 //
 //  // We can reset the builder to reuse it; note that this invalidates the
-//  // 'eventBlob' retrieved above
+//  // 'eventBlob' shared pointer reference retrieved above.  To keep the
+//  // bdlbb::Blob valid the shared pointer should be copied, and the copy
+//  // should be passed and kept in IO components.
 //  builder.reset();
 //..
 
 // BMQ
-
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_optionutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
@@ -83,17 +87,21 @@ namespace bmqp {
 
 /// Mechanism to build a BlazingMQ PUSH event
 class PushEventBuilder {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // DATA
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
-    mutable bdlbb::Blob d_blob;
-    // blob being built by this
-    // PushEventBuilder.
-    // This has been done mutable to be
-    // able to skip writing the length
-    // until the blob is retrieved.
+    /// Blob pool to use.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
+
+    /// Blob being built by this object.
+    /// `mutable` to skip writing the length until the blob is retrieved.
+    mutable bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
 
     int d_msgCount;
     // number of messages currently in
@@ -151,10 +159,11 @@ class PushEventBuilder {
 
     // CREATORS
 
-    /// Create a new `PushEventBuilder` using the specified `bufferFactory`
-    /// and `allocator` for the blob.
-    PushEventBuilder(bdlbb::BlobBufferFactory* bufferFactory,
-                     bslma::Allocator*         allocator);
+    /// Create a new `PushEventBuilder` using the specified `blobSpPool_p` and
+    /// `allocator` for the blob.  We require BlobSpPool to build Blobs with
+    /// set BlobBufferFactory since we might want to expand the built Blob
+    /// dynamically.
+    PushEventBuilder(BlobSpPool* blobSpPool_p, bslma::Allocator* allocator);
 
     // MANIPULATORS
 
@@ -240,10 +249,13 @@ class PushEventBuilder {
     /// Return the number of messages currently in the event being built.
     int messageCount() const;
 
-    /// Return a reference not offering modifiable access to the blob built
-    /// by this event.  If no messages were added, this will return a blob
-    /// composed only of an `EventHeader`.
-    const bdlbb::Blob& blob() const;
+    /// Return a reference to the shared pointer to the built Blob.  If no
+    /// messages were added, the Blob object under this reference will be
+    /// empty.
+    /// Note that this accessor exposes an internal shared pointer object, and
+    /// it is the user's responsibility to make a copy of it if it needs to be
+    /// passed and kept in another thread while this builder object is used.
+    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
 
 // ============================================================================
@@ -263,7 +275,7 @@ inline int PushEventBuilder::eraseCurrentMessage()
 #ifdef BSLS_ASSERT_SAFE_IS_ACTIVE
     bool hasNoOptions    = optionsSize == 0 && !d_currPushHeader.isSet();
     bool hasOptions      = optionsSize > 0 && d_currPushHeader.isSet();
-    bool isValidBlobSize = d_blob.length() >
+    bool isValidBlobSize = d_blob_sp->length() >
                            (static_cast<int>(sizeof(PushHeader)) +
                             optionsSize);
 
@@ -276,7 +288,8 @@ inline int PushEventBuilder::eraseCurrentMessage()
         // Flush any buffered changes if necessary, and make this object
         // not refer to any valid blob object.
 
-        d_blob.setLength(d_blob.length() - sizeof(PushHeader) - optionsSize);
+        d_blob_sp->setLength(d_blob_sp->length() - sizeof(PushHeader) -
+                             optionsSize);
 
         d_options.reset();
     }
@@ -339,10 +352,10 @@ inline int PushEventBuilder::eventSize() const
                      (optionsCount == 0 && !d_currPushHeader.isSet()));
 
     if (optionsCount > 0) {
-        return d_blob.length() - sizeof(PushHeader) - d_options.size();
+        return d_blob_sp->length() - sizeof(PushHeader) - d_options.size();
         // RETURN
     }
-    return d_blob.length();
+    return d_blob_sp->length();
 }
 
 inline int PushEventBuilder::messageCount() const

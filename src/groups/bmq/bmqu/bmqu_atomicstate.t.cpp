@@ -57,10 +57,10 @@ static void test1_cancelThenProcess()
     bool              result;
 
     result = state.cancel();
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     result = state.process();
-    ASSERT_EQ(result, false);
+    BMQTST_ASSERT_EQ(result, false);
 }
 
 static void test2_processThenCancel()
@@ -75,10 +75,10 @@ static void test2_processThenCancel()
     bool              result;
 
     result = state.process();
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     result = state.cancel();
-    ASSERT_EQ(result, false);
+    BMQTST_ASSERT_EQ(result, false);
 }
 
 static void test3_lockThenProcess()
@@ -96,12 +96,12 @@ static void test3_lockThenProcess()
     bslmt::ThreadUtil::Handle threadHandle;
 
     result = state.tryLock();
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     bslmt::ThreadUtil::createWithAllocator(
         &threadHandle,
         bdlf::BindUtil::bind(&threadFn, &result2, &state, &semaphore),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     // wait for the thread to arrive at the start
     semaphore.wait();
 
@@ -109,13 +109,13 @@ static void test3_lockThenProcess()
     bslmt::ThreadUtil::microSleep(0, 1);
 
     int rc = semaphore.tryWait();
-    ASSERT_NE(rc, 0);
+    BMQTST_ASSERT_NE(rc, 0);
 
     state.unlock();
 
     bslmt::ThreadUtil::join(threadHandle);
 
-    ASSERT_EQ(result2, true);
+    BMQTST_ASSERT_EQ(result2, true);
 }
 
 static void test4_lockThenCancelThenProcess()
@@ -130,13 +130,13 @@ static void test4_lockThenCancelThenProcess()
     bool              result;
 
     result = state.tryLock();
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     result = state.cancel();
-    ASSERT_EQ(result, true);
+    BMQTST_ASSERT_EQ(result, true);
 
     result = state.process();
-    ASSERT_EQ(result, false);
+    BMQTST_ASSERT_EQ(result, false);
 }
 
 // ============================================================================
@@ -155,7 +155,7 @@ int main(int argc, char* argv[])
     case 4: test4_lockThenCancelThenProcess(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

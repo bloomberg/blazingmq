@@ -48,12 +48,14 @@ static void test1_breathingTest()
     // Default constructor
     mqbs::MappedFileDescriptor obj;
 
-    ASSERT_EQ(obj.fd(), static_cast<int>(obj.k_INVALID_FILE_DESCRIPTOR));
-    ASSERT_EQ(obj.fileSize(), 0U);
-    ASSERT_EQ(obj.mappingSize(),
-              static_cast<bsls::Types::Uint64>(obj.k_INVALID_MAPPING_SIZE));
-    ASSERT_EQ(obj.mapping(), obj.k_INVALID_MAPPING);
-    ASSERT(!obj.isValid());
+    BMQTST_ASSERT_EQ(obj.fd(),
+                     static_cast<int>(obj.k_INVALID_FILE_DESCRIPTOR));
+    BMQTST_ASSERT_EQ(obj.fileSize(), 0U);
+    BMQTST_ASSERT_EQ(
+        obj.mappingSize(),
+        static_cast<bsls::Types::Uint64>(obj.k_INVALID_MAPPING_SIZE));
+    BMQTST_ASSERT_EQ(obj.mapping(), obj.k_INVALID_MAPPING);
+    BMQTST_ASSERT(!obj.isValid());
 }
 
 static void test2_operations()
@@ -83,13 +85,13 @@ static void test2_operations()
         .setMapping(block.base())
         .setMappingSize(block.size());
 
-    ASSERT(obj.isValid());
+    BMQTST_ASSERT(obj.isValid());
 
     // Verify Manipulators- Accessors
-    ASSERT_EQ(obj.fd(), fileDescriptor);
-    ASSERT_EQ(obj.fileSize(), fileSize);
-    ASSERT_EQ(obj.mapping(), block.base());
-    ASSERT_EQ(obj.mappingSize(), block.size());
+    BMQTST_ASSERT_EQ(obj.fd(), fileDescriptor);
+    BMQTST_ASSERT_EQ(obj.fileSize(), fileSize);
+    BMQTST_ASSERT_EQ(obj.mapping(), block.base());
+    BMQTST_ASSERT_EQ(obj.mappingSize(), block.size());
 }
 
 static void test3_reset()
@@ -118,17 +120,19 @@ static void test3_reset()
         .setMapping(block.base())
         .setMappingSize(block.size());
 
-    ASSERT(obj.isValid());
+    BMQTST_ASSERT(obj.isValid());
 
     // Verify Clear()
     obj.reset();
 
-    ASSERT_EQ(obj.fd(), static_cast<int>(obj.k_INVALID_FILE_DESCRIPTOR));
-    ASSERT_EQ(obj.fileSize(), 0U);
-    ASSERT_EQ(obj.mappingSize(),
-              static_cast<bsls::Types::Uint64>(obj.k_INVALID_MAPPING_SIZE));
-    ASSERT_EQ(obj.mapping(), obj.k_INVALID_MAPPING);
-    ASSERT(!obj.isValid());
+    BMQTST_ASSERT_EQ(obj.fd(),
+                     static_cast<int>(obj.k_INVALID_FILE_DESCRIPTOR));
+    BMQTST_ASSERT_EQ(obj.fileSize(), 0U);
+    BMQTST_ASSERT_EQ(
+        obj.mappingSize(),
+        static_cast<bsls::Types::Uint64>(obj.k_INVALID_MAPPING_SIZE));
+    BMQTST_ASSERT_EQ(obj.mapping(), obj.k_INVALID_MAPPING);
+    BMQTST_ASSERT(!obj.isValid());
 }
 
 // ============================================================================
@@ -146,7 +150,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

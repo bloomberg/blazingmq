@@ -44,19 +44,15 @@ namespace m_bmqstoragetool {
 
 class CompositeSequenceNumber {
   private:
-    // DATA
-    bsls::Types::Uint64 d_leaseId;
-    // Primary Lease Id
-    bsls::Types::Uint64 d_seqNumber;
-    // Sequence Number
-    bool d_isSet;
-    // Set to `true` if the value of this object is set
+    // PRIVATE DATA
+
+    /// Pair of primary lease Id and sequence number
+    bsl::pair<unsigned int, bsls::Types::Uint64> d_compositeSequenceNumber;
 
   public:
     // CREATORS
 
-    /// Create an un-initialized CompositeSequenceNumber.  Note that
-    /// `isSet()` would return false.
+    /// Create CompositeSequenceNumber with zero initialized values.
     CompositeSequenceNumber();
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
@@ -69,22 +65,25 @@ class CompositeSequenceNumber {
     /// Initialize this CompositeSequenceNumber from the specified
     /// `seqNumString` representation in format `<leaseId>-<sequenceNumber>`.
     /// Return a reference offering modifiable access to this object. If
-    /// convertion is successfull, `isSet()` would return `true`. Otherwise,
-    /// `isSet()` would return `false` and specified `errorDescription` is
+    /// convertion is successfull, `success` value is set to `true`. Otherwise,
+    /// `success` value is set to `false` and specified `errorDescription` is
     /// filled with error description.
-    CompositeSequenceNumber& fromString(bsl::ostream&      errorDescription,
+    CompositeSequenceNumber& fromString(bool*              success,
+                                        bsl::ostream&      errorDescription,
                                         const bsl::string& seqNumString);
 
     // ACCESSORS
 
-    /// Return `true` if the value of this object is not set.
-    bool isSet() const;
-
-    /// Return Primary Lease Id value.
+    /// Return primary Lease Id value.
     bsls::Types::Uint64 leaseId() const;
 
-    /// Return Sequence Number value.
+    /// Return sequence number value.
     bsls::Types::Uint64 sequenceNumber() const;
+
+    /// Return the const reference to composite sequence number as a pair of
+    /// primary lease Id and sequence number.
+    const bsl::pair<unsigned int, bsls::Types::Uint64>&
+    compositeSequenceNumber() const;
 
     /// Write the value of this object to the specified output `stream` in a
     /// human-readable format, and return a reference to `stream`.
@@ -139,19 +138,20 @@ bool operator<=(const CompositeSequenceNumber& lhs,
 
 // ACCESSORS
 
-inline bool CompositeSequenceNumber::isSet() const
-{
-    return d_isSet;
-}
-
 inline bsls::Types::Uint64 CompositeSequenceNumber::leaseId() const
 {
-    return d_leaseId;
+    return d_compositeSequenceNumber.first;
 }
 
 inline bsls::Types::Uint64 CompositeSequenceNumber::sequenceNumber() const
 {
-    return d_seqNumber;
+    return d_compositeSequenceNumber.second;
+}
+
+inline const bsl::pair<unsigned int, bsls::Types::Uint64>&
+CompositeSequenceNumber::compositeSequenceNumber() const
+{
+    return d_compositeSequenceNumber;
 }
 
 }  // close package namespace
@@ -166,9 +166,6 @@ inline bsl::ostream& m_bmqstoragetool::operator<<(
     bsl::ostream&                                    stream,
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(rhs.isSet());
-
     return rhs.print(stream, 0, -1);
 }
 
@@ -176,41 +173,21 @@ inline bool m_bmqstoragetool::operator==(
     const m_bmqstoragetool::CompositeSequenceNumber& lhs,
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
-
-    return (lhs.leaseId() == rhs.leaseId() &&
-            lhs.sequenceNumber() == rhs.sequenceNumber());
+    return lhs.compositeSequenceNumber() == rhs.compositeSequenceNumber();
 }
 
 inline bool m_bmqstoragetool::operator<(
     const m_bmqstoragetool::CompositeSequenceNumber& lhs,
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
-
-    // Check leaseId first
-    if (lhs.leaseId() < rhs.leaseId()) {
-        return true;  // RETURN
-    }
-    else if (lhs.leaseId() == rhs.leaseId()) {
-        if (lhs.sequenceNumber() < rhs.sequenceNumber()) {
-            return true;  // RETURN
-        }
-    }
-
-    return false;
+    return lhs.compositeSequenceNumber() < rhs.compositeSequenceNumber();
 }
 
 inline bool m_bmqstoragetool::operator<=(
     const m_bmqstoragetool::CompositeSequenceNumber& lhs,
     const m_bmqstoragetool::CompositeSequenceNumber& rhs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(lhs.isSet() && rhs.isSet());
-
-    return (lhs < rhs || lhs == rhs);
+    return lhs.compositeSequenceNumber() <= rhs.compositeSequenceNumber();
 }
 
 }  // close enterprise namespace

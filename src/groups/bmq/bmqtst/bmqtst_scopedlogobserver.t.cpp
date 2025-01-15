@@ -52,17 +52,18 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::OFF, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::OFF,
+                                       bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(observer.severityThreshold(), ball::Severity::OFF);
-    ASSERT(!observer.isEnabled());
-    ASSERT(observer.records().empty());
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::OFF);
+    BMQTST_ASSERT(!observer.isEnabled());
+    BMQTST_ASSERT(observer.records().empty());
 
     observer.setSeverityThreshold(ball::Severity::WARN);
 
-    ASSERT_EQ(observer.severityThreshold(), ball::Severity::WARN);
-    ASSERT(observer.isEnabled());
-    ASSERT(observer.records().empty());
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::WARN);
+    BMQTST_ASSERT(observer.isEnabled());
+    BMQTST_ASSERT(observer.records().empty());
 }
 
 static void test2_publish()
@@ -85,32 +86,33 @@ static void test2_publish()
 {
     bmqtst::TestHelper::printTestName("PUBLISH");
 
-    ball::Record  record1(s_allocator_p);
-    ball::Record  record2(s_allocator_p);
-    ball::Context context1(s_allocator_p);
-    ball::Context context2(s_allocator_p);
+    ball::Record  record1(bmqtst::TestHelperUtil::allocator());
+    ball::Record  record2(bmqtst::TestHelperUtil::allocator());
+    ball::Context context1(bmqtst::TestHelperUtil::allocator());
+    ball::Context context2(bmqtst::TestHelperUtil::allocator());
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+                                       bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
-    ASSERT(observer.isEnabled());
-    ASSERT(observer.records().empty());
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT(observer.isEnabled());
+    BMQTST_ASSERT(observer.records().empty());
 
     record1.fixedFields().setSeverity(ball::Severity::ERROR);
     observer.publish(record1, context1);
 
-    ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
-    ASSERT(observer.isEnabled());
-    ASSERT(observer.records().size() == 1);
-    ASSERT(observer.records()[0] == record1);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT(observer.isEnabled());
+    BMQTST_ASSERT(observer.records().size() == 1);
+    BMQTST_ASSERT(observer.records()[0] == record1);
 
     record2.fixedFields().setSeverity(ball::Severity::WARN);
     observer.publish(record2, context2);
 
-    ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
-    ASSERT(observer.isEnabled());
-    ASSERT(observer.records().size() == 1);
-    ASSERT(observer.records()[0] == record1);
+    BMQTST_ASSERT_EQ(observer.severityThreshold(), ball::Severity::ERROR);
+    BMQTST_ASSERT(observer.isEnabled());
+    BMQTST_ASSERT(observer.records().size() == 1);
+    BMQTST_ASSERT(observer.records()[0] == record1);
 }
 
 static void test3_recordMessageMatch()
@@ -155,16 +157,16 @@ static void test3_recordMessageMatch()
                        << test.d_msg << "\", \"" << test.d_pattern << "\")'"
                        << " == " << bsl::boolalpha << test.d_isMatch);
 
-        ball::Record  record(s_allocator_p);
-        ball::Context context(s_allocator_p);
+        ball::Record  record(bmqtst::TestHelperUtil::allocator());
+        ball::Context context(bmqtst::TestHelperUtil::allocator());
 
         record.fixedFields().setMessage(test.d_msg);
 
-        ASSERT_EQ(
-            bmqtst::ScopedLogObserverUtil::recordMessageMatch(record,
-                                                              test.d_pattern,
-                                                              s_allocator_p),
-            test.d_isMatch);
+        BMQTST_ASSERT_EQ(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+                             record,
+                             test.d_pattern,
+                             bmqtst::TestHelperUtil::allocator()),
+                         test.d_isMatch);
     }
 }
 
@@ -182,7 +184,7 @@ static void test4_usageExample()
 // Testing:
 //   TODO:
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -190,15 +192,16 @@ static void test4_usageExample()
 
     BALL_LOG_SET_CATEGORY("TEST");
 
-    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR, s_allocator_p);
+    bmqtst::ScopedLogObserver observer(ball::Severity::ERROR,
+                                       bmqtst::TestHelperUtil::allocator());
 
     BALL_LOG_ERROR << "MySampleError";
 
-    ASSERT_EQ(observer.records().size(), 1U);
-    ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+    BMQTST_ASSERT_EQ(observer.records().size(), 1U);
+    BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
         observer.records()[0],
         ".*Sample.*",
-        s_allocator_p));
+        bmqtst::TestHelperUtil::allocator()));
 }
 
 // ============================================================================
@@ -217,7 +220,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

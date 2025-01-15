@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbs_storagecollectionutil.cpp                                     -*-C++-*-
+#include <ball_log.h>
 #include <mqbs_storagecollectionutil.h>
 
 // BDE
@@ -70,9 +71,8 @@ createStorageComparator(StorageCollectionUtilSortMetric::Enum metricType)
 bool byDomainFilter(const ReplicatedStorage* storage,
                     const bsl::string&       domainName)
 {
-    return strncmp(storage->queueUri().qualifiedDomain().data(),
-                   domainName.c_str(),
-                   storage->queueUri().qualifiedDomain().length()) == 0;
+    return storage->queueUri().qualifiedDomain().compare(
+               bslstl::StringRef(domainName)) == 0;
 }
 
 bool byMessageCountFilter(const ReplicatedStorage* storage,

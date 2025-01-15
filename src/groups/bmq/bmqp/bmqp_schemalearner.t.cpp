@@ -43,11 +43,11 @@ static void test1_multiplexingTest()
     // Two distinct sources translate the same id ('1').  The result must be
     // unique id in each case.
     //
-    bmqp::SchemaLearner          theLearner(s_allocator_p);
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context clientSession1 = theLearner.createContext();
     bmqp::SchemaLearner::Context clientSession2 = theLearner.createContext();
 
-    ASSERT_NE(clientSession1, clientSession2);
+    BMQTST_ASSERT_NE(clientSession1, clientSession2);
 
     {
         // Verify that invalid schema (new-style-no-schema) does not translate.
@@ -56,7 +56,7 @@ static void test1_multiplexingTest()
         bmqp::MessagePropertiesInfo out = theLearner.multiplex(clientSession1,
                                                                in);
 
-        ASSERT(in == out);
+        BMQTST_ASSERT(in == out);
     }
 
     bmqp::MessagePropertiesInfo info(true, 1, false);
@@ -66,14 +66,14 @@ static void test1_multiplexingTest()
     bmqp::MessagePropertiesInfo translated2 =
         theLearner.multiplex(clientSession2, info);
 
-    ASSERT_NE(translated1.schemaId(), translated2.schemaId());
+    BMQTST_ASSERT_NE(translated1.schemaId(), translated2.schemaId());
 
     // Subsequent calls get the same result
-    ASSERT_EQ(translated1.schemaId(),
-              theLearner.multiplex(clientSession1, info).schemaId());
+    BMQTST_ASSERT_EQ(translated1.schemaId(),
+                     theLearner.multiplex(clientSession1, info).schemaId());
 
-    ASSERT_EQ(translated2.schemaId(),
-              theLearner.multiplex(clientSession2, info).schemaId());
+    BMQTST_ASSERT_EQ(translated2.schemaId(),
+                     theLearner.multiplex(clientSession2, info).schemaId());
 }
 
 static void test2_readingTest()
@@ -83,11 +83,13 @@ static void test2_readingTest()
     // The resulting schema must be the same until recycling is indicated.
     //
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   queueEngine(theLearner.createContext());
     bmqp::SchemaLearner::Context   clientSession(theLearner.createContext());
-    bmqp::MessageProperties        in(s_allocator_p);
+    bmqp::MessageProperties        in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    input(true, 1, false);
     bmqp::MessagePropertiesInfo    recycledInput(true, 1, true);
 
@@ -95,27 +97,31 @@ static void test2_readingTest()
 
     for (int i = 0; i < num; ++i) {
         bsl::string name = bsl::to_string(i);
-        ASSERT_EQ(0, in.setPropertyAsString(name, name));
+        BMQTST_ASSERT_EQ(0, in.setPropertyAsString(name, name));
     }
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out(s_allocator_p);
+    bmqp::MessageProperties out(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0,
-              theLearner.read(queueEngine,
-                              &out,
-                              theLearner.multiplex(clientSession, input),
-                              blob));
+    BMQTST_ASSERT_EQ(
+        0,
+        theLearner.read(queueEngine,
+                        &out,
+                        theLearner.multiplex(clientSession, input),
+                        blob));
 
-    bmqp::MessageProperties::SchemaPtr schema1 = out.makeSchema(s_allocator_p);
+    bmqp::MessageProperties::SchemaPtr schema1 = out.makeSchema(
+        bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0,
-              theLearner.read(queueEngine,
-                              &out,
-                              theLearner.multiplex(clientSession, input),
-                              blob));
+    BMQTST_ASSERT_EQ(
+        0,
+        theLearner.read(queueEngine,
+                        &out,
+                        theLearner.multiplex(clientSession, input),
+                        blob));
 
-    ASSERT_EQ(schema1, out.makeSchema(s_allocator_p));
+    BMQTST_ASSERT_EQ(schema1,
+                     out.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     int start = bsl::rand() % num;
@@ -127,10 +133,10 @@ static void test2_readingTest()
         }
         bsl::string name = bsl::to_string(j);
 
-        ASSERT_EQ(out.getPropertyAsString(name), name);
+        BMQTST_ASSERT_EQ(out.getPropertyAsString(name), name);
     }
 
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         0,
         theLearner.read(queueEngine,
                         &out,
@@ -138,29 +144,29 @@ static void test2_readingTest()
                         blob));
 
     bmqp::MessageProperties::SchemaPtr schema2;
-    schema2 = out.makeSchema(s_allocator_p);
-    ASSERT_NE(schema1, schema2);
+    schema2 = out.makeSchema(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_NE(schema1, schema2);
     // ...unless the input is recycled
 
-    ASSERT(schema1);
-    ASSERT(schema2);
+    BMQTST_ASSERT(schema1);
+    BMQTST_ASSERT(schema2);
 
     int index;
 
     for (int i = 0; i < num; ++i) {
         bsl::string name = bsl::to_string(i);
 
-        ASSERT(schema1->loadIndex(&index, name));
+        BMQTST_ASSERT(schema1->loadIndex(&index, name));
     }
-    ASSERT(!schema1->loadIndex(&index, "a"));
+    BMQTST_ASSERT(!schema1->loadIndex(&index, "a"));
 
     for (int i = 0; i < num; ++i) {
         bsl::string name = bsl::to_string(i);
 
-        ASSERT(schema2->loadIndex(&index, name));
+        BMQTST_ASSERT(schema2->loadIndex(&index, name));
     }
 
-    ASSERT(!schema2->loadIndex(&index, "a"));
+    BMQTST_ASSERT(!schema2->loadIndex(&index, "a"));
 }
 
 static void test3_observingTest()
@@ -168,11 +174,13 @@ static void test3_observingTest()
     // While reading the same MPs in the same context, the result must be the
     // same until observing recycling indication.
     //
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   server(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
 
     in.setPropertyAsString("z", "z");
@@ -180,30 +188,33 @@ static void test3_observingTest()
     in.setPropertyAsString("x", "x");
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
-    bmqp::MessageProperties out2(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0, theLearner.read(server, &out1, input, blob));
-    ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(server, &out1, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
     bmqp::MessageProperties::SchemaPtr schema1 = out1.makeSchema(
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(schema1, out2.makeSchema(s_allocator_p));
+    BMQTST_ASSERT_EQ(schema1,
+                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
-    ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
-    ASSERT_EQ(schema1, out2.makeSchema(s_allocator_p));
+    BMQTST_ASSERT_EQ(schema1,
+                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // subsequent call returns the same Schema
 
     bmqp::MessagePropertiesInfo recycledInput(true, 1, true);
 
     theLearner.observe(server, recycledInput);
 
-    ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
-    ASSERT_NE(schema1, out2.makeSchema(s_allocator_p));
+    BMQTST_ASSERT_NE(schema1,
+                     out2.makeSchema(bmqtst::TestHelperUtil::allocator()));
     // ...unless the input is recycled
 }
 
@@ -212,8 +223,10 @@ static void test4_demultiplexingTest()
     // Demultiplexing (PUSH) indicates recycling first, then no recycling until
     // multiplexing (PUT) indicates recycling.
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   queueHandle(theLearner.createContext());
 
     bmqp::MessagePropertiesInfo muxIn(true, 1, false);
@@ -222,18 +235,18 @@ static void test4_demultiplexingTest()
     bmqp::MessagePropertiesInfo demuxOut;
 
     demuxOut = theLearner.demultiplex(queueHandle, muxIn);
-    ASSERT(demuxOut.isRecycled());
-    ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
+    BMQTST_ASSERT(demuxOut.isRecycled());
+    BMQTST_ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
 
     demuxOut = theLearner.demultiplex(queueHandle, muxIn);
 
-    ASSERT(!demuxOut.isRecycled());
-    ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
+    BMQTST_ASSERT(!demuxOut.isRecycled());
+    BMQTST_ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
 
     demuxOut = theLearner.demultiplex(queueHandle, recycledMuxIn);
 
-    ASSERT(demuxOut.isRecycled());
-    ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
+    BMQTST_ASSERT(demuxOut.isRecycled());
+    BMQTST_ASSERT_EQ(muxIn.schemaId(), demuxOut.schemaId());
 }
 
 static void test5_emptyMPs()
@@ -242,35 +255,39 @@ static void test5_emptyMPs()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     p(s_allocator_p);
-    bdlbb::Blob                 wireRep(&bufferFactory, s_allocator_p);
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic(true, 1, true);
 
     // Empty rep.
-    ASSERT_EQ(0, theLearner.read(context, &p, logic, wireRep));
+    BMQTST_ASSERT_EQ(0, theLearner.read(context, &p, logic, wireRep));
 
-    ASSERT_EQ(0, p.numProperties());
-    ASSERT_EQ(0, p.totalSize());
+    BMQTST_ASSERT_EQ(0, p.numProperties());
+    BMQTST_ASSERT_EQ(0, p.totalSize());
 
     const bdlbb::Blob& out = p.streamOut(&bufferFactory, logic);
-    ASSERT_EQ(0, out.length());
+    BMQTST_ASSERT_EQ(0, out.length());
 
-    ASSERT(!p.hasProperty("z"));
+    BMQTST_ASSERT(!p.hasProperty("z"));
 }
 
 static void test6_partialRead()
 {
     // Read known schema partially.  Change one property and then continue
     // reading.
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
     const char                  x[]   = "x";
     const char                  y[]   = "y";
@@ -282,62 +299,62 @@ static void test6_partialRead()
     in.setPropertyAsString("x", x);
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
 
     // 1st setProperty w/o getProperty and then getProperty
     {
-        bmqp::MessageProperties out2(s_allocator_p);
+        bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
         // The second read is optimized (only one MPS header)
-        ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
+        BMQTST_ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
 
-        ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
-        ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
-                  out2.totalSize());
+        BMQTST_ASSERT_EQ(0, out2.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+                         out2.totalSize());
 
-        ASSERT_EQ(out2.getPropertyAsString("z"), z);
+        BMQTST_ASSERT_EQ(out2.getPropertyAsString("z"), z);
     }
 
     // 2nd getProperty, setProperty and then load all
     {
-        bmqp::MessageProperties out3(s_allocator_p);
+        bmqp::MessageProperties out3(bmqtst::TestHelperUtil::allocator());
 
         // The third read is optimized (only one MPS header)
-        ASSERT_EQ(0, theLearner.read(context, &out3, input, blob));
+        BMQTST_ASSERT_EQ(0, theLearner.read(context, &out3, input, blob));
 
-        ASSERT_EQ(y, out3.getPropertyAsString("y"));
-        ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(y, out3.getPropertyAsString("y"));
+        BMQTST_ASSERT_EQ(0, out3.setPropertyAsString("y", mod));
 
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         out3.print(os, 0, -1);
 
         PV(os.str());
 
         bmqp::MessagePropertiesIterator it(&out3);
 
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), x);
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), mod);
-        ASSERT(it.hasNext());
-        ASSERT_EQ(it.getAsString(), z);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), x);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), mod);
+        BMQTST_ASSERT(it.hasNext());
+        BMQTST_ASSERT_EQ(it.getAsString(), z);
     }
 
     // 3rd getProperty, setProperty and then getProperty
     {
-        bmqp::MessageProperties out4(s_allocator_p);
+        bmqp::MessageProperties out4(bmqtst::TestHelperUtil::allocator());
 
         // The fourth read is optimized (only one MPS header)
-        ASSERT_EQ(0, theLearner.read(context, &out4, input, blob));
+        BMQTST_ASSERT_EQ(0, theLearner.read(context, &out4, input, blob));
 
-        ASSERT_EQ(y, out4.getPropertyAsString("y"));
-        ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
-        ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
-                  out4.totalSize());
+        BMQTST_ASSERT_EQ(y, out4.getPropertyAsString("y"));
+        BMQTST_ASSERT_EQ(0, out4.setPropertyAsString("y", mod));
+        BMQTST_ASSERT_EQ(out1.totalSize() + sizeof(mod) - sizeof(y),
+                         out4.totalSize());
 
-        ASSERT_EQ(out4.getPropertyAsString("z"), z);
+        BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
     }
 }
 
@@ -345,11 +362,13 @@ static void test7_removeBeforeRead()
 {
     // Read known schema partially.  Remove one property and then continue
     // reading.
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::SchemaLearner            theLearner(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaLearner theLearner(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner::Context   context(theLearner.createContext());
 
-    bmqp::MessageProperties     in(s_allocator_p);
+    bmqp::MessageProperties     in(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo input(true, 1, false);
 
     const int   numProps       = 3;
@@ -361,46 +380,50 @@ static void test7_removeBeforeRead()
     }
 
     const bdlbb::Blob       blob = in.streamOut(&bufferFactory, input);
-    bmqp::MessageProperties out1(s_allocator_p);
+    bmqp::MessageProperties out1(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
+    BMQTST_ASSERT_EQ(0, theLearner.read(context, &out1, input, blob));
 
     for (int iProperty = 0; iProperty < numProps; ++iProperty) {
         const char* current = name[iProperty];
         for (int iScenario = 0; iScenario < 3; ++iScenario) {
-            bmqp::MessageProperties out2(s_allocator_p);
+            bmqp::MessageProperties out2(bmqtst::TestHelperUtil::allocator());
 
             // All subsequent reads are optimized (only one MPS header)
-            ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
+            BMQTST_ASSERT_EQ(0, theLearner.read(context, &out2, input, blob));
             if (iScenario) {
                 // read before remove
-                ASSERT_EQ(name[iProperty], out2.getPropertyAsString(current));
+                BMQTST_ASSERT_EQ(name[iProperty],
+                                 out2.getPropertyAsString(current));
 
                 if (iScenario == 2) {
                     // modify before remove
-                    ASSERT_EQ(0, out2.setPropertyAsString(current, mod));
-                    ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
-                                  bsl::strlen(current),
-                              out2.totalSize());
+                    BMQTST_ASSERT_EQ(0,
+                                     out2.setPropertyAsString(current, mod));
+                    BMQTST_ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
+                                         bsl::strlen(current),
+                                     out2.totalSize());
                 }
             }
-            ASSERT(out2.remove(current));
-            ASSERT_EQ(out1.totalSize() - sizeof(bmqp::MessagePropertyHeader) -
-                          bsl::strlen(current) - bsl::strlen(current),
-                      out2.totalSize());
+            BMQTST_ASSERT(out2.remove(current));
+            BMQTST_ASSERT_EQ(out1.totalSize() -
+                                 sizeof(bmqp::MessagePropertyHeader) -
+                                 bsl::strlen(current) - bsl::strlen(current),
+                             out2.totalSize());
 
-            ASSERT(!out2.hasProperty(current));
+            BMQTST_ASSERT(!out2.hasProperty(current));
 
             for (int i = 0; i < numProps; ++i) {
                 if (i == iProperty) {
-                    ASSERT(!out2.hasProperty(name[i]));
+                    BMQTST_ASSERT(!out2.hasProperty(name[i]));
                 }
                 else {
-                    ASSERT_EQ(out2.getPropertyAsString(name[i]), name[i]);
+                    BMQTST_ASSERT_EQ(out2.getPropertyAsString(name[i]),
+                                     name[i]);
                 }
             }
 
-            bmqu::MemOutStream os(s_allocator_p);
+            bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
             out2.print(os, 0, -1);
 
             PV(os.str());
@@ -408,34 +431,35 @@ static void test7_removeBeforeRead()
             {
                 bmqp::MessagePropertiesIterator it(&out2);
 
-                ASSERT(it.hasNext());
-                ASSERT(it.hasNext());
-                ASSERT(!it.hasNext());
+                BMQTST_ASSERT(it.hasNext());
+                BMQTST_ASSERT(it.hasNext());
+                BMQTST_ASSERT(!it.hasNext());
             }
 
             // Add the property back
-            ASSERT_EQ(0, out2.setPropertyAsString(current, mod));
+            BMQTST_ASSERT_EQ(0, out2.setPropertyAsString(current, mod));
 
-            ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
-                          bsl::strlen(current),
-                      out2.totalSize());
+            BMQTST_ASSERT_EQ(out1.totalSize() + bsl::strlen(mod) -
+                                 bsl::strlen(current),
+                             out2.totalSize());
 
             for (int i = 0; i < numProps; ++i) {
                 if (i == iProperty) {
-                    ASSERT_EQ(out2.getPropertyAsString(name[i]), mod);
+                    BMQTST_ASSERT_EQ(out2.getPropertyAsString(name[i]), mod);
                 }
                 else {
-                    ASSERT_EQ(out2.getPropertyAsString(name[i]), name[i]);
+                    BMQTST_ASSERT_EQ(out2.getPropertyAsString(name[i]),
+                                     name[i]);
                 }
             }
 
             {
                 bmqp::MessagePropertiesIterator it(&out2);
 
-                ASSERT(it.hasNext());
-                ASSERT(it.hasNext());
-                ASSERT(it.hasNext());
-                ASSERT(!it.hasNext());
+                BMQTST_ASSERT(it.hasNext());
+                BMQTST_ASSERT(it.hasNext());
+                BMQTST_ASSERT(it.hasNext());
+                BMQTST_ASSERT(!it.hasNext());
             }
         }
     }
@@ -448,7 +472,7 @@ static void test7_removeBeforeRead()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -461,7 +485,7 @@ int main(int argc, char* argv[])
     case 1: test1_multiplexingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

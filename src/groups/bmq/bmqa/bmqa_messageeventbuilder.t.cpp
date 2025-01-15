@@ -33,7 +33,7 @@ using namespace bsl;
 
 static void test1_breathingTest()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -45,7 +45,7 @@ static void test1_breathingTest()
 
 static void test2_testMessageEventSizeCount()
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -54,28 +54,30 @@ static void test2_testMessageEventSizeCount()
 
     // Stage 1: preparation
     // Start a session and open a queue
-    bmqa::MockSession session(bmqt::SessionOptions(s_allocator_p),
-                              s_allocator_p);
+    bmqa::MockSession session(
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Start session
         BMQA_EXPECT_CALL(session, start()).returning(0);
         const int rc = session.start();
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
-    bmqt::Uri uri(s_allocator_p);
+    bmqt::Uri uri(bmqtst::TestHelperUtil::allocator());
 
     {
         // Parse uri
-        bsl::string error(s_allocator_p);
-        bsl::string input("bmq://my.domain/queue", s_allocator_p);
+        bsl::string error(bmqtst::TestHelperUtil::allocator());
+        bsl::string input("bmq://my.domain/queue",
+                          bmqtst::TestHelperUtil::allocator());
         const int   rc = bmqt::UriParser::parse(&uri, &error, input);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     bmqt::CorrelationId queueCId = bmqt::CorrelationId::autoValue();
-    bmqa::QueueId       queueId(queueCId, s_allocator_p);
+    bmqa::QueueId       queueId(queueCId, bmqtst::TestHelperUtil::allocator());
 
     {
         // Open queue
@@ -85,7 +87,7 @@ static void test2_testMessageEventSizeCount()
         const int rc = session.openQueue(&queueId,
                                          uri,
                                          bmqt::QueueFlags::e_WRITE);
-        ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     // Stage 2: populate MessageEventBuilder
@@ -93,10 +95,11 @@ static void test2_testMessageEventSizeCount()
     session.loadMessageEventBuilder(&builder);
 
     // Empty MessageEvent should contain at least its header
-    ASSERT(builder.messageEventSize() > 0);
-    ASSERT_EQ(0, builder.messageCount());
+    BMQTST_ASSERT(builder.messageEventSize() > 0);
+    BMQTST_ASSERT_EQ(0, builder.messageCount());
 
-    const bsl::string payload("test payload", s_allocator_p);
+    const bsl::string payload("test payload",
+                              bmqtst::TestHelperUtil::allocator());
 
     // Pack some messages
     for (int i = 1; i <= 5; i++) {
@@ -109,16 +112,16 @@ static void test2_testMessageEventSizeCount()
 
         // Make sure that 'messageEventSize' and 'messageCount' remain the same
         // before packing the message
-        ASSERT_EQ(messageEventSizeBefore, builder.messageEventSize());
-        ASSERT_EQ(messageCountBefore, builder.messageCount());
+        BMQTST_ASSERT_EQ(messageEventSizeBefore, builder.messageEventSize());
+        BMQTST_ASSERT_EQ(messageCountBefore, builder.messageCount());
 
         builder.packMessage(queueId);
 
         // Make sure that 'messageEventSize' and 'messageCount' increase
         // after packing the message
-        ASSERT_LT(messageEventSizeBefore, builder.messageEventSize());
-        ASSERT_LT(messageCountBefore, builder.messageCount());
-        ASSERT_EQ(i, builder.messageCount());
+        BMQTST_ASSERT_LT(messageEventSizeBefore, builder.messageEventSize());
+        BMQTST_ASSERT_LT(messageCountBefore, builder.messageCount());
+        BMQTST_ASSERT_EQ(i, builder.messageCount());
     }
 
     // Stage 3: start a new message but do not pack
@@ -134,8 +137,8 @@ static void test2_testMessageEventSizeCount()
 
     // Make sure that 'messageEventSize' and 'messageCount' remain the same
     // since we do not pack the last started message
-    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
-    ASSERT_EQ(messageCountFinal, builder.messageCount());
+    BMQTST_ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    BMQTST_ASSERT_EQ(messageCountFinal, builder.messageCount());
 
     // Stage 4: build MessageEvent
     // MessageEventBuilder switches from WRITE mode to READ:
@@ -145,8 +148,8 @@ static void test2_testMessageEventSizeCount()
     }
 
     // We had non-packed Message before, make sure it was not added to the blob
-    ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
-    ASSERT_EQ(messageCountFinal, builder.messageCount());
+    BMQTST_ASSERT_EQ(messageEventSizeFinal, builder.messageEventSize());
+    BMQTST_ASSERT_EQ(messageCountFinal, builder.messageCount());
 
     // Stage 5: reset MessageEventBuilder
     // MessageEventBuilder switches from READ mode to WRITE:
@@ -154,8 +157,8 @@ static void test2_testMessageEventSizeCount()
 
     // Since we resetted the MessageEventBuilder, the currently built message
     // event is smaller than the populated one from the previous steps
-    ASSERT_LT(builder.messageEventSize(), messageEventSizeFinal);
-    ASSERT_EQ(0, builder.messageCount());
+    BMQTST_ASSERT_LT(builder.messageEventSize(), messageEventSizeFinal);
+    BMQTST_ASSERT_EQ(0, builder.messageCount());
 }
 
 // ============================================================================
@@ -172,7 +175,7 @@ int main(int argc, char* argv[])
     case 2: test2_testMessageEventSizeCount(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -128,14 +128,6 @@ UriCorrIdToQueueMap& uriCorrIdToQueues(B& buffer)
 {
     return reinterpret_cast<UriCorrIdToQueueMap&>(*(buffer.buffer()));
 }
-
-/// Utility method to cast the `UriCorrIdToQueueMap` held by the
-/// `bsls::AlignedBuffer` (represented by the type `B`).
-template <class B>
-const UriCorrIdToQueueMap& uriCorrIdToQueues(const B& buffer)
-{
-    return reinterpret_cast<const UriCorrIdToQueueMap&>(*(buffer.buffer()));
-}
 }  // close unnamed namespace
 
 #define BMQA_CHECK_ARG(METHOD, ARGNAME, EXPECTED, ACTUAL, CALL)               \
@@ -298,7 +290,12 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
-    bmqp::AckEventBuilder ackBuilder(bufferFactory, alloc);
+    // TODO: deprecate `createAckEvent` with bufferFactory arg and introduce
+    // another function with BlobSpPool arg.
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
+
+    bmqp::AckEventBuilder ackBuilder(blobSpPool.get(), alloc);
     for (size_t i = 0; i != acks.size(); ++i) {
         const AckParams&   params   = acks[i];
         const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
@@ -313,7 +310,7 @@ Event MockSessionUtil::createAckEvent(const bsl::vector<AckParams>& acks,
     }
 
     implPtr->configureAsMessageEvent(
-        bmqp::Event(&ackBuilder.blob(), alloc, true));
+        bmqp::Event(ackBuilder.blob().get(), alloc, true));
     for (size_t i = 0; i != acks.size(); ++i) {
         implPtr->addCorrelationId(acks[i].d_correlationId);
     }
@@ -336,7 +333,12 @@ Event MockSessionUtil::createPushEvent(
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
-    bmqp::PushEventBuilder pushBuilder(bufferFactory, alloc);
+    // TODO: deprecate `createPushEvent` with bufferFactory arg and introduce
+    // another function with BlobSpPool arg.
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(bufferFactory, allocator));
+
+    bmqp::PushEventBuilder pushBuilder(blobSpPool.get(), alloc);
 
     for (size_t i = 0; i != pushEventParams.size(); ++i) {
         const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
@@ -369,7 +371,7 @@ Event MockSessionUtil::createPushEvent(
         implPtr->addCorrelationId(bmqt::CorrelationId());
     }
 
-    bmqp::Event bmqpEvent(&pushBuilder.blob(), alloc, true);
+    bmqp::Event bmqpEvent(pushBuilder.blob().get(), alloc, true);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
     return event;
@@ -946,6 +948,8 @@ int MockSession::start(const bsls::TimeInterval& timeout)
 MockSession::MockSession(const bmqt::SessionOptions& options,
                          bslma::Allocator*           allocator)
 : d_blobBufferFactory(1024, allocator)
+, d_blobSpPool_sp(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
 , d_eventHandler_mp(0)
 , d_calls(allocator)
 , d_eventsAndJobs(allocator)
@@ -990,6 +994,8 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                          const bmqt::SessionOptions&            options,
                          bslma::Allocator*                      allocator)
 : d_blobBufferFactory(1024, allocator)
+, d_blobSpPool_sp(
+      bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
 , d_eventHandler_mp(eventHandler)
 , d_calls(bslma::Default::allocator(allocator))
 , d_eventsAndJobs(bslma::Default::allocator(allocator))
@@ -1514,7 +1520,7 @@ void MockSession::loadMessageEventBuilder(MessageEventBuilder* builder)
                                  g_bufferFactory_p,
                                  d_allocator_p);
 
-    eventImplSpRef->configureAsMessageEvent(&d_blobBufferFactory);
+    eventImplSpRef->configureAsMessageEvent(d_blobSpPool_sp.get());
     eventImplSpRef->setMessageCorrelationIdContainer(
         d_corrIdContainer_sp.get());
 }
@@ -1538,7 +1544,7 @@ void MockSession::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
     }
 
     new (builderImplRef.d_buffer.buffer())
-        bmqp::ConfirmEventBuilder(&d_blobBufferFactory, d_allocator_p);
+        bmqp::ConfirmEventBuilder(d_blobSpPool_sp.get(), d_allocator_p);
 
     builderImplRef.d_builder_p = reinterpret_cast<bmqp::ConfirmEventBuilder*>(
         builderImplRef.d_buffer.buffer());

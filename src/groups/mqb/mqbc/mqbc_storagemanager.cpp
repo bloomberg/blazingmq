@@ -143,8 +143,6 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
     StorageUtil::recoveredQueuesCb(&d_storages[partitionId],
                                    &d_storagesLock,
                                    d_fileStores[partitionId].get(),
-                                   &d_appKeysVec[partitionId],
-                                   &d_appKeysLock,
                                    d_domainFactory_p,
                                    &d_unrecognizedDomainsLock,
                                    &d_unrecognizedDomains[partitionId],
@@ -3344,7 +3342,6 @@ StorageManager::StorageManager(
 , d_lowDiskspaceWarning(false)
 , d_unrecognizedDomainsLock()
 , d_unrecognizedDomains(allocator)
-, d_blobSpPool_p(&clusterData->blobSpPool())
 , d_domainFactory_p(domainFactory)
 , d_dispatcher_p(dispatcher)
 , d_cluster_p(cluster)
@@ -3357,8 +3354,6 @@ StorageManager::StorageManager(
 , d_partitionPrimaryStatusCb(partitionPrimaryStatusCb)
 , d_storagesLock()
 , d_storages(allocator)
-, d_appKeysLock()
-, d_appKeysVec(allocator)
 , d_partitionInfoVec(allocator)
 , d_partitionFSMVec(allocator)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
@@ -3391,7 +3386,6 @@ StorageManager::StorageManager(
     d_unrecognizedDomains.resize(partitionCfg.numPartitions());
     d_fileStores.resize(partitionCfg.numPartitions());
     d_storages.resize(partitionCfg.numPartitions());
-    d_appKeysVec.resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
     d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
         partitionCfg.numPartitions(),
@@ -3458,12 +3452,23 @@ int StorageManager::start(bsl::ostream& errorDescription)
     BSLS_ASSERT_SAFE(d_dispatcher_p->inDispatcherThread(d_cluster_p));
 
     enum RcEnum {
-        // Value for the various RC error categories
+        // Value for the various RC error categories.
+        // RESERVED returned code is not used here, but kept for consistency
+        // with `mqbblp::StorageManager::start` return code:
+        // - rc_THREAD_POOL_START_FAILURE = rc_FILE_STORE_OPEN_FAILURE
+        // - rc_RESERVED                  = rc_FILE_STORE_RECOVERY_FAILURE
+        // TODO: `mqbblp::StorageManager` is used in non-FSM mode only, if/when
+        //       we support only FSM, we can remove these RESERVED codes
+        //       together with `mqbblp::StorageManager`.
         rc_SUCCESS                        = 0,
         rc_PARTITION_LOCATION_NONEXISTENT = -1,
-        rc_NOT_ENOUGH_DISK_SPACE          = -2,
+        rc_RECOVERY_MANAGER_FAILURE       = -2,
         rc_THREAD_POOL_START_FAILURE      = -3,
-        rc_RECOVERY_MANAGER_FAILURE       = -4
+        rc_RESERVED                       = -4,
+        rc_NOT_ENOUGH_DISK_SPACE          = -5,
+        rc_OVERFLOW_MAX_DATA_FILE_SIZE    = -6,
+        rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE = -7,
+        rc_OVERFLOW_MAX_QLIST_FILE_SIZE   = -8
     };
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -3472,6 +3477,37 @@ int StorageManager::start(bsl::ostream& errorDescription)
     // For convenience:
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
+
+    // Validate file size limits before checking the available disk space
+    if (mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD <
+        partitionCfg.maxDataFileSize()) {
+        BALL_LOG_ERROR << "Configured maxDataFileSize ("
+                       << partitionCfg.maxDataFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_DATA_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_DATA_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD <
+        partitionCfg.maxJournalFileSize()) {
+        BALL_LOG_ERROR << "Configured maxJournalFileSize ("
+                       << partitionCfg.maxJournalFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_JOURNAL_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_JOURNAL_FILE_SIZE;  // RETURN
+    }
+
+    if (mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD <
+        partitionCfg.maxQlistFileSize()) {
+        BALL_LOG_ERROR << "Configured maxQlistFileSize ("
+                       << partitionCfg.maxQlistFileSize()
+                       << ") exceeds the protocol limit ("
+                       << mqbs::FileStoreProtocol::k_MAX_QLIST_FILE_SIZE_HARD
+                       << ")";
+        return rc_OVERFLOW_MAX_QLIST_FILE_SIZE;  // RETURN
+    }
 
     int rc = StorageUtil::validatePartitionDirectory(partitionCfg,
                                                      errorDescription);
@@ -3505,7 +3541,7 @@ int StorageManager::start(bsl::ostream& errorDescription)
         d_dispatcher_p,
         partitionCfg,
         &d_fileStores,
-        d_blobSpPool_p,
+        &d_clusterData_p->blobSpPool(),
         &d_allocators,
         errorDescription,
         d_replicationFactor,
@@ -3532,12 +3568,11 @@ int StorageManager::start(bsl::ostream& errorDescription)
     bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
         "RecoveryManager");
 
-    d_recoveryManager_mp.load(new (*recoveryManagerAllocator) RecoveryManager(
-                                  &d_clusterData_p->bufferFactory(),
-                                  d_clusterConfig,
-                                  *d_clusterData_p,
-                                  dsCfg,
-                                  recoveryManagerAllocator),
+    d_recoveryManager_mp.load(new (*recoveryManagerAllocator)
+                                  RecoveryManager(d_clusterConfig,
+                                                  *d_clusterData_p,
+                                                  dsCfg,
+                                                  recoveryManagerAllocator),
                               recoveryManagerAllocator);
 
     rc = d_recoveryManager_mp->start(errorDescription);
@@ -3646,7 +3681,7 @@ void StorageManager::initializeQueueKeyInfoMap(
             for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
                  appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppInfo(*appIdCit);
+                qinfo.addAppInfo(appIdCit);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
@@ -3657,12 +3692,11 @@ void StorageManager::initializeQueueKeyInfoMap(
     d_isQueueKeyInfoMapVecInitialized = true;
 }
 
-void StorageManager::registerQueue(
-    const bmqt::Uri&                   uri,
-    const mqbu::StorageKey&            queueKey,
-    int                                partitionId,
-    const bsl::unordered_set<AppInfo>& appIdKeyPairs,
-    mqbi::Domain*                      domain)
+void StorageManager::registerQueue(const bmqt::Uri&        uri,
+                                   const mqbu::StorageKey& queueKey,
+                                   int                     partitionId,
+                                   const AppInfos&         appIdKeyPairs,
+                                   mqbi::Domain*           domain)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -3678,8 +3712,6 @@ void StorageManager::registerQueue(
                                &d_storages[partitionId],
                                &d_storagesLock,
                                d_fileStores[partitionId].get(),
-                               &d_appKeysVec[partitionId],
-                               &d_appKeysLock,
                                &d_allocators,
                                processorForPartition(partitionId),
                                uri,
@@ -3735,15 +3767,12 @@ int StorageManager::updateQueuePrimary(const bmqt::Uri&        uri,
         &d_storages[partitionId],
         &d_storagesLock,
         d_fileStores[partitionId].get(),
-        &d_appKeysVec[partitionId],
-        &d_appKeysLock,
         d_clusterData_p->identity().description(),
         uri,
         queueKey,
         partitionId,
         addedIdKeyPairs,
-        removedIdKeyPairs,
-        true);  // isCSLMode
+        removedIdKeyPairs);
 }
 
 void StorageManager::registerQueueReplica(int                     partitionId,
@@ -3805,8 +3834,6 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             &d_storages[partitionId],
             &d_storagesLock,
             d_fileStores[partitionId].get(),
-            &d_appKeysVec[partitionId],
-            &d_appKeysLock,
             d_clusterData_p->identity().description(),
             partitionId,
             uri,
@@ -3842,15 +3869,12 @@ void StorageManager::updateQueueReplica(int                     partitionId,
                                  static_cast<int*>(0),
                                  &d_storages[partitionId],
                                  &d_storagesLock,
-                                 &d_appKeysVec[partitionId],
-                                 &d_appKeysLock,
                                  d_domainFactory_p,
                                  d_clusterData_p->identity().description(),
                                  partitionId,
                                  uri,
                                  queueKey,
                                  appIdKeyPairs,
-                                 true,  // isCSLMode
                                  domain,
                                  allowDuplicate));
 
@@ -4472,6 +4496,24 @@ void StorageManager::gcUnrecognizedDomainQueues()
     StorageUtil::gcUnrecognizedDomainQueues(&d_fileStores,
                                             &d_unrecognizedDomainsLock,
                                             d_unrecognizedDomains);
+}
+
+int StorageManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                       const bsl::string&     domainName)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_dispatcher_p->inDispatcherThread(&d_clusterData_p->cluster()));
+
+    StorageUtil::purgeQueueOnDomain(result,
+                                    domainName,
+                                    &d_fileStores,
+                                    &d_storages,
+                                    &d_storagesLock);
+
+    return 0;
 }
 
 mqbs::FileStore& StorageManager::fileStore(int partitionId)

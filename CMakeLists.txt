@@ -205,7 +205,6 @@ endif()
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
   add_custom_target(docs
-    ALL
     COMMENT "Build public and internal documentation"
   )
 

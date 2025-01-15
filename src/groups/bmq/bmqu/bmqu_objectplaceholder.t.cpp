@@ -119,7 +119,7 @@ static void test1_createDeleteObject()
         bmqu::ObjectPlaceHolder<k_BUFFER_SIZE> placeHolder;
 
         // placeholder is empty
-        ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
 
         // object initialization flag
         bool objectInitialized = false;
@@ -129,51 +129,51 @@ static void test1_createDeleteObject()
                                               &objectInitialized);
 
         // placeholder is not empty and the object is located internally
-        ASSERT_NE(placeHolder.objectAddress(), k_ZERO_P);
-        ASSERT_EQ(placeHolder.objectAddress(),
-                  static_cast<void*>(&placeHolder));
+        BMQTST_ASSERT_NE(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(),
+                         static_cast<void*>(&placeHolder));
 
         // the object was properly constructed
-        ASSERT_EQ(objectInitialized, true);
+        BMQTST_ASSERT_EQ(objectInitialized, true);
 
         // no allocation did occur
-        ASSERT_EQ(storageAllocator.numAllocation(), 0);
+        BMQTST_ASSERT_EQ(storageAllocator.numAllocation(), 0);
 
         // delete the object
         placeHolder.deleteObject<SmallObject>();
 
         // placeholder is empty
-        ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
 
         // the object was properly destructed
-        ASSERT_EQ(objectInitialized, false);
+        BMQTST_ASSERT_EQ(objectInitialized, false);
 
         // create a "large" object
         placeHolder.createObject<LargeObject>(&storageAllocator,
                                               &objectInitialized);
 
         // placeholder is not empty and the object is located externally
-        ASSERT_NE(placeHolder.objectAddress(), k_ZERO_P);
-        ASSERT_NE(placeHolder.objectAddress(),
-                  static_cast<const void*>(&placeHolder));
+        BMQTST_ASSERT_NE(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_NE(placeHolder.objectAddress(),
+                         static_cast<const void*>(&placeHolder));
 
         // the object was properly constructed
-        ASSERT_EQ(objectInitialized, true);
+        BMQTST_ASSERT_EQ(objectInitialized, true);
 
         // one allocation occurred
-        ASSERT_EQ(storageAllocator.numAllocation(), 1);
+        BMQTST_ASSERT_EQ(storageAllocator.numAllocation(), 1);
 
         // delete the object
         placeHolder.deleteObject<LargeObject>();
 
         // placeholder is empty
-        ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
 
         // the object was properly destructed
-        ASSERT_EQ(objectInitialized, false);
+        BMQTST_ASSERT_EQ(objectInitialized, false);
 
         // one deallocation occurred
-        ASSERT_EQ(storageAllocator.numDeallocation(), 1);
+        BMQTST_ASSERT_EQ(storageAllocator.numDeallocation(), 1);
     }
 
     // 2. Exception-safety
@@ -199,10 +199,10 @@ static void test1_createDeleteObject()
         }
 
         // exception thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // placeholder is empty
-        ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
 
         // reset exception flag
         exceptionThrown = false;
@@ -219,10 +219,10 @@ static void test1_createDeleteObject()
         }
 
         // exception thrown
-        ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
 
         // placeholder is empty
-        ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
+        BMQTST_ASSERT_EQ(placeHolder.objectAddress(), k_ZERO_P);
     }
 }
 
@@ -240,7 +240,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

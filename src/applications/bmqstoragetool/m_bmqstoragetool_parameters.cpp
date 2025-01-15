@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "m_bmqstoragetool_compositesequencenumber.h"
 #include <m_bmqstoragetool_parameters.h>
 
 // BMQ
@@ -71,8 +72,9 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 bool isValidSequenceNumber(bsl::ostream& error, const bsl::string& seqNumStr)
 {
     CompositeSequenceNumber seqNum;
-    seqNum.fromString(error, seqNumStr);
-    return seqNum.isSet();
+    bool                    success = false;
+    seqNum.fromString(&success, error, seqNumStr);
+    return success;
 }
 
 }  // close unnamed namespace
@@ -125,14 +127,14 @@ bool CommandLineArguments::validate(bsl::string*      error_p,
     bmqu::MemOutStream ss(allocator);
 
     // Determine the mode: journal or CSL iteration.
-    bool error = false;
+    bool validMode = true;
     if (d_recordType.size() > 0 && d_cslRecordType.size() > 0) {
         ss << "Either record type(s) or CSL record type(s) can be passed. "
               "Both passed.\n";
-        error = true;
+        validMode = false;
     }
 
-    if (!error) {
+    if (validMode) {
         if (!d_cslFile.empty() &&
             (d_journalPath.empty() && d_journalFile.empty())) {
             // Validate CSL mode args
@@ -397,22 +399,24 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
     if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
         bmqu::MemOutStream      errorDescr(allocator);
         CompositeSequenceNumber seqNumLt, seqNumGt;
+        bool                    successLt = false;
         if (!d_seqNumLt.empty()) {
-            seqNumLt.fromString(errorDescr, d_seqNumLt);
-            if (!seqNumLt.isSet()) {
+            seqNumLt.fromString(&successLt, errorDescr, d_seqNumLt);
+            if (successLt) {
                 error << "--seqnum-lt: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
         }
 
+        bool successGt = false;
         if (!d_seqNumGt.empty()) {
-            seqNumGt.fromString(errorDescr, d_seqNumGt);
-            if (!seqNumGt.isSet()) {
+            seqNumGt.fromString(&successGt, errorDescr, d_seqNumGt);
+            if (successGt) {
                 error << "--seqnum-gt: " << errorDescr.str() << "\n";
             }
         }
 
-        if (seqNumLt.isSet() && seqNumGt.isSet()) {
+        if (successLt && successGt) {
             if (seqNumLt <= seqNumGt) {
                 error << "Invalid sequence number range specified\n";
             }
@@ -487,11 +491,10 @@ bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
 }
 
 Parameters::Range::Range()
-: d_type(Range::e_NONE)
-, d_timestampGt(0)
-, d_timestampLt(0)
-, d_offsetGt(0)
-, d_offsetLt(0)
+: d_timestampGt()
+, d_timestampLt()
+, d_offsetGt()
+, d_offsetLt()
 , d_seqNumGt()
 , d_seqNumLt()
 {
@@ -621,28 +624,35 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
 
     // Set search range type and values if present
+    // TODO: check each value separately
     if (arguments.d_timestampLt || arguments.d_timestampGt) {
-        d_range.d_type        = Range::e_TIMESTAMP;
         d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
             arguments.d_timestampLt);
         d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
             arguments.d_timestampGt);
     }
     else if (arguments.d_offsetLt || arguments.d_offsetGt) {
-        d_range.d_type     = Range::e_OFFSET;
         d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
             arguments.d_offsetLt);
         d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
             arguments.d_offsetGt);
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
-        d_range.d_type = Range::e_SEQUENCE_NUM;
         bmqu::MemOutStream errorDescr(allocator);
+        bool               success = false;
         if (!arguments.d_seqNumLt.empty()) {
-            d_range.d_seqNumLt.fromString(errorDescr, arguments.d_seqNumLt);
+            d_range.d_seqNumLt = CompositeSequenceNumber().fromString(
+                &success,
+                errorDescr,
+                arguments.d_seqNumLt);
+            BSLS_ASSERT(success);
         }
         if (!arguments.d_seqNumGt.empty()) {
-            d_range.d_seqNumGt.fromString(errorDescr, arguments.d_seqNumGt);
+            d_range.d_seqNumGt = CompositeSequenceNumber().fromString(
+                &success,
+                errorDescr,
+                arguments.d_seqNumGt);
+            BSLS_ASSERT(success);
         }
     }
 
@@ -650,11 +660,13 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     if (!arguments.d_seqNum.empty()) {
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
+        bool                    success = false;
         for (bsl::vector<bsl::string>::const_iterator cit =
                  arguments.d_seqNum.begin();
              cit != arguments.d_seqNum.end();
              ++cit) {
-            seqNum.fromString(errorDescr, *cit);
+            seqNum.fromString(&success, errorDescr, *cit);
+            BSLS_ASSERT(success);
             d_seqNum.push_back(seqNum);
         }
     }

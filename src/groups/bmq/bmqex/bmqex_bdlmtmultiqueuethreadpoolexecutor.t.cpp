@@ -85,8 +85,8 @@ static void test1_constructor()
                                                 42);  // queueId
 
     // check postconditions
-    ASSERT_EQ(&ex.context(), &threadPool);
-    ASSERT_EQ(ex.queueId(), 42);
+    BMQTST_ASSERT_EQ(&ex.context(), &threadPool);
+    BMQTST_ASSERT_EQ(ex.queueId(), 42);
 }
 
 static void test2_postDispatch()
@@ -107,11 +107,11 @@ static void test2_postDispatch()
 //   bmqex::BdlmtMultiQueueThreadPoolExecutor::dispatch
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // MultiQueueThreadPool_Queue::executeFront() creates a vector on the
     // stack, so uses the default allocator.
 
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // MultiQueueThreadPool::start() implementation uses the global
     // allocator.
 
@@ -145,24 +145,24 @@ static void test2_postDispatch()
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex2(&threadPool, queue2Id);
 
     // both queues are empty
-    ASSERT_EQ(threadPool.numElements(queue1Id), 0);
-    ASSERT_EQ(threadPool.numElements(queue2Id), 0);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue1Id), 0);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue2Id), 0);
 
     // 'post' a job
     bool job1Complete = false;
     ex1.post(bdlf::BindUtil::bind(Assign(), &job1Complete, true));
 
     // job added to first queue
-    ASSERT_EQ(threadPool.numElements(queue1Id), 1);
-    ASSERT_EQ(threadPool.numElements(queue2Id), 0);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue1Id), 1);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue2Id), 0);
 
     // 'dispatch' a job
     bool job2Complete = false;
     ex2.dispatch(bdlf::BindUtil::bind(Assign(), &job2Complete, true));
 
     // job added to second queue
-    ASSERT_EQ(threadPool.numElements(queue1Id), 1);
-    ASSERT_EQ(threadPool.numElements(queue2Id), 1);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue1Id), 1);
+    BMQTST_ASSERT_EQ(threadPool.numElements(queue2Id), 1);
 
     // resume queues
     rc = threadPool.resumeQueue(queue1Id);
@@ -175,8 +175,8 @@ static void test2_postDispatch()
     threadPool.stop();
 
     // both jobs executed
-    ASSERT(job1Complete);
-    ASSERT(job2Complete);
+    BMQTST_ASSERT(job1Complete);
+    BMQTST_ASSERT(job2Complete);
 }
 
 static void test3_swap()
@@ -219,11 +219,11 @@ static void test3_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &threadPool2);
-    ASSERT_EQ(ex1.queueId(), 2);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(ex1.queueId(), 2);
 
-    ASSERT_EQ(&ex2.context(), &threadPool1);
-    ASSERT_EQ(ex2.queueId(), 1);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(ex2.queueId(), 1);
 }
 
 static void test4_context()
@@ -255,11 +255,11 @@ static void test4_context()
 
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex1(&threadPool1,
                                                  42);  // queueId
-    ASSERT_EQ(&ex1.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool1);
 
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex2(&threadPool2,
                                                  42);  // queueId
-    ASSERT_EQ(&ex2.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool2);
 }
 
 static void test5_queueId()
@@ -285,11 +285,11 @@ static void test5_queueId()
 
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex1(&threadPool,
                                                  1);  // queueId
-    ASSERT_EQ(ex1.queueId(), 1);
+    BMQTST_ASSERT_EQ(ex1.queueId(), 1);
 
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex2(&threadPool,
                                                  2);  // queueId
-    ASSERT_EQ(ex2.queueId(), 2);
+    BMQTST_ASSERT_EQ(ex2.queueId(), 2);
 }
 
 static void test6_rebindQueueId()
@@ -319,8 +319,8 @@ static void test6_rebindQueueId()
                                                  1);  // queueId
 
     bmqex::BdlmtMultiQueueThreadPoolExecutor ex2 = ex1.rebindQueueId(2);
-    ASSERT_EQ(&ex2.context(), &threadPool);
-    ASSERT_EQ(ex2.queueId(), 2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool);
+    BMQTST_ASSERT_EQ(ex2.queueId(), 2);
 }
 
 static void test7_comparison()
@@ -354,38 +354,38 @@ static void test7_comparison()
 
     // equality
     {
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1,
-                                                               1),
-                  true);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1),
+            true);
 
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool2,
-                                                               1),
-                  false);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool2, 1),
+            false);
 
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1,
-                                                               2),
-                  false);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) ==
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 2),
+            false);
     }
 
     // inequality
     {
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1,
-                                                               1),
-                  false);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1),
+            false);
 
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool2,
-                                                               1),
-                  true);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool2, 1),
+            true);
 
-        ASSERT_EQ(bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
-                      bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1,
-                                                               2),
-                  true);
+        BMQTST_ASSERT_EQ(
+            bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 1) !=
+                bmqex::BdlmtMultiQueueThreadPoolExecutor(&threadPool1, 2),
+            true);
     }
 }
 
@@ -409,7 +409,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

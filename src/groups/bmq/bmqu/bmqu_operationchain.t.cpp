@@ -304,7 +304,7 @@ static void test1_usageExample()
 // ------------------------------------------------------------------------
 {
     // create a chain
-    bmqu::OperationChain chain(s_allocator_p);
+    bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
     static const int k_MY_PAYLOAD   = 42;
     static const int k_MY_CLIENT_ID = 42;
@@ -350,27 +350,29 @@ static void test2_chain_creators(bdlmt::ThreadPool* threadPool)
     // constructor #1
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // check postconditions
-        ASSERT_EQ(chain.isStarted(), false);
-        ASSERT_EQ(chain.isRunning(), false);
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
-        ASSERT_EQ(chain.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(chain.isStarted(), false);
+        BMQTST_ASSERT_EQ(chain.isRunning(), false);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 
     // constructor #2
     {
         // create chain
-        bmqu::OperationChain chain(true, s_allocator_p);
+        bmqu::OperationChain chain(true, bmqtst::TestHelperUtil::allocator());
 
         // check postconditions
-        ASSERT_EQ(chain.isStarted(), true);
-        ASSERT_EQ(chain.isRunning(), false);
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
-        ASSERT_EQ(chain.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(chain.isStarted(), true);
+        BMQTST_ASSERT_EQ(chain.isRunning(), false);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 }
 
@@ -399,7 +401,7 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
             bsls::SystemClockType::e_MONOTONIC);
 
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // number of operations in the chain
         static const unsigned k_NUM_OPERATIONS = 3;
@@ -419,10 +421,10 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
 
         // make sure operation haven't started executing
         unsigned completionId;
-        ASSERT_EQ(chain.isRunning(), false);
-        ASSERT_NE(completionIds.timedPopFront(&completionId,
-                                              secondsFromNow(0.25)),
-                  0);
+        BMQTST_ASSERT_EQ(chain.isRunning(), false);
+        BMQTST_ASSERT_NE(completionIds.timedPopFront(&completionId,
+                                                     secondsFromNow(0.25)),
+                         0);
 
         // start executing
         chain.start();
@@ -443,7 +445,7 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
             bsls::SystemClockType::e_MONOTONIC);
 
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // used for synchronization
         bslmt::Semaphore semaphore;
@@ -466,7 +468,7 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
         }
 
         // no executing operations
-        ASSERT_EQ(chain.isRunning(), false);
+        BMQTST_ASSERT_EQ(chain.isRunning(), false);
 
         // start executing
         chain.start();
@@ -478,18 +480,18 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
         chain.stop();
 
         // one operation is executing
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
-        ASSERT_EQ(chain.numOperationsPending(), k_NUM_OPERATIONS - 1);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsPending(), k_NUM_OPERATIONS - 1);
 
         // allow one executing operation to complete
         semaphore.post(1u);
 
         // make sure only one operation completed
         unsigned completionId;
-        ASSERT_EQ(completionIds.popFront(), 0u);
-        ASSERT_NE(completionIds.timedPopFront(&completionId,
-                                              secondsFromNow(0.25)),
-                  0);
+        BMQTST_ASSERT_EQ(completionIds.popFront(), 0u);
+        BMQTST_ASSERT_NE(completionIds.timedPopFront(&completionId,
+                                                     secondsFromNow(0.25)),
+                         0);
     }
 }
 
@@ -512,7 +514,7 @@ static void test4_chain_join(bdlmt::ThreadPool* threadPool)
     bdlcc::Deque<unsigned> completionIds(bsls::SystemClockType::e_MONOTONIC);
 
     // create chain
-    bmqu::OperationChain chain(s_allocator_p);
+    bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
     // number of operations in the chain
     static const unsigned k_NUM_OPERATIONS = 32;
@@ -536,9 +538,9 @@ static void test4_chain_join(bdlmt::ThreadPool* threadPool)
     chain.join();
 
     // make sure all operations completed
-    ASSERT_EQ(chain.isRunning(), false);
-    ASSERT_EQ(chain.numOperations(), 0u);
-    ASSERT_EQ(completionIds.length(), k_NUM_OPERATIONS);
+    BMQTST_ASSERT_EQ(chain.isRunning(), false);
+    BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
+    BMQTST_ASSERT_EQ(completionIds.length(), k_NUM_OPERATIONS);
 }
 
 static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
@@ -567,7 +569,7 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
     // 1. append single empty link
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // create empty link
         bmqu::OperationChainLink link(chain.allocator());
@@ -576,8 +578,8 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
         chain.append(&link);
 
         // the operation had no effect
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 
     // 2. append single non-empty link
@@ -591,7 +593,7 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
         static const unsigned k_NUM_LINKS = 8;
 
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // append several links
         bmqu::OperationChainLink link(chain.allocator());
@@ -608,24 +610,24 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
             chain.append(&link);
 
             // appended
-            ASSERT_EQ(chain.numLinks(), i + 1);
-            ASSERT_EQ(chain.numOperations(), ((i + 1) * (i + 2)) / 2);
+            BMQTST_ASSERT_EQ(chain.numLinks(), i + 1);
+            BMQTST_ASSERT_EQ(chain.numOperations(), ((i + 1) * (i + 2)) / 2);
 
             // link left empty
-            ASSERT_EQ(link.numOperations(), 0u);
+            BMQTST_ASSERT_EQ(link.numOperations(), 0u);
         }
     }
 
     // 3. append non-empty link to a started chain
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // start executing operations
         chain.start();
 
         // no operations currently executing
-        ASSERT_EQ(chain.numOperationsExecuting(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 0u);
 
         // used for synchronization
         bslmt::Semaphore semaphore;
@@ -637,9 +639,9 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
                             bdlf::BindUtil::bind(Synchronize(), &semaphore));
 
         // the chain is executing one operation
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // append another link with one operation
         chain.appendInplace(bdlf::BindUtil::bind(&asyncNullOperation,
@@ -648,9 +650,9 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
                             bdlf::BindUtil::bind(Synchronize(), &semaphore));
 
         // the chain is still executing only one operation
-        ASSERT_EQ(chain.numLinks(), 2u);
-        ASSERT_EQ(chain.numOperations(), 2u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 2u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // allow both operations to complete and wait for all operations to
         // finish execution
@@ -658,8 +660,8 @@ static void test5_chain_append1(bdlmt::ThreadPool* threadPool)
         chain.join();
 
         // the chain is empty
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 }
 
@@ -690,7 +692,7 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
     // 1. append empty link list
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // append links
         bmqu::OperationChainLink** links =
@@ -699,14 +701,14 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
         chain.append(links, 0);
 
         // the operation had no effect
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 
     // 2. append non-empty link list containing empty links
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // create empty links
         bmqu::OperationChainLink link1(chain.allocator());
@@ -718,8 +720,8 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
         chain.append(links, 3);
 
         // the operation had no effect
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 
     // 3. append non-empty link list containing non-empty links
@@ -730,7 +732,7 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
         //       way we know which link is which.
 
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // create links
         bmqu::OperationChainLink link1(chain.allocator());
@@ -751,16 +753,16 @@ static void test6_chain_append2(bdlmt::ThreadPool* threadPool)
 
         // make sure links are appended in the right order
         for (unsigned i = 3; i != 0; --i) {
-            ASSERT_EQ(chain.numLinks(), i);
-            ASSERT_EQ(chain.numOperations(), (i * (i + 1)) / 2);
+            BMQTST_ASSERT_EQ(chain.numLinks(), i);
+            BMQTST_ASSERT_EQ(chain.numOperations(), (i * (i + 1)) / 2);
 
             chain.popBack();
         }
 
         // all input links are left empty
-        ASSERT_EQ(link1.numOperations(), 0u);
-        ASSERT_EQ(link2.numOperations(), 0u);
-        ASSERT_EQ(link3.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link3.numOperations(), 0u);
     }
 }
 
@@ -783,14 +785,14 @@ static void test7_chain_appendInplace(bdlmt::ThreadPool* threadPool)
     // 1. append-inplace a link
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // append-inplace a link (use first overload)
         chain.appendInplace(NullOperation());
 
         // one link appended with one operation in it
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
 
         // clear the chain
         chain.removeAll();
@@ -799,8 +801,8 @@ static void test7_chain_appendInplace(bdlmt::ThreadPool* threadPool)
         chain.appendInplace(NullOperation(), bdlf::noOp);
 
         // one link appended with one operation in it
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
     }
 }
 
@@ -841,7 +843,7 @@ static void test8_chain_popBack(bdlmt::ThreadPool* threadPool)
         static const unsigned k_NUM_LINKS = 8;
 
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // append several links
         bmqu::OperationChainLink link(chain.allocator());
@@ -864,50 +866,50 @@ static void test8_chain_popBack(bdlmt::ThreadPool* threadPool)
             chain.popBack(&link);
 
             // link removed from the chain
-            ASSERT_EQ(chain.numLinks(), i - 1);
-            ASSERT_EQ(chain.numOperations(), ((i - 1) * i) / 2);
+            BMQTST_ASSERT_EQ(chain.numLinks(), i - 1);
+            BMQTST_ASSERT_EQ(chain.numOperations(), ((i - 1) * i) / 2);
 
             // link contains extracted operations
-            ASSERT_EQ(link.numOperations(), i);
+            BMQTST_ASSERT_EQ(link.numOperations(), i);
         }
 
         // the chain is empty
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 
     // 2. try extract last link from an empty chain
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // try extract link
         int rc = chain.popBack();
-        ASSERT(rc != 0);
+        BMQTST_ASSERT(rc != 0);
 
         // the operation had no effect
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
 
         // try extract link again, this time transfer operations ownership
         bmqu::OperationChainLink link(chain.allocator());
         link.insert(NullOperation());
 
         rc = chain.popBack(&link);
-        ASSERT(rc != 0);
+        BMQTST_ASSERT(rc != 0);
 
         // the operation had no effect
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
 
         // receiving link unmodified
-        ASSERT_EQ(link.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(link.numOperations(), 1u);
     }
 
     // 3. try extract last link while associated operations are executing
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // start executing operations
         chain.start();
@@ -922,32 +924,32 @@ static void test8_chain_popBack(bdlmt::ThreadPool* threadPool)
                             bdlf::BindUtil::bind(Synchronize(), &semaphore));
 
         // the chain is executing one operation
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // try extract link
         int rc = chain.popBack();
-        ASSERT(rc != 0);
+        BMQTST_ASSERT(rc != 0);
 
         // link not removed from the chain
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // try extract link again, this time transfer operations ownership
         bmqu::OperationChainLink link(chain.allocator());
         link.insert(NullOperation());
         rc = chain.popBack(&link);
-        ASSERT(rc != 0);
+        BMQTST_ASSERT(rc != 0);
 
         // link not removed from the chain
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // receiving link unmodified
-        ASSERT_EQ(link.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(link.numOperations(), 1u);
 
         // allow executing operations to complete and synchronize with the
         // chain
@@ -981,7 +983,7 @@ static void test9_chain_removeAll(bdlmt::ThreadPool* threadPool)
     // 1. remove all links
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // number of links and operations in each link
         static const unsigned k_NUM_LINKS      = 3;
@@ -998,32 +1000,33 @@ static void test9_chain_removeAll(bdlmt::ThreadPool* threadPool)
         }
 
         // chain not empty
-        ASSERT_EQ(chain.numLinks(), k_NUM_LINKS);
-        ASSERT_EQ(chain.numOperations(), k_NUM_LINKS * k_NUM_OPERATIONS);
+        BMQTST_ASSERT_EQ(chain.numLinks(), k_NUM_LINKS);
+        BMQTST_ASSERT_EQ(chain.numOperations(),
+                         k_NUM_LINKS * k_NUM_OPERATIONS);
 
         // remove all links
         unsigned count = chain.removeAll();
-        ASSERT_EQ(count, k_NUM_LINKS * k_NUM_OPERATIONS);
+        BMQTST_ASSERT_EQ(count, k_NUM_LINKS * k_NUM_OPERATIONS);
 
         // all links removed from the chain
-        ASSERT_EQ(chain.numLinks(), 0u);
-        ASSERT_EQ(chain.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 0u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
     }
 
     // 2. try remove all operations from an empty chain
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // try remove all links
         unsigned count = chain.removeAll();
-        ASSERT_EQ(count, 0u);
+        BMQTST_ASSERT_EQ(count, 0u);
     }
 
     // 3. try remove all operations while some of them are executing
     {
         // create chain
-        bmqu::OperationChain chain(s_allocator_p);
+        bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
         // start executing operations
         chain.start();
@@ -1044,18 +1047,18 @@ static void test9_chain_removeAll(bdlmt::ThreadPool* threadPool)
         }
 
         // the chain is executing one operation
-        ASSERT_EQ(chain.numLinks(), k_NUM_LINKS);
-        ASSERT_EQ(chain.numOperations(), k_NUM_LINKS);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), k_NUM_LINKS);
+        BMQTST_ASSERT_EQ(chain.numOperations(), k_NUM_LINKS);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // remove all links
         unsigned count = chain.removeAll();
-        ASSERT_EQ(count, k_NUM_LINKS - 1);
+        BMQTST_ASSERT_EQ(count, k_NUM_LINKS - 1);
 
         // not all links were removed from the chain
-        ASSERT_EQ(chain.numLinks(), 1u);
-        ASSERT_EQ(chain.numOperations(), 1u);
-        ASSERT_EQ(chain.numOperationsExecuting(), 1u);
+        BMQTST_ASSERT_EQ(chain.numLinks(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperations(), 1u);
+        BMQTST_ASSERT_EQ(chain.numOperationsExecuting(), 1u);
 
         // allow executing operations to complete and synchronize with the
         // chain
@@ -1084,7 +1087,7 @@ static void test10_chain_serialization(bdlmt::ThreadPool* threadPool)
     bdlcc::Deque<unsigned> completionIds(bsls::SystemClockType::e_MONOTONIC);
 
     // create chain
-    bmqu::OperationChain chain(s_allocator_p);
+    bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
     // number of links and operations in each link
     static const unsigned k_NUM_LINKS      = 8;
@@ -1112,16 +1115,16 @@ static void test10_chain_serialization(bdlmt::ThreadPool* threadPool)
     chain.join();
 
     // all operation executed
-    ASSERT_EQ(chain.numOperations(), 0u);
-    ASSERT_EQ(completionIds.length(), k_NUM_LINKS * k_NUM_OPERATIONS);
+    BMQTST_ASSERT_EQ(chain.numOperations(), 0u);
+    BMQTST_ASSERT_EQ(completionIds.length(), k_NUM_LINKS * k_NUM_OPERATIONS);
 
     // make sure operations were executed in the right order
     for (unsigned i = 0; i < k_NUM_LINKS; ++i) {
         for (unsigned j = 0; j < k_NUM_OPERATIONS; ++j) {
             unsigned operationId = completionIds.popFront();
 
-            ASSERT_GE(operationId, i * k_NUM_OPERATIONS);
-            ASSERT_LT(operationId, (i + 1) * k_NUM_OPERATIONS);
+            BMQTST_ASSERT_GE(operationId, i * k_NUM_OPERATIONS);
+            BMQTST_ASSERT_LT(operationId, (i + 1) * k_NUM_OPERATIONS);
         }
     }
 }
@@ -1144,7 +1147,7 @@ static void test11_chain_exceptionHandling(bdlmt::ThreadPool* threadPool)
     BSLS_ASSERT(threadPool);
 
     // create chain
-    bmqu::OperationChain chain(s_allocator_p);
+    bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 
     // add several operations, each handling an exception thrown from the
     // completion callback
@@ -1165,8 +1168,8 @@ static void test11_chain_exceptionHandling(bdlmt::ThreadPool* threadPool)
     chain.join();
 
     // make sure all operations were executed
-    ASSERT_EQ(exception1Thrown, true);
-    ASSERT_EQ(exception2Thrown, true);
+    BMQTST_ASSERT_EQ(exception1Thrown, true);
+    BMQTST_ASSERT_EQ(exception2Thrown, true);
 }
 
 static void test12_link_creators()
@@ -1186,17 +1189,18 @@ static void test12_link_creators()
     // 1. default constructor
     {
         // create link
-        bmqu::OperationChainLink link(s_allocator_p);
+        bmqu::OperationChainLink link(bmqtst::TestHelperUtil::allocator());
 
         // check postconditions
-        ASSERT_EQ(link.numOperations(), 0u);
-        ASSERT_EQ(link.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(link.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 
     // 2. move constructor
     {
         // create link containing several operations
-        bmqu::OperationChainLink original(s_allocator_p);
+        bmqu::OperationChainLink original(bmqtst::TestHelperUtil::allocator());
         original.insert(NullOperation());
         original.insert(NullOperation());
 
@@ -1204,12 +1208,14 @@ static void test12_link_creators()
         bmqu::OperationChainLink copy(bslmf::MovableRefUtil::move(original));
 
         // the copy now contains the state of the original
-        ASSERT_EQ(copy.numOperations(), 2u);
-        ASSERT_EQ(original.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(copy.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(original.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
 
         // the original is left empty
-        ASSERT_EQ(original.numOperations(), 0u);
-        ASSERT_EQ(original.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(original.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(original.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 }
 
@@ -1232,12 +1238,12 @@ static void test13_link_assignment()
     // 1. regular move-assignment
     {
         // create link containing one operation
-        bmqu::OperationChainLink link1(s_allocator_p);
+        bmqu::OperationChainLink link1(bmqtst::TestHelperUtil::allocator());
 
         link1.insert(NullOperation());
 
         // create another link containing two operations
-        bmqu::OperationChainLink link2(s_allocator_p);
+        bmqu::OperationChainLink link2(bmqtst::TestHelperUtil::allocator());
         link2.insert(NullOperation());
         link2.insert(NullOperation());
 
@@ -1245,18 +1251,20 @@ static void test13_link_assignment()
         link1 = bslmf::MovableRefUtil::move(link2);
 
         // the first link now contains the state of the second one
-        ASSERT_EQ(link1.numOperations(), 2u);
-        ASSERT_EQ(link1.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(link1.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
 
         // the second link is left empty
-        ASSERT_EQ(link2.numOperations(), 0u);
-        ASSERT_EQ(link2.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link2.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 
     // 2. move-assign to self
     {
         // create link containing several operations
-        bmqu::OperationChainLink link(s_allocator_p);
+        bmqu::OperationChainLink link(bmqtst::TestHelperUtil::allocator());
         link.insert(NullOperation());
         link.insert(NullOperation());
 
@@ -1264,7 +1272,8 @@ static void test13_link_assignment()
         link = bslmf::MovableRefUtil::move(link);
 
         // the link is in a valid state
-        ASSERT_EQ(link.allocator(), s_allocator_p);
+        BMQTST_ASSERT_EQ(link.allocator(),
+                         bmqtst::TestHelperUtil::allocator());
     }
 }
 
@@ -1280,15 +1289,15 @@ static void test14_link_insert()
 // ------------------------------------------------------------------------
 {
     // create an empty link
-    bmqu::OperationChainLink link(s_allocator_p);
-    ASSERT_EQ(link.numOperations(), 0u);
+    bmqu::OperationChainLink link(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(link.numOperations(), 0u);
 
     static const unsigned k_NUM_OPERATIONS = 10;
 
     // insert several operations (use first overload)
     for (unsigned i = 0; i < k_NUM_OPERATIONS; ++i) {
         link.insert(NullOperation());
-        ASSERT_EQ(link.numOperations(), i + 1);
+        BMQTST_ASSERT_EQ(link.numOperations(), i + 1);
     }
 
     // remove them all
@@ -1297,7 +1306,7 @@ static void test14_link_insert()
     // insert again (use second overload)
     for (unsigned i = 0; i < k_NUM_OPERATIONS; ++i) {
         link.insert(NullOperation(), bdlf::noOp);
-        ASSERT_EQ(link.numOperations(), i + 1);
+        BMQTST_ASSERT_EQ(link.numOperations(), i + 1);
     }
 }
 
@@ -1315,19 +1324,19 @@ static void test15_link_removeAll()
 // ------------------------------------------------------------------------
 {
     // create link containing several operations
-    bmqu::OperationChainLink link(s_allocator_p);
+    bmqu::OperationChainLink link(bmqtst::TestHelperUtil::allocator());
     link.insert(NullOperation());
     link.insert(NullOperation());
 
     // remove all operations
     size_t count = link.removeAll();
-    ASSERT_EQ(count, 2u);
-    ASSERT_EQ(link.numOperations(), 0u);
+    BMQTST_ASSERT_EQ(count, 2u);
+    BMQTST_ASSERT_EQ(link.numOperations(), 0u);
 
     // remove all operations again
     count = link.removeAll();
-    ASSERT_EQ(count, 0u);
-    ASSERT_EQ(link.numOperations(), 0u);
+    BMQTST_ASSERT_EQ(count, 0u);
+    BMQTST_ASSERT_EQ(link.numOperations(), 0u);
 }
 
 static void test16_link_swap()
@@ -1344,54 +1353,54 @@ static void test16_link_swap()
 {
     // both empty
     {
-        bmqu::OperationChainLink link1(s_allocator_p);
-        bmqu::OperationChainLink link2(s_allocator_p);
+        bmqu::OperationChainLink link1(bmqtst::TestHelperUtil::allocator());
+        bmqu::OperationChainLink link2(bmqtst::TestHelperUtil::allocator());
 
         link1.swap(link2);
-        ASSERT_EQ(link1.numOperations(), 0u);
-        ASSERT_EQ(link2.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 0u);
     }
 
     // first empty
     {
-        bmqu::OperationChainLink link1(s_allocator_p);
+        bmqu::OperationChainLink link1(bmqtst::TestHelperUtil::allocator());
 
-        bmqu::OperationChainLink link2(s_allocator_p);
+        bmqu::OperationChainLink link2(bmqtst::TestHelperUtil::allocator());
         link2.insert(NullOperation());
         link2.insert(NullOperation());
 
         link1.swap(link2);
-        ASSERT_EQ(link1.numOperations(), 2u);
-        ASSERT_EQ(link2.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 0u);
     }
 
     // second empty
     {
-        bmqu::OperationChainLink link1(s_allocator_p);
+        bmqu::OperationChainLink link1(bmqtst::TestHelperUtil::allocator());
         link1.insert(NullOperation());
         link1.insert(NullOperation());
 
-        bmqu::OperationChainLink link2(s_allocator_p);
+        bmqu::OperationChainLink link2(bmqtst::TestHelperUtil::allocator());
 
         link1.swap(link2);
-        ASSERT_EQ(link1.numOperations(), 0u);
-        ASSERT_EQ(link2.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 0u);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 2u);
     }
 
     // none empty
     {
-        bmqu::OperationChainLink link1(s_allocator_p);
+        bmqu::OperationChainLink link1(bmqtst::TestHelperUtil::allocator());
         link1.insert(NullOperation());
         link1.insert(NullOperation());
 
-        bmqu::OperationChainLink link2(s_allocator_p);
+        bmqu::OperationChainLink link2(bmqtst::TestHelperUtil::allocator());
         link2.insert(NullOperation());
         link2.insert(NullOperation());
         link2.insert(NullOperation());
 
         link1.swap(link2);
-        ASSERT_EQ(link1.numOperations(), 3u);
-        ASSERT_EQ(link2.numOperations(), 2u);
+        BMQTST_ASSERT_EQ(link1.numOperations(), 3u);
+        BMQTST_ASSERT_EQ(link2.numOperations(), 2u);
     }
 }
 
@@ -1437,7 +1446,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

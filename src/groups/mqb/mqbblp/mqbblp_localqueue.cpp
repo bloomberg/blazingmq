@@ -66,7 +66,6 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 , d_state_p(state)
 , d_queueEngine_mp(0)
 , d_throttledFailedPutMessages(5000, 1)  // 1 log per 5s interval
-, d_hasNewMessages(false)
 , d_throttledDuplicateMessages()
 , d_haveStrongConsistency(false)
 {
@@ -140,6 +139,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         d_state_p->setStorage(storageMp);
     }
     else {
+        d_state_p->storage()->setConsistency(domainCfg.consistency());
         rc = d_state_p->storage()->configure(errorDescription,
                                              domainCfg.storage().config(),
                                              domainCfg.storage().queueLimits(),
@@ -173,21 +173,21 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
                                              d_state_p->uri(),
                                              d_state_p->partitionId());
 
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
-        mqbstat::QueueStatsDomain::Role::e_PRIMARY);
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+            mqbstat::QueueStatsDomain::Role::e_PRIMARY);
 
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS,
-        domainCfg.storage().queueLimits().messages());
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_MSGS>(
+            domainCfg.storage().queueLimits().messages());
 
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES,
-        domainCfg.storage().queueLimits().bytes());
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CFG_BYTES>(
+            domainCfg.storage().queueLimits().bytes());
 
     if (isReconfigure) {
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -284,7 +284,7 @@ void LocalQueue::configureHandle(
     // to it.  We need to make sure that storage/replication is in sync, and
     // thus, we force-flush the file store.
 
-    d_state_p->storage()->dispatcherFlush(true, false);
+    d_state_p->storage()->flushStorage();
 
     // Attempt to deliver all data in the storage.  Otherwise, broadcast
     // can get dropped if the incoming configure request removes consumers.
@@ -306,7 +306,7 @@ void LocalQueue::releaseHandle(
     BSLS_ASSERT_SAFE(d_state_p->queue()->dispatcher()->inDispatcherThread(
         d_state_p->queue()));
 
-    d_state_p->storage()->dispatcherFlush(true, false);
+    d_state_p->storage()->flushStorage();
 
     d_queueEngine_mp->releaseHandle(handle,
                                     handleParameters,
@@ -375,8 +375,8 @@ void LocalQueue::flush()
     // until it gets rolled back.  If 'flush' gets called in between, the queue
     // may have no storage.
     if (d_state_p->storage()) {
-        d_state_p->storage()->dispatcherFlush(true, false);
-        // See notes in 'FileStore::dispatcherFlush' for motivation behind
+        d_state_p->storage()->flushStorage();
+        // See notes in 'FileStore::flushStorage' for motivation behind
         // this flush.
     }
 
@@ -441,13 +441,12 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
         bdlt::CurrentTime::utc());
 
-    // EXPERIMENTAL:
-    //  Evaluate 'auto' subscriptions
-    mqbi::StorageResult::Enum res =
-        d_queueEngine_mp->evaluateAutoSubscriptions(putHeader,
-                                                    appData,
-                                                    translation,
-                                                    timestamp);
+    // Evaluate application subscriptions
+    mqbi::StorageResult::Enum res = d_queueEngine_mp->evaluateAppSubscriptions(
+        putHeader,
+        appData,
+        translation,
+        timestamp);
 
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
@@ -483,9 +482,9 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // Calculate time delta between PUT and ACK
         const bsls::Types::Int64 timeDelta =
             bmqsys::Time::highResolutionTimer() - timePoint;
-        d_state_p->stats().onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
-            timeDelta);
+        d_state_p->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(
+                timeDelta);
         if (res != mqbi::StorageResult::e_SUCCESS || doAck) {
             bmqp::AckMessage ackMessage;
             ackMessage
@@ -502,8 +501,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(res ==
                                             mqbi::StorageResult::e_SUCCESS)) {
         // Message has been saved in the storage, but we don't indicate the
-        // engine yet of the new message, instead we just update the
-        // 'd_hasNewMessages' flag.  This is because storage (replicated)
+        // engine yet of the new message.  This is because storage (replicated)
         // messages are nagled, and we don't want to indicate to a peer to
         // deliver a particular guid downstream, before actually replicating
         // that message.  So notification to deliver a particular guid
@@ -511,12 +509,9 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         // flushed (which occurs in 'flush' routine).  In no case should
         // 'afterNewMessage' be called here.
 
-        d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
-                                   appData->length());
-
-        if (haveReceipt && refCount) {
-            d_hasNewMessages = true;
-        }
+        d_state_p->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
+                appData->length());
     }
     else {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -530,15 +525,10 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             }
         }
         else {
-            d_state_p->stats().onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_NACK,
-                1);
+            d_state_p->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
         }
     }
-
-    // If 'FileStore::d_storageEventBuilder' is flushed, flush all relevant
-    // queues (call 'afterNewMessage' to deliver accumulated data)
-    d_state_p->storage()->dispatcherFlush(false, true);
 }
 
 void LocalQueue::onPushMessage(
@@ -557,9 +547,8 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
     const bsls::Types::Int64 timeDelta = bmqsys::Time::highResolutionTimer() -
                                          arrivalTimepoint;
 
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_ACK_TIME,
-        timeDelta);
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK_TIME>(timeDelta);
 
     if (d_state_p->handleCatalog().hasHandle(qH)) {
         // Send acknowledgement
@@ -572,8 +561,6 @@ void LocalQueue::onReceipt(const bmqt::MessageGUID&  msgGUID,
         // filled downstream.
         qH->onAckMessage(ackMessage);
     }  // else the handle is gone
-
-    d_hasNewMessages = true;
 }
 
 void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
@@ -583,8 +570,8 @@ void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
     // TODO: do we need to update NACK stats considering that downstream can
     // NACK the same GUID as well?
 
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
-                               1);
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+        1);
 
     if (d_state_p->handleCatalog().hasHandle(qH)) {
         // Send negative acknowledgement
@@ -601,12 +588,8 @@ void LocalQueue::deliverIfNeeded()
 {
     // Now that storage messages have been flushed, notify the engine (and thus
     // any peer or downstream client) to deliver next applicable message.
-
-    if (d_hasNewMessages) {
-        d_hasNewMessages = false;
-        d_queueEngine_mp->afterNewMessage(bmqt::MessageGUID(),
-                                          static_cast<mqbi::QueueHandle*>(0));
-    }
+    d_queueEngine_mp->afterNewMessage(bmqt::MessageGUID(),
+                                      static_cast<mqbi::QueueHandle*>(0));
 }
 
 void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,

@@ -197,6 +197,7 @@ DEF_FUNC(DomainQueuePurge, QueueCommand);
 DEF_FUNC(DomainQueueList, ListMessages);
 DEF_FUNC(DomainReconfigure, DomainReconfigure);
 DEF_FUNC(DomainResolver, DomainResolverCommand);
+DEF_FUNC(DomainRemove, DomainRemove);
 DEF_FUNC(ConfigProvider, ConfigProviderCommand);
 DEF_FUNC(Stat, StatCommand);
 DEF_FUNC(BrokerConfig, BrokerConfigCommand);
@@ -375,6 +376,11 @@ int parseDomainsCommand(DomainsCommand* domains,
                                       error,
                                       next);  // RETURN
     }
+    else if (equalCaseless(word, "REMOVE")) {
+        return parseDomainRemove(&domains->makeRemove(),
+                                 error,
+                                 next);  // RETURN
+    }
 
     *error = errorCommon;
     *error += ", but the following was given: " + word;
@@ -436,7 +442,7 @@ int parseDomainQueue(DomainQueue*  queue,
 
     const bslstl::StringRef subcommand = next();
 
-    if (name.empty()) {
+    if (subcommand.empty()) {
         *error = "DOMAINS DOMAIN <name> QUEUE <queue_name> command must have "
                  "a subcommand, such as PURGE, INTERNALS, or LIST.";
         return -1;  // RETURN
@@ -560,6 +566,34 @@ int parseDomainReconfigure(DomainReconfigure* reconfigure,
         return -1;  // RETURN
     }
     reconfigure->makeDomain(domain);
+
+    return expectEnd(error, next);
+}
+
+/// ... REMOVE ...
+int parseDomainRemove(DomainRemove* remove,
+                      bsl::string*  error,
+                      WordGenerator next)
+{
+    const bslstl::StringRef domain   = next();
+    const bslstl::StringRef finalize = next();
+
+    if (domain.empty()) {
+        *error = "DOMAINS REMOVE command must be followed by a "
+                 "domain name.";
+        return -1;  // RETURN
+    }
+
+    remove->domain() = domain;
+
+    if (equalCaseless(finalize, "FINALIZE")) {
+        remove->finalize().makeValue(true);
+    }
+    else if (!finalize.empty()) {
+        *error = "Invalid optional key word '" + finalize +
+                 "' for DOMAINS REMOVE <domain> [FINALIZE]";
+        return -1;
+    }
 
     return expectEnd(error, next);
 }

@@ -30,6 +30,7 @@
 // MQB
 
 // BMQ
+#include <bmqst_statcontext.h>
 #include <bmqt_uri.h>
 
 // BDE
@@ -41,11 +42,6 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
-
-// FORWARD DECLARATION
-namespace bmqst {
-class StatContext;
-}
 
 namespace mqbstat {
 
@@ -83,6 +79,14 @@ class BrokerStats {
 
     // DATA
     bmqst::StatContext* d_statContext_p;  // StatContext
+
+    // PRIVATE TYPES
+
+    /// Namespace for the constants of stat values that applies to the queues
+    /// from the clients
+    struct BrokerStatsIndex {
+        enum Enum { e_STAT_QUEUE_COUNT, e_STAT_CLIENT_COUNT };
+    };
 
   private:
     // NOT IMPLEMENTED
@@ -124,7 +128,8 @@ class BrokerStats {
     /// Update statistics for the event of the specified `type` and with the
     /// specified `value` (depending on the `type`, `value` can represent
     /// the number of bytes, a counter, ...
-    void onEvent(EventType::Enum type);
+    template <EventType::Enum type>
+    void onEvent();
 
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
@@ -157,6 +162,38 @@ struct BrokerStatsUtil {
 inline bmqst::StatContext* BrokerStats::statContext()
 {
     return d_statContext_p;
+}
+
+template <>
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_CLIENT_CREATED>()
+{
+    BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
+
+    d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_CLIENT_COUNT, 1);
+}
+
+template <>
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_CLIENT_DESTROYED>()
+{
+    BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
+
+    d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_CLIENT_COUNT, -1);
+}
+
+template <>
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_QUEUE_CREATED>()
+{
+    BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
+
+    d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_QUEUE_COUNT, 1);
+}
+
+template <>
+inline void BrokerStats::onEvent<BrokerStats::EventType::e_QUEUE_DESTROYED>()
+{
+    BSLS_ASSERT_SAFE(d_statContext_p && "initialize was not called");
+
+    d_statContext_p->adjustValue(BrokerStatsIndex::e_STAT_QUEUE_COUNT, -1);
 }
 
 }  // close package namespace

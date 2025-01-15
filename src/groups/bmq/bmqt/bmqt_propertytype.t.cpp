@@ -40,43 +40,43 @@ static void test1_breathingTest()
 
     PV("Testing toAscii");
     str = bmqt::PropertyType::toAscii(bmqt::PropertyType::e_BINARY);
-    ASSERT_EQ(str, "BINARY");
+    BMQTST_ASSERT_EQ(str, "BINARY");
 
     obj = static_cast<bmqt::PropertyType::Enum>(-1);
     str = bmqt::PropertyType::toAscii(obj);
-    ASSERT_EQ(str, "(* UNKNOWN *)");
+    BMQTST_ASSERT_EQ(str, "(* UNKNOWN *)");
 
     PV("Testing fromAscii");
     res = bmqt::PropertyType::fromAscii(&obj, "STRING");
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::PropertyType::e_STRING);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::PropertyType::e_STRING);
     res = bmqt::PropertyType::fromAscii(&obj, "blahblah");
-    ASSERT_EQ(res, false);
+    BMQTST_ASSERT_EQ(res, false);
 
     PV("Testing: fromAscii(toAscii(value)) = value");
     res = bmqt::PropertyType::fromAscii(
         &obj,
         bmqt::PropertyType::toAscii(bmqt::PropertyType::e_INT64));
-    ASSERT_EQ(res, true);
-    ASSERT_EQ(obj, bmqt::PropertyType::e_INT64);
+    BMQTST_ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(obj, bmqt::PropertyType::e_INT64);
 
     PV("Testing: toAscii(fromAscii(value)) = value");
     res = bmqt::PropertyType::fromAscii(&obj, "INT64");
-    ASSERT_EQ(res, true);
+    BMQTST_ASSERT_EQ(res, true);
     str = bmqt::PropertyType::toAscii(obj);
-    ASSERT_EQ(str, "INT64");
+    BMQTST_ASSERT_EQ(str, "INT64");
 }
 
 static void test2_printTest()
 {
     bmqtst::TestHelper::printTestName("PRINT");
     PV("Testing print");
-    bmqu::MemOutStream stream(s_allocator_p);
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
     stream << bmqt::PropertyType::e_INT64;
-    ASSERT_EQ(stream.str(), "INT64");
+    BMQTST_ASSERT_EQ(stream.str(), "INT64");
     stream.reset();
     bmqt::PropertyType::print(stream, bmqt::PropertyType::e_INT64, 0, 0);
-    ASSERT_EQ(stream.str(), "INT64\n");
+    BMQTST_ASSERT_EQ(stream.str(), "INT64\n");
 }
 
 // ============================================================================
@@ -93,7 +93,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

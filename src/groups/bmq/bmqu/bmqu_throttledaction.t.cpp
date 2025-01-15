@@ -96,25 +96,25 @@ static void test1_breathingTest()
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, 0);
-    ASSERT_GE(obj.d_lastResetTime, 0);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, 0);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0);
 
     // 2. Do a 'BMQU_THROTTLEDACTION_THROTTLE' and ensure the specified
     //    'ACTION' was executed.
     int n = 0;
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
 
-    ASSERT_EQ(n, 1);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, 1);
-    ASSERT_GE(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(n, 1);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, 1);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 }
 
 static void test2_throttleNoReset()
@@ -148,7 +148,8 @@ static void test2_throttleNoReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -162,13 +163,13 @@ static void test2_throttleNoReset()
         BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
     }
 
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GE(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 
     // 2. Do more 'BMQU_THROTTLEDACTION_THROTTLE_NO_RESET' (withing the
     //    specified time interval) and ensure that the specified 'ACTION' was
@@ -176,14 +177,14 @@ static void test2_throttleNoReset()
     BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
     BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
 
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GE(obj.d_lastResetTime, 0);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0);
 
     // 3. Wait until the specified time interval elapses (as determined by
     //   'bsls::TimeUtil::getTimer') and repeat steps 1-2 above.
@@ -201,15 +202,15 @@ static void test2_throttleNoReset()
         BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
     }
 
-    ASSERT_EQ(logObserver.records().size(),
-              0U);  // Nothing was logged on reset
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GT(obj.d_lastResetTime, 0);
+    BMQTST_ASSERT_EQ(logObserver.records().size(),
+                     0U);  // Nothing was logged on reset
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0);
 
     // Do more 'BMQU_THROTTLEDACTION_THROTTLE_NO_RESET' (withing the specified
     // time interval) and ensure that the specified 'ACTION' was *not* executed
@@ -217,16 +218,16 @@ static void test2_throttleNoReset()
     BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
     BMQU_THROTTLEDACTION_THROTTLE_NO_RESET(obj, incrementInteger(&n));
 
-    ASSERT_EQ(logObserver.records().size(),
-              0U);  // Nothing was logged on reset
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(logObserver.records().size(),
+                     0U);  // Nothing was logged on reset
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GT(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 }
 
 static void test3_throttleWithDefaultReset()
@@ -259,7 +260,7 @@ static void test3_throttleWithDefaultReset()
 //   BMQU_THROTTLEDACTION_THROTTLE(P, ACTION)
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -271,7 +272,8 @@ static void test3_throttleWithDefaultReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -286,13 +288,13 @@ static void test3_throttleWithDefaultReset()
         BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
     }
 
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GE(obj.d_lastResetTime, 0);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0);
 
     // 2. Do more 'BMQU_THROTTLEDACTION_THROTTLE' (withing the specified time
     //    interval) and ensure that the specified 'ACTION' was *not* executed
@@ -300,15 +302,15 @@ static void test3_throttleWithDefaultReset()
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
 
-    ASSERT_EQ(logObserver.records().size(), 0U);
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GE(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 
     // 3. Wait until the specified time interval elapses (as determined by
     //   'bsls::TimeUtil::getTimer') and repeat steps 1-2 above.
@@ -326,21 +328,21 @@ static void test3_throttleWithDefaultReset()
     }
 
     // Ensure the default reset function was invoked.
-    if (s_verbosityLevel >= 1) {
-        ASSERT_EQ(logObserver.records().size(), 1U);
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {
+        BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
         PV("Logged during reset: " << logObserver.records()[0]);
-        ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
+        BMQTST_ASSERT(bmqtst::ScopedLogObserverUtil::recordMessageMatch(
             logObserver.records()[0],
             "'obj'.*2",
-            s_allocator_p));
+            bmqtst::TestHelperUtil::allocator()));
     }
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GT(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 
     // Do more 'BMQU_THROTTLEDACTION_THROTTLE' (withing the specified time
     // interval) and ensure that the specified 'ACTION' was *not* executed
@@ -348,17 +350,17 @@ static void test3_throttleWithDefaultReset()
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
     BMQU_THROTTLEDACTION_THROTTLE(obj, incrementInteger(&n));
 
-    if (s_verbosityLevel >= 1) {
-        ASSERT_EQ(logObserver.records().size(), 1U);
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {
+        BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
     }
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GT(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 }
 
 static void test4_throttleWithCustomReset()
@@ -389,7 +391,7 @@ static void test4_throttleWithCustomReset()
 //   BMQU_THROTTLEDACTION_THROTTLE_WITH_RESET(P, ACTION)
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
     // that logging is beyond the control of this function.
 
@@ -399,7 +401,8 @@ static void test4_throttleWithCustomReset()
     const int k_INTERVAL_MS            = 2000;
     const int k_MAX_COUNT_PER_INTERVAL = 3;
 
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // No more than 3 logs in a 5s timeframe
     bmqu::ThrottledActionParams obj(k_INTERVAL_MS, k_MAX_COUNT_PER_INTERVAL);
@@ -415,13 +418,13 @@ static void test4_throttleWithCustomReset()
                                                  resetInteger(&n));
     }
 
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GE(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 
     // 2. Do more 'BMQU_THROTTLEDACTION_THROTTLE_WITH_RESET' (within the
     //    specified time interval) and ensure that the specified 'ACTION' was
@@ -433,15 +436,15 @@ static void test4_throttleWithCustomReset()
                                              incrementInteger(&n),
                                              resetInteger(&n));
 
-    ASSERT_EQ(logObserver.records().size(), 0U);
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 0U);
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GE(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GE(obj.d_lastResetTime, 0LL);
 
     // 3. Wait until the specified time interval elapses (as determined by
     //    'bsls::TimeUtil::getTimer') and repeat steps 1-2 above.  While doing
@@ -463,16 +466,17 @@ static void test4_throttleWithCustomReset()
 
     // Ensure the custom reset action was performed (and the default reset
     // action was not).
-    ASSERT_EQ(logObserver.records().size(),
-              0U);  // default reset not performed
+    BMQTST_ASSERT_EQ(logObserver.records().size(),
+                     0U);  // default reset not performed
 
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);  // custom reset was performed
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_GT(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(n,
+                     k_MAX_COUNT_PER_INTERVAL);  // custom reset was performed
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 
     // Do more 'BMQU_THROTTLEDACTION_THROTTLE' (withing the specified time
     // interval) and ensure that the specified 'ACTION' was *not* executed
@@ -484,16 +488,16 @@ static void test4_throttleWithCustomReset()
                                              incrementInteger(&n),
                                              resetInteger(&n));
 
-    ASSERT_EQ(logObserver.records().size(),
-              0U);  // default reset not performed
-    ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(logObserver.records().size(),
+                     0U);  // default reset not performed
+    BMQTST_ASSERT_EQ(n, k_MAX_COUNT_PER_INTERVAL);
     // 'n' is unchanged
-    ASSERT_EQ(obj.d_intervalNano,
-              k_INTERVAL_MS *
-                  bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
-    ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
-    ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
-    ASSERT_GT(obj.d_lastResetTime, 0LL);
+    BMQTST_ASSERT_EQ(obj.d_intervalNano,
+                     k_INTERVAL_MS *
+                         bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
+    BMQTST_ASSERT_EQ(obj.d_maxCountPerInterval, k_MAX_COUNT_PER_INTERVAL);
+    BMQTST_ASSERT_EQ(obj.d_countSinceLastReset, k_MAX_COUNT_PER_INTERVAL + 2);
+    BMQTST_ASSERT_GT(obj.d_lastResetTime, 0LL);
 }
 
 // ============================================================================
@@ -514,7 +518,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

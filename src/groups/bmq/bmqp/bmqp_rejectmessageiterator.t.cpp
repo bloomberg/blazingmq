@@ -189,12 +189,14 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Create invalid iter
         bmqp::RejectMessageIterator iter;
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
     }
 
     {
@@ -202,24 +204,24 @@ static void test1_breathingTest()
         bmqp::RejectMessageIterator iter1;
         bmqp::RejectMessageIterator iter2(iter1);
 
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
     }
 
     {
         // Assigning invalid iter
         bmqp::RejectMessageIterator iter1, iter2;
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         iter1 = iter2;
-        ASSERT_EQ(iter1.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter1.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
     }
 
     {
         // Create valid iter
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         bmqp::EventHeader       eventHeader;
@@ -232,62 +234,62 @@ static void test1_breathingTest()
         // Iterate and verify
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
 
-        ASSERT_EQ(iter.isValid(), true);
-        ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.isValid(), true);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
 
-        ASSERT_EQ(iter.message().queueId(), qId);
-        ASSERT_EQ(iter.message().messageGUID(), guid);
-        ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
 
         // Copy invalid iterator
         bmqp::RejectMessageIterator iter2(iter);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Clear
         iter.clear();
-        ASSERT_EQ(iter.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(iter.isValid(), false);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(iter.isValid(), true);
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.message().queueId(), qId);
-        ASSERT_EQ(iter.message().messageGUID(), guid);
-        ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.isValid(), true);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
 
         // Reset, assign and iterate other
         iter.reset(&blob, eventHeader);
         iter2 = iter;
-        ASSERT_EQ(iter2.isValid(), true);
-        ASSERT_EQ(iter2.next(), 1);
-        ASSERT_EQ(iter2.message().queueId(), qId);
-        ASSERT_EQ(iter2.message().messageGUID(), guid);
-        ASSERT_EQ(iter2.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter2.isValid(), true);
+        BMQTST_ASSERT_EQ(iter2.next(), 1);
+        BMQTST_ASSERT_EQ(iter2.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter2.message().messageGUID(), guid);
+        BMQTST_ASSERT_EQ(iter2.message().subQueueId(), sQId);
 
-        ASSERT_EQ(iter2.next(), 0);
-        ASSERT_EQ(iter2.isValid(), false);
+        BMQTST_ASSERT_EQ(iter2.next(), 0);
+        BMQTST_ASSERT_EQ(iter2.isValid(), false);
 
         // Copy valid iterator
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
         bmqp::RejectMessageIterator iter3(iter);
-        ASSERT_EQ(iter3.isValid(), true);
+        BMQTST_ASSERT_EQ(iter3.isValid(), true);
 
         // Provoke next method to return rc_INVALID value
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 }
 
@@ -297,10 +299,12 @@ static void test2_multiReject()
 
     // Test iterating over REJECT event having multiple REJECT messages
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     const size_t k_NUM_MSGS = 1000;
@@ -309,20 +313,20 @@ static void test2_multiReject()
 
     // Iterate and verify
     bmqp::RejectMessageIterator iter(&eventBlob, eventHeader);
-    ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
 
     size_t index = 0;
 
     while ((iter.next() == 1) && index < data.size()) {
         const Data& D = data[index];
-        ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
-        ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
-        ASSERT_EQ_D(index, D.d_subQueueId, iter.message().subQueueId());
+        BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
+        BMQTST_ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ_D(index, D.d_subQueueId, iter.message().subQueueId());
         ++index;
     }
 
-    ASSERT_EQ(data.size(), index);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(data.size(), index);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test3_nextMethod()
@@ -359,20 +363,22 @@ static void test3_nextMethod()
     // Next method. Iterator is in invalid state case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, qId, guid, sQId);
 
         // Create valid iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 
     // Next method. Not enough bytes case.
@@ -383,8 +389,10 @@ static void test3_nextMethod()
                                   sizeof(bmqp::RejectMessage);
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, qId, guid, sQId);
@@ -392,10 +400,10 @@ static void test3_nextMethod()
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
     }
 }
 
@@ -433,11 +441,12 @@ static void test4_resetMethod()
     {
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
-        bdlbb::PooledBlobBufferFactory bufferFactory(enoughSize,
-                                                     s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            enoughSize,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create buffer factory and blob
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob, &eventHeader, qId, guid, sQId);
@@ -445,12 +454,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader),
-                  0);  // rc_INVALID_EVENTHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_INVALID_EVENTHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 
     // NOTE: as far as RejectHeader::k_MIN_HEADER_SIZE = 1, there is no
@@ -464,9 +473,10 @@ static void test4_resetMethod()
                                   sizeof(bmqp::RejectHeader);
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(enoughSize,
-                                                     s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            enoughSize,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob, &eventHeader, qId, guid, sQId);
@@ -474,11 +484,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader), 0);  // rc_NOT_ENOUGH_BYTES
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -507,12 +518,14 @@ static void test5_dumpBlob()
     // Test iterator dump contains expected value
 
     bmqp::EventHeader              eventHeader;
-    bmqu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
     const int                      qId = 54321;
     const bmqt::MessageGUID        guid;
     const int                      sQId = 123;
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob, &eventHeader, qId, guid, sQId);
@@ -520,21 +533,21 @@ static void test5_dumpBlob()
     //  Create and check iterator blob layout
     {
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
         bsl::string str2("     0:   00000024 4D020000 16000000 0000D431     "
                          "|...$M..........1|\n"
                          "    16:   00000000 00000000 00000000 00000000     "
                          "|................|\n"
                          "    32:   0000007B                                "
                          "|...{            |\n",
-                         s_allocator_p);
+                         bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -544,11 +557,11 @@ static void test5_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
-        bsl::string str2("/no blob/", s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
+        bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 
@@ -560,7 +573,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -571,7 +584,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

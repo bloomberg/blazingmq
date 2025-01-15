@@ -86,7 +86,7 @@ static void test1_hashAppendSubQueueIdInfo()
 
         const size_t k_NUM_ITERATIONS = 1000;
 
-        bmqp_ctrlmsg::SubQueueIdInfo obj(s_allocator_p);
+        bmqp_ctrlmsg::SubQueueIdInfo obj(bmqtst::TestHelperUtil::allocator());
         obj.appId() = "foobar";
         obj.subId() = generateRandomInteger(1, 100);
         // same as: bslh::Hash<> hasher;
@@ -100,7 +100,7 @@ static void test1_hashAppendSubQueueIdInfo()
             bsl::hash<bmqp_ctrlmsg::SubQueueIdInfo>::result_type currHash =
                 algo.computeHash();
             PVV("[" << i << "] hash: " << currHash);
-            ASSERT_EQ_D(i, currHash, firstHash);
+            BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
     }
 
@@ -108,38 +108,40 @@ static void test1_hashAppendSubQueueIdInfo()
         PV("SUBQUEUE-ID-INFO IS A HASHABLE KEY");
 
         // obj1 == obj2 != obj3
-        bmqp_ctrlmsg::SubQueueIdInfo obj1(s_allocator_p);
+        bmqp_ctrlmsg::SubQueueIdInfo obj1(bmqtst::TestHelperUtil::allocator());
         obj1.appId() = "foo";
         obj1.subId() = 1;
 
-        bmqp_ctrlmsg::SubQueueIdInfo obj2(obj1, s_allocator_p);
+        bmqp_ctrlmsg::SubQueueIdInfo obj2(obj1,
+                                          bmqtst::TestHelperUtil::allocator());
 
-        bmqp_ctrlmsg::SubQueueIdInfo obj3(s_allocator_p);
+        bmqp_ctrlmsg::SubQueueIdInfo obj3(bmqtst::TestHelperUtil::allocator());
         obj3.appId() = "bar";
         obj3.subId() = 2;
 
         // Verify
-        bsl::unordered_set<bmqp_ctrlmsg::SubQueueIdInfo> infos(s_allocator_p);
+        bsl::unordered_set<bmqp_ctrlmsg::SubQueueIdInfo> infos(
+            bmqtst::TestHelperUtil::allocator());
 
         infos.insert(obj1);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
 
         infos.insert(obj2);  // failure
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(0));
 
         infos.insert(obj3);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
 
         infos.erase(obj2);  // success
-        ASSERT_EQ(infos.count(obj1), static_cast<size_t>(0));
-        ASSERT_EQ(infos.count(obj2), static_cast<size_t>(0));
-        ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
+        BMQTST_ASSERT_EQ(infos.count(obj1), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj2), static_cast<size_t>(0));
+        BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
     }
 }
 
@@ -160,7 +162,7 @@ int main(int argc, char* argv[])
     case 1: test1_hashAppendSubQueueIdInfo(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

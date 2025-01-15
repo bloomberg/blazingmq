@@ -82,7 +82,7 @@ static void test1_constructor()
     bmqex::BdlmtFixedThreadPoolExecutor ex(&threadPool);
 
     // check postconditions
-    ASSERT_EQ(&ex.context(), &threadPool);
+    BMQTST_ASSERT_EQ(&ex.context(), &threadPool);
 }
 
 static void test2_post()
@@ -124,8 +124,8 @@ static void test2_post()
     threadPool.stop();
 
     // both jobs executed
-    ASSERT(job1Complete);
-    ASSERT(job2Complete);
+    BMQTST_ASSERT(job1Complete);
+    BMQTST_ASSERT(job2Complete);
 }
 
 static void test3_swap()
@@ -161,8 +161,8 @@ static void test3_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &threadPool2);
-    ASSERT_EQ(&ex2.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool1);
 }
 
 static void test4_context()
@@ -189,10 +189,10 @@ static void test4_context()
                                        &alloc);
 
     bmqex::BdlmtFixedThreadPoolExecutor ex1(&threadPool1);
-    ASSERT_EQ(&ex1.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool1);
 
     bmqex::BdlmtFixedThreadPoolExecutor ex2(&threadPool2);
-    ASSERT_EQ(&ex2.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool2);
 }
 
 static void test5_comparison()
@@ -221,24 +221,24 @@ static void test5_comparison()
 
     // equality
     {
-        ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) ==
-                      bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1),
-                  true);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) ==
+                             bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1),
+                         true);
 
-        ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) ==
-                      bmqex::BdlmtFixedThreadPoolExecutor(&threadPool2),
-                  false);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) ==
+                             bmqex::BdlmtFixedThreadPoolExecutor(&threadPool2),
+                         false);
     }
 
     // inequality
     {
-        ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) !=
-                      bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1),
-                  false);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) !=
+                             bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1),
+                         false);
 
-        ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) !=
-                      bmqex::BdlmtFixedThreadPoolExecutor(&threadPool2),
-                  true);
+        BMQTST_ASSERT_EQ(bmqex::BdlmtFixedThreadPoolExecutor(&threadPool1) !=
+                             bmqex::BdlmtFixedThreadPoolExecutor(&threadPool2),
+                         true);
     }
 }
 
@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

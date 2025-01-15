@@ -249,13 +249,6 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         return rc_SUCCESS;  // RETURN
     }
 
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-        d_clusterData_p->membership().selfNodeStatus()) {
-        // If self is not available, then the cluster state snapshot is likely
-        // incomplete, so there is no point in writing it.
-        return rc_SUCCESS;  // RETURN
-    }
-
     // Determine the correct LSN to put in the cluster state snapshot, which is
     // the maximum of current LSN from ElectorInfo and the largest LSN from
     // uncommitted advisories.
@@ -268,12 +261,12 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
          ++advisoryIt) {
         ClusterMessageInfo& info = advisoryIt->second;
 
-        bdlbb::Blob                  record(d_bufferFactory_p, d_allocator_p);
+        bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
         ClusterStateRecordType::Enum recordType =
             info.d_clusterMessage.choice().isLeaderAdvisoryValue()
                 ? ClusterStateRecordType::e_SNAPSHOT
                 : ClusterStateRecordType::e_UPDATE;
-        rc = ClusterStateLedgerUtil::appendRecord(&record,
+        rc = ClusterStateLedgerUtil::appendRecord(record.get(),
                                                   info.d_clusterMessage,
                                                   advisoryIt->first,
                                                   currentTime(),
@@ -283,9 +276,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         }
 
         rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                      record,
+                                      *record,
                                       bmqu::BlobPosition(),
-                                      record.length());
+                                      record->length());
         if (rc != 0) {
             return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
         }
@@ -330,12 +323,14 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
              ++citer) {
             const mqbc::ClusterState::QueueInfoSp& infoSp = citer->second;
 
-            bmqp_ctrlmsg::QueueInfo queueInfo;
-            infoSp->key().loadBinary(&queueInfo.key());
-            queueInfo.uri()         = infoSp->uri().asString();
-            queueInfo.partitionId() = infoSp->partitionId();
+            if (infoSp->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+                bmqp_ctrlmsg::QueueInfo queueInfo;
+                infoSp->key().loadBinary(&queueInfo.key());
+                queueInfo.uri()         = infoSp->uri().asString();
+                queueInfo.partitionId() = infoSp->partitionId();
 
-            leaderAdvisory.queues().push_back(queueInfo);
+                leaderAdvisory.queues().push_back(queueInfo);
+            }
         }
     }
 
@@ -343,9 +338,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     ClusterMessageInfo info;
     info.d_clusterMessage.choice().makeLeaderAdvisory(leaderAdvisory);
 
-    bdlbb::Blob record(d_bufferFactory_p, d_allocator_p);
-    rc = ClusterStateLedgerUtil::appendRecord(
-        &record,
+    bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
+    rc                                  = ClusterStateLedgerUtil::appendRecord(
+        record.get(),
         info.d_clusterMessage,
         leaderAdvisory.sequenceNumber(),
         currentTime(),
@@ -355,9 +350,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     }
 
     rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                  record,
+                                  *record,
                                   bmqu::BlobPosition(),
-                                  record.length());
+                                  record->length());
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
     }
@@ -415,8 +410,8 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     }
 
     // Do leader logic: apply and broadcast advisory, then apply its ack
-    bdlbb::Blob advisoryRecord(d_bufferFactory_p, d_allocator_p);
-    int         rc = ClusterStateLedgerUtil::appendRecord(&advisoryRecord,
+    bsl::shared_ptr<bdlbb::Blob> advisoryRecord = d_blobSpPool_p->getObject();
+    int rc = ClusterStateLedgerUtil::appendRecord(advisoryRecord.get(),
                                                   clusterMessage,
                                                   sequenceNumber,
                                                   currentTime(),
@@ -425,7 +420,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
         return 10 * rc + rc_CREATE_RECORD_FAILURE;  // RETURN
     }
 
-    rc = applyRecordInternal(advisoryRecord,
+    rc = applyRecordInternal(*advisoryRecord,
                              0,
                              clusterMessage,
                              sequenceNumber,
@@ -523,8 +518,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             // record offset should be 0.
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
-            bdlbb::Blob advisoryEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&advisoryEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(advisoryEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 advisoryEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -543,9 +540,9 @@ int IncoreClusterStateLedger::applyRecordInternal(
         ackMessage.choice().makeLeaderAdvisoryAck().sequenceNumberAcked() =
             sequenceNumber;
 
-        bdlbb::Blob ackRecord(d_bufferFactory_p, d_allocator_p);
+        bsl::shared_ptr<bdlbb::Blob> ackRecord = d_blobSpPool_p->getObject();
         rc = ClusterStateLedgerUtil::appendRecord(
-            &ackRecord,
+            ackRecord.get(),
             ackMessage,
             sequenceNumber,
             currentTime(),
@@ -556,7 +553,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
 
         // If leader, apply Ack to self.  Else, reply Ack back to leader
         if (isSelfLeader()) {
-            rc = applyRecordInternal(ackRecord,
+            rc = applyRecordInternal(*ackRecord,
                                      0,
                                      ackMessage,
                                      sequenceNumber,
@@ -566,8 +563,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
             }
         }
         else {
-            bdlbb::Blob ackEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&ackEvent, ackRecord);
+            bsl::shared_ptr<bdlbb::Blob> ackEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(ackEvent.get(), *ackRecord);
 
             mqbnet::ClusterNode* leaderNode =
                 d_clusterData_p->electorInfo().leaderNode();
@@ -631,8 +630,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
         }
 
         if (isSelfLeader()) {
-            bdlbb::Blob commitEvent(d_bufferFactory_p, d_allocator_p);
-            constructEventBlob(&commitEvent, record);
+            bsl::shared_ptr<bdlbb::Blob> commitEvent =
+                d_blobSpPool_p->getObject();
+
+            constructEventBlob(commitEvent.get(), record);
             d_clusterData_p->membership().netCluster()->writeAll(
                 commitEvent,
                 bmqp::EventType::e_CLUSTER_STATE);
@@ -694,9 +695,10 @@ int IncoreClusterStateLedger::applyRecordInternal(
                           << ", creating and applying commit advisory: "
                           << commitMessage << ".";
 
-            bdlbb::Blob commitRecord(d_bufferFactory_p, d_allocator_p);
+            bsl::shared_ptr<bdlbb::Blob> commitRecord =
+                d_blobSpPool_p->getObject();
             rc = ClusterStateLedgerUtil::appendRecord(
-                &commitRecord,
+                commitRecord.get(),
                 commitMessage,
                 commitAdvisory.sequenceNumber(),
                 currentTime(),
@@ -705,7 +707,7 @@ int IncoreClusterStateLedger::applyRecordInternal(
                 return 10 * rc + rc_CREATE_COMMIT_FAILURE;  // RETURN
             }
 
-            rc = applyRecordInternal(commitRecord,
+            rc = applyRecordInternal(*commitRecord,
                                      0,
                                      commitMessage,
                                      commitAdvisory.sequenceNumber(),
@@ -771,10 +773,18 @@ int IncoreClusterStateLedger::applyRecordInternal(
 
 void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 {
+    AdvisoriesMapIter iter = d_uncommittedAdvisories.begin();
+    if (iter != d_uncommittedAdvisories.end()) {
+        const bmqp_ctrlmsg::LeaderMessageSequence& seqNum = iter->first;
+        BALL_LOG_INFO << description() << "Canceling "
+                      << d_uncommittedAdvisories.size()
+                      << " uncommitted advisories in the incore CSL starting "
+                         "at seqNum = "
+                      << seqNum;
+    }
+
     if (isSelfLeader()) {
-        for (AdvisoriesMapIter iter = d_uncommittedAdvisories.begin();
-             iter != d_uncommittedAdvisories.end();
-             ++iter) {
+        for (; iter != d_uncommittedAdvisories.end(); ++iter) {
             const ClusterMessageInfo&    info = iter->second;
             bmqp_ctrlmsg::ControlMessage controlMessage;
             controlMessage.choice().makeClusterMessage(info.d_clusterMessage);
@@ -789,8 +799,7 @@ void IncoreClusterStateLedger::cancelUncommittedAdvisories()
 }
 
 int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
-                                        mqbnet::ClusterNode* source,
-                                        bool                 delayed)
+                                        mqbnet::ClusterNode* source)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -801,28 +810,24 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(source);
     BSLS_ASSERT_SAFE(source->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
-    BSLS_ASSERT_SAFE(
-        isSelfLeader() ||
-        source->nodeId() ==
-            d_clusterData_p->electorInfo().leaderNode()->nodeId());
 
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS = 0  // Success
         ,
-        rc_MISSING_HEADER = -1  // Event or record header is missing
+        rc_INVALID_SOURCE = -1  // Source is not leader
         ,
-        rc_INVALID_HEADER = -2  // Event or record header is invalid
+        rc_MISSING_HEADER = -2  // Event or record header is missing
         ,
-        rc_INVALID_SOURCE = -3  // Source is not leader
+        rc_INVALID_HEADER = -3  // Event or record header is invalid
         ,
-        rc_RECORD_STALE = -4  // Record is stale
+        rc_UNEXPECTED_RECORD_TYPE = -4  // Unexpected record type
         ,
         rc_RECORD_ALREADY_APPLIED = -5  // Record was already applied
         ,
-        rc_LOAD_MESSAGE_FAILURE = -6  // Fail to load cluster message
+        rc_RECORD_STALE = -6  // Record is stale
         ,
-        rc_NODE_STOPPING = -7  // Self node is stopping
+        rc_LOAD_MESSAGE_FAILURE = -7  // Fail to load cluster message
         ,
         rc_ADVISORY_INVALID = -8  // Advisory is invalid, as determined
                                   // by type-specific validation
@@ -833,7 +838,24 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BALL_LOG_INFO << "Applying cluster state record event from node '"
                   << source->nodeDescription() << "'";
 
-    // Sanity check on record
+    if (!isSelfLeader() &&
+        d_clusterData_p->electorInfo().leaderNodeId() != source->nodeId()) {
+        BALL_LOG_ERROR << description()
+                       << ": Ignoring cluster state record event from '"
+                       << source->nodeDescription()
+                       << "'. Reason: Source node is not the leader"
+                       << " [source: " << source->nodeDescription()
+                       << ", leader: "
+                       << (d_clusterData_p->electorInfo().leaderNode()
+                               ? d_clusterData_p->electorInfo()
+                                     .leaderNode()
+                                     ->nodeDescription()
+                               : "** none **")
+                       << "].";
+        return rc_INVALID_SOURCE;  // RETURN
+    }
+
+    // Sanity check event header
     bmqu::BlobObjectProxy<bmqp::EventHeader> eventHeader(
         &event,
         -bmqp::EventHeader::k_MIN_HEADER_SIZE,
@@ -855,6 +877,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(eventHeader->length() == event.length());
     BSLS_ASSERT_SAFE(eventHeader->type() == bmqp::EventType::e_CLUSTER_STATE);
 
+    // Sanity check record header
     bmqu::BlobPosition recordHeaderPosition;
     int rc = bmqu::BlobUtil::findOffsetSafe(&recordHeaderPosition,
                                             event,
@@ -888,59 +911,70 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(ClusterStateLedgerUtil::recordSize(*recordHeader) ==
                      (event.length() - eventHeaderSize));
 
+    // Validate sequence number and record type
     bmqp_ctrlmsg::LeaderMessageSequence seqNum;
     seqNum.electorTerm()    = recordHeader->electorTerm();
     seqNum.sequenceNumber() = recordHeader->sequenceNumber();
-    if (recordHeader->recordType() != ClusterStateRecordType::e_ACK &&
-        d_uncommittedAdvisories.find(seqNum) !=
+
+    if (isSelfLeader()) {
+        // Leader should only receive Acks.
+        if (recordHeader->recordType() != ClusterStateRecordType::e_ACK) {
+            BALL_LOG_ERROR
+                << description()
+                << ": Ignoring cluster state record event with seqNum = "
+                << seqNum << " from '" << source->nodeDescription()
+                << "'. Reason: Leader should only receive Acks, "
+                   "but we received record of type: "
+                << recordHeader->recordType();
+            return rc_UNEXPECTED_RECORD_TYPE;  // RETURN
+        }
+
+        BSLS_ASSERT_SAFE(
+            seqNum <= d_clusterData_p->electorInfo().leaderMessageSequence());
+
+        if (d_uncommittedAdvisories.find(seqNum) ==
             d_uncommittedAdvisories.end()) {
-        BALL_LOG_ERROR << description() << ": Failed to apply record from '"
-                       << source->nodeDescription()
-                       << "'. Reason: record was already applied. ";
-        return rc_RECORD_ALREADY_APPLIED;  // RETURN
+            BALL_LOG_INFO
+                << description()
+                << ": Ignoring cluster state record ack with seqNum = "
+                << seqNum << " from '" << source->nodeDescription()
+                << "', as quorum of acks has already been reached.";
+            return rc_SUCCESS;  // RETURN
+        }
     }
+    else {
+        // Follower should only receive advisories and commits.
+        if (recordHeader->recordType() != ClusterStateRecordType::e_SNAPSHOT &&
+            recordHeader->recordType() != ClusterStateRecordType::e_UPDATE &&
+            recordHeader->recordType() != ClusterStateRecordType::e_COMMIT) {
+            BALL_LOG_ERROR
+                << description()
+                << ": Ignoring cluster state record event with seqNum = "
+                << seqNum << " from '" << source->nodeDescription()
+                << "'. Reason: Follower should only receive advisories and "
+                   "commits, but we received record of type: "
+                << recordHeader->recordType();
+            return rc_UNEXPECTED_RECORD_TYPE;  // RETURN
+        }
 
-    // Validate advisory and source
-    if (!delayed) {
-        // Source (leader) and leader sequence number should not be validated
-        // for delayed (aka buffered) advisories.  Those attributes were
-        // validated when buffered advisories were received.
-
-        if (d_clusterData_p->electorInfo().leaderNode() != source) {
-            // Different leader.  Ignore message.
-            BALL_LOG_ERROR << description() << ": Ignoring event from '"
-                           << source->nodeDescription()
-                           << "'. Reason: Source node is not the leader"
-                           << " [source: " << source->nodeDescription()
-                           << ", leader: "
-                           << (d_clusterData_p->electorInfo().leaderNode()
-                                   ? d_clusterData_p->electorInfo()
-                                         .leaderNode()
-                                         ->nodeDescription()
-                                   : "** none **")
-                           << "].";
-            return rc_INVALID_SOURCE;  // RETURN
+        if (d_uncommittedAdvisories.find(seqNum) !=
+            d_uncommittedAdvisories.end()) {
+            BALL_LOG_ERROR << description()
+                           << ": Failed to apply record with seqNum = "
+                           << seqNum << " from '" << source->nodeDescription()
+                           << "'. Reason: record was already applied. ";
+            return rc_RECORD_ALREADY_APPLIED;  // RETURN
         }
 
         if (seqNum < d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
-                << description() << ": Failed to apply record from '"
-                << source->nodeDescription() << "'. Reason: record is stale "
-                << "[sequenceNumber: " << seqNum << ", leaderMessageSeq: "
+                << description()
+                << ": Failed to apply record with seqNum = " << seqNum
+                << " from '" << source->nodeDescription()
+                << "'. Reason: record is stale; self leaderMessageSeq = "
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
                 << "].";
             return rc_RECORD_STALE;  // RETURN
-        }
-
-        // Leader status and sequence number are updated unconditionally.  It
-        // may have been updated by one of the callers of this routine, but
-        // there is no harm is setting these values again.
-        if (d_clusterData_p->clusterConfig()
-                .clusterAttributes()
-                .isCSLModeEnabled()) {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(seqNum);
-            d_clusterData_p->electorInfo().setLeaderStatus(
-                mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
         }
     }
 
@@ -954,47 +988,38 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         return rc * 10 + rc_LOAD_MESSAGE_FAILURE;  // RETURN
     }
 
-    // CONDITIONS: If advisory is delayed, it must be a queue advisory (only
-    //             those are buffered) or a commit of queue advisory
-    BSLS_ASSERT_SAFE(!delayed ||
-                     message.choice().isQueueAssignmentAdvisoryValue() ||
+    BSLS_ASSERT_SAFE(message.choice().isQueueAssignmentAdvisoryValue() ||
                      message.choice().isQueueUnassignedAdvisoryValue() ||
-                     message.choice().isQueueUnAssignmentAdvisoryValue() ||
+                     message.choice().isQueueUpdateAdvisoryValue() ||
+                     message.choice().isPartitionPrimaryAdvisoryValue() ||
+                     message.choice().isLeaderAdvisoryValue() ||
+                     message.choice().isLeaderAdvisoryAckValue() ||
                      message.choice().isLeaderAdvisoryCommitValue());
 
-    // More validations (type-specific): A queue advisory
-    if (message.choice().isQueueAssignmentAdvisoryValue() ||
-        message.choice().isQueueUnassignedAdvisoryValue() ||
-        message.choice().isQueueUnAssignmentAdvisoryValue()) {
-        // Queue advisory
+    BALL_LOG_INFO << description() << ": Applying cluster message with type = "
+                  << recordHeader->recordType() << " and seqNum = " << seqNum
+                  << " from '" << source->nodeDescription()
+                  << "': " << message;
 
-        // TBD: Suppress the following check for now, which will help some
-        // integration tests to pass.  At this point, it is not clear if it is
-        // safe to process queue advisory messages self is stopping.
-        //
-        // if (   d_clusterData_p->membership().selfNodeStatus()
-        //     == bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
-        //     // No need to process the advisory since self is stopping.
-        //     BALL_LOG_INFO << description()
-        //                   << "Ignoring event from '"
-        //                   << source->nodeDescription()
-        //                   << "'. Reason: Self is stopping.";
-        //     return rc_NODE_STOPPING;                               // RETURN
-        // }
-    }
-    else if (message.choice().isPartitionPrimaryAdvisoryValue()) {
+    // Validate partition-primary mappings, if any
+    if (message.choice().isPartitionPrimaryAdvisoryValue() ||
+        message.choice().isLeaderAdvisoryValue()) {
         const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
-            message.choice().partitionPrimaryAdvisory().partitions();
+            message.choice().isPartitionPrimaryAdvisoryValue()
+                ? message.choice().partitionPrimaryAdvisory().partitions()
+                : message.choice().leaderAdvisory().partitions();
+
         // Validate the notification.  If *any* part of notification is found
         // invalid, we reject the *entire* notification.
         for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
             const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
-            if (info.partitionId() >=
-                static_cast<int>(d_clusterState_p->partitions().size())) {
+            if ((info.partitionId() < 0) ||
+                (info.partitionId() >=
+                 static_cast<int>(d_clusterState_p->partitions().size()))) {
                 BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
-                    << ": Invalid partitionId: " << info
-                    << " specified in partition-primary advisory. "
+                    << ": Invalid Partition Id: " << info
+                    << " specified in advisory: " << message << ". "
                     << "Ignoring this *ENTIRE* advisory message."
                     << BMQTSK_ALARMLOG_END;
                 return rc_ADVISORY_INVALID;  // RETURN
@@ -1007,29 +1032,8 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Invalid primaryNodeId: " << info
-                    << " specified in partition-primary advisory."
+                    << " specified in advisory: " << message << ". "
                     << " Ignoring this *ENTIRE* advisory."
-                    << BMQTSK_ALARMLOG_END;
-                return rc_ADVISORY_INVALID;  // RETURN
-            }
-
-            if (proposedPrimaryNode ==
-                    d_clusterData_p->membership().selfNode() &&
-                bmqp_ctrlmsg::NodeStatus::E_STARTING ==
-                    d_clusterData_p->membership().selfNodeStatus()) {
-                // Self is the proposed primary but self is STARTING.  This is
-                // a bug because if this node perceives self as STARTING, any
-                // other node (including the leader) *cannot* perceive this
-                // node as AVAILABLE.  This node might be STOPPING, but that's
-                // ok since its possible that it transitioned from AVAILABLE to
-                // other state immediately after leader broadcast the advisory.
-                // Lower layers will take care of that scenario.
-
-                BMQTSK_ALARMLOG_ALARM("CLUSTER")
-                    << d_clusterData_p->identity().description()
-                    << ": proposed primary specified in partition/primary : "
-                    << info << " is self but self is STARTING. "
-                    << "Ignoring this *ENTIRE* advisory."
                     << BMQTSK_ALARMLOG_END;
                 return rc_ADVISORY_INVALID;  // RETURN
             }
@@ -1049,7 +1053,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // currently not supported, so self node will exit.  Note that
                 // this scnenario can be witnessed in a bad network where some
                 // nodes cannot see other nodes intermittently.  See
-                // 'onLeaderSyncDataQueryResponseDispatched' for similar check.
+                // 'onLeaderSyncDataQueryResponse' for similar check.
                 BMQTSK_ALARMLOG_ALARM("CLUSTER")
                     << d_clusterData_p->identity().description()
                     << ": Partition [" << info.partitionId()
@@ -1065,23 +1069,49 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                 // EXIT
             }
 
-            if (d_isFirstLeaderAdvisory) {
-                // If this node just started and recovered from a peer, it will
-                // already be aware of the *current* primaryLeaseId for each
-                // partition, but not its primary node (this is because leaseId
-                // is retrieved from the storage, but not the primary nodeId,
-                // because we don't persist the primary nodeId).  When this
-                // node becomes AVAILABLE, the leader simply sends the
-                // partition/primary advisory without bumping up the leaseId.
-                // 'd_isFirstLeaderAdvisory' flag takes care of this scenario.
-
-                // Note that 'pi.primaryNode()' may not be zero because
-                // currently, we update the cluster state even upon receiving
-                // primary status advisory from a primary node, so self node
-                // may or may not have received a primary-status advisory from
-                // the primary node.
+            if ((pi.primaryNode() == proposedPrimaryNode) ||
+                (pi.primaryNode() == 0)) {
+                // Proposed primary node is same as self's primary node, or
+                // self views this partition as orphan.  In either case,
+                // leaseId cannot be smaller.  It can, however, be equal.
+                // The case in which 'pi.primaryNode() ==
+                // proposedPrimaryNode' and leaseId is same, is obvious --
+                // the leader simply re-sent the partition primary mapping
+                // advisory.  But the case where pi.primaryNode() is null
+                // (and 'proposedPrimaryNode' is valid) *and* leaseId is
+                // same can be explained in this way: this node (replica)
+                // was aware of the primary and leaseId, but then at some
+                // point, lost connection to the primary, and marked this
+                // partition as orphan.  Note that primary node did not
+                // crash.  After some time, connection was re-established,
+                // and leader/primary resent the primary mapping again --
+                // with same leaseId.  This scenario was seen when cluster
+                // was running on VM boxes.  Also note that above scenario
+                // is different from the case where a node has not heard
+                // from leader even once.
 
                 if (info.primaryLeaseId() < pi.primaryLeaseId()) {
+                    BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                        << d_clusterData_p->identity().description()
+                        << ": Stale primaryLeaseId specified "
+                        << "in: " << info
+                        << ", current primaryLeaseId: " << pi.primaryLeaseId()
+                        << ". Primary node viewed by self: "
+                        << (pi.primaryNode() != 0
+                                ? pi.primaryNode()->nodeDescription()
+                                : "** null **")
+                        << ", proposed primary node: "
+                        << proposedPrimaryNode->nodeDescription()
+                        << ". Ignoring this *ENTIRE* advisory."
+                        << BMQTSK_ALARMLOG_END;
+                    return rc_ADVISORY_INVALID;  // RETURN
+                }
+            }
+            else {
+                // Different (non-zero) primary nodes.  Proposed leaseId
+                // must be greater.
+
+                if (info.primaryLeaseId() <= pi.primaryLeaseId()) {
                     BMQTSK_ALARMLOG_ALARM("CLUSTER")
                         << d_clusterData_p->identity().description()
                         << ": Stale primaryLeaseId specified in: " << info
@@ -1091,66 +1121,8 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                     return rc_ADVISORY_INVALID;  // RETURN
                 }
             }
-            else {
-                if ((pi.primaryNode() == proposedPrimaryNode) ||
-                    (pi.primaryNode() == 0)) {
-                    // Proposed primary node is same as self's primary node, or
-                    // self views this partition as orphan.  In either case,
-                    // leaseId cannot be smaller.  It can, however, be equal.
-                    // The case in which 'pi.primaryNode() ==
-                    // proposedPrimaryNode' and leaseId is same, is obvious --
-                    // the leader simply re-sent the partition primary mapping
-                    // advisory.  But the case where pi.primaryNode() is null
-                    // (and 'proposedPrimaryNode' is valid) *and* leaseId is
-                    // same can be explained in this way: this node (replica)
-                    // was aware of the primary and leaseId, but then at some
-                    // point, lost connection to the primary, and marked this
-                    // partition as orphan.  Note that primary node did not
-                    // crash.  After some time, connection was re-established,
-                    // and leader/primary resent the primary mapping again --
-                    // with same leaseId.  This scenario was seen when cluster
-                    // was running on VM boxes.  Also note that above scenario
-                    // is different from the case where a node has not heard
-                    // from leader even once.
-
-                    if (info.primaryLeaseId() < pi.primaryLeaseId()) {
-                        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-                            << d_clusterData_p->identity().description()
-                            << ": Stale primaryLeaseId specified "
-                            << "in: " << info << ", current primaryLeaseId: "
-                            << pi.primaryLeaseId()
-                            << ". Primary node viewed by self: "
-                            << (pi.primaryNode() != 0
-                                    ? pi.primaryNode()->nodeDescription()
-                                    : "** null **")
-                            << ", proposed primary node: "
-                            << proposedPrimaryNode->nodeDescription()
-                            << ". Ignoring this *ENTIRE* advisory."
-                            << BMQTSK_ALARMLOG_END;
-                        return rc_ADVISORY_INVALID;  // RETURN
-                    }
-                }
-                else {
-                    // Different (non-zero) primary nodes.  Proposed leaseId
-                    // must be greater.
-
-                    if (info.primaryLeaseId() <= pi.primaryLeaseId()) {
-                        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-                            << d_clusterData_p->identity().description()
-                            << ": Stale primaryLeaseId specified in: " << info
-                            << ", current primaryLeaseId: "
-                            << pi.primaryLeaseId()
-                            << ". Ignoring this *ENTIRE* advisory."
-                            << BMQTSK_ALARMLOG_END;
-                        return rc_ADVISORY_INVALID;  // RETURN
-                    }
-                }
-            }
         }
     }
-
-    BALL_LOG_INFO << description() << ": Applying cluster message from '"
-                  << source->nodeDescription() << "': " << message;
 
     rc = applyRecordInternal(event,
                              eventHeaderSize,
@@ -1177,12 +1149,11 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     ClusterStateLedgerConsistency::Enum consistencyLevel,
     ClusterData*                        clusterData,
     ClusterState*                       clusterState,
-    bdlbb::BlobBufferFactory*           bufferFactory,
+    BlobSpPool*                         blobSpPool_p,
     bslma::Allocator*                   allocator)
 : d_allocator_p(allocator)
-, d_isFirstLeaderAdvisory(true)
 , d_isOpen(false)
-, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool_p)
 , d_description(allocator)
 , d_commitCb()
 , d_clusterData_p(clusterData)
@@ -1201,7 +1172,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     // Create description
     bmqu::MemOutStream osstr;
     osstr << "IncoreClusterStateLedger (cluster: "
-          << d_clusterData_p->identity().name() << ") : ";
+          << d_clusterData_p->identity().name() << ")";
     d_description.assign(osstr.str().data(), osstr.str().length());
 
     // Instantiate ledger config
@@ -1255,11 +1226,9 @@ void IncoreClusterStateLedger::onClusterLeader(
         d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
             &d_clusterData_p->cluster()));
 
-    if (status == ElectorInfoLeaderStatus::e_PASSIVE) {
-        return;  // RETURN
+    if (status == ElectorInfoLeaderStatus::e_UNDEFINED) {
+        cancelUncommittedAdvisories();
     }
-
-    cancelUncommittedAdvisories();
 }
 
 // MANIPULATORS
@@ -1503,14 +1472,7 @@ int IncoreClusterStateLedger::apply(const bdlbb::Blob&   event,
         d_clusterData_p->cluster().dispatcher()->inDispatcherThread(
             &d_clusterData_p->cluster()));
 
-    return applyImpl(event, source,
-                     false);  // delayed
-}
-
-void IncoreClusterStateLedger::setIsFirstLeaderAdvisory(
-    bool isFirstLeaderAdvisory)
-{
-    d_isFirstLeaderAdvisory = isFirstLeaderAdvisory;
+    return applyImpl(event, source);
 }
 
 // ACCESSORS

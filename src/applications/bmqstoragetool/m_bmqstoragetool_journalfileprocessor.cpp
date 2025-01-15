@@ -106,7 +106,9 @@ int moveToLowerBound(mqbs::JournalFileIterator* jit,
 LessThanLowerBoundFn::LessThanLowerBoundFn(const Parameters::Range& range)
 : d_range(range)
 {
-    BSLS_ASSERT(d_range.d_type != Parameters::Range::e_NONE);
+    // One of the `greater than` range values must be set
+    BSLS_ASSERT(d_range.d_timestampGt || d_range.d_offsetGt ||
+                d_range.d_seqNumGt);
 }
 
 bool LessThanLowerBoundFn::operator()(const mqbs::JournalFileIterator* jit,
@@ -115,24 +117,27 @@ bool LessThanLowerBoundFn::operator()(const mqbs::JournalFileIterator* jit,
     // PRECONDITIONS
     BSLS_ASSERT(jit);
 
-    bool res;
-    if (d_range.d_type == Parameters::Range::e_TIMESTAMP) {
-        res = inverseOrder
-                  ? d_range.d_timestampGt < jit->recordHeader().timestamp()
-                  : jit->recordHeader().timestamp() < d_range.d_timestampGt;
-    }
-    else if (d_range.d_type == Parameters::Range::e_OFFSET) {
-        res = inverseOrder ? d_range.d_offsetGt < jit->recordOffset()
-                           : jit->recordOffset() < d_range.d_offsetGt;
-    }
-    else {
-        CompositeSequenceNumber seqNum(jit->recordHeader().primaryLeaseId(),
-                                       jit->recordHeader().sequenceNumber());
-        res = inverseOrder ? d_range.d_seqNumGt < seqNum
-                           : seqNum < d_range.d_seqNumGt;
+    if (d_range.d_timestampGt) {
+        const bsl::uint64_t timestamp = jit->recordHeader().timestamp();
+        return inverseOrder ? *d_range.d_timestampGt < timestamp
+                            : timestamp < *d_range.d_timestampGt;  // RETURN
     }
 
-    return res;
+    if (d_range.d_offsetGt) {
+        const bsl::uint64_t offset = jit->recordOffset();
+        return inverseOrder ? *d_range.d_offsetGt < offset
+                            : offset < *d_range.d_offsetGt;  // RETURN
+    }
+
+    if (d_range.d_seqNumGt) {
+        const CompositeSequenceNumber seqNum(
+            jit->recordHeader().primaryLeaseId(),
+            jit->recordHeader().sequenceNumber());
+        return inverseOrder ? *d_range.d_seqNumGt < seqNum
+                            : seqNum < *d_range.d_seqNumGt;  // RETURN
+    }
+
+    return false;
 }
 
 // ==========================
@@ -165,9 +170,9 @@ void JournalFileProcessor::process()
                     d_allocator_p);
 
     bool stopSearch           = false;
-    bool needMoveToLowerBound = d_parameters->d_range.d_timestampGt > 0 ||
-                                d_parameters->d_range.d_offsetGt > 0 ||
-                                d_parameters->d_range.d_seqNumGt.isSet();
+    bool needMoveToLowerBound = d_parameters->d_range.d_timestampGt ||
+                                d_parameters->d_range.d_offsetGt ||
+                                d_parameters->d_range.d_seqNumGt;
 
     // Iterate through all Journal file records
     mqbs::JournalFileIterator* iter = d_fileManager->journalFileIterator();

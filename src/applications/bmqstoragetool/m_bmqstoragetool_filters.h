@@ -45,7 +45,7 @@ class Filters {
   private:
     // DATA
     bsl::unordered_set<mqbu::StorageKey> d_queueKeys;
-    const Parameters::Range              d_range;
+    const Parameters::Range&             d_range;
 
   public:
     // CREATORS

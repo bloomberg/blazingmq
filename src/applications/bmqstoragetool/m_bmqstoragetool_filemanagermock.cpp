@@ -20,7 +20,45 @@ namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
-// NOTHING
+FileManagerMock::FileManagerMock()
+: d_journalFileIt()
+, d_dataFileIt()
+, d_cslFileIt_p()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+FileManagerMock::FileManagerMock(const JournalFile& journalFile)
+: d_journalFileIt(&journalFile.mappedFileDescriptor(),
+                  journalFile.fileHeader(),
+                  false)
+, d_dataFileIt()
+, d_cslFileIt_p()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+FileManagerMock::FileManagerMock(
+    mqbc::IncoreClusterStateLedgerIterator* cslFileIterator_p)
+: d_journalFileIt()
+, d_dataFileIt()
+, d_cslFileIt_p(cslFileIterator_p)
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
+{
+    return &d_journalFileIt;
+}
+
+mqbc::IncoreClusterStateLedgerIterator* FileManagerMock::cslFileIterator()
+{
+    return d_cslFileIt_p;
+}
 
 }  // close package namespace
 

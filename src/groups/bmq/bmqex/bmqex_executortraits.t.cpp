@@ -137,21 +137,21 @@ static void test1_post()
 // ------------------------------------------------------------------------
 {
     PostDispatchExecutor executor;
-    ASSERT_EQ(executor.d_postCallCount, 0);
+    BMQTST_ASSERT_EQ(executor.d_postCallCount, 0);
 
     bool executed = false;
     bmqex::ExecutorTraits<PostDispatchExecutor>::post(
         executor,
         SetFlagOnCall(&executed));
-    ASSERT(executed);
-    ASSERT_EQ(executor.d_postCallCount, 1);
+    BMQTST_ASSERT(executed);
+    BMQTST_ASSERT_EQ(executor.d_postCallCount, 1);
 
     executed = false;
     bmqex::ExecutorTraits<PostDispatchExecutor>::post(
         executor,
         SetFlagOnCall(&executed));
-    ASSERT(executed);
-    ASSERT_EQ(executor.d_postCallCount, 2);
+    BMQTST_ASSERT(executed);
+    BMQTST_ASSERT_EQ(executor.d_postCallCount, 2);
 }
 
 static void test2_dispatch()
@@ -179,41 +179,41 @@ static void test2_dispatch()
     // 1. dispatchable executor
     {
         PostDispatchExecutor executor;
-        ASSERT_EQ(executor.d_dispatchCallCount, 0);
+        BMQTST_ASSERT_EQ(executor.d_dispatchCallCount, 0);
 
         bool executed = false;
         bmqex::ExecutorTraits<PostDispatchExecutor>::dispatch(
             executor,
             SetFlagOnCall(&executed));
-        ASSERT(executed);
-        ASSERT_EQ(executor.d_dispatchCallCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(executor.d_dispatchCallCount, 1);
 
         executed = false;
         bmqex::ExecutorTraits<PostDispatchExecutor>::dispatch(
             executor,
             SetFlagOnCall(&executed));
-        ASSERT(executed);
-        ASSERT_EQ(executor.d_dispatchCallCount, 2);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(executor.d_dispatchCallCount, 2);
     }
 
     // 2. non-dispatchable executor
     {
         PostExecutor executor;
-        ASSERT_EQ(executor.d_postCallCount, 0);
+        BMQTST_ASSERT_EQ(executor.d_postCallCount, 0);
 
         bool executed = false;
         bmqex::ExecutorTraits<PostExecutor>::dispatch(
             executor,
             SetFlagOnCall(&executed));
-        ASSERT(executed);
-        ASSERT_EQ(executor.d_postCallCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(executor.d_postCallCount, 1);
 
         executed = false;
         bmqex::ExecutorTraits<PostExecutor>::dispatch(
             executor,
             SetFlagOnCall(&executed));
-        ASSERT(executed);
-        ASSERT_EQ(executor.d_postCallCount, 2);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(executor.d_postCallCount, 2);
     }
 }
 
@@ -232,7 +232,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -44,32 +44,40 @@ static void test1_breathingTest()
     {
         PV("Default constructor");
 
-        bmqvt::RcDescriptionError obj(s_allocator_p);
-        ASSERT_EQ(obj.rc(), 0);
-        ASSERT_EQ(obj.description(), "");
+        bmqvt::RcDescriptionError obj(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(obj.rc(), 0);
+        BMQTST_ASSERT_EQ(obj.description(), "");
     }
 
     {
         PV("With value constructor");
 
-        bmqvt::RcDescriptionError obj(123, "abc", s_allocator_p);
-        ASSERT_EQ(obj.rc(), 123);
-        ASSERT_EQ(obj.description(), "abc");
+        bmqvt::RcDescriptionError obj(123,
+                                      "abc",
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(obj.rc(), 123);
+        BMQTST_ASSERT_EQ(obj.description(), "abc");
     }
 
     {
         PV("Copy constructor and assignment operator");
 
-        bmqvt::RcDescriptionError obj(123, "abc", s_allocator_p);
+        bmqvt::RcDescriptionError obj(123,
+                                      "abc",
+                                      bmqtst::TestHelperUtil::allocator());
 
-        bmqvt::RcDescriptionError copy(obj, s_allocator_p);
-        ASSERT_EQ(copy.rc(), 123);
-        ASSERT_EQ(copy.description(), "abc");
+        bmqvt::RcDescriptionError copy(obj,
+                                       bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(copy.rc(), 123);
+        BMQTST_ASSERT_EQ(copy.description(), "abc");
 
-        bmqvt::RcDescriptionError assignment(987, "zyx", s_allocator_p);
+        bmqvt::RcDescriptionError assignment(
+            987,
+            "zyx",
+            bmqtst::TestHelperUtil::allocator());
         assignment = obj;
-        ASSERT_EQ(assignment.rc(), 123);
-        ASSERT_EQ(assignment.description(), "abc");
+        BMQTST_ASSERT_EQ(assignment.rc(), 123);
+        BMQTST_ASSERT_EQ(assignment.description(), "abc");
     }
 }
 
@@ -108,12 +116,12 @@ static void test2_equality()
 
         bmqvt::RcDescriptionError lhs(test.d_lrc,
                                       test.d_ldescription,
-                                      s_allocator_p);
+                                      bmqtst::TestHelperUtil::allocator());
         bmqvt::RcDescriptionError rhs(test.d_rrc,
                                       test.d_rdescription,
-                                      s_allocator_p);
-        ASSERT_EQ_D("line " << test.d_line, test.d_equal, lhs == rhs);
-        ASSERT_NE_D("line " << test.d_line, test.d_equal, lhs != rhs);
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ_D("line " << test.d_line, test.d_equal, lhs == rhs);
+        BMQTST_ASSERT_NE_D("line " << test.d_line, test.d_equal, lhs != rhs);
     }
 }
 
@@ -134,32 +142,38 @@ static void test3_print()
     {
         PV("Explicit print");
 
-        bmqvt::RcDescriptionError obj(123, "abc", s_allocator_p);
-        bmqu::MemOutStream        os(s_allocator_p);
+        bmqvt::RcDescriptionError obj(123,
+                                      "abc",
+                                      bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
         bmqvt::RcDescriptionError::print(os, obj, 0, 0);
-        ASSERT_EQ(os.str(), "[\nrc = 123\ndescription = \"abc\"\n]\n");
+        BMQTST_ASSERT_EQ(os.str(), "[\nrc = 123\ndescription = \"abc\"\n]\n");
     }
 
     {
         PV("operator<<");
 
-        bmqvt::RcDescriptionError obj(123, "abc", s_allocator_p);
-        bmqu::MemOutStream        os(s_allocator_p);
+        bmqvt::RcDescriptionError obj(123,
+                                      "abc",
+                                      bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
 
         os << obj;
-        ASSERT_EQ(os.str(), "[ rc = 123 description = \"abc\" ]");
+        BMQTST_ASSERT_EQ(os.str(), "[ rc = 123 description = \"abc\" ]");
     }
 
     {
         PV("Invalid stream ('badbit' set)");
 
-        bmqvt::RcDescriptionError obj(123, "abc", s_allocator_p);
-        bmqu::MemOutStream        os(s_allocator_p);
+        bmqvt::RcDescriptionError obj(123,
+                                      "abc",
+                                      bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
 
         os.setstate(bsl::ios_base::badbit);
         bmqvt::RcDescriptionError::print(os, obj, 0, 0);
 
-        ASSERT_EQ(os.str(), "");
+        BMQTST_ASSERT_EQ(os.str(), "");
     }
 }
 
@@ -178,7 +192,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

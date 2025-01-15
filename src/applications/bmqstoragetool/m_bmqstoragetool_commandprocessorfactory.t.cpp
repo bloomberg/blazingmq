@@ -45,18 +45,20 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     // Empty parameters
-    CommandLineArguments           arguments(s_allocator_p);
-    Parameters                     params(arguments, s_allocator_p);
-    bslma::ManagedPtr<FileManager> fileManager(new (*s_allocator_p)
-                                                   FileManagerMock(),
-                                               s_allocator_p);
+    CommandLineArguments arguments(bmqtst::TestHelperUtil::allocator());
+    Parameters params(arguments, bmqtst::TestHelperUtil::allocator());
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
+        bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<CommandProcessor> cmdProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        bsl::cout,
-                                                        s_allocator_p);
-    ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) != 0);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            bsl::cout,
+            bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) !=
+                  0);
 }
 
 static void test2_cslProcessorTest()
@@ -71,19 +73,20 @@ static void test2_cslProcessorTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CSL FILE PROCESSOR TEST");
-    CommandLineArguments arguments(s_allocator_p);
-    Parameters           params(arguments, s_allocator_p);
+    CommandLineArguments arguments(bmqtst::TestHelperUtil::allocator());
+    Parameters params(arguments, bmqtst::TestHelperUtil::allocator());
     // CSL mode parameters
     params.d_cslMode = true;
-    bslma::ManagedPtr<FileManager> fileManager(new (*s_allocator_p)
-                                                   FileManagerMock(),
-                                               s_allocator_p);
+    bslma::ManagedPtr<FileManager> fileManager(
+        new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
+        bmqtst::TestHelperUtil::allocator());
 
     bslma::ManagedPtr<CommandProcessor> cmdProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        bsl::cout,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            bsl::cout,
+            bmqtst::TestHelperUtil::allocator());
     ASSERT(dynamic_cast<CslFileProcessor*>(cmdProcessor.get()) != 0);
 }
 
@@ -102,7 +105,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

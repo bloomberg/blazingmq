@@ -50,29 +50,31 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // Default constructor
-    mqbs::FileSet obj(static_cast<mqbs::FileStore*>(0), s_allocator_p);
-    ASSERT_SAFE_PASS(new (&obj) mqbs::FileSet(static_cast<mqbs::FileStore*>(0),
-                                              s_allocator_p));
+    mqbs::FileSet obj(static_cast<mqbs::FileStore*>(0),
+                      bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_SAFE_PASS(
+        new (&obj) mqbs::FileSet(static_cast<mqbs::FileStore*>(0),
+                                 bmqtst::TestHelperUtil::allocator()));
 
-    ASSERT_EQ(obj.d_store_p, static_cast<mqbs::FileStore*>(0));
-    ASSERT_EQ(obj.d_dataFileKey.isNull(), true);
-    ASSERT_EQ(obj.d_dataFile.isValid(), false);
-    ASSERT_EQ(obj.d_journalFile.isValid(), false);
-    ASSERT_EQ(obj.d_qlistFile.isValid(), false);
-    ASSERT_EQ(obj.d_dataFilePosition, 0ULL);
-    ASSERT_EQ(obj.d_journalFilePosition, 0ULL);
-    ASSERT_EQ(obj.d_qlistFilePosition, 0ULL);
-    ASSERT_EQ(obj.d_dataFileName.empty(), true);
-    ASSERT_EQ(obj.d_journalFileName.empty(), true);
-    ASSERT_EQ(obj.d_qlistFileName.empty(), true);
-    ASSERT_EQ(obj.d_outstandingBytesJournal, 0ULL);
-    ASSERT_EQ(obj.d_outstandingBytesData, 0ULL);
-    ASSERT_EQ(obj.d_outstandingBytesQlist, 0ULL);
-    ASSERT_EQ(obj.d_journalFileAvailable, true);
-    ASSERT_EQ(obj.d_fileSetRolloverPolicyAlarm, false);
-    ASSERT_EQ(obj.d_aliasedBlobBufferCount, 1LL);
+    BMQTST_ASSERT_EQ(obj.d_store_p, static_cast<mqbs::FileStore*>(0));
+    BMQTST_ASSERT_EQ(obj.d_dataFileKey.isNull(), true);
+    BMQTST_ASSERT_EQ(obj.d_dataFile.isValid(), false);
+    BMQTST_ASSERT_EQ(obj.d_journalFile.isValid(), false);
+    BMQTST_ASSERT_EQ(obj.d_qlistFile.isValid(), false);
+    BMQTST_ASSERT_EQ(obj.d_dataFilePosition, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_journalFilePosition, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_qlistFilePosition, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_dataFileName.empty(), true);
+    BMQTST_ASSERT_EQ(obj.d_journalFileName.empty(), true);
+    BMQTST_ASSERT_EQ(obj.d_qlistFileName.empty(), true);
+    BMQTST_ASSERT_EQ(obj.d_outstandingBytesJournal, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_outstandingBytesData, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_outstandingBytesQlist, 0ULL);
+    BMQTST_ASSERT_EQ(obj.d_journalFileAvailable, true);
+    BMQTST_ASSERT_EQ(obj.d_fileSetRolloverPolicyAlarm, false);
+    BMQTST_ASSERT_EQ(obj.d_aliasedBlobBufferCount, 1LL);
 
-    ASSERT_EQ(obj.d_allocator_p, s_allocator_p);
+    BMQTST_ASSERT_EQ(obj.d_allocator_p, bmqtst::TestHelperUtil::allocator());
 }
 
 // ============================================================================
@@ -88,7 +90,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

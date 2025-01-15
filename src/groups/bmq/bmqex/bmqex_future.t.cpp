@@ -167,9 +167,10 @@ static void test1_sharedState_creators()
         bmqex::FutureSharedState<int> sharedState(&alloc);
 
         // check postconditions
-        ASSERT_EQ(sharedState.isReady(), false);
-        ASSERT_EQ(sharedState.clockType(), bsls::SystemClockType::e_MONOTONIC);
-        ASSERT_EQ(sharedState.allocator(), &alloc);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), false);
+        BMQTST_ASSERT_EQ(sharedState.clockType(),
+                         bsls::SystemClockType::e_MONOTONIC);
+        BMQTST_ASSERT_EQ(sharedState.allocator(), &alloc);
     }
 
     // clock constructor
@@ -179,9 +180,10 @@ static void test1_sharedState_creators()
             &alloc);
 
         // check postconditions
-        ASSERT_EQ(sharedState.isReady(), false);
-        ASSERT_EQ(sharedState.clockType(), bsls::SystemClockType::e_REALTIME);
-        ASSERT_EQ(sharedState.allocator(), &alloc);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), false);
+        BMQTST_ASSERT_EQ(sharedState.clockType(),
+                         bsls::SystemClockType::e_REALTIME);
+        BMQTST_ASSERT_EQ(sharedState.allocator(), &alloc);
     }
 }
 
@@ -229,8 +231,8 @@ static void test2_sharedState_setValue()
         sharedState.setValue(42);
 
         // state is ready and contains assigned value
-        ASSERT_EQ(sharedState.isReady(), true);
-        ASSERT_EQ(sharedState.get(), 42);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.get(), 42);
     }
 
     // 2. callback invocation
@@ -248,15 +250,15 @@ static void test2_sharedState_setValue()
                                   bdlf::PlaceHolders::_1));
 
         // callback not invoked or destroyed yet
-        ASSERT_EQ(result, 0);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 0);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // set value
         sharedState.setValue(42);
 
         // callback invoked and destroyed
-        ASSERT_EQ(result, 42);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 3. exception safety, value throws on construction
@@ -285,22 +287,22 @@ static void test2_sharedState_setValue()
         }
 
         // exception thrown
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // shared state not ready
-        ASSERT(!sharedState.isReady());
+        BMQTST_ASSERT(!sharedState.isReady());
 
         // callback not invoked or destroyed
-        ASSERT_EQ(callbackInvoked, false);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, false);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // shared state can still be made ready
         sharedState.emplaceValue();
-        ASSERT(sharedState.isReady());
+        BMQTST_ASSERT(sharedState.isReady());
 
         // callback invoked and destroyed
-        ASSERT_EQ(callbackInvoked, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 4. exception safety, callback throws on invocation
@@ -325,12 +327,12 @@ static void test2_sharedState_setValue()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(exceptionThrown, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
 
         // shared state is ready and contains the value
-        ASSERT_EQ(sharedState.isReady(), true);
-        ASSERT_EQ(sharedState.get(), 42);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.get(), 42);
     }
 }
 
@@ -378,8 +380,8 @@ static void test3_sharedState_emplaceValue()
         sharedState.emplaceValue(4, 2);
 
         // state is ready and contains assigned value
-        ASSERT_EQ(sharedState.isReady(), true);
-        ASSERT_EQ(sharedState.get(), (bsl::pair<int, int>(4, 2)));
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.get(), (bsl::pair<int, int>(4, 2)));
     }
 
     // 2. callback invocation
@@ -397,15 +399,15 @@ static void test3_sharedState_emplaceValue()
                                   bdlf::PlaceHolders::_1));
 
         // callback not invoked or destroyed yet
-        ASSERT_EQ(result, (bsl::pair<int, int>(0, 0)));
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, (bsl::pair<int, int>(0, 0)));
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // set value
         sharedState.emplaceValue(4, 2);
 
         // callback invoked and destroyed
-        ASSERT_EQ(result, (bsl::pair<int, int>(4, 2)));
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, (bsl::pair<int, int>(4, 2)));
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 3. exception safety
@@ -434,22 +436,22 @@ static void test3_sharedState_emplaceValue()
         }
 
         // exception thrown
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // shared state not ready
-        ASSERT(!sharedState.isReady());
+        BMQTST_ASSERT(!sharedState.isReady());
 
         // callback not invoked or destroyed
-        ASSERT_EQ(callbackInvoked, false);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, false);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // shared state can still be made ready
         sharedState.emplaceValue();
-        ASSERT(sharedState.isReady());
+        BMQTST_ASSERT(sharedState.isReady());
 
         // callback invoked and destroyed
-        ASSERT_EQ(callbackInvoked, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 4. exception safety, callback throws on invocation
@@ -474,12 +476,12 @@ static void test3_sharedState_emplaceValue()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(exceptionThrown, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
 
         // shared state is ready and contains the value
-        ASSERT_EQ(sharedState.isReady(), true);
-        ASSERT_EQ(sharedState.get(), 42);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.get(), 42);
     }
 }
 
@@ -537,7 +539,7 @@ static void test4_sharedState_setException_pointer()
         }
 
         // exception thrown
-        ASSERT_EQ(exception, 42);
+        BMQTST_ASSERT_EQ(exception, 42);
     }
 
     // 2. callback invocation
@@ -555,8 +557,8 @@ static void test4_sharedState_setException_pointer()
                                   bdlf::PlaceHolders::_1));
 
         // callback not invoked or destroyed yet
-        ASSERT_EQ(result, 0);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 0);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // set exception
         try {
@@ -572,8 +574,8 @@ static void test4_sharedState_setException_pointer()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(result, 42);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 3. exception safety, callback throws on invocation
@@ -603,19 +605,19 @@ static void test4_sharedState_setException_pointer()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(exceptionThrown, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
 
         // shared state is ready and contains the exception
         int result = 0;
-        ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
         try {
             sharedState.get();
         }
         catch (int e) {
             result = e;
         }
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(result, 42);
     }
 
 #endif
@@ -674,7 +676,7 @@ static void test5_sharedState_setException_object()
         }
 
         // exception thrown
-        ASSERT_EQ(exception, 42);
+        BMQTST_ASSERT_EQ(exception, 42);
     }
 
     // 2. callback invocation
@@ -692,8 +694,8 @@ static void test5_sharedState_setException_object()
                                   bdlf::PlaceHolders::_1));
 
         // callback not invoked or destroyed yet
-        ASSERT_EQ(result, 0);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 0);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // set exception
         try {
@@ -704,8 +706,8 @@ static void test5_sharedState_setException_object()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(result, 42);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 3. exception safety
@@ -734,22 +736,22 @@ static void test5_sharedState_setException_object()
         }
 
         // exception thrown
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // shared state not ready
-        ASSERT(!sharedState.isReady());
+        BMQTST_ASSERT(!sharedState.isReady());
 
         // callback not invoked or destroyed
-        ASSERT_EQ(callbackInvoked, false);
-        ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, false);
+        BMQTST_ASSERT_NE(callbackAlloc.numBytesInUse(), 0);
 
         // shared state can still be made ready
         sharedState.emplaceValue();
-        ASSERT(sharedState.isReady());
+        BMQTST_ASSERT(sharedState.isReady());
 
         // callback invoked and destroyed
-        ASSERT_EQ(callbackInvoked, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(callbackInvoked, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
     }
 
     // 4. exception safety, callback throws on invocation
@@ -774,19 +776,19 @@ static void test5_sharedState_setException_object()
         }
 
         // callback invoked and destroyed
-        ASSERT_EQ(exceptionThrown, true);
-        ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
+        BMQTST_ASSERT_EQ(exceptionThrown, true);
+        BMQTST_ASSERT_EQ(callbackAlloc.numBytesInUse(), 0);
 
         // shared state is ready and contains the exception
         int result = 0;
-        ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
         try {
             sharedState.get();
         }
         catch (int e) {
             result = e;
         }
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(result, 42);
     }
 }
 
@@ -830,7 +832,7 @@ static void test6_sharedState_whenReady()
             bdlf::BindUtil::bind(Assign(), &result, bdlf::PlaceHolders::_1));
 
         // callback invoked with the result
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(result, 42);
     }
 
     // 2. non-ready shared state
@@ -843,13 +845,13 @@ static void test6_sharedState_whenReady()
             bdlf::BindUtil::bind(Assign(), &result, bdlf::PlaceHolders::_1));
 
         // callback not invoked
-        ASSERT_EQ(result, 0);
+        BMQTST_ASSERT_EQ(result, 0);
 
         // make the shared state ready
         sharedState.setValue(42);
 
         // callback invoked with the result
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(result, 42);
     }
 
     // 3. exception safety
@@ -868,10 +870,10 @@ static void test6_sharedState_whenReady()
         }
 
         // exception thrown
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
 
         // shared state not ready
-        ASSERT(!sharedState.isReady());
+        BMQTST_ASSERT(!sharedState.isReady());
 
         // shared state can still be attached a callback and made ready
         int result = 0;
@@ -879,8 +881,8 @@ static void test6_sharedState_whenReady()
             bdlf::BindUtil::bind(Assign(), &result, bdlf::PlaceHolders::_1));
 
         sharedState.setValue(42);
-        ASSERT_EQ(sharedState.isReady(), true);
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(result, 42);
     }
 }
 
@@ -906,7 +908,7 @@ static void test7_sharedState_isReady()
     {
         bmqex::FutureSharedState<int> sharedState(&alloc);
 
-        ASSERT_EQ(sharedState.isReady(), false);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), false);
     }
 
     // assign value, check ready
@@ -914,7 +916,7 @@ static void test7_sharedState_isReady()
         bmqex::FutureSharedState<int> sharedState(&alloc);
 
         sharedState.setValue(42);
-        ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
     }
 
     // assign exception pointer, check ready
@@ -928,7 +930,7 @@ static void test7_sharedState_isReady()
         catch (...) {
             sharedState.setException(bsl::current_exception());
         }
-        ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
 #endif
     }
 
@@ -937,7 +939,7 @@ static void test7_sharedState_isReady()
         bmqex::FutureSharedState<int> sharedState(&alloc);
 
         sharedState.setException(42);
-        ASSERT_EQ(sharedState.isReady(), true);
+        BMQTST_ASSERT_EQ(sharedState.isReady(), true);
     }
 }
 
@@ -972,7 +974,7 @@ static void test8_sharedState_get()
         sharedState.setValue(42);
 
         // the state contains the assigned value
-        ASSERT_EQ(sharedState.get(), 42);
+        BMQTST_ASSERT_EQ(sharedState.get(), 42);
     }
 
     // 2. shared state contains an exception pointer
@@ -996,7 +998,7 @@ static void test8_sharedState_get()
         catch (int e) {
             exception = e;
         }
-        ASSERT_EQ(exception, 42);
+        BMQTST_ASSERT_EQ(exception, 42);
 #endif
     }
 
@@ -1015,7 +1017,7 @@ static void test8_sharedState_get()
         catch (int e) {
             exception = e;
         }
-        ASSERT_EQ(exception, 42);
+        BMQTST_ASSERT_EQ(exception, 42);
     }
 }
 
@@ -1074,7 +1076,8 @@ static void test10_sharedState_waitFor()
 
         // ok
         bsls::TimeInterval duration(1000000.0);
-        ASSERT_EQ(sharedState.waitFor(duration), bmqex::FutureStatus::e_READY);
+        BMQTST_ASSERT_EQ(sharedState.waitFor(duration),
+                         bmqex::FutureStatus::e_READY);
     }
 
     // 2. shared state not ready
@@ -1083,8 +1086,8 @@ static void test10_sharedState_waitFor()
 
         // timeout
         bsls::TimeInterval duration(0.1);
-        ASSERT_EQ(sharedState.waitFor(duration),
-                  bmqex::FutureStatus::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(sharedState.waitFor(duration),
+                         bmqex::FutureStatus::e_TIMEOUT);
     }
 }
 
@@ -1118,7 +1121,8 @@ static void test11_sharedState_waitUntil()
 
         // ok
         bsls::TimeInterval time(1000000.0);
-        ASSERT_EQ(sharedState.waitUntil(time), bmqex::FutureStatus::e_READY);
+        BMQTST_ASSERT_EQ(sharedState.waitUntil(time),
+                         bmqex::FutureStatus::e_READY);
     }
 
     // 2. shared state not ready
@@ -1127,7 +1131,8 @@ static void test11_sharedState_waitUntil()
 
         // timeout
         bsls::TimeInterval time(0.1);
-        ASSERT_EQ(sharedState.waitUntil(time), bmqex::FutureStatus::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(sharedState.waitUntil(time),
+                         bmqex::FutureStatus::e_TIMEOUT);
     }
 }
 
@@ -1175,7 +1180,7 @@ static void test12_future_creators()
         bmqex::Future<int> future;
 
         // not valid
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 2. non-specialized, state-construct
@@ -1190,15 +1195,15 @@ static void test12_future_creators()
             bmqex::Future<int> future(sharedState);
 
             // is valid
-            ASSERT(future.isValid());
+            BMQTST_ASSERT(future.isValid());
 
             // shared state ownership acquired
-            ASSERT_EQ(sharedState.use_count(), 2);
+            BMQTST_ASSERT_EQ(sharedState.use_count(), 2);
 
         }  // destroy future
 
         // shared state ownership released
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
     }
 
     // 3. void-specialized, default-construct
@@ -1206,7 +1211,7 @@ static void test12_future_creators()
         bmqex::Future<void> future;
 
         // not valid
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 4. void-specialized, state-construct
@@ -1221,15 +1226,15 @@ static void test12_future_creators()
             bmqex::Future<void> future(sharedState);
 
             // is valid
-            ASSERT(future.isValid());
+            BMQTST_ASSERT(future.isValid());
 
             // shared state ownership acquired
-            ASSERT_EQ(sharedState.use_count(), 2);
+            BMQTST_ASSERT_EQ(sharedState.use_count(), 2);
 
         }  // destroy future
 
         // shared state ownership released
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
     }
 
     // 5. reference-specialized, default-construct
@@ -1237,7 +1242,7 @@ static void test12_future_creators()
         bmqex::Future<int&> future;
 
         // not valid
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 6. reference-specialized, state-construct
@@ -1252,15 +1257,15 @@ static void test12_future_creators()
             bmqex::Future<int&> future(sharedState);
 
             // is valid
-            ASSERT(future.isValid());
+            BMQTST_ASSERT(future.isValid());
 
             // shared state ownership acquired
-            ASSERT_EQ(sharedState.use_count(), 2);
+            BMQTST_ASSERT_EQ(sharedState.use_count(), 2);
 
         }  // destroy future
 
         // shared state ownership released
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
     }
 }
 
@@ -1310,14 +1315,14 @@ static void test13_future_swap()
         future1.swap(future2);
 
         // first future now refers to the second shared state
-        ASSERT_EQ(sharedState2.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 2);
         future1 = bmqex::Future<int>();
-        ASSERT_EQ(sharedState2.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 1);
 
         // second future now refers to the first shared state
-        ASSERT_EQ(sharedState1.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 2);
         future2 = bmqex::Future<int>();
-        ASSERT_EQ(sharedState1.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 1);
     }
 
     // 2. void-specialized
@@ -1340,14 +1345,14 @@ static void test13_future_swap()
         future1.swap(future2);
 
         // first future now refers to the second shared state
-        ASSERT_EQ(sharedState2.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 2);
         future1 = bmqex::Future<void>();
-        ASSERT_EQ(sharedState2.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 1);
 
         // second future now refers to the first shared state
-        ASSERT_EQ(sharedState1.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 2);
         future2 = bmqex::Future<void>();
-        ASSERT_EQ(sharedState1.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 1);
     }
 
     // 3. reference-specialized
@@ -1370,14 +1375,14 @@ static void test13_future_swap()
         future1.swap(future2);
 
         // first future now refers to the second shared state
-        ASSERT_EQ(sharedState2.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 2);
         future1 = bmqex::Future<int&>();
-        ASSERT_EQ(sharedState2.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState2.use_count(), 1);
 
         // second future now refers to the first shared state
-        ASSERT_EQ(sharedState1.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 2);
         future2 = bmqex::Future<int&>();
-        ASSERT_EQ(sharedState1.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState1.use_count(), 1);
     }
 }
 
@@ -1417,7 +1422,7 @@ static void test14_future_isValid()
     {
         bmqex::Future<int> future;
 
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 2. non-specialized, have shared state
@@ -1425,14 +1430,14 @@ static void test14_future_isValid()
         typedef bmqex::Future<int>::SharedStateType SharedState;
         bmqex::Future<int> future(bsl::allocate_shared<SharedState>(&alloc));
 
-        ASSERT_EQ(future.isValid(), true);
+        BMQTST_ASSERT_EQ(future.isValid(), true);
     }
 
     // 3. void-specialized, no shared state
     {
         bmqex::Future<void> future;
 
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 4. void-specialized, have shared state
@@ -1440,14 +1445,14 @@ static void test14_future_isValid()
         typedef bmqex::Future<void>::SharedStateType SharedState;
         bmqex::Future<void> future(bsl::allocate_shared<SharedState>(&alloc));
 
-        ASSERT_EQ(future.isValid(), true);
+        BMQTST_ASSERT_EQ(future.isValid(), true);
     }
 
     // 5. reference-specialized, no shared state
     {
         bmqex::Future<int&> future;
 
-        ASSERT_EQ(future.isValid(), false);
+        BMQTST_ASSERT_EQ(future.isValid(), false);
     }
 
     // 6. reference-specialized, have shared state
@@ -1455,7 +1460,7 @@ static void test14_future_isValid()
         typedef bmqex::Future<int&>::SharedStateType SharedState;
         bmqex::Future<int&> future(bsl::allocate_shared<SharedState>(&alloc));
 
-        ASSERT_EQ(future.isValid(), true);
+        BMQTST_ASSERT_EQ(future.isValid(), true);
     }
 }
 
@@ -1509,7 +1514,7 @@ static void test15_futureResult_creators()
         FutureResult result(future);
 
         // result refers to the future's shared state
-        ASSERT_EQ(result.get(), future.get());
+        BMQTST_ASSERT_EQ(result.get(), future.get());
     }
 
     // 2. non-specialized, state-construct
@@ -1525,7 +1530,7 @@ static void test15_futureResult_creators()
         FutureResult result(&sharedState);
 
         // result refers to the shared state
-        ASSERT_EQ(result.get(), sharedState.get());
+        BMQTST_ASSERT_EQ(result.get(), sharedState.get());
     }
 
     // 3. void-specialized, future-construct
@@ -1558,7 +1563,7 @@ static void test15_futureResult_creators()
         catch (int e) {
             val2 = e;
         }
-        ASSERT_EQ(val1, val2);
+        BMQTST_ASSERT_EQ(val1, val2);
     }
 
     // 4. void-specialized, state-construct
@@ -1588,7 +1593,7 @@ static void test15_futureResult_creators()
         catch (int e) {
             val2 = e;
         }
-        ASSERT_EQ(val1, val2);
+        BMQTST_ASSERT_EQ(val1, val2);
     }
 
     // 5. reference-specialized, future-construct
@@ -1608,7 +1613,7 @@ static void test15_futureResult_creators()
         FutureResult result(future);
 
         // result refers to the future's shared state
-        ASSERT_EQ(result.get(), future.get());
+        BMQTST_ASSERT_EQ(result.get(), future.get());
     }
 
     // 6. reference-specialized, state-construct
@@ -1625,7 +1630,7 @@ static void test15_futureResult_creators()
         FutureResult result(&sharedState);
 
         // result refers to the shared state
-        ASSERT_EQ(result.get(), sharedState.get());
+        BMQTST_ASSERT_EQ(result.get(), sharedState.get());
     }
 }
 
@@ -1676,10 +1681,10 @@ static void test16_futureResult_swap()
         result1.swap(result2);
 
         // first result now refers the second shared state
-        ASSERT_EQ(result1.get(), sharedState2.get());
+        BMQTST_ASSERT_EQ(result1.get(), sharedState2.get());
 
         // second result now refers the first shared state
-        ASSERT_EQ(result2.get(), sharedState1.get());
+        BMQTST_ASSERT_EQ(result2.get(), sharedState1.get());
     }
 
     // 2. void-specialized
@@ -1718,7 +1723,7 @@ static void test16_futureResult_swap()
             catch (int e) {
                 val2 = e;
             }
-            ASSERT_EQ(val1, val2);
+            BMQTST_ASSERT_EQ(val1, val2);
         }
 
         // second result now refers the first shared state
@@ -1737,7 +1742,7 @@ static void test16_futureResult_swap()
             catch (int e) {
                 val2 = e;
             }
-            ASSERT_EQ(val1, val2);
+            BMQTST_ASSERT_EQ(val1, val2);
         }
     }
 
@@ -1764,10 +1769,10 @@ static void test16_futureResult_swap()
         result1.swap(result2);
 
         // first result now refers the second shared state
-        ASSERT_EQ(result1.get(), sharedState2.get());
+        BMQTST_ASSERT_EQ(result1.get(), sharedState2.get());
 
         // second result now refers the first shared state
-        ASSERT_EQ(result2.get(), sharedState1.get());
+        BMQTST_ASSERT_EQ(result2.get(), sharedState1.get());
     }
 }
 
@@ -1805,7 +1810,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

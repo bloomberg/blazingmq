@@ -31,7 +31,6 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_eventsstats.h>
 #include <bmqimp_messagecorrelationidcontainer.h>
@@ -134,6 +133,7 @@ class BrokerSession_Executor {
 class BrokerSession BSLS_CPP11_FINAL {
   public:
     // PUBLIC TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
     /// Invoked as a result of a response from the broker to a session event
     /// submitted by the user, `EventCallback` is an alias for a callback
@@ -720,6 +720,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
     // Raw pointer (held, not owned) to
     // the blob buffer factory to use.
+
+    /// Pool of shared pointers to blobs.  Held, not owned.
+    BlobSpPool* d_blobSpPool_p;
 
     bsl::shared_ptr<bmqio::Channel> d_channel_sp;
     // Channel to use for communication,
@@ -1440,13 +1443,13 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// channel `highWaterMark` value.  If a special extention buffer is not
     /// empty append the `blob` into the buffer and return success.  If the
     /// write operation fails with e_LIMIT error which indicates HWM
-    /// condition put the specified `blob` into the buffer and return
+    /// condition put the specified `blob_sp` into the buffer and return
     /// success.  In all other cases return the result of the write
     /// operation.
     bmqt::GenericResult::Enum
     requestWriterCb(const RequestManagerType::RequestSp& context,
                     const bmqp::QueueId&                 queueId,
-                    const bdlbb::Blob&                   blob,
+                    const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
                     bsls::Types::Int64                   highWatermark);
 
     /// Write the specified `blob` into the channel providing the specified
@@ -1490,14 +1493,15 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     // CREATORS
 
-    /// Create a new object using the specified `scheduler` and
-    /// `bufferFactory`.  Use the configuration from the specified
+    /// Create a new object using the specified `scheduler`, `bufferFactory`
+    /// and `blobSpPool_p`.  Use the configuration from the specified
     /// `sessionOptions`.  If the specified `eventHandlerCb` is defined,
     /// invoke it for any events.  Invoke the specified `stateCb` when
     /// the session makes state transition.  All memory allocations will be
     /// done using the specified `allocator`.
     BrokerSession(bdlmt::EventScheduler*                  scheduler,
                   bdlbb::BlobBufferFactory*               bufferFactory,
+                  BlobSpPool*                             blobSpPool_p,
                   const bmqt::SessionOptions&             sessionOptions,
                   const EventQueue::EventHandlerCallback& eventHandlerCb,
                   const StateFunctor&                     stateCb,

@@ -62,16 +62,21 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     // Create statcontexts
     const int k_HISTORY_SIZE = 2;
 
     bsl::shared_ptr<bmqst::StatContext> client =
-        mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
-                                                              s_allocator_p);
+        mqbstat::QueueStatsUtil::initializeStatContextClients(
+            k_HISTORY_SIZE,
+            bmqtst::TestHelperUtil::allocator());
     bmqst::StatContext* domain = mockDomain.queueStatContext();
 
     using namespace mqbstat;
@@ -80,68 +85,75 @@ static void test1_breathingTest()
 
     // Create queuestat objects and assert that subcontexts are created
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+    queueStatsClient.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
                                 client.get(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
 
-    QueueStatsDomain queueStatsDomain(s_allocator_p);
-    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    QueueStatsDomain queueStatsDomain(bmqtst::TestHelperUtil::allocator());
+    queueStatsDomain.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                                &mockDomain);
 
     client->snapshot();
     domain->snapshot();
 
     // Check subcontexts
-    ASSERT_EQ(client->numSubcontexts(), 1);
-    ASSERT_EQ(domain->numSubcontexts(), 1);
+    BMQTST_ASSERT_EQ(client->numSubcontexts(), 1);
+    BMQTST_ASSERT_EQ(domain->numSubcontexts(), 1);
 
-#define ASSERT_EQ_TO_0_CLIENTSTAT(PARAM)                                      \
-    ASSERT_EQ(0, QueueStatsClient::getValue(*client, 1, ClientStat::PARAM));  \
-    ASSERT_EQ(0,                                                              \
-              QueueStatsClient::getValue(*queueStatsClient.statContext(),     \
-                                         1,                                   \
-                                         ClientStat::PARAM));
+#define BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(PARAM)                               \
+    BMQTST_ASSERT_EQ(                                                         \
+        0,                                                                    \
+        QueueStatsClient::getValue(*client, 1, ClientStat::PARAM));           \
+    BMQTST_ASSERT_EQ(                                                         \
+        0,                                                                    \
+        QueueStatsClient::getValue(*queueStatsClient.statContext(),           \
+                                   1,                                         \
+                                   ClientStat::PARAM));
 
-#define ASSERT_EQ_TO_0_DOMAINSTAT(PARAM)                                      \
-    ASSERT_EQ(0, QueueStatsDomain::getValue(*domain, 1, DomainStat::PARAM));  \
-    ASSERT_EQ(0,                                                              \
-              QueueStatsDomain::getValue(*queueStatsDomain.statContext(),     \
-                                         1,                                   \
-                                         DomainStat::PARAM));
+#define BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(PARAM)                               \
+    BMQTST_ASSERT_EQ(                                                         \
+        0,                                                                    \
+        QueueStatsDomain::getValue(*domain, 1, DomainStat::PARAM));           \
+    BMQTST_ASSERT_EQ(                                                         \
+        0,                                                                    \
+        QueueStatsDomain::getValue(*queueStatsDomain.statContext(),           \
+                                   1,                                         \
+                                   DomainStat::PARAM));
 
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_MESSAGES_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_MESSAGES_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_ACK_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_CONFIRM_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_BYTES_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_BYTES_DELTA);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_MESSAGES_ABS);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_MESSAGES_ABS);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_ACK_ABS);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_CONFIRM_ABS);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_BYTES_ABS);
-    ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_BYTES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_MESSAGES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_MESSAGES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_ACK_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_CONFIRM_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_BYTES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_BYTES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_MESSAGES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_MESSAGES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_ACK_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_CONFIRM_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUSH_BYTES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT(e_PUT_BYTES_ABS);
 
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_NB_CONSUMER);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_NB_PRODUCER);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_MESSAGES_CURRENT);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_MESSAGES_MAX);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_BYTES_CURRENT);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_BYTES_MAX);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_BYTES_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_BYTES_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_ACK_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_CONFIRM_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_MESSAGES_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_MESSAGES_ABS);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_MESSAGES_DELTA);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_MESSAGES_DELTA);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_BYTES_DELTA);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_BYTES_DELTA);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_ACK_DELTA);
-    ASSERT_EQ_TO_0_DOMAINSTAT(e_CONFIRM_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_NB_CONSUMER);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_NB_PRODUCER);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_MESSAGES_CURRENT);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_MESSAGES_MAX);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_BYTES_CURRENT);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_BYTES_MAX);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_BYTES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_BYTES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_ACK_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_CONFIRM_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_MESSAGES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_MESSAGES_ABS);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_MESSAGES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_MESSAGES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUT_BYTES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_PUSH_BYTES_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_ACK_DELTA);
+    BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT(e_CONFIRM_DELTA);
 
-#undef ASSERT_EQ_TO_0_CLIENTSTAT
-#undef ASSERT_EQ_TO_0_DOMAINSTAT
+#undef BMQTST_ASSERT_EQ_TO_0_CLIENTSTAT
+#undef BMQTST_ASSERT_EQ_TO_0_DOMAINSTAT
 }
 
 static void test2_queueStatsClient()
@@ -166,8 +178,9 @@ static void test2_queueStatsClient()
     // Create statcontexts
     const int                           k_HISTORY_SIZE = 3;
     bsl::shared_ptr<bmqst::StatContext> client =
-        mqbstat::QueueStatsUtil::initializeStatContextClients(k_HISTORY_SIZE,
-                                                              s_allocator_p);
+        mqbstat::QueueStatsUtil::initializeStatContextClients(
+            k_HISTORY_SIZE,
+            bmqtst::TestHelperUtil::allocator());
 
     client->snapshot();
 
@@ -175,9 +188,9 @@ static void test2_queueStatsClient()
     typedef QueueStatsClient::Stat ClientStat;
 
     QueueStatsClient queueStatsClient;
-    queueStatsClient.initialize(bmqt::Uri(s_allocator_p),
+    queueStatsClient.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
                                 client.get(),
-                                s_allocator_p);
+                                bmqtst::TestHelperUtil::allocator());
 
     const int k_DUMMY = 0;
 
@@ -221,26 +234,27 @@ static void test2_queueStatsClient()
     queueStatsClient.onEvent(QueueStatsClient::EventType::e_PUT, 9);
     client->snapshot();
 
-#define ASSERT_EQ_CLIENTSTAT(PARAM, SNAPSHOT, VALUE)                          \
-    ASSERT_EQ(VALUE,                                                          \
-              QueueStatsClient::getValue(*queueStatsClient.statContext(),     \
-                                         SNAPSHOT,                            \
-                                         ClientStat::PARAM));
+#define BMQTST_ASSERT_EQ_CLIENTSTAT(PARAM, SNAPSHOT, VALUE)                   \
+    BMQTST_ASSERT_EQ(                                                         \
+        VALUE,                                                                \
+        QueueStatsClient::getValue(*queueStatsClient.statContext(),           \
+                                   SNAPSHOT,                                  \
+                                   ClientStat::PARAM));
 
-    ASSERT_EQ_CLIENTSTAT(e_PUSH_MESSAGES_DELTA, 1, 2);
-    ASSERT_EQ_CLIENTSTAT(e_PUT_MESSAGES_DELTA, 1, 5);
-    ASSERT_EQ_CLIENTSTAT(e_ACK_DELTA, 1, 4);
-    ASSERT_EQ_CLIENTSTAT(e_CONFIRM_DELTA, 1, 1);
-    ASSERT_EQ_CLIENTSTAT(e_PUSH_BYTES_DELTA, 1, 38);
-    ASSERT_EQ_CLIENTSTAT(e_PUT_BYTES_DELTA, 1, 35);
-    ASSERT_EQ_CLIENTSTAT(e_PUSH_MESSAGES_ABS, 0, 3);
-    ASSERT_EQ_CLIENTSTAT(e_PUT_MESSAGES_ABS, 0, 7);
-    ASSERT_EQ_CLIENTSTAT(e_ACK_ABS, 0, 5);
-    ASSERT_EQ_CLIENTSTAT(e_CONFIRM_ABS, 0, 3);
-    ASSERT_EQ_CLIENTSTAT(e_PUSH_BYTES_ABS, 0, 47);
-    ASSERT_EQ_CLIENTSTAT(e_PUT_BYTES_ABS, 0, 57);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUSH_MESSAGES_DELTA, 1, 2);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUT_MESSAGES_DELTA, 1, 5);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_ACK_DELTA, 1, 4);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_CONFIRM_DELTA, 1, 1);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUSH_BYTES_DELTA, 1, 38);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUT_BYTES_DELTA, 1, 35);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUSH_MESSAGES_ABS, 0, 3);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUT_MESSAGES_ABS, 0, 7);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_ACK_ABS, 0, 5);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_CONFIRM_ABS, 0, 3);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUSH_BYTES_ABS, 0, 47);
+    BMQTST_ASSERT_EQ_CLIENTSTAT(e_PUT_BYTES_ABS, 0, 57);
 
-#undef ASSERT_EQ_CLIENTSTAT
+#undef BMQTST_ASSERT_EQ_CLIENTSTAT
 }
 
 static void test3_queueStatsDomain()
@@ -263,9 +277,13 @@ static void test3_queueStatsDomain()
     bmqtst::TestHelper::printTestName("QueueStatsDomain");
 
     // Create statcontext
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     bmqst::StatContext* domain = mockDomain.queueStatContext();
 
@@ -274,16 +292,18 @@ static void test3_queueStatsDomain()
     using namespace mqbstat;
     typedef QueueStatsDomain::Stat DomainStat;
 
-    QueueStatsDomain queueStatsDomain(s_allocator_p);
-    queueStatsDomain.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    QueueStatsDomain queueStatsDomain(bmqtst::TestHelperUtil::allocator());
+    queueStatsDomain.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                                &mockDomain);
 
     const int k_DUMMY = 0;
 
-#define ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                          \
-    ASSERT_EQ(VALUE,                                                          \
-              QueueStatsDomain::getValue(*queueStatsDomain.statContext(),     \
-                                         SNAPSHOT,                            \
-                                         DomainStat::PARAM));
+#define BMQTST_ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                   \
+    BMQTST_ASSERT_EQ(                                                         \
+        VALUE,                                                                \
+        QueueStatsDomain::getValue(*queueStatsDomain.statContext(),           \
+                                   SNAPSHOT,                                  \
+                                   DomainStat::PARAM));
 
     // Create two snapshot values
 
@@ -294,47 +314,47 @@ static void test3_queueStatsDomain()
     queueStatsDomain.setWriterCount(2);
 
     // 2 acks : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
 
     // 1 confirm : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
 
     // 1 push : 9 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUSH, 9);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUSH>(9);
 
     // 3 puts : 33 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 10);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 11);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 12);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(10);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(11);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(12);
 
     // 1 add message : 15 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ADD_MESSAGE, 15);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ADD_MESSAGE>(15);
 
     // 1 GUID in history
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 1);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(1);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
     // most recent value regardless of the supplied snapshotId
-    ASSERT_EQ_DOMAINSTAT(e_NB_PRODUCER, 0, 2);
-    ASSERT_EQ_DOMAINSTAT(e_NB_CONSUMER, 0, 0);
-    ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 1);
-    ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 15);
-    ASSERT_EQ_DOMAINSTAT(e_ACK_ABS, 0, 2);
-    ASSERT_EQ_DOMAINSTAT(e_CONFIRM_ABS, 0, 1);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_ABS, 0, 1);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 9);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 3);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 33);
-    ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_NB_PRODUCER, 0, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_NB_CONSUMER, 0, 0);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 15);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_ACK_ABS, 0, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_CONFIRM_ABS, 0, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_ABS, 0, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 9);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 33);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 1);
 
-    ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 2);
-    ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 1, 1);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 1, 1);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 1, 9);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 1, 3);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 1, 33);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 1, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 1, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 1, 9);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 1, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 1, 33);
 
     // *SNAPSHOT 2*
     // add 3 consumers, close 1 producer
@@ -343,63 +363,63 @@ static void test3_queueStatsDomain()
     queueStatsDomain.setReaderCount(3).setWriterCount(1);
 
     // 4 acks : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_ACK, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_ACK>(k_DUMMY);
 
     // 3 confirms : bytes irrelevant
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_CONFIRM, k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_CONFIRM>(k_DUMMY);
 
     // 1 push : 9 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUSH, 11);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUSH>(11);
 
     // 2 puts : 22 bytes
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 10);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_PUT, 12);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(10);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_PUT>(12);
 
     // del 1 message
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_DEL_MESSAGE, 15);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_DEL_MESSAGE>(15);
 
     // 3 GUIDs in history (first 5, then gc results in 3)
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 5);
-    queueStatsDomain.onEvent(QueueStatsDomain::EventType::e_UPDATE_HISTORY, 3);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(5);
+    queueStatsDomain.onEvent<QueueStatsDomain::EventType::e_UPDATE_HISTORY>(3);
     domain->snapshot();
 
     // The following stats are not range based, and therefore always return the
     // most recent value regardless of the supplied snapshotId
-    ASSERT_EQ_DOMAINSTAT(e_NB_PRODUCER, 0, 1);
-    ASSERT_EQ_DOMAINSTAT(e_NB_CONSUMER, 0, 3);
-    ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 0);
-    ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 0);
-    ASSERT_EQ_DOMAINSTAT(e_ACK_ABS, 0, 6);
-    ASSERT_EQ_DOMAINSTAT(e_CONFIRM_ABS, 0, 4);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_ABS, 0, 2);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 20);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 5);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 55);
-    ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_NB_PRODUCER, 0, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_NB_CONSUMER, 0, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 0);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 0);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_ACK_ABS, 0, 6);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_CONFIRM_ABS, 0, 4);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_ABS, 0, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_ABS, 0, 20);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_ABS, 0, 5);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_ABS, 0, 55);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_HISTORY_ABS, 0, 3);
 
     // Compare now and previous snapshot
-    ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 4);
-    ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 1, 3);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 1, 1);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 1, 11);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 1, 2);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 1, 22);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 1, 4);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 1, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 1, 1);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 1, 11);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 1, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 1, 22);
 
     // Compare now and two-snapshots ago; since two-snapshots ago was the start
     // time, the delta and abs stat should be the same
-    ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 2, 6);
-    ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 2, 4);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 2, 2);
-    ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 2, 20);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 2, 5);
-    ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 2, 55);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_ACK_DELTA, 2, 6);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_CONFIRM_DELTA, 2, 4);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_MESSAGES_DELTA, 2, 2);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUSH_BYTES_DELTA, 2, 20);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_MESSAGES_DELTA, 2, 5);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_PUT_BYTES_DELTA, 2, 55);
 
-#undef ASSERT_EQ_DOMAINSTAT
+#undef BMQTST_ASSERT_EQ_DOMAINSTAT
 }
 
 static void test4_queueStatsDomainContent()
@@ -421,86 +441,91 @@ static void test4_queueStatsDomainContent()
 {
     bmqtst::TestHelper::printTestName("QueueStatsDomainContent");
 
-#define ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                          \
-    ASSERT_EQ(VALUE,                                                          \
-              mqbstat::QueueStatsDomain::getValue(                            \
-                  *obj.statContext(),                                         \
-                  SNAPSHOT,                                                   \
-                  mqbstat::QueueStatsDomain::Stat::PARAM));
+#define BMQTST_ASSERT_EQ_DOMAINSTAT(PARAM, SNAPSHOT, VALUE)                   \
+    BMQTST_ASSERT_EQ(VALUE,                                                   \
+                     mqbstat::QueueStatsDomain::getValue(                     \
+                         *obj.statContext(),                                  \
+                         SNAPSHOT,                                            \
+                         mqbstat::QueueStatsDomain::Stat::PARAM));
 
     // Create the necessary objects to test
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory, s_allocator_p);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster               mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain                mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
     bmqst::StatContext*            sc = mockDomain.queueStatContext();
 
-    mqbstat::QueueStatsDomain obj(s_allocator_p);
-    obj.initialize(bmqt::Uri(s_allocator_p), &mockDomain);
+    mqbstat::QueueStatsDomain obj(bmqtst::TestHelperUtil::allocator());
+    obj.initialize(bmqt::Uri(bmqtst::TestHelperUtil::allocator()),
+                   &mockDomain);
 
     // Initial Snapshot
     {
         sc->snapshot();
 
         // Verify post-snapshot stats
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 0);
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 0);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 0);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 0);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 0);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 0);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 0);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 0);
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 3);
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 5);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(3);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(5);
 
         sc->snapshot();
 
         // Verify post-snapshot stats
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 2);
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 2);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 8);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 8);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 2);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 2);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 8);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 8);
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE, 7);
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE, 3);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(7);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(3);
 
         sc->snapshot();
 
         // Verify post-snapshot stats
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 2);
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 3);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 12);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 15);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 2);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 3);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 12);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 15);
     }
 
     {
-        obj.onEvent(mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE, 5);
+        obj.onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(5);
 
         sc->snapshot();
 
         // Verify post-snapshot stats
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 1);
-        ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 2);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 7);
-        ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 12);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_CURRENT, 0, 1);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 0, 2);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_CURRENT, 0, 7);
+        BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 0, 12);
     }
 
     // Verify 'historical' accross snapshot stats
 
     // [0-1] snapshots
-    ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 1, 3);
-    ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 1, 15);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 1, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 1, 15);
 
     // [0-2] snapshots
-    ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 2, 3);
-    ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 2, 15);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 2, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 2, 15);
 
     // [0-3] snapshots
-    ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 3, 3);
-    ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 3, 15);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_MESSAGES_MAX, 3, 3);
+    BMQTST_ASSERT_EQ_DOMAINSTAT(e_BYTES_MAX, 3, 15);
 
-#undef ASSERT_EQ_DOMAINSTAT
+#undef BMQTST_ASSERT_EQ_DOMAINSTAT
 }
 
 static void test5_appIdMetrics()
@@ -532,63 +557,68 @@ static void test5_appIdMetrics()
     const bool isCSL           = false;
     const bool isFSM           = false;
 
-    mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(s_allocator_p);
+    mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
+        bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "E1",
                                          "US-EAST",
                                          41234,
                                          mqbmock::Cluster::k_LEADER_NODE_ID,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "E2",
                                          "US-EAST",
                                          41235,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              1,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "W1",
                                          "US-WEST",
                                          41236,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              2,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
     mqbc::ClusterUtil::appendClusterNode(&clusterNodeDefs,
                                          "W2",
                                          "US-WEST",
                                          41237,
                                          mqbmock::Cluster::k_LEADER_NODE_ID +
                                              3,
-                                         s_allocator_p);
+                                         bmqtst::TestHelperUtil::allocator());
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    mqbmock::Cluster               mockCluster(&bufferFactory,
-                                 s_allocator_p,
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbmock::Cluster mockCluster(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator(),
                                  isClusterMember,
                                  isLeader,
                                  isCSL,
                                  isFSM,
                                  clusterNodeDefs);
-    mqbmock::Domain                mockDomain(&mockCluster, s_allocator_p);
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
 
     // Reconfigure the domain with appIds and enabled appId metrics
     const char* k_APPID_FOO = "foo";
     const char* k_APPID_BAR = "bar";
     const char* k_APPID_BAZ = "baz";
 
-    mqbconfm::Domain           domainConfig(s_allocator_p);
+    mqbconfm::Domain domainConfig(bmqtst::TestHelperUtil::allocator());
     mqbconfm::QueueModeFanout& mode = domainConfig.mode().makeFanout();
     mode.publishAppIdMetrics()      = true;
     mode.appIDs().push_back(k_APPID_FOO);
 
-    bmqu::MemOutStream errorDesc(s_allocator_p);
+    bmqu::MemOutStream errorDesc(bmqtst::TestHelperUtil::allocator());
     mockDomain.configure(errorDesc, domainConfig);
 
     // Do not use stat context (`mockDomain.queueStatContext()`) declared
     // within mock domain, since it was not initialized using the proper
     // config.  Init a new stats object from the scratch instead.
-    mqbstat::QueueStatsDomain stats(s_allocator_p);
-    stats.initialize(bmqt::Uri("bmq://mock-domain/abc", s_allocator_p),
+    mqbstat::QueueStatsDomain stats(bmqtst::TestHelperUtil::allocator());
+    stats.initialize(bmqt::Uri("bmq://mock-domain/abc",
+                               bmqtst::TestHelperUtil::allocator()),
                      &mockDomain);
 
     bmqst::StatContext* sc = stats.statContext();
@@ -597,10 +627,10 @@ static void test5_appIdMetrics()
     // subcontext for "foo"
     {
         sc->snapshot();
-        ASSERT_EQ(1, sc->numSubcontexts());
+        BMQTST_ASSERT_EQ(1, sc->numSubcontexts());
 
         const bmqst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
-        ASSERT(fooSc);
+        BMQTST_ASSERT(fooSc);
     }
 
     // Add event for non-configured appId "bar", this value should not reach to
@@ -612,7 +642,7 @@ static void test5_appIdMetrics()
     // Reconfigure queue domain stats, by excluding "foo" and including "bar"
     // and "baz"
     {
-        bsl::vector<bsl::string> appIds(s_allocator_p);
+        bsl::vector<bsl::string> appIds(bmqtst::TestHelperUtil::allocator());
         appIds.push_back(k_APPID_BAR);
         appIds.push_back(k_APPID_BAZ);
 
@@ -621,15 +651,15 @@ static void test5_appIdMetrics()
         sc->snapshot();
         sc->cleanup();
 
-        ASSERT_EQ(2, sc->numSubcontexts());
+        BMQTST_ASSERT_EQ(2, sc->numSubcontexts());
 
         const bmqst::StatContext* fooSc = sc->getSubcontext(k_APPID_FOO);
-        ASSERT(!fooSc);
+        BMQTST_ASSERT(!fooSc);
 
         const bmqst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
         const bmqst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
-        ASSERT(barSc);
-        ASSERT(bazSc);
+        BMQTST_ASSERT(barSc);
+        BMQTST_ASSERT(bazSc);
     }
 
     // Report some metrics and check that they reached subcontexts
@@ -652,19 +682,21 @@ static void test5_appIdMetrics()
 
         const bmqst::StatContext* barSc = sc->getSubcontext(k_APPID_BAR);
         const bmqst::StatContext* bazSc = sc->getSubcontext(k_APPID_BAZ);
-        ASSERT(barSc);
-        ASSERT(bazSc);
+        BMQTST_ASSERT(barSc);
+        BMQTST_ASSERT(bazSc);
 
-        ASSERT_EQ(900,
-                  mqbstat::QueueStatsDomain::getValue(
-                      *barSc,
-                      -1,
-                      mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
-        ASSERT_EQ(500,
-                  mqbstat::QueueStatsDomain::getValue(
-                      *bazSc,
-                      -1,
-                      mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
+        BMQTST_ASSERT_EQ(
+            900,
+            mqbstat::QueueStatsDomain::getValue(
+                *barSc,
+                -1,
+                mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
+        BMQTST_ASSERT_EQ(
+            500,
+            mqbstat::QueueStatsDomain::getValue(
+                *bazSc,
+                -1,
+                mqbstat::QueueStatsDomain::Stat::e_CONFIRM_TIME_MAX));
     }
 }
 
@@ -676,14 +708,16 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
-        mqbcfg::AppConfig brokerConfig(s_allocator_p);
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
         bsl::shared_ptr<bmqst::StatContext> statContext =
-            mqbstat::BrokerStatsUtil::initializeStatContext(30, s_allocator_p);
+            mqbstat::BrokerStatsUtil::initializeStatContext(
+                30,
+                bmqtst::TestHelperUtil::allocator());
         switch (_testCase) {
         case 0:
         case 5: test5_appIdMetrics(); break;
@@ -693,7 +727,7 @@ int main(int argc, char* argv[])
         case 1: test1_breathingTest(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
     }

@@ -47,6 +47,7 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
     printer.printAttribute("appIdInfos", appInfos());
+    printer.printAttribute("stateOfAssignment", state());
     printer.end();
 
     return stream;
@@ -73,13 +74,13 @@ void ClusterStateObserver::onPartitionPrimaryAssignment(
 }
 
 void ClusterStateObserver::onQueueAssigned(
-    BSLS_ANNOTATION_UNUSED const ClusterStateQueueInfo& info)
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
 
 void ClusterStateObserver::onQueueUnassigned(
-    BSLS_ANNOTATION_UNUSED const ClusterStateQueueInfo& info)
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<ClusterStateQueueInfo>& info)
 {
     // NOTHING
 }
@@ -94,7 +95,7 @@ void ClusterStateObserver::onQueueUpdated(
 }
 
 void ClusterStateObserver::onPartitionOrphanThreshold(
-    BSLS_ANNOTATION_UNUSED size_t partitiondId)
+    BSLS_ANNOTATION_UNUSED size_t partitionId)
 {
     // NOTHING
 }
@@ -322,41 +323,48 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
-    bool                   isNewAssignment = true;
-    const DomainStatesIter domIt = d_domainStates.find(uri.qualifiedDomain());
+    bool                  isNewAssignment = true;
+    DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
+    UriToQueueInfoMapIter queueIt;
 
-    if (domIt == d_domainStates.end()) {
-        d_domainStates[uri.qualifiedDomain()].createInplace(d_allocator_p,
-                                                            d_allocator_p);
-        d_domainStates.at(uri.qualifiedDomain())
-            ->queuesInfo()[uri]
-            .createInplace(d_allocator_p,
-                           uri,
-                           key,
-                           partitionId,
-                           appIdInfos,
-                           d_allocator_p);
+    if (domIt == domainStates().end()) {
+        ClusterState::DomainStateSp domainState;
+        domainState.createInplace(d_allocator_p, d_allocator_p);
+        domIt =
+            domainStates().emplace(uri.qualifiedDomain(), domainState).first;
+
+        queueIt = domIt->second->queuesInfo().end();
     }
     else {
-        const UriToQueueInfoMapIter iter = domIt->second->queuesInfo().find(
-            uri);
-        if (iter == domIt->second->queuesInfo().end()) {
-            domIt->second->queuesInfo()[uri].createInplace(d_allocator_p,
-                                                           uri,
-                                                           key,
-                                                           partitionId,
-                                                           appIdInfos,
-                                                           d_allocator_p);
-        }
-        else {
+        queueIt = domIt->second->queuesInfo().find(uri);
+    }
+
+    if (queueIt == domIt->second->queuesInfo().end()) {
+        QueueInfoSp queueInfo;
+
+        queueInfo.createInplace(d_allocator_p,
+                                uri,
+                                key,
+                                partitionId,
+                                appIdInfos,
+                                d_allocator_p);
+
+        queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
+    }
+    else {
+        if (queueIt->second->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+            // See 'ClusterStateManager::processQueueAssignmentAdvisory' which
+            // insists on re-assigning
             isNewAssignment = false;
 
-            updatePartitionQueueMapped(iter->second->partitionId(), -1);
-            iter->second->setKey(key).setPartitionId(partitionId);
-            iter->second->appInfos() = appIdInfos;
-            iter->second->setPendingUnassignment(false);
+            updatePartitionQueueMapped(queueIt->second->partitionId(), -1);
         }
+        queueIt->second->setKey(key).setPartitionId(partitionId);
+        queueIt->second->appInfos() = appIdInfos;
     }
+
+    // Set the queue as assigned
+    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNED);
 
     updatePartitionQueueMapped(partitionId, 1);
 
@@ -369,11 +377,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
          ++it) {
-        (*it)->onQueueAssigned(ClusterStateQueueInfo(uri,
-                                                     key,
-                                                     partitionId,
-                                                     appIdInfos,
-                                                     d_allocator_p));
+        (*it)->onQueueAssigned(queueIt->second);
     }
 
     // POSTCONDITIONS
@@ -413,10 +417,13 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
 
     for (ObserversSetIter it = d_observers.begin(); it != d_observers.end();
          ++it) {
-        (*it)->onQueueUnassigned(*cit->second);
+        (*it)->onQueueUnassigned(cit->second);
     }
 
     domIt->second->queuesInfo().erase(cit);
+    if (domIt->second->queuesInfo().empty()) {
+        domIt->second->setDomain(NULL);
+    }
 
     // POSTCONDITIONS
     //
@@ -496,7 +503,7 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         for (AppInfosCIter citer = removedAppIds.begin();
              citer != removedAppIds.end();
              ++citer) {
-            const AppInfosCIter appIdInfoCIter = appIdInfos.find(*citer);
+            const AppInfosCIter appIdInfoCIter = appIdInfos.find(citer->first);
             if (appIdInfoCIter == appIdInfos.cend()) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
@@ -549,9 +556,10 @@ void ClusterState::DomainState::adjustQueueCount(int by)
     d_numAssignedQueues += by;
 
     if (d_domain_p != 0) {
-        d_domain_p->domainStats()->onEvent(
-            mqbstat::DomainStats::EventType::e_QUEUE_COUNT,
-            d_numAssignedQueues);
+        d_domain_p->domainStats()
+            ->onEvent<mqbstat::DomainStats::EventType::e_QUEUE_COUNT>(
+
+                d_numAssignedQueues);
     }
 }
 

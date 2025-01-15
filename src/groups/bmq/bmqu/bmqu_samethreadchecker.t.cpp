@@ -49,10 +49,10 @@ static void test1_breathingTest()
     bmqu::SameThreadChecker sameThreadChecker;
 
     // set the checker's thread to be this thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), true);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), true);
 
     // we are in the checker's thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), true);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), true);
 
     // reset the checker's thread to be another thread
     sameThreadChecker.reset();
@@ -62,14 +62,14 @@ static void test1_breathingTest()
         &thread,
         bdlf::MemFnUtil::memFn(&bmqu::SameThreadChecker::inSameThread,
                                &sameThreadChecker),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(rc == 0);
 
     rc = bslmt::ThreadUtil::join(thread);
     BSLS_ASSERT_OPT(rc == 0);
 
     // we are not in the checker's thread
-    ASSERT_EQ(sameThreadChecker.inSameThread(), false);
+    BMQTST_ASSERT_EQ(sameThreadChecker.inSameThread(), false);
 }
 
 // ============================================================================
@@ -86,7 +86,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -103,23 +103,29 @@ static void test1_breathingTest()
     {
         PV("Constructor - no 'parentStatContext'");
 
-        bmqma::CountingAllocator obj(k_NAME, s_allocator_p);
-        ASSERT(obj.context() == 0);
+        bmqma::CountingAllocator obj(k_NAME,
+                                     bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(obj.context() == 0);
     }
 
     {
         PV("Constructor - with 'parentStatContext'");
 
-        bmqst::StatContextConfiguration config("test", s_allocator_p);
-        bmqst::StatContext       parentStatContext(config, s_allocator_p);
+        bmqst::StatContextConfiguration config(
+            "test",
+            bmqtst::TestHelperUtil::allocator());
+        bmqst::StatContext parentStatContext(
+            config,
+            bmqtst::TestHelperUtil::allocator());
         bmqma::CountingAllocator obj(k_NAME,
                                      &parentStatContext,
-                                     s_allocator_p);
+                                     bmqtst::TestHelperUtil::allocator());
         parentStatContext.snapshot();
 
-        ASSERT_EQ(parentStatContext.numSubcontexts(), 1);
-        ASSERT_NE(obj.context(), &parentStatContext);
-        ASSERT_EQ(obj.context(), parentStatContext.getSubcontext("Test"));
+        BMQTST_ASSERT_EQ(parentStatContext.numSubcontexts(), 1);
+        BMQTST_ASSERT_NE(obj.context(), &parentStatContext);
+        BMQTST_ASSERT_EQ(obj.context(),
+                         parentStatContext.getSubcontext("Test"));
     }
 }
 
@@ -146,23 +152,23 @@ static void test2_allocate()
     const bsls::Types::size_type k_SIZE_ALLOC = 1024;
 
     char*                    buf = 0;
-    bmqma::CountingAllocator obj("Test", s_allocator_p);
+    bmqma::CountingAllocator obj("Test", bmqtst::TestHelperUtil::allocator());
 
     // 1. Allocate with 'size' of 0 and verify the returned address is 0.
     buf = static_cast<char*>(obj.allocate(0));
-    ASSERT(buf == 0);
+    BMQTST_ASSERT(buf == 0);
 
     // 2. Allocate non-zero number of bytes and verify the allocation was
     // successful.
     buf = static_cast<char*>(obj.allocate(k_SIZE_ALLOC));
-    ASSERT(buf != 0);
+    BMQTST_ASSERT(buf != 0);
 
     bsl::fill_n(buf, k_SIZE_ALLOC, 33);
     for (bsls::Types::size_type i = 0; i < k_SIZE_ALLOC; ++i) {
-        ASSERT_EQ_D(i, buf[i], 33);
+        BMQTST_ASSERT_EQ_D(i, buf[i], 33);
     }
 
-    ASSERT_SAFE_PASS(obj.deallocate(buf));
+    BMQTST_ASSERT_SAFE_PASS(obj.deallocate(buf));
 }
 
 static void test3_deallocate()
@@ -184,7 +190,7 @@ static void test3_deallocate()
 //   allocate
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator and
     // that is beyond the control of this function
     bmqtst::TestHelper::printTestName("DEALLOCATE");
@@ -221,26 +227,32 @@ static void test3_deallocate()
     // CONSTANTS
     const bsls::Types::size_type k_SIZE_ALLOC = 1024;
 
-    bmqst::StatContextConfiguration config("test", s_allocator_p);
-    bmqst::StatContext              parentStatContext(config, s_allocator_p);
-    bmqma::CountingAllocator obj("Test", &parentStatContext, s_allocator_p);
+    bmqst::StatContextConfiguration config(
+        "test",
+        bmqtst::TestHelperUtil::allocator());
+    bmqst::StatContext       parentStatContext(config,
+                                         bmqtst::TestHelperUtil::allocator());
+    bmqma::CountingAllocator obj("Test",
+                                 &parentStatContext,
+                                 bmqtst::TestHelperUtil::allocator());
 
     char* buf = 0;
 
     // 1. Deallocate null pointer and verify success and no effect.
-    ASSERT_SAFE_PASS(obj.deallocate(0));
+    BMQTST_ASSERT_SAFE_PASS(obj.deallocate(0));
 
     // 2. Deallocate a previous allocation and verify success
     buf = static_cast<char*>(obj.allocate(k_SIZE_ALLOC));
     BSLS_ASSERT_OPT(buf != 0);
 
-    ASSERT_SAFE_PASS(obj.deallocate(buf));
+    BMQTST_ASSERT_SAFE_PASS(obj.deallocate(buf));
 
     // 3. Deallocate previously deallocated memory and verify failure, as
     //    well as ensure that an error is logged.
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO, s_allocator_p);
-    ASSERT_SAFE_FAIL(obj.deallocate(buf));
-    ASSERT_EQ(logObserver.records().size(), 1U);
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
+                                          bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_SAFE_FAIL(obj.deallocate(buf));
+    BMQTST_ASSERT_EQ(logObserver.records().size(), 1U);
 }
 
 static void test4_allocationLimit()
@@ -259,13 +271,14 @@ static void test4_allocationLimit()
     {
         PV("AllocationLimitCB is not enabled when no statContext");
         int                      cbInvocationCount = 0;
-        bmqma::CountingAllocator obj("Test", s_allocator_p);
+        bmqma::CountingAllocator obj("Test",
+                                     bmqtst::TestHelperUtil::allocator());
 
         obj.setAllocationLimit(10,
                                bdlf::BindUtil::bind(local::incrementInteger,
                                                     &cbInvocationCount));
         void* alloc = obj.allocate(20);
-        ASSERT_EQ(cbInvocationCount, 0);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 0);
         obj.deallocate(alloc);
     }
 
@@ -275,9 +288,11 @@ static void test4_allocationLimit()
         int                cbInvocationCount = 0;
         bmqst::StatContext statContext(
             bmqst::StatContextConfiguration("myAllocatorStatContext"),
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
         ;
-        bmqma::CountingAllocator obj("Test", &statContext, s_allocator_p);
+        bmqma::CountingAllocator obj("Test",
+                                     &statContext,
+                                     bmqtst::TestHelperUtil::allocator());
 
         // Note that when using a stat-context enabled counting allocator,
         // there is an allocation overhead for the Header struct, and the
@@ -290,21 +305,21 @@ static void test4_allocationLimit()
                                bdlf::BindUtil::bind(local::incrementInteger,
                                                     &cbInvocationCount));
 
-        ASSERT_EQ(cbInvocationCount, 0);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
         void* alloc1 = obj.allocate(128);
-        ASSERT_EQ(cbInvocationCount, 0);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
         void* alloc2 = obj.allocate(256);
-        ASSERT_EQ(cbInvocationCount, 0);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
         // Allocate to go beyond limit, callback should now fire
         void* alloc3 = obj.allocate(2048);
-        ASSERT_EQ(cbInvocationCount, 1);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
         // Allocate again, the callback should no longer be invoked
         void* alloc4 = obj.allocate(1);
-        ASSERT_EQ(cbInvocationCount, 1);
+        BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
         // Cleanup
         obj.deallocate(alloc1);
@@ -322,9 +337,11 @@ static void test4_allocationLimit()
             int                cbInvocationCount = 0;
             bmqst::StatContext statContext(
                 bmqst::StatContextConfiguration("myAllocatorStatContext"),
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
             ;
-            bmqma::CountingAllocator obj("Test", &statContext, s_allocator_p);
+            bmqma::CountingAllocator obj("Test",
+                                         &statContext,
+                                         bmqtst::TestHelperUtil::allocator());
 
             obj.setAllocationLimit(
                 1024,
@@ -333,10 +350,10 @@ static void test4_allocationLimit()
 
             void* alloc1 = obj.allocate(400);
             void* alloc2 = obj.allocate(400);
-            ASSERT_EQ(cbInvocationCount, 0);
+            BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
             void* alloc3 = obj.allocate(400);
-            ASSERT_EQ(cbInvocationCount, 1);
+            BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
             obj.deallocate(alloc3);
             obj.deallocate(alloc2);
@@ -350,9 +367,11 @@ static void test4_allocationLimit()
             int                cbInvocationCount = 0;
             bmqst::StatContext statContext(
                 bmqst::StatContextConfiguration("myAllocatorStatContext"),
-                s_allocator_p);
+                bmqtst::TestHelperUtil::allocator());
             ;
-            bmqma::CountingAllocator obj("Test", &statContext, s_allocator_p);
+            bmqma::CountingAllocator obj("Test",
+                                         &statContext,
+                                         bmqtst::TestHelperUtil::allocator());
 
             obj.setAllocationLimit(
                 1024,
@@ -365,10 +384,10 @@ static void test4_allocationLimit()
             obj.deallocate(alloc2);
 
             void* alloc3 = obj.allocate(400);
-            ASSERT_EQ(cbInvocationCount, 0);
+            BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
             void* alloc4 = obj.allocate(400);
-            ASSERT_EQ(cbInvocationCount, 1);
+            BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
             obj.deallocate(alloc4);
             obj.deallocate(alloc3);
@@ -395,9 +414,11 @@ static void test5_allocationLimitHierarchical()
     // Create the 'top' allocator, with a limit set
     bmqst::StatContext statContext(
         bmqst::StatContextConfiguration("myAllocatorStatContext"),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     ;
-    bmqma::CountingAllocator topAlloc("Top", &statContext, s_allocator_p);
+    bmqma::CountingAllocator topAlloc("Top",
+                                      &statContext,
+                                      bmqtst::TestHelperUtil::allocator());
 
     // Note that when using a stat-context enabled counting allocator, there is
     // an allocation overhead for the Header struct, and the allocation size is
@@ -413,20 +434,20 @@ static void test5_allocationLimitHierarchical()
     bmqma::CountingAllocator bottomAlloc1("bottom1", &topAlloc);
     bmqma::CountingAllocator bottomAlloc2("bottom2", &bottomAlloc1);
 
-    ASSERT_EQ(cbInvocationCount, 0);
+    BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
     void* alloc1 = bottomAlloc1.allocate(800);
-    ASSERT_EQ(cbInvocationCount, 0);
+    BMQTST_ASSERT_EQ(cbInvocationCount, 0);
 
     void* alloc2 = bottomAlloc2.allocate(800);
-    ASSERT_EQ(cbInvocationCount, 1);
+    BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
     // Allocate more from each allocators, and verify callback is not invoked
     void* alloc3 = bottomAlloc1.allocate(100);
     void* alloc4 = bottomAlloc2.allocate(100);
     void* alloc5 = topAlloc.allocate(100);
 
-    ASSERT_EQ(cbInvocationCount, 1);
+    BMQTST_ASSERT_EQ(cbInvocationCount, 1);
 
     // Cleanup
     topAlloc.deallocate(alloc5);
@@ -450,29 +471,30 @@ static void test6_configureStatContextTableInfoProvider_part1()
 //                 bmqst::StatContextTableInfoProvider *tableInfoProvider);
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     bmqtst::TestHelper::printTestName("configureStatContextTableInfoProvider"
                                       " - part 1");
 
-    bmqst::StatContextTableInfoProvider tableInfoProvider(s_allocator_p);
+    bmqst::StatContextTableInfoProvider tableInfoProvider(
+        bmqtst::TestHelperUtil::allocator());
 
     bmqma::CountingAllocator::configureStatContextTableInfoProvider(
         &tableInfoProvider);
 
-    ASSERT_EQ(tableInfoProvider.hasTitle(), false);
-    ASSERT_EQ(tableInfoProvider.numHeaderLevels(), 1);
-    ASSERT_EQ(tableInfoProvider.numRows(), 0);
-    ASSERT_EQ(static_cast<size_t>(tableInfoProvider.numColumns(0)),
-              k_NUM_COLS1);
+    BMQTST_ASSERT_EQ(tableInfoProvider.hasTitle(), false);
+    BMQTST_ASSERT_EQ(tableInfoProvider.numHeaderLevels(), 1);
+    BMQTST_ASSERT_EQ(tableInfoProvider.numRows(), 0);
+    BMQTST_ASSERT_EQ(static_cast<size_t>(tableInfoProvider.numColumns(0)),
+                     k_NUM_COLS1);
 
     for (int i = 0; i < tableInfoProvider.numColumns(0); ++i) {
-        bsl::ostringstream out(s_allocator_p);
+        bsl::ostringstream out(bmqtst::TestHelperUtil::allocator());
         tableInfoProvider.printHeader(out, 0, i, 0);
         const bsl::string col(out.str().data(),
                               out.str().length(),
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
         PV(i << ": " << col);
-        ASSERT_EQ_D(i, col, k_COLS1[i]);
+        BMQTST_ASSERT_EQ_D(i, col, k_COLS1[i]);
     }
 }
 
@@ -494,7 +516,7 @@ static void test7_configureStatContextTableInfoProvider_part2()
 //       const bmqst::StatValue::SnapshotLocation&  endSnapshot);
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The method
     // 'CountingAllocator::configureStatContextTableInfoProvider' allocates
     // using the default allocator (specifically, because of calls to
@@ -504,8 +526,9 @@ static void test7_configureStatContextTableInfoProvider_part2()
     bmqtst::TestHelper::printTestName("configureStatContextTableInfoProvider"
                                       " - part 2");
 
-    bmqst::Table                       table(s_allocator_p);
-    bmqst::BasicTableInfoProvider      basicTableInfoProvider(s_allocator_p);
+    bmqst::Table                  table(bmqtst::TestHelperUtil::allocator());
+    bmqst::BasicTableInfoProvider basicTableInfoProvider(
+        bmqtst::TestHelperUtil::allocator());
     bmqst::StatValue::SnapshotLocation start;
     bmqst::StatValue::SnapshotLocation end;
 
@@ -515,17 +538,17 @@ static void test7_configureStatContextTableInfoProvider_part2()
         start,
         end);
 
-    ASSERT_EQ(basicTableInfoProvider.hasTitle(), false);
-    ASSERT_EQ(basicTableInfoProvider.numHeaderLevels(), 1);
-    ASSERT_EQ(basicTableInfoProvider.numRows(), 0);
-    ASSERT_EQ(static_cast<size_t>(basicTableInfoProvider.numColumns(0)),
-              k_NUM_COLS2);
+    BMQTST_ASSERT_EQ(basicTableInfoProvider.hasTitle(), false);
+    BMQTST_ASSERT_EQ(basicTableInfoProvider.numHeaderLevels(), 1);
+    BMQTST_ASSERT_EQ(basicTableInfoProvider.numRows(), 0);
+    BMQTST_ASSERT_EQ(static_cast<size_t>(basicTableInfoProvider.numColumns(0)),
+                     k_NUM_COLS2);
 
-    ASSERT_EQ(table.numRows(), 0);
-    ASSERT_EQ(static_cast<size_t>(table.numColumns()), k_NUM_COLS2);
+    BMQTST_ASSERT_EQ(table.numRows(), 0);
+    BMQTST_ASSERT_EQ(static_cast<size_t>(table.numColumns()), k_NUM_COLS2);
     for (int i = 0; i < table.numColumns() - 1; ++i) {
         PV(i << ": " << table.columnName(i));
-        ASSERT_EQ_D(i, table.columnName(i), k_COLS2[i]);
+        BMQTST_ASSERT_EQ_D(i, table.columnName(i), k_COLS2[i]);
     }
 }
 
@@ -547,7 +570,7 @@ static void testN1_performance_allocation()
 //   Compare allocation performance of bmqma::CountingAllocator vs
 //   bslma::Default::defaultAllocator.
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
 
     bmqtst::TestHelper::printTestName("PERFORMANCE - allocation"
@@ -559,7 +582,7 @@ static void testN1_performance_allocation()
     const size_t k_NUM_ALLOCATIONS = k_MAX_ALLOC_SIZE *
                                      (k_MILLION / k_MAX_ALLOC_SIZE);
 
-    bsl::vector<void*> buffers(s_allocator_p);
+    bsl::vector<void*> buffers(bmqtst::TestHelperUtil::allocator());
     buffers.resize(k_NUM_ALLOCATIONS);
 
     bsls::Types::Int64 timeCountingAlloc = 0;
@@ -568,8 +591,12 @@ static void testN1_performance_allocation()
         PV("bmqma::CountingAllocator");
         PV("--------------------------------");
 
-        bmqst::StatContextConfiguration config("test", s_allocator_p);
-        bmqst::StatContext       parentStatContext(config, s_allocator_p);
+        bmqst::StatContextConfiguration config(
+            "test",
+            bmqtst::TestHelperUtil::allocator());
+        bmqst::StatContext parentStatContext(
+            config,
+            bmqtst::TestHelperUtil::allocator());
         bmqma::CountingAllocator countingAlloc("CountingAlloc",
                                                &parentStatContext,
                                                bslma::Default::allocator());
@@ -651,7 +678,7 @@ testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Allocation performance of bmqma::CountingAllocator
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
 
     bmqtst::TestHelper::printTestName("PERFORMANCE - allocation"
@@ -663,7 +690,7 @@ testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
     const size_t k_NUM_ALLOCATIONS = k_MAX_ALLOC_SIZE *
                                      (k_MILLION / k_MAX_ALLOC_SIZE);
 
-    bsl::vector<void*> buffers(s_allocator_p);
+    bsl::vector<void*> buffers(bmqtst::TestHelperUtil::allocator());
     buffers.resize(k_NUM_ALLOCATIONS);
     {
         PV("--------------------------------");
@@ -703,7 +730,7 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Allocation performance of bslma::Default::defaultAllocator.
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // We're microbenching against the default allocator.
 
     bmqtst::TestHelper::printTestName("PERFORMANCE - allocation"
@@ -715,7 +742,7 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
     const size_t k_NUM_ALLOCATIONS = k_MAX_ALLOC_SIZE *
                                      (k_MILLION / k_MAX_ALLOC_SIZE);
 
-    bsl::vector<void*> buffers(s_allocator_p);
+    bsl::vector<void*> buffers(bmqtst::TestHelperUtil::allocator());
     buffers.resize(k_NUM_ALLOCATIONS);
 
     {
@@ -723,8 +750,12 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
         PV("bmqma::CountingAllocator");
         PV("--------------------------------");
 
-        bmqst::StatContextConfiguration config("test", s_allocator_p);
-        bmqst::StatContext       parentStatContext(config, s_allocator_p);
+        bmqst::StatContextConfiguration config(
+            "test",
+            bmqtst::TestHelperUtil::allocator());
+        bmqst::StatContext parentStatContext(
+            config,
+            bmqtst::TestHelperUtil::allocator());
         bmqma::CountingAllocator countingAlloc("CountingAlloc",
                                                &parentStatContext,
                                                bslma::Default::allocator());
@@ -777,7 +808,7 @@ int main(int argc, char** argv)
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

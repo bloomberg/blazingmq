@@ -145,7 +145,7 @@ VirtualStorageCatalog::get(const bmqt::MessageGUID& msgGUID)
     return it;
 }
 
-void VirtualStorageCatalog::setup(VirtualStorage::DataStreamMessage* data)
+void VirtualStorageCatalog::setup(mqbi::DataStreamMessage* data)
 {
     // The only case for subsequent resize is proxy receiving subsequent PUSH
     // messages for the same GUID and different apps
@@ -155,14 +155,14 @@ void VirtualStorageCatalog::setup(VirtualStorage::DataStreamMessage* data)
 }
 
 mqbi::StorageResult::Enum
-VirtualStorageCatalog::put(const bmqt::MessageGUID&            msgGUID,
-                           int                                 msgSize,
-                           VirtualStorage::DataStreamMessage** out)
+VirtualStorageCatalog::put(const bmqt::MessageGUID&  msgGUID,
+                           int                       msgSize,
+                           mqbi::DataStreamMessage** out)
 {
     bsl::pair<VirtualStorage::DataStreamIterator, bool> insertResult =
-        d_dataStream.insert(bsl::make_pair(
-            msgGUID,
-            VirtualStorage::DataStreamMessage(msgSize, d_allocator_p)));
+        d_dataStream.insert(
+            bsl::make_pair(msgGUID,
+                           mqbi::DataStreamMessage(msgSize, d_allocator_p)));
 
     if (!insertResult.second) {
         // Duplicate GUID
@@ -270,7 +270,6 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
-    setup(&data->second);
     const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
     if (queue() && mqbi::StorageResult::e_SUCCESS == rc) {
         queue()->stats()->onEvent(
@@ -328,7 +327,7 @@ VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
              itData != d_dataStream.end();) {
             mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
 
-            VirtualStorage::DataStreamMessage* data = &itData->second;
+            mqbi::DataStreamMessage* data = &itData->second;
             setup(data);
 
             if (itVs->value()->remove(data) ==
@@ -422,9 +421,10 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
         appOrdinal = d_nextOrdinal++;
     }
     else {
-        appOrdinal = d_availableOrdinals.front();
+        AvailableOrdinals::const_iterator first = d_availableOrdinals.cbegin();
+        appOrdinal                              = *first;
         // There is no conflict because everything 'appOrdinal' was removed.
-        d_availableOrdinals.pop_front();
+        d_availableOrdinals.erase(first);
     }
 
     BSLS_ASSERT_SAFE(appOrdinal <= d_virtualStorages.size());
@@ -468,7 +468,7 @@ bool VirtualStorageCatalog::removeVirtualStorage(
         removeAll(appKey);
 
         const VirtualStorage& vs = *it->value();
-        d_availableOrdinals.push_back(vs.ordinal());
+        d_availableOrdinals.insert(vs.ordinal());
 
         if (d_queue_p) {
             BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
@@ -502,8 +502,8 @@ VirtualStorageCatalog::virtualStorage(const mqbu::StorageKey& appKey)
 }
 
 void VirtualStorageCatalog::autoConfirm(
-    VirtualStorage::DataStreamMessage* dataStreamMessage,
-    const mqbu::StorageKey&            appKey)
+    mqbi::DataStreamMessage* dataStreamMessage,
+    const mqbu::StorageKey&  appKey)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dataStreamMessage);

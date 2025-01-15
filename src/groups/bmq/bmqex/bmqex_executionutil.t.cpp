@@ -495,20 +495,20 @@ static void test1_executeResult()
         typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay>
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<void> >::Type,
-                             void>::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<void> >::Type,
+                                    void>::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int> >::Type,
-                             void>::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int> >::Type,
+                                    void>::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int&> >::Type,
-                             void>::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int&> >::Type,
+                                    void>::value));
     }
 
     // Two-Way policy
@@ -516,20 +516,20 @@ static void test1_executeResult()
         typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::TwoWay>
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<void> >::Type,
-                             bmqex::Future<void> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<void> >::Type,
+                                    bmqex::Future<void> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int> >::Type,
-                             bmqex::Future<int> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int> >::Type,
+                                    bmqex::Future<int> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int&> >::Type,
-                             bmqex::Future<int&> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int&> >::Type,
+                                    bmqex::Future<int&> >::value));
     }
 
     // Two-Way policy with encoded result type
@@ -538,20 +538,20 @@ static void test1_executeResult()
             bmqex::ExecutionProperty::TwoWayR<float> >
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<void> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<void> >::Type,
+                                    bmqex::Future<float> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int> >::Type,
+                                    bmqex::Future<float> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
-                                 PolicyType,
-                                 DummyNullaryFunction<int&> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT((bsl::is_same<bmqex::ExecutionUtil::ExecuteResult<
+                                        PolicyType,
+                                        DummyNullaryFunction<int&> >::Type,
+                                    bmqex::Future<float> >::value));
     }
 }
 
@@ -597,23 +597,26 @@ static void test2_thenExecuteResult()
         typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::OneWay>
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<void>,
-                                 DummyContinuationFunction<void, void> >::Type,
-                             void>::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<void>,
+                              DummyContinuationFunction<void, void> >::Type,
+                          void>::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int>,
-                                 DummyContinuationFunction<int, int> >::Type,
-                             void>::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int>,
+                              DummyContinuationFunction<int, int> >::Type,
+                          void>::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int&>,
-                                 DummyContinuationFunction<int&, int&> >::Type,
-                             void>::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int&>,
+                              DummyContinuationFunction<int&, int&> >::Type,
+                          void>::value));
     }
 
     // Two-Way policy
@@ -621,23 +624,26 @@ static void test2_thenExecuteResult()
         typedef bmqex::ExecutionPolicy<bmqex::ExecutionProperty::TwoWay>
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<void>,
-                                 DummyContinuationFunction<void, void> >::Type,
-                             bmqex::Future<void> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<void>,
+                              DummyContinuationFunction<void, void> >::Type,
+                          bmqex::Future<void> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int>,
-                                 DummyContinuationFunction<int, int> >::Type,
-                             bmqex::Future<int> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int>,
+                              DummyContinuationFunction<int, int> >::Type,
+                          bmqex::Future<int> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int&>,
-                                 DummyContinuationFunction<int&, int&> >::Type,
-                             bmqex::Future<int&> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int&>,
+                              DummyContinuationFunction<int&, int&> >::Type,
+                          bmqex::Future<int&> >::value));
     }
 
     // Two-Way policy with encoded result type
@@ -646,23 +652,26 @@ static void test2_thenExecuteResult()
             bmqex::ExecutionProperty::TwoWayR<float> >
             PolicyType;
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<void>,
-                                 DummyContinuationFunction<void, void> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<void>,
+                              DummyContinuationFunction<void, void> >::Type,
+                          bmqex::Future<float> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int>,
-                                 DummyContinuationFunction<int, int> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int>,
+                              DummyContinuationFunction<int, int> >::Type,
+                          bmqex::Future<float> >::value));
 
-        ASSERT((bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
-                                 PolicyType,
-                                 bmqex::Future<int&>,
-                                 DummyContinuationFunction<int&, int&> >::Type,
-                             bmqex::Future<float> >::value));
+        BMQTST_ASSERT(
+            (bsl::is_same<bmqex::ExecutionUtil::ThenExecuteResult<
+                              PolicyType,
+                              bmqex::Future<int&>,
+                              DummyContinuationFunction<int&, int&> >::Type,
+                          bmqex::Future<float> >::value));
     }
 }
 
@@ -715,11 +724,11 @@ static void test3_execute_one_way_never_blocking()
 
         // function object was submitted for execution via a call to 'post()'
         // on the specified executor
-        ASSERT_EQ(context.statistics().d_postCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_postCount, 1);
 
         // function object invocation *not* completed
-        ASSERT(!executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
+        BMQTST_ASSERT(!executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
 
         sem1.post();  // allow the function object to continue execution
         sem2.wait();  // wait till the function object finish executing
@@ -728,8 +737,8 @@ static void test3_execute_one_way_never_blocking()
         context.drain();
 
         // function object invocation completed
-        ASSERT(executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object throws an exception.
@@ -745,7 +754,7 @@ static void test3_execute_one_way_never_blocking()
         context.drain();
 
         // the exception was propagated to the caller
-        ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
     }
 }
 
@@ -799,11 +808,11 @@ static void test4_execute_one_way_possibly_blocking()
 
         // function object was submitted for execution via a call to
         // 'dispatch()' on the specified executor
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // function object invocation *not* completed
-        ASSERT(!executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
+        BMQTST_ASSERT(!executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
 
         sem1.post();  // allow the function object to continue execution
         sem2.wait();  // wait till the function object finish executing
@@ -812,8 +821,8 @@ static void test4_execute_one_way_possibly_blocking()
         context.drain();
 
         // function object invocation completed
-        ASSERT(executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object throws an exception.
@@ -829,7 +838,7 @@ static void test4_execute_one_way_possibly_blocking()
         context.drain();
 
         // the exception was propagated to the caller
-        ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
     }
 }
 
@@ -875,16 +884,16 @@ static void test5_execute_one_way_always_blocking()
 
         // function object was submitted for execution via a call to
         // 'dispatch()' on the specified executor
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // function object invocation completed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
 
         // make sure all postconditions on the context are established
         context.drain();
 
         // function object executed
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object throws an exception.
@@ -900,7 +909,7 @@ static void test5_execute_one_way_always_blocking()
         context.drain();
 
         // the exception was propagated to the caller
-        ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_exceptionalExecutionCount, 1);
     }
 }
 
@@ -970,14 +979,14 @@ static void test6_execute_two_way_never_blocking()
 
         // function object was submitted for execution via a call to 'post()'
         // on the specified executor
-        ASSERT_EQ(context.statistics().d_postCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_postCount, 1);
 
         // function object invocation *not* completed
-        ASSERT(!executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
+        BMQTST_ASSERT(!executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
 
         // async result *not* ready
-        ASSERT(!result.isReady());
+        BMQTST_ASSERT(!result.isReady());
 
         sem1.post();  // allow the function object to continue execution
         sem2.wait();  // wait till the function object finish executing
@@ -986,11 +995,11 @@ static void test6_execute_two_way_never_blocking()
         context.drain();
 
         // async result ready
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
 
         // function object invocation completed
-        ASSERT(executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object returns a value.
@@ -1004,7 +1013,7 @@ static void test6_execute_two_way_never_blocking()
                                           ReturnValueOnCall());
 
         // retrieve the result
-        ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
     }
 
     // 3. Submitted function object returns a reference.
@@ -1018,7 +1027,7 @@ static void test6_execute_two_way_never_blocking()
                                           ReturnReferenceOnCall());
 
         // retrieve the result
-        ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
     }
 
     // 4. Submitted function object returns 'void'.
@@ -1033,7 +1042,7 @@ static void test6_execute_two_way_never_blocking()
 
         // retrieve the result
         result.get();
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
     }
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
@@ -1060,7 +1069,7 @@ static void test6_execute_two_way_never_blocking()
             exceptionThrown = true;
         }
 
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
     }
 #endif
 }
@@ -1132,14 +1141,14 @@ static void test7_execute_two_way_possibly_blocking()
 
         // function object was submitted for execution via a call to
         // 'dispatch()' an the specified executor
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // function object invocation *not* completed
-        ASSERT(!executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
+        BMQTST_ASSERT(!executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 0);
 
         // async result *not* ready
-        ASSERT(!result.isReady());
+        BMQTST_ASSERT(!result.isReady());
 
         sem1.post();  // allow the function object to continue execution
         sem2.wait();  // wait till the function object finish executing
@@ -1148,11 +1157,11 @@ static void test7_execute_two_way_possibly_blocking()
         context.drain();
 
         // async result ready
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
 
         // function object invocation completed
-        ASSERT(executed);
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT(executed);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object returns a value.
@@ -1166,7 +1175,7 @@ static void test7_execute_two_way_possibly_blocking()
                                           ReturnValueOnCall());
 
         // retrieve the result
-        ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
     }
 
     // 3. Submitted function object returns a reference.
@@ -1180,7 +1189,7 @@ static void test7_execute_two_way_possibly_blocking()
                                           ReturnReferenceOnCall());
 
         // retrieve the result
-        ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
     }
 
     // 4. Submitted function object returns 'void'.
@@ -1195,7 +1204,7 @@ static void test7_execute_two_way_possibly_blocking()
 
         // retrieve the result
         result.get();
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
     }
 
 #ifdef BSLS_LIBRARYFEATURES_HAS_CPP11_EXCEPTION_HANDLING
@@ -1218,7 +1227,7 @@ static void test7_execute_two_way_possibly_blocking()
             exceptionThrown = true;
         }
 
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
     }
 #endif
 }
@@ -1282,20 +1291,20 @@ static void test8_execute_two_way_always_blocking()
             toBeExecuted);
 
         // function object invocation completed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
 
         // function object was submitted for execution via a call to
         // 'dispatch()' an the specified executor
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // returned future is ready
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
 
         // make sure all postconditions on the context are established
         context.drain();
 
         // function object executed
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object returns a value.
@@ -1309,8 +1318,8 @@ static void test8_execute_two_way_always_blocking()
                                           ReturnValueOnCall());
 
         // retrieve the result
-        ASSERT_EQ(result.isReady(), true);
-        ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(result.isReady(), true);
+        BMQTST_ASSERT_EQ(result.get(), ReturnValueOnCall::k_VALUE);
     }
 
     // 3. Submitted function object returns a reference.
@@ -1324,8 +1333,8 @@ static void test8_execute_two_way_always_blocking()
                                           ReturnReferenceOnCall());
 
         // retrieve the result
-        ASSERT_EQ(result.isReady(), true);
-        ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(result.isReady(), true);
+        BMQTST_ASSERT_EQ(&result.get(), &ReturnReferenceOnCall::k_VALUE);
     }
 
     // 4. Submitted function object returns 'void'.
@@ -1339,7 +1348,7 @@ static void test8_execute_two_way_always_blocking()
                                           ReturnVoidOnCall());
 
         // retrieve the result
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
         result.get();
     }
 
@@ -1355,7 +1364,7 @@ static void test8_execute_two_way_always_blocking()
                                           ThrowOnCall());
 
         // retrieve the result
-        ASSERT(result.isReady());
+        BMQTST_ASSERT(result.isReady());
 
         bool exceptionThrown = false;
         try {
@@ -1365,7 +1374,7 @@ static void test8_execute_two_way_always_blocking()
             exceptionThrown = true;
         }
 
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
     }
 #endif
 }
@@ -1403,7 +1412,7 @@ static void test9_thenExecute_one_way()
             bsl::allocate_shared<bmqex::FutureSharedState<int> >(&alloc);
 
         bmqex::Future<int> future(sharedState);
-        ASSERT_EQ(future.isReady(), false);
+        BMQTST_ASSERT_EQ(future.isReady(), false);
 
         // attach a continuation
         int                       result = 0;
@@ -1417,19 +1426,19 @@ static void test9_thenExecute_one_way()
                                           toBeExecuted);
 
         // continuation callback not invoked yet
-        ASSERT_EQ(result, 0);
+        BMQTST_ASSERT_EQ(result, 0);
 
         // make the future ready
         sharedState->setValue(42);
-        ASSERT_EQ(future.isReady(), true);
+        BMQTST_ASSERT_EQ(future.isReady(), true);
 
         // continuation callback invoked
-        ASSERT_EQ(result, 42);
+        BMQTST_ASSERT_EQ(result, 42);
 
         // continuation callback was submitted for execution as if by a call to
         // 'bmqex::ExecutionUtil::execute' with the same policy as passed to
         // 'thenExecute'
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
     }
 
     // 2. shared state lifetime
@@ -1438,7 +1447,7 @@ static void test9_thenExecute_one_way()
         bsl::shared_ptr<bmqex::FutureSharedState<int> > sharedState =
             bsl::allocate_shared<bmqex::FutureSharedState<int> >(&alloc);
 
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
 
         // attach a continuation
         bmqex::ExecutionUtil::thenExecute(bmqex::ExecutionPolicyUtil::oneWay()
@@ -1449,7 +1458,7 @@ static void test9_thenExecute_one_way()
                                           NoOp());
 
         // the continuation holds a reference to the shared state
-        ASSERT_EQ(sharedState.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 2);
 
         // execute the continuation
         sharedState->setValue(42);
@@ -1457,7 +1466,7 @@ static void test9_thenExecute_one_way()
 
         // the reference to the shared state held by the continuation was
         // released
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
     }
 }
 
@@ -1497,7 +1506,7 @@ static void test10_thenExecute_two_way()
             bsl::allocate_shared<bmqex::FutureSharedState<int> >(&alloc);
 
         bmqex::Future<int> future1(sharedState);
-        ASSERT_EQ(future1.isReady(), false);
+        BMQTST_ASSERT_EQ(future1.isReady(), false);
 
         // attach a continuation, obtain the output future
         ForwardValueContinuation<int> toBeExecuted;
@@ -1512,16 +1521,16 @@ static void test10_thenExecute_two_way()
 
         // make the future ready
         sharedState->setValue(42);
-        ASSERT_EQ(future1.isReady(), true);
+        BMQTST_ASSERT_EQ(future1.isReady(), true);
 
         // continuation callback was submitted for execution as if by a call to
         // 'bmqex::ExecutionUtil::execute' with the same policy as passed to
         // 'thenExecute'
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // the output future contains the callback result
-        ASSERT_EQ(future2.isReady(), true);
-        ASSERT_EQ(future2.get(), 42);
+        BMQTST_ASSERT_EQ(future2.isReady(), true);
+        BMQTST_ASSERT_EQ(future2.get(), 42);
     }
 
     // 2. shared state lifetime
@@ -1530,7 +1539,7 @@ static void test10_thenExecute_two_way()
         bsl::shared_ptr<bmqex::FutureSharedState<int> > sharedState =
             bsl::allocate_shared<bmqex::FutureSharedState<int> >(&alloc);
 
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
 
         // attach a continuation
         bmqex::ExecutionUtil::thenExecute(bmqex::ExecutionPolicyUtil::twoWay()
@@ -1541,7 +1550,7 @@ static void test10_thenExecute_two_way()
                                           NoOp());
 
         // the continuation holds a reference to the shared state
-        ASSERT_EQ(sharedState.use_count(), 2);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 2);
 
         // execute the continuation
         sharedState->setValue(42);
@@ -1549,7 +1558,7 @@ static void test10_thenExecute_two_way()
 
         // the reference to the shared state held by the continuation was
         // released
-        ASSERT_EQ(sharedState.use_count(), 1);
+        BMQTST_ASSERT_EQ(sharedState.use_count(), 1);
     }
 }
 
@@ -1595,16 +1604,16 @@ static void test11_invoke()
 
         // function object was submitted for execution via a call to
         // 'dispatch()' an the specified executor
-        ASSERT_EQ(context.statistics().d_dispatchCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_dispatchCount, 1);
 
         // function object invocation completed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
 
         // make sure all postconditions on the context are established
         context.drain();
 
         // function object executed
-        ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
+        BMQTST_ASSERT_EQ(context.statistics().d_successfulExecutionCount, 1);
     }
 
     // 2. Submitted function object returns a value.
@@ -1615,7 +1624,7 @@ static void test11_invoke()
             ReturnValueOnCall());
 
         // chech the result
-        ASSERT_EQ(result, ReturnValueOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(result, ReturnValueOnCall::k_VALUE);
     }
 
     // 3. Submitted function object returns a reference.
@@ -1626,7 +1635,7 @@ static void test11_invoke()
                                          ReturnReferenceOnCall());
 
         // retrieve the result
-        ASSERT_EQ(&result, &ReturnReferenceOnCall::k_VALUE);
+        BMQTST_ASSERT_EQ(&result, &ReturnReferenceOnCall::k_VALUE);
     }
 
     // 4. Submitted function object returns 'void'.
@@ -1647,7 +1656,7 @@ static void test11_invoke()
             exceptionThrown = true;
         }
 
-        ASSERT(exceptionThrown);
+        BMQTST_ASSERT(exceptionThrown);
     }
 #endif
 }
@@ -1685,7 +1694,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

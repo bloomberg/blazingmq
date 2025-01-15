@@ -17,20 +17,17 @@
 #ifndef INCLUDED_MQBA_CLIENTSESSION
 #define INCLUDED_MQBA_CLIENTSESSION
 
-//@PURPOSE: Provide a session for interaction with BlazingMQ broker clients.
-//
-//@CLASSES:
-//  mqba::ClientSession     : mechanism representing a session with a client
-//  mqba::ClientSessionState: VST representing the state of a session
-//
-//@DESCRIPTION: This component provides a mechanism, 'mqba::ClientSession',
-// that allows BlazingMQ broker to send and receive messages from a client
-// connected to the broker, whether it is a producer or a consumer or a peer
-// BlazingMQ broker.  'mqba::ClientSessionState' is a value semantic type
-// holding the state associated to an 'mqba::Session'.
+/// @file mqba_clientsession.h
+///
+/// @brief Provide a session for interaction with BlazingMQ broker clients.
+///
+/// This component provides a mechanism, @bbref{mqba::ClientSession}, that
+/// allows BlazingMQ broker to send and receive messages from a client
+/// connected to the broker, whether it is a producer or a consumer or a peer
+/// BlazingMQ broker.  @bbref{mqba::ClientSessionState} is a value semantic
+/// type holding the state associated to an @bbref{mqba::Session}.
 
 // MQB
-
 #include <mqbblp_queuesessionmanager.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_dispatcher.h>
@@ -109,11 +106,13 @@ struct ClientSessionState {
     /// yet acked.
     struct UnackedMessageInfo {
         // DATA
-        int                d_correlationId;  // Correlation Id of the message.
-        bsls::Types::Int64 d_timeStamp;      // The time when the message was
-                                             // received, in absolute
-                                             // nanoseconds referenced to an
-                                             // arbitrary but fixed origin.
+
+        /// Correlation Id of the message.
+        int d_correlationId;
+
+        /// The time when the message was received, in absolute nanosections
+        /// referenced to an arbitrary but fixed origin.
+        bsls::Types::Int64 d_timeStamp;
 
         // CREATORS
         UnackedMessageInfo(int correlationId, bsls::Types::Int64 timeStamp);
@@ -152,70 +151,57 @@ struct ClientSessionState {
 
   public:
     // PUBLIC DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
-    bsl::deque<bdlbb::Blob> d_channelBufferQueue;
-    // Queue of data pending being sent to
-    // the client.  This should almost
-    // always be empty, and is meant to
-    // provide buffer for a 'throttling'
-    // mechanism when sending huge burst of
-    // data (typically at queue open) that
-    // would go beyond the channel high
-    // watermark.  This should only be
-    // manipulated from the dispatcher
-    // thread. Note that it really should
-    // be a queue and not a deque, but
-    // queue doesn't have a 'clear' method.
+    /// Queue of data pending being sent to the client.  This should almost
+    /// always be empty and is meant to provide a buffer for a "throttling"
+    /// mechanism when sending a huge burst of data (typically at queue open)
+    /// that would go beyond the channel high watermark.  This should only be
+    /// manipulated from the dispatcher thread.  Note that it really should be
+    /// a queue and not a deque, but queue doesn't have a `clear` method.
+    bsl::deque<bsl::shared_ptr<bdlbb::Blob> > d_channelBufferQueue;
 
+    /// Map containing the GUID->UnackedMessageInfo entries.
     UnackedMessageInfoMap d_unackedMessageInfos;
-    // Map containing the
-    // GUID->UnackedMessageInfo entries.
 
+    /// Dispatcher client data associated to this session.
     mqbi::DispatcherClientData d_dispatcherClientData;
-    // Dispatcher client data associated to
-    // this session.
 
+    /// Stat context dedicated to this domain, to use as the parent stat
+    /// context for any queue in this domain.
     StatContextMp d_statContext_mp;
-    // Stat context dedicated to this
-    // domain, to use as the parent stat
-    // context for any queue in this
-    // domain.
 
+    /// Blob buffer factory to use.
+    ///
+    /// @todo This field should be removed once we retire the code for message
+    ///       properties conversion.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Blob buffer factory to use.
 
+    /// Pool of shared pointers to blob to use.
     BlobSpPool* d_blobSpPool_p;
-    // Pool of shared pointers to blob to
-    // use.
 
+    /// Builder for schema messages.  To be used only in client dispatcher
+    /// thread.
     bmqp::SchemaEventBuilder d_schemaEventBuilder;
-    // Builder for schema messages.  To be
-    // used only in client dispatcher
-    // thread.
 
+    /// Builder for push messages.  To be used only in client dispatcher
+    /// thread.
     bmqp::PushEventBuilder d_pushBuilder;
-    // Builder for push messages.  To be
-    // used only in client dispatcher
-    // thread.
 
+    /// Builder for ack messages.  To be used only in client dispatcher thread.
     bmqp::AckEventBuilder d_ackBuilder;
-    // Builder for ack messages.  To be
-    // used only in client dispatcher
-    // thread.
 
+    /// Throttler for failed ACK messages.
     bdlmt::Throttle d_throttledFailedAckMessages;
-    // Throttler for failed ACK messages.
 
+    /// Throttler for failed PUT messages.
     bdlmt::Throttle d_throttledFailedPutMessages;
-    // Throttler for failed PUT messages.
 
+    /// Stats associated with an unknown queue, lazily created when the first
+    /// usage of an unknown queue is encountered
     bdlb::NullableValue<mqbstat::QueueStatsClient> d_invalidQueueStats;
-    // Stats associated with an unknown
-    // queue, lazily created when the first
-    // usage of an unknown queue is
-    // encountered
 
   private:
     // NOT IMPLEMENTED
@@ -270,21 +256,23 @@ class ClientSession : public mqbnet::Session,
 
     /// Enum to signify the session's operation state.
     enum OperationState {
-        e_RUNNING  // Running normally
-        ,
+        /// Running normally.
+        e_RUNNING,
+        /// Shutting down due to `initiateShutdown` request.
         // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest
         // V2.
-        e_SHUTTING_DOWN  // Shutting down due to 'initiateShutdown' request
-        ,
-        e_SHUTTING_DOWN_V2  // Shutting down due to 'initiateShutdown' request
-        ,
-        e_DISCONNECTING  // Disconnecting due to the client disconnect request
-        ,
-        e_DISCONNECTED  // The session is disconnected and no more valid
-        ,
-        e_DEAD  // The session cannot do anything
+        e_SHUTTING_DOWN,
+        /// Shutting down due to `initiateShutdown` request.
+        e_SHUTTING_DOWN_V2,
+        /// Disconnecting due to the client disconnect request.
+        e_DISCONNECTING,
+        /// The session is disconnected and no longer valid.
+        e_DISCONNECTED,
+        /// The session cannot do anything.
+        e_DEAD
     };
 
+    /// Struct to be used as a context for shutdown operation.
     struct ShutdownContext {
         ShutdownCb         d_callback;
         bsls::TimeInterval d_stopTime;
@@ -302,105 +290,80 @@ class ClientSession : public mqbnet::Session,
 
         ~ShutdownContext();
     };
-    // Struct to be used as a context for shutdown operation.
 
     typedef bsl::shared_ptr<ShutdownContext> ShutdownContextSp;
 
   private:
     // DATA
+
+    /// This object is used to avoid executing a callback if the session has
+    /// been destroyed: this is *ONLY* to be used with the callbacks that will
+    /// be called from outside of the dispatcher's thread (such as a remote
+    /// configuration service IO thread), because we can't guarantee this queue
+    /// is drained before destroying the session.
     bmqu::SharedResource<ClientSession> d_self;
-    // This object is used to avoid
-    // executing a callback if the session
-    // has been destroyed: this is *ONLY* to
-    // be used with the callbacks that will
-    // be called from outside of the
-    // dispatcher's thread (such as a remote
-    // configuration service IO thread);
-    // because we can't guarantee this queue
-    // is drained before destroying the
-    // session.
 
+    /// Show whether the session is running or shutting down due to either a
+    /// stop request, or a client's disconnect request, or the channel being
+    /// down.  Once the channel has been destroyed and is no longer valid or we
+    /// sent the `DisconnectResponse` to the client, *NO* messages of any sort
+    /// should be delivered to the client.
     OperationState d_operationState;
-    // Show whether the session is running
-    // or shutting down due to either stop
-    // request, or client's disconnect
-    // request, or the channel is down.
-    // Once the channel has been destroyed
-    // and is no longer valid or we sent the
-    // 'DisconnectResponse' to the client,
-    // *NO* messages of any sort should be
-    // delivered to the client.
 
+    /// Set to true when receiving a `DisconnectRequest` from the client.  Only
+    /// used in the `processEvent` (in the IO thread) to validate that the
+    /// client honors the contract and doesn't send anything after the
+    /// `Disconnect` notification.
     bool d_isDisconnecting;
-    // Set to true when receiving a
-    // 'DisconnectRequest' from the client;
-    // only used in the processEvent (in IO
-    // thread) to validate that the client
-    // honors the contract and doesn't send
-    // any thing after the 'Disconnect'
-    // notification.
 
+    /// Negotiation message received from the remote peer.
     bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
-    // Negotiation message received from the
-    // remote peer.
 
+    /// Raw pointer to the right field in `d_negotiationMessage` (dpending on
+    /// whether it's a "client" or a "broker").
     bmqp_ctrlmsg::ClientIdentity* d_clientIdentity_p;
-    // Raw pointer to the right field in
-    // 'd_negotiationMessage' (depending
-    // whether it's a 'client' or a
-    // 'broker').
 
+    /// Set to true when the client identity `guidInfo` struct contains
+    /// non-empty `clientId` field.  If this broker the first hop, then the
+    /// client is an SDK, which generates GUIDs for PUTs using
+    /// @bbref{bmqp::MessageGUIDGenerator} and doesn't provide correlation ids.
     const bool d_isClientGeneratingGUIDs;
-    // Set to true when the client identity
-    // 'guidInfo' struct contains non-empty
-    // 'clientId' field.  If this broker is
-    // first hop then the client is SDK
-    // which generates GUIDs for PUTs using
-    // 'bmqp::MessageGUIDGenerator' and
-    // doesn't provide correlation ids.
 
+    /// Short identifier for this session.
     bsl::string d_description;
-    // Short identifier for this session.
 
+    /// Channel associated with this session.
     bsl::shared_ptr<bmqio::Channel> d_channel_sp;
-    // Channel associated to this session.
 
+    /// The state associated with this session.
     ClientSessionState d_state;
-    // The state associated to this session.
 
+    /// Queue session manager for this session.
     mqbblp::QueueSessionManager d_queueSessionManager;
-    // Queue session manager for this
-    // session.
 
+    /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
-    // Cluster catalog to query for cluster
-    // information
 
+    /// Pointer to the event scheduler to use (held, not owned).
     bdlmt::EventScheduler* d_scheduler_p;
-    // Pointer to the event scheduler to
-    // use (held, not owned)
 
+    /// Handler to manage the scheduled event that triggers the checking of
+    /// unconfirmed messages during the session shutdown.
     bdlmt::EventSchedulerEventHandle d_periodicUnconfirmedCheckHandler;
-    // Handler to manage the scheduled
-    // event that triggers the checking of
-    // the unconfirmed messages during the
-    // session shutdown.
 
+    /// Mechanism used for the graceful shutdown of the session to serialize
+    /// execution of the queue handle deconfigure callbacks.
     bmqu::OperationChain d_shutdownChain;
-    // Mechanism used for the session
-    // graceful shutdown to serialize
-    // execution of the queue handle
-    // deconfigure callbacks.
 
+    /// If present, call when `tearDownAllQueuesDone`.  This is the callback
+    /// given in `initiateShutdown`.
     ShutdownCb d_shutdownCallback;
-    // If present, call when 'tearDownAllQueuesDone'.
-    // This is the callback given in 'initiateShutdown'
 
+    /// HiRes timer value of the begin session/queue operation.
     bsls::Types::Int64 d_beginTimestamp;
-    // HiRes timer value of the begin session/queue operation
 
+    /// Stream for constructing current session/queue operation description.
     bmqu::MemOutStream d_currentOpDescription;
-    // Stream for constructing current session/queue operation description.
 
   private:
     // NOT IMPLEMENTED
@@ -427,8 +390,10 @@ class ClientSession : public mqbnet::Session,
     /// ACK) will be flushed and sent before `blob`; this is necessary to
     /// guarantee strict serialization of events when sending a control
     /// message.
-    void sendPacket(const bdlbb::Blob& blob, bool flushBuilders);
-    void sendPacketDispatched(const bdlbb::Blob& blob, bool flushBuilders);
+    void sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                    bool                                flushBuilders);
+    void sendPacketDispatched(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                              bool flushBuilders);
 
     /// Flush as much as possible of the content of the internal
     /// `channelBufferQueue`.

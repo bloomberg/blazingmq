@@ -53,76 +53,76 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     // An object for testing pointers
-    bsl::string  foo("foo", s_allocator_p);
+    bsl::string  foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string* fooPtr = &foo;
 
     PV("Test unset correlationId");
     bmqt::CorrelationId unset;
-    ASSERT_EQ(unset.isUnset(), true);
+    BMQTST_ASSERT_EQ(unset.isUnset(), true);
 
     PV("Test initialization by Int64");
     bmqt::CorrelationId id(-1);
-    ASSERT_EQ(id.isNumeric(), true);
-    ASSERT_EQ(id.isPointer(), false);
-    ASSERT_EQ(id.isUnset(), false);
-    ASSERT_EQ(-1, id.theNumeric());
+    BMQTST_ASSERT_EQ(id.isNumeric(), true);
+    BMQTST_ASSERT_EQ(id.isPointer(), false);
+    BMQTST_ASSERT_EQ(id.isUnset(), false);
+    BMQTST_ASSERT_EQ(-1, id.theNumeric());
 
     PV("Test initialization by integer");
     bsls::Types::Int64  numeric = 0x5a5a5a5a5a5a5a5a;
     bmqt::CorrelationId numericId(numeric);
-    ASSERT_EQ(numericId.isPointer(), false);
-    ASSERT_EQ(numeric, numericId.theNumeric());
+    BMQTST_ASSERT_EQ(numericId.isPointer(), false);
+    BMQTST_ASSERT_EQ(numeric, numericId.theNumeric());
 
     PV("Test copy constructor");
     bmqt::CorrelationId newNumericId(numericId);
-    ASSERT_EQ(newNumericId.isPointer(), false);
-    ASSERT_EQ(numeric, newNumericId.theNumeric());
+    BMQTST_ASSERT_EQ(newNumericId.isPointer(), false);
+    BMQTST_ASSERT_EQ(numeric, newNumericId.theNumeric());
 
     PV("Test integer value assignment");
     id = numericId;
-    ASSERT_EQ(id.isPointer(), false);
-    ASSERT_EQ(numeric, id.theNumeric());
+    BMQTST_ASSERT_EQ(id.isPointer(), false);
+    BMQTST_ASSERT_EQ(numeric, id.theNumeric());
 
     PV("Test initialization by pointer");
     bmqt::CorrelationId ptrId(fooPtr);
-    ASSERT_EQ(ptrId.isPointer(), true);
-    ASSERT_EQ(fooPtr, ptrId.thePointer());
+    BMQTST_ASSERT_EQ(ptrId.isPointer(), true);
+    BMQTST_ASSERT_EQ(fooPtr, ptrId.thePointer());
 
     PV("Test copy constructor");
     bmqt::CorrelationId newPtrId(ptrId);
-    ASSERT_EQ(newPtrId.isPointer(), true);
-    ASSERT_EQ(fooPtr, newPtrId.thePointer());
+    BMQTST_ASSERT_EQ(newPtrId.isPointer(), true);
+    BMQTST_ASSERT_EQ(fooPtr, newPtrId.thePointer());
 
     PV("Test pointer value assignment");
     id = ptrId;
-    ASSERT_EQ(id.isPointer(), true);
-    ASSERT_EQ(fooPtr, id.thePointer());
+    BMQTST_ASSERT_EQ(id.isPointer(), true);
+    BMQTST_ASSERT_EQ(fooPtr, id.thePointer());
 
     PV("Test equality operator");
-    ASSERT_EQ(id, ptrId);
-    ASSERT_EQ(!(id == numericId), true);
-    ASSERT_EQ(id != numericId, true);
-    ASSERT_EQ(!(id == bmqt::CorrelationId(fooPtr + 1)), true);
-    ASSERT_EQ(id != bmqt::CorrelationId(fooPtr + 1), true);
+    BMQTST_ASSERT_EQ(id, ptrId);
+    BMQTST_ASSERT_EQ(!(id == numericId), true);
+    BMQTST_ASSERT_EQ(id != numericId, true);
+    BMQTST_ASSERT_EQ(!(id == bmqt::CorrelationId(fooPtr + 1)), true);
+    BMQTST_ASSERT_EQ(id != bmqt::CorrelationId(fooPtr + 1), true);
 
     id = numericId;
-    ASSERT_EQ(id, numericId);
-    ASSERT_EQ(!(id == ptrId), true);
-    ASSERT_EQ(id != ptrId, true);
-    ASSERT_EQ(!(id == bmqt::CorrelationId(numeric + 1)), true);
-    ASSERT_EQ(id != bmqt::CorrelationId(numeric + 1), true);
+    BMQTST_ASSERT_EQ(id, numericId);
+    BMQTST_ASSERT_EQ(!(id == ptrId), true);
+    BMQTST_ASSERT_EQ(id != ptrId, true);
+    BMQTST_ASSERT_EQ(!(id == bmqt::CorrelationId(numeric + 1)), true);
+    BMQTST_ASSERT_EQ(id != bmqt::CorrelationId(numeric + 1), true);
 
     PV("Test 'Set' methods");
     id.setPointer(fooPtr);
-    ASSERT_EQ(id, bmqt::CorrelationId(fooPtr));
+    BMQTST_ASSERT_EQ(id, bmqt::CorrelationId(fooPtr));
 
     id.setNumeric(numeric);
-    ASSERT_EQ(id, bmqt::CorrelationId(numeric));
+    BMQTST_ASSERT_EQ(id, bmqt::CorrelationId(numeric));
 
     PV("Test 'makeUnset' method");
     id.makeUnset();
-    ASSERT_EQ(id, bmqt::CorrelationId());
-    ASSERT_EQ(id.isUnset(), true);
+    BMQTST_ASSERT_EQ(id, bmqt::CorrelationId());
+    BMQTST_ASSERT_EQ(id.isUnset(), true);
 }
 
 static void test2_copyAndAssign()
@@ -140,7 +140,7 @@ static void test2_copyAndAssign()
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
     // An object for testing pointers
-    bsl::string  foo("foo", s_allocator_p);
+    bsl::string  foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string* fooPtr = &foo;
 
     // conversions to bmqt::CorrelationId and back
@@ -153,34 +153,34 @@ static void test2_copyAndAssign()
     PV("Test copy constructor")
     {
         bmqt::CorrelationId numericIdCopy(numericId);
-        ASSERT_EQ(numericIdCopy.isPointer(), false);
-        ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
+        BMQTST_ASSERT_EQ(numericIdCopy.isPointer(), false);
+        BMQTST_ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
 
         bmqt::CorrelationId ptrIdCopy(ptrId);
-        ASSERT_EQ(ptrIdCopy.isPointer(), true);
-        ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
+        BMQTST_ASSERT_EQ(ptrIdCopy.isPointer(), true);
+        BMQTST_ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
     }
 
     PV("Test assignment operator");
     {
         bmqt::CorrelationId numericIdCopy = numericId;
-        ASSERT_EQ(numericIdCopy.isPointer(), false);
-        ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
+        BMQTST_ASSERT_EQ(numericIdCopy.isPointer(), false);
+        BMQTST_ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
 
         bmqt::CorrelationId ptrIdCopy = ptrId;
-        ASSERT_EQ(ptrIdCopy.isPointer(), true);
-        ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
+        BMQTST_ASSERT_EQ(ptrIdCopy.isPointer(), true);
+        BMQTST_ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
     }
 
     PV("Test conversion back to bmqt::CorrelationId");
     {
         bmqt::CorrelationId numericIdCopy = bmqt::CorrelationId(numeric);
-        ASSERT_EQ(numericIdCopy.isPointer(), false);
-        ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
+        BMQTST_ASSERT_EQ(numericIdCopy.isPointer(), false);
+        BMQTST_ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
 
         bmqt::CorrelationId ptrIdCopy = bmqt::CorrelationId(ptr);
-        ASSERT_EQ(ptrIdCopy.isPointer(), true);
-        ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
+        BMQTST_ASSERT_EQ(ptrIdCopy.isPointer(), true);
+        BMQTST_ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
     }
 }
 
@@ -205,8 +205,8 @@ static void test3_compare()
     bsl::shared_ptr<int>    intPtr1;
     bsl::shared_ptr<int>    intPtr4;
 
-    intPtr1.createInplace(s_allocator_p, val1);
-    intPtr4.createInplace(s_allocator_p, val4);
+    intPtr1.createInplace(bmqtst::TestHelperUtil::allocator(), val1);
+    intPtr4.createInplace(bmqtst::TestHelperUtil::allocator(), val4);
 
     bmqt::CorrelationId sptrId1(intPtr1);
     bmqt::CorrelationId sptrId4(intPtr4);
@@ -217,35 +217,35 @@ static void test3_compare()
     bmqt::CorrelationId autoId1 = bmqt::CorrelationId::autoValue();
     bmqt::CorrelationId autoId2 = bmqt::CorrelationId::autoValue();
 
-    ASSERT_EQ(less(numericId1, numericId4), true);
-    ASSERT_EQ(less(numericId4, numericId1), false);
+    BMQTST_ASSERT_EQ(less(numericId1, numericId4), true);
+    BMQTST_ASSERT_EQ(less(numericId4, numericId1), false);
 
-    ASSERT_EQ(less(ptrId1, ptrId4), true);
-    ASSERT_EQ(less(ptrId4, ptrId1), false);
+    BMQTST_ASSERT_EQ(less(ptrId1, ptrId4), true);
+    BMQTST_ASSERT_EQ(less(ptrId4, ptrId1), false);
 
-    ASSERT_EQ(less(autoId1, autoId2), true);
-    ASSERT_EQ(less(autoId2, autoId1), false);
+    BMQTST_ASSERT_EQ(less(autoId1, autoId2), true);
+    BMQTST_ASSERT_EQ(less(autoId2, autoId1), false);
 
-    ASSERT_EQ(less(sptrId1, sptrId4), true);
-    ASSERT_EQ(less(sptrId4, sptrId1), false);
+    BMQTST_ASSERT_EQ(less(sptrId1, sptrId4), true);
+    BMQTST_ASSERT_EQ(less(sptrId4, sptrId1), false);
 
-    ASSERT_EQ(less(numericId1, ptrId1), true);
-    ASSERT_EQ(less(ptrId1, numericId1), false);
+    BMQTST_ASSERT_EQ(less(numericId1, ptrId1), true);
+    BMQTST_ASSERT_EQ(less(ptrId1, numericId1), false);
 
-    ASSERT_EQ(less(numericId4, ptrId1), true);
-    ASSERT_EQ(less(ptrId4, numericId1), false);
+    BMQTST_ASSERT_EQ(less(numericId4, ptrId1), true);
+    BMQTST_ASSERT_EQ(less(ptrId4, numericId1), false);
 
-    ASSERT_EQ(less(numericId1, sptrId1), true);
-    ASSERT_EQ(less(sptrId1, numericId1), false);
+    BMQTST_ASSERT_EQ(less(numericId1, sptrId1), true);
+    BMQTST_ASSERT_EQ(less(sptrId1, numericId1), false);
 
-    ASSERT_EQ(less(numericId1, autoId1), true);
-    ASSERT_EQ(less(autoId1, numericId1), false);
+    BMQTST_ASSERT_EQ(less(numericId1, autoId1), true);
+    BMQTST_ASSERT_EQ(less(autoId1, numericId1), false);
 
-    ASSERT_EQ(less(ptrId1, sptrId1), true);
-    ASSERT_EQ(less(sptrId1, ptrId1), false);
+    BMQTST_ASSERT_EQ(less(ptrId1, sptrId1), true);
+    BMQTST_ASSERT_EQ(less(sptrId1, ptrId1), false);
 
-    ASSERT_EQ(less(sptrId1, autoId1), true);
-    ASSERT_EQ(less(autoId1, sptrId1), false);
+    BMQTST_ASSERT_EQ(less(sptrId1, autoId1), true);
+    BMQTST_ASSERT_EQ(less(autoId1, sptrId1), false);
 }
 
 static void test4_smartPointers()
@@ -266,16 +266,16 @@ static void test4_smartPointers()
     bmqt::CorrelationId smartIntCorrelation;
     {
         bsl::shared_ptr<int> intPtr;
-        intPtr.createInplace(s_allocator_p, value);
+        intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), value);
         bmqt::CorrelationId id(intPtr);
         smartIntCorrelation = id;
-        ASSERT_EQ(smartIntCorrelation.isNumeric(), false);
-        ASSERT_EQ(smartIntCorrelation.isPointer(), false);
-        ASSERT_EQ(smartIntCorrelation.isSharedPtr(), true);
-        ASSERT_EQ(smartIntCorrelation.theSharedPtr(), intPtr);
+        BMQTST_ASSERT_EQ(smartIntCorrelation.isNumeric(), false);
+        BMQTST_ASSERT_EQ(smartIntCorrelation.isPointer(), false);
+        BMQTST_ASSERT_EQ(smartIntCorrelation.isSharedPtr(), true);
+        BMQTST_ASSERT_EQ(smartIntCorrelation.theSharedPtr(), intPtr);
     }
     bsl::shared_ptr<void> resPtr = smartIntCorrelation.theSharedPtr();
-    ASSERT_EQ(value, *reinterpret_cast<int*>(resPtr.get()));
+    BMQTST_ASSERT_EQ(value, *reinterpret_cast<int*>(resPtr.get()));
 }
 
 static void test5_autoValue()
@@ -295,10 +295,10 @@ static void test5_autoValue()
     bmqt::CorrelationId auto1 = bmqt::CorrelationId::autoValue();
     bmqt::CorrelationId auto2 = bmqt::CorrelationId::autoValue();
 
-    ASSERT_EQ(auto1.isAutoValue(), true);
+    BMQTST_ASSERT_EQ(auto1.isAutoValue(), true);
 
-    ASSERT_EQ(auto1, auto1);
-    ASSERT_NE(auto1, auto2);
+    BMQTST_ASSERT_EQ(auto1, auto1);
+    BMQTST_ASSERT_NE(auto1, auto2);
 }
 
 static void test6_hashAppend()
@@ -324,14 +324,14 @@ static void test6_hashAppend()
 
     PV("HASH FUNCTION DETERMINISTIC");
 
-    bsl::string                         foo("foo", s_allocator_p);
+    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string*                        fooPtr           = &foo;
     bsls::Types::Int64                  numeric          = 0xA5A5A5A5A5A5A5A5;
     const size_t                        k_NUM_ITERATIONS = 1000;
     size_t                              t = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
-    intPtr.createInplace(s_allocator_p, numeric);
+    intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
 
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
@@ -366,7 +366,7 @@ static void test6_hashAppend()
                 algo.computeHash();
             PVVV("[" << t << "]"
                      << "[" << i << "] hash: " << currHash);
-            ASSERT_EQ_D(i, currHash, firstHash);
+            BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
     }
 }
@@ -377,18 +377,18 @@ static void test7_printTest()
 
     PV("Testing print");
 
-    bsl::string                         foo("foo", s_allocator_p);
+    bsl::string foo("foo", bmqtst::TestHelperUtil::allocator());
     bsl::string*                        fooPtr  = &foo;
     bsls::Types::Int64                  numeric = 0x5a5a5a5a5a5a5a5a;
     size_t                              t = bmqt::CorrelationId::e_NUMERIC;
     bsl::shared_ptr<bsls::Types::Int64> intPtr;
 
-    intPtr.createInplace(s_allocator_p, numeric);
+    intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
 
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
-        bmqu::MemOutStream  patStream(s_allocator_p);
-        bmqu::MemOutStream  objStream(s_allocator_p);
+        bmqu::MemOutStream  patStream(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream  objStream(bmqtst::TestHelperUtil::allocator());
         switch (t) {
         case bmqt::CorrelationId::e_NUMERIC: {
             obj = bmqt::CorrelationId(numeric);
@@ -421,24 +421,24 @@ static void test7_printTest()
 
         objStream << obj;
 
-        ASSERT_EQ(objStream.str(), patStream.str());
+        BMQTST_ASSERT_EQ(objStream.str(), patStream.str());
 
         objStream.reset();
         obj.print(objStream, 0, -1);
 
-        ASSERT_EQ(objStream.str(), patStream.str());
+        BMQTST_ASSERT_EQ(objStream.str(), patStream.str());
     }
 
     PV("Bad stream test");
 
     bmqt::CorrelationId obj;
-    bmqu::MemOutStream  stream(s_allocator_p);
+    bmqu::MemOutStream  stream(bmqtst::TestHelperUtil::allocator());
 
     stream << "BAD STREAM";
     stream.clear(bsl::ios_base::badbit);
     stream << obj;
 
-    ASSERT_EQ(stream.str(), "BAD STREAM");
+    BMQTST_ASSERT_EQ(stream.str(), "BAD STREAM");
 }
 
 // ============================================================================
@@ -460,7 +460,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

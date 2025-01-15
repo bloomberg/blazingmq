@@ -183,13 +183,15 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         PVV("Create invalid iter");
         bmqp::AckMessageIterator iter;
-        ASSERT_EQ(iter.isValid(), false);
-        ASSERT_LT(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.isValid(), false);
+        BMQTST_ASSERT_LT(iter.next(), 0);
     }
 
     {
@@ -197,26 +199,26 @@ static void test1_breathingTest()
         bmqp::AckMessageIterator iter1;
         bmqp::AckMessageIterator iter2(iter1);
 
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
         PVV("Assigning invalid iter");
         bmqp::AckMessageIterator iter1, iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         iter1 = iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
         PVV("Valid iter");
 
         // Create valid iter
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         const bmqt::MessageGUID GUID;
@@ -237,103 +239,103 @@ static void test1_breathingTest()
         // Iterate and verify
         bmqp::AckMessageIterator iter(&blob, eventHeader);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(FLAGS, iter.header().flags());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(FLAGS, iter.header().flags());
 
-        ASSERT_EQ(STATUS, iter.message().status());
-        ASSERT_EQ(CORR_ID, iter.message().correlationId());
-        ASSERT_EQ(GUID, iter.message().messageGUID());
-        ASSERT_EQ(QUEUE_ID, iter.message().queueId());
+        BMQTST_ASSERT_EQ(STATUS, iter.message().status());
+        BMQTST_ASSERT_EQ(CORR_ID, iter.message().correlationId());
+        BMQTST_ASSERT_EQ(GUID, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ(QUEUE_ID, iter.message().queueId());
 
-        ASSERT_EQ(false, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
         bmqp::AckMessageIterator iter2(iter);
-        ASSERT_EQ(false, iter2.isValid());
-        // ASSERT_EQ(0, iter2.next());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
+        // BMQTST_ASSERT_EQ(0, iter2.next());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        // ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter2.isValid());
-        // ASSERT_EQ(0, iter2.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        // BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
+        // BMQTST_ASSERT_EQ(0, iter2.next());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        // ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter2.isValid());
-        // ASSERT_EQ(0, iter2.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        // BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
+        // BMQTST_ASSERT_EQ(0, iter2.next());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(FLAGS, iter.header().flags());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(FLAGS, iter.header().flags());
 
-        ASSERT_EQ(STATUS, iter.message().status());
-        ASSERT_EQ(CORR_ID, iter.message().correlationId());
-        ASSERT_EQ(GUID, iter.message().messageGUID());
-        ASSERT_EQ(QUEUE_ID, iter.message().queueId());
+        BMQTST_ASSERT_EQ(STATUS, iter.message().status());
+        BMQTST_ASSERT_EQ(CORR_ID, iter.message().correlationId());
+        BMQTST_ASSERT_EQ(GUID, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ(QUEUE_ID, iter.message().queueId());
 
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Reset, assign and iterate other
         iter.reset(&blob, eventHeader);
         iter2 = iter;
-        ASSERT_EQ(true, iter2.isValid());
-        ASSERT_EQ(1, iter2.next());
-        ASSERT_EQ(FLAGS, iter2.header().flags());
+        BMQTST_ASSERT_EQ(true, iter2.isValid());
+        BMQTST_ASSERT_EQ(1, iter2.next());
+        BMQTST_ASSERT_EQ(FLAGS, iter2.header().flags());
 
-        ASSERT_EQ(STATUS, iter2.message().status());
-        ASSERT_EQ(CORR_ID, iter2.message().correlationId());
-        ASSERT_EQ(GUID, iter2.message().messageGUID());
-        ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
+        BMQTST_ASSERT_EQ(STATUS, iter2.message().status());
+        BMQTST_ASSERT_EQ(CORR_ID, iter2.message().correlationId());
+        BMQTST_ASSERT_EQ(GUID, iter2.message().messageGUID());
+        BMQTST_ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
 
-        ASSERT_EQ(0, iter2.next());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(0, iter2.next());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset other from copy of original (did not advance) and iterate
-        ASSERT_EQ(iter2.reset(&blob, iter), 0);
-        ASSERT_EQ(true, iter2.isValid());
-        ASSERT_EQ(1, iter2.next());
-        ASSERT_EQ(FLAGS, iter2.header().flags());
+        BMQTST_ASSERT_EQ(iter2.reset(&blob, iter), 0);
+        BMQTST_ASSERT_EQ(true, iter2.isValid());
+        BMQTST_ASSERT_EQ(1, iter2.next());
+        BMQTST_ASSERT_EQ(FLAGS, iter2.header().flags());
 
-        ASSERT_EQ(STATUS, iter2.message().status());
-        ASSERT_EQ(CORR_ID, iter2.message().correlationId());
-        ASSERT_EQ(GUID, iter2.message().messageGUID());
-        ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
+        BMQTST_ASSERT_EQ(STATUS, iter2.message().status());
+        BMQTST_ASSERT_EQ(CORR_ID, iter2.message().correlationId());
+        BMQTST_ASSERT_EQ(GUID, iter2.message().messageGUID());
+        BMQTST_ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
 
-        ASSERT_EQ(0, iter2.next());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(0, iter2.next());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Verify dumping the blob
         const char*        k_NO_BLOB_STR = "/no blob/";
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
 
         iter2.dumpBlob(out);
-        ASSERT_NE(out.str(), k_NO_BLOB_STR);
+        BMQTST_ASSERT_NE(out.str(), k_NO_BLOB_STR);
 
         // Dumping an empty blob
         iter2.clear();
         out.reset();
 
         iter2.dumpBlob(out);
-        ASSERT_EQ(out.str(), k_NO_BLOB_STR);
+        BMQTST_ASSERT_EQ(out.str(), k_NO_BLOB_STR);
 
         // Copy valid iterator
         iter.reset(&blob, eventHeader);
-        ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 1);
         bmqp::AckMessageIterator iter3(iter);
-        ASSERT_EQ(iter3.isValid(), true);
+        BMQTST_ASSERT_EQ(iter3.isValid(), true);
 
         // Provoke next method to return rc_INVALID value
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_EQ(iter.next(), -1);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_EQ(iter.next(), -1);
     }
 }
 
@@ -342,10 +344,12 @@ static void test2_ackEventWithMultipleMessages()
 {
     bmqtst::TestHelper::printTestName("ACK EVENT WITH MULTIPLE MESSAGES");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     const size_t k_NUM_MSGS = 1000;
@@ -354,22 +358,22 @@ static void test2_ackEventWithMultipleMessages()
 
     // Iterate and verify
     bmqp::AckMessageIterator iter(&eventBlob, eventHeader);
-    ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
 
     size_t index = 0;
     while ((iter.next() == 1)) {
         const Data& D = data[index];
-        // ASSERT_EQ_D(index, D.d_flags, iter.flags());
+        // BMQTST_ASSERT_EQ_D(index, D.d_flags, iter.flags());
 
-        ASSERT_EQ_D(index, D.d_status, iter.message().status());
-        ASSERT_EQ_D(index, D.d_corrId, iter.message().correlationId());
-        ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
-        ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
+        BMQTST_ASSERT_EQ_D(index, D.d_status, iter.message().status());
+        BMQTST_ASSERT_EQ_D(index, D.d_corrId, iter.message().correlationId());
+        BMQTST_ASSERT_EQ_D(index, D.d_guid, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ_D(index, D.d_queueId, iter.message().queueId());
         ++index;
     }
 
-    ASSERT_EQ(index, data.size());
-    ASSERT_EQ(false, iter.isValid());
+    BMQTST_ASSERT_EQ(index, data.size());
+    BMQTST_ASSERT_EQ(false, iter.isValid());
 }
 
 static void test3_nextMethod()
@@ -412,8 +416,10 @@ static void test3_nextMethod()
     // Next method. Iterator is in invalid state case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob,
@@ -426,19 +432,21 @@ static void test3_nextMethod()
 
         // Create valid iterator
         bmqp::AckMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 
     // Next method. Not enough bytes case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob,
@@ -457,10 +465,10 @@ static void test3_nextMethod()
         // Create iterator
         bmqp::AckMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
     }
 }
 
@@ -500,10 +508,12 @@ static void test4_resetMethod()
 
     // Reset method. Invalid event header case.
     {
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create buffer factory and blob
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob,
@@ -520,12 +530,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::AckMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader),
-                  0);  // rc_INVALID_EVENTHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_INVALID_EVENTHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 
     // NOTE: as long as AckHeader::k_MIN_HEADER_SIZE = 1, there is no possible
@@ -535,8 +545,10 @@ static void test4_resetMethod()
     // Reset method. Not enough bytes case.
     {
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob,
@@ -554,11 +566,12 @@ static void test4_resetMethod()
         // Create iterator
         bmqp::AckMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader), 0);  // rc_NOT_ENOUGH_BYTES
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -592,10 +605,12 @@ static void test5_dumpBlob()
     const int               k_STATUS   = 3;
     const int               k_QUEUE_ID = 9876;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader              eventHeader;
-    bmqu::MemOutStream             stream(s_allocator_p);
+    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob,
@@ -609,21 +624,21 @@ static void test5_dumpBlob()
     //  Create and check iterator blob layout
     {
         bmqp::AckMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
         bsl::string str2("     0:   00000024 45020000 163E0000 0300D431     "
                          "|...$E....>.....1|\n"
                          "    16:   00000000 00000000 00000000 00000000     "
                          "|................|\n"
                          "    32:   00002694                                "
                          "|..&.            |\n",
-                         s_allocator_p);
+                         bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -633,11 +648,11 @@ static void test5_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
-        bsl::string str2("/no blob/", s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
+        bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 
@@ -658,7 +673,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

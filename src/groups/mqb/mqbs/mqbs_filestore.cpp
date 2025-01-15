@@ -2067,7 +2067,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
 
-                    AppInfos appIdKeyPairs;
+                    AppInfos appIdKeyPairs(d_allocator_p);
                     FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
                                                         appIdsBlock,
                                                         numAppIds);
@@ -2075,8 +2075,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
                          cit != appIdKeyPairs.cend();
                          ++cit) {
-                        const AppInfo& p = *cit;
-                        if (0 == deletedAppKeysOffsets.count(p.second)) {
+                        if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             // This appKey is not deleted.  Add it to the list
                             // of 'alive' appId/appKey pairs for this queue.
                             // Note that we don't check for appId/appKey
@@ -2084,15 +2083,16 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             // StorageMgr because we have recovered all
                             // appId/appKey pairs by that time.
 
-                            qinfo.addAppInfo(p);
+                            qinfo.addAppInfo(cit);
 
-                            BALL_LOG_INFO
-                                << partitionDesc()
-                                << "Recovered appId/appKey pair ['" << p.first
-                                << "' (" << p.second << ")] in QueueOp ["
-                                << queueOpType << "] record for queue ["
-                                << qinfo.canonicalQueueUri()
-                                << "] with queue key [" << queueKey << "].";
+                            BALL_LOG_INFO << partitionDesc()
+                                          << "Recovered appId/appKey pair ['"
+                                          << cit->first << "' (" << cit->second
+                                          << ")] in QueueOp [" << queueOpType
+                                          << "] record for queue ["
+                                          << qinfo.canonicalQueueUri()
+                                          << "] with queue key [" << queueKey
+                                          << "].";
                         }
                     }
                 }
@@ -3904,9 +3904,8 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
 
     if (itNode == d_nodes.end()) {
         // no prior history about this node
-        d_nodes.insert(bsl::make_pair(
-            nodeId,
-            NodeContext(d_config.bufferFactory(), recordKey, d_allocator_p)));
+        d_nodes.insert(
+            bsl::make_pair(nodeId, NodeContext(d_blobSpPool_p, recordKey)));
         from = d_unreceipted.begin();
     }
     else if (itNode->second.d_key < recordKey) {
@@ -5185,8 +5184,8 @@ void FileStore::flushIfNeeded(bool immediateFlush)
 {
     if (immediateFlush ||
         d_storageEventBuilder.messageCount() >= d_nagglePacketCount) {
-        dispatcherFlush(true, false);
-
+        // Should notify weak consistency queues after replicated batch
+        flushStorage();
         notifyQueuesOnReplicatedBatch();
     }
 }
@@ -5220,6 +5219,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_lastSyncPtReceived(false)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
+, d_replicationNotifications(allocator)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
 , d_lastRecoveredStrongConsistency()
@@ -5240,7 +5240,7 @@ FileStore::FileStore(const DataStoreConfig&  config,
 , d_nagglePacketCount(k_NAGLE_PACKET_COUNT)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
                         bmqp::EventType::e_STORAGE,
-                        config.bufferFactory(),
+                        d_blobSpPool_p,
                         allocator)
 {
     // PRECONDITIONS
@@ -5427,8 +5427,7 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                              FileBackedStorage(this,
                                                queueUri,
                                                queueKey,
-                                               domain->config(),
-                                               domain->capacityMeter(),
+                                               domain,
                                                storageAlloc,
                                                &d_storageAllocatorStore),
                          storageAlloc);
@@ -5630,6 +5629,12 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                           attributes->queueHandle())));
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
     }
+    else {
+        if (d_replicationNotifications.find(queueKey) ==
+            d_replicationNotifications.end()) {
+            d_replicationNotifications.insert(queueKey);
+        }
+    }
 
     // Replicate the message.
     replicateRecord(bmqp::StorageMessageType::e_DATA,
@@ -5714,13 +5719,12 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
-            const AppInfo& appIdKeyPair = *cit;
-            BSLS_ASSERT_SAFE(!appIdKeyPair.first.empty());
-            BSLS_ASSERT_SAFE(!appIdKeyPair.second.isNull());
+            BSLS_ASSERT_SAFE(!cit->first.empty());
+            BSLS_ASSERT_SAFE(!cit->second.isNull());
             appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
                 &appIdPaddings[i],
-                appIdKeyPair.first.length());
-            totalLength += sizeof(AppIdHeader) + appIdKeyPair.first.length() +
+                cit->first.length());
+            totalLength += sizeof(AppIdHeader) + cit->first.length() +
                            appIdPaddings[i] +
                            FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
         }
@@ -6517,11 +6521,9 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         if (itNode == d_nodes.end()) {
             // no prior history about this node
             itNode = d_nodes
-                         .insert(bsl::make_pair(
-                             nodeId,
-                             NodeContext(d_config.bufferFactory(),
-                                         key,
-                                         d_allocator_p)))
+                         .insert(
+                             bsl::make_pair(nodeId,
+                                            NodeContext(d_blobSpPool_p, key)))
                          .first;
         }
         nodeContext = &itNode->second;
@@ -6535,7 +6537,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
     }
 
     if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
-        char* buffer = nodeContext->d_blob.buffer(0).data();
+        char* buffer = nodeContext->d_blob_sp->buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
@@ -6548,7 +6550,11 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
         nodeContext->d_state->unlock();
     }
     else {
-        bmqp::ProtocolUtil::buildReceipt(&nodeContext->d_blob,
+        // The pointer `nodeContext->d_blob_sp` might be in a write queue, so
+        // it's not safe to modify or replace the blob under this pointer.
+        // Instead, we get another shared pointer to another blob.
+        nodeContext->d_blob_sp = d_blobSpPool_p->getObject();
+        bmqp::ProtocolUtil::buildReceipt(nodeContext->d_blob_sp.get(),
                                          d_config.partitionId(),
                                          primaryLeaseId,
                                          sequenceNumber);
@@ -6565,7 +6571,7 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
         return;  // RETURN
     }
 
-    int rc = node->channel().writeBlob(nodeContext->d_blob,
+    int rc = node->channel().writeBlob(nodeContext->d_blob_sp,
                                        bmqp::EventType::e_REPLICATION_RECEIPT,
                                        nodeContext->d_state);
 
@@ -6714,6 +6720,11 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     d_clusterStats_p->setNodeRoleForPartition(
         d_config.partitionId(),
         mqbstat::ClusterStats::PrimaryStatus::e_PRIMARY);
+
+    for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
+         ++sIt) {
+        sIt->second->setPrimary();
+    }
 
     // Schedule a sync point issue recurring event every 1 second, starting
     // after 1 second.
@@ -6953,62 +6964,61 @@ void FileStore::clearPrimary()
     }
 }
 
-void FileStore::dispatcherFlush(bool storage, bool queues)
+void FileStore::flushStorage()
 {
-    // 'LocalQueue::flush' invokes 'dispaterFlush'.
-    // This means that 'dispaterFlush' will be executed more frequently on a
+    // 'LocalQueue::flush' invokes 'flushStorage'.
+    // This means that 'flushStorage' will be executed more frequently on a
     // FileStore than actually applicable.  This is ok and has no side effect.
 
-    // Note that 'RemoteQueue::dispaterFlush' will not invoke
-    // 'FileStore::dispaterFlush' because only the partition's primary node
-    // should invoke 'dispaterFlush' on the FileStore.
+    // Note that 'RemoteQueue::flush' will not invoke
+    // 'FileStore::flushStorage' because only the partition's primary node
+    // should invoke 'flushStorage' on the FileStore.
 
     BSLS_ASSERT_SAFE(d_isPrimary);
 
-    if (storage) {
-        if (d_storageEventBuilder.messageCount() != 0) {
-            BALL_LOG_TRACE << partitionDesc() << "Flushing "
-                           << d_storageEventBuilder.messageCount()
-                           << " STORAGE messages.";
-            const int maxChannelPendingItems = d_cluster_p->broadcast(
-                d_storageEventBuilder.blob());
-            if (maxChannelPendingItems > 0) {
-                if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
-                    // back off
-                    ++d_nagglePacketCount;
-                }
-            }
-            else if (d_nagglePacketCount) {
-                --d_nagglePacketCount;
-            }
-            d_storageEventBuilder.reset();
-        }
-    }
-    if (queues && d_storageEventBuilder.messageCount() == 0) {
-        // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
+    if (d_storageEventBuilder.messageCount() != 0) {
+        BALL_LOG_TRACE << partitionDesc() << "Flushing "
+                       << d_storageEventBuilder.messageCount()
+                       << " STORAGE messages.";
+        const int maxChannelPendingItems = d_cluster_p->broadcast(
+            d_storageEventBuilder.blob());
+        if (maxChannelPendingItems > 0) {
+            if (d_nagglePacketCount < k_NAGLE_PACKET_COUNT) {
+                // back off
+                ++d_nagglePacketCount;
             }
         }
+        else if (d_nagglePacketCount) {
+            --d_nagglePacketCount;
+        }
+        d_storageEventBuilder.reset();
     }
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()
 {
-    if (d_storageEventBuilder.messageCount() == 0) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
+            d_storageEventBuilder.messageCount() == 0)) {
         // Empty 'd_storageEventBuilder' means it has been flushed and it is a
-        // good time to flush queues.
-        for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
-             ++it) {
-            ReplicatedStorage* rs = it->second;
-            if (rs->queue()) {
-                rs->queue()->onReplicatedBatch();
+        // good time to flush weak consistency queues.
+
+        for (bsl::unordered_set<mqbu::StorageKey>::iterator it =
+                 d_replicationNotifications.begin();
+             it != d_replicationNotifications.end();
+             it++) {
+            // TODO: possible to store ReplicatedStorage directly and have one
+            //       less lookup, but it requires to handle the case when the
+            //       storage was removed before `notifyQueuesOnReplicatedBatch`
+            //       call.
+            StoragesMap::iterator storageIt = d_storages.find(*it);
+            if (storageIt != d_storages.end()) {
+                ReplicatedStorage* rs = storageIt->second;
+                if (rs->queue()) {
+                    rs->queue()->onReplicatedBatch();
+                }
             }
         }
+        d_replicationNotifications.clear();
     }
 }
 
@@ -7083,10 +7093,10 @@ bool FileStore::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc)
     if (needToFlush) {
         // Have to explicitly flush 'd_storageEventBuilder', to make sure
         // deletion records get replicated before queue unassignement.
-        // If queues are idle, 'dispatcherFlush()' won't get called.
+        // If queues are idle, 'flushStorage()' won't get called.
         // Internal-ticket D168465018.
 
-        dispatcherFlush(true, false);
+        flushStorage();
     }
 
     return haveMore;

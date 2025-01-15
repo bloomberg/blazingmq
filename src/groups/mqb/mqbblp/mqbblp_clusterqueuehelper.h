@@ -93,9 +93,10 @@ namespace mqbblp {
 // ========================
 
 /// Mechanism to manage queues on a cluster.
-class ClusterQueueHelper : public mqbc::ClusterStateObserver,
-                           public mqbc::ClusterMembershipObserver,
-                           public mqbc::ElectorInfoObserver {
+class ClusterQueueHelper BSLS_KEYWORD_FINAL
+: public mqbc::ClusterStateObserver,
+  public mqbc::ClusterMembershipObserver,
+  public mqbc::ElectorInfoObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTERQUEUEHELPER");
@@ -284,7 +285,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         /// Reset the `id`, `partitionId`, `key` and `queue` members of this
         /// object.  Note that `uri` is left untouched because it is an
         /// invariant member of a given instance of such a QueueInfo object.
-        void reset();
+        void resetButKeepPending();
     };
 
     struct StopContext {
@@ -522,29 +523,6 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     QueueAssignmentResult::Enum
     assignQueue(const QueueContextSp& queueContext);
 
-    /// Called when the specified `uri` is in the process of being assigned.
-    /// If the specified `processingPendingRequests` is true, we will
-    /// process pending requests on this machine.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void onQueueAssigning(const bmqt::Uri& uri,
-                          bool             processingPendingRequests);
-
-    /// Called when the queue with the specified `queueInfo` is being
-    /// unassigned.  Load into the specified `hasInFlightRequests` whether
-    /// there are still in-flight requests for the queue.  Return true on
-    /// success, or false on failure.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    ///
-    /// TODO_CSL: This is the current workflow which we should be able to
-    /// remove after the new workflow via
-    /// ClusterQueueHelper::onQueueUnassigned() is stable.
-    bool onQueueUnassigning(bool*                          hasInFlightRequests,
-                            const bmqp_ctrlmsg::QueueInfo& queueInfo);
-
     /// Send a queueAssignment request to the leader, requesting assignment
     /// of the queue with the specified `uri`.  This method is called only
     /// on a non leader node of a cluster member, for a cluster having a
@@ -578,7 +556,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     /// Process the open queue request represented by the specified
     /// `context`: that is, depending on the cluster mode and queue
-    /// assignment, either send an open queue request of create the queue.
+    /// assignment, either send an open queue request or create the queue.
     /// The queue must have been assigned at this point.
     void processOpenQueueRequest(const OpenQueueContext& context);
 
@@ -954,7 +932,7 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
 
     /// Callback invoked when self node's status changes to the specified
     /// `value`.
-    virtual void onSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
+    void onSelfNodeStatus(bmqp_ctrlmsg::NodeStatus::Value value)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
@@ -965,8 +943,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// for the `node`, and it implies that the cluster has transitioned to
     /// a state of no leader, and in this case, `status` will be
     /// `UNDEFINED`.
-    virtual void onClusterLeader(mqbnet::ClusterNode*                node,
-                                 mqbc::ElectorInfoLeaderStatus::Enum status)
+    void onClusterLeader(mqbnet::ClusterNode*                node,
+                         mqbc::ElectorInfoLeaderStatus::Enum status)
         BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
@@ -977,7 +955,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueAssigned(const mqbc::ClusterStateQueueInfo& info)
+    void
+    onQueueAssigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `info` gets
@@ -985,7 +964,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueUnassigned(const mqbc::ClusterStateQueueInfo& info)
+    void
+    onQueueUnassigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Callback invoked when a queue with the specified `uri` belonging to
@@ -995,10 +975,10 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void onQueueUpdated(const bmqt::Uri&   uri,
-                                const bsl::string& domain,
-                                const AppInfos&    addedAppIds,
-                                const AppInfos&    removedAppIds = AppInfos())
+    void onQueueUpdated(const bmqt::Uri&   uri,
+                        const bsl::string& domain,
+                        const AppInfos&    addedAppIds,
+                        const AppInfos&    removedAppIds = AppInfos())
         BSLS_KEYWORD_OVERRIDE;
 
   private:
@@ -1106,14 +1086,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
     /// delete the qualified queues immediately instead of marking them for
     /// deletion in future. Returns 0 on success or a non-zero error code on
     /// failure.
-    int gcExpiredQueues(bool immediate = false);
-
-    ClusterQueueHelper& setOnQueueAssignedCb(const OnQueueAssignedCb& value);
-
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
-    ClusterQueueHelper&
-    setOnQueueUnassignedCb(const OnQueueUnassignedCb& value);
+    int gcExpiredQueues(bool               immediate  = false,
+                        const bsl::string& domainName = "");
 
     /// Start executing multi-step processing of StopRequest or CLOSING node
     /// advisory received from the specified `clusterNode`.   In the case of
@@ -1134,8 +1108,8 @@ class ClusterQueueHelper : public mqbc::ClusterStateObserver,
         mqbc::ClusterNodeSession*           ns,
         const VoidFunctor&                  callback = VoidFunctor());
 
+    /// Called upon leader becoming available.
     void onLeaderAvailable();
-    // Called upon leader becoming available.
 
     // ACCESSORS
 
@@ -1265,21 +1239,16 @@ ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
                bmqp::QueueId::k_UNASSIGNED_QUEUE_ID;  // RETURN
     }
 
-    DomainStatesCIter domCit = d_clusterState_p->domainStates().find(
-        queueContext.uri().qualifiedDomain());
-    if (domCit == d_clusterState_p->domainStates().cend()) {
-        return false;  // RETURN
-    }
-
-    UriToQueueInfoMapCIter qCit = domCit->second->queuesInfo().find(
+    mqbc::ClusterStateQueueInfo* assigned = d_clusterState_p->getAssigned(
         queueContext.uri());
-    if (qCit == domCit->second->queuesInfo().cend()) {
+
+    if (assigned == 0) {
         return false;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(qCit->second->partitionId() !=
+    BSLS_ASSERT_SAFE(assigned->partitionId() !=
                          mqbs::DataStore::k_INVALID_PARTITION_ID &&
-                     !qCit->second->key().isNull());
+                     !assigned->key().isNull());
     return true;
 }
 

@@ -164,7 +164,7 @@ void populateProperties(bmqp::MessageProperties* properties,
 
     for (size_t i = 1; i < (numProps + 1); ++i) {
         size_t             remainder = i % numPropTypes;
-        bmqu::MemOutStream osstr(s_allocator_p);
+        bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
 
         switch (remainder) {
         case 0: {
@@ -174,7 +174,7 @@ void populateProperties(bmqp::MessageProperties* properties,
                 value = true;
             }
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsBool(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsBool(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -182,7 +182,7 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_BOOL, 1),  // size
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 1: {
@@ -190,7 +190,7 @@ void populateProperties(bmqp::MessageProperties* properties,
             char value = static_cast<char>(bsl::numeric_limits<char>::max() /
                                            i);
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsChar(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsChar(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -198,7 +198,7 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_CHAR, sizeof(value)),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 2: {
@@ -206,7 +206,7 @@ void populateProperties(bmqp::MessageProperties* properties,
             short value = static_cast<short>(
                 bsl::numeric_limits<short>::max() / i);
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsShort(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsShort(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -214,14 +214,14 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_SHORT, sizeof(value)),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 3: {
             osstr << "intPropName" << i << bsl::ends;
             int value = static_cast<int>(bsl::numeric_limits<int>::max() / i);
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsInt32(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsInt32(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -229,7 +229,7 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_INT32, sizeof(value)),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 4: {
@@ -237,7 +237,7 @@ void populateProperties(bmqp::MessageProperties* properties,
             bsls::Types::Int64 value =
                 bsl::numeric_limits<bsls::Types::Int64>::max() / i;
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsInt64(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsInt64(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -245,14 +245,18 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_INT64, sizeof(value)),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 5: {
             osstr << "stringPropName" << i << bsl::ends;
-            const bsl::string value(i, 'x', s_allocator_p);
+            const bsl::string value(i,
+                                    'x',
+                                    bmqtst::TestHelperUtil::allocator());
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsString(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i,
+                               0,
+                               p.setPropertyAsString(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -260,14 +264,18 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_STRING, value.size()),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         case 6: {
             osstr << "binaryPropName" << i << bsl::ends;
-            const bsl::vector<char> value(i, 'x', s_allocator_p);
+            const bsl::vector<char> value(i,
+                                          'x',
+                                          bmqtst::TestHelperUtil::allocator());
 
-            ASSERT_EQ_D(i, 0, p.setPropertyAsBinary(osstr.str(), value));
+            BMQTST_ASSERT_EQ_D(i,
+                               0,
+                               p.setPropertyAsBinary(osstr.str(), value));
 
             PropertyMapInsertRc insertRc = pmap.insert(bsl::make_pair(
                 osstr.str(),
@@ -275,7 +283,7 @@ void populateProperties(bmqp::MessageProperties* properties,
                     bsl::make_pair(bmqt::PropertyType::e_BINARY, value.size()),
                     PropertyVariant(value))));
 
-            ASSERT_EQ_D(i, true, insertRc.second);
+            BMQTST_ASSERT_EQ_D(i, true, insertRc.second);
         } break;  // BREAK
 
         default: BSLS_ASSERT_OPT(false && "Unreachable by design.");
@@ -294,13 +302,13 @@ void verify(PropertyMap*                   propertyMap,
         const bsl::string& propName = iter.name();
         PropertyMapIter    pmapIt   = pmap.find(iter.name());
 
-        ASSERT_EQ_D(iteration, false, pmap.end() == pmapIt);
+        BMQTST_ASSERT_EQ_D(iteration, false, pmap.end() == pmapIt);
 
         PropertyTypeSizeVariantPair& tsvPair = pmapIt->second;
 
-        ASSERT_EQ_D(iteration, pmapIt->first, propName);
-        ASSERT_EQ_D(iteration, iter.type(), tsvPair.first.first);
-        ASSERT_EQ_D(iteration, false, 0 == tsvPair.first.second);
+        BMQTST_ASSERT_EQ_D(iteration, pmapIt->first, propName);
+        BMQTST_ASSERT_EQ_D(iteration, iter.type(), tsvPair.first.first);
+        BMQTST_ASSERT_EQ_D(iteration, false, 0 == tsvPair.first.second);
 
         const size_t propSize = tsvPair.first.second;
 
@@ -309,63 +317,67 @@ void verify(PropertyMap*                   propertyMap,
 
         switch (tsvPair.first.first) {
         case bmqt::PropertyType::e_BOOL: {
-            ASSERT_EQ_D(iteration,
-                        1u,  // bool uses hardcoded size of 1
-                        propSize);
+            BMQTST_ASSERT_EQ_D(iteration,
+                               1u,  // bool uses hardcoded size of 1
+                               propSize);
 
-            ASSERT_EQ_D(iteration,
-                        iter.getAsBool(),
-                        tsvPair.second.the<bool>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               iter.getAsBool(),
+                               tsvPair.second.the<bool>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_CHAR: {
-            ASSERT_EQ_D(iteration, sizeof(char), propSize);
+            BMQTST_ASSERT_EQ_D(iteration, sizeof(char), propSize);
 
-            ASSERT_EQ_D(iteration,
-                        iter.getAsChar(),
-                        tsvPair.second.the<char>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               iter.getAsChar(),
+                               tsvPair.second.the<char>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_SHORT: {
-            ASSERT_EQ_D(iteration, sizeof(short), propSize);
+            BMQTST_ASSERT_EQ_D(iteration, sizeof(short), propSize);
 
-            ASSERT_EQ_D(iteration,
-                        iter.getAsShort(),
-                        tsvPair.second.the<short>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               iter.getAsShort(),
+                               tsvPair.second.the<short>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_INT32: {
-            ASSERT_EQ_D(iteration, sizeof(int), propSize);
+            BMQTST_ASSERT_EQ_D(iteration, sizeof(int), propSize);
 
-            ASSERT_EQ_D(iteration,
-                        iter.getAsInt32(),
-                        tsvPair.second.the<int>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               iter.getAsInt32(),
+                               tsvPair.second.the<int>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_INT64: {
-            ASSERT_EQ_D(iteration, sizeof(bsls::Types::Int64), propSize);
+            BMQTST_ASSERT_EQ_D(iteration,
+                               sizeof(bsls::Types::Int64),
+                               propSize);
 
-            ASSERT_EQ_D(iteration,
-                        iter.getAsInt64(),
-                        tsvPair.second.the<bsls::Types::Int64>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               iter.getAsInt64(),
+                               tsvPair.second.the<bsls::Types::Int64>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_STRING: {
             const bsl::string& value = iter.getAsString();
 
-            ASSERT_EQ_D(iteration, value.size(), propSize);
+            BMQTST_ASSERT_EQ_D(iteration, value.size(), propSize);
 
-            ASSERT_EQ_D(iteration, value, tsvPair.second.the<bsl::string>());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               value,
+                               tsvPair.second.the<bsl::string>());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_BINARY: {
             const bsl::vector<char>& value = iter.getAsBinary();
 
-            ASSERT_EQ_D(iteration, value.size(), propSize);
+            BMQTST_ASSERT_EQ_D(iteration, value.size(), propSize);
 
-            ASSERT_EQ_D(iteration,
-                        value,
-                        tsvPair.second.the<bsl::vector<char> >());
+            BMQTST_ASSERT_EQ_D(iteration,
+                               value,
+                               tsvPair.second.the<bsl::vector<char> >());
         } break;  // BREAK
 
         case bmqt::PropertyType::e_UNDEFINED:
@@ -375,8 +387,9 @@ void verify(PropertyMap*                   propertyMap,
         ++iteration;
     }
 
-    ASSERT_EQ(static_cast<size_t>(iteration), pmap.size());
-    ASSERT_EQ(static_cast<size_t>(properties.numProperties()), pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<size_t>(iteration), pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<size_t>(properties.numProperties()),
+                     pmap.size());
 }
 
 void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
@@ -438,10 +451,10 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
         totalSize += static_cast<int>(tsvPair.first.second);
     }
 
-    ASSERT_EQ(totalSize, b.length());
-    ASSERT_EQ(true,
-              totalSize <=
-                  bmqp::MessageProperties::k_MAX_PROPERTIES_AREA_LENGTH);
+    BMQTST_ASSERT_EQ(totalSize, b.length());
+    BMQTST_ASSERT_EQ(
+        true,
+        totalSize <= bmqp::MessageProperties::k_MAX_PROPERTIES_AREA_LENGTH);
 
     // Append padding.
 
@@ -463,36 +476,38 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Testing MessageProperties");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     int                            totalLen = 0;
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
     // Empty instance.
-    ASSERT_EQ(0, p.numProperties());
-    ASSERT_EQ(0, p.totalSize());
-    ASSERT_EQ(false, p.remove("foobar"));
+    BMQTST_ASSERT_EQ(0, p.numProperties());
+    BMQTST_ASSERT_EQ(0, p.totalSize());
+    BMQTST_ASSERT_EQ(false, p.remove("foobar"));
 
     bmqt::PropertyType::Enum ptype = bmqt::PropertyType::e_UNDEFINED;
-    ASSERT_EQ(false, p.remove("none", &ptype));
-    ASSERT_EQ(ptype, bmqt::PropertyType::e_UNDEFINED);
+    BMQTST_ASSERT_EQ(false, p.remove("none", &ptype));
+    BMQTST_ASSERT_EQ(ptype, bmqt::PropertyType::e_UNDEFINED);
 
-    ASSERT_EQ(false, p.hasProperty("foobar"));
+    BMQTST_ASSERT_EQ(false, p.hasProperty("foobar"));
 
-    ASSERT_EQ(0, p.streamOut(&bufferFactory, logic).length());
+    BMQTST_ASSERT_EQ(0, p.streamOut(&bufferFactory, logic).length());
 
     // Clear out the instance and repeat above.
     p.clear();
 
-    ASSERT_EQ(0, p.numProperties());
-    ASSERT_EQ(false, p.remove("foobar"));
-    ASSERT_EQ(false, p.remove("none", &ptype));
-    ASSERT_EQ(ptype, bmqt::PropertyType::e_UNDEFINED);
-    ASSERT_EQ(false, p.hasProperty("foobar"));
-    ASSERT_EQ(0, p.streamOut(&bufferFactory, logic).length());
+    BMQTST_ASSERT_EQ(0, p.numProperties());
+    BMQTST_ASSERT_EQ(false, p.remove("foobar"));
+    BMQTST_ASSERT_EQ(false, p.remove("none", &ptype));
+    BMQTST_ASSERT_EQ(ptype, bmqt::PropertyType::e_UNDEFINED);
+    BMQTST_ASSERT_EQ(false, p.hasProperty("foobar"));
+    BMQTST_ASSERT_EQ(0, p.streamOut(&bufferFactory, logic).length());
 
     // Add a property.
-    ASSERT_EQ(0, p.setPropertyAsChar("category", 'Q'));
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsChar("category", 'Q'));
 
     // Update 'totalLen'.  Since this is first property, add size of overall
     // properties header as well.
@@ -500,72 +515,78 @@ static void test1_breathingTest()
                 sizeof(bmqp::MessagePropertyHeader) + bsl::strlen("category") +
                 +1;
 
-    ASSERT_EQ(p.numProperties(), 1);
-    ASSERT_EQ(p.hasProperty("category"), true);
-    ASSERT_EQ(p.propertyType("category"), bmqt::PropertyType::e_CHAR);
-    ASSERT_EQ(p.getPropertyAsChar("category"), 'Q');
-    ASSERT_EQ(p.totalSize(), totalLen);
-    ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
+    BMQTST_ASSERT_EQ(p.numProperties(), 1);
+    BMQTST_ASSERT_EQ(p.hasProperty("category"), true);
+    BMQTST_ASSERT_EQ(p.propertyType("category"), bmqt::PropertyType::e_CHAR);
+    BMQTST_ASSERT_EQ(p.getPropertyAsChar("category"), 'Q');
+    BMQTST_ASSERT_EQ(p.totalSize(), totalLen);
+    BMQTST_ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
 
-    ASSERT_EQ(p.remove("foobar"), false);
-    ASSERT_EQ(p.hasProperty("foobar"), false);
+    BMQTST_ASSERT_EQ(p.remove("foobar"), false);
+    BMQTST_ASSERT_EQ(p.hasProperty("foobar"), false);
 
     // Add another property.
 
-    ASSERT_EQ(p.setPropertyAsInt64("timestamp", 123456789LL), 0);
+    BMQTST_ASSERT_EQ(p.setPropertyAsInt64("timestamp", 123456789LL), 0);
     totalLen += sizeof(bmqp::MessagePropertyHeader) +
                 bsl::strlen("timestamp") + sizeof(bsls::Types::Int64);
 
-    ASSERT_EQ(p.numProperties(), 2);
-    ASSERT_EQ(p.hasProperty("timestamp"), true);
-    ASSERT_EQ(p.propertyType("timestamp"), bmqt::PropertyType::e_INT64);
-    ASSERT_EQ(p.getPropertyAsInt64("timestamp"), 123456789LL);
-    ASSERT_EQ(p.totalSize(), totalLen);
-    ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
+    BMQTST_ASSERT_EQ(p.numProperties(), 2);
+    BMQTST_ASSERT_EQ(p.hasProperty("timestamp"), true);
+    BMQTST_ASSERT_EQ(p.propertyType("timestamp"), bmqt::PropertyType::e_INT64);
+    BMQTST_ASSERT_EQ(p.getPropertyAsInt64("timestamp"), 123456789LL);
+    BMQTST_ASSERT_EQ(p.totalSize(), totalLen);
+    BMQTST_ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
 
     // Delete a property.
 
-    ASSERT_EQ(true, p.remove("timestamp", &ptype));
-    ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
+    BMQTST_ASSERT_EQ(true, p.remove("timestamp", &ptype));
+    BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
 
     totalLen -= static_cast<int>(sizeof(bmqp::MessagePropertyHeader) +
                                  bsl::strlen("timestamp") +
                                  sizeof(bsls::Types::Int64));
 
-    ASSERT_EQ(p.numProperties(), 1);
-    ASSERT_EQ(p.hasProperty("category"), true);
-    ASSERT_EQ(p.propertyType("category"), bmqt::PropertyType::e_CHAR);
-    ASSERT_EQ(p.getPropertyAsChar("category"), 'Q');
-    ASSERT_EQ(p.totalSize(), totalLen);
-    ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
+    BMQTST_ASSERT_EQ(p.numProperties(), 1);
+    BMQTST_ASSERT_EQ(p.hasProperty("category"), true);
+    BMQTST_ASSERT_EQ(p.propertyType("category"), bmqt::PropertyType::e_CHAR);
+    BMQTST_ASSERT_EQ(p.getPropertyAsChar("category"), 'Q');
+    BMQTST_ASSERT_EQ(p.totalSize(), totalLen);
+    BMQTST_ASSERT_GT(p.streamOut(&bufferFactory, logic).length(), totalLen);
 
     // Test 'Or' flavor.
-    const bsl::string       dummyName("blahblah", s_allocator_p);
-    const bsl::string       defaultVal("defval", s_allocator_p);
-    const bsl::vector<char> defaultBin(1024, 'F', s_allocator_p);
+    const bsl::string       dummyName("blahblah",
+                                bmqtst::TestHelperUtil::allocator());
+    const bsl::string       defaultVal("defval",
+                                 bmqtst::TestHelperUtil::allocator());
+    const bsl::vector<char> defaultBin(1024,
+                                       'F',
+                                       bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(p.getPropertyAsStringOr(dummyName, defaultVal), defaultVal);
-    ASSERT_EQ(p.getPropertyAsInt32Or(dummyName, 42), 42);
-    ASSERT_EQ(p.getPropertyAsBoolOr(dummyName, true), true);
-    ASSERT_EQ(p.getPropertyAsCharOr(dummyName, 'Z'), 'Z');
-    ASSERT_EQ(p.getPropertyAsShortOr(dummyName, 11), 11);
-    ASSERT_EQ(p.getPropertyAsInt64Or(dummyName, 987LL), 987LL);
-    ASSERT_EQ(p.getPropertyAsBinaryOr(dummyName, defaultBin), defaultBin);
+    BMQTST_ASSERT_EQ(p.getPropertyAsStringOr(dummyName, defaultVal),
+                     defaultVal);
+    BMQTST_ASSERT_EQ(p.getPropertyAsInt32Or(dummyName, 42), 42);
+    BMQTST_ASSERT_EQ(p.getPropertyAsBoolOr(dummyName, true), true);
+    BMQTST_ASSERT_EQ(p.getPropertyAsCharOr(dummyName, 'Z'), 'Z');
+    BMQTST_ASSERT_EQ(p.getPropertyAsShortOr(dummyName, 11), 11);
+    BMQTST_ASSERT_EQ(p.getPropertyAsInt64Or(dummyName, 987LL), 987LL);
+    BMQTST_ASSERT_EQ(p.getPropertyAsBinaryOr(dummyName, defaultBin),
+                     defaultBin);
 
     PV("Testing empty MessagePropertiesIterator");
 
     bmqp::MessagePropertiesIterator objIt;
 
-    ASSERT_SAFE_FAIL(objIt.hasNext());
-    ASSERT_SAFE_FAIL(objIt.name());
-    ASSERT_SAFE_FAIL(objIt.type());
-    ASSERT_SAFE_FAIL(objIt.getAsBool());
-    ASSERT_SAFE_FAIL(objIt.getAsChar());
-    ASSERT_SAFE_FAIL(objIt.getAsShort());
-    ASSERT_SAFE_FAIL(objIt.getAsInt32());
-    ASSERT_SAFE_FAIL(objIt.getAsInt64());
-    ASSERT_SAFE_FAIL(objIt.getAsString());
-    ASSERT_SAFE_FAIL(objIt.getAsBinary());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.hasNext());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.name());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.type());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsBool());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsChar());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsShort());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsInt32());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsInt64());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsString());
+    BMQTST_ASSERT_SAFE_FAIL(objIt.getAsBinary());
 }
 
 static void test2_setPropertyTest()
@@ -574,15 +595,22 @@ static void test2_setPropertyTest()
 
     {
         // Test all flavors of 'setPropertyAs*'.
-        bmqp::MessageProperties obj(s_allocator_p);
+        bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
 
-        const bsl::string boolN("boolPropName", s_allocator_p);
-        const bsl::string charN("charPropName", s_allocator_p);
-        const bsl::string shortN("shortPropName", s_allocator_p);
-        const bsl::string intN("intPropName", s_allocator_p);
-        const bsl::string int64N("int64PropName", s_allocator_p);
-        const bsl::string stringN("stringPropName", s_allocator_p);
-        const bsl::string binaryN("binaryPropName", s_allocator_p);
+        const bsl::string boolN("boolPropName",
+                                bmqtst::TestHelperUtil::allocator());
+        const bsl::string charN("charPropName",
+                                bmqtst::TestHelperUtil::allocator());
+        const bsl::string shortN("shortPropName",
+                                 bmqtst::TestHelperUtil::allocator());
+        const bsl::string intN("intPropName",
+                               bmqtst::TestHelperUtil::allocator());
+        const bsl::string int64N("int64PropName",
+                                 bmqtst::TestHelperUtil::allocator());
+        const bsl::string stringN("stringPropName",
+                                  bmqtst::TestHelperUtil::allocator());
+        const bsl::string binaryN("binaryPropName",
+                                  bmqtst::TestHelperUtil::allocator());
 
         bool               boolV  = true;
         char               charV  = bsl::numeric_limits<char>::max();
@@ -591,73 +619,79 @@ static void test2_setPropertyTest()
         bsls::Types::Int64 int64V =
             bsl::numeric_limits<bsls::Types::Int64>::max();
 
-        bsl::string       stringV(42, 'x', s_allocator_p);
-        bsl::vector<char> binaryV(84, 250, s_allocator_p);
+        bsl::string stringV(42, 'x', bmqtst::TestHelperUtil::allocator());
+        bsl::vector<char> binaryV(84,
+                                  250,
+                                  bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_NE(0, obj.setPropertyAsBool("", boolV));
-        ASSERT_NE(0, obj.setPropertyAsChar("", charV));
-        ASSERT_NE(0, obj.setPropertyAsShort("", shortV));
-        ASSERT_NE(0, obj.setPropertyAsInt32("", intV));
-        ASSERT_NE(0, obj.setPropertyAsInt64("", int64V));
-        ASSERT_NE(0, obj.setPropertyAsString("", stringV));
-        ASSERT_NE(0, obj.setPropertyAsBinary("", binaryV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsBool("", boolV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsChar("", charV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsShort("", shortV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsInt32("", intV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsInt64("", int64V));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsString("", stringV));
+        BMQTST_ASSERT_NE(0, obj.setPropertyAsBinary("", binaryV));
 
-        ASSERT_EQ(0, obj.setPropertyAsBool(boolN, boolV));
-        ASSERT_EQ(0, obj.setPropertyAsChar(charN, charV));
-        ASSERT_EQ(0, obj.setPropertyAsShort(shortN, shortV));
-        ASSERT_EQ(0, obj.setPropertyAsInt32(intN, intV));
-        ASSERT_EQ(0, obj.setPropertyAsInt64(int64N, int64V));
-        ASSERT_EQ(0, obj.setPropertyAsString(stringN, stringV));
-        ASSERT_EQ(0, obj.setPropertyAsBinary(binaryN, binaryV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsBool(boolN, boolV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsChar(charN, charV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsShort(shortN, shortV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsInt32(intN, intV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsInt64(int64N, int64V));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsString(stringN, stringV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsBinary(binaryN, binaryV));
 
-        ASSERT_EQ(7, obj.numProperties());
+        BMQTST_ASSERT_EQ(7, obj.numProperties());
 
-        ASSERT_EQ(true, obj.hasProperty(boolN));
-        ASSERT_EQ(true, obj.hasProperty(charN));
-        ASSERT_EQ(true, obj.hasProperty(shortN));
-        ASSERT_EQ(true, obj.hasProperty(intN));
-        ASSERT_EQ(true, obj.hasProperty(int64N));
-        ASSERT_EQ(true, obj.hasProperty(stringN));
-        ASSERT_EQ(true, obj.hasProperty(binaryN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(boolN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(charN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(shortN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(intN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(int64N));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(stringN));
+        BMQTST_ASSERT_EQ(true, obj.hasProperty(binaryN));
 
-        ASSERT_EQ(bmqt::PropertyType::e_BOOL, obj.propertyType(boolN));
-        ASSERT_EQ(bmqt::PropertyType::e_CHAR, obj.propertyType(charN));
-        ASSERT_EQ(bmqt::PropertyType::e_SHORT, obj.propertyType(shortN));
-        ASSERT_EQ(bmqt::PropertyType::e_INT32, obj.propertyType(intN));
-        ASSERT_EQ(bmqt::PropertyType::e_INT64, obj.propertyType(int64N));
-        ASSERT_EQ(bmqt::PropertyType::e_STRING, obj.propertyType(stringN));
-        ASSERT_EQ(bmqt::PropertyType::e_BINARY, obj.propertyType(binaryN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_BOOL, obj.propertyType(boolN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_CHAR, obj.propertyType(charN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_SHORT,
+                         obj.propertyType(shortN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT32, obj.propertyType(intN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT64,
+                         obj.propertyType(int64N));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_STRING,
+                         obj.propertyType(stringN));
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_BINARY,
+                         obj.propertyType(binaryN));
 
         bmqt::PropertyType::Enum ptype = bmqt::PropertyType::e_UNDEFINED;
 
-        ASSERT_EQ(obj.hasProperty(boolN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_BOOL, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(boolN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_BOOL, ptype);
 
-        ASSERT_EQ(obj.hasProperty(charN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_CHAR, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(charN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_CHAR, ptype);
 
-        ASSERT_EQ(obj.hasProperty(shortN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_SHORT, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(shortN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_SHORT, ptype);
 
-        ASSERT_EQ(obj.hasProperty(intN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_INT32, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(intN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT32, ptype);
 
-        ASSERT_EQ(obj.hasProperty(int64N, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(int64N, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_INT64, ptype);
 
-        ASSERT_EQ(obj.hasProperty(stringN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_STRING, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(stringN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_STRING, ptype);
 
-        ASSERT_EQ(obj.hasProperty(binaryN, &ptype), true);
-        ASSERT_EQ(bmqt::PropertyType::e_BINARY, ptype);
+        BMQTST_ASSERT_EQ(obj.hasProperty(binaryN, &ptype), true);
+        BMQTST_ASSERT_EQ(bmqt::PropertyType::e_BINARY, ptype);
 
-        ASSERT_EQ(boolV, obj.getPropertyAsBool(boolN));
-        ASSERT_EQ(charV, obj.getPropertyAsChar(charN));
-        ASSERT_EQ(shortV, obj.getPropertyAsShort(shortN));
-        ASSERT_EQ(intV, obj.getPropertyAsInt32(intN));
-        ASSERT_EQ(int64V, obj.getPropertyAsInt64(int64N));
-        ASSERT_EQ(stringV, obj.getPropertyAsString(stringN));
-        ASSERT_EQ(binaryV, obj.getPropertyAsBinary(binaryN));
+        BMQTST_ASSERT_EQ(boolV, obj.getPropertyAsBool(boolN));
+        BMQTST_ASSERT_EQ(charV, obj.getPropertyAsChar(charN));
+        BMQTST_ASSERT_EQ(shortV, obj.getPropertyAsShort(shortN));
+        BMQTST_ASSERT_EQ(intV, obj.getPropertyAsInt32(intN));
+        BMQTST_ASSERT_EQ(int64V, obj.getPropertyAsInt64(int64N));
+        BMQTST_ASSERT_EQ(stringV, obj.getPropertyAsString(stringN));
+        BMQTST_ASSERT_EQ(binaryV, obj.getPropertyAsBinary(binaryN));
 
         // Update the values of the existed properties.
         // --------------------------------------------
@@ -666,58 +700,62 @@ static void test2_setPropertyTest()
         shortV  = 17;
         intV    = 987;
         int64V  = 123456LL;
-        stringV = bsl::string(42, 'z', s_allocator_p);
-        binaryV = bsl::vector<char>(29, 170, s_allocator_p);
+        stringV = bsl::string(42, 'z', bmqtst::TestHelperUtil::allocator());
+        binaryV = bsl::vector<char>(29,
+                                    170,
+                                    bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(0, obj.setPropertyAsBool(boolN, boolV));
-        ASSERT_EQ(0, obj.setPropertyAsChar(charN, charV));
-        ASSERT_EQ(0, obj.setPropertyAsShort(shortN, shortV));
-        ASSERT_EQ(0, obj.setPropertyAsInt32(intN, intV));
-        ASSERT_EQ(0, obj.setPropertyAsInt64(int64N, int64V));
-        ASSERT_EQ(0, obj.setPropertyAsString(stringN, stringV));
-        ASSERT_EQ(0, obj.setPropertyAsBinary(binaryN, binaryV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsBool(boolN, boolV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsChar(charN, charV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsShort(shortN, shortV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsInt32(intN, intV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsInt64(int64N, int64V));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsString(stringN, stringV));
+        BMQTST_ASSERT_EQ(0, obj.setPropertyAsBinary(binaryN, binaryV));
 
-        ASSERT_EQ(boolV, obj.getPropertyAsBool(boolN));
-        ASSERT_EQ(charV, obj.getPropertyAsChar(charN));
-        ASSERT_EQ(shortV, obj.getPropertyAsShort(shortN));
-        ASSERT_EQ(intV, obj.getPropertyAsInt32(intN));
-        ASSERT_EQ(int64V, obj.getPropertyAsInt64(int64N));
-        ASSERT_EQ(stringV, obj.getPropertyAsString(stringN));
-        ASSERT_EQ(binaryV, obj.getPropertyAsBinary(binaryN));
+        BMQTST_ASSERT_EQ(boolV, obj.getPropertyAsBool(boolN));
+        BMQTST_ASSERT_EQ(charV, obj.getPropertyAsChar(charN));
+        BMQTST_ASSERT_EQ(shortV, obj.getPropertyAsShort(shortN));
+        BMQTST_ASSERT_EQ(intV, obj.getPropertyAsInt32(intN));
+        BMQTST_ASSERT_EQ(int64V, obj.getPropertyAsInt64(int64N));
+        BMQTST_ASSERT_EQ(stringV, obj.getPropertyAsString(stringN));
+        BMQTST_ASSERT_EQ(binaryV, obj.getPropertyAsBinary(binaryN));
     }
 
     {
         // Test 'setPropertyAs*' to return error.
-        bmqp::MessageProperties p(s_allocator_p);
+        bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
 
         // Invalid property name.
         // ---------------------
-        const bsl::string invalidPropName1("#MyPropName", s_allocator_p);
+        const bsl::string invalidPropName1(
+            "#MyPropName",
+            bmqtst::TestHelperUtil::allocator());
         const bsl::string invalidPropName2(
             bmqp::MessageProperties::k_MAX_PROPERTY_NAME_LENGTH + 1,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
-                  p.setPropertyAsChar(invalidPropName1, 'A'));
-        ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
-                  p.setPropertyAsChar(invalidPropName2, 'A'));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
+                         p.setPropertyAsChar(invalidPropName1, 'A'));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
+                         p.setPropertyAsChar(invalidPropName2, 'A'));
 
         // Invalid property value length.
         // -----------------------------
         const bsl::string invalidValue(
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH + 1,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
-                  p.setPropertyAsString("dummy", invalidValue));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
+                         p.setPropertyAsString("dummy", invalidValue));
 
         // Property with same name but with different type exists.
         // ------------------------------------------------------
-        ASSERT_EQ(0, p.setPropertyAsString("name", "value"));
-        ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
-                  p.setPropertyAsInt64("name", 123456789LL));
+        BMQTST_ASSERT_EQ(0, p.setPropertyAsString("name", "value"));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_INVALID_ARGUMENT,
+                         p.setPropertyAsInt64("name", 123456789LL));
 
         // Property with the same name and type but no more space
         // left for bigger values.
@@ -725,20 +763,20 @@ static void test2_setPropertyTest()
         const bsl::string bigValue(
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH,
             'x',
-            s_allocator_p);
+            bmqtst::TestHelperUtil::allocator());
 
         const int numProp =
             bmqp::MessageProperties::k_MAX_PROPERTIES_AREA_LENGTH /
             bmqp::MessageProperties::k_MAX_PROPERTY_VALUE_LENGTH;
 
         for (int i = 0; i < numProp; ++i) {
-            bmqu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << "propName" << i << bsl::ends;
-            ASSERT_EQ(0, p.setPropertyAsString(osstr.str(), bigValue));
+            BMQTST_ASSERT_EQ(0, p.setPropertyAsString(osstr.str(), bigValue));
         }
 
-        ASSERT_EQ(bmqt::GenericResult::e_REFUSED,
-                  p.setPropertyAsString("name", bigValue));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_REFUSED,
+                         p.setPropertyAsString("name", bigValue));
 
         // Exceed total number of properties.
         // ---------------------------------
@@ -746,13 +784,13 @@ static void test2_setPropertyTest()
 
         for (int i = 0; i < bmqp::MessageProperties::k_MAX_NUM_PROPERTIES;
              ++i) {
-            bmqu::MemOutStream osstr(s_allocator_p);
+            bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << "propName" << i << bsl::ends;
-            ASSERT_EQ(0, p.setPropertyAsInt32(osstr.str(), i));
+            BMQTST_ASSERT_EQ(0, p.setPropertyAsInt32(osstr.str(), i));
         }
         // Add one more property, which should fail.
-        ASSERT_EQ(bmqt::GenericResult::e_REFUSED,
-                  p.setPropertyAsShort("dummy", 42));
+        BMQTST_ASSERT_EQ(bmqt::GenericResult::e_REFUSED,
+                         p.setPropertyAsShort("dummy", 42));
     }
 }
 
@@ -761,21 +799,26 @@ static void test3_binaryPropertyTest()
     // Ensure that a binary property is set and retrieved correctly.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
 
     const size_t      length   = 2080;
     const char        binValue = bsl::numeric_limits<char>::max();
-    bsl::vector<char> binaryV(length, binValue, s_allocator_p);
-    const bsl::string binaryN("binPropName", s_allocator_p);
+    bsl::vector<char> binaryV(length,
+                              binValue,
+                              bmqtst::TestHelperUtil::allocator());
+    const bsl::string binaryN("binPropName",
+                              bmqtst::TestHelperUtil::allocator());
 
-    bmqp::MessageProperties p(s_allocator_p);
-    ASSERT_EQ(0, p.setPropertyAsBinary(binaryN, binaryV));
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsBinary(binaryN, binaryV));
 
     bmqt::PropertyType::Enum ptype = bmqt::PropertyType::e_UNDEFINED;
-    ASSERT_EQ(true, p.hasProperty(binaryN, &ptype));
-    ASSERT_EQ(bmqt::PropertyType::e_BINARY, ptype);
+    BMQTST_ASSERT_EQ(true, p.hasProperty(binaryN, &ptype));
+    BMQTST_ASSERT_EQ(bmqt::PropertyType::e_BINARY, ptype);
     const bsl::vector<char>& outV = p.getPropertyAsBinary(binaryN);
-    ASSERT_EQ(true, binaryV == outV);
+    BMQTST_ASSERT_EQ(true, binaryV == outV);
 }
 
 static void test4_iteratorTest()
@@ -783,16 +826,18 @@ static void test4_iteratorTest()
     // Ensure iterator's functionality is correct.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     const size_t                   numProps = 157;
-    PropertyMap                    pmap(s_allocator_p);
+    PropertyMap                    pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate 'p' instance with various properties.
     populateProperties(&p, &pmap, numProps);
 
-    ASSERT_EQ(static_cast<int>(numProps), p.numProperties());
-    ASSERT_EQ(numProps, pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<int>(numProps), p.numProperties());
+    BMQTST_ASSERT_EQ(numProps, pmap.size());
 
     // Iterate over 'p' and verify that each entry in 'pmap' is encountered,
     // and encountered only once.  When an entry is encountered, we will simply
@@ -806,34 +851,36 @@ static void test5_streamInTest()
     // Ensure 'streamIn' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamIn' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
     // Empty rep.
     p.streamIn(wireRep, logic.isExtended());
-    ASSERT_EQ(0, p.numProperties());
-    ASSERT_EQ(0, p.totalSize());
+    BMQTST_ASSERT_EQ(0, p.numProperties());
+    BMQTST_ASSERT_EQ(0, p.totalSize());
 
     // Real stuff.
     const size_t numProps = 207;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate with various properties.
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
-    ASSERT_EQ(static_cast<int>(numProps), dummyP.numProperties());
-    ASSERT_EQ(numProps, pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<int>(numProps), dummyP.numProperties());
+    BMQTST_ASSERT_EQ(numProps, pmap.size());
 
     encode(&wireRep, pmap);
 
-    ASSERT_EQ(0, p.streamIn(wireRep, logic.isExtended()));
+    BMQTST_ASSERT_EQ(0, p.streamIn(wireRep, logic.isExtended()));
     // Note that 'streamIn' will invoke 'clear' on 'p' unconditionally.
 
     // Recall that 'MessageProperties::totalSize()' returns length of its wire
@@ -845,7 +892,7 @@ static void test5_streamInTest()
         padding = lastBuf.data()[wireRep.lastDataBufferLength() - 1];
     }
 
-    ASSERT_EQ((p.totalSize() + padding), wireRep.length());
+    BMQTST_ASSERT_EQ((p.totalSize() + padding), wireRep.length());
 
     verify(&pmap, p);
 }
@@ -855,52 +902,56 @@ static void test6_streamOutTest()
     // Ensure 'streamOut' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamOut' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeInvalidSchema();
 
     // Empty rep.
     const bdlbb::Blob& out = p.streamOut(&bufferFactory, logic);
-    ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out));
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out));
 
     // Non empty.
     const size_t numProps = 187;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&p, &pmap, numProps);
 
-    ASSERT_EQ(static_cast<int>(numProps), p.numProperties());
-    ASSERT_EQ(numProps, pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<int>(numProps), p.numProperties());
+    BMQTST_ASSERT_EQ(numProps, pmap.size());
 
     encode(&wireRep, pmap);
     verify(&pmap, p);
 
     const bdlbb::Blob& out2 = p.streamOut(&bufferFactory, logic);
 
-    bdlbb::PooledBlobBufferFactory bigBufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    buffer(&bigBufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bigBufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob buffer(&bigBufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0,
-              bmqp::ProtocolUtil::convertToOld(
-                  &buffer,
-                  &out2,
-                  bmqt::CompressionAlgorithmType::e_NONE,
-                  &bufferFactory,
-                  s_allocator_p));
+    BMQTST_ASSERT_EQ(0,
+                     bmqp::ProtocolUtil::convertToOld(
+                         &buffer,
+                         &out2,
+                         bmqt::CompressionAlgorithmType::e_NONE,
+                         &bufferFactory,
+                         bmqtst::TestHelperUtil::allocator()));
     // 'streamOut' encodes in the new style, 'encode' - in the old
-    ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, buffer));
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, buffer));
 
-    ASSERT_EQ(0,
-              bmqp::ProtocolUtil::convertToOld(
-                  const_cast<bdlbb::Blob*>(&out2),
-                  &out2,
-                  bmqt::CompressionAlgorithmType::e_NONE,
-                  &bufferFactory,
-                  s_allocator_p));
+    BMQTST_ASSERT_EQ(0,
+                     bmqp::ProtocolUtil::convertToOld(
+                         const_cast<bdlbb::Blob*>(&out2),
+                         &out2,
+                         bmqt::CompressionAlgorithmType::e_NONE,
+                         &bufferFactory,
+                         bmqtst::TestHelperUtil::allocator()));
     // 'streamOut' encodes in the new style, 'encode' - in the old
-    ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out2));
+    BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out2));
 }
 
 static void test7_streamInOutMixTest()
@@ -910,30 +961,32 @@ static void test7_streamInOutMixTest()
 
     bmqtst::TestHelper::printTestName("'streamIn/Out Mix' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties        p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
     // First stream in a valid wire-representation in an instance.
     const size_t numProps = 37;
-    PropertyMap  pmap(s_allocator_p);
+    PropertyMap  pmap(bmqtst::TestHelperUtil::allocator());
 
     // Populate with various properties.
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
-    ASSERT_EQ(static_cast<int>(numProps), dummyP.numProperties());
-    ASSERT_EQ(numProps, pmap.size());
+    BMQTST_ASSERT_EQ(static_cast<int>(numProps), dummyP.numProperties());
+    BMQTST_ASSERT_EQ(numProps, pmap.size());
 
     encode(&wireRep, pmap);
 
-    ASSERT_EQ(0, p.streamIn(wireRep, logic.isExtended()));
+    BMQTST_ASSERT_EQ(0, p.streamIn(wireRep, logic.isExtended()));
 
     // Recall that 'MessageProperties::totalSize()' returns length of its wire
     // representation *excluding* the word-aligned padding at the end.
@@ -945,17 +998,17 @@ static void test7_streamInOutMixTest()
         padding = lastBuf.data()[wireRep.lastDataBufferLength() - 1];
     }
 
-    ASSERT_EQ((p.totalSize() + padding), wireRep.length());
+    BMQTST_ASSERT_EQ((p.totalSize() + padding), wireRep.length());
 
     verify(&pmap, p);
 
     // 'wireRep' has now been correctly streamed into 'p'.
 
     // Add another property in 'p' so that internal wire rep becomes dirty.
-    bsl::string newPropName("1111111111", s_allocator_p);
+    bsl::string newPropName("1111111111", bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(0, p.setPropertyAsBool(newPropName, false));
-    ASSERT_EQ(static_cast<int>(numProps + 1), p.numProperties());
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsBool(newPropName, false));
+    BMQTST_ASSERT_EQ(static_cast<int>(numProps + 1), p.numProperties());
 
     // Now stream out 'p'.
     const bdlbb::Blob& newWireRep = p.streamOut(&bufferFactory, logic);
@@ -964,7 +1017,7 @@ static void test7_streamInOutMixTest()
             newWireRep.numDataBuffers() - 1);
         padding = lastBuf.data()[newWireRep.lastDataBufferLength() - 1];
     }
-    ASSERT_EQ(newWireRep.length(), (p.totalSize() + padding));
+    BMQTST_ASSERT_EQ(newWireRep.length(), (p.totalSize() + padding));
 }
 
 static void test8_printTest()
@@ -997,21 +1050,27 @@ static void test8_printTest()
     BSLMF_ASSERT(bmqt::PropertyType::e_BINARY ==
                  bmqt::PropertyType::k_HIGHEST_SUPPORTED_PROPERTY_TYPE);
 
-    const bsl::string boolN("boolPropName", s_allocator_p);
-    const bsl::string charN("charPropName", s_allocator_p);
-    const bsl::string shortN("shortPropName", s_allocator_p);
-    const bsl::string intN("intPropName", s_allocator_p);
-    const bsl::string int64N("int64PropName", s_allocator_p);
-    const bsl::string stringN("stringPropName", s_allocator_p);
-    const bsl::string binaryN("binaryPropName", s_allocator_p);
+    const bsl::string boolN("boolPropName",
+                            bmqtst::TestHelperUtil::allocator());
+    const bsl::string charN("charPropName",
+                            bmqtst::TestHelperUtil::allocator());
+    const bsl::string shortN("shortPropName",
+                             bmqtst::TestHelperUtil::allocator());
+    const bsl::string intN("intPropName", bmqtst::TestHelperUtil::allocator());
+    const bsl::string int64N("int64PropName",
+                             bmqtst::TestHelperUtil::allocator());
+    const bsl::string stringN("stringPropName",
+                              bmqtst::TestHelperUtil::allocator());
+    const bsl::string binaryN("binaryPropName",
+                              bmqtst::TestHelperUtil::allocator());
 
     bool               boolV  = true;
     char               charV  = 63;
     short              shortV = 500;
     int                intV   = 333;
     bsls::Types::Int64 int64V = 123LL;
-    bsl::string        stringV(3, 'A', s_allocator_p);
-    bsl::vector<char>  binaryV(15, 255, s_allocator_p);
+    bsl::string        stringV(3, 'A', bmqtst::TestHelperUtil::allocator());
+    bsl::vector<char>  binaryV(15, 255, bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         bmqt::PropertyType::Enum d_type;
@@ -1033,9 +1092,9 @@ static void test8_printTest()
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&             test = k_DATA[idx];
-        bmqp::MessageProperties obj(s_allocator_p);
-        bmqu::MemOutStream      out(s_allocator_p);
-        bmqu::MemOutStream      expected(s_allocator_p);
+        bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream      out(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream      expected(bmqtst::TestHelperUtil::allocator());
 
         switch (test.d_type) {
         case bmqt::PropertyType::e_BOOL: {
@@ -1068,17 +1127,17 @@ static void test8_printTest()
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
 
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
 
         out.clear();
         obj.print(out, 0, -1);
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
 
         out.reset();
         out << obj;
 
-        ASSERT_EQ(out.str(), expected.str());
+        BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
 
@@ -1104,10 +1163,12 @@ static void test9_copyAssignTest()
 {
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        obj(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
-    PropertyMap                    pmap(s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    PropertyMap pmap(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
 
@@ -1118,21 +1179,21 @@ static void test9_copyAssignTest()
 
     // Note that `dummyP` is used only because `populateProperties`
     // requires one.
-    bmqp::MessageProperties dummyP(s_allocator_p);
+    bmqp::MessageProperties dummyP(bmqtst::TestHelperUtil::allocator());
 
     populateProperties(&dummyP, &pmap, numProps);
 
-    ASSERT_EQ(numProps, pmap.size());
+    BMQTST_ASSERT_EQ(numProps, pmap.size());
 
     encode(&wireRep, pmap);
 
-    ASSERT_EQ(0, obj.streamIn(wireRep, logic.isExtended()));
+    BMQTST_ASSERT_EQ(0, obj.streamIn(wireRep, logic.isExtended()));
 
     // Check copy ctr
     bmqp::MessageProperties obj1 = obj;
 
-    ASSERT_EQ(obj.totalSize(), obj1.totalSize());
-    ASSERT_EQ(obj.numProperties(), obj1.numProperties());
+    BMQTST_ASSERT_EQ(obj.totalSize(), obj1.totalSize());
+    BMQTST_ASSERT_EQ(obj.numProperties(), obj1.numProperties());
 
     PropertyMap pmap1 = pmap;
     verify(&pmap1, obj1);
@@ -1141,8 +1202,8 @@ static void test9_copyAssignTest()
     bmqp::MessageProperties obj2;
     obj2 = obj;
 
-    ASSERT_EQ(obj.totalSize(), obj2.totalSize());
-    ASSERT_EQ(obj.numProperties(), obj2.numProperties());
+    BMQTST_ASSERT_EQ(obj.totalSize(), obj2.totalSize());
+    BMQTST_ASSERT_EQ(obj.numProperties(), obj2.numProperties());
 
     PropertyMap pmap2 = pmap;
     verify(&pmap2, obj2);
@@ -1159,20 +1220,22 @@ static void test10_empty()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(128, s_allocator_p);
-    bmqp::MessageProperties        p(s_allocator_p);
-    bdlbb::Blob                    wireRep(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo    logic(true, 1, true);
 
     // Empty rep.
     p.streamIn(wireRep, logic.isExtended());
-    ASSERT_EQ(0, p.numProperties());
-    ASSERT_EQ(0, p.totalSize());
+    BMQTST_ASSERT_EQ(0, p.numProperties());
+    BMQTST_ASSERT_EQ(0, p.totalSize());
 
     const bdlbb::Blob& out = p.streamOut(&bufferFactory, logic);
-    ASSERT_EQ(0, out.length());
+    BMQTST_ASSERT_EQ(0, out.length());
 
-    ASSERT(!p.hasProperty("z"));
+    BMQTST_ASSERT(!p.hasProperty("z"));
 }
 
 // ============================================================================
@@ -1183,7 +1246,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -1199,7 +1262,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

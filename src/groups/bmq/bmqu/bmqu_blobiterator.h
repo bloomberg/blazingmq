@@ -135,11 +135,6 @@ class BlobIterator {
     /// referring to a valid value.
     const char& operator*() const;
 
-    /// Return a pointer to the byte being referred to by this
-    /// iterator.  The behavior is undefined if this iterator isn't
-    /// referring to a valid value.
-    const char* operator->() const;
-
     /// Return `true` if this `BlobIterator` has reached its end.
     bool atEnd() const;
 
@@ -282,11 +277,6 @@ inline bool BlobIterator::operator!=(const BlobIterator& rhs) const
 inline const char& BlobIterator::operator*() const
 {
     return d_blob_p->buffer(d_pos.buffer()).data()[d_pos.byte()];
-}
-
-inline const char* BlobIterator::operator->() const
-{
-    return &**this;
 }
 
 inline bool BlobIterator::atEnd() const

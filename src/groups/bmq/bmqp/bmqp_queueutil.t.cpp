@@ -65,7 +65,8 @@ static void test1_createQueueIdFromHandleParameters()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.qId() = test.d_id;
 
         if (test.d_hasSubId) {
@@ -79,14 +80,14 @@ static void test1_createQueueIdFromHandleParameters()
             bmqp::QueueUtil::createQueueIdFromHandleParameters(handleParams);
 
         if (test.d_hasSubId) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        result,
-                        bmqp::QueueId(test.d_id, test.d_subId));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               result,
+                               bmqp::QueueId(test.d_id, test.d_subId));
         }
         else {
-            ASSERT_EQ_D("line " << test.d_line,
-                        result,
-                        bmqp::QueueId(test.d_id));
+            BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                               result,
+                               bmqp::QueueId(test.d_id));
         }
     }
 }
@@ -120,8 +121,10 @@ static void test2_extractSubQueueId()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueStreamParameters streamParams(s_allocator_p);
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueStreamParameters streamParams(
+            bmqtst::TestHelperUtil::allocator());
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
 
         if (test.d_hasSubId) {
             streamParams.subIdInfo().makeValue().subId() = test.d_subId;
@@ -134,20 +137,24 @@ static void test2_extractSubQueueId()
                         << handleParams);
 
         if (test.d_hasSubId) {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(streamParams),
-                        test.d_subId);
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(handleParams),
-                        test.d_subId);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(streamParams),
+                test.d_subId);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(handleParams),
+                test.d_subId);
         }
         else {
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(streamParams),
-                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
-            ASSERT_EQ_D("line " << test.d_line,
-                        bmqp::QueueUtil::extractSubQueueId(handleParams),
-                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(streamParams),
+                bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+            BMQTST_ASSERT_EQ_D(
+                "line " << test.d_line,
+                bmqp::QueueUtil::extractSubQueueId(handleParams),
+                bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
         }
     }
 }
@@ -235,13 +242,16 @@ static void test3_extractCanonicalHandleParameters()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.flags() = test.d_flags;
-        handleParams.uri()   = bsl::string(test.d_uri, s_allocator_p);
+        handleParams.uri()   = bsl::string(test.d_uri,
+                                         bmqtst::TestHelperUtil::allocator());
         if (test.d_hasSubStreamInfo) {
             bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo =
                 handleParams.subIdInfo().makeValue();
-            subStreamInfo.appId() = bsl::string(test.d_appId, s_allocator_p);
+            subStreamInfo.appId() =
+                bsl::string(test.d_appId, bmqtst::TestHelperUtil::allocator());
             subStreamInfo.subId() = test.d_subId;
         }
         handleParams.readCount()  = test.d_readCount;
@@ -251,24 +261,25 @@ static void test3_extractCanonicalHandleParameters()
         PVV(test.d_line << ": extracting canonical handle parameters from "
                         << "'handleParameters': " << handleParams);
 
-        bmqp_ctrlmsg::QueueHandleParameters result(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters result(
+            bmqtst::TestHelperUtil::allocator());
         result = bmqp::QueueUtil::extractCanonicalHandleParameters(
             &result,
             handleParams);
-        bmqt::Uri   expectedUri(s_allocator_p);
-        bsl::string errorDescription(s_allocator_p);
+        bmqt::Uri   expectedUri(bmqtst::TestHelperUtil::allocator());
+        bsl::string errorDescription(bmqtst::TestHelperUtil::allocator());
         int         rc = bmqt::UriParser::parse(&expectedUri,
                                         &errorDescription,
                                         test.d_uri);
         BSLS_ASSERT_OPT(rc == 0);
 
-        ASSERT_EQ(result.flags(), test.d_flags);
-        ASSERT_EQ(result.uri(), expectedUri.canonical());
+        BMQTST_ASSERT_EQ(result.flags(), test.d_flags);
+        BMQTST_ASSERT_EQ(result.uri(), expectedUri.canonical());
 
-        ASSERT_EQ(result.subIdInfo().isNull(), true);
-        ASSERT_EQ(result.readCount(), test.d_readCount);
-        ASSERT_EQ(result.writeCount(), test.d_writeCount);
-        ASSERT_EQ(result.adminCount(), test.d_adminCount);
+        BMQTST_ASSERT_EQ(result.subIdInfo().isNull(), true);
+        BMQTST_ASSERT_EQ(result.readCount(), test.d_readCount);
+        BMQTST_ASSERT_EQ(result.writeCount(), test.d_writeCount);
+        BMQTST_ASSERT_EQ(result.adminCount(), test.d_adminCount);
     }
 }
 
@@ -341,7 +352,8 @@ static void test4_isEmpty()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        bmqp_ctrlmsg::QueueHandleParameters handleParams(s_allocator_p);
+        bmqp_ctrlmsg::QueueHandleParameters handleParams(
+            bmqtst::TestHelperUtil::allocator());
         handleParams.readCount()  = test.d_readCount;
         handleParams.writeCount() = test.d_writeCount;
         handleParams.adminCount() = test.d_adminCount;
@@ -350,7 +362,8 @@ static void test4_isEmpty()
                         << bsl::boolalpha << test.d_expected << "',"
                         << " handleParameters: " << handleParams);
 
-        ASSERT_EQ(bmqp::QueueUtil::isEmpty(handleParams), test.d_expected);
+        BMQTST_ASSERT_EQ(bmqp::QueueUtil::isEmpty(handleParams),
+                         test.d_expected);
     }
 }
 
@@ -360,16 +373,16 @@ static void test5_isValidFanoutConsumerSubId()
 
     using namespace bmqp;
 
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_RESERVED_SUBQUEUE_ID));
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID));
-    ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
+    BMQTST_ASSERT(!QueueUtil::isValidFanoutConsumerSubQueueId(
         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID));
 
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(123));
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(99999));
-    ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(987654321));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(123));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(99999));
+    BMQTST_ASSERT(QueueUtil::isValidFanoutConsumerSubQueueId(987654321));
 }
 
 // ============================================================================
@@ -380,7 +393,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -391,7 +404,7 @@ int main(int argc, char* argv[])
     case 1: test1_createQueueIdFromHandleParameters(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

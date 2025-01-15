@@ -26,6 +26,7 @@
 
 // BDE
 #include <bsl_iostream.h>
+#include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqba {
@@ -129,9 +130,9 @@ CommandRouter::ClusterWideRoutingMode::ClusterWideRoutingMode()
 }
 
 int CommandRouter::ClusterWideRoutingMode::getRouteTargets(
-    bsl::ostream&  errorDescription,
-    RouteTargets*  routeTargets,
-    mqbi::Cluster* cluster)
+    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
+    RouteTargets*                   routeTargets,
+    mqbi::Cluster*                  cluster)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(routeTargets);
@@ -313,6 +314,10 @@ void CommandRouter::setCommandRoutingMode()
         else if (domains.isReconfigureValue()) {
             d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
             // DOMAINS RECONFIGURE <domain>
+        }
+        else if (domains.isRemoveValue()) {
+            d_routingModeMp.load(new (*allocator) ClusterWideRoutingMode());
+            // DOMAINS REMOVE <domain> [FINALIZE]
         }
     }
     else if (commandChoice.isClustersValue()) {

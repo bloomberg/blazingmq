@@ -107,7 +107,7 @@ static void test1_context_singleton()
     bmqex::SystemExecutor_Context* ctx2 =
         &bmqex::SystemExecutor_Context::singleton();
 
-    ASSERT_EQ(ctx1, ctx2);
+    BMQTST_ASSERT_EQ(ctx1, ctx2);
 }
 
 static void test2_context_creators()
@@ -143,7 +143,7 @@ static void test2_context_creators()
         bmqex::SystemExecutor_Context::initSingleton(&alloc);
 
     // context initialized with the test allocator
-    ASSERT_EQ(context.allocator(), &alloc);
+    BMQTST_ASSERT_EQ(context.allocator(), &alloc);
 
     bsls::AtomicInt threadsCompleted(0);
     for (int i = 0; i < k_NUM_JOBS; ++i) {
@@ -160,7 +160,7 @@ static void test2_context_creators()
     bmqex::SystemExecutor_Context::shutdownSingleton();
 
     // all thread owned by the execution context have completed
-    ASSERT_EQ(threadsCompleted, k_NUM_JOBS);
+    BMQTST_ASSERT_EQ(threadsCompleted, k_NUM_JOBS);
 
     // delete the thread-local storage
     rc = bslmt::ThreadUtil::deleteKey(tlsKey);
@@ -194,7 +194,7 @@ static void test3_executor_creators()
     {
         bmqex::SystemExecutor ex;
 
-        ASSERT(!ex.threadAttributes());
+        BMQTST_ASSERT(!ex.threadAttributes());
     }
 
     // 2. ThreadAttributes-construct
@@ -214,19 +214,19 @@ static void test3_executor_creators()
         bmqex::SystemExecutor ex(attr, &alloc);
 
         // executor holds a copy of the thread attributes
-        ASSERT(ex.threadAttributes());
-        ASSERT(ex.threadAttributes() != &attr);
+        BMQTST_ASSERT(ex.threadAttributes());
+        BMQTST_ASSERT(ex.threadAttributes() != &attr);
 
         // the copy is identical to the original value
-        ASSERT_EQ(ex.threadAttributes()->detachedState(),
-                  bslmt::ThreadAttributes::e_CREATE_JOINABLE);
-        ASSERT_EQ(ex.threadAttributes()->guardSize(), 100);
-        ASSERT_EQ(ex.threadAttributes()->inheritSchedule(), false);
-        ASSERT_EQ(ex.threadAttributes()->schedulingPolicy(),
-                  bslmt::ThreadAttributes::e_SCHED_FIFO);
-        ASSERT_EQ(ex.threadAttributes()->schedulingPriority(), 200);
-        ASSERT_EQ(ex.threadAttributes()->stackSize(), 300);
-        ASSERT_EQ(ex.threadAttributes()->threadName(), "myThread");
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->detachedState(),
+                         bslmt::ThreadAttributes::e_CREATE_JOINABLE);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->guardSize(), 100);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->inheritSchedule(), false);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->schedulingPolicy(),
+                         bslmt::ThreadAttributes::e_SCHED_FIFO);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->schedulingPriority(), 200);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->stackSize(), 300);
+        BMQTST_ASSERT_EQ(ex.threadAttributes()->threadName(), "myThread");
     }
 }
 
@@ -268,14 +268,14 @@ static void test4_executor_post()
                                         &sem2));
 
         // function object not executed yet
-        ASSERT_EQ(jobNo, i);
+        BMQTST_ASSERT_EQ(jobNo, i);
 
         sem1.post();  // allow job to continue
         sem2.wait();  // wait till work is done
 
         // function object executed in another thread
-        ASSERT_EQ(jobNo, i + 1);
-        ASSERT_NE(threadId, bslmt::ThreadUtil::selfId());
+        BMQTST_ASSERT_EQ(jobNo, i + 1);
+        BMQTST_ASSERT_NE(threadId, bslmt::ThreadUtil::selfId());
     }
 }
 
@@ -313,8 +313,8 @@ static void test5_executor_dispatch()
                                         &threadId));
 
         // function object executed in this thread
-        ASSERT_EQ(jobNo, i + 1);
-        ASSERT_EQ(threadId, bslmt::ThreadUtil::selfId());
+        BMQTST_ASSERT_EQ(jobNo, i + 1);
+        BMQTST_ASSERT_EQ(threadId, bslmt::ThreadUtil::selfId());
     }
 }
 
@@ -354,11 +354,11 @@ static void test6_executor_comparison()
     {
         bmqex::SystemExecutor ex1, ex2;
 
-        ASSERT(!ex1.threadAttributes());
-        ASSERT(!ex2.threadAttributes());
+        BMQTST_ASSERT(!ex1.threadAttributes());
+        BMQTST_ASSERT(!ex2.threadAttributes());
 
-        ASSERT_EQ(ex1 == ex2, true);
-        ASSERT_EQ(ex1 != ex2, false);
+        BMQTST_ASSERT_EQ(ex1 == ex2, true);
+        BMQTST_ASSERT_EQ(ex1 != ex2, false);
     }
 
     // 2. both executors share same attributes
@@ -366,10 +366,10 @@ static void test6_executor_comparison()
         bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
         bmqex::SystemExecutor ex2 = ex1;
 
-        ASSERT(ex1.threadAttributes() == ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes() == ex2.threadAttributes());
 
-        ASSERT_EQ(ex1 == ex2, true);
-        ASSERT_EQ(ex1 != ex2, false);
+        BMQTST_ASSERT_EQ(ex1 == ex2, true);
+        BMQTST_ASSERT_EQ(ex1 != ex2, false);
     }
 
     // 3. one executor has attributes, the other doesn't
@@ -377,11 +377,11 @@ static void test6_executor_comparison()
         bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
         bmqex::SystemExecutor ex2;
 
-        ASSERT(ex1.threadAttributes());
-        ASSERT(!ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes());
+        BMQTST_ASSERT(!ex2.threadAttributes());
 
-        ASSERT_EQ(ex1 == ex2, false);
-        ASSERT_EQ(ex1 != ex2, true);
+        BMQTST_ASSERT_EQ(ex1 == ex2, false);
+        BMQTST_ASSERT_EQ(ex1 != ex2, true);
     }
 
     // 4. both executors has identical attributes
@@ -389,11 +389,11 @@ static void test6_executor_comparison()
         bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
         bmqex::SystemExecutor ex2(bslmt::ThreadAttributes(), &alloc);
 
-        ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
-        ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
 
-        ASSERT_EQ(ex1 == ex2, true);
-        ASSERT_EQ(ex1 != ex2, false);
+        BMQTST_ASSERT_EQ(ex1 == ex2, true);
+        BMQTST_ASSERT_EQ(ex1 != ex2, false);
     }
 
     // 5. executors has non-identical attributes
@@ -407,11 +407,11 @@ static void test6_executor_comparison()
         bmqex::SystemExecutor ex1(attr1, &alloc);
         bmqex::SystemExecutor ex2(attr2, &alloc);
 
-        ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
-        ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
+        BMQTST_ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
 
-        ASSERT_EQ(ex1 == ex2, false);
-        ASSERT_EQ(ex1 != ex2, true);
+        BMQTST_ASSERT_EQ(ex1 == ex2, false);
+        BMQTST_ASSERT_EQ(ex1 != ex2, true);
     }
 }
 
@@ -434,7 +434,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

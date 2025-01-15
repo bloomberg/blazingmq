@@ -17,20 +17,17 @@
 #ifndef INCLUDED_MQBA_CONFIGPROVIDER
 #define INCLUDED_MQBA_CONFIGPROVIDER
 
-//@PURPOSE: Provide a mechanism to retrieve configuration information.
-//
-//@CLASSES:
-//  mqba::ConfigProvider: mechanism to retrieve configuration information
-//
-//@DESCRIPTION: 'mqba::ConfigProvider' is a mechanism to retrieve configuration
-// information for domain, ...
-
-// TBD:
-//  o add commandHandler
-//  o add statistics
+/// @file mqba_configprovider.h
+///
+/// @brief Provide a mechanism to retrieve configuration information.
+///
+/// @bbref{mqba::ConfigProvider} is a mechanism to retrieve configuration
+/// information for domain, ...
+///
+/// @todo Add commandHandler.
+/// @todo Add statistics.
 
 // MQB
-
 #include <mqbconfm_messages.h>
 
 // BDE
@@ -85,19 +82,21 @@ class ConfigProvider {
     struct Mode {
         // TYPES
         enum Enum {
-            e_NORMAL  // Use conf service, failover to disk backup
-            ,
-            e_FORCE_BACKUP  // Skip conf service, only use disk backup
+            /// Use conf service, failover to disk backup.
+            e_NORMAL,
+            /// Skip conf service, only use disk backup.
+            e_FORCE_BACKUP
         };
     };
 
     /// Struct to represent a configuration response entry in the cache.
     struct CacheEntry {
         // PUBLIC DATA
-        mqbconfm::Response d_data;  // Data to cache.
 
-        bsls::TimeInterval d_expireTime;  // Time after which this entry is no
-                                          // longer valid.
+        /// Data to cache.
+        mqbconfm::Response d_data;
+        /// Time after which this entry is no longer valid.
+        bsls::TimeInterval d_expireTime;
     };
 
     typedef bsl::unordered_map<bsl::string, CacheEntry> CacheMap;
@@ -108,17 +107,15 @@ class ConfigProvider {
 
     bslmt::Mutex d_mutex;
 
+    /// Cache (with a small TTL for its entries).  The key is the `domainName`
+    /// for the domain config.  This cache has a small TTL and is used to
+    /// prevent flooding the conf service with the same request if, for example
+    /// during turnaround, lots of tasks come up at the same time and request
+    /// the same domain.
     CacheMap d_cache;
-    // Cache (with a small TTL for its entries). Key
-    // is 'domainName' for the domain config.  This
-    // cache has a small TTL and is used to prevent
-    // flooding conf service with the same request,
-    // if, for example during turnaround lots of task
-    // comes up at same time and request the same
-    // domain.
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // PRIVATE MANIPULATORS

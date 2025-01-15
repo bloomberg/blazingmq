@@ -110,6 +110,17 @@ int InMemoryStorage::configure(
     return 0;
 }
 
+void InMemoryStorage::setConsistency(const mqbconfm::Consistency& value)
+{
+    BALL_LOG_WARN_BLOCK
+    {
+        if (value.isStrongValue()) {
+            BALL_LOG_OUTPUT_STREAM << "Trying to configure strong consistency "
+                                   << "for in-memory storage";
+        }
+    }
+}
+
 void InMemoryStorage::setQueue(mqbi::Queue* queue)
 {
     d_virtualStorageCatalog.setQueue(queue);
@@ -121,8 +132,6 @@ void InMemoryStorage::setQueue(mqbi::Queue* queue)
             mqbu::StorageKey::k_NULL_KEY);
         const bsls::Types::Int64 numByte = numBytes(
             mqbu::StorageKey::k_NULL_KEY);
-
-        queue->stats()->setQueueContentRaw(numMessage, numByte);
 
         BALL_LOG_INFO << "Associated queue [" << queue->uri() << "] with key ["
                       << queueKey() << "] and Partition ["
@@ -157,7 +166,8 @@ mqbi::StorageResult::Enum
 InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                      const bmqt::MessageGUID&            msgGUID,
                      const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options)
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     mqbi::DataStreamMessage**           out)
 {
     const int msgSize = appData->length();
 
@@ -192,18 +202,20 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        attributes->arrivalTimepoint());
 
         if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(msgGUID, msgSize);
+            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
         }
         else {
-            VirtualStorage::DataStreamMessage* dataStreamMessage = 0;
-            d_virtualStorageCatalog.put(msgGUID, msgSize, &dataStreamMessage);
+            mqbi::DataStreamMessage* dataStreamMessage = 0;
+            if (out == 0) {
+                out = &dataStreamMessage;
+            }
+            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
 
             // Move auto confirms to the data record
             for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
                  it != d_autoConfirms.end();
                  ++it) {
-                d_virtualStorageCatalog.autoConfirm(dataStreamMessage,
-                                                    it->d_appKey);
+                d_virtualStorageCatalog.autoConfirm(*out, it->d_appKey);
             }
             d_autoConfirms.clear();
         }
@@ -211,9 +223,11 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         d_currentlyAutoConfirming = bmqt::MessageGUID();
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE,
-                msgSize);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
+
+                    msgSize);
         }
 
         d_isEmpty.storeRelaxed(0);
@@ -234,12 +248,20 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
         mqbi::StorageMessageAttributes& existing = it->second.attributes();
         existing.setRefCount(existing.refCount() +
                              attributes->refCount());  // Bump up
+
+        if (out) {
+            // Proxy can detect duplicates by inspecting 'DataStreamMessage'.
+            VirtualStorage::DataStreamIterator data =
+                d_virtualStorageCatalog.get(msgGUID);
+            BSLS_ASSERT_SAFE(data != d_virtualStorageCatalog.end());
+            *out = &data->second;
+        }
     }
     else {
         d_items.insert(bsl::make_pair(msgGUID,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
-        d_virtualStorageCatalog.put(msgGUID, msgSize);
+        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
     }
 
     // We don't verify uniqueness of the insertion because in the case of a
@@ -300,9 +322,10 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_capacityMeter.remove(1, msgLen);
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(guid);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
         }
 
         // There is not really a need to remove the guid from all virtual
@@ -315,9 +338,11 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid)
         d_items.erase(it);
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-                d_items.historySize());
+            queue()
+                ->stats()
+                ->onEvent<
+                    mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                    d_items.historySize());
         }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
@@ -344,12 +369,14 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     d_capacityMeter.remove(1, msgLen);
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-            msgLen);
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                msgLen);
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     if (msgSize) {
@@ -374,9 +401,9 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
         d_capacityMeter.clear();
 
         if (queue()) {
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_PURGE,
-                0);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
         }
 
         d_isEmpty.storeRelaxed(1);
@@ -404,15 +431,16 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     }
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     return mqbi::StorageResult::e_SUCCESS;
 }
 
-void InMemoryStorage::dispatcherFlush(bool, bool)
+void InMemoryStorage::flushStorage()
 {
     // NOTHING
 }
@@ -445,9 +473,10 @@ int InMemoryStorage::gcExpiredMessages(
         d_capacityMeter.remove(1, msgLen);
         if (queue()) {
             queue()->queueEngine()->beforeMessageRemoved(cit->first);
-            queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
-                msgLen);
+            queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
+                    msgLen);
         }
 
         // Remove message from all virtual storages and the physical (this)
@@ -458,12 +487,14 @@ int InMemoryStorage::gcExpiredMessages(
     }
 
     if (queue() && (numMsgsDeleted > 0)) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE,
-            numMsgsDeleted);
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_GC_MESSAGE>(
+                numMsgsDeleted);
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     if (d_items.empty()) {
@@ -479,9 +510,10 @@ bool InMemoryStorage::gcHistory()
                                   k_GC_MESSAGES_BATCH_SIZE);
 
     if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY,
-            d_items.historySize());
+        queue()
+            ->stats()
+            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+                d_items.historySize());
     }
 
     return hasMoreToGc;
@@ -587,6 +619,11 @@ void InMemoryStorage::purge(
     // Replicated in-memory storage is not yet supported.
 
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
+}
+
+void InMemoryStorage::setPrimary()
+{
+    // NOTHING
 }
 
 // ACCESSORS (for mqbs::ReplicatedStorage)

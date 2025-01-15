@@ -144,7 +144,7 @@ static void test1_breathingTest()
 //   Basic functionality.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Ignore default allocator check for now because instantiating the
     // 'MQTP::Config' object fails the default allocator check for a
     // reason yet to be identified (the source appears to be in
@@ -156,25 +156,26 @@ static void test1_breathingTest()
     const int k_NUM_QUEUES       = 3;
     const int k_FIXED_QUEUE_SIZE = 10;
 
-    bsl::map<int, bsl::vector<int> > queueContextMap(s_allocator_p);
+    bsl::map<int, bsl::vector<int> > queueContextMap(
+        bmqtst::TestHelperUtil::allocator());
 
     bdlmt::ThreadPool threadPool(
         bslmt::ThreadAttributes(),        // default
         3,                                // minThreads
         3,                                // maxThreads
         bsl::numeric_limits<int>::max(),  // maxIdleTime
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(threadPool.start() == 0);
 
     MQTP::Config config(
         k_NUM_QUEUES,
         &threadPool,
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &eventCb,
                               bdlf::PlaceHolders::_1,   // queueId
                               bdlf::PlaceHolders::_2,   // context
                               bdlf::PlaceHolders::_3),  // event
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &queueCreator,
                               bdlf::PlaceHolders::_1,  // ret
                               bdlf::PlaceHolders::_2,  // queueId
@@ -183,15 +184,15 @@ static void test1_breathingTest()
                               &queueContextMap),
         bmqc::MultiQueueThreadPoolUtil::defaultCreator<int>(),
         bmqc::MultiQueueThreadPoolUtil::noOpResetter<int>(),
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
 
-    MQTP mfqtp(config, s_allocator_p);
-    ASSERT_EQ(mfqtp.isStarted(), false);
-    ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
-    ASSERT_EQ(mfqtp.isSingleThreaded(), false);
-    ASSERT_EQ(mfqtp.start(), 0);
-    ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
-    ASSERT_EQ(mfqtp.isStarted(), true);
+    MQTP mfqtp(config, bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
+    BMQTST_ASSERT_EQ(mfqtp.numQueues(), k_NUM_QUEUES);
+    BMQTST_ASSERT_EQ(mfqtp.isSingleThreaded(), false);
+    BMQTST_ASSERT_EQ(mfqtp.start(), 0);
+    BMQTST_ASSERT_NE(mfqtp.start(), 0);  // MQTP has already been started
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), true);
 
     MQTP::Event* event = mfqtp.getUnmanagedEvent();
     event->object()    = 0;
@@ -210,19 +211,19 @@ static void test1_breathingTest()
     mfqtp.enqueueEventOnAllQueues(event);
 
     mfqtp.stop();
-    ASSERT_EQ(mfqtp.isStarted(), false);
+    BMQTST_ASSERT_EQ(mfqtp.isStarted(), false);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[0][0], 0);
-    ASSERT_EQ(queueContextMap[0][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[0][0], 0);
+    BMQTST_ASSERT_EQ(queueContextMap[0][1], 3);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[1][0], 1);
-    ASSERT_EQ(queueContextMap[1][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[1][0], 1);
+    BMQTST_ASSERT_EQ(queueContextMap[1][1], 3);
 
-    ASSERT_EQ(queueContextMap[0].size(), 2U);
-    ASSERT_EQ(queueContextMap[2][0], 2);
-    ASSERT_EQ(queueContextMap[2][1], 3);
+    BMQTST_ASSERT_EQ(queueContextMap[0].size(), 2U);
+    BMQTST_ASSERT_EQ(queueContextMap[2][0], 2);
+    BMQTST_ASSERT_EQ(queueContextMap[2][1], 3);
 
     threadPool.stop();
 }
@@ -244,7 +245,7 @@ static void testN1_performance()
 //  Performance
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("PERFORMANCE TEST");
 
@@ -258,7 +259,7 @@ static void testN1_performance()
         3,                                // minThreads
         3,                                // maxThreads
         bsl::numeric_limits<int>::max(),  // maxIdleTime
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(threadPool.start() == 0);
 
     // Test with MQTP
@@ -266,19 +267,20 @@ static void testN1_performance()
     PRINT("MQTP");
     PRINT("====");
 
-    MQTP::Config config(k_NUM_QUEUES,
-                        &threadPool,
-                        bdlf::BindUtil::bindS(s_allocator_p,
-                                              &performanceTestEventCb),
-                        bdlf::BindUtil::bindS(s_allocator_p,
-                                              &performanceTestQueueCreator,
-                                              bdlf::PlaceHolders::_3,
-                                              k_FIXED_QUEUE_SIZE),
-                        bmqc::MultiQueueThreadPoolUtil::defaultCreator<int>(),
-                        bmqc::MultiQueueThreadPoolUtil::noOpResetter<int>(),
-                        s_allocator_p);
+    MQTP::Config config(
+        k_NUM_QUEUES,
+        &threadPool,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &performanceTestEventCb),
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &performanceTestQueueCreator,
+                              bdlf::PlaceHolders::_3,
+                              k_FIXED_QUEUE_SIZE),
+        bmqc::MultiQueueThreadPoolUtil::defaultCreator<int>(),
+        bmqc::MultiQueueThreadPoolUtil::noOpResetter<int>(),
+        bmqtst::TestHelperUtil::allocator());
 
-    MQTP mfqtp(config, s_allocator_p);
+    MQTP mfqtp(config, bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(mfqtp.start() == 0);
 
     // 1.
@@ -319,13 +321,15 @@ static void testN1_performance()
     PRINT("bdlcc::FixedQueue");
     PRINT("=================");
 
-    PerformanceTestObjectPool                 objectPool(-1, s_allocator_p);
-    bdlcc::FixedQueue<PerformanceTestObject*> fixedQueue(k_FIXED_QUEUE_SIZE,
-                                                         s_allocator_p);
+    PerformanceTestObjectPool                 objectPool(-1,
+                                         bmqtst::TestHelperUtil::allocator());
+    bdlcc::FixedQueue<PerformanceTestObject*> fixedQueue(
+        k_FIXED_QUEUE_SIZE,
+        bmqtst::TestHelperUtil::allocator());
 
     // #1
     threadPool.enqueueJob(
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestFixedQueuePopper,
                               &fixedQueue,
                               &objectPool));
@@ -349,7 +353,7 @@ static void testN1_performance()
 
     // #2 .. again
     threadPool.enqueueJob(
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestFixedQueuePopper,
                               &fixedQueue,
                               &objectPool));
@@ -388,7 +392,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
 //  Performance
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("PERFORMANCE TEST");
 
@@ -402,7 +406,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
         3,                                // minThreads
         3,                                // maxThreads
         bsl::numeric_limits<int>::max(),  // maxIdleTime
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(threadPool.start() == 0);
 
     // Test with MQTP
@@ -410,19 +414,20 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
     PRINT("MQTP");
     PRINT("====");
 
-    MQTP::Config config(k_NUM_QUEUES,
-                        &threadPool,
-                        bdlf::BindUtil::bindS(s_allocator_p,
-                                              &performanceTestEventCb),
-                        bdlf::BindUtil::bindS(s_allocator_p,
-                                              &performanceTestQueueCreator,
-                                              bdlf::PlaceHolders::_3,
-                                              k_FIXED_QUEUE_SIZE),
-                        bmqc::MultiQueueThreadPoolUtil::defaultCreator<int>(),
-                        bmqc::MultiQueueThreadPoolUtil::noOpResetter<int>(),
-                        s_allocator_p);
+    MQTP::Config config(
+        k_NUM_QUEUES,
+        &threadPool,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &performanceTestEventCb),
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &performanceTestQueueCreator,
+                              bdlf::PlaceHolders::_3,
+                              k_FIXED_QUEUE_SIZE),
+        bmqc::MultiQueueThreadPoolUtil::defaultCreator<int>(),
+        bmqc::MultiQueueThreadPoolUtil::noOpResetter<int>(),
+        bmqtst::TestHelperUtil::allocator());
 
-    MQTP mfqtp(config, s_allocator_p);
+    MQTP mfqtp(config, bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(mfqtp.start() == 0);
 
     // 1.
@@ -457,7 +462,7 @@ static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
 //  Performance
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("FIXED PERFORMANCE TEST");
 
@@ -470,20 +475,22 @@ static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
         3,                                // minThreads
         3,                                // maxThreads
         bsl::numeric_limits<int>::max(),  // maxIdleTime
-        s_allocator_p);
+        bmqtst::TestHelperUtil::allocator());
     BSLS_ASSERT_OPT(threadPool.start() == 0);
     // Now test with fixedQueue
     PRINT("=================");
     PRINT("bdlcc::FixedQueue");
     PRINT("=================");
 
-    PerformanceTestObjectPool                 objectPool(-1, s_allocator_p);
-    bdlcc::FixedQueue<PerformanceTestObject*> fixedQueue(k_FIXED_QUEUE_SIZE,
-                                                         s_allocator_p);
+    PerformanceTestObjectPool                 objectPool(-1,
+                                         bmqtst::TestHelperUtil::allocator());
+    bdlcc::FixedQueue<PerformanceTestObject*> fixedQueue(
+        k_FIXED_QUEUE_SIZE,
+        bmqtst::TestHelperUtil::allocator());
 
     // #1
     threadPool.enqueueJob(
-        bdlf::BindUtil::bindS(s_allocator_p,
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                               &performanceTestFixedQueuePopper,
                               &fixedQueue,
                               &objectPool));
@@ -528,7 +535,7 @@ int main(int argc, char* argv[])
         break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

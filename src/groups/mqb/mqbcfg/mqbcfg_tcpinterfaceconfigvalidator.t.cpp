@@ -31,20 +31,21 @@ using namespace BloombergLP;
 
 struct TcpInterfaceConfigValidatorTest : bmqtst::Test {};
 
-TEST_F(TcpInterfaceConfigValidatorTest, breathingTest)
+BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, breathingTest)
 {
-    ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, 0);
+    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, 0);
 }
 
-TEST_F(TcpInterfaceConfigValidatorTest, emptyConfigIsValid)
+BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, emptyConfigIsValid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
 
-    ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK, validator(config));
+    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_OK,
+                     validator(config));
 }
 
-TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
+BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
@@ -61,11 +62,11 @@ TEST_F(TcpInterfaceConfigValidatorTest, nonUniqueNamesAreInvalid)
         listener.name() = "Test";
     }
 
-    ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_NAME,
-              validator(config));
+    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_NAME,
+                     validator(config));
 }
 
-TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
+BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
     mqbcfg::TcpInterfaceConfig          config;
@@ -84,11 +85,11 @@ TEST_F(TcpInterfaceConfigValidatorTest, nonUniquePortsAreInvalid)
         listener.port() = 8000;
     }
 
-    ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_PORT,
-              validator(config));
+    BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_DUPLICATE_PORT,
+                     validator(config));
 }
 
-TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
+BMQTST_TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
 
@@ -97,8 +98,8 @@ TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
         mqbcfg::TcpInterfaceListener& listener =
             config.listeners().emplace_back();
         listener.port() = 0x10000;
-        ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
-                  validator(config));
+        BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
+                         validator(config));
     }
 
     {
@@ -106,8 +107,8 @@ TEST_F(TcpInterfaceConfigValidatorTest, outOfRangePortsAreInvalid)
         mqbcfg::TcpInterfaceListener& listener =
             config.listeners().emplace_back();
         listener.port() = -1;
-        ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
-                  validator(config));
+        BMQTST_ASSERT_EQ(mqbcfg::TcpInterfaceConfigValidator::k_PORT_RANGE,
+                         validator(config));
     }
 }
 

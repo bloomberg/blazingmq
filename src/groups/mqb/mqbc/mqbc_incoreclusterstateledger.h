@@ -127,11 +127,14 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
 /// cluster nodes themselves instead of being offloaded to an external meta
 /// data (e.g., ZooKeeper).
 class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.INCORECLUSTERSTATELEDGER");
 
-  private:
     // TYPES
     typedef IncoreClusterStateLedger_ClusterMessageInfo ClusterMessageInfo;
     typedef ClusterStateLedgerCommitStatus              CommitStatus;
@@ -150,23 +153,12 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     bslma::Allocator* d_allocator_p;
     // Allocator used to supply memory
 
-    bool d_isFirstLeaderAdvisory;
-    // Flag to indicate whether this is
-    // first leader advisory.  *NOTE*: this
-    // flag is a workaround to address the
-    // existing cyclic dependency b/w
-    // leader and primary at node startup
-    // and will be removed once all CSL
-    // phases are complete.
-
     bool d_isOpen;
     // Flag to indicate open/close status
     // of this object
 
-    bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory for the headers and
-    // payloads of the messages to be
-    // written
+    /// Pool of shared pointers to blobs
+    BlobSpPool* d_blobSpPool_p;
 
     bsl::string d_description;
     // Brief description for logging
@@ -265,16 +257,13 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     void cancelUncommittedAdvisories();
 
     /// Apply the specified raw cluster state record `event` received from
-    /// the specified `source` node according to the specified `delayed`
-    /// flag indicating if the event was previously buffered.  Note that
-    /// while a replica node may receive any type of records from the
-    /// leader, the leader may *only* receive ack records from a replica.
+    /// the specified `source` node.  Note that while a replica node may
+    /// receive any type of records from the leader, the leader may *only*
+    /// receive ack records from a replica.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
-    int applyImpl(const bdlbb::Blob&   event,
-                  mqbnet::ClusterNode* source,
-                  bool                 delayed);
+    int applyImpl(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
 
     // PRIVATE ACCESSORS
 
@@ -300,7 +289,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
         ClusterStateLedgerConsistency::Enum consistencyLevel,
         ClusterData*                        clusterData,
         ClusterState*                       clusterState,
-        bdlbb::BlobBufferFactory*           bufferFactory,
+        BlobSpPool*                         blobSpPool_p,
         bslma::Allocator*                   allocator);
 
     /// Destructor.
@@ -387,9 +376,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     int apply(const bdlbb::Blob&   event,
               mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    setIsFirstLeaderAdvisory(bool isFirstLeaderAdvisory) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;

@@ -580,8 +580,6 @@ void RelayQueueEngine::deliverMessages()
     //   1. End of storage; or
     //   2. All subStreams return 'e_NO_CAPACITY_ALL'
 
-    d_appsDeliveryContext.start();
-
     while (d_appsDeliveryContext.reset(d_storageIter_mp.get())) {
         // Assume, all Apps need to deliver (some may be at capacity)
         unsigned int numApps = d_storageIter_mp->numApps();
@@ -592,6 +590,7 @@ void RelayQueueEngine::deliverMessages()
             App_State* app = element->app().d_app.get();
 
             BSLS_ASSERT_SAFE(app);
+
             if (!app->isAuthorized()) {
                 // This App got the PUSH (recorded in the PushStream)
                 BMQ_LOGTHROTTLE_ERROR()
@@ -604,14 +603,24 @@ void RelayQueueEngine::deliverMessages()
 
                 d_storageIter_mp->removeCurrentElement();
             }
-
-            if (d_appsDeliveryContext.processApp(*app, i)) {
-                // The current element has made it either to delivery or
-                // putAside or resumerPoint and it can be removed
+            else if (element->app().isLastPush(d_storageIter_mp->guid())) {
+                // This `app` has already seen this message.
                 d_storageIter_mp->removeCurrentElement();
             }
-            // Else, the current element has made it to resumerPoint and
-            // it cannot be removed
+            else {
+                element->app().setLastPush(d_storageIter_mp->guid());
+
+                if (d_appsDeliveryContext.processApp(*app, i)) {
+                    // The current element has made it either to delivery or
+                    // putAside and it can be removed
+                    d_storageIter_mp->removeCurrentElement();
+                }
+                else {
+                    // The current element has made it to resumePoint and it
+                    // cannot be removed.
+                    element->app().setLastPush(bmqt::MessageGUID());
+                }
+            }
         }
         d_appsDeliveryContext.deliverMessage();
     }
@@ -1039,7 +1048,7 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
         queueHandle = d_queueState_p->handleCatalog().createHandle(
             clientContext,
             handleParameters,
-            &d_queueState_p->stats());
+            d_queueState_p->stats().get());
         handleCreated = true;
 
         BALL_LOG_INFO << "For queue [" << d_queueState_p->uri()
@@ -1565,7 +1574,7 @@ void RelayQueueEngine::onTimer(
     // NOTHING
 }
 
-mqbi::StorageResult::Enum RelayQueueEngine::evaluateAutoSubscriptions(
+mqbi::StorageResult::Enum RelayQueueEngine::evaluateAppSubscriptions(
     BSLS_ANNOTATION_UNUSED const bmqp::PutHeader& putHeader,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
     BSLS_ANNOTATION_UNUSED const bmqp::MessagePropertiesInfo& mpi,
@@ -1607,16 +1616,14 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
                  appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit) {
-            const mqbi::Storage::AppInfo& p = *cit;
-
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();
-            subStream.appId()                            = p.first;
+            subStream.appId()                            = cit->first;
             bmqu::MemOutStream appKey;
-            appKey << p.second;
+            appKey << cit->second;
             subStream.appKey()      = appKey.str();
             subStream.numMessages() = d_queueState_p->storage()->numMessages(
-                p.second);
+                cit->second);
         }
     }
 
@@ -1730,22 +1737,28 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
 }
 
 unsigned int
-RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
-                       const bmqt::MessageGUID&                  msgGUID,
-                       const bsl::shared_ptr<bdlbb::Blob>&       appData,
-                       const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-                       bool                                      isOutOfOrder)
+RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
+                       const bmqt::MessageGUID&            msgGUID,
+                       const bsl::shared_ptr<bdlbb::Blob>& appData,
+                       bmqp::Protocol::SubQueueInfosArray& subscriptions,
+                       bool                                isOutOfOrder)
 {
     if (isOutOfOrder) {
         BSLS_ASSERT_SAFE(subscriptions.size() == 1);
 
         // No guarantee of uniqueness.  Cannot use PushStream.
-        unsigned int upstreamSubQueueId;
+        unsigned int subQueueId;
+
+        unsigned int subscriptionId = subscriptions.begin()->id();
+        unsigned int ordinalPlusOne = 0;  // Invalid value
+
+        // Reusing 'subscriptions' to 'setPushState()' below.
+        subscriptions.begin()->setId(ordinalPlusOne);
 
         if (subscriptionId2upstreamSubQueueId(msgGUID,
-                                              &upstreamSubQueueId,
-                                              subscriptions.begin()->id())) {
-            App_State* app = findApp(upstreamSubQueueId);
+                                              &subQueueId,
+                                              subscriptionId)) {
+            App_State* app = findApp(subQueueId);
 
             if (app == 0) {
                 BMQ_LOGTHROTTLE_ERROR()
@@ -1753,7 +1766,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
                     << ") discarding a PUSH message for guid " << msgGUID
-                    << ", with unknown App Id " << upstreamSubQueueId;
+                    << ", with unknown App Id " << subQueueId;
 
                 return 0;  // RETURN
             }
@@ -1766,10 +1779,14 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
 
             attributes->setRefCount(1);
 
-            storePush(attributes, msgGUID, appData, true);
+            // Reusing 'subscriptions' to 'setPushState()' below.
+            ordinalPlusOne = 1 + app->ordinal();
+            subscriptions.begin()->setId(ordinalPlusOne);
+
+            storePush(attributes, msgGUID, appData, subscriptions, true);
 
             // Attempt to deliver
-            processAppRedelivery(upstreamSubQueueId, app);
+            processAppRedelivery(subQueueId, app);
 
             return 1;  // RETURN
         }
@@ -1782,17 +1799,21 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
     PushStream::iterator itGuid = d_pushStream.findOrAppendMessage(msgGUID);
     unsigned int         count  = 0;
 
-    for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
+    for (bmqp::Protocol::SubQueueInfosArray::iterator it =
              subscriptions.begin();
-         cit != subscriptions.end();
-         ++cit) {
-        const bmqp::SubQueueInfo& subscription = *cit;
-
+         it != subscriptions.end();
+         ++it) {
         unsigned int subQueueId;
+
+        unsigned int subscriptionId = it->id();
+        unsigned int ordinalPlusOne = 0;  // Invalid value
+
+        // Reusing 'subscriptions' to 'setPushState()' below.
+        it->setId(ordinalPlusOne);
 
         if (!subscriptionId2upstreamSubQueueId(msgGUID,
                                                &subQueueId,
-                                               subscription.id())) {
+                                               subscriptionId)) {
             continue;  // CONTINUE
         }
 
@@ -1807,7 +1828,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
                     << ") discarding a PUSH message for guid " << msgGUID
-                    << ", with unknown App Id " << subscription.id();
+                    << ", with unknown App Id " << subscriptionId;
                 continue;  // CONTINUE
             }
 
@@ -1832,9 +1853,12 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
             }
         }
 
-        PushStream::Element* element = d_pushStream.create(subscription,
-                                                           itGuid,
-                                                           itApp);
+        PushStream::Element* element =
+            d_pushStream.create(it->rdaInfo(), subscriptionId, itGuid, itApp);
+
+        // Reusing 'subscriptions' to 'setPushState()' below.
+        ordinalPlusOne = 1 + itApp->second.d_app->ordinal();
+        it->setId(ordinalPlusOne);
 
         d_pushStream.add(element);
         ++count;
@@ -1843,7 +1867,7 @@ RelayQueueEngine::push(mqbi::StorageMessageAttributes*           attributes,
     if (count) {
         // Pass correct ref count
         attributes->setRefCount(count);
-        storePush(attributes, msgGUID, appData, false);
+        storePush(attributes, msgGUID, appData, subscriptions, false);
     }
     return count;
 }
@@ -1867,10 +1891,7 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
             mqbi::AppMessage& appState = d_realStorageIter_mp->appMessageState(
                 app->ordinal());
 
-            if (!appState.isPushing()) {
-                appState.setPushState();
-            }
-            else {
+            if (appState.isPushing()) {
                 BMQ_LOGTHROTTLE_INFO()
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
@@ -1883,10 +1904,13 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
     return true;
 }
 
-void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
-                                 const bmqt::MessageGUID&        msgGUID,
-                                 const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                 bool isOutOfOrder)
+void RelayQueueEngine::storePush(
+    mqbi::StorageMessageAttributes*           attributes,
+    const bmqt::MessageGUID&                  msgGUID,
+    const bsl::shared_ptr<bdlbb::Blob>&       appData,
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
+
+    bool isOutOfOrder)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that
@@ -1894,11 +1918,14 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
         // in 'options' is subQueueInfos, and we won't store the specified
         // 'options' in the storage.
 
+        mqbi::DataStreamMessage* dataStreamMessage = 0;
+
         mqbi::StorageResult::Enum result = storage()->put(
             attributes,
             msgGUID,
             appData,
-            bsl::shared_ptr<bdlbb::Blob>());  // No options
+            bsl::shared_ptr<bdlbb::Blob>(),
+            &dataStreamMessage);  // No options
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 result != mqbi::StorageResult::e_SUCCESS)) {
@@ -1913,20 +1940,39 @@ void RelayQueueEngine::storePush(mqbi::StorageMessageAttributes* attributes,
             // A redelivery PUSH for one App in the presence of another App
             // can result in 'e_GUID_NOT_UNIQUE'.
         }
+        else {
+            // Reusing previously cached ordinals.
+            for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
+                     subscriptions.begin();
+                 cit != subscriptions.end();
+                 ++cit) {
+                if (cit->id() > 0) {
+                    dataStreamMessage->app(cit->id() - 1).setPushState();
+                }
+            }
+        }
     }
 }
 
 void RelayQueueEngine::beforeOneAppRemoved(unsigned int upstreamSubQueueId)
 {
     while (!d_storageIter_mp->atEnd()) {
-        if (d_storageIter_mp->numApps() > 1) {
+        const int numApps = d_storageIter_mp->numApps();
+        if (numApps > 1) {
             // Removal of App's elements will not invalidate 'd_storageIter_mp'
             break;
         }
+        if (numApps == 1) {
+            const PushStream::Element* element = d_storageIter_mp->element(0);
+            if (element->app().d_app->upstreamSubQueueId() !=
+                upstreamSubQueueId) {
+                break;
+            }
+        }
+        else {
+            BSLS_ASSERT_SAFE(numApps == 0);
 
-        const PushStream::Element* element = d_storageIter_mp->element(0);
-        if (element->app().d_app->upstreamSubQueueId() != upstreamSubQueueId) {
-            break;
+            // The case when 'advance' does not follow 'removeCurrentElement'
         }
 
         d_storageIter_mp->advance();

@@ -264,13 +264,13 @@ static void test1_bindUtil_bindExecute()
             SetFlagOnCall(&executed)));
 
     // target not executed yet
-    ASSERT(!executed);
+    BMQTST_ASSERT(!executed);
 
     // invoke the bind wrapper
     wrapper();
 
     // target executed
-    ASSERT(executed);
+    BMQTST_ASSERT(executed);
 }
 
 static void test2_bindWrapper_creators()
@@ -315,13 +315,13 @@ static void test2_bindWrapper_creators()
             &alloc);
 
         // target not executed yet
-        ASSERT(!executed);
+        BMQTST_ASSERT(!executed);
 
         // invoke the bind wrapper
         wrapper();
 
         // target executed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
     }
 
     // 2. copy c-tor
@@ -341,7 +341,7 @@ static void test2_bindWrapper_creators()
         wrapperCopy();
 
         // target executed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
     }
 
     // 3. move c-tor
@@ -361,7 +361,7 @@ static void test2_bindWrapper_creators()
         wrapperCopy();
 
         // target executed
-        ASSERT(executed);
+        BMQTST_ASSERT(executed);
     }
 }
 
@@ -395,34 +395,34 @@ static void test3_bindWrapper_callOperator()
 
     // invoke the wrapper with 0 up to 9 arguments
     wrapper();
-    ASSERT_EQ(sumOf.d_value, 0);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 0);
 
     wrapper(2);
-    ASSERT_EQ(sumOf.d_value, 2);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 2);
 
     wrapper(2, 3);
-    ASSERT_EQ(sumOf.d_value, 5);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 5);
 
     wrapper(2, 3, 5);
-    ASSERT_EQ(sumOf.d_value, 10);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 10);
 
     wrapper(2, 3, 5, 7);
-    ASSERT_EQ(sumOf.d_value, 17);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 17);
 
     wrapper(2, 3, 5, 7, 11);
-    ASSERT_EQ(sumOf.d_value, 28);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 28);
 
     wrapper(2, 3, 5, 7, 11, 13);
-    ASSERT_EQ(sumOf.d_value, 41);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 41);
 
     wrapper(2, 3, 5, 7, 11, 13, 17);
-    ASSERT_EQ(sumOf.d_value, 58);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 58);
 
     wrapper(2, 3, 5, 7, 11, 13, 17, 19);
-    ASSERT_EQ(sumOf.d_value, 77);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 77);
 
     wrapper(2, 3, 5, 7, 11, 13, 17, 19, 23);
-    ASSERT_EQ(sumOf.d_value, 100);
+    BMQTST_ASSERT_EQ(sumOf.d_value, 100);
 }
 
 // ============================================================================
@@ -441,7 +441,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

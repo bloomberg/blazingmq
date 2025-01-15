@@ -167,7 +167,6 @@ class StorageManagerIterator {
 class StorageManager {
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfo   AppInfo;
     typedef mqbi::Storage::AppInfos  AppInfos;
     typedef AppInfos::const_iterator AppInfosCIter;
 
@@ -175,15 +174,6 @@ class StorageManager {
     typedef AppIds::iterator                AppIdsIter;
     typedef AppIds::const_iterator          AppIdsConstIter;
     typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
-
-    typedef bsl::unordered_set<mqbu::StorageKey> AppKeys;
-    typedef AppKeys::iterator                    AppKeysIter;
-    typedef AppKeys::const_iterator              AppKeysConstIter;
-    typedef bsl::pair<AppKeysIter, bool>         AppKeysInsertRc;
-
-    typedef bsl::vector<AppKeys>       AppKeysVec;
-    typedef AppKeysVec::iterator       AppKeysVecIter;
-    typedef AppKeysVec::const_iterator AppKeysVecConstIter;
 
     typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
 
@@ -412,6 +402,10 @@ class StorageManager {
 
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;
+
+    /// Purge the queues on a given domain.
+    virtual int purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                   const bsl::string&     domainName) = 0;
 
     // ACCESSORS
 

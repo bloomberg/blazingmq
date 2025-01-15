@@ -43,6 +43,7 @@
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_severity.h>
@@ -124,6 +125,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
+    storageMp->setConsistency(domainCfg.consistency());
     int rc = storageMp->configure(errorDescription,
                                   config,
                                   limits,
@@ -157,9 +159,9 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
 
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
-        mqbstat::QueueStatsDomain::Role::e_PROXY);
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+            mqbstat::QueueStatsDomain::Role::e_PROXY);
 
     BALL_LOG_INFO
         << "Created a ProxyRemoteQueue "
@@ -243,6 +245,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             d_allocator_p);
     }
     else {
+        d_state_p->storage()->setConsistency(domainCfg.consistency());
         rc = d_state_p->storage()->configure(
             errorDescription,
             domainCfg.storage().config(),
@@ -274,9 +277,9 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
     d_state_p->storageManager()->setQueueRaw(queue,
                                              d_state_p->uri(),
                                              d_state_p->partitionId());
-    d_state_p->stats().onEvent(
-        mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE,
-        mqbstat::QueueStatsDomain::Role::e_REPLICA);
+    d_state_p->stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
+            mqbstat::QueueStatsDomain::Role::e_REPLICA);
 
     BALL_LOG_INFO << d_state_p->domain()->cluster()->name()
                   << ": Created a ClusterMemberRemoteQueue "
@@ -452,7 +455,8 @@ RemoteQueue::RemoteQueue(QueueState*       state,
                          int               ackWindowSize,
                          StateSpPool*      statePool,
                          bslma::Allocator* allocator)
-: d_state_p(state)
+: d_self(this, allocator)
+, d_state_p(state)
 , d_queueEngine_mp(0)
 , d_pendingMessages(allocator)
 , d_pendingConfirms(allocator)
@@ -527,7 +531,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     if (isReconfigure) {
         const mqbconfm::Domain& domainCfg = d_state_p->domain()->config();
         if (domainCfg.mode().isFanoutValue()) {
-            d_state_p->stats().updateDomainAppIds(
+            d_state_p->stats()->updateDomainAppIds(
                 domainCfg.mode().fanout().appIDs());
         }
     }
@@ -551,6 +555,7 @@ void RemoteQueue::resetState()
 
     erasePendingMessages(d_pendingMessages.end());
 
+    d_self.invalidate();
     if (d_pendingMessagesTimerEventHandle) {
         scheduler()->cancelEventAndWait(&d_pendingMessagesTimerEventHandle);
         // 'expirePendingMessagesDispatched' does not restart timer if
@@ -574,6 +579,12 @@ void RemoteQueue::close()
     // e_STOPPING state meaning it has received all StopResponses meaning
     // (unless StopRequest has timed out) all downstreams have closed all
     // queues.
+
+    // `close()` might be called multiple times
+    if (!d_self.isValid()) {
+        return;  // RETURN
+    }
+    d_self.invalidate();
 
     size_t numMessages = erasePendingMessages(d_pendingMessages.end());
 
@@ -912,7 +923,29 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                       << putHeader.messageGUID() << "'] for unknown upstream";
         return;  // RETURN
     }
+
+    bool isInvalid = false;
+
     if (ctx.d_state == SubStreamContext::e_CLOSED) {
+        isInvalid = true;
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                 d_pendingMessages.find(putHeader.messageGUID()) !=
+                 d_pendingMessages.end())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+        isInvalid = true;
+
+        if (d_throttledFailedPutMessages.requestPermission()) {
+            BALL_LOG_INFO << "[THROTTLED] Remote queue " << d_state_p->uri()
+                          << " (id: " << d_state_p->id()
+                          << ") discarding a duplicate PUT from client ["
+                          << source->client()->description() << "] for guid "
+                          << putHeader.messageGUID();
+        }
+    }
+
+    if (isInvalid) {
         if (!d_state_p->isAtMostOnce()) {
             bmqp::AckMessage ackMessage;
 
@@ -920,9 +953,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                 bmqt::AckResult::e_REFUSED));
             ackMessage.setMessageGUID(putHeader.messageGUID());
 
-            d_state_p->stats().onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_NACK,
-                1);
+            d_state_p->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
 
             // CorrelationId & QueueId are left unset as those fields
             // will be filled downstream.
@@ -969,8 +1001,9 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
             scheduler()->scheduleEvent(
                 &d_pendingMessagesTimerEventHandle,
                 time,
-                bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages,
-                                     this));
+                bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                    &RemoteQueue::expirePendingMessages,
+                    d_self.acquireWeak())));
         }
     }
 
@@ -994,8 +1027,9 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     // the time the message is actually sent upstream, i.e. in
     // cluster/clusterProxy) for the most exact accuracy, but doing it here is
     // good enough.
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
-                               appData->length());
+
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
+        appData->length());
 }
 
 void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
@@ -1353,7 +1387,9 @@ void RemoteQueue::expirePendingMessagesDispatched()
         scheduler()->scheduleEvent(
             &d_pendingMessagesTimerEventHandle,
             time,
-            bdlf::BindUtil::bind(&RemoteQueue::expirePendingMessages, this));
+            bdlf::BindUtil::bind(bmqu::WeakMemFnUtil::weakMemFn(
+                &RemoteQueue::expirePendingMessages,
+                d_self.acquireWeak())));
 
         BALL_LOG_DEBUG << d_state_p->uri() << ": will check again to expire"
                        << " pending PUSH messages in "
@@ -1494,8 +1530,8 @@ RemoteQueue::Puts::iterator& RemoteQueue::nack(Puts::iterator&   it,
 {
     ackMessage.setMessageGUID(it->first);
 
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_NACK,
-                               1);
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(
+        1);
 
     // CorrelationId & QueueId are left unset as those fields
     // will be filled downstream.

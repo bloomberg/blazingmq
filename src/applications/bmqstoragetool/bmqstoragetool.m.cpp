@@ -38,8 +38,6 @@ static bool parseArgs(CommandLineArguments& arguments,
 {
     bool showHelp = false;
 
-    // bsl::vector<bsl::string> defaultType{ {k_MESSAGE_TYPE} };
-
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
          "record type",

@@ -463,7 +463,7 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -474,9 +474,9 @@ static void test1_breathingTest()
     {
         // Create a GUID
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
         generator.generateGUID(&guid);
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Export to binary representation
         unsigned char binaryBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
@@ -484,19 +484,20 @@ static void test1_breathingTest()
 
         bmqt::MessageGUID fromBinGUID;
         fromBinGUID.fromBinary(binaryBuffer);
-        ASSERT_EQ(fromBinGUID.isUnset(), false);
-        ASSERT_EQ(fromBinGUID, guid);
+        BMQTST_ASSERT_EQ(fromBinGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromBinGUID, guid);
 
         // Export to hex representation
         char hexBuffer[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(hexBuffer);
-        ASSERT_EQ(true,
-                  bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
+        BMQTST_ASSERT_EQ(
+            true,
+            bmqt::MessageGUID::isValidHexRepresentation(hexBuffer));
 
         bmqt::MessageGUID fromHexGUID;
         fromHexGUID.fromHex(hexBuffer);
-        ASSERT_EQ(fromHexGUID.isUnset(), false);
-        ASSERT_EQ(fromHexGUID, guid);
+        BMQTST_ASSERT_EQ(fromHexGUID.isUnset(), false);
+        BMQTST_ASSERT_EQ(fromHexGUID, guid);
     }
 
     {
@@ -507,7 +508,7 @@ static void test1_breathingTest()
         bmqt::MessageGUID guid2;
         generator.generateGUID(&guid2);
 
-        ASSERT_NE(guid1, guid2);
+        BMQTST_ASSERT_NE(guid1, guid2);
     }
 
     {
@@ -517,12 +518,12 @@ static void test1_breathingTest()
         bsl::unordered_map<bmqt::MessageGUID,
                            int,
                            bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-                          myMap(s_allocator_p);
+                          myMap(bmqtst::TestHelperUtil::allocator());
         bmqt::MessageGUID guid;
         generator.generateGUID(&guid);
         myMap.insert(bsl::make_pair(guid, 1));
 
-        ASSERT_EQ(1u, myMap.count(guid));
+        BMQTST_ASSERT_EQ(1u, myMap.count(guid));
     }
 }
 
@@ -531,7 +532,8 @@ static void test2_extract()
 // TBD:
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;  // Implicit string conversion in ASSERT_EQ
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
+        true;  // Implicit string conversion in BMQTST_ASSERT_EQ
 
     bmqtst::TestHelper::printTestName("EXTRACT");
 
@@ -550,18 +552,18 @@ static void test2_extract()
         int                version;
         unsigned int       counter;
         bsls::Types::Int64 timerTick;
-        bsl::string        clientId(s_allocator_p);
+        bsl::string        clientId(bmqtst::TestHelperUtil::allocator());
 
         int rc = bmqp::MessageGUIDGenerator::extractFields(&version,
                                                            &counter,
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 0u);
-        ASSERT_EQ(timerTick, 0);
-        ASSERT_EQ(clientId, "000000000000");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 0u);
+        BMQTST_ASSERT_EQ(timerTick, 0);
+        BMQTST_ASSERT_EQ(clientId, "000000000000");
     }
 
     {
@@ -579,18 +581,18 @@ static void test2_extract()
         int                version;
         unsigned int       counter;
         bsls::Types::Int64 timerTick;
-        bsl::string        clientId(s_allocator_p);
+        bsl::string        clientId(bmqtst::TestHelperUtil::allocator());
 
         int rc = bmqp::MessageGUIDGenerator::extractFields(&version,
                                                            &counter,
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 4194303u);
-        ASSERT_EQ(timerTick, 72057594037927935);
-        ASSERT_EQ(clientId, "FFFFFFFFFFFF");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 4194303u);
+        BMQTST_ASSERT_EQ(timerTick, 72057594037927935);
+        BMQTST_ASSERT_EQ(clientId, "FFFFFFFFFFFF");
     }
 
     {
@@ -608,18 +610,18 @@ static void test2_extract()
         int                version;
         unsigned int       counter;
         bsls::Types::Int64 timerTick;
-        bsl::string        clientId(s_allocator_p);
+        bsl::string        clientId(bmqtst::TestHelperUtil::allocator());
 
         int rc = bmqp::MessageGUIDGenerator::extractFields(&version,
                                                            &counter,
                                                            &timerTick,
                                                            &clientId,
                                                            guid);
-        ASSERT_EQ(rc, 0);
-        ASSERT_EQ(version, 1);
-        ASSERT_EQ(counter, 2964169u);
-        ASSERT_EQ(timerTick, 297593876864458);
-        ASSERT_EQ(clientId, "0DCE04742D2E");
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(version, 1);
+        BMQTST_ASSERT_EQ(counter, 2964169u);
+        BMQTST_ASSERT_EQ(timerTick, 297593876864458);
+        BMQTST_ASSERT_EQ(clientId, "0DCE04742D2E");
     }
 }
 
@@ -647,12 +649,12 @@ static void test3_multithreadUseIP()
 //   using IP to calculate 'ClientId' part of the GUIDs.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // Can't ensure no global memory is allocated because
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -675,13 +677,14 @@ static void test3_multithreadUseIP()
     const int k_NUM_GUIDS = 1000000;  // 1M
 #endif
 
-    bslmt::ThreadGroup threadGroup(s_allocator_p);
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
 
     // Barrier to get each thread to start at the same time; `+1` for this
     // (main) thread.
     bslmt::Barrier barrier(k_NUM_THREADS + 1);
 
-    bsl::vector<bsl::vector<bmqt::MessageGUID> > threadsData(s_allocator_p);
+    bsl::vector<bsl::vector<bmqt::MessageGUID> > threadsData(
+        bmqtst::TestHelperUtil::allocator());
     threadsData.resize(k_NUM_THREADS);
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -692,18 +695,18 @@ static void test3_multithreadUseIP()
                                                             &barrier,
                                                             &generator,
                                                             k_NUM_GUIDS));
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
     barrier.wait();
     threadGroup.joinAll();
 
     // Check uniqueness across all threads
-    bsl::set<bmqt::MessageGUID> allGUIDs(s_allocator_p);
+    bsl::set<bmqt::MessageGUID> allGUIDs(bmqtst::TestHelperUtil::allocator());
     for (int tIt = 0; tIt < k_NUM_THREADS; ++tIt) {
         const bsl::vector<bmqt::MessageGUID>& guids = threadsData[tIt];
         for (int gIt = 0; gIt < k_NUM_GUIDS; ++gIt) {
-            ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
+            BMQTST_ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
         }
     }
 }
@@ -729,12 +732,12 @@ static void test4_multithreadUseHostname()
 //   using hostname to calculate 'ClientId' part of the GUIDs.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckGblAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
     // Can't ensure no global memory is allocated because
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -753,13 +756,14 @@ static void test4_multithreadUseHostname()
     const int k_NUM_GUIDS = 1000000;  // 1M
 #endif
 
-    bslmt::ThreadGroup threadGroup(s_allocator_p);
+    bslmt::ThreadGroup threadGroup(bmqtst::TestHelperUtil::allocator());
 
     // Barrier to get each thread to start at the same time; `+1` for this
     // (main) thread.
     bslmt::Barrier barrier(k_NUM_THREADS + 1);
 
-    bsl::vector<bsl::vector<bmqt::MessageGUID> > threadsData(s_allocator_p);
+    bsl::vector<bsl::vector<bmqt::MessageGUID> > threadsData(
+        bmqtst::TestHelperUtil::allocator());
     threadsData.resize(k_NUM_THREADS);
 
     // Create generator with 'doIpResolving' flag set to false
@@ -771,18 +775,18 @@ static void test4_multithreadUseHostname()
                                                             &barrier,
                                                             &generator,
                                                             k_NUM_GUIDS));
-        ASSERT_EQ_D(i, rc, 0);
+        BMQTST_ASSERT_EQ_D(i, rc, 0);
     }
 
     barrier.wait();
     threadGroup.joinAll();
 
     // Check uniqueness across all threads
-    bsl::set<bmqt::MessageGUID> allGUIDs(s_allocator_p);
+    bsl::set<bmqt::MessageGUID> allGUIDs(bmqtst::TestHelperUtil::allocator());
     for (int tIt = 0; tIt < k_NUM_THREADS; ++tIt) {
         const bsl::vector<bmqt::MessageGUID>& guids = threadsData[tIt];
         for (int gIt = 0; gIt < k_NUM_GUIDS; ++gIt) {
-            ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
+            BMQTST_ASSERT_EQ(allGUIDs.insert(guids[gIt]).second, true);
         }
     }
 }
@@ -804,7 +808,7 @@ static void test5_print()
 //   Printing of the various parts of a GUID.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -815,11 +819,11 @@ static void test5_print()
     PV("Testing printing an unset GUID");
     {
         bmqt::MessageGUID guid;
-        ASSERT_EQ(guid.isUnset(), true);
+        BMQTST_ASSERT_EQ(guid.isUnset(), true);
 
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), "** UNSET **");
+        BMQTST_ASSERT_EQ(out.str(), "** UNSET **");
     }
 
     PV("Test printing of a valid handcrafted GUID (version 1)");
@@ -837,9 +841,9 @@ static void test5_print()
 
         // Print and compare
         const char k_EXPECTED[] = "1-2964169-297593876864458-0DCE04742D2E";
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), k_EXPECTED);
+        BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
     }
 
     PV("Test printing of an unsupported handcrafted GUID (version 0)");
@@ -857,9 +861,9 @@ static void test5_print()
 
         // Print and compare
         const char         k_EXPECTED[] = "[Unsupported GUID version 0]";
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
-        ASSERT_EQ(out.str(), k_EXPECTED);
+        BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
     }
 
     PV("Verify clientId");
@@ -867,7 +871,7 @@ static void test5_print()
         bmqt::MessageGUID guid;
         generator.generateGUID(&guid);
 
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out, guid);
 
         PVV("Output: '" << out.str() << "',  GUID " << guid);
@@ -875,7 +879,7 @@ static void test5_print()
         // characters.
         bslstl::StringRef printedClientId =
             bslstl::StringRef(&out.str()[out.length() - 12], 12);
-        ASSERT_EQ(printedClientId, generator.clientIdHex());
+        BMQTST_ASSERT_EQ(printedClientId, generator.clientIdHex());
     }
 
     PV("Test printing of a test-only GUID");
@@ -883,19 +887,19 @@ static void test5_print()
         bmqt::MessageGUID guid1 = bmqp::MessageGUIDGenerator::testGUID();
         bmqt::MessageGUID guid2 = bmqp::MessageGUIDGenerator::testGUID();
 
-        ASSERT(!guid1.isUnset());
-        ASSERT(!guid2.isUnset());
+        BMQTST_ASSERT(!guid1.isUnset());
+        BMQTST_ASSERT(!guid2.isUnset());
 
         // Print and compare
         const char         k_EXPECTED_1[] = "1-0-0-000000000001";
         const char         k_EXPECTED_2[] = "1-0-0-000000000002";
-        bmqu::MemOutStream out1(s_allocator_p);
-        bmqu::MemOutStream out2(s_allocator_p);
+        bmqu::MemOutStream out1(bmqtst::TestHelperUtil::allocator());
+        bmqu::MemOutStream out2(bmqtst::TestHelperUtil::allocator());
         bmqp::MessageGUIDGenerator::print(out1, guid1);
         bmqp::MessageGUIDGenerator::print(out2, guid2);
 
-        ASSERT_EQ(out1.str(), k_EXPECTED_1);
-        ASSERT_EQ(out2.str(), k_EXPECTED_2);
+        BMQTST_ASSERT_EQ(out1.str(), k_EXPECTED_1);
+        BMQTST_ASSERT_EQ(out2.str(), k_EXPECTED_2);
     }
 }
 
@@ -914,7 +918,7 @@ static void test6_defaultHashUniqueness()
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -936,7 +940,8 @@ static void test6_defaultHashUniqueness()
     typedef bsl::vector<bmqt::MessageGUID> Guids;
 
     // hash -> vector of corresponding GUIDs
-    bsl::unordered_map<size_t, Guids> hashes(s_allocator_p);
+    bsl::unordered_map<size_t, Guids> hashes(
+        bmqtst::TestHelperUtil::allocator());
     hashes.reserve(k_NUM_GUIDS);
 
     bsl::hash<bmqt::MessageGUID> hasher;
@@ -966,7 +971,7 @@ static void test6_defaultHashUniqueness()
     // this test, so we allow 1+1=2 max expected duplicates per a hash.
     const size_t k_MAX_EXPECTED_DUPLICATES = 2;
 
-    ASSERT_LT(maxDuplicates, k_MAX_EXPECTED_DUPLICATES);
+    BMQTST_ASSERT_LT(maxDuplicates, k_MAX_EXPECTED_DUPLICATES);
 
     if (maxDuplicates >= k_MAX_EXPECTED_DUPLICATES) {
         cout << "Hash duplicates percentage..........: "
@@ -1003,7 +1008,7 @@ static void test7_customHashUniqueness()
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -1025,7 +1030,8 @@ static void test7_customHashUniqueness()
     typedef bsl::vector<bmqt::MessageGUID> Guids;
 
     // hash -> vector of corresponding GUIDs
-    bsl::unordered_map<size_t, Guids> hashes(s_allocator_p);
+    bsl::unordered_map<size_t, Guids> hashes(
+        bmqtst::TestHelperUtil::allocator());
 
     hashes.reserve(k_NUM_GUIDS);
 
@@ -1055,7 +1061,7 @@ static void test7_customHashUniqueness()
     // collisions was in the range of [0, 3].
     const size_t k_MAX_EXPECTED_COLLISIONS = 4;
 
-    ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
+    BMQTST_ASSERT_LT(maxCollisions, k_MAX_EXPECTED_COLLISIONS);
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
@@ -1101,7 +1107,8 @@ static void testN1_decode()
 //   -
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;  // istringstream allocates
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
+        true;  // istringstream allocates
 
     bmqtst::TestHelper::printTestName("DECODE");
 
@@ -1117,7 +1124,7 @@ static void testN1_decode()
 
     bsl::istringstream is(buffer);
 
-    bsl::string        hexGuid(s_allocator_p);
+    bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
     bsls::Types::Int64 nanoSecondsFromEpoch = 0;
 
     is >> hexGuid;
@@ -1141,7 +1148,7 @@ static void testN1_decode()
     // Make a GUID out of it
     bmqt::MessageGUID guid;
     guid.fromHex(hexGuid.c_str());
-    ASSERT_EQ(guid.isUnset(), false);
+    BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
     // Print it
     cout << "--------------------------------" << endl;
@@ -1193,7 +1200,7 @@ static void testN2_bmqtPerformance()
 //   Performance of the bmqt::MessageGUID generation.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1251,7 +1258,7 @@ static void testN2_bdlbPerformance()
 //   Performance of the bdlb::Guid generation.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1304,7 +1311,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 //   NA
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1327,7 +1334,7 @@ BSLA_MAYBE_UNUSED static void testN4_customHashBenchmark()
 //   NA
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1345,7 +1352,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1353,7 +1360,8 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
-    bsl::unordered_map<bmqt::MessageGUID, size_t> ht(s_allocator_p);
+    bsl::unordered_map<bmqt::MessageGUID, size_t> ht(
+        bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -1394,7 +1402,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1406,7 +1414,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
     bsl::unordered_map<bmqt::MessageGUID,
                        size_t,
                        bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-        ht(s_allocator_p);
+        ht(bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -1447,7 +1455,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1456,8 +1464,9 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
     const size_t      k_NUM_ELEMS = 10000000;  // 10M
     bmqt::MessageGUID guid;
 
-    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(k_NUM_ELEMS,
-                                                       s_allocator_p);
+    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(
+        k_NUM_ELEMS,
+        bmqtst::TestHelperUtil::allocator());
 
     bmqp::MessageGUIDGenerator generator(0);
 
@@ -1497,7 +1506,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1509,7 +1518,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
     bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-        ht(k_NUM_ELEMS, s_allocator_p);
+        ht(k_NUM_ELEMS, bmqtst::TestHelperUtil::allocator());
 
     bmqp::MessageGUIDGenerator generator(0);
 
@@ -1549,7 +1558,7 @@ static void testN9_hashBenchmarkComparison()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -1585,7 +1594,7 @@ static void testN10_hashCollisionsComparison()
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
     // created upon insertion of objects in the map uses the default
     // allocator.
@@ -1636,9 +1645,9 @@ static void testN10_hashCollisionsComparison()
                 generators;
             generators.resize(10);
             for (int i = 0; i < k_NUM_GENERATORS; i++) {
-                generators[i].load(new (*s_allocator_p)
+                generators[i].load(new (*bmqtst::TestHelperUtil::allocator())
                                        bmqp::MessageGUIDGenerator(i),
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
             }
 
             bmqp::MessageGUIDGenerator generator(0);
@@ -1818,13 +1827,13 @@ static void testN10_hashCollisionsComparison()
         table.column("Name").insertValue(checker.d_name);
     }
 
-    bsl::vector<bmqt::MessageGUID> guids(s_allocator_p);
+    bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
     guids.reserve(k_NUM_GUIDS);
     for (size_t genId = 0; genId < k_NUM_GENERATORS; genId++) {
         const GeneratorContext& gen = k_GENERATORS[genId];
         gen.d_func(&guids, k_NUM_GUIDS);
 
-        bsl::string sample(s_allocator_p);
+        bsl::string sample(bmqtst::TestHelperUtil::allocator());
         sample.resize(bmqt::MessageGUID::e_SIZE_HEX);
         guids.at(k_NUM_GUIDS / 2).toHex(sample.data());
 
@@ -1867,7 +1876,8 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
 {
     for (auto _ : state) {
         state.PauseTiming();
-        s_ignoreCheckDefAlloc = true;  // istringstream allocates
+        bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
+            true;  // istringstream allocates
 
         bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK DECODE");
 
@@ -1884,7 +1894,7 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
 
         bsl::istringstream is(buffer);
 
-        bsl::string        hexGuid(s_allocator_p);
+        bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
         bsls::Types::Int64 nanoSecondsFromEpoch = 0;
 
         is >> hexGuid;
@@ -1910,7 +1920,7 @@ static void testN1_decode_GoogleBenchmark(benchmark::State& state)
         // Make a GUID out of it
         bmqt::MessageGUID guid;
         guid.fromHex(hexGuid.c_str());
-        ASSERT_EQ(guid.isUnset(), false);
+        BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Print it
         cout << "--------------------------------" << endl;
@@ -1965,7 +1975,7 @@ static void testN2_bmqtPerformance_GoogleBenchmark(benchmark::State& state)
 //   bdlb::Guid generation.
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
     // ----------------------------
     // bmqt::MessageGUID generation
@@ -1996,7 +2006,7 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
     // ---------------------
 
     // Warm the cache
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
     for (int i = 0; i < 1000; ++i) {
@@ -2029,7 +2039,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   NA
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2063,7 +2073,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 //   NA
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2094,7 +2104,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2102,7 +2112,8 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
                                       "w/ DEFAULT HASH BENCHMARK");
 
     bmqt::MessageGUID                             guid;
-    bsl::unordered_map<bmqt::MessageGUID, size_t> ht(s_allocator_p);
+    bsl::unordered_map<bmqt::MessageGUID, size_t> ht(
+        bmqtst::TestHelperUtil::allocator());
     ht.reserve(state.range(0));
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -2134,7 +2145,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2146,7 +2157,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     bsl::unordered_map<bmqt::MessageGUID,
                        size_t,
                        bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-        ht(s_allocator_p);
+        ht(bmqtst::TestHelperUtil::allocator());
     ht.reserve(state.range(0));
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -2178,7 +2189,7 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2187,8 +2198,9 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 
     bmqt::MessageGUID guid;
 
-    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(state.range(0),
-                                                       s_allocator_p);
+    bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(
+        state.range(0),
+        bmqtst::TestHelperUtil::allocator());
 
     bmqp::MessageGUIDGenerator generator(0);
 
@@ -2218,7 +2230,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
     // allocates using the default allocator.
 
@@ -2230,7 +2242,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
-        ht(state.range(0), s_allocator_p);
+        ht(state.range(0), bmqtst::TestHelperUtil::allocator());
 
     bmqp::MessageGUIDGenerator generator(0);
 
@@ -2323,7 +2335,7 @@ int main(int argc, char* argv[])
     case -10: testN10_hashCollisionsComparison(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 #ifdef BSLS_PLATFORM_OS_LINUX

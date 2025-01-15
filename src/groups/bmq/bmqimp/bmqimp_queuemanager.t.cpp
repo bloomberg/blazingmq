@@ -54,23 +54,27 @@ void enableQueueStat(bmqimp::QueueManager::QueueSp& queueSp)
 
     bmqimp::QueueState::Enum k_STATE = bmqimp::QueueState::e_OPENED;
 
-    bmqimp::Stat                       queuesStats(s_allocator_p);
+    bmqimp::Stat queuesStats(bmqtst::TestHelperUtil::allocator());
     bmqst::StatValue::SnapshotLocation start;
     bmqst::StatValue::SnapshotLocation end;
 
-    bmqst::StatContextConfiguration config("stats", s_allocator_p);
+    bmqst::StatContextConfiguration config(
+        "stats",
+        bmqtst::TestHelperUtil::allocator());
     config.defaultHistorySize(2);
 
-    bmqst::StatContext rootStatContext(config, s_allocator_p);
+    bmqst::StatContext rootStatContext(config,
+                                       bmqtst::TestHelperUtil::allocator());
 
     start.setLevel(0).setIndex(0);
     end.setLevel(0).setIndex(1);
 
-    bmqimp::QueueStatsUtil::initializeStats(&queuesStats,
-                                            &rootStatContext,
-                                            start,
-                                            end,
-                                            s_allocator_p);
+    bmqimp::QueueStatsUtil::initializeStats(
+        &queuesStats,
+        &rootStatContext,
+        start,
+        end,
+        bmqtst::TestHelperUtil::allocator());
 
     bmqst::StatContext* pStatContext = queuesStats.d_statContext_mp.get();
 
@@ -101,24 +105,25 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId      k_CORID;
     const bmqp::QueueId            k_QUEUE_ID(0, 0);
     const bmqimp::QueueState::Enum k_QUEUE_STATE =
         bmqimp::QueueState::e_OPENING_OPN;
 
-    bsl::vector<bmqimp::QueueManager::QueueSp> queues(s_allocator_p);
+    bsl::vector<bmqimp::QueueManager::QueueSp> queues(
+        bmqtst::TestHelperUtil::allocator());
     obj.lookupQueuesByState(&queues, k_QUEUE_STATE);
-    ASSERT(obj.lookupQueue(uri).get() == 0);
-    ASSERT(obj.lookupQueue(k_CORID).get() == 0);
-    ASSERT_EQ(queues.size(), 0U);
+    BMQTST_ASSERT(obj.lookupQueue(uri).get() == 0);
+    BMQTST_ASSERT(obj.lookupQueue(k_CORID).get() == 0);
+    BMQTST_ASSERT_EQ(queues.size(), 0U);
 
-    ASSERT_SAFE_FAIL(
-        obj.subStreamCount(bsl::string(uri.canonical(), s_allocator_p)));
+    BMQTST_ASSERT_SAFE_FAIL(obj.subStreamCount(
+        bsl::string(uri.canonical(), bmqtst::TestHelperUtil::allocator())));
 }
 
 static void test2_generateQueueIdTest()
@@ -157,19 +162,19 @@ static void test2_generateQueueIdTest()
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri            uri(k_URI, s_allocator_p);
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqt::Uri            uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     PVV("Invalid cases");
     {
         bmqp::QueueId queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
-        bmqt::Uri     emptyUri(s_allocator_p);
+        bmqt::Uri     emptyUri(bmqtst::TestHelperUtil::allocator());
 
         // NULL output QueueId
-        ASSERT_SAFE_FAIL(obj.generateQueueAndSubQueueId(0, uri, 0));
+        BMQTST_ASSERT_SAFE_FAIL(obj.generateQueueAndSubQueueId(0, uri, 0));
 
         // Not valid URI
-        ASSERT_SAFE_FAIL(
+        BMQTST_ASSERT_SAFE_FAIL(
             obj.generateQueueAndSubQueueId(&queueId, emptyUri, 0));
     }
 
@@ -180,19 +185,22 @@ static void test2_generateQueueIdTest()
 
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 0);
-        ASSERT_EQ(queueId.subId(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 0);
+        BMQTST_ASSERT_EQ(queueId.subId(),
+                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
         // The second generation increments queueId
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 1);
-        ASSERT_EQ(queueId.subId(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 1);
+        BMQTST_ASSERT_EQ(queueId.subId(),
+                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
     }
 
     PVV("[Uri: unknown] [AppId: not set] [Reader flag: set]");
     {
-        bmqt::Uri uriNoId("bmq://ts.trades.myapp/my.queue", s_allocator_p);
+        bmqt::Uri uriNoId("bmq://ts.trades.myapp/my.queue",
+                          bmqtst::TestHelperUtil::allocator());
 
         bsls::Types::Uint64 flags = 0;
         bmqp::QueueId       queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
@@ -201,8 +209,9 @@ static void test2_generateQueueIdTest()
 
         obj.generateQueueAndSubQueueId(&queueId, uriNoId, flags);
 
-        ASSERT_EQ(queueId.id(), 2);
-        ASSERT_EQ(queueId.subId(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 2);
+        BMQTST_ASSERT_EQ(queueId.subId(),
+                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
     }
 
     PVV("[Uri: unknown] [AppId: set] [Reader flag: set]");
@@ -218,8 +227,8 @@ static void test2_generateQueueIdTest()
 
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 3);
-        ASSERT_EQ(queueId.subId(), k_SUB_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 3);
+        BMQTST_ASSERT_EQ(queueId.subId(), k_SUB_ID);
     }
 
     PVV("[Uri: known] [AppId: set] [Reader flag: not set]");
@@ -234,10 +243,12 @@ static void test2_generateQueueIdTest()
 
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 4);
-        ASSERT_EQ(queueId.subId(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 4);
+        BMQTST_ASSERT_EQ(queueId.subId(),
+                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
-        queueSp.createInplace(s_allocator_p, s_allocator_p);
+        queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              bmqtst::TestHelperUtil::allocator());
 
         (*queueSp)
             .setUri(uri)
@@ -251,8 +262,9 @@ static void test2_generateQueueIdTest()
         // Now URI is known, queueId should be the same
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 4);
-        ASSERT_EQ(queueId.subId(), bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
+        BMQTST_ASSERT_EQ(queueId.id(), 4);
+        BMQTST_ASSERT_EQ(queueId.subId(),
+                         bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
     }
 
     PVV("[Uri: known] [AppId: set] [Reader flag: set]");
@@ -265,13 +277,13 @@ static void test2_generateQueueIdTest()
         bmqt::QueueFlagsUtil::setReader(&flags);
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 4);
-        ASSERT_EQ(queueId.subId(), 1U);
+        BMQTST_ASSERT_EQ(queueId.id(), 4);
+        BMQTST_ASSERT_EQ(queueId.subId(), 1U);
 
         obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
-        ASSERT_EQ(queueId.id(), 4);
-        ASSERT_EQ(queueId.subId(), 2U);
+        BMQTST_ASSERT_EQ(queueId.id(), 4);
+        BMQTST_ASSERT_EQ(queueId.subId(), 2U);
     }
 }
 
@@ -295,33 +307,34 @@ static void test3_insertQueueTest()
 {
     bmqtst::TestHelper::printTestName("INSERT QUEUE TEST");
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri                     uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId     k_CORID = bmqt::CorrelationId::autoValue();
     bmqimp::QueueManager::QueueSp queueSp;
 
     // Cannot insert null object
-    ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
+    BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
 
     // Cannot insert queue object without queue ID.
-    ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
+    BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 
     bmqp::QueueId queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
     queueSp->setId(queueId.id());
 
     // Cannot insert queue object with invalid queue ID.
-    ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
+    BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 
     queueId.setId(123);
     queueSp->setId(queueId.id());
 
     // Cannot insert queue object with not generated queue ID.
-    ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
+    BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 
     bsls::Types::Uint64 flags = 0;
     bmqt::QueueFlagsUtil::setReader(&flags);
@@ -339,21 +352,23 @@ static void test3_insertQueueTest()
 
     obj.insertQueue(queueSp);
 
-    bsl::vector<bmqimp::QueueManager::QueueSp> queues(s_allocator_p);
+    bsl::vector<bmqimp::QueueManager::QueueSp> queues(
+        bmqtst::TestHelperUtil::allocator());
     obj.lookupQueuesByState(&queues, bmqimp::QueueState::e_CLOSED);
 
-    ASSERT_EQ(queues.size(), 1U);
+    BMQTST_ASSERT_EQ(queues.size(), 1U);
 
-    ASSERT(obj.lookupQueue(uri) == queueSp);
-    ASSERT(obj.lookupQueue(k_CORID) == queueSp);
-    ASSERT(obj.lookupQueue(queueId) == queueSp);
+    BMQTST_ASSERT(obj.lookupQueue(uri) == queueSp);
+    BMQTST_ASSERT(obj.lookupQueue(k_CORID) == queueSp);
+    BMQTST_ASSERT(obj.lookupQueue(queueId) == queueSp);
 
-    ASSERT(obj.subStreamCount(bsl::string(uri.canonical(), s_allocator_p)) ==
-           0);
+    BMQTST_ASSERT(obj.subStreamCount(
+                      bsl::string(uri.canonical(),
+                                  bmqtst::TestHelperUtil::allocator())) == 0);
 
     // Cannot insert the second queue object with the same queue and subqueue
     // ID.
-    ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
+    BMQTST_ASSERT_SAFE_FAIL(obj.insertQueue(queueSp));
 }
 
 static void test4_lookupQueueByUri()
@@ -379,19 +394,20 @@ static void test4_lookupQueueByUri()
 {
     bmqtst::TestHelper::printTestName("LOOKUP QUEUE");
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     const char k_URI1[] = "bmq://ts.trades.myapp/my.queue?id=foo";
     const char k_URI2[] = "bmq://ts.trades.myapp/my.queue?id=bar";
 
-    bmqt::Uri                     uri1(k_URI1, s_allocator_p);
-    bmqt::Uri                     uri2(k_URI2, s_allocator_p);
+    bmqt::Uri uri1(k_URI1, bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri uri2(k_URI2, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
     bsls::Types::Uint64           flags   = 0;
     const bmqt::CorrelationId     k_CORID = bmqt::CorrelationId::autoValue();
 
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
     bmqt::QueueFlagsUtil::setReader(&flags);
     obj.generateQueueAndSubQueueId(&queueId, uri1, flags);
 
@@ -404,8 +420,8 @@ static void test4_lookupQueueByUri()
 
     obj.insertQueue(queueSp);
 
-    ASSERT(obj.lookupQueue(uri1) == queueSp);
-    ASSERT(obj.lookupQueue(uri2) == bmqimp::QueueManager::QueueSp());
+    BMQTST_ASSERT(obj.lookupQueue(uri1) == queueSp);
+    BMQTST_ASSERT(obj.lookupQueue(uri2) == bmqimp::QueueManager::QueueSp());
 }
 
 static void test6_removeQueueTest()
@@ -431,15 +447,16 @@ static void test6_removeQueueTest()
 {
     bmqtst::TestHelper::printTestName("REMOVE QUEUE TEST");
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri                     uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqt::CorrelationId     k_CORID = bmqt::CorrelationId::autoValue();
     bmqimp::QueueManager::QueueSp queueSp;
 
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
 
     bsls::Types::Uint64 flags = 0;
     bmqt::QueueFlagsUtil::setReader(&flags);
@@ -456,13 +473,13 @@ static void test6_removeQueueTest()
 
     obj.insertQueue(queueSp);
 
-    ASSERT(obj.removeQueue(queueSp.get()) == queueSp);
-    ASSERT(obj.lookupQueue(uri) == 0);
-    ASSERT(obj.lookupQueue(k_CORID) == 0);
-    ASSERT(obj.lookupQueue(queueId) == 0);
+    BMQTST_ASSERT(obj.removeQueue(queueSp.get()) == queueSp);
+    BMQTST_ASSERT(obj.lookupQueue(uri) == 0);
+    BMQTST_ASSERT(obj.lookupQueue(k_CORID) == 0);
+    BMQTST_ASSERT(obj.lookupQueue(queueId) == 0);
 
     // Cannot remove the same queue object twice
-    ASSERT((!(obj.removeQueue(queueSp.get()))));
+    BMQTST_ASSERT((!(obj.removeQueue(queueSp.get()))));
 }
 
 static void test8_substreamCountTest()
@@ -488,17 +505,18 @@ static void test8_substreamCountTest()
 {
     bmqtst::TestHelper::printTestName("RESET STATE TEST");
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
-    bmqt::Uri                     uri(k_URI, s_allocator_p);
+    bmqt::Uri uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp queueSp;
     bmqp::QueueId                 queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
     bsls::Types::Uint64           flags   = 0;
     const bmqt::CorrelationId     k_CORID = bmqt::CorrelationId::autoValue();
 
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
     bmqt::QueueFlagsUtil::setReader(&flags);
     obj.generateQueueAndSubQueueId(&queueId, uri, flags);
 
@@ -509,40 +527,41 @@ static void test8_substreamCountTest()
         .setFlags(flags)
         .setCorrelationId(k_CORID);
 
-    bsl::string uriCanonical(uri.canonical(), s_allocator_p);
+    bsl::string uriCanonical(uri.canonical(),
+                             bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_SAFE_FAIL(obj.incrementSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.resetSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.subStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.incrementSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.resetSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.subStreamCount(uriCanonical));
 
     obj.insertQueue(queueSp);
 
-    ASSERT(obj.lookupQueue(queueId) == queueSp);
-    ASSERT_EQ(obj.subStreamCount(uriCanonical), 0U);
+    BMQTST_ASSERT(obj.lookupQueue(queueId) == queueSp);
+    BMQTST_ASSERT_EQ(obj.subStreamCount(uriCanonical), 0U);
 
-    ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
 
     obj.incrementSubStreamCount(uriCanonical);
     obj.incrementSubStreamCount(uriCanonical);
     obj.incrementSubStreamCount(uriCanonical);
 
-    ASSERT_EQ(obj.subStreamCount(uriCanonical), 3U);
+    BMQTST_ASSERT_EQ(obj.subStreamCount(uriCanonical), 3U);
 
     obj.decrementSubStreamCount(uriCanonical);
 
-    ASSERT_EQ(obj.subStreamCount(uriCanonical), 2U);
+    BMQTST_ASSERT_EQ(obj.subStreamCount(uriCanonical), 2U);
 
     obj.resetSubStreamCount(uriCanonical);
 
-    ASSERT_EQ(obj.subStreamCount(uriCanonical), 0U);
+    BMQTST_ASSERT_EQ(obj.subStreamCount(uriCanonical), 0U);
 
     obj.resetState();
 
-    ASSERT_SAFE_FAIL(obj.incrementSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.resetSubStreamCount(uriCanonical));
-    ASSERT_SAFE_FAIL(obj.subStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.incrementSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.decrementSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.resetSubStreamCount(uriCanonical));
+    BMQTST_ASSERT_SAFE_FAIL(obj.subStreamCount(uriCanonical));
 }
 
 static void test9_pushStatsTest()
@@ -573,26 +592,35 @@ static void test9_pushStatsTest()
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     const bmqt::MessageGUID   k_GUID;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PushEventBuilder         peb(&bufferFactory, s_allocator_p);
-    bdlbb::Blob                    payload(&bufferFactory, s_allocator_p);
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PushEventBuilder peb(blobSpPool.get(),
+                               bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob payload(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri   uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp  queueSp;
     bmqp::QueueId                  queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
-    bmqp::PushMessageIterator      msgIterator(&bufferFactory, s_allocator_p);
-    bmqimp::QueueManager::EventInfos eventInfos(s_allocator_p);
+    bmqp::PushMessageIterator      msgIterator(&bufferFactory,
+                                          bmqtst::TestHelperUtil::allocator());
+    bmqimp::QueueManager::EventInfos eventInfos(
+        bmqtst::TestHelperUtil::allocator());
     int                              eventMessageCount = 0;
     bsls::Types::Uint64              flags             = 0;
 
     bool hasMessageWithMultipleSubQueueIds = false;
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     // Fails due to empty iterator
-    ASSERT_SAFE_FAIL(obj.onPushEvent(&eventInfos,
-                                     &eventMessageCount,
-                                     &hasMessageWithMultipleSubQueueIds,
-                                     msgIterator));
+    BMQTST_ASSERT_SAFE_FAIL(obj.onPushEvent(&eventInfos,
+                                            &eventMessageCount,
+                                            &hasMessageWithMultipleSubQueueIds,
+                                            msgIterator));
 
     // Make a valid iterator
     obj.generateQueueAndSubQueueId(&queueId, uri, flags);
@@ -606,8 +634,8 @@ static void test9_pushStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPushEvent());
@@ -615,13 +643,14 @@ static void test9_pushStatsTest()
     rawEvent.loadPushMessageIterator(&msgIterator);
 
     // Fails due to no queues
-    ASSERT_SAFE_FAIL(obj.onPushEvent(&eventInfos,
-                                     &eventMessageCount,
-                                     &hasMessageWithMultipleSubQueueIds,
-                                     msgIterator));
+    BMQTST_ASSERT_SAFE_FAIL(obj.onPushEvent(&eventInfos,
+                                            &eventMessageCount,
+                                            &hasMessageWithMultipleSubQueueIds,
+                                            msgIterator));
 
     // Add a queue with enabled statistics
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
     bmqt::QueueFlagsUtil::setReader(&flags);
 
     (*queueSp)
@@ -640,15 +669,15 @@ static void test9_pushStatsTest()
                          &hasMessageWithMultipleSubQueueIds,
                          msgIterator);
 
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(eventInfos.size(), 1U);
-    ASSERT_EQ(eventInfos[0].d_ids.size(), 1U);
-    ASSERT_EQ(eventInfos[0].d_ids[0].d_header.queueId(), queueId.id());
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(eventInfos.size(), 1U);
+    BMQTST_ASSERT_EQ(eventInfos[0].d_ids.size(), 1U);
+    BMQTST_ASSERT_EQ(eventInfos[0].d_ids[0].d_header.queueId(), queueId.id());
 
     const unsigned int sId = bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
-    ASSERT_EQ(eventInfos[0].d_ids[0].d_subscriptionId, sId);
-    ASSERT_EQ(eventMessageCount, 1);
-    ASSERT_EQ(hasMessageWithMultipleSubQueueIds, false);
+    BMQTST_ASSERT_EQ(eventInfos[0].d_ids[0].d_subscriptionId, sId);
+    BMQTST_ASSERT_EQ(eventMessageCount, 1);
+    BMQTST_ASSERT_EQ(hasMessageWithMultipleSubQueueIds, false);
 }
 
 static void test10_putStatsTest()
@@ -681,19 +710,27 @@ static void test10_putStatsTest()
     const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
     const bmqt::MessageGUID   k_GUID;
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bmqp::PutEventBuilder          peb(&bufferFactory, s_allocator_p);
-    bmqt::Uri                      uri(k_URI, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder peb(blobSpPool.get(),
+                              bmqtst::TestHelperUtil::allocator());
+    bmqt::Uri             uri(k_URI, bmqtst::TestHelperUtil::allocator());
     bmqimp::QueueManager::QueueSp  queueSp;
     bmqp::QueueId                  queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
-    bmqp::PutMessageIterator       msgIterator(&bufferFactory, s_allocator_p);
+    bmqp::PutMessageIterator       msgIterator(&bufferFactory,
+                                         bmqtst::TestHelperUtil::allocator());
     int                            eventMessageCount = 0;
     bsls::Types::Uint64            flags             = 0;
 
-    bmqimp::QueueManager obj(s_allocator_p);
+    bmqimp::QueueManager obj(bmqtst::TestHelperUtil::allocator());
 
     // Fails due to empty iterator
-    ASSERT_SAFE_FAIL(
+    BMQTST_ASSERT_SAFE_FAIL(
         obj.updateStatsOnPutEvent(&eventMessageCount, msgIterator));
 
     // Make a valid iterator
@@ -706,8 +743,8 @@ static void test10_putStatsTest()
 
     BSLS_ASSERT_SAFE(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
-    const bdlbb::Blob& eventBlob = peb.blob();
-    bmqp::Event        rawEvent(&eventBlob, s_allocator_p);
+    bmqp::Event rawEvent(peb.blob().get(),
+                         bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT_SAFE(true == rawEvent.isValid());
     BSLS_ASSERT_SAFE(true == rawEvent.isPutEvent());
@@ -715,11 +752,12 @@ static void test10_putStatsTest()
     rawEvent.loadPutMessageIterator(&msgIterator);
 
     // Fails due to no queues
-    ASSERT_SAFE_FAIL(
+    BMQTST_ASSERT_SAFE_FAIL(
         obj.updateStatsOnPutEvent(&eventMessageCount, msgIterator));
 
     // Add a queue with enabled statistics
-    queueSp.createInplace(s_allocator_p, s_allocator_p);
+    queueSp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                          bmqtst::TestHelperUtil::allocator());
     bmqt::QueueFlagsUtil::setWriter(&flags);
 
     (*queueSp)
@@ -735,8 +773,8 @@ static void test10_putStatsTest()
 
     rc = obj.updateStatsOnPutEvent(&eventMessageCount, msgIterator);
 
-    ASSERT_EQ(rc, 0);
-    ASSERT_EQ(eventMessageCount, 1);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(eventMessageCount, 1);
 }
 
 }  // close unnamed namespace
@@ -749,8 +787,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     // Initialize Crc32c
     bmqp::Crc32c::initialize();
@@ -767,7 +805,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

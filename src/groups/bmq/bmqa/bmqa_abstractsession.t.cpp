@@ -291,7 +291,7 @@ static void test1_breathingTest()
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
     // 'markDone' methods of AbstractSession may sometimes return a
     // memory-aware object without utilizing the parameter allocator.
@@ -302,16 +302,17 @@ static void test1_breathingTest()
     bmqa::AbstractSession concreteObj;
 
     PV("Creating a test object");
-    bsls::ProtocolTest<AbstractSessionTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<AbstractSessionTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is NOT abstract");
-    ASSERT(!testObj.testAbstract());
+    BMQTST_ASSERT(!testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     PV("Verify that methods are public and virtual");
 
@@ -327,9 +328,11 @@ static void test1_breathingTest()
     bmqt::Uri                       dummyUri;
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus      openQueueResult(s_allocator_p);
-    bmqa::ConfigureQueueStatus configureQueueResult(s_allocator_p);
-    bmqa::CloseQueueStatus     closeQueueResult(s_allocator_p);
+    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
+    bmqa::ConfigureQueueStatus configureQueueResult(
+        bmqtst::TestHelperUtil::allocator());
+    bmqa::CloseQueueStatus closeQueueResult(
+        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
@@ -442,7 +445,7 @@ static void test2_instanceInvariants()
 //   INSTANCE INVARIANTS
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
@@ -464,148 +467,157 @@ static void test2_instanceInvariants()
     bmqa::QueueId*                  dummyQueueIdPtr             = 0;
     bmqt::CorrelationId             dummyCorrelationId;
     bmqt::QueueOptions              dummyQueueOptions;
-    bmqt::Uri                       dummyUri(s_allocator_p);
+    bmqt::Uri dummyUri(bmqtst::TestHelperUtil::allocator());
     bsls::TimeInterval              dummyTimeInterval(0);
 
-    bmqa::OpenQueueStatus      openQueueResult(s_allocator_p);
-    bmqa::ConfigureQueueStatus configureQueueResult(s_allocator_p);
-    bmqa::CloseQueueStatus     closeQueueResult(s_allocator_p);
+    bmqa::OpenQueueStatus openQueueResult(bmqtst::TestHelperUtil::allocator());
+    bmqa::ConfigureQueueStatus configureQueueResult(
+        bmqtst::TestHelperUtil::allocator());
+    bmqa::CloseQueueStatus closeQueueResult(
+        bmqtst::TestHelperUtil::allocator());
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
     const bmqa::AbstractSession::CloseQueueCallback     closeQueueCallback;
 
     // Base class instance
-    ASSERT_OPT_FAIL(concreteObj.start(dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.startAsync(dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.stop());
-    ASSERT_OPT_FAIL(concreteObj.stopAsync());
-    ASSERT_OPT_FAIL(concreteObj.finalizeStop());
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.start(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.startAsync(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.stop());
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.stopAsync());
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.finalizeStop());
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.loadMessageEventBuilder(dummyMessageEventBuilderPtr));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.loadConfirmEventBuilder(dummyConfirmEventBuilderPtr));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.loadMessageProperties(dummyMessagePropertiesPtr));
-    ASSERT_OPT_FAIL(concreteObj.getQueueId(dummyQueueIdPtr, dummyUri));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.getQueueId(dummyQueueIdPtr, dummyUri));
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.getQueueId(dummyQueueIdPtr, dummyCorrelationId));
-    ASSERT_OPT_FAIL(concreteObj.openQueue(dummyQueueIdPtr,
-                                          dummyUri,
-                                          0,
-                                          dummyQueueOptions,
-                                          dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.openQueueSync(dummyQueueIdPtr,
-                                              dummyUri,
-                                              0,
-                                              dummyQueueOptions,
-                                              dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.openQueueAsync(dummyQueueIdPtr,
-                                               dummyUri,
-                                               0,
-                                               dummyQueueOptions,
-                                               dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.openQueueAsync(dummyQueueIdPtr,
-                                               dummyUri,
-                                               0,
-                                               openQueueCallback,
-                                               dummyQueueOptions,
-                                               dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.configureQueue(dummyQueueIdPtr,
-                                               dummyQueueOptions,
-                                               dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.configureQueueSync(dummyQueueIdPtr,
-                                                   dummyQueueOptions,
-                                                   dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.configureQueueAsync(dummyQueueIdPtr,
-                                                    dummyQueueOptions,
-                                                    dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.configureQueueAsync(dummyQueueIdPtr,
-                                                    dummyQueueOptions,
-                                                    configureQueueCallback,
-                                                    dummyTimeInterval));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.openQueue(dummyQueueIdPtr,
+                                                 dummyUri,
+                                                 0,
+                                                 dummyQueueOptions,
+                                                 dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.openQueueSync(dummyQueueIdPtr,
+                                                     dummyUri,
+                                                     0,
+                                                     dummyQueueOptions,
+                                                     dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.openQueueAsync(dummyQueueIdPtr,
+                                                      dummyUri,
+                                                      0,
+                                                      dummyQueueOptions,
+                                                      dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.openQueueAsync(dummyQueueIdPtr,
+                                                      dummyUri,
+                                                      0,
+                                                      openQueueCallback,
+                                                      dummyQueueOptions,
+                                                      dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.configureQueue(dummyQueueIdPtr,
+                                                      dummyQueueOptions,
+                                                      dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.configureQueueSync(dummyQueueIdPtr,
+                                                          dummyQueueOptions,
+                                                          dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.configureQueueAsync(dummyQueueIdPtr,
+                                                           dummyQueueOptions,
+                                                           dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(
+        concreteObj.configureQueueAsync(dummyQueueIdPtr,
+                                        dummyQueueOptions,
+                                        configureQueueCallback,
+                                        dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.closeQueue(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.closeQueueSync(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.closeQueueAsync(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.closeQueueAsync(dummyQueueIdPtr,
-                                                closeQueueCallback,
-                                                dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.nextEvent(dummyTimeInterval));
-    ASSERT_OPT_FAIL(concreteObj.post(dummyMessageEvent));
-    ASSERT_OPT_FAIL(concreteObj.confirmMessage(dummyMessage));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.closeQueueAsync(dummyQueueIdPtr,
+                                                       closeQueueCallback,
+                                                       dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.nextEvent(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.post(dummyMessageEvent));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.confirmMessage(dummyMessage));
+    BMQTST_ASSERT_OPT_FAIL(
         concreteObj.confirmMessage(dummyMessageConfirmationCookie));
-    ASSERT_OPT_FAIL(concreteObj.confirmMessages(dummyConfirmEventBuilderPtr));
-    ASSERT_OPT_FAIL(concreteObj.configureMessageDumping(""));
+    BMQTST_ASSERT_OPT_FAIL(
+        concreteObj.confirmMessages(dummyConfirmEventBuilderPtr));
+    BMQTST_ASSERT_OPT_FAIL(concreteObj.configureMessageDumping(""));
 
     // Derived instance
-    ASSERT_OPT_FAIL(testObj.start(dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.startAsync(dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.stop());
-    ASSERT_OPT_FAIL(testObj.stopAsync());
-    ASSERT_OPT_FAIL(testObj.finalizeStop());
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(testObj.start(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.startAsync(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.stop());
+    BMQTST_ASSERT_OPT_FAIL(testObj.stopAsync());
+    BMQTST_ASSERT_OPT_FAIL(testObj.finalizeStop());
+    BMQTST_ASSERT_OPT_FAIL(
         testObj.loadMessageEventBuilder(dummyMessageEventBuilderPtr));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         testObj.loadConfirmEventBuilder(dummyConfirmEventBuilderPtr));
-    ASSERT_OPT_FAIL(testObj.loadMessageProperties(dummyMessagePropertiesPtr));
-    ASSERT_OPT_FAIL(testObj.getQueueId(dummyQueueIdPtr, dummyUri));
-    ASSERT_OPT_FAIL(testObj.getQueueId(dummyQueueIdPtr, dummyCorrelationId));
-    ASSERT_OPT_FAIL(testObj.openQueue(dummyQueueIdPtr,
-                                      dummyUri,
-                                      0,
-                                      dummyQueueOptions,
-                                      dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.openQueueSync(dummyQueueIdPtr,
-                                          dummyUri,
-                                          0,  // flags
-                                          dummyQueueOptions,
-                                          dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.openQueueAsync(dummyQueueIdPtr,
-                                           dummyUri,
-                                           0,
-                                           dummyQueueOptions,
-                                           dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.openQueueAsync(dummyQueueIdPtr,
-                                           dummyUri,
-                                           0,
-                                           openQueueCallback,
-                                           dummyQueueOptions,
-                                           dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.configureQueue(dummyQueueIdPtr,
-                                           dummyQueueOptions,
-                                           dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.configureQueueSync(dummyQueueIdPtr,
-                                               dummyQueueOptions,
-                                               dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.configureQueueAsync(dummyQueueIdPtr,
-                                                dummyQueueOptions,
-                                                dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.configureQueueAsync(dummyQueueIdPtr,
-                                                dummyQueueOptions,
-                                                configureQueueCallback,
-                                                dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.closeQueue(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
+        testObj.loadMessageProperties(dummyMessagePropertiesPtr));
+    BMQTST_ASSERT_OPT_FAIL(testObj.getQueueId(dummyQueueIdPtr, dummyUri));
+    BMQTST_ASSERT_OPT_FAIL(
+        testObj.getQueueId(dummyQueueIdPtr, dummyCorrelationId));
+    BMQTST_ASSERT_OPT_FAIL(testObj.openQueue(dummyQueueIdPtr,
+                                             dummyUri,
+                                             0,
+                                             dummyQueueOptions,
+                                             dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.openQueueSync(dummyQueueIdPtr,
+                                                 dummyUri,
+                                                 0,  // flags
+                                                 dummyQueueOptions,
+                                                 dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.openQueueAsync(dummyQueueIdPtr,
+                                                  dummyUri,
+                                                  0,
+                                                  dummyQueueOptions,
+                                                  dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.openQueueAsync(dummyQueueIdPtr,
+                                                  dummyUri,
+                                                  0,
+                                                  openQueueCallback,
+                                                  dummyQueueOptions,
+                                                  dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.configureQueue(dummyQueueIdPtr,
+                                                  dummyQueueOptions,
+                                                  dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.configureQueueSync(dummyQueueIdPtr,
+                                                      dummyQueueOptions,
+                                                      dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.configureQueueAsync(dummyQueueIdPtr,
+                                                       dummyQueueOptions,
+                                                       dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.configureQueueAsync(dummyQueueIdPtr,
+                                                       dummyQueueOptions,
+                                                       configureQueueCallback,
+                                                       dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(
+        testObj.closeQueue(dummyQueueIdPtr, dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(
         testObj.closeQueueSync(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(
+    BMQTST_ASSERT_OPT_FAIL(
         testObj.closeQueueAsync(dummyQueueIdPtr, dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.closeQueueAsync(dummyQueueIdPtr,
-                                            closeQueueCallback,
-                                            dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.nextEvent(dummyTimeInterval));
-    ASSERT_OPT_FAIL(testObj.post(dummyMessageEvent));
-    ASSERT_OPT_FAIL(testObj.confirmMessage(dummyMessage));
-    ASSERT_OPT_FAIL(testObj.confirmMessage(dummyMessageConfirmationCookie));
-    ASSERT_OPT_FAIL(testObj.confirmMessages(dummyConfirmEventBuilderPtr));
+    BMQTST_ASSERT_OPT_FAIL(testObj.closeQueueAsync(dummyQueueIdPtr,
+                                                   closeQueueCallback,
+                                                   dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.nextEvent(dummyTimeInterval));
+    BMQTST_ASSERT_OPT_FAIL(testObj.post(dummyMessageEvent));
+    BMQTST_ASSERT_OPT_FAIL(testObj.confirmMessage(dummyMessage));
+    BMQTST_ASSERT_OPT_FAIL(
+        testObj.confirmMessage(dummyMessageConfirmationCookie));
+    BMQTST_ASSERT_OPT_FAIL(
+        testObj.confirmMessages(dummyConfirmEventBuilderPtr));
 
     PV("Verify that overriden methods execute as intended");
 
-    ASSERT_OPT_PASS(testObj.configureMessageDumping(""));
-    ASSERT_EQ(testObj.configureMessageDumping(""), -1497);
+    BMQTST_ASSERT_OPT_PASS(testObj.configureMessageDumping(""));
+    BMQTST_ASSERT_EQ(testObj.configureMessageDumping(""), -1497);
 }
 
 // ============================================================================
@@ -622,7 +634,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

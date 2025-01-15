@@ -502,7 +502,8 @@ void Tester::channelReadCb(const bsl::string& channelName,
     if (!status) {
         if (status.category() != StatusCategory::e_CANCELED &&
             status.category() != StatusCategory::e_CONNECTION) {
-            ASSERT_D(channelName.c_str() << ", " << status.category(), false);
+            BMQTST_ASSERT_D(channelName.c_str() << ", " << status.category(),
+                            false);
             return;  // RETURN
         }
         return;  // RETURN
@@ -597,7 +598,7 @@ void Tester::init(int line)
     }
 
     int ret = d_object->start();
-    ASSERT_EQ_D(line, ret, 0);
+    BMQTST_ASSERT_EQ_D(line, ret, 0);
 }
 
 void Tester::listen(int                      line,
@@ -640,7 +641,9 @@ void Tester::listen(int                      line,
         d_handleMap.erase(handleNameStr);
     }
 
-    ASSERT_EQ_D(line << ", " << status, status.category(), resultStatus);
+    BMQTST_ASSERT_EQ_D(line << ", " << status,
+                       status.category(),
+                       resultStatus);
 }
 
 void Tester::connect(int                          line,
@@ -649,13 +652,13 @@ void Tester::connect(int                          line,
                      const bmqio::ConnectOptions& options,
                      StatusCategory::Enum         resultStatus)
 {
-    bsl::string handleNameStr(handleName, s_allocator_p);
+    bsl::string handleNameStr(handleName, bmqtst::TestHelperUtil::allocator());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     HandleInfo& info = d_handleMap[handleNameStr];
 
-    ConnectOptions reqOptions(options, s_allocator_p);
+    ConnectOptions reqOptions(options, bmqtst::TestHelperUtil::allocator());
 
     reqOptions.setAttemptInterval(bsls::TimeInterval(
         0,
@@ -692,7 +695,7 @@ void Tester::connect(int                          line,
         d_handleMap.erase(handleNameStr);
     }
 
-    ASSERT_EQ_D(line, status.category(), resultStatus);
+    BMQTST_ASSERT_EQ_D(line, status.category(), resultStatus);
 }
 
 void Tester::connect(int                      line,
@@ -711,7 +714,7 @@ void Tester::callVisitChannels(int line, int numChannels)
 {
     Tester_ChannelVisitor visitor;
     d_object->visitChannels(visitor);
-    ASSERT_EQ_D(line, numChannels, visitor.d_numChannels);
+    BMQTST_ASSERT_EQ_D(line, numChannels, visitor.d_numChannels);
 }
 
 void Tester::cancelHandle(int line, const bslstl::StringRef& handleName)
@@ -719,7 +722,7 @@ void Tester::cancelHandle(int line, const bslstl::StringRef& handleName)
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     HandleInfo&                    info = d_handleMap[handleName];
     if (!info.d_handle) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
@@ -732,7 +735,7 @@ void Tester::closeChannel(int line, const bslstl::StringRef& channelName)
     ChannelInfo&                   info = d_channelMap[channelName];
 
     if (!info.d_channel) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
@@ -747,7 +750,7 @@ void Tester::blockChannelIo(int line, const bslstl::StringRef& channelName)
         info = &d_channelMap[channelName];
 
         if (!info->d_channel) {
-            ASSERT_D(line, false);
+            BMQTST_ASSERT_D(line, false);
             return;  // RETURN
         }
     }
@@ -762,7 +765,7 @@ void Tester::unblockChannelIo(int line, const bslstl::StringRef& channelName)
         info = &d_channelMap[channelName];
 
         if (!info->d_channel) {
-            ASSERT_D(line, false);
+            BMQTST_ASSERT_D(line, false);
             return;  // RETURN
         }
     }
@@ -775,20 +778,21 @@ void Tester::writeChannel(int                      line,
                           bsls::Types::Int64       highWatermark,
                           StatusCategory::Enum     statusCategory)
 {
-    bdlbb::Blob writeData(&d_blobBufferFactory, s_allocator_p);
+    bdlbb::Blob writeData(&d_blobBufferFactory,
+                          bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&writeData, data.data(), data.length());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     ChannelInfo&                   info = d_channelMap[channelName];
 
     if (!info.d_channel) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
-    Status writeStatus(s_allocator_p);
+    Status writeStatus(bmqtst::TestHelperUtil::allocator());
     info.d_channel->write(&writeStatus, writeData, highWatermark);
-    ASSERT_EQ_D(line, writeStatus.category(), statusCategory);
+    BMQTST_ASSERT_EQ_D(line, writeStatus.category(), statusCategory);
 }
 
 void Tester::readChannel(int                      line,
@@ -799,7 +803,7 @@ void Tester::readChannel(int                      line,
     ChannelInfo&                   info = d_channelMap[channelName];
 
     if (!info.d_channel) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
@@ -813,11 +817,11 @@ void Tester::readChannel(int                      line,
 
     if (info.d_readData.length() < static_cast<int>(data.length())) {
         PRINT(bdlbb::BlobUtilHexDumper(&info.d_readData));
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
-    bsl::string readString(s_allocator_p);
+    bsl::string readString(bmqtst::TestHelperUtil::allocator());
     readString.resize(data.length(), '7');
     bmqu::BlobUtil::readNBytes(&readString.front(),
                                info.d_readData,
@@ -826,7 +830,7 @@ void Tester::readChannel(int                      line,
 
     bdlbb::BlobUtil::erase(&info.d_readData, 0, data.length());
 
-    ASSERT_EQ_D(line, readString.c_str(), data);
+    BMQTST_ASSERT_EQ_D(line, readString.c_str(), data);
 }
 
 void Tester::checkNoRead(int line, const bslstl::StringRef& channelName)
@@ -835,7 +839,7 @@ void Tester::checkNoRead(int line, const bslstl::StringRef& channelName)
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     ChannelInfo&                   info = d_channelMap[channelName];
-    ASSERT_EQ_D(line, info.d_readData.length(), 0);
+    BMQTST_ASSERT_EQ_D(line, info.d_readData.length(), 0);
 }
 
 void Tester::checkResultCallback(int                       line,
@@ -858,13 +862,13 @@ void Tester::checkResultCallback(int                       line,
     }
 
     if (info.d_resultCbCalls.empty()) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
     ResultCbInfo& cbInfo = info.d_resultCbCalls.front();
-    ASSERT_EQ_D(line, cbInfo.d_event, event);
-    ASSERT_EQ_D(line, cbInfo.d_status.category(), statusCategory);
+    BMQTST_ASSERT_EQ_D(line, cbInfo.d_event, event);
+    BMQTST_ASSERT_EQ_D(line, cbInfo.d_status.category(), statusCategory);
     if (cbInfo.d_status) {
         bsl::string channelNameStr(channelName);
 
@@ -886,14 +890,14 @@ void Tester::checkResultCallback(int                       line,
 
         Channel::ReadCallback readCb(
             bsl::allocator_arg_t(),
-            s_allocator_p,
+            bmqtst::TestHelperUtil::allocator(),
             bdlf::BindUtil::bind(&Tester::channelReadCb,
                                  this,
                                  channelName,
                                  bdlf::PlaceHolders::_1,
                                  bdlf::PlaceHolders::_2,
                                  bdlf::PlaceHolders::_3));
-        Status readStatus(s_allocator_p);
+        Status readStatus(bmqtst::TestHelperUtil::allocator());
         cbInfo.d_channel->read(&readStatus, 1, readCb);
         if (readStatus) {
             // If the read succeeds, then the channel isn't down yet
@@ -925,7 +929,7 @@ void Tester::checkNoResultCallback(int                      line,
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
     HandleInfo&                    info = d_handleMap[handleName];
-    ASSERT_D(line, info.d_resultCbCalls.empty());
+    BMQTST_ASSERT_D(line, info.d_resultCbCalls.empty());
 }
 
 void Tester::checkChannelClose(int                      line,
@@ -946,7 +950,7 @@ void Tester::checkChannelClose(int                      line,
         bslmt::ThreadUtil::microSleep(1000);
     }
 
-    ASSERT_EQ_D(line, (!info.d_channel.get()), closed);
+    BMQTST_ASSERT_EQ_D(line, (!info.d_channel.get()), closed);
 }
 
 void Tester::checkChannelWatermark(int                        line,
@@ -965,11 +969,12 @@ void Tester::checkChannelWatermark(int                        line,
     }
 
     if (info.d_watermarkEvents.empty()) {
-        ASSERT_D("line: " << line << ", no watermark events received", false);
+        BMQTST_ASSERT_D("line: " << line << ", no watermark events received",
+                        false);
         return;  // RETURN
     }
 
-    ASSERT_EQ_D(line, info.d_watermarkEvents.front(), watermarkType);
+    BMQTST_ASSERT_EQ_D(line, info.d_watermarkEvents.front(), watermarkType);
 
     info.d_watermarkEvents.pop_front();
 }
@@ -980,7 +985,7 @@ void Tester::checkNoChannelWatermark(int                      line,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
     ChannelInfo&                   info = d_channelMap[channelName];
     if (!info.d_watermarkEvents.empty()) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 }
@@ -992,22 +997,24 @@ void Tester::checkChannelUri(int                      line,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
     ChannelInfo&                   info = d_channelMap[channelName];
     if (!info.d_channel) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
     bslstl::StringRef uri = info.d_channel->peerUri();
-    ASSERT_EQ_D(line,
-                uri.data(),
-                bdlb::StringRefUtil::strstr(uri, prefix).data());
+    BMQTST_ASSERT_EQ_D(line,
+                       uri.data(),
+                       bdlb::StringRefUtil::strstr(uri, prefix).data());
 }
 
 void Tester::startFilteringLogs(const bsl::string& messageSubstring)
 {
-    d_ballObserver.createInplace(s_allocator_p, &bsl::cout, s_allocator_p);
+    d_ballObserver.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                 &bsl::cout,
+                                 bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<ball::FilteringObserver> filtObserver;
-    filtObserver.createInplace(s_allocator_p,
+    filtObserver.createInplace(bmqtst::TestHelperUtil::allocator(),
                                d_ballObserver,
                                bdlf::BindUtil::bind(&ballFilter,
                                                     messageSubstring,
@@ -1022,16 +1029,18 @@ void Tester::startFilteringLogs(const bsl::string& messageSubstring)
 void Tester::checkFilteredLogs(int line, int expected)
 {
     if (!d_ballObserver) {
-        ASSERT_D(line, false);
+        BMQTST_ASSERT_D(line, false);
         return;  // RETURN
     }
 
-    ASSERT_EQ_D(line, d_ballObserver->numPublishedRecords(), expected);
+    BMQTST_ASSERT_EQ_D(line, d_ballObserver->numPublishedRecords(), expected);
 }
 
 void Tester::checkNumPreCreateCbCalls(int line, int expected)
 {
-    ASSERT_EQ_D(line, static_cast<int>(d_preCreateCbCalls.size()), expected);
+    BMQTST_ASSERT_EQ_D(line,
+                       static_cast<int>(d_preCreateCbCalls.size()),
+                       expected);
 }
 
 NtcChannelFactory& Tester::object()
@@ -1053,7 +1062,7 @@ static void test6_preCreationCbTest()
 {
     bmqtst::TestHelper::printTestName("Pre Creation Cb Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concern 'a'
     t.setPreCreateCb(true);
@@ -1088,7 +1097,7 @@ static void test5_visitChannelsTest()
 {
     bmqtst::TestHelper::printTestName("Cancel Handle Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concerns 'a'
     t.init(L_);
@@ -1146,7 +1155,7 @@ static void test3_watermarkTest()
 {
     bmqtst::TestHelper::printTestName("Watermark Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
 
     // Concern 'a'
     t.init(L_);
@@ -1157,7 +1166,9 @@ static void test3_watermarkTest()
     t.checkResultCallback(L_, "listenHandle", "listenChannel");
     t.checkResultCallback(L_, "connectHandle", "connectChannel");
 
-    bsl::string largeMsg(10 * 1024 * 1024, 'a', s_allocator_p);
+    bsl::string largeMsg(10 * 1024 * 1024,
+                         'a',
+                         bmqtst::TestHelperUtil::allocator());
 
     // Block the IO thread to make sure our first write doesn't finish
     // before we get to the second one
@@ -1184,7 +1195,7 @@ static void test2_connectListenFailTest()
 {
     bmqtst::TestHelper::printTestName("Connect Listen Fail Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
     t.init(L_);
 
     // Concern 'a'
@@ -1235,7 +1246,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
-    Tester t(s_allocator_p);
+    Tester t(bmqtst::TestHelperUtil::allocator());
     t.init(L_);
 
     // Listen and connect work
@@ -1288,7 +1299,7 @@ int main(int argc, char* argv[])
     case 6: test6_preCreationCbTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

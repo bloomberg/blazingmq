@@ -83,8 +83,8 @@ static void test1_constructor()
                                                    42);  // priority
 
     // check postconditions
-    ASSERT_EQ(&ex.context(), &threadPool);
-    ASSERT_EQ(ex.priority(), 42);
+    BMQTST_ASSERT_EQ(&ex.context(), &threadPool);
+    BMQTST_ASSERT_EQ(ex.priority(), 42);
 }
 
 static void test2_post()
@@ -137,9 +137,9 @@ static void test2_post()
     threadPool.stopThreads();
 
     // jobs executed in priority order
-    ASSERT_EQ(out.size(), static_cast<size_t>(2));
-    ASSERT_EQ(out[0], 200);
-    ASSERT_EQ(out[1], 100);
+    BMQTST_ASSERT_EQ(out.size(), static_cast<size_t>(2));
+    BMQTST_ASSERT_EQ(out[0], 200);
+    BMQTST_ASSERT_EQ(out[1], 100);
 }
 
 static void test3_swap()
@@ -178,11 +178,11 @@ static void test3_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &threadPool2);
-    ASSERT_EQ(ex1.priority(), 2);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(ex1.priority(), 2);
 
-    ASSERT_EQ(&ex2.context(), &threadPool1);
-    ASSERT_EQ(ex2.priority(), 1);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(ex2.priority(), 1);
 }
 
 static void test4_context()
@@ -209,10 +209,10 @@ static void test4_context()
                                                &alloc);
 
     bmqex::BdlmtMultipriorityThreadPoolExecutor ex1(&threadPool1);
-    ASSERT_EQ(&ex1.context(), &threadPool1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &threadPool1);
 
     bmqex::BdlmtMultipriorityThreadPoolExecutor ex2(&threadPool2);
-    ASSERT_EQ(&ex2.context(), &threadPool2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool2);
 }
 
 static void test5_priority()
@@ -236,11 +236,11 @@ static void test5_priority()
 
     bmqex::BdlmtMultipriorityThreadPoolExecutor ex1(&threadPool,
                                                     1);  // priority
-    ASSERT_EQ(ex1.priority(), 1);
+    BMQTST_ASSERT_EQ(ex1.priority(), 1);
 
     bmqex::BdlmtMultipriorityThreadPoolExecutor ex2(&threadPool,
                                                     2);  // priority
-    ASSERT_EQ(ex2.priority(), 2);
+    BMQTST_ASSERT_EQ(ex2.priority(), 2);
 }
 
 static void test6_rebindPriority()
@@ -268,8 +268,8 @@ static void test6_rebindPriority()
                                                     1);  // priority
 
     bmqex::BdlmtMultipriorityThreadPoolExecutor ex2 = ex1.rebindPriority(2);
-    ASSERT_EQ(&ex2.context(), &threadPool);
-    ASSERT_EQ(ex2.priority(), 2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &threadPool);
+    BMQTST_ASSERT_EQ(ex2.priority(), 2);
 }
 
 static void test7_comparison()
@@ -299,17 +299,17 @@ static void test7_comparison()
 
     // equality
     {
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) ==
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1),
             true);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) ==
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool2, 1),
             false);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) ==
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 2),
             false);
@@ -317,17 +317,17 @@ static void test7_comparison()
 
     // inequality
     {
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) !=
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1),
             false);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) !=
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool2, 1),
             true);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 1) !=
                 bmqex::BdlmtMultipriorityThreadPoolExecutor(&threadPool1, 2),
             true);
@@ -354,7 +354,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

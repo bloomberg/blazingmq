@@ -33,50 +33,52 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqt::QueueOptions obj(s_allocator_p);
+    bmqt::QueueOptions obj(bmqtst::TestHelperUtil::allocator());
 
     const int  msgs     = 8;
     const int  bytes    = 1024;
     const int  priority = bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN;
     const bool suspendsOnBadHostHealth = false;
 
-    ASSERT_EQ(bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN,
-              bmqt::Subscription::k_CONSUMER_PRIORITY_MIN);
-    ASSERT_EQ(bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX,
-              bmqt::Subscription::k_CONSUMER_PRIORITY_MAX);
-    ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES,
-              bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES);
-    ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_BYTES,
-              bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_BYTES);
-    ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY,
-              bmqt::Subscription::k_DEFAULT_CONSUMER_PRIORITY);
+    BMQTST_ASSERT_EQ(bmqt::QueueOptions::k_CONSUMER_PRIORITY_MIN,
+                     bmqt::Subscription::k_CONSUMER_PRIORITY_MIN);
+    BMQTST_ASSERT_EQ(bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX,
+                     bmqt::Subscription::k_CONSUMER_PRIORITY_MAX);
+    BMQTST_ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES,
+                     bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES);
+    BMQTST_ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_BYTES,
+                     bmqt::Subscription::k_DEFAULT_MAX_UNCONFIRMED_BYTES);
+    BMQTST_ASSERT_EQ(bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY,
+                     bmqt::Subscription::k_DEFAULT_CONSUMER_PRIORITY);
 
     PV("Manipulators and accessors");
     obj.setMaxUnconfirmedMessages(msgs)
         .setMaxUnconfirmedBytes(bytes)
         .setConsumerPriority(priority);
 
-    ASSERT_EQ(msgs, obj.maxUnconfirmedMessages());
-    ASSERT_EQ(bytes, obj.maxUnconfirmedBytes());
-    ASSERT_EQ(priority, obj.consumerPriority());
-    ASSERT_EQ(suspendsOnBadHostHealth, obj.suspendsOnBadHostHealth());
+    BMQTST_ASSERT_EQ(msgs, obj.maxUnconfirmedMessages());
+    BMQTST_ASSERT_EQ(bytes, obj.maxUnconfirmedBytes());
+    BMQTST_ASSERT_EQ(priority, obj.consumerPriority());
+    BMQTST_ASSERT_EQ(suspendsOnBadHostHealth, obj.suspendsOnBadHostHealth());
 
     PV("Copy constructor");
-    bmqt::QueueOptions obj1(obj, s_allocator_p);
+    bmqt::QueueOptions obj1(obj, bmqtst::TestHelperUtil::allocator());
 
-    ASSERT_EQ(obj1.maxUnconfirmedMessages(), obj.maxUnconfirmedMessages());
-    ASSERT_EQ(obj1.maxUnconfirmedBytes(), obj.maxUnconfirmedBytes());
-    ASSERT_EQ(obj1.consumerPriority(), obj.consumerPriority());
-    ASSERT_EQ(obj1.suspendsOnBadHostHealth(), obj.suspendsOnBadHostHealth());
+    BMQTST_ASSERT_EQ(obj1.maxUnconfirmedMessages(),
+                     obj.maxUnconfirmedMessages());
+    BMQTST_ASSERT_EQ(obj1.maxUnconfirmedBytes(), obj.maxUnconfirmedBytes());
+    BMQTST_ASSERT_EQ(obj1.consumerPriority(), obj.consumerPriority());
+    BMQTST_ASSERT_EQ(obj1.suspendsOnBadHostHealth(),
+                     obj.suspendsOnBadHostHealth());
 
     PV("Equality and inequality");
-    ASSERT_EQ(obj == obj1, true);
-    ASSERT_EQ(obj != obj1, false);
+    BMQTST_ASSERT_EQ(obj == obj1, true);
+    BMQTST_ASSERT_EQ(obj != obj1, false);
 
     obj1.setConsumerPriority(bmqt::QueueOptions::k_CONSUMER_PRIORITY_MAX);
 
-    ASSERT_EQ(obj == obj1, false);
-    ASSERT_EQ(obj != obj1, true);
+    BMQTST_ASSERT_EQ(obj == obj1, false);
+    BMQTST_ASSERT_EQ(obj != obj1, true);
 
     PV("Print");
     obj.setConsumerPriority(0);
@@ -87,24 +89,24 @@ static void test1_breathingTest()
                            " suspendsOnBadHostHealth = false ]";
     {
         PVV("Print (print function)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         obj.print(out, 0, -1);
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (stream operator)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out << obj;
-        ASSERT_EQ(out.str(), expected);
+        BMQTST_ASSERT_EQ(out.str(), expected);
     }
 
     {
         PVV("Print (bad stream)");
-        bmqu::MemOutStream out(s_allocator_p);
+        bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         out.setstate(bsl::ios_base::badbit);
         obj.print(out, 0, -1);
-        ASSERT_EQ(out.str(), "");
+        BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
 
@@ -129,30 +131,31 @@ static void test2_defaultsTest()
     bmqtst::TestHelper::printTestName("DEFAULTS TEST");
 
     PVV("Step 1. Construct default instance and test its values");
-    bmqt::QueueOptions options(s_allocator_p);
-    ASSERT(!options.hasMaxUnconfirmedBytes());
-    ASSERT(!options.hasMaxUnconfirmedMessages());
-    ASSERT(!options.hasConsumerPriority());
-    ASSERT(!options.hasSuspendsOnBadHostHealth());
-    ASSERT_EQ(options.maxUnconfirmedMessages(),
-              bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES);
-    ASSERT_EQ(options.maxUnconfirmedBytes(),
-              bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_BYTES);
-    ASSERT_EQ(options.consumerPriority(),
-              bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY);
-    ASSERT_EQ(options.suspendsOnBadHostHealth(),
-              bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT(!options.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT(!options.hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT(!options.hasConsumerPriority());
+    BMQTST_ASSERT(!options.hasSuspendsOnBadHostHealth());
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedMessages(),
+                     bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_MESSAGES);
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedBytes(),
+                     bmqt::QueueOptions::k_DEFAULT_MAX_UNCONFIRMED_BYTES);
+    BMQTST_ASSERT_EQ(options.consumerPriority(),
+                     bmqt::QueueOptions::k_DEFAULT_CONSUMER_PRIORITY);
+    BMQTST_ASSERT_EQ(
+        options.suspendsOnBadHostHealth(),
+        bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
 
     PVV("Step 2. Explicitly override a field with the default value");
     options.setMaxUnconfirmedMessages(654321);
-    ASSERT(options.hasMaxUnconfirmedMessages());
-    ASSERT_EQ(options.maxUnconfirmedMessages(), 654321);
-    ASSERT(!options.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT(options.hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedMessages(), 654321);
+    BMQTST_ASSERT(!options.hasMaxUnconfirmedBytes());
 
     PVV("Step 3. Set a different field with a different value");
     options.setMaxUnconfirmedBytes(9876);
-    ASSERT(options.hasMaxUnconfirmedBytes());
-    ASSERT_EQ(options.maxUnconfirmedBytes(), 9876);
+    BMQTST_ASSERT(options.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedBytes(), 9876);
 }
 
 static void test3_mergeTest()
@@ -174,36 +177,37 @@ static void test3_mergeTest()
     bmqtst::TestHelper::printTestName("MERGE TEST");
 
     PVV("Step 1. Construct two objects");
-    bmqt::QueueOptions options(s_allocator_p);
+    bmqt::QueueOptions options(bmqtst::TestHelperUtil::allocator());
     options.setMaxUnconfirmedMessages(54321).setMaxUnconfirmedBytes(0);
-    ASSERT(options.hasMaxUnconfirmedMessages());
-    ASSERT(options.hasMaxUnconfirmedBytes());
-    ASSERT(!options.hasConsumerPriority());
+    BMQTST_ASSERT(options.hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT(options.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT(!options.hasConsumerPriority());
 
-    bmqt::QueueOptions diff(s_allocator_p);
+    bmqt::QueueOptions diff(bmqtst::TestHelperUtil::allocator());
     diff.setMaxUnconfirmedBytes(7890).setConsumerPriority(42);
-    ASSERT(!diff.hasMaxUnconfirmedMessages());
-    ASSERT(diff.hasMaxUnconfirmedBytes());
-    ASSERT(diff.hasConsumerPriority());
+    BMQTST_ASSERT(!diff.hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT(diff.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT(diff.hasConsumerPriority());
 
     PVV("Step 2. Merge them together");
     options.merge(diff);
-    ASSERT(options.hasMaxUnconfirmedMessages());
-    ASSERT_EQ(options.maxUnconfirmedMessages(), 54321);
-    ASSERT(options.hasMaxUnconfirmedBytes());
-    ASSERT_EQ(options.maxUnconfirmedBytes(), 7890);
-    ASSERT(options.hasConsumerPriority());
-    ASSERT_EQ(options.consumerPriority(), 42);
-    ASSERT(!options.hasSuspendsOnBadHostHealth());
-    ASSERT_EQ(options.suspendsOnBadHostHealth(),
-              bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
+    BMQTST_ASSERT(options.hasMaxUnconfirmedMessages());
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedMessages(), 54321);
+    BMQTST_ASSERT(options.hasMaxUnconfirmedBytes());
+    BMQTST_ASSERT_EQ(options.maxUnconfirmedBytes(), 7890);
+    BMQTST_ASSERT(options.hasConsumerPriority());
+    BMQTST_ASSERT_EQ(options.consumerPriority(), 42);
+    BMQTST_ASSERT(!options.hasSuspendsOnBadHostHealth());
+    BMQTST_ASSERT_EQ(
+        options.suspendsOnBadHostHealth(),
+        bmqt::QueueOptions::k_DEFAULT_SUSPENDS_ON_BAD_HOST_HEALTH);
 }
 
 static void test4_subscriptionsTest()
 {
     bmqtst::TestHelper::printTestName("SUBSCRIPTIONS TEST");
 
-    bmqt::QueueOptions obj(s_allocator_p);
+    bmqt::QueueOptions obj(bmqtst::TestHelperUtil::allocator());
 
     const int msgs     = 8;
     const int bytes    = 1024;
@@ -211,7 +215,8 @@ static void test4_subscriptionsTest()
 
     int in = 1;
 
-    bsl::set<bmqt::SubscriptionHandle> handles(s_allocator_p);
+    bsl::set<bmqt::SubscriptionHandle> handles(
+        bmqtst::TestHelperUtil::allocator());
 
     for (; in <= 3; ++in) {
         const bmqt::CorrelationId          cid(in);
@@ -227,11 +232,12 @@ static void test4_subscriptionsTest()
             .setExpression(expression);
 
         bsl::string error;
-        ASSERT(obj.addOrUpdateSubscription(&error, handle, subscription));
-        ASSERT(error.empty());
+        BMQTST_ASSERT(
+            obj.addOrUpdateSubscription(&error, handle, subscription));
+        BMQTST_ASSERT(error.empty());
 
         // Assert handle uniqueness
-        ASSERT(handles.emplace(handle).second);
+        BMQTST_ASSERT(handles.emplace(handle).second);
     }
 
     // Subscription expression validation
@@ -245,11 +251,13 @@ static void test4_subscriptionsTest()
 
         subscription.setExpression(expression);
         bsl::string error;
-        ASSERT(!obj.addOrUpdateSubscription(&error, handle, subscription));
-        ASSERT(!error.empty());
+        BMQTST_ASSERT(
+            !obj.addOrUpdateSubscription(&error, handle, subscription));
+        BMQTST_ASSERT(!error.empty());
     }
 
-    bmqt::QueueOptions::SubscriptionsSnapshot snapshot(s_allocator_p);
+    bmqt::QueueOptions::SubscriptionsSnapshot snapshot(
+        bmqtst::TestHelperUtil::allocator());
     obj.loadSubscriptions(&snapshot);
 
     for (bmqt::QueueOptions::SubscriptionsSnapshot::const_iterator citOut =
@@ -258,16 +266,17 @@ static void test4_subscriptionsTest()
          ++citOut) {
         bsl::set<bmqt::SubscriptionHandle>::const_iterator citIn =
             handles.find(citOut->first);
-        ASSERT(citIn != handles.end());
+        BMQTST_ASSERT(citIn != handles.end());
 
-        ASSERT_EQ(citOut->first.correlationId(), citIn->correlationId());
-        ASSERT(citOut->first == *citIn);
+        BMQTST_ASSERT_EQ(citOut->first.correlationId(),
+                         citIn->correlationId());
+        BMQTST_ASSERT(citOut->first == *citIn);
 
-        ASSERT_EQ(msgs, citOut->second.maxUnconfirmedMessages());
-        ASSERT_EQ(bytes, citOut->second.maxUnconfirmedBytes());
-        ASSERT_EQ(priority, citOut->second.consumerPriority());
+        BMQTST_ASSERT_EQ(msgs, citOut->second.maxUnconfirmedMessages());
+        BMQTST_ASSERT_EQ(bytes, citOut->second.maxUnconfirmedBytes());
+        BMQTST_ASSERT_EQ(priority, citOut->second.consumerPriority());
     }
-    ASSERT_EQ(handles.size(), snapshot.size());
+    BMQTST_ASSERT_EQ(handles.size(), snapshot.size());
 }
 
 // ============================================================================
@@ -286,7 +295,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

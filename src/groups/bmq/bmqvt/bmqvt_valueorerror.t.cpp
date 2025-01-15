@@ -40,15 +40,15 @@ const char* k_LONG_STRING = "12345678901234567890123456789001234567890";
 class CustomValueType {
   public:
     CustomValueType()
-    : d_foo(k_LONG_STRING, s_allocator_p)
-    , d_bar(k_LONG_STRING, s_allocator_p)
+    : d_foo(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
+    , d_bar(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
     {
         PVV("CustomValueType(bslma::Allocator *)");
     }
 
     CustomValueType(const bsl::string& src)
-    : d_foo(k_LONG_STRING, s_allocator_p)
-    , d_bar(k_LONG_STRING, s_allocator_p)
+    : d_foo(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
+    , d_bar(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
     {
         PVV("CustomValueType(const bsl::string&)");
 
@@ -57,8 +57,8 @@ class CustomValueType {
     }
 
     CustomValueType(const CustomValueType& rhs)
-    : d_foo(rhs.d_foo, s_allocator_p)
-    , d_bar(rhs.d_bar, s_allocator_p)
+    : d_foo(rhs.d_foo, bmqtst::TestHelperUtil::allocator())
+    , d_bar(rhs.d_bar, bmqtst::TestHelperUtil::allocator())
     {
         PVV("CustomValueType(const CustomValueType& , bslma::Allocator *)");
     }
@@ -123,27 +123,27 @@ bool operator==(const CustomAllocValueType& lhs,
 
 bsl::string formatError(const int rc)
 {
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     os << "error: " << rc << "(" << k_LONG_STRING << ")";
-    return bsl::string(os.str(), s_allocator_p);
+    return bsl::string(os.str(), bmqtst::TestHelperUtil::allocator());
 }
 
 class CustomErrorType {
   public:
     CustomErrorType()
-    : d_error(k_LONG_STRING, s_allocator_p)
+    : d_error(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
     , d_rc(-2)
     {
     }
 
     CustomErrorType(const int rc)
-    : d_error(formatError(rc), s_allocator_p)
+    : d_error(formatError(rc), bmqtst::TestHelperUtil::allocator())
     , d_rc(rc)
     {
     }
 
     CustomErrorType(const CustomErrorType& rhs)
-    : d_error(rhs.d_error, s_allocator_p)
+    : d_error(rhs.d_error, bmqtst::TestHelperUtil::allocator())
     , d_rc(rhs.d_rc)
     {
     }
@@ -207,7 +207,7 @@ template <typename T, typename V>
 T makeObjectCase(const V&               value,
                  BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
 {
-    return T(value, s_allocator_p);
+    return T(value, bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T, typename V>
@@ -227,7 +227,7 @@ T makeObject(const V& value)
 template <typename T>
 T makeObjectCase(BSLS_ANNOTATION_UNUSED bsl::true_type uses_allocator)
 {
-    return T(s_allocator_p);
+    return T(bmqtst::TestHelperUtil::allocator());
 }
 
 template <typename T>
@@ -265,15 +265,15 @@ static void test_ops_generic()
     typedef typename T::ErrorType Error;
 
     PVV("Test ValueOrError(bslma::Allocator *) and operator<<");
-    T value(s_allocator_p);
+    T value(bmqtst::TestHelperUtil::allocator());
 
-    ASSERT(value.isUndefined());
-    ASSERT(!value.isValue());
-    ASSERT(!value.isError());
+    BMQTST_ASSERT(value.isUndefined());
+    BMQTST_ASSERT(!value.isValue());
+    BMQTST_ASSERT(!value.isError());
     {
-        bmqu::MemOutStream os(s_allocator_p);
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         os << value;
-        ASSERT_EQ(os.str(), "[ UNDEFINED ]");
+        BMQTST_ASSERT_EQ(os.str(), "[ UNDEFINED ]");
     }
 
     PVV("Test makeValue(const VALUE&)");
@@ -281,79 +281,81 @@ static void test_ops_generic()
     Value refValue(makeObject<Value>("value"));
 
     value.makeValue(refValue);
-    ASSERT(!value.isUndefined());
-    ASSERT(value.isValue());
-    ASSERT(!value.isError());
+    BMQTST_ASSERT(!value.isUndefined());
+    BMQTST_ASSERT(value.isValue());
+    BMQTST_ASSERT(!value.isError());
     {
-        bmqu::MemOutStream expected(s_allocator_p), actual(s_allocator_p);
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator()),
+            actual(bmqtst::TestHelperUtil::allocator());
 
         expected << "[ value = " << refValue << " ]";
         actual << value;
 
-        ASSERT_EQ(actual.str(), expected.str());
+        BMQTST_ASSERT_EQ(actual.str(), expected.str());
     }
-    ASSERT_EQ(value.value(), refValue);
+    BMQTST_ASSERT_EQ(value.value(), refValue);
 
     PVV("Test makeError(const ERROR&)");
 
     Error refError(makeObject<Error>(-5));
 
     value.makeError(refError);
-    ASSERT(!value.isUndefined());
-    ASSERT(!value.isValue());
-    ASSERT(value.isError());
+    BMQTST_ASSERT(!value.isUndefined());
+    BMQTST_ASSERT(!value.isValue());
+    BMQTST_ASSERT(value.isError());
     {
-        bmqu::MemOutStream expected(s_allocator_p), actual(s_allocator_p);
+        bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator()),
+            actual(bmqtst::TestHelperUtil::allocator());
 
         expected << "[ error = " << refError << " ]";
         actual << value;
 
-        ASSERT_EQ(actual.str(), expected.str());
+        BMQTST_ASSERT_EQ(actual.str(), expected.str());
     }
-    ASSERT_EQ(value.error(), refError);
+    BMQTST_ASSERT_EQ(value.error(), refError);
 
     PVV("Test makeValue()");
     value.makeValue();
-    ASSERT_EQ(value.value(), makeObject<Value>());
+    BMQTST_ASSERT_EQ(value.value(), makeObject<Value>());
 
     PVV("Test makeError()");
     value.makeError();
-    ASSERT_EQ(value.error(), makeObject<Error>());
+    BMQTST_ASSERT_EQ(value.error(), makeObject<Error>());
 
     PVV("Test reset()");
-    ASSERT(!value.isUndefined());
+    BMQTST_ASSERT(!value.isUndefined());
     value.reset();
-    ASSERT(value.isUndefined());
+    BMQTST_ASSERT(value.isUndefined());
 
     PVV("Test operator=");
 
     Value srcValue(makeObject<Value>("src"));
     {
-        T src(s_allocator_p);
+        T src(bmqtst::TestHelperUtil::allocator());
         src.makeValue(srcValue);
         value = src;
     }
-    ASSERT(!value.isUndefined());
-    ASSERT(value.isValue());
-    ASSERT(!value.isError());
-    ASSERT_EQ(value.value(), srcValue);
+    BMQTST_ASSERT(!value.isUndefined());
+    BMQTST_ASSERT(value.isValue());
+    BMQTST_ASSERT(!value.isError());
+    BMQTST_ASSERT_EQ(value.value(), srcValue);
 
     PVV("Test copy constructor");
-    T copy(value, s_allocator_p);
-    ASSERT_EQ(copy.value(), value.value());
+    T copy(value, bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(copy.value(), value.value());
 
     // Temporary workaround to suppress the 'unused operator
     // NestedTraitDeclaration' warning/error generated by clang.
     //
     // TBD: figure out the right way to fix this.
 
-    CustomAllocValueType dummy1(s_allocator_p);
+    CustomAllocValueType dummy1(bmqtst::TestHelperUtil::allocator());
     static_cast<void>(
         static_cast<bslmf::NestedTraitDeclaration<CustomAllocValueType,
                                                   bslma::UsesBslmaAllocator> >(
             dummy1));
 
-    CustomAllocErrorType dummy2(s_allocator_p);
+    CustomAllocErrorType dummy2(bmqtst::TestHelperUtil::allocator());
     static_cast<void>(
         static_cast<bslmf::NestedTraitDeclaration<CustomAllocErrorType,
                                                   bslma::UsesBslmaAllocator> >(
@@ -496,10 +498,10 @@ static void test6_converters()
         TargetType tt;
 
         st.mapValue(&tt, &atoiNoThrowSpec);
-        ASSERT(tt.isValue());
-        ASSERT_EQ(tt.value(), 12);
+        BMQTST_ASSERT(tt.isValue());
+        BMQTST_ASSERT_EQ(tt.value(), 12);
 
-        ASSERT_EQ(tt.valueOr(15), 12);
+        BMQTST_ASSERT_EQ(tt.valueOr(15), 12);
     }
 
     // Use 'mapValue()' to transform values (Error case)
@@ -512,10 +514,10 @@ static void test6_converters()
         TargetType tt;
 
         st.mapValue(&tt, &atoiNoThrowSpec);
-        ASSERT(tt.isError());
-        ASSERT_EQ(tt.error(), 'a');
+        BMQTST_ASSERT(tt.isError());
+        BMQTST_ASSERT_EQ(tt.error(), 'a');
 
-        ASSERT_EQ(tt.valueOr(15), 15);
+        BMQTST_ASSERT_EQ(tt.valueOr(15), 15);
     }
 
     // Same thing with 'mapError()' for errors (Value case)
@@ -528,10 +530,10 @@ static void test6_converters()
         TargetType tt;
 
         st.mapError(&tt, &atoiNoThrowSpec);
-        ASSERT(tt.isValue());
-        ASSERT_EQ(tt.value(), 'a');
+        BMQTST_ASSERT(tt.isValue());
+        BMQTST_ASSERT_EQ(tt.value(), 'a');
 
-        ASSERT_EQ(tt.valueOr('i'), 'a');
+        BMQTST_ASSERT_EQ(tt.valueOr('i'), 'a');
     }
 
     // Same thing with 'mapError()' for errors (Error case)
@@ -544,10 +546,10 @@ static void test6_converters()
         TargetType tt;
 
         st.mapError(&tt, &atoiNoThrowSpec);
-        ASSERT(tt.isError());
-        ASSERT_EQ(tt.error(), 12);
+        BMQTST_ASSERT(tt.isError());
+        BMQTST_ASSERT_EQ(tt.error(), 12);
 
-        ASSERT_EQ(tt.valueOr('i'), 'i');
+        BMQTST_ASSERT_EQ(tt.valueOr('i'), 'i');
     }
 
     // Use map() to transform both.
@@ -564,11 +566,11 @@ static void test6_converters()
         st1.map(&tt1, &atoiNoThrowSpec, &toUnsigned);
         st2.map(&tt2, &atoiNoThrowSpec, &toUnsigned);
 
-        ASSERT(tt1.isValue());
-        ASSERT_EQ(tt1.value(), 12);
+        BMQTST_ASSERT(tt1.isValue());
+        BMQTST_ASSERT_EQ(tt1.value(), 12);
 
-        ASSERT(tt2.isError());
-        ASSERT_EQ(tt2.error(), 3u);
+        BMQTST_ASSERT(tt2.isError());
+        BMQTST_ASSERT_EQ(tt2.error(), 3u);
     }
 }
 
@@ -594,9 +596,9 @@ static void test7_explicit_print()
     TypeUnderTest value;
     value.makeValue(12);
 
-    bmqu::MemOutStream os(s_allocator_p);
+    bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
     TypeUnderTest::print(os, value, 0, 0);
-    ASSERT_EQ(os.str(), "[ value = 12 ]\n");
+    BMQTST_ASSERT_EQ(os.str(), "[ value = 12 ]\n");
 }
 
 // ============================================================================
@@ -618,7 +620,7 @@ int main(int argc, char* argv[])
     case 1: test1_ops_on_string_int(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

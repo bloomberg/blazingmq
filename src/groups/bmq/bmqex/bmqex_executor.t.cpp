@@ -296,7 +296,7 @@ static void test1_creators()
         bmqex::Executor ex;
 
         // 'ex's target is empty
-        ASSERT_EQ(static_cast<bool>(ex), false);
+        BMQTST_ASSERT_EQ(static_cast<bool>(ex), false);
     }
 
     // 2. construct from another executor
@@ -308,15 +308,16 @@ static void test1_creators()
         bmqex::Executor ex1(smallEx, &alloc);
 
         // check postconditions
-        ASSERT(ex1.target<StatExecutor>());
-        ASSERT(*ex1.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(ex1.target<StatExecutor>());
+        BMQTST_ASSERT(*ex1.target<StatExecutor>() == smallEx);
 
         // create an 'bmqex::Executor' from a large executor to disable SBO
         bmqex::Executor ex2(largeEx, &alloc);
 
         // check postconditions
-        ASSERT(ex2.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(ex2.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 
     // 3. copy constructor
@@ -332,31 +333,33 @@ static void test1_creators()
         bmqex::Executor ex1Copy(ex1);
 
         // check postconditions
-        ASSERT(!ex1Copy);
+        BMQTST_ASSERT(!ex1Copy);
 
         // copy an empty executor specifying an (to be ignored) allocator
         bmqex::Executor ex1CopyAlloc(ex1, &alloc);
 
         // check postconditions, the copy constructor should have been selected
         // against the template one
-        ASSERT(!ex1CopyAlloc);
+        BMQTST_ASSERT(!ex1CopyAlloc);
 
         // copy executor containing a small target
         bmqex::Executor ex2Copy(ex2);
 
         // check postconditions
-        ASSERT(ex2Copy.target<StatExecutor>());
-        ASSERT(ex2.target<StatExecutor>() != ex2Copy.target<StatExecutor>());
-        ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(ex2.target<StatExecutor>() !=
+                      ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
 
         // copy executor containing a large target
         bmqex::Executor ex3Copy(ex3);
 
         // check postconditions
-        ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(ex3.target<ExecutorElarger<StatExecutor> >() ==
-               ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(ex3.target<ExecutorElarger<StatExecutor> >() ==
+                      ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 
     // 4. move constructor
@@ -372,30 +375,32 @@ static void test1_creators()
         bmqex::Executor ex1Copy(bslmf::MovableRefUtil::move(ex1));
 
         // check postconditions
-        ASSERT(!ex1Copy);
+        BMQTST_ASSERT(!ex1Copy);
 
         // move an empty executor specifying an (to be ignored) allocator
         bmqex::Executor ex1CopyAlloc(bslmf::MovableRefUtil::move(ex1), &alloc);
 
         // check postconditions, the move constructor should have been selected
         // against the template one
-        ASSERT(!ex1CopyAlloc);
+        BMQTST_ASSERT(!ex1CopyAlloc);
 
         // move executor containing a small target
         bmqex::Executor ex2Copy(bslmf::MovableRefUtil::move(ex2));
 
         // check postconditions
-        ASSERT(ex2.target<StatExecutor>());
-        ASSERT(ex2Copy.target<StatExecutor>());
-        ASSERT(ex2.target<StatExecutor>() != ex2Copy.target<StatExecutor>());
-        ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(ex2.target<StatExecutor>());
+        BMQTST_ASSERT(ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(ex2.target<StatExecutor>() !=
+                      ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
 
         // move executor containing a large target
         bmqex::Executor ex3Copy(bslmf::MovableRefUtil::move(ex3));
 
         // check postconditions
-        ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 }
 
@@ -444,12 +449,13 @@ static void test2_assignment()
         ex1 = smallEx;
 
         // check postconditions
-        ASSERT(*ex1.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(*ex1.target<StatExecutor>() == smallEx);
 
         // create an 'bmqex::Executor' from a large executor to disable SBO
         bmqex::Executor ex2;
         ex2 = largeEx;
-        ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 
     // 2. copy assignment operator
@@ -466,26 +472,28 @@ static void test2_assignment()
         ex1Copy = ex1;
 
         // check postconditions
-        ASSERT(!ex1Copy);
+        BMQTST_ASSERT(!ex1Copy);
 
         // copy executor containing a small target
         bmqex::Executor ex2Copy;
         ex2Copy = ex2;
 
         // check postconditions
-        ASSERT(ex2Copy.target<StatExecutor>());
-        ASSERT(ex2.target<StatExecutor>() != ex2Copy.target<StatExecutor>());
-        ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(ex2.target<StatExecutor>() !=
+                      ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
 
         // copy executor containing a large target
         bmqex::Executor ex3Copy;
         ex3Copy = ex3;
 
         // check postconditions
-        ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(ex3.target<ExecutorElarger<StatExecutor> >() ==
-               ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(ex3.target<ExecutorElarger<StatExecutor> >() ==
+                      ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 
     // 3. move assignment operator
@@ -502,24 +510,26 @@ static void test2_assignment()
         ex1Copy = bslmf::MovableRefUtil::move(ex1);
 
         // check postconditions
-        ASSERT(!ex1Copy);
+        BMQTST_ASSERT(!ex1Copy);
 
         // move executor containing a small target
         bmqex::Executor ex2Copy;
         ex2Copy = bslmf::MovableRefUtil::move(ex2);
 
         // check postconditions
-        ASSERT(ex2Copy.target<StatExecutor>());
-        ASSERT(ex2.target<StatExecutor>() != ex2Copy.target<StatExecutor>());
-        ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(ex2.target<StatExecutor>() !=
+                      ex2Copy.target<StatExecutor>());
+        BMQTST_ASSERT(*ex2Copy.target<StatExecutor>() == smallEx);
 
         // move executor containing a large target
         bmqex::Executor ex3Copy;
         ex3Copy = bslmf::MovableRefUtil::move(ex3);
 
         // check postconditions
-        ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
-        ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() == largeEx);
+        BMQTST_ASSERT(ex3Copy.target<ExecutorElarger<StatExecutor> >());
+        BMQTST_ASSERT(*ex3Copy.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
     }
 
     // 4. assign
@@ -531,8 +541,8 @@ static void test2_assignment()
         ex2.assign(ex1, &alloc);
 
         // check
-        ASSERT(ex2.target<StatExecutor>());
-        ASSERT(*ex2.target<StatExecutor>() == ex1);
+        BMQTST_ASSERT(ex2.target<StatExecutor>());
+        BMQTST_ASSERT(*ex2.target<StatExecutor>() == ex1);
     }
 }
 
@@ -560,9 +570,9 @@ static void test3_post()
     bool executed = false;
     ex.post(SetFlagOnCall(&executed));
 
-    ASSERT(executed);
-    ASSERT_EQ(estat.d_postCallCount, 1);
-    ASSERT_EQ(estat.d_dispatchCallCount, 0);
+    BMQTST_ASSERT(executed);
+    BMQTST_ASSERT_EQ(estat.d_postCallCount, 1);
+    BMQTST_ASSERT_EQ(estat.d_dispatchCallCount, 0);
 }
 
 static void test4_dispatch()
@@ -589,9 +599,9 @@ static void test4_dispatch()
     bool executed = false;
     ex.dispatch(SetFlagOnCall(&executed));
 
-    ASSERT(executed);
-    ASSERT_EQ(estat.d_postCallCount, 0);
-    ASSERT_EQ(estat.d_dispatchCallCount, 1);
+    BMQTST_ASSERT(executed);
+    BMQTST_ASSERT_EQ(estat.d_postCallCount, 0);
+    BMQTST_ASSERT_EQ(estat.d_dispatchCallCount, 1);
 }
 
 static void test5_swap()
@@ -635,8 +645,8 @@ static void test5_swap()
         ex1.swap(ex2);
 
         // check
-        ASSERT(*ex1.target<StatExecutor>() == smallEx2);
-        ASSERT(*ex2.target<StatExecutor>() == smallEx1);
+        BMQTST_ASSERT(*ex1.target<StatExecutor>() == smallEx2);
+        BMQTST_ASSERT(*ex2.target<StatExecutor>() == smallEx1);
     }
 
     // 2. large targets
@@ -653,8 +663,10 @@ static void test5_swap()
         ex1.swap(ex2);
 
         // check
-        ASSERT(*ex1.target<ExecutorElarger<StatExecutor> >() == largeEx2);
-        ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() == largeEx1);
+        BMQTST_ASSERT(*ex1.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx2);
+        BMQTST_ASSERT(*ex2.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx1);
     }
 
     // 3. small and large targets
@@ -671,8 +683,9 @@ static void test5_swap()
         ex1.swap(ex2);
 
         // check
-        ASSERT(*ex1.target<ExecutorElarger<StatExecutor> >() == largeEx);
-        ASSERT(*ex2.target<StatExecutor>() == smallEx);
+        BMQTST_ASSERT(*ex1.target<ExecutorElarger<StatExecutor> >() ==
+                      largeEx);
+        BMQTST_ASSERT(*ex2.target<StatExecutor>() == smallEx);
     }
 }
 
@@ -699,8 +712,8 @@ static void test6_boolOperator()
     bmqex::Executor          ex1;
     bmqex::Executor          ex2(StatExecutor(&estat), &alloc);
 
-    ASSERT_EQ(static_cast<bool>(ex1), false);
-    ASSERT_EQ(static_cast<bool>(ex2), true);
+    BMQTST_ASSERT_EQ(static_cast<bool>(ex1), false);
+    BMQTST_ASSERT_EQ(static_cast<bool>(ex2), true);
 }
 
 static void test7_target()
@@ -728,8 +741,8 @@ static void test7_target()
     // NOTE: check const and non-const overloads
     {
         bmqex::Executor ex;
-        ASSERT(!ex.target<StatExecutor>());
-        ASSERT(!bsl::cref(ex).get().target<StatExecutor>());
+        BMQTST_ASSERT(!ex.target<StatExecutor>());
+        BMQTST_ASSERT(!bsl::cref(ex).get().target<StatExecutor>());
     }
 
     // check non-default-constructed executor
@@ -738,9 +751,10 @@ static void test7_target()
         StatExecutor    ex1(&estat);
         bmqex::Executor ex2(ex1, &alloc);
 
-        ASSERT_EQ(ex2.target<StatExecutor>()->statistics(), &estat);
-        ASSERT_EQ(bsl::cref(ex2).get().target<StatExecutor>()->statistics(),
-                  &estat);
+        BMQTST_ASSERT_EQ(ex2.target<StatExecutor>()->statistics(), &estat);
+        BMQTST_ASSERT_EQ(
+            bsl::cref(ex2).get().target<StatExecutor>()->statistics(),
+            &estat);
     }
 }
 
@@ -767,8 +781,8 @@ static void test8_targetType()
     bmqex::Executor          ex1;
     bmqex::Executor          ex2(StatExecutor(&estat), &alloc);
 
-    ASSERT_EQ(ex1.targetType() == typeid(void), true);
-    ASSERT_EQ(ex2.targetType() == typeid(StatExecutor), true);
+    BMQTST_ASSERT_EQ(ex1.targetType() == typeid(void), true);
+    BMQTST_ASSERT_EQ(ex2.targetType() == typeid(StatExecutor), true);
 }
 
 static void test9_equalityComparison()
@@ -798,58 +812,58 @@ static void test9_equalityComparison()
     bslma::TestAllocator alloc;
 
     // two empty executors compare equal
-    ASSERT_EQ(bmqex::Executor() == bmqex::Executor(), true);
-    ASSERT_EQ(bmqex::Executor() != bmqex::Executor(), false);
+    BMQTST_ASSERT_EQ(bmqex::Executor() == bmqex::Executor(), true);
+    BMQTST_ASSERT_EQ(bmqex::Executor() != bmqex::Executor(), false);
 
     // empty executor is not equal to a non-empty executor
-    ASSERT_EQ(bmqex::Executor() ==
-                  bmqex::Executor(SelfEqualExecutor(), &alloc),
-              false);
-    ASSERT_EQ(bmqex::Executor() !=
-                  bmqex::Executor(SelfEqualExecutor(), &alloc),
-              true);
+    BMQTST_ASSERT_EQ(bmqex::Executor() ==
+                         bmqex::Executor(SelfEqualExecutor(), &alloc),
+                     false);
+    BMQTST_ASSERT_EQ(bmqex::Executor() !=
+                         bmqex::Executor(SelfEqualExecutor(), &alloc),
+                     true);
 
     // non-empty executor is not equal to an empty executor
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                  bmqex::Executor(),
-              false);
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                  bmqex::Executor(),
-              true);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
+                         bmqex::Executor(),
+                     false);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
+                         bmqex::Executor(),
+                     true);
 
     // executors sharing the same target compares equal
     bmqex::Executor ex1(ExecutorElarger<SelfUnequalExecutor>(), &alloc);
     bmqex::Executor ex2 = ex1;
-    ASSERT_EQ(ex1.target<SelfUnequalExecutor>() ==
-                  ex2.target<SelfUnequalExecutor>(),
-              true);
-    ASSERT_EQ(ex1 == ex2, true);
-    ASSERT_EQ(ex1 != ex2, false);
+    BMQTST_ASSERT_EQ(ex1.target<SelfUnequalExecutor>() ==
+                         ex2.target<SelfUnequalExecutor>(),
+                     true);
+    BMQTST_ASSERT_EQ(ex1 == ex2, true);
+    BMQTST_ASSERT_EQ(ex1 != ex2, false);
 
     // executors with different target types compare unequal
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                  bmqex::Executor(SelfUnequalExecutor(), &alloc),
-              false);
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                  bmqex::Executor(SelfUnequalExecutor(), &alloc),
-              true);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
+                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
+                     false);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
+                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
+                     true);
 
     // executors with the same target type compare equal if their targets
     // compare equal ...
-    ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) ==
-                  bmqex::Executor(SelfUnequalExecutor(), &alloc),
-              false);
-    ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) !=
-                  bmqex::Executor(SelfUnequalExecutor(), &alloc),
-              true);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) ==
+                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
+                     false);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) !=
+                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
+                     true);
 
     // ... and vice versa
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                  bmqex::Executor(SelfEqualExecutor(), &alloc),
-              true);
-    ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                  bmqex::Executor(SelfEqualExecutor(), &alloc),
-              false);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
+                         bmqex::Executor(SelfEqualExecutor(), &alloc),
+                     true);
+    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
+                         bmqex::Executor(SelfEqualExecutor(), &alloc),
+                     false);
 }
 
 // ============================================================================
@@ -874,7 +888,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

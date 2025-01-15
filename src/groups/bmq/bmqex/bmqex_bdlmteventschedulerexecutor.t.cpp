@@ -82,8 +82,8 @@ static void test1_constructor()
                                           bsls::TimeInterval(42));
 
     // check postconditions
-    ASSERT_EQ(&ex.context(), &eventScheduler);
-    ASSERT_EQ(ex.timePoint(), bsls::TimeInterval(42));
+    BMQTST_ASSERT_EQ(&ex.context(), &eventScheduler);
+    BMQTST_ASSERT_EQ(ex.timePoint(), bsls::TimeInterval(42));
 }
 
 static void test2_post()
@@ -135,15 +135,15 @@ static void test2_post()
     eventSchedulerTimeSource.advanceTime(bsls::TimeInterval(0).addSeconds(1));
 
     // job1 executed, job2 is not
-    ASSERT_EQ(job1Executed, true);
-    ASSERT_EQ(job2Executed, false);
+    BMQTST_ASSERT_EQ(job1Executed, true);
+    BMQTST_ASSERT_EQ(job2Executed, false);
 
     // advance time to 1 sec
     eventSchedulerTimeSource.advanceTime(bsls::TimeInterval(0).addSeconds(1));
 
     // both jobs executed
-    ASSERT_EQ(job1Executed, true);
-    ASSERT_EQ(job2Executed, true);
+    BMQTST_ASSERT_EQ(job1Executed, true);
+    BMQTST_ASSERT_EQ(job2Executed, true);
 
     // stop scheduler
     eventScheduler.stop();
@@ -182,11 +182,11 @@ static void test3_swap()
     ex1.swap(ex2);
 
     // check
-    ASSERT_EQ(&ex1.context(), &eventScheduler2);
-    ASSERT_EQ(ex1.timePoint(), bsls::TimeInterval(2));
+    BMQTST_ASSERT_EQ(&ex1.context(), &eventScheduler2);
+    BMQTST_ASSERT_EQ(ex1.timePoint(), bsls::TimeInterval(2));
 
-    ASSERT_EQ(&ex2.context(), &eventScheduler1);
-    ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(1));
+    BMQTST_ASSERT_EQ(&ex2.context(), &eventScheduler1);
+    BMQTST_ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(1));
 }
 
 static void test4_context()
@@ -209,10 +209,10 @@ static void test4_context()
     bdlmt::EventScheduler eventScheduler2(&alloc);
 
     bmqex::BdlmtEventSchedulerExecutor ex1(&eventScheduler1);
-    ASSERT_EQ(&ex1.context(), &eventScheduler1);
+    BMQTST_ASSERT_EQ(&ex1.context(), &eventScheduler1);
 
     bmqex::BdlmtEventSchedulerExecutor ex2(&eventScheduler2);
-    ASSERT_EQ(&ex2.context(), &eventScheduler2);
+    BMQTST_ASSERT_EQ(&ex2.context(), &eventScheduler2);
 }
 
 static void test5_timePoint()
@@ -234,11 +234,11 @@ static void test5_timePoint()
 
     bmqex::BdlmtEventSchedulerExecutor ex1(&eventScheduler,
                                            bsls::TimeInterval(1));
-    ASSERT_EQ(ex1.timePoint(), bsls::TimeInterval(1));
+    BMQTST_ASSERT_EQ(ex1.timePoint(), bsls::TimeInterval(1));
 
     bmqex::BdlmtEventSchedulerExecutor ex2(&eventScheduler,
                                            bsls::TimeInterval(2));
-    ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(2));
+    BMQTST_ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(2));
 }
 
 static void test6_rebindTimePoint()
@@ -265,8 +265,8 @@ static void test6_rebindTimePoint()
 
     bmqex::BdlmtEventSchedulerExecutor ex2 = ex1.rebindTimePoint(
         bsls::TimeInterval(2));
-    ASSERT_EQ(&ex2.context(), &eventScheduler);
-    ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(2));
+    BMQTST_ASSERT_EQ(&ex2.context(), &eventScheduler);
+    BMQTST_ASSERT_EQ(ex2.timePoint(), bsls::TimeInterval(2));
 }
 
 static void test7_comparison()
@@ -292,21 +292,21 @@ static void test7_comparison()
 
     // equality
     {
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) ==
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                    bsls::TimeInterval(1)),
             true);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) ==
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler2,
                                                    bsls::TimeInterval(1)),
             false);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) ==
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
@@ -316,21 +316,21 @@ static void test7_comparison()
 
     // inequality
     {
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) !=
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                    bsls::TimeInterval(1)),
             false);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) !=
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler2,
                                                    bsls::TimeInterval(1)),
             true);
 
-        ASSERT_EQ(
+        BMQTST_ASSERT_EQ(
             bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
                                                bsls::TimeInterval(1)) !=
                 bmqex::BdlmtEventSchedulerExecutor(&eventScheduler1,
@@ -357,8 +357,8 @@ static void test8_defaultTimePoint()
     const bsls::TimeInterval defTimePoint =
         bmqex::BdlmtEventSchedulerExecutor::k_DEFAULT_TIME_POINT;
 
-    ASSERT(defTimePoint < bsls::SystemTime::nowMonotonicClock());
-    ASSERT(defTimePoint < bsls::SystemTime::nowRealtimeClock());
+    BMQTST_ASSERT(defTimePoint < bsls::SystemTime::nowMonotonicClock());
+    BMQTST_ASSERT(defTimePoint < bsls::SystemTime::nowRealtimeClock());
 }
 
 // ============================================================================
@@ -382,7 +382,7 @@ int main(int argc, char* argv[])
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

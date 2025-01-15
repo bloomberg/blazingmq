@@ -256,7 +256,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
         queueUri,
         queueKey);
 
-    bdlbb::Blob record(bufferFactory, s_allocator_p);
+    bdlbb::Blob record(bufferFactory, bmqtst::TestHelperUtil::allocator());
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(&record,
                                                         msg,
                                                         sequenceNumber,
@@ -292,7 +292,7 @@ struct Tester {
   public:
     // CREATORS
     Tester(bsls::Types::Int64 maxLogSize = k_LOG_MAX_SIZE,
-           bslma::Allocator*  allocator  = s_allocator_p)
+           bslma::Allocator*  allocator  = bmqtst::TestHelperUtil::allocator())
     : d_logIdGenerator_sp(0)
     , d_logFactory_sp(0)
     , d_tempDir(allocator)
@@ -469,7 +469,7 @@ static void test1_breathingTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -492,7 +492,9 @@ static void test1_breathingTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_processCslRecordTypes.d_update   = true;
@@ -501,16 +503,18 @@ static void test1_breathingTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
@@ -520,7 +524,7 @@ static void test1_breathingTest()
     bsl::size_t        commitCount   = 0;
     bsl::size_t        updateCount   = 0;
     bsl::size_t        ackCount      = 0;
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         expectedStream << "[ recordType = " << test.d_recordType
@@ -635,7 +639,7 @@ static void test2_searchRecordsByTypeTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -658,23 +662,27 @@ static void test2_searchRecordsByTypeTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_processCslRecordTypes.d_commit   = true;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
@@ -682,7 +690,7 @@ static void test2_searchRecordsByTypeTest()
     standardCslIt.next();
     bsl::size_t        snapshotCount = 0;
     bsl::size_t        commitCount   = 0;
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
@@ -802,7 +810,7 @@ static void test3_searchRecordsByQueueKeyTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -825,7 +833,9 @@ static void test3_searchRecordsByQueueKeyTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_processCslRecordTypes.d_commit   = true;
@@ -835,22 +845,24 @@ static void test3_searchRecordsByQueueKeyTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         if (test.d_queueKey == "2222222222" ||
@@ -940,7 +952,7 @@ static void test4_searchRecordsByTimestampRangeTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -963,31 +975,34 @@ static void test4_searchRecordsByTimestampRangeTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
-    params.d_range.d_type                     = Parameters::Range::e_TIMESTAMP;
     params.d_range.d_timestampGt              = 100002U;
     params.d_range.d_timestampLt              = 100005U;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         if (test.d_timeStamp > params.d_range.d_timestampGt &&
@@ -1074,7 +1089,7 @@ static void test5_searchRecordsByOffsetRangeTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -1097,31 +1112,34 @@ static void test5_searchRecordsByOffsetRangeTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
-    params.d_range.d_type                     = Parameters::Range::e_OFFSET;
     params.d_range.d_offsetGt                 = 100U;
     params.d_range.d_offsetLt                 = 300U;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&         test      = k_DATA[idx];
         bsls::Types::Uint64 recOffset = static_cast<bsls::Types::Uint64>(
@@ -1211,7 +1229,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -1234,32 +1252,35 @@ static void test6_searchRecordsBySeqNumberRangeTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
-    params.d_range.d_type     = Parameters::Range::e_SEQUENCE_NUM;
     params.d_range.d_seqNumGt = CompositeSequenceNumber(1U, 2U);
     params.d_range.d_seqNumLt = CompositeSequenceNumber(2U, 3U);
     ;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&             test = k_DATA[idx];
         CompositeSequenceNumber recSeqNum(test.d_electorTerm,
@@ -1348,7 +1369,7 @@ static void test7_searchRecordsByOffsetTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -1371,7 +1392,9 @@ static void test7_searchRecordsByOffsetTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_offset.push_back(132U);
@@ -1379,22 +1402,24 @@ static void test7_searchRecordsByOffsetTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test&         test      = k_DATA[idx];
         bsls::Types::Uint64 recOffset = static_cast<bsls::Types::Uint64>(
@@ -1483,7 +1508,7 @@ static void test8_searchRecordsBySeqNumberTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -1506,7 +1531,9 @@ static void test8_searchRecordsBySeqNumberTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_seqNum.push_back(CompositeSequenceNumber(1U, 2U));
@@ -1514,22 +1541,24 @@ static void test8_searchRecordsBySeqNumberTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     standardCslIt.next();
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         if ((test.d_electorTerm == 1U || test.d_electorTerm == 2U) &&
@@ -1640,7 +1669,7 @@ static void test9_summaryTest()
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
-    bsl::vector<RecordInfo> recordInfos(s_allocator_p);
+    bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
@@ -1663,7 +1692,9 @@ static void test9_summaryTest()
     ASSERT(incoreCslIt.isValid());
 
     // Prepare parameters
-    Parameters params(CommandLineArguments(s_allocator_p), s_allocator_p);
+    Parameters params(
+        CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
     params.d_cslMode                          = true;
     params.d_processCslRecordTypes.d_snapshot = true;
     params.d_processCslRecordTypes.d_update   = true;
@@ -1673,16 +1704,18 @@ static void test9_summaryTest()
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
-        new (*s_allocator_p) FileManagerMock(&incoreCslIt),
-        s_allocator_p);
+        new (*bmqtst::TestHelperUtil::allocator())
+            FileManagerMock(&incoreCslIt),
+        bmqtst::TestHelperUtil::allocator());
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        CommandProcessorFactory::createCommandProcessor(
+            &params,
+            fileManager,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
     searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
@@ -1692,7 +1725,7 @@ static void test9_summaryTest()
     bsl::size_t        commitCount   = 0;
     bsl::size_t        updateCount   = 0;
     bsl::size_t        ackCount      = 0;
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
         if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
@@ -1712,7 +1745,7 @@ static void test9_summaryTest()
     expectedStream << '\n'
                    << snapshotCount << " snapshot record(s) found.\n\n";
     expectedStream << updateCount << " update record(s) found, including:\n";
-    bsl::vector<const char*> fields(s_allocator_p);
+    bsl::vector<const char*> fields(bmqtst::TestHelperUtil::allocator());
     fields.push_back("partitionPrimaryAdvisory");
     fields.push_back("queueAssignmentAdvisory");
     fields.push_back("queueUnAssignmentAdvisory");
@@ -1733,8 +1766,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     bmqp::Crc32c::initialize();
 
     switch (_testCase) {
@@ -1750,7 +1783,7 @@ int main(int argc, char* argv[])
     case 9: test9_summaryTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

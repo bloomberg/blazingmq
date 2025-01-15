@@ -54,20 +54,20 @@ static void test1_breathingTest()
     bmqtst::TestHelper::printTestName("breathing test");
 
     // Create a default application, make sure it can start/stop
-    mqbcfg::AppConfig cfg(s_allocator_p);
+    mqbcfg::AppConfig cfg(bmqtst::TestHelperUtil::allocator());
     cfg.networkInterfaces().tcpInterface().makeValue();
 
     mqbcfg::BrokerConfig::set(cfg);
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
-                                    s_allocator_p);
+                                    bmqtst::TestHelperUtil::allocator());
     scheduler.start();
     mqba::Application obj(&scheduler,
                           0,  // no allocatorsStatContext
-                          s_allocator_p);
+                          bmqtst::TestHelperUtil::allocator());
 
-    // bmqs::MemOutStream error(s_allocator_p);
+    // bmqs::MemOutStream error(bmqtst::TestHelperUtil::allocator());
     // int rc = obj.start(error);
-    // ASSERT_EQ(rc, 0);
+    // BMQTST_ASSERT_EQ(rc, 0);
     // obj.stop();
     scheduler.stop();
 }
@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqp::ProtocolUtil::initialize(s_allocator_p);
+    bmqp::ProtocolUtil::initialize(bmqtst::TestHelperUtil::allocator());
     // Force initialize protocolUtil before any 'mqba::Application' object
     // gets created, so that we can pass in the test allocator, instead of
     // having 'mqba::Application' initializing it with the global
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

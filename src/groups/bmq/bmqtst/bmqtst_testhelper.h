@@ -56,35 +56,38 @@
 // NOTE: Because the Epilog flags are global and apply to all the tests in
 //       the test driver, it is not always possible to enable them if one of
 //       the test cases may make usage of default or global allocator.  For
-//       that matter, the global variables 's_ignoreCheckDefAlloc' and
-//       's_ignoreCheckGblAlloc' can be set to 'true' in the test of a given
-//       case to selectively disable those checks for that test case only.
+//       that matter, the global variables
+//       'TestHelperUtil::ignoreCheckDefAlloc()' and
+//       'TestHelperUtil::ignoreCheckGblAlloc()' can be set to 'true' in the
+//       test of a given case to selectively disable those checks for that test
+//       case only.
 //
 /// ASSERTIONS
 ///----------
 // The following macros are provided to perform checks:
 //: o Comparison macros
-//:   o !ASSERT(X)!:       'X'
-//:   o !ASSERT_EQ(X, Y)!: 'X == Y'
-//:   o !ASSERT_NE(X, Y)!: 'X != Y'
-//:   o !ASSERT_LT(X, Y)!: 'X <  Y'
-//:   o !ASSERT_LE(X, Y)!: 'X <= Y'
-//:   o !ASSERT_GT(X, Y)!: 'X  > Y'
-//:   o !ASSERT_GE(X, Y)!: 'X >= Y'
-//:   o !ASSERT_EQF(X, Y)!: 'X == Y' (fuzzy)
-//:   o !ASSERT_NEF(X, Y)!: 'X != Y' (fuzzy)
+//:   o !BMQTST_ASSERT(X)!:       'X'
+//:   o !BMQTST_ASSERT_EQ(X, Y)!: 'X == Y'
+//:   o !BMQTST_ASSERT_NE(X, Y)!: 'X != Y'
+//:   o !BMQTST_ASSERT_LT(X, Y)!: 'X <  Y'
+//:   o !BMQTST_ASSERT_LE(X, Y)!: 'X <= Y'
+//:   o !BMQTST_ASSERT_GT(X, Y)!: 'X  > Y'
+//:   o !BMQTST_ASSERT_GE(X, Y)!: 'X >= Y'
+//:   o !BMQTST_ASSERT_EQF(X, Y)!: 'X == Y' (fuzzy)
+//:   o !BMQTST_ASSERT_NEF(X, Y)!: 'X != Y' (fuzzy)
 //
-// Each of the above macros have a '_D' variant (for example 'ASSERT_EQ_D')
-// which takes an additional first parameter, 'description', that will be
-// printed in case the assertion fails (but always evaluated upfront).
+// Each of the above macros have a '_D' variant (for example
+// 'BMQTST_ASSERT_EQ_D') which takes an additional first parameter,
+// 'description', that will be printed in case the assertion fails (but always
+// evaluated upfront).
 //
 //: o Negative testing macros
-//:   o !ASSERT_SAFE_PASS(E)!: no assertion in safe mode is expected
-//:   o !ASSERT_SAFE_FAIL(E)!: an assertion in safe mode is expected
-//:   o !ASSERT_PASS(E)!:      no assertion in default mode is expected
-//:   o !ASSERT_FAIL(E)!:      an assertion in default mode is expected
-//:   o !ASSERT_OPT_PASS(E)!:  no assertion in opt mode is expected
-//:   o !ASSERT_OPT_FAIL(E)!:  an assertion in opt mode is expected
+//:   o !BMQTST_ASSERT_SAFE_PASS(E)!: no assertion in safe mode is expected
+//:   o !BMQTST_ASSERT_SAFE_FAIL(E)!: an assertion in safe mode is expected
+//:   o !BMQTST_ASSERT_PASS(E)!:      no assertion in default mode is expected
+//:   o !BMQTST_ASSERT_FAIL(E)!:      an assertion in default mode is expected
+//:   o !BMQTST_ASSERT_OPT_PASS(E)!:  no assertion in opt mode is expected
+//:   o !BMQTST_ASSERT_OPT_FAIL(E)!:  an assertion in opt mode is expected
 //
 /// PRINTING
 ///--------
@@ -120,9 +123,9 @@
 // either the default or the global allocators. 'TEST_PROLOG' also creates a
 // 'bslma::TestAllocator' (by default, or a 'balst::StackTraceTestAllocator' if
 // the 'e_USE_STACKTRACE_ALLOCATOR' flag is set) and makes it available as the
-// global 's_allocator_p' pointer.  This allocator is the one that should be
-// used and passed to all objects under test.  'TEST_EPILOG' does verify that
-// no memory was leaked from that allocator as well.
+// global 'TestHelperUtil::allocator()' pointer.  This allocator is the one
+// that should be used and passed to all objects under test.  'TEST_EPILOG'
+// does verify that no memory was leaked from that allocator as well.
 //
 /// BALL LOGGING
 ///------------
@@ -138,18 +141,18 @@
 // in 'main'.
 //
 // Two macros are provided for creating tests:
-//: o TEST(TEST_NAME)             { TEST_CODE }
-//: o TEST_F(FIXTURE, TEST_NAME)  { TEST_CODE }
-// Both macros register the code in the following block as a test.  'TEST_F'
-// takes an extra argument, a "fixture", which is a class that provides an
-// environment in which one or several tests can be conveniently executed.
-// Most tests require a context for execution: objects and mocks (and sometimes
-// directories or other resources) need to be created and initialized.  This is
-// the role of a fixture class: it is instantiated and the test code is run as
-// an instance member function of the fixture class.  Thus all the objects and
-// methods supplied by the fixture class are available in the test code.  This
-// approach has two advantages over simply writing the setup code at the
-// beginning of the test (and cleanup at the end):
+//: o BMQTST_TEST(BMQTST_TEST_NAME)             { BMQTST_TEST_CODE }
+//: o BMQTST_TEST_F(FIXTURE, TEST_NAME)  { TEST_CODE }
+// Both macros register the code in the following block as a test.
+// 'BMQTST_TEST_F' takes an extra argument, a "fixture", which is a class that
+// provides an environment in which one or several tests can be conveniently
+// executed. Most tests require a context for execution: objects and mocks (and
+// sometimes directories or other resources) need to be created and
+// initialized.  This is the role of a fixture class: it is instantiated and
+// the test code is run as an instance member function of the fixture class.
+// Thus all the objects and methods supplied by the fixture class are available
+// in the test code.  This approach has two advantages over simply writing the
+// setup code at the beginning of the test (and cleanup at the end):
 //: o If the test exits prematurely (for example on a test failure), the
 //: cleanup
 //:   code is executed as per the RAII idiom.
@@ -162,7 +165,7 @@
 //: o If no fixture is specified (i.e. test was created with 'TEST'):
 //:   o Execute the test code
 //: o If an explicit fixture is specified (i.e. test was created with
-//: 'TEST_F'):
+//: 'BMQTST_TEST_F'):
 //:   o Instantiate a fixture object (execute the ctor)
 //:   o Call the SetUp() method on the fixture object
 //:   o Execute the test code as a (non-static) member function of the fixture
@@ -197,9 +200,9 @@
 //  static void test1_breathingTest() {
 //      bmqtst::TestHelper::printTestName("BREATHING TEST");
 //
-//      grppkg::MyComponent myComponent("name", s_allocator_p);
-//      ASSERT(myComponent.isValid());
-//      ASSERT_EQ(myComponent.name(), "name");
+//      grppkg::MyComponent myComponent("name", TestHelperUtil::allocator());
+//      BMQTST_ASSERT(myComponent.isValid());
+//      BMQTST_ASSERT_EQ(myComponent.name(), "name");
 //  }
 //
 //  // ========================================================================
@@ -215,7 +218,7 @@
 //        default: {
 //          bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
 //                    << bsl::endl;
-//          s_testStatus = -1;
+//          TestHelperUtil::testStatus() = -1;
 //        } break;
 //      }
 //
@@ -254,11 +257,11 @@
 //      }
 //  };
 //
-//  TEST_F(FunctionalTest, breathingTest)
+//  BMQTST_TEST_F(FunctionalTest, breathingTest)
 //  {
-//      grppkg::MyComponent myComponent("name", config, mock, s_allocator_p);
-//      ASSERT(myComponent.isValid());
-//      ASSERT_EQ(myComponent.name(), "name");
+//      grppkg::MyComponent myComponent("name", config, mock,
+//      TestHelperUtil::allocator()); BMQTST_ASSERT(myComponent.isValid());
+//      BMQTST_ASSERT_EQ(myComponent.name(), "name");
 //  }
 //
 //  // ========================================================================
@@ -344,8 +347,9 @@
                               int         line)                               \
     {                                                                         \
         if (!(xResult OP yResult)) {                                          \
-            bdlsb::MemOutStreamBuf buffer(s_allocator_p);                     \
-            bsl::ostream           os(&buffer);                               \
+            bdlsb::MemOutStreamBuf buffer(                                    \
+                bmqtst::TestHelperUtil::allocator());                         \
+            bsl::ostream os(&buffer);                                         \
             os << prefix << "'" << xStr << "' " << "("                        \
                << bmqtst::printer(xResult) << ")" << " " #OP " " << "'"       \
                << yStr << "' " << "(" << bmqtst::printer(yResult) << ")"      \
@@ -355,36 +359,39 @@
         }                                                                     \
     }
 
-#define ASSERT_EQ(X, Y)                                                       \
+// An alias to the required BDE ASSERT macro
+#define BMQTST_ASSERT(X) ASSERT(X)
+
+#define BMQTST_ASSERT_EQ(X, Y)                                                \
     {                                                                         \
         _assertCompareEquals("", X, Y, #X, #Y, __FILE__, __LINE__);           \
     }
-#define ASSERT_NE(X, Y)                                                       \
+#define BMQTST_ASSERT_NE(X, Y)                                                \
     {                                                                         \
         _assertCompareNotEquals("", X, Y, #X, #Y, __FILE__, __LINE__);        \
     }
-#define ASSERT_LT(X, Y)                                                       \
+#define BMQTST_ASSERT_LT(X, Y)                                                \
     {                                                                         \
         _assertCompareLess("", X, Y, #X, #Y, __FILE__, __LINE__);             \
     }
-#define ASSERT_LE(X, Y)                                                       \
+#define BMQTST_ASSERT_LE(X, Y)                                                \
     {                                                                         \
         _assertCompareLessEquals("", X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
-#define ASSERT_GT(X, Y)                                                       \
+#define BMQTST_ASSERT_GT(X, Y)                                                \
     {                                                                         \
         _assertCompareGreater("", X, Y, #X, #Y, __FILE__, __LINE__);          \
     }
-#define ASSERT_GE(X, Y)                                                       \
+#define BMQTST_ASSERT_GE(X, Y)                                                \
     {                                                                         \
         _assertCompareGreaterEquals("", X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
 
 // '_D' variants, allowing to specify a 'description' that will be printed in
 // case of failure.
-#define ASSERT_D(D, X)                                                        \
+#define BMQTST_ASSERT_D(D, X)                                                 \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << '\0';                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
@@ -392,49 +399,49 @@
             BloombergLP::_assert(false, _osStr.data(), __FILE__, __LINE__);   \
         }                                                                     \
     }
-#define ASSERT_EQ_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_EQ_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
-#define ASSERT_NE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_NE_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareNotEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
-#define ASSERT_LT_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_LT_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareLess(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);         \
     }
-#define ASSERT_LE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_LE_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareLessEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);   \
     }
-#define ASSERT_GT_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_GT_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
         _assertCompareGreater(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);      \
     }
-#define ASSERT_GE_D(D, X, Y)                                                  \
+#define BMQTST_ASSERT_GE_D(D, X, Y)                                           \
     {                                                                         \
-        bdlsb::MemOutStreamBuf _buf(s_allocator_p);                           \
+        bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
         _os << D << ": ";                                                     \
         bslstl::StringRef _osStr(_buf.data(), _buf.length());                 \
@@ -448,39 +455,41 @@
     }
 
 // Assertions using fuzzy comparisons
-#define ASSERT_EQF(X, Y)                                                      \
+#define BMQTST_ASSERT_EQF(X, Y)                                               \
     {                                                                         \
         if (!(bmqtst::TestHelper::areFuzzyEqual((X), (Y)))) {                 \
             bsl::cout << "Error " << __FILE__ << "(" << __LINE__              \
                       << "): " << #X << " (" << bmqtst::printer(X)            \
                       << ") ~= " << #Y << " (" << bmqtst::printer(Y) << ")"   \
                       << "    (failed)" << bsl::endl;                         \
-            if (s_testStatus >= 0 && s_testStatus <= 100)                     \
-                ++s_testStatus;                                               \
+            if (bmqtst::TestHelperUtil::testStatus() >= 0 &&                  \
+                bmqtst::TestHelperUtil::testStatus() <= 100)                  \
+                ++bmqtst::TestHelperUtil::testStatus();                       \
         }                                                                     \
     }
 
-#define ASSERT_NEF(X, Y)                                                      \
+#define BMQTST_ASSERT_NEF(X, Y)                                               \
     {                                                                         \
         if (bmqtst::TestHelper : areFuzzyEqual((X), (Y))) {                   \
             bsl::cout << "Error " << __FILE__ << "(" << __LINE__              \
                       << "): " << #X << " (" << bmqtst::printer(X)            \
                       << ") !~= " << #Y << " (" << bmqtst::printer(Y) << ")"  \
                       << "    (failed)" << bsl::endl;                         \
-            if (s_testStatus >= 0 && s_testStatus <= 100)                     \
-                ++s_testStatus;                                               \
+            if (bmqtst::TestHelperUtil::testStatus() >= 0 &&                  \
+                bmqtst::TestHelperUtil::testStatus() <= 100)                  \
+                ++bmqtst::TestHelperUtil::testStatus();                       \
         }                                                                     \
     }
 
 // ============================================================================
 //                     NEGATIVE-TEST MACROS ABBREVIATIONS
 // ----------------------------------------------------------------------------
-#define ASSERT_SAFE_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_PASS(EXPR)
-#define ASSERT_SAFE_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(EXPR)
-#define ASSERT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_PASS(EXPR)
-#define ASSERT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_FAIL(EXPR)
-#define ASSERT_OPT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_PASS(EXPR)
-#define ASSERT_OPT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_FAIL(EXPR)
+#define BMQTST_ASSERT_SAFE_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_PASS(EXPR)
+#define BMQTST_ASSERT_SAFE_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(EXPR)
+#define BMQTST_ASSERT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_PASS(EXPR)
+#define BMQTST_ASSERT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_FAIL(EXPR)
+#define BMQTST_ASSERT_OPT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_PASS(EXPR)
+#define BMQTST_ASSERT_OPT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_FAIL(EXPR)
 
 // ============================================================================
 //                                PRINT MACROS
@@ -502,36 +511,38 @@
 
 #define PRINT_SAFE(X)                                                         \
     {                                                                         \
-        bslmt::QLockGuard qGuard(&s_serializePrintLock);                      \
+        bslmt::QLockGuard qGuard(                                             \
+            &bmqtst::TestHelperUtil::serializePrintLock());                   \
         PRINT(X);                                                             \
     }
 
 #define PRINT_SAFE_(X)                                                        \
     {                                                                         \
-        bslmt::QLockGuard qGuard(&s_serializePrintLock);                      \
+        bslmt::QLockGuard qGuard(                                             \
+            &bmqtst::TestHelperUtil::serializePrintLock());                   \
         PRINT_(X);                                                            \
     }
 
 #define PV(X)                                                                 \
-    if (s_verbosityLevel >= 1)                                                \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1)                        \
         PRINT(X);
 #define PVV(X)                                                                \
-    if (s_verbosityLevel >= 2)                                                \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 2)                        \
         PRINT(X);
 #define PVVV(X)                                                               \
-    if (s_verbosityLevel >= 3)                                                \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 3)                        \
         PRINT(X);
 
 #define PV_SAFE(X)                                                            \
-    if (s_verbosityLevel >= 1) {                                              \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {                      \
         PRINT_SAFE(X);                                                        \
     };
 #define PVV_SAFE(X)                                                           \
-    if (s_verbosityLevel >= 2) {                                              \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 2) {                      \
         PRINT_SAFE(X);                                                        \
     };
 #define PVVV_SAFE(X)                                                          \
-    if (s_verbosityLevel >= 3) {                                              \
+    if (bmqtst::TestHelperUtil::verbosityLevel() >= 3) {                      \
         PRINT_SAFE(X);                                                        \
     };
 
@@ -539,8 +550,8 @@
 //                                 TEST SHELL
 // ----------------------------------------------------------------------------
 #define TEST_PROLOG(F)                                                        \
-    const int _testCase = argc > 1 ? atoi(argv[1]) : 0;                       \
-    s_verbosityLevel    = argc - 2;                                           \
+    const int _testCase                      = argc > 1 ? atoi(argv[1]) : 0;  \
+    bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                      \
                                                                               \
     /* Install an assert handler to gracefully mark the test as failure */    \
     /* in case of assert.                                               */    \
@@ -563,13 +574,13 @@
     ball::LoggerManagerConfiguration _logConfig;                              \
     ball::Severity::Level            _logSeverity = ball::Severity::WARN;     \
     {                                                                         \
-        if (s_verbosityLevel == 1) {                                          \
+        if (bmqtst::TestHelperUtil::verbosityLevel() == 1) {                  \
             _logSeverity = ball::Severity::INFO;                              \
         }                                                                     \
-        else if (s_verbosityLevel == 2) {                                     \
+        else if (bmqtst::TestHelperUtil::verbosityLevel() == 2) {             \
             _logSeverity = ball::Severity::DEBUG;                             \
         }                                                                     \
-        else if (s_verbosityLevel >= 3) {                                     \
+        else if (bmqtst::TestHelperUtil::verbosityLevel() >= 3) {             \
             _logSeverity = ball::Severity::TRACE;                             \
         }                                                                     \
         _logConfig.setDefaultThresholdLevelsIfValid(ball::Severity::OFF,      \
@@ -604,7 +615,9 @@
     /* Global Allocator */                                                    \
     /* NOTE: The global allocator has a static storage duration to outlive */ \
     /*       all static objects using that allocator.                      */ \
-    static bslma::TestAllocator _gblAlloc("global", (s_verbosityLevel >= 4)); \
+    static bslma::TestAllocator _gblAlloc(                                    \
+        "global",                                                             \
+        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
     INIT_METRICS_REGISTRY()                                                   \
     bslma::Default::setGlobalAllocator(&_gblAlloc);
 
@@ -617,25 +630,29 @@
 #define INIT_GLOBAL_ALLOCATOR() INIT_GLOBAL_ALLOCATOR_INTERNAL()
 #endif
 
-#define INIT_ALLOCATORS(F)                                                      \
-    INIT_GLOBAL_ALLOCATOR();                                                    \
-                                                                                \
-    /* Default allocator */                                                     \
-    bslma::TestAllocator         _defAlloc("default", (s_verbosityLevel >= 4)); \
-    bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                    \
-                                                                                \
-    /* Test driver allocator */                                                 \
-    bslma::TestAllocator _testAlloc("test", (s_verbosityLevel >= 4));           \
-    _testAlloc.setNoAbort(true);                                                \
-                                                                                \
-    balst::StackTraceTestAllocator _stTestAlloc;                                \
-    _stTestAlloc.setName("test");                                               \
-                                                                                \
-    if ((F) & bmqtst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {                 \
-        s_allocator_p = &_stTestAlloc;                                          \
-    }                                                                           \
-    else {                                                                      \
-        s_allocator_p = &_testAlloc;                                            \
+#define INIT_ALLOCATORS(F)                                                    \
+    INIT_GLOBAL_ALLOCATOR();                                                  \
+                                                                              \
+    /* Default allocator */                                                   \
+    bslma::TestAllocator _defAlloc(                                           \
+        "default",                                                            \
+        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
+    bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                  \
+                                                                              \
+    /* Test driver allocator */                                               \
+    bslma::TestAllocator _testAlloc(                                          \
+        "test",                                                               \
+        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
+    _testAlloc.setNoAbort(true);                                              \
+                                                                              \
+    balst::StackTraceTestAllocator _stTestAlloc;                              \
+    _stTestAlloc.setName("test");                                             \
+                                                                              \
+    if ((F) & bmqtst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {               \
+        bmqtst::TestHelperUtil::allocator() = &_stTestAlloc;                  \
+    }                                                                         \
+    else {                                                                    \
+        bmqtst::TestHelperUtil::allocator() = &_testAlloc;                    \
     }
 
 #define TEST_EPILOG(F)                                                        \
@@ -643,33 +660,35 @@
     }                                                                         \
                                                                               \
     /* Ensure no memory leak from the component under test */                 \
-    ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                                \
+    BMQTST_ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                         \
                                                                               \
     /* Verify no default allocator usage */                                   \
     if (F & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                          \
-        !s_ignoreCheckDefAlloc) {                                             \
-        ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                             \
+        !bmqtst::TestHelperUtil::ignoreCheckDefAlloc()) {                     \
+        BMQTST_ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* Verify no global allocator usage */                                    \
     if (F & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                          \
-        !s_ignoreCheckGblAlloc) {                                             \
-        ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                             \
+        !bmqtst::TestHelperUtil::ignoreCheckGblAlloc()) {                     \
+        BMQTST_ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* shutdown log observers */                                              \
     _logMultiplexObserver.deregisterObserver(&_logStdoutObserver);            \
                                                                               \
     /* Check test result */                                                   \
-    if (s_testStatus > 0) {                                                   \
-        bsl::cerr << "Error, non-zero test status: " << s_testStatus << "."   \
+    if (bmqtst::TestHelperUtil::testStatus() > 0) {                           \
+        bsl::cerr << "Error, non-zero test status: "                          \
+                  << bmqtst::TestHelperUtil::testStatus() << "."              \
                   << bsl::endl;                                               \
     }                                                                         \
                                                                               \
-    s_allocator_p = 0; /* clang-tidy warning silencing */                     \
-    return s_testStatus;
+    bmqtst::TestHelperUtil::allocator() =                                     \
+        0; /* clang-tidy warning silencing */                                 \
+    return bmqtst::TestHelperUtil::testStatus();
 
-#define TEST_F(FIXTURE, NAME)                                                 \
+#define BMQTST_TEST_F(FIXTURE, NAME)                                          \
     struct FIXTURE##NAME : FIXTURE {                                          \
         void body() BSLS_KEYWORD_OVERRIDE;                                    \
                                                                               \
@@ -689,7 +708,7 @@
         FIXTURE##NAME ::run);                                                 \
     void FIXTURE##NAME ::body()
 
-#define TEST(NAME)                                                            \
+#define BMQTST_TEST(NAME)                                                     \
     struct Test##NAME : ::BloombergLP::bmqtst::Test {                         \
         void body() BSLS_KEYWORD_OVERRIDE;                                    \
                                                                               \
@@ -730,33 +749,37 @@ class TestHelper_Printer;
 template <typename TYPE>
 TestHelper_Printer<TYPE> printer(const TYPE& obj);
 
+// ======================
+// struct TestHelperUtil
+// ======================
+
+/// A helper struct for accessing and setting global options in the test
+/// drivers.
+struct TestHelperUtil {
+    /// Result of the test:  0: success
+    ///                     >0: number of errors
+    ///                     -1: no such test
+    static int& testStatus();
+
+    /// Verbosity to use ([0..4], the higher the more verbose).
+    static int& verbosityLevel();
+
+    /// Global flag which can be set to ignore checking the default allocator
+    /// usage for a specific test case.
+    static bool& ignoreCheckDefAlloc();
+
+    /// Global flag which can be set to ignore checking the global allocator
+    /// usage for a specific test case.
+    static bool& ignoreCheckGblAlloc();
+
+    /// Lock mechanism to serialize output in.
+    static bslmt::QLock& serializePrintLock();
+
+    /// Allocator to use by the components under test.
+    static bslma::Allocator*& allocator();
+};
+
 }
-
-// ============================================================================
-//                              GLOBAL VARIABLES
-// ----------------------------------------------------------------------------
-
-/// Result of the test:  0: success
-///                     >0: number of errors
-///                     -1: no such test
-extern int s_testStatus;
-
-/// Verbosity to use ([0..4], the higher the more verbose).
-extern int s_verbosityLevel;
-
-/// Global flag which can be set to ignore checking the default allocator
-/// usage for a specific test case.
-extern bool s_ignoreCheckDefAlloc;
-
-/// Global flag which can be set to ignore checking the global allocator
-/// usage for a specific test case.
-extern bool s_ignoreCheckGblAlloc;
-
-/// Lock mechanism to serialize output in.
-extern bslmt::QLock s_serializePrintLock;
-
-/// Allocator to use by the components under test.
-extern bslma::Allocator* s_allocator_p;
 
 // ============================================================================
 //                              GLOBAL FUNCTIONS
@@ -769,8 +792,9 @@ _assert(bool result, const char* expression, const char* file, int line)
 {
     if (!result) {
         printf("Error %s(%d): %s    (failed)\n", file, line, expression);
-        if (s_testStatus >= 0 && s_testStatus <= 100) {
-            ++s_testStatus;
+        if (bmqtst::TestHelperUtil::testStatus() >= 0 &&
+            bmqtst::TestHelperUtil::testStatus() <= 100) {
+            ++bmqtst::TestHelperUtil::testStatus();
         }
     }
 }

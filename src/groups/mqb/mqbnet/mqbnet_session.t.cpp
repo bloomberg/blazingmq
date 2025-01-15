@@ -154,17 +154,17 @@ static void test1_SessionEventProcessor()
     bmqtst::TestHelper::printTestName("SessionEventProcessor");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<SessionEventProcessorTestImp> testObj(s_verbosityLevel >
-                                                             2);
+    bsls::ProtocolTest<SessionEventProcessorTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -220,16 +220,17 @@ static void test2_Session()
     bmqtst::TestHelper::printTestName("Session");
 
     PV("Creating a test object");
-    bsls::ProtocolTest<SessionTestImp> testObj(s_verbosityLevel > 2);
+    bsls::ProtocolTest<SessionTestImp> testObj(
+        bmqtst::TestHelperUtil::verbosityLevel() > 2);
 
     PV("Verify that the protocol is abstract");
-    ASSERT(testObj.testAbstract());
+    BMQTST_ASSERT(testObj.testAbstract());
 
     PV("Verify that there are no data members");
-    ASSERT(testObj.testNoDataMembers());
+    BMQTST_ASSERT(testObj.testNoDataMembers());
 
     PV("Verify that the destructor is virtual");
-    ASSERT(testObj.testVirtualDestructor());
+    BMQTST_ASSERT(testObj.testVirtualDestructor());
 
     {
         PV("Verify that methods are public and virtual");
@@ -263,7 +264,7 @@ int main(int argc, char* argv[])
     case 1: test1_SessionEventProcessor(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

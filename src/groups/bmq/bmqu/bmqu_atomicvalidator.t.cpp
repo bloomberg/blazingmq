@@ -110,21 +110,21 @@ static void test1_breathingTest()
         bmqu::AtomicValidator obj;
 
         // Acquire
-        ASSERT(obj.acquire());
+        BMQTST_ASSERT(obj.acquire());
 
         // Release and acquire
         obj.release();
-        ASSERT(obj.acquire());
+        BMQTST_ASSERT(obj.acquire());
 
         // Release and invalidate -> cannot acquire
-        ASSERT_PASS(obj.release());
-        ASSERT_PASS(obj.invalidate());
-        ASSERT(!obj.acquire());
+        BMQTST_ASSERT_PASS(obj.release());
+        BMQTST_ASSERT_PASS(obj.invalidate());
+        BMQTST_ASSERT(!obj.acquire());
 
         // Reset -> can acquire again
-        ASSERT_PASS(obj.reset());
-        ASSERT(obj.acquire());
-        ASSERT_PASS(obj.release())
+        BMQTST_ASSERT_PASS(obj.reset());
+        BMQTST_ASSERT(obj.acquire());
+        BMQTST_ASSERT_PASS(obj.release())
     }
 
     {
@@ -133,9 +133,9 @@ static void test1_breathingTest()
         PVV("- VALIDATOR NULL");
         {
             bmqu::AtomicValidatorGuard obj0(0);
-            ASSERT(obj0.isValid());
-            ASSERT(obj0.release() == 0);
-            ASSERT(obj0.isValid());
+            BMQTST_ASSERT(obj0.isValid());
+            BMQTST_ASSERT(obj0.release() == 0);
+            BMQTST_ASSERT(obj0.isValid());
         }
 
         bmqu::AtomicValidator validator;
@@ -144,13 +144,13 @@ static void test1_breathingTest()
         {
             bmqu::AtomicValidatorGuard obj(&validator);  // ACQUIRE #1
 
-            ASSERT(obj.isValid());
+            BMQTST_ASSERT(obj.isValid());
 
             bmqu::AtomicValidator* releaseRC = obj.release();
-            ASSERT(releaseRC == &validator);
-            ASSERT(obj.isValid());
+            BMQTST_ASSERT(releaseRC == &validator);
+            BMQTST_ASSERT(obj.isValid());
 
-            ASSERT_PASS(releaseRC->release());  // RELEASE #1
+            BMQTST_ASSERT_PASS(releaseRC->release());  // RELEASE #1
         }
 
         PVV("- VALIDATOR INVALID");
@@ -159,9 +159,9 @@ static void test1_breathingTest()
 
             bmqu::AtomicValidatorGuard obj(&validator);
 
-            ASSERT(!obj.isValid());
-            ASSERT(obj.release() == 0);
-            ASSERT(obj.isValid());
+            BMQTST_ASSERT(!obj.isValid());
+            BMQTST_ASSERT(obj.release() == 0);
+            BMQTST_ASSERT(obj.isValid());
         }
 
         PVV("- VALIDATOR VALID, PRE-ACQUIRED");
@@ -170,19 +170,19 @@ static void test1_breathingTest()
             validator.acquire();  // ACQUIRE #2
 
             bmqu::AtomicValidatorGuard obj(&validator, 1);  // no acquisition
-            ASSERT(obj.isValid());
+            BMQTST_ASSERT(obj.isValid());
             // obj.~AtomicValidatorGuard()                        // RELEASE #2
         }
-        ASSERT_SAFE_FAIL(validator.release());
+        BMQTST_ASSERT_SAFE_FAIL(validator.release());
         // Verifies release occurred in the destructor above
 
         PVV("- VALIDATOR VALID, NOT PRE-ACQUIRED");
         {
             bmqu::AtomicValidatorGuard obj(&validator, 0);  // ACQUIRE #3
-            ASSERT(obj.isValid());
+            BMQTST_ASSERT(obj.isValid());
             // obj.~AtomicValidatorGuard()                        // RELEASE #3
         }
-        ASSERT_SAFE_FAIL(validator.release());
+        BMQTST_ASSERT_SAFE_FAIL(validator.release());
         // Verifies release occurred in the destructor above
     }
 }
@@ -216,12 +216,12 @@ static void test2_atomicValidatorMultiThreaded()
         int ret = bslmt::ThreadUtil::createWithAllocator(
             &handles[i],
             bmqsys::ThreadUtil::defaultAttributes(),
-            bdlf::BindUtil::bindS(s_allocator_p,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &acquireReleaseThread,
                                   &validator,
                                   &numRunningThreads),
-            s_allocator_p);
-        ASSERT_EQ(ret, 0);
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(ret, 0);
     }
 
     PV("Waiting for threads to start...");
@@ -242,15 +242,15 @@ static void test2_atomicValidatorMultiThreaded()
         bslmt::ThreadUtil::join(handles[i]);
     }
 
-    ASSERT_EQ(numRunningThreads, 0);
+    BMQTST_ASSERT_EQ(numRunningThreads, 0);
 
     // Any further 'acquire' fails
-    ASSERT(!validator.acquire());
+    BMQTST_ASSERT(!validator.acquire());
 
     // After we reset, acquire starts working again
     validator.reset();
 
-    ASSERT(validator.acquire());
+    BMQTST_ASSERT(validator.acquire());
 }
 
 //=============================================================================
@@ -267,7 +267,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

@@ -216,19 +216,20 @@ void Tester::connectResultCb(ChannelFactoryEvent::Enum       event,
 }
 
 Tester::Tester()
-: d_scheduler(s_allocator_p)
+: d_scheduler(bmqtst::TestHelperUtil::allocator())
 , d_timeSource(&d_scheduler)
-, d_baseFactory(s_allocator_p)
-, d_resolverResults(s_allocator_p)
-, d_connectResultItems(s_allocator_p)
+, d_baseFactory(bmqtst::TestHelperUtil::allocator())
+, d_resolverResults(bmqtst::TestHelperUtil::allocator())
+, d_connectResultItems(bmqtst::TestHelperUtil::allocator())
 , d_connectHandle()
-, d_channel(s_allocator_p)
+, d_channel(bmqtst::TestHelperUtil::allocator())
 {
     d_scheduler.start();
 
-    ReconnectingChannelFactoryConfig config(&d_baseFactory,
-                                            &d_scheduler,
-                                            s_allocator_p);
+    ReconnectingChannelFactoryConfig config(
+        &d_baseFactory,
+        &d_scheduler,
+        bmqtst::TestHelperUtil::allocator());
     config
         .setEndpointResolveFn(bdlf::BindUtil::bind(&Tester::resolverFn,
                                                    this,
@@ -242,15 +243,16 @@ Tester::Tester()
                                  bdlf::PlaceHolders::_3));
 
     new (d_reconnectingFactory.buffer())
-        ReconnectingChannelFactory(config, s_allocator_p);
+        ReconnectingChannelFactory(config,
+                                   bmqtst::TestHelperUtil::allocator());
     obj().start();
 }
 
 Tester::~Tester()
 {
     // Some invariants checking
-    ASSERT(d_connectResultItems.empty());
-    ASSERT(d_baseFactory.connectCalls().empty());
+    BMQTST_ASSERT(d_connectResultItems.empty());
+    BMQTST_ASSERT(d_baseFactory.connectCalls().empty());
 
     obj().stop();
     d_reconnectingFactory.object()
@@ -280,7 +282,7 @@ void Tester::setResolverResults(const char** endpoints, size_t count)
 
     while (count--) {
         d_resolverResults.emplace_back(
-            bsl::string(*endpoints++, s_allocator_p));
+            bsl::string(*endpoints++, bmqtst::TestHelperUtil::allocator()));
     }
 }
 
@@ -300,10 +302,11 @@ void Tester::connect(const ConnectOptions& options)
     PVV("Connecting using '" << options << "'");
 
     // Inform the baseFactory how it should respond to the connect.
-    const Status successStatus(StatusCategory::e_SUCCESS, s_allocator_p);
+    const Status successStatus(StatusCategory::e_SUCCESS,
+                               bmqtst::TestHelperUtil::allocator());
     baseFactory().setConnectStatus(successStatus);
 
-    Status status(s_allocator_p);
+    Status status(bmqtst::TestHelperUtil::allocator());
     obj().connect(&status,
                   &d_connectHandle,
                   options,
@@ -312,7 +315,7 @@ void Tester::connect(const ConnectOptions& options)
                                        bdlf::PlaceHolders::_1,
                                        bdlf::PlaceHolders::_2,
                                        bdlf::PlaceHolders::_3));
-    ASSERT(status);
+    BMQTST_ASSERT(status);
 }
 
 void Tester::closeChannel()
@@ -321,10 +324,11 @@ void Tester::closeChannel()
 
     // Ensure that the object under test registered itself to the as an
     // observer of the channel down.
-    ASSERT_EQ(d_channel.onCloseCalls().size(), 1U);
+    BMQTST_ASSERT_EQ(d_channel.onCloseCalls().size(), 1U);
 
     TestChannel::OnCloseCall& call = d_channel.onCloseCalls().front();
-    call.d_closeFn(Status(StatusCategory::e_CONNECTION, s_allocator_p));
+    call.d_closeFn(Status(StatusCategory::e_CONNECTION,
+                          bmqtst::TestHelperUtil::allocator()));
     d_channel.onCloseCalls().pop_front();
 }
 
@@ -334,14 +338,17 @@ void Tester::ensureConnectAndEmitEvent(int                       line,
 {
     // The baseFactory must have received a 'connect' call from the object
     // under test.
-    ASSERT_EQ_D("Line: " << line, d_baseFactory.connectCalls().size(), 1U);
+    BMQTST_ASSERT_EQ_D("Line: " << line,
+                       d_baseFactory.connectCalls().size(),
+                       1U);
 
     const TestChannelFactory::ConnectCall& call =
         d_baseFactory.connectCalls().front();
     // Ensure the endpoint matches the expectation
-    ASSERT_EQ_D("Line: " << line,
-                bsl::string(endpoint, s_allocator_p),
-                call.d_options.endpoint());
+    BMQTST_ASSERT_EQ_D("Line: " << line,
+                       bsl::string(endpoint,
+                                   bmqtst::TestHelperUtil::allocator()),
+                       call.d_options.endpoint());
 
     bsl::shared_ptr<Channel> channel = bsl::shared_ptr<Channel>();
     if (event == ChannelFactoryEvent::e_CHANNEL_UP) {
@@ -349,16 +356,16 @@ void Tester::ensureConnectAndEmitEvent(int                       line,
     }
 
     PV("Emiting " << event << " from the testFactory for " << endpoint);
-    call.d_cb(event, Status(s_allocator_p), channel);
+    call.d_cb(event, Status(bmqtst::TestHelperUtil::allocator()), channel);
     d_baseFactory.connectCalls().pop_front();
 }
 
 void Tester::checkResult(int line, ChannelFactoryEvent::Enum event)
 {
-    ASSERT_EQ_D("Line: " << line, d_connectResultItems.size(), 1U);
+    BMQTST_ASSERT_EQ_D("Line: " << line, d_connectResultItems.size(), 1U);
 
     const ConnectResultItem& item = d_connectResultItems.front();
-    ASSERT_EQ_D("Line: " << line, item.d_event, event);
+    BMQTST_ASSERT_EQ_D("Line: " << line, item.d_event, event);
     d_connectResultItems.pop_front();
 }
 
@@ -373,7 +380,7 @@ int Tester::resultsCount()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-TEST_F(Tester, SingleHost)
+BMQTST_TEST_F(Tester, SingleHost)
 // ------------------------------------------------------------------------
 // In this test:
 // 1. connect to a single-resolved host, with a numAttempt of 3, and make
@@ -385,7 +392,7 @@ TEST_F(Tester, SingleHost)
     const char* k_ENDPOINT[] = {"singleHost:123"};
     setResolverResults(k_ENDPOINT, 1);
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -404,7 +411,7 @@ TEST_F(Tester, SingleHost)
         // Advance by less than the reconnect interval, and verify no connect
         // were called yet
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
 
         // Advance time to trigger the reconnect
         advanceSchedulerTime(1);
@@ -415,7 +422,7 @@ TEST_F(Tester, SingleHost)
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 
     {
@@ -424,7 +431,7 @@ TEST_F(Tester, SingleHost)
 
         // No connect should have happened yet
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
 
         // Connect Attempt Failed [1/3]
         advanceSchedulerTime(1);
@@ -450,10 +457,10 @@ TEST_F(Tester, SingleHost)
 
     // NumAttempt exhausted, no more connection expected
     advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-    ASSERT(baseFactory().connectCalls().empty());
+    BMQTST_ASSERT(baseFactory().connectCalls().empty());
 }
 
-TEST_F(Tester, MultipleHosts)
+BMQTST_TEST_F(Tester, MultipleHosts)
 // ------------------------------------------------------------------------
 // In this test:
 // 1. connect to a 3 resolved hosts list, with a numAttempt of 3, and make
@@ -465,7 +472,7 @@ TEST_F(Tester, MultipleHosts)
     const char* k_ENDPOINTS[] = {"first:123", "second:456", "third:789"};
     setResolverResults(k_ENDPOINTS, 3);
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -479,11 +486,11 @@ TEST_F(Tester, MultipleHosts)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -492,14 +499,14 @@ TEST_F(Tester, MultipleHosts)
         // Advance by less than the reconnect interval, and verify no connect
         // were called yet
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
 
         // Advance time to trigger the reconnect
         advanceSchedulerTime(1);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
 
         // Make it succeed
         ensureConnectAndEmitEvent(L_,
@@ -509,7 +516,7 @@ TEST_F(Tester, MultipleHosts)
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 
     {
@@ -518,18 +525,18 @@ TEST_F(Tester, MultipleHosts)
 
         // No connect should have happened yet
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
 
         // Connect Attempt Failed [1/3]
         advanceSchedulerTime(1);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -540,11 +547,11 @@ TEST_F(Tester, MultipleHosts)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -555,11 +562,11 @@ TEST_F(Tester, MultipleHosts)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -568,10 +575,10 @@ TEST_F(Tester, MultipleHosts)
 
     // NumAttempt exhausted, no more connection expected
     advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-    ASSERT(baseFactory().connectCalls().empty());
+    BMQTST_ASSERT(baseFactory().connectCalls().empty());
 }
 
-TEST_F(Tester, EmptyAndChangingResolvingList)
+BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
 // ------------------------------------------------------------------------
 // In this test:
 //    Verify that the Factory properly invokes the 'EndpointResolveFn' at
@@ -583,7 +590,7 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
     // the `EndpointResolveFn` was only called at expected time.
     const char* k_GARBAGE_ENDPOINTS[] = {"garbage:123"};
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(99)  // 'infinite' retry for this test
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -601,7 +608,7 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -624,11 +631,11 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -647,11 +654,11 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
 
         advanceSchedulerTime(1);
 
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
         checkResult(L_, ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED);
 
         advanceSchedulerTime(k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
         checkResult(L_, ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED);
     }
 
@@ -671,7 +678,7 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -679,7 +686,7 @@ TEST_F(Tester, EmptyAndChangingResolvingList)
     }
 }
 
-TEST_F(Tester, NonReconnecting)
+BMQTST_TEST_F(Tester, NonReconnecting)
 // ------------------------------------------------------------------------
 // In this test:
 //    Verify the proper handling of non-reconnecting connect calls.
@@ -697,7 +704,7 @@ TEST_F(Tester, NonReconnecting)
 // to reconnect.
 // ------------------------------------------------------------------------
 {
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
         .setNumAttempts(3)
         .setAttemptInterval(bsls::TimeInterval(k_RECONNECT_INTERVAL))
@@ -733,7 +740,7 @@ TEST_F(Tester, NonReconnecting)
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 
     {
@@ -758,11 +765,11 @@ TEST_F(Tester, NonReconnecting)
         checkResult(L_, ChannelFactoryEvent::e_CHANNEL_UP);
 
         // Ensure the factory did not register a channel down observer
-        ASSERT(testChannel().onCloseCalls().empty());
+        BMQTST_ASSERT(testChannel().onCloseCalls().empty());
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 
     {
@@ -777,11 +784,11 @@ TEST_F(Tester, NonReconnecting)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -792,11 +799,11 @@ TEST_F(Tester, NonReconnecting)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -807,11 +814,11 @@ TEST_F(Tester, NonReconnecting)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -819,7 +826,7 @@ TEST_F(Tester, NonReconnecting)
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 
     {
@@ -835,11 +842,11 @@ TEST_F(Tester, NonReconnecting)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[2],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
@@ -850,22 +857,22 @@ TEST_F(Tester, NonReconnecting)
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[0],
                                   ChannelFactoryEvent::e_CONNECT_FAILED);
-        ASSERT_EQ(resultsCount(), 0);
+        BMQTST_ASSERT_EQ(resultsCount(), 0);
         ensureConnectAndEmitEvent(L_,
                                   k_ENDPOINTS[1],
                                   ChannelFactoryEvent::e_CHANNEL_UP);
         checkResult(L_, ChannelFactoryEvent::e_CHANNEL_UP);
 
         // Ensure the factory did not register a channel down observer
-        ASSERT(testChannel().onCloseCalls().empty());
+        BMQTST_ASSERT(testChannel().onCloseCalls().empty());
 
         // No more events expected
         advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
-        ASSERT(baseFactory().connectCalls().empty());
+        BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 }
 
-TEST(DefaultConnectIntervalFn)
+BMQTST_TEST(DefaultConnectIntervalFn)
 // ------------------------------------------------------------------------
 // In this test:
 //     Verify the well behaving of the default 'connectIntervalFn' method.
@@ -875,7 +882,7 @@ TEST(DefaultConnectIntervalFn)
     static const bsls::Types::Int64 k_MAX      = 50;   // maxInterval
     static const bsls::Types::Int64 k_INTERVAL = 10;   // attemptInterval
 
-    ConnectOptions options(s_allocator_p);
+    ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setAttemptInterval(bsls::TimeInterval(k_INTERVAL));
 
     // Initialize the random number generator
@@ -894,8 +901,8 @@ TEST(DefaultConnectIntervalFn)
             bsls::TimeInterval(k_RESET),                                      \
             bsls::TimeInterval(k_MAX));                                       \
                                                                               \
-        ASSERT_GE(input, bsls::TimeInterval(EXPECTED_MIN));                   \
-        ASSERT_LE(input, bsls::TimeInterval(EXPECTED_MAX));                   \
+        BMQTST_ASSERT_GE(input, bsls::TimeInterval(EXPECTED_MIN));            \
+        BMQTST_ASSERT_LE(input, bsls::TimeInterval(EXPECTED_MAX));            \
     }
 
     // Convenience

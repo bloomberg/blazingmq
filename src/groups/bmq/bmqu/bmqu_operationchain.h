@@ -130,7 +130,7 @@
 // 'bmqu::OperationChain'.
 //..
 //  // create a chain
-//  bmqu::OperationChain chain(s_allocator_p);
+//  bmqu::OperationChain chain(bmqtst::TestHelperUtil::allocator());
 //
 //  static const int k_MY_PAYLOAD   = 42;
 //  static const int k_MY_CLIENT_ID = 42;

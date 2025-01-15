@@ -70,17 +70,18 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bmqma::CountingAllocator      topAllocator("Top Allocator", s_allocator_p);
+    bmqma::CountingAllocator      topAllocator("Top Allocator",
+                                          bmqtst::TestHelperUtil::allocator());
     bmqma::CountingAllocatorStore allocatorStore(&topAllocator);
 
-    ASSERT_EQ(allocatorStore.baseAllocator(), &topAllocator);
+    BMQTST_ASSERT_EQ(allocatorStore.baseAllocator(), &topAllocator);
 
     bslma::Allocator* allocatorA = allocatorStore.get("a");
     bslma::Allocator* allocatorB = allocatorStore.get("b");
     bslma::Allocator* allocatorC = allocatorStore.get("a");
 
-    ASSERT_EQ(allocatorA, allocatorC);
-    ASSERT_NE(allocatorA, allocatorB);
+    BMQTST_ASSERT_EQ(allocatorA, allocatorC);
+    BMQTST_ASSERT_NE(allocatorA, allocatorB);
 }
 
 static void test2_ancestorNotCountingAllocator()
@@ -106,20 +107,21 @@ static void test2_ancestorNotCountingAllocator()
 {
     bmqtst::TestHelper::printTestName("ANCESTOR NOT COUNTING ALLOCATOR");
 
-    BSLS_ASSERT_OPT(!dynamic_cast<bmqma::CountingAllocator*>(s_allocator_p) &&
+    BSLS_ASSERT_OPT(!dynamic_cast<bmqma::CountingAllocator*>(
+                        bmqtst::TestHelperUtil::allocator()) &&
                     "Test allocator is assumed to not be a"
                     " 'bmqma::CountingAllocator'");
 
-    bslma::Allocator*             topAllocator_p = s_allocator_p;
+    bslma::Allocator* topAllocator_p = bmqtst::TestHelperUtil::allocator();
     bmqma::CountingAllocatorStore allocatorStore(topAllocator_p);
 
-    ASSERT_EQ(allocatorStore.baseAllocator(), topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorStore.baseAllocator(), topAllocator_p);
 
     bslma::Allocator* allocatorA = allocatorStore.get("a");
     bslma::Allocator* allocatorB = allocatorStore.get("b");
 
-    ASSERT_EQ(allocatorA, topAllocator_p);
-    ASSERT_EQ(allocatorB, topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorA, topAllocator_p);
+    BMQTST_ASSERT_EQ(allocatorB, topAllocator_p);
 }
 
 //=============================================================================
@@ -136,7 +138,7 @@ int main(int argc, char** argv)
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

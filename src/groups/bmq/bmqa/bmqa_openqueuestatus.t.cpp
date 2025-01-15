@@ -56,79 +56,80 @@ static void test1_breathingTest()
 
     PV("Default Constructor");
     {
-        bmqa::OpenQueueStatus obj(s_allocator_p);
-        ASSERT_EQ(bool(obj), true);
-        ASSERT_EQ(obj.result(), bmqt::OpenQueueResult::e_SUCCESS);
-        ASSERT_EQ(obj.errorDescription(), bsl::string("", s_allocator_p));
+        bmqa::OpenQueueStatus obj(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(bool(obj), true);
+        BMQTST_ASSERT_EQ(obj.result(), bmqt::OpenQueueResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(obj.errorDescription(),
+                         bsl::string("", bmqtst::TestHelperUtil::allocator()));
     }
 
     PV("Valued Constructor");
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
-        const bmqa::QueueId queueId = bmqa::QueueId(correlationId,
-                                                    s_allocator_p);
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
         const bmqt::OpenQueueResult::Enum result =
             bmqt::OpenQueueResult::e_TIMEOUT;
-        const bsl::string errorDescription = bsl::string("ERROR",
-                                                         s_allocator_p);
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
         bmqa::OpenQueueStatus obj(queueId,
                                   result,
                                   errorDescription,
-                                  s_allocator_p);
+                                  bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bool(obj), false);
-        ASSERT_EQ(obj.queueId(), queueId);
-        ASSERT_EQ(obj.result(), result);
-        ASSERT_EQ(obj.errorDescription(), errorDescription);
+        BMQTST_ASSERT_EQ(bool(obj), false);
+        BMQTST_ASSERT_EQ(obj.queueId(), queueId);
+        BMQTST_ASSERT_EQ(obj.result(), result);
+        BMQTST_ASSERT_EQ(obj.errorDescription(), errorDescription);
     }
 
     PV("Copy Constructor");
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
-        const bmqa::QueueId queueId = bmqa::QueueId(correlationId,
-                                                    s_allocator_p);
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
         const bmqt::OpenQueueResult::Enum result =
             bmqt::OpenQueueResult::e_TIMEOUT;
-        const bsl::string errorDescription = bsl::string("ERROR",
-                                                         s_allocator_p);
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
         bmqa::OpenQueueStatus obj1(queueId,
                                    result,
                                    errorDescription,
-                                   s_allocator_p);
-        bmqa::OpenQueueStatus obj2(obj1, s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
+        bmqa::OpenQueueStatus obj2(obj1, bmqtst::TestHelperUtil::allocator());
 
-        ASSERT_EQ(bool(obj2), bool(obj1));
-        ASSERT_EQ(obj1.queueId(), obj2.queueId());
-        ASSERT_EQ(obj1.result(), obj2.result());
-        ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
+        BMQTST_ASSERT_EQ(bool(obj2), bool(obj1));
+        BMQTST_ASSERT_EQ(obj1.queueId(), obj2.queueId());
+        BMQTST_ASSERT_EQ(obj1.result(), obj2.result());
+        BMQTST_ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
     }
 
     PV("Assignment Operator");
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
-        const bmqa::QueueId queueId = bmqa::QueueId(correlationId,
-                                                    s_allocator_p);
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
         const bmqt::OpenQueueResult::Enum result =
             bmqt::OpenQueueResult::e_TIMEOUT;
-        const bsl::string errorDescription = bsl::string("ERROR",
-                                                         s_allocator_p);
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
         bmqa::OpenQueueStatus obj1(queueId,
                                    result,
                                    errorDescription,
-                                   s_allocator_p);
-        bmqa::OpenQueueStatus obj2(s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
+        bmqa::OpenQueueStatus obj2(bmqtst::TestHelperUtil::allocator());
         obj2 = obj1;
 
-        ASSERT_EQ(bool(obj1), bool(obj2));
-        ASSERT_EQ(obj1.queueId(), obj2.queueId());
-        ASSERT_EQ(obj1.result(), obj2.result());
-        ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
+        BMQTST_ASSERT_EQ(bool(obj1), bool(obj2));
+        BMQTST_ASSERT_EQ(obj1.queueId(), obj2.queueId());
+        BMQTST_ASSERT_EQ(obj1.result(), obj2.result());
+        BMQTST_ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
     }
 }
 
@@ -158,45 +159,45 @@ static void test2_comparison()
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
-        const bmqa::QueueId queueId = bmqa::QueueId(correlationId,
-                                                    s_allocator_p);
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
         const bmqt::OpenQueueResult::Enum result =
             bmqt::OpenQueueResult::e_TIMEOUT;
-        const bsl::string errorDescription = bsl::string("ERROR",
-                                                         s_allocator_p);
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
         bmqa::OpenQueueStatus obj1(queueId,
                                    result,
                                    errorDescription,
-                                   s_allocator_p);
-        bmqa::OpenQueueStatus obj2(obj1, s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
+        bmqa::OpenQueueStatus obj2(obj1, bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(obj1 == obj2);
+        BMQTST_ASSERT(obj1 == obj2);
     }
 
     PV("Inequality");
     {
         const bmqt::CorrelationId correlationId =
             bmqt::CorrelationId::autoValue();
-        const bmqa::QueueId queueId = bmqa::QueueId(correlationId,
-                                                    s_allocator_p);
+        const bmqa::QueueId queueId =
+            bmqa::QueueId(correlationId, bmqtst::TestHelperUtil::allocator());
         const bmqt::OpenQueueResult::Enum result1 =
             bmqt::OpenQueueResult::e_SUCCESS;
         const bmqt::OpenQueueResult::Enum result2 =
             bmqt::OpenQueueResult::e_TIMEOUT;
-        const bsl::string errorDescription = bsl::string("ERROR",
-                                                         s_allocator_p);
+        const bsl::string errorDescription =
+            bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
         bmqa::OpenQueueStatus obj1(queueId,
                                    result1,
                                    errorDescription,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
         bmqa::OpenQueueStatus obj2(queueId,
                                    result2,
                                    errorDescription,
-                                   s_allocator_p);
+                                   bmqtst::TestHelperUtil::allocator());
 
-        ASSERT(obj1 != obj2);
+        BMQTST_ASSERT(obj1 != obj2);
     }
 }
 
@@ -217,27 +218,30 @@ static void test3_print()
 //                    const bmqa::OpenQueueStatus& rhs);
 // ------------------------------------------------------------------------
 {
-    s_ignoreCheckDefAlloc = true;
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'bmqa::OpenQueueStatus::print' and
     // operator '<<' temporarily allocate a string using the default allocator.
 
     bmqtst::TestHelper::printTestName("PRINT");
 
     const bmqt::CorrelationId correlationId(2);
-    bmqa::QueueId queueId = bmqa::QueueId(correlationId, s_allocator_p);
+    bmqa::QueueId                     queueId = bmqa::QueueId(correlationId,
+                                          bmqtst::TestHelperUtil::allocator());
     const bmqt::OpenQueueResult::Enum result =
         bmqt::OpenQueueResult::e_SUCCESS;
-    const bsl::string errorDescription = bsl::string("ERROR", s_allocator_p);
+    const bsl::string errorDescription =
+        bsl::string("ERROR", bmqtst::TestHelperUtil::allocator());
 
     // Set URI on the queueId
     bsl::shared_ptr<bmqimp::Queue>& queue =
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(queueId);
-    queue->setUri(bmqt::Uri("bmq://bmq.test.mem.priority/q1", s_allocator_p));
+    queue->setUri(bmqt::Uri("bmq://bmq.test.mem.priority/q1",
+                            bmqtst::TestHelperUtil::allocator()));
 
     bmqa::OpenQueueStatus obj(queueId,
                               result,
                               errorDescription,
-                              s_allocator_p);
+                              bmqtst::TestHelperUtil::allocator());
 
     PVV(obj);
     const char* expected = "[ queueId = [ uri = bmq://bmq.test.mem.priority/q1"
@@ -245,17 +249,17 @@ static void test3_print()
                            " result = \"SUCCESS (0)\""
                            " errorDescription = \"ERROR\" ]";
 
-    bmqu::MemOutStream out(s_allocator_p);
+    bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
     // operator<<
     out << obj;
 
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 
     // Print
     out.reset();
     obj.print(out, 0, -1);
 
-    ASSERT_EQ(out.str(), expected);
+    BMQTST_ASSERT_EQ(out.str(), expected);
 }
 
 // ============================================================================
@@ -266,7 +270,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqt::UriParser::initialize(s_allocator_p);
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
 
     switch (_testCase) {
     case 0:
@@ -275,7 +279,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

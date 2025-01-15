@@ -179,12 +179,14 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
 
     {
         // Create invalid iter
         bmqp::RecoveryMessageIterator iter;
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 
     {
@@ -192,24 +194,24 @@ static void test1_breathingTest()
         bmqp::RecoveryMessageIterator iter1;
         bmqp::RecoveryMessageIterator iter2(iter1);
 
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
         // Assigning invalid iter
         bmqp::RecoveryMessageIterator iter1, iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         iter1 = iter2;
-        ASSERT_EQ(false, iter1.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter1.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
     }
 
     {
         // Create valid iter
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         const bool                        isFinal = true;
@@ -229,63 +231,63 @@ static void test1_breathingTest()
         // Iterate and verify
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(true, iter.header().isFinalChunk());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
-        ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
-                  iter.header().fileChunkType());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(true, iter.header().isFinalChunk());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
+        BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                         iter.header().fileChunkType());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Copy
 
         bmqp::RecoveryMessageIterator iter2(iter);
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Clear
         iter.clear();
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Assign
         iter = iter2;
-        ASSERT_EQ(false, iter.isValid());
-        ASSERT_EQ(false, iter2.isValid());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(false, iter2.isValid());
 
         // Reset, iterate and verify again
         iter.reset(&blob, eventHeader);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(true, iter.header().isFinalChunk());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
-        ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
-                  iter.header().fileChunkType());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(true, iter.header().isFinalChunk());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
+        BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                         iter.header().fileChunkType());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
 
         // Reset, iterate and verify again
         iter2.reset(&blob, eventHeader);
         iter.reset(&blob, iter2);
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(1, iter.next());
-        ASSERT_EQ(true, iter.header().isFinalChunk());
-        ASSERT_EQ(pid, iter.header().partitionId());
-        ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
-        ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
-                  iter.header().fileChunkType());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(1, iter.next());
+        BMQTST_ASSERT_EQ(true, iter.header().isFinalChunk());
+        BMQTST_ASSERT_EQ(pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ(chunkSeqNum, iter.header().chunkSequenceNumber());
+        BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                         iter.header().fileChunkType());
 
-        ASSERT_EQ(true, iter.isValid());
-        ASSERT_EQ(0, iter.next());
-        ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_EQ(0, iter.next());
+        BMQTST_ASSERT_EQ(false, iter.isValid());
     }
 }
 
@@ -301,10 +303,12 @@ static void test2_multipleMessages()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     const size_t      NUM_MSGS = 5000;
 
@@ -312,39 +316,45 @@ static void test2_multipleMessages()
 
     // Iterate and verify
     bmqp::RecoveryMessageIterator iter(&eventBlob, eventHeader);
-    ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
 
     size_t index  = 0;
     int    nextRc = -1;
     while (1 == (nextRc = iter.next()) && index < data.size()) {
         const Data& D = data[index];
-        ASSERT_EQ_D(index, D.d_isFinalChunk, iter.header().isFinalChunk());
-        ASSERT_EQ_D(index, D.d_chunkFileType, iter.header().fileChunkType());
-        ASSERT_EQ_D(index, D.d_pid, iter.header().partitionId());
+        BMQTST_ASSERT_EQ_D(index,
+                           D.d_isFinalChunk,
+                           iter.header().isFinalChunk());
+        BMQTST_ASSERT_EQ_D(index,
+                           D.d_chunkFileType,
+                           iter.header().fileChunkType());
+        BMQTST_ASSERT_EQ_D(index, D.d_pid, iter.header().partitionId());
 
-        ASSERT_EQ_D(index, D.d_seqNum, iter.header().chunkSequenceNumber());
+        BMQTST_ASSERT_EQ_D(index,
+                           D.d_seqNum,
+                           iter.header().chunkSequenceNumber());
 
         // Compare chunk record
         bmqu::BlobPosition position;
-        ASSERT_EQ_D(index, 0, iter.loadChunkPosition(&position));
+        BMQTST_ASSERT_EQ_D(index, 0, iter.loadChunkPosition(&position));
 
         int compareRc = 0;
-        ASSERT_EQ_D(index,
-                    0,
-                    bmqu::BlobUtil::compareSection(&compareRc,
-                                                   eventBlob,
-                                                   position,
-                                                   D.d_chunk.c_str(),
-                                                   D.d_chunk.length()));
-        ASSERT_EQ_D(index, 0, compareRc);
+        BMQTST_ASSERT_EQ_D(index,
+                           0,
+                           bmqu::BlobUtil::compareSection(&compareRc,
+                                                          eventBlob,
+                                                          position,
+                                                          D.d_chunk.c_str(),
+                                                          D.d_chunk.length()));
+        BMQTST_ASSERT_EQ_D(index, 0, compareRc);
 
         ++index;
     }
 
-    ASSERT_EQ(nextRc, 0);
-    ASSERT_EQ(index, data.size());
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_EQ(false, iter.isValid());
+    BMQTST_ASSERT_EQ(nextRc, 0);
+    BMQTST_ASSERT_EQ(index, data.size());
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_EQ(false, iter.isValid());
 }
 
 static void test3_corruptHeader()
@@ -359,8 +369,10 @@ static void test3_corruptHeader()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     const char*                    p    = "abcdefgh";
     unsigned int                   pLen = bsl::strlen(p);
 
@@ -404,21 +416,21 @@ static void test3_corruptHeader()
     bmqp::RecoveryMessageIterator iter(&eventBlob, eh);
 
     // First message
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.next());
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(false, iter.header().isFinalChunk());
-    ASSERT_EQ(0U, iter.header().partitionId());
-    ASSERT_EQ(10000U, iter.header().chunkSequenceNumber());
-    ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
-              iter.header().fileChunkType());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.next());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(false, iter.header().isFinalChunk());
+    BMQTST_ASSERT_EQ(0U, iter.header().partitionId());
+    BMQTST_ASSERT_EQ(10000U, iter.header().chunkSequenceNumber());
+    BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                     iter.header().fileChunkType());
 
     // Second message
-    ASSERT_EQ(iter.isValid(), true);
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_LT(iter.next(), 0);  // make sure successive call to next keep
-                                // returning invalid
-    ASSERT_EQ(false, iter.isValid());
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_LT(iter.next(), 0);  // make sure successive call to next
+                                       // keep returning invalid
+    BMQTST_ASSERT_EQ(false, iter.isValid());
 }
 
 static void test4_corruptPayload()
@@ -433,8 +445,10 @@ static void test4_corruptPayload()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     const int chunkLen = 1024 * 1024;  // valid, under max limit.
 
@@ -460,7 +474,7 @@ static void test4_corruptPayload()
                             reinterpret_cast<const char*>(&rhd1),
                             sizeof(bmqp::RecoveryHeader));
 
-    bsl::string chunkA(s_allocator_p);
+    bsl::string chunkA(bmqtst::TestHelperUtil::allocator());
     chunkA.resize(chunkLen, 'a');  // length under max limit
 
     bdlbb::BlobUtil::append(&eventBlob, chunkA.c_str(), chunkLen);
@@ -487,21 +501,21 @@ static void test4_corruptPayload()
     bmqp::RecoveryMessageIterator iter(&eventBlob, eh);
 
     // First message
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.next());
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(0U, iter.header().partitionId());
-    ASSERT_EQ(10000U, iter.header().chunkSequenceNumber());
-    ASSERT_EQ(false, iter.header().isFinalChunk());
-    ASSERT_EQ(bmqp::RecoveryFileChunkType::e_DATA,
-              iter.header().fileChunkType());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.next());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(0U, iter.header().partitionId());
+    BMQTST_ASSERT_EQ(10000U, iter.header().chunkSequenceNumber());
+    BMQTST_ASSERT_EQ(false, iter.header().isFinalChunk());
+    BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_DATA,
+                     iter.header().fileChunkType());
 
     // Second message
-    ASSERT_EQ(iter.isValid(), true);
-    ASSERT_LT(iter.next(), 0);
-    ASSERT_LT(iter.next(), 0);  // make sure successive call to next keep
-                                // returning invalid
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(iter.isValid(), true);
+    BMQTST_ASSERT_LT(iter.next(), 0);
+    BMQTST_ASSERT_LT(iter.next(), 0);  // make sure successive call to next
+                                       // keep returning invalid
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test5_emptyPayload()
@@ -516,8 +530,10 @@ static void test5_emptyPayload()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    eventBlob(&bufferFactory, s_allocator_p);
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bmqp::EventHeader eh;
 
@@ -550,20 +566,22 @@ static void test5_emptyPayload()
     bmqp::RecoveryMessageIterator iter(&eventBlob, eh);
 
     // First message
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1, iter.next());
-    ASSERT_EQ(true, iter.isValid());
-    ASSERT_EQ(1000U, iter.header().partitionId());
-    ASSERT_EQ(1U, iter.header().chunkSequenceNumber());
-    ASSERT_EQ(false, iter.header().isFinalChunk());
-    ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
-              iter.header().fileChunkType());
-    ASSERT_EQ(0, iter.header().messageWords() - iter.header().headerWords());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1, iter.next());
+    BMQTST_ASSERT_EQ(true, iter.isValid());
+    BMQTST_ASSERT_EQ(1000U, iter.header().partitionId());
+    BMQTST_ASSERT_EQ(1U, iter.header().chunkSequenceNumber());
+    BMQTST_ASSERT_EQ(false, iter.header().isFinalChunk());
+    BMQTST_ASSERT_EQ(bmqp::RecoveryFileChunkType::e_JOURNAL,
+                     iter.header().fileChunkType());
+    BMQTST_ASSERT_EQ(0,
+                     iter.header().messageWords() -
+                         iter.header().headerWords());
 
     bmqu::BlobPosition chunkPosition;
-    ASSERT_EQ(iter.loadChunkPosition(&chunkPosition), 0);
-    ASSERT_EQ(iter.next(), 0);
-    ASSERT_EQ(iter.isValid(), false);
+    BMQTST_ASSERT_EQ(iter.loadChunkPosition(&chunkPosition), 0);
+    BMQTST_ASSERT_EQ(iter.next(), 0);
+    BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
 
 static void test6_nextMethod()
@@ -602,7 +620,7 @@ static void test6_nextMethod()
     bmqtst::TestHelper::printTestName("NEXT METHOD");
 
     // Populate blob
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
 
     // Next method. Iterator is in invalid state case.
@@ -610,20 +628,22 @@ static void test6_nextMethod()
         PVV("ITERATOR INVALID STATE");
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, &data, 1);
 
         // Create valid iterator
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Iterate and verify
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT_EQ(iter.next(), 0);
-        ASSERT_LT(iter.next(), 0);  // rc_INVALID
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT_EQ(iter.next(), 0);
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID
     }
 
     // Next method. No recovery header. Less then min header size.
@@ -635,8 +655,10 @@ static void test6_nextMethod()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, &data, 1);
@@ -644,9 +666,9 @@ static void test6_nextMethod()
 
         // Create iterator
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
-        ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 
     // Next method. No recovery header.
@@ -658,8 +680,10 @@ static void test6_nextMethod()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, &data, 1);
@@ -667,9 +691,9 @@ static void test6_nextMethod()
 
         // Create iterator
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
-        ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NO_RECOVERYHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 
     // Next method. Not enough bytes case.
@@ -684,8 +708,10 @@ static void test6_nextMethod()
                                   4;  // 4 is payload size due to populateBlob
 
         // Create buffer factory and blob
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-        bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
         populateBlob(&blob, &eventHeader, &data, k_NUM_MSGS);
@@ -693,11 +719,11 @@ static void test6_nextMethod()
 
         // Create iterator
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
-        ASSERT_EQ(iter.next(), 1);
-        ASSERT(iter.isValid());
-        ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
+        BMQTST_ASSERT_EQ(iter.next(), 1);
+        BMQTST_ASSERT(iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -720,20 +746,22 @@ static void test7_resetMethod()
     bmqtst::TestHelper::printTestName("RESET METHOD");
 
     // Populate blob
-    bsl::vector<Data> data(s_allocator_p);
+    bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
-    ASSERT_EQ(eventHeader.headerWords(),
-              sizeof(bmqp::EventHeader) / bmqp::Protocol::k_WORD_SIZE);
+    BMQTST_ASSERT_EQ(eventHeader.headerWords(),
+                     sizeof(bmqp::EventHeader) / bmqp::Protocol::k_WORD_SIZE);
 
     // Reset method. Invalid event header case.
     {
         PVV("INVALID EVENT HEADER");
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
-        bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create buffer factory and blob
-        bdlbb::Blob blob(&bufferFactory, s_allocator_p);
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
         populateBlob(&blob, &eventHeader, &data, 1);
@@ -741,12 +769,12 @@ static void test7_resetMethod()
         // Create iterator
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
         blob.setLength(enoughSize - 1);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Reset and verify
-        ASSERT_LT(iter.reset(&blob, eventHeader),
-                  0);  // rc_INVALID_EVENTHEADER
-        ASSERT(!iter.isValid());
+        BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
+                         0);  // rc_INVALID_EVENTHEADER
+        BMQTST_ASSERT(!iter.isValid());
     }
 }
 
@@ -774,10 +802,12 @@ static void test8_dumpBlob()
 
     // Test iterator dump contains expected value
     bmqp::EventHeader              eventHeader;
-    bsl::vector<Data>              data(s_allocator_p);
-    bmqu::MemOutStream             stream(s_allocator_p);
-    bdlbb::PooledBlobBufferFactory bufferFactory(1024, s_allocator_p);
-    bdlbb::Blob                    blob(&bufferFactory, s_allocator_p);
+    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
     populateBlob(&blob, &eventHeader, &data, 1);
@@ -785,21 +815,21 @@ static void test8_dumpBlob()
     // Create iterator over blob
     {
         bmqp::RecoveryMessageIterator iter(&blob, eventHeader);
-        ASSERT(iter.isValid());
+        BMQTST_ASSERT(iter.isValid());
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
         bsl::string str2("     0:   00000024 49020000 80000007 00720000     "
                          "|...$I........r..|\n"
                          "    16:   00000000 00000000 00000000 00000000     "
                          "|................|\n"
                          "    32:   00000000                                "
                          "|....            |\n",
-                         s_allocator_p);
+                         bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
         stream.reset();
     }
 
@@ -809,11 +839,11 @@ static void test8_dumpBlob()
 
         // Dump blob
         iter.dumpBlob(stream);
-        bsl::string str1(stream.str(), s_allocator_p);
-        bsl::string str2("/no blob/", s_allocator_p);
+        bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
+        bsl::string str2("/no blob/", bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value
-        ASSERT_EQ(str1, str2);
+        BMQTST_ASSERT_EQ(str1, str2);
     }
 }
 // ============================================================================
@@ -836,7 +866,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

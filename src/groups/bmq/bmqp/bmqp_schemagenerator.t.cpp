@@ -68,12 +68,12 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
 
     int property = bsl::rand() % length[combination];
     for (int l = 0; l < length[combination]; ++l) {
-        bsl::string name("property_", s_allocator_p);
+        bsl::string name("property_", bmqtst::TestHelperUtil::allocator());
         name += bsl::to_string(lap);
         name += "_";
         name += bsl::to_string(sequence[combination] + property);
 
-        ASSERT_EQ(0, mps->setPropertyAsString(name, name));
+        BMQTST_ASSERT_EQ(0, mps->setPropertyAsString(name, name));
 
         if (++property == length[combination]) {
             property = 0;
@@ -84,8 +84,8 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
 static void test1_breathingTest()
 {
     int                         count = 0;
-    bsl::map<SchemaIdType, int> ids(s_allocator_p);
-    bmqp::SchemaGenerator       theGenerator(s_allocator_p);
+    bsl::map<SchemaIdType, int> ids(bmqtst::TestHelperUtil::allocator());
+    bmqp::SchemaGenerator theGenerator(bmqtst::TestHelperUtil::allocator());
 
     theGenerator._setCapacity(MAX_SCHEMA);
 
@@ -128,7 +128,7 @@ static void test1_breathingTest()
         for (int i = 0; i < NUM_COMBINATIONS; ++i, ++count) {
             BSLS_ASSERT_SAFE(length[i]);
 
-            bmqp::MessageProperties mps(s_allocator_p);
+            bmqp::MessageProperties mps(bmqtst::TestHelperUtil::allocator());
             // For example, given {a, b, c} properties:
             //  [a]
             //  [a, b]
@@ -142,22 +142,22 @@ static void test1_breathingTest()
             bmqp::MessagePropertiesInfo logic = theGenerator.getSchemaId(&mps);
             SchemaIdType                schemaId = logic.schemaId();
 
-            ASSERT_LE(schemaId, MAX_SCHEMA);
-            ASSERT_NE(schemaId, NO_SCHEMA);
+            BMQTST_ASSERT_LE(schemaId, MAX_SCHEMA);
+            BMQTST_ASSERT_NE(schemaId, NO_SCHEMA);
             ids[schemaId] = count;
 
-            ASSERT(logic.isRecycled());  // either first use or recycled
+            BMQTST_ASSERT(logic.isRecycled());  // either first use or recycled
 
             // Call 'getSchema' again
             logic = theGenerator.getSchemaId(&mps);
-            ASSERT_EQ(schemaId, logic.schemaId());
-            ASSERT(!logic.isRecycled());  // second use
+            BMQTST_ASSERT_EQ(schemaId, logic.schemaId());
+            BMQTST_ASSERT(!logic.isRecycled());  // second use
         }
     }
     // Some number of first test combinations (65) got recycled.
     // Repeat them again and verify, they got new IDs.
     for (int i = 0; i < 33; ++i) {
-        bmqp::MessageProperties mps(s_allocator_p);
+        bmqp::MessageProperties mps(bmqtst::TestHelperUtil::allocator());
         generateMessageProperties(&mps, 0, i);
         // Sequence numbering starts from '0', schema's - from '1'
 
@@ -166,18 +166,18 @@ static void test1_breathingTest()
         // 'schema1.d_id'   is post-recycling id
         // 'ids[i + 1]'     is the last sequence referenced by 'i + 1'
 
-        ASSERT_NE(ids[i + 1], i);  // 'i + 1' was recycled
+        BMQTST_ASSERT_NE(ids[i + 1], i);  // 'i + 1' was recycled
 
         bmqp::MessagePropertiesInfo logic = theGenerator.getSchemaId(&mps);
-        ASSERT(logic.isRecycled());
+        BMQTST_ASSERT(logic.isRecycled());
         // We continue recycling
-        ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
+        BMQTST_ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
 
         // Call again to make number of hits equal to the rest (2)
         logic = theGenerator.getSchemaId(&mps);
-        ASSERT(!logic.isRecycled());
+        BMQTST_ASSERT(!logic.isRecycled());
         // We continue recycling
-        ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
+        BMQTST_ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
     }
 }
 
@@ -194,7 +194,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        s_testStatus = -1;
+        bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
 

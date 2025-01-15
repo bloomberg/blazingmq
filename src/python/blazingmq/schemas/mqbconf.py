@@ -603,7 +603,7 @@ class Domain:
     message for the purpose of detecting duplicate
     PUTs.
     consistency.........: optional consistency mode.
-    subscriptions.......: optional Auto (Application) subscriptions
+    subscriptions.......: optional application subscriptions
     """
 
     name: Optional[str] = field(

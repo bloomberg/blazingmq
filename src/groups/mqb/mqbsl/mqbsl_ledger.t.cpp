@@ -165,7 +165,7 @@ struct Tester {
     // CREATORS
     Tester(bool               keepOldLogs = true,
            bsls::Types::Int64 maxLogSize  = k_LOG_MAX_SIZE,
-           bslma::Allocator*  allocator   = s_allocator_p)
+           bslma::Allocator*  allocator = bmqtst::TestHelperUtil::allocator())
     : d_config(allocator)
     , d_ledger_mp(0)
     , d_tempDir(allocator)
@@ -296,24 +296,24 @@ static void test1_breathingTest()
 
     Tester         tester;
     mqbsi::Ledger* ledger = tester.ledger();
-    ASSERT_EQ(ledger->isOpened(), false);
+    BMQTST_ASSERT_EQ(ledger->isOpened(), false);
 
-    ASSERT_EQ(ledger->open(mqbsi::Ledger::e_CREATE_IF_MISSING),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->isOpened(), true);
-    ASSERT_EQ(ledger->supportsAliasing(), true);
-    ASSERT_EQ(ledger->numLogs(), 1U);
-    ASSERT_EQ(ledger->logs().size(), 1U);
+    BMQTST_ASSERT_EQ(ledger->open(mqbsi::Ledger::e_CREATE_IF_MISSING),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->isOpened(), true);
+    BMQTST_ASSERT_EQ(ledger->supportsAliasing(), true);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 1U);
+    BMQTST_ASSERT_EQ(ledger->logs().size(), 1U);
 
     const mqbu::StorageKey& logId = ledger->currentLog()->logConfig().logId();
-    ASSERT_EQ(ledger->outstandingNumBytes(), 0);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId), 0);
-    ASSERT_EQ(ledger->totalNumBytes(), 0);
-    ASSERT_EQ(ledger->totalNumBytes(logId), 0);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), 0);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId), 0);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(), 0);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(logId), 0);
 
-    ASSERT_EQ(ledger->flush(), LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->close(), LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->isOpened(), false);
+    BMQTST_ASSERT_EQ(ledger->flush(), LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->close(), LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->isOpened(), false);
 }
 
 static void test2_openMultipleLogs()
@@ -335,20 +335,21 @@ static void test2_openMultipleLogs()
     tester.generateOldLogs(3);
 
     mqbsi::Ledger* ledger = tester.ledger();
-    ASSERT_EQ(ledger->open(mqbsi::Ledger::e_READ_ONLY),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->supportsAliasing(), true);
-    ASSERT_EQ(ledger->numLogs(), 3U);
-    ASSERT_EQ(ledger->logs().size(), 3U);
-    ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 3);
-    ASSERT_EQ(ledger->totalNumBytes(), Tester::k_OLD_LOG_LEN * 3);
+    BMQTST_ASSERT_EQ(ledger->open(mqbsi::Ledger::e_READ_ONLY),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->supportsAliasing(), true);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 3U);
+    BMQTST_ASSERT_EQ(ledger->logs().size(), 3U);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 3);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(), Tester::k_OLD_LOG_LEN * 3);
 
     for (mqbsl::Ledger::Logs::const_iterator cit = ledger->logs().cbegin();
          cit != ledger->logs().cend();
          ++cit) {
         const mqbu::StorageKey& logId = (*cit)->logConfig().logId();
-        ASSERT_EQ(ledger->outstandingNumBytes(logId), Tester::k_OLD_LOG_LEN);
-        ASSERT_EQ(ledger->totalNumBytes(logId), Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId),
+                         Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(logId), Tester::k_OLD_LOG_LEN);
     }
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -374,17 +375,18 @@ static void test3_openMultipleLogsNoKeep()
     tester.generateOldLogs(3);
 
     mqbsi::Ledger* ledger = tester.ledger();
-    ASSERT_EQ(ledger->open(mqbsi::Ledger::e_READ_ONLY),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->supportsAliasing(), true);
-    ASSERT_EQ(ledger->numLogs(), 1U);
-    ASSERT_EQ(ledger->logs().size(), 1U);
+    BMQTST_ASSERT_EQ(ledger->open(mqbsi::Ledger::e_READ_ONLY),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->supportsAliasing(), true);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 1U);
+    BMQTST_ASSERT_EQ(ledger->logs().size(), 1U);
 
     const mqbu::StorageKey& logId = ledger->currentLog()->logConfig().logId();
-    ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId), Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(), Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(logId), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId),
+                     Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(logId), Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 
@@ -405,28 +407,29 @@ static void test3_openMultipleLogsNoKeep()
 
     LedgerRecordId obsoleteRecordId(obsoleteLogId, 0);
     char           entry[Tester::k_OLD_LOG_LEN];
-    bdlbb::Blob    blobEntry(tester.bufferFactory(), s_allocator_p);
-    ASSERT_EQ(ledger->updateOutstandingNumBytes(obsoleteLogId, 100),
-              LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_EQ(ledger->setOutstandingNumBytes(obsoleteLogId, 100),
-              LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_EQ(
+    bdlbb::Blob    blobEntry(tester.bufferFactory(),
+                          bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(ledger->updateOutstandingNumBytes(obsoleteLogId, 100),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(ledger->setOutstandingNumBytes(obsoleteLogId, 100),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(
         ledger->readRecord(entry, Tester::k_OLD_LOG_LEN, obsoleteRecordId),
         LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_EQ(ledger->readRecord(&blobEntry,
-                                 Tester::k_OLD_LOG_LEN,
-                                 obsoleteRecordId),
-              LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  Tester::k_OLD_LOG_LEN,
-                                  obsoleteRecordId),
-              LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_EQ(ledger->aliasRecord(&blobEntry,
-                                  Tester::k_OLD_LOG_LEN,
-                                  obsoleteRecordId),
-              LedgerOpResult::e_LOG_NOT_FOUND);
-    ASSERT_OPT_FAIL(ledger->outstandingNumBytes(obsoleteLogId));
-    ASSERT_OPT_FAIL(ledger->totalNumBytes(obsoleteLogId));
+    BMQTST_ASSERT_EQ(ledger->readRecord(&blobEntry,
+                                        Tester::k_OLD_LOG_LEN,
+                                        obsoleteRecordId),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         Tester::k_OLD_LOG_LEN,
+                                         obsoleteRecordId),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(&blobEntry,
+                                         Tester::k_OLD_LOG_LEN,
+                                         obsoleteRecordId),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_OPT_FAIL(ledger->outstandingNumBytes(obsoleteLogId));
+    BMQTST_ASSERT_OPT_FAIL(ledger->totalNumBytes(obsoleteLogId));
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -461,33 +464,39 @@ static void test4_updateOutstandingNumBytes()
                     Tester::k_OLD_LOG_LEN);
 
     ledger->updateOutstandingNumBytes(logId1, 200);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 200 + Tester::k_OLD_LOG_LEN * 2);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1),
-              200 + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     200 + Tester::k_OLD_LOG_LEN * 2);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1),
+                     200 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     Tester::k_OLD_LOG_LEN);
 
     ledger->updateOutstandingNumBytes(logId2, 1000);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 1200 + Tester::k_OLD_LOG_LEN * 2);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1),
-              200 + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2),
-              1000 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     1200 + Tester::k_OLD_LOG_LEN * 2);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1),
+                     200 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     1000 + Tester::k_OLD_LOG_LEN);
 
     ledger->updateOutstandingNumBytes(logId2, -700);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 500 + Tester::k_OLD_LOG_LEN * 2);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1),
-              200 + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2),
-              300 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     500 + Tester::k_OLD_LOG_LEN * 2);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1),
+                     200 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     300 + Tester::k_OLD_LOG_LEN);
 
     // Close and re-open the ledger. 'outstandingNumBytes' must be
     // re-calibrated.
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_READ_ONLY) ==
                     LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 2);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1), Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 2);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1),
+                     Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -522,28 +531,32 @@ static void test5_setOutstandingNumBytes()
                     Tester::k_OLD_LOG_LEN);
 
     ledger->setOutstandingNumBytes(logId1, 500);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 500 + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     500 + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     Tester::k_OLD_LOG_LEN);
 
     ledger->setOutstandingNumBytes(logId2, 2000);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 2500);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), 2000);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), 2500);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2), 2000);
 
     ledger->setOutstandingNumBytes(logId2, 666);
-    ASSERT_EQ(ledger->outstandingNumBytes(), 1166);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), 666);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), 1166);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1), 500);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2), 666);
 
     // Close and re-open the ledger. 'outstandingNumBytes' must be
     // re-calibrated.
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_READ_ONLY) ==
                     LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 2);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId1), Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(logId2), Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(), Tester::k_OLD_LOG_LEN * 2);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId1),
+                     Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(logId2),
+                     Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -569,18 +582,20 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
     // 1. Write a list of records.
     LedgerRecordId recordId;
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->writeRecord(&recordId, k_ENTRIES[i], 0, k_ENTRY_LEN),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(recordId.logId(), oldLogId);
-        ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(
+            ledger->writeRecord(&recordId, k_ENTRIES[i], 0, k_ENTRY_LEN),
+            LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+        BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
         oldLogNumBytes += k_ENTRY_LEN;
-        ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->totalNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-        ASSERT_EQ(ledger->outstandingNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId),
+                         oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
@@ -590,64 +605,67 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
     BSLS_ASSERT_OPT(ledger->outstandingNumBytes() == Tester::k_OLD_LOG_LEN);
 
     // 3. Write a long record.
-    ASSERT_EQ(ledger->writeRecord(&recordId,
-                                  k_LONG_ENTRY,
-                                  k_LONG_ENTRY_OFFSET,
-                                  k_LONG_ENTRY_LEN),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), oldLogId);
-    ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId,
+                                         k_LONG_ENTRY,
+                                         k_LONG_ENTRY_OFFSET,
+                                         k_LONG_ENTRY_LEN),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
     oldLogNumBytes += k_LONG_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(), oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
 
     // 4. Write a record that would trigger rollover and would be written to a
     //    new log.
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         ledger->writeRecord(&recordId, k_EXTRA_ENTRY_1, 0, k_EXTRA_ENTRY_LEN),
         LedgerOpResult::e_SUCCESS);
 
     // Rollover should be triggered here.
-    ASSERT_EQ(ledger->numLogs(), 3U);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 3U);
     bsls::Types::Int64 newLogNumBytes = k_EXTRA_ENTRY_LEN;
 
     const mqbu::StorageKey& newLogId =
         ledger->currentLog()->logConfig().logId();
     PVV("Old log ID: " << oldLogId);
     PVV("New log ID: " << newLogId);
-    ASSERT_NE(newLogId, oldLogId);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), 0);
+    BMQTST_ASSERT_NE(newLogId, oldLogId);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), 0);
 
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 5. Write one more record.
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         ledger->writeRecord(&recordId, k_EXTRA_ENTRY_2, 0, k_EXTRA_ENTRY_LEN),
         LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
 
     newLogNumBytes += k_EXTRA_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 6. Close and re-open the ledger.  'totalNumBytes' and
     //    'outstandingNumBytes' must be re-calibrated.
@@ -658,14 +676,14 @@ static void writeRecordRawImpl(mqbsi::Ledger* ledger)
 
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_READ_ONLY) ==
                     LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -737,24 +755,27 @@ static void test7_writeRecordBlob()
                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     // 1. Write a list of records.
-    bdlbb::Blob    blob(tester.miniBufferFactory(), s_allocator_p);
+    bdlbb::Blob    blob(tester.miniBufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
 
         bmqu::BlobPosition pos(i, 0);
-        ASSERT_EQ(ledger->writeRecord(&recordId, blob, pos, k_ENTRY_LEN),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(recordId.logId(), oldLogId);
-        ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(
+            ledger->writeRecord(&recordId, blob, pos, k_ENTRY_LEN),
+            LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+        BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
         oldLogNumBytes += k_ENTRY_LEN;
-        ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->totalNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-        ASSERT_EQ(ledger->outstandingNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId),
+                         oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
@@ -764,74 +785,81 @@ static void test7_writeRecordBlob()
     BSLS_ASSERT_OPT(ledger->outstandingNumBytes() == Tester::k_OLD_LOG_LEN);
 
     // 3. Write a long record.
-    bdlbb::Blob blob2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob2(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
-    ASSERT_EQ(ledger->writeRecord(&recordId,
-                                  blob2,
-                                  bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
-                                  k_LONG_ENTRY_LEN),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), oldLogId);
-    ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(
+        ledger->writeRecord(&recordId,
+                            blob2,
+                            bmqu::BlobPosition(0, k_LONG_ENTRY_OFFSET),
+                            k_LONG_ENTRY_LEN),
+        LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
     oldLogNumBytes += k_LONG_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(), oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
 
     // 4. Write a record that would trigger rollover and would be written to a
     //    new log.
-    bdlbb::Blob blob3(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob3(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(ledger->writeRecord(&recordId,
-                                  blob3,
-                                  bmqu::BlobPosition(),
-                                  k_EXTRA_ENTRY_LEN),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId,
+                                         blob3,
+                                         bmqu::BlobPosition(),
+                                         k_EXTRA_ENTRY_LEN),
+                     LedgerOpResult::e_SUCCESS);
 
     // Rollover should be triggered here.
-    ASSERT_EQ(ledger->numLogs(), 3U);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 3U);
     bsls::Types::Int64 newLogNumBytes = k_EXTRA_ENTRY_LEN;
 
     const mqbu::StorageKey& newLogId =
         ledger->currentLog()->logConfig().logId();
     PVV("Old log ID: " << oldLogId);
     PVV("New log ID: " << newLogId);
-    ASSERT_NE(newLogId, oldLogId);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), 0);
+    BMQTST_ASSERT_NE(newLogId, oldLogId);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), 0);
 
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 5. Write one more record.
-    bdlbb::Blob blob4(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob4(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(ledger->writeRecord(&recordId,
-                                  blob4,
-                                  bmqu::BlobPosition(),
-                                  k_EXTRA_ENTRY_LEN),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId,
+                                         blob4,
+                                         bmqu::BlobPosition(),
+                                         k_EXTRA_ENTRY_LEN),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
 
     newLogNumBytes += k_EXTRA_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 6. Close and re-open the ledger.  'totalNumBytes' and
     //    'outstandingNumBytes' must be re-calibrated.
@@ -842,14 +870,14 @@ static void test7_writeRecordBlob()
 
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_READ_ONLY) ==
                     LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -893,7 +921,8 @@ static void test8_writeRecordBlobSection()
                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     // 1. Write a list of records.
-    bdlbb::Blob    blob(tester.miniBufferFactory(), s_allocator_p);
+    bdlbb::Blob    blob(tester.miniBufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     LedgerRecordId recordId;
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LEN);
@@ -901,18 +930,19 @@ static void test8_writeRecordBlobSection()
         bmqu::BlobPosition start(i, 0);
         bmqu::BlobPosition end(i + 1, 0);
         bmqu::BlobSection  section(start, end);
-        ASSERT_EQ(ledger->writeRecord(&recordId, blob, section),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(recordId.logId(), oldLogId);
-        ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId, blob, section),
+                         LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+        BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
         oldLogNumBytes += k_ENTRY_LEN;
-        ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-        ASSERT_EQ(ledger->totalNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-        ASSERT_EQ(ledger->outstandingNumBytes(),
-                  oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId),
+                         oldLogNumBytes);
+        BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+        BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                         oldLogNumBytes + Tester::k_OLD_LOG_LEN);
     }
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
@@ -922,77 +952,83 @@ static void test8_writeRecordBlobSection()
     BSLS_ASSERT_OPT(ledger->outstandingNumBytes() == Tester::k_OLD_LOG_LEN);
 
     // 3. Write a long record.
-    bdlbb::Blob blob2(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob2(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY, k_LONG_ENTRY_FULL_LEN);
 
     bmqu::BlobPosition start2(0, k_LONG_ENTRY_OFFSET);
     bmqu::BlobPosition end2(0, k_LONG_ENTRY_OFFSET + k_LONG_ENTRY_LEN);
     bmqu::BlobSection  section2(start2, end2);
-    ASSERT_EQ(ledger->writeRecord(&recordId, blob2, section2),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), oldLogId);
-    ASSERT_EQ(recordId.offset(), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId, blob2, section2),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(recordId.logId(), oldLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), oldLogNumBytes);
 
     oldLogNumBytes += k_LONG_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(), oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
 
     // 4. Write a record that would trigger rollover and would be written to a
     //    new log.
-    bdlbb::Blob blob3(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob3(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN);
 
     bmqu::BlobPosition start3;
     bmqu::BlobPosition end3(1, 0);
     bmqu::BlobSection  section3(start3, end3);
-    ASSERT_EQ(ledger->writeRecord(&recordId, blob3, section3),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId, blob3, section3),
+                     LedgerOpResult::e_SUCCESS);
 
     // Rollover should be triggered here.
-    ASSERT_EQ(ledger->numLogs(), 3U);
+    BMQTST_ASSERT_EQ(ledger->numLogs(), 3U);
     bsls::Types::Int64 newLogNumBytes = k_EXTRA_ENTRY_LEN;
 
     const mqbu::StorageKey& newLogId =
         ledger->currentLog()->logConfig().logId();
     PVV("Old log ID: " << oldLogId);
     PVV("New log ID: " << newLogId);
-    ASSERT_NE(newLogId, oldLogId);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), 0);
+    BMQTST_ASSERT_NE(newLogId, oldLogId);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), 0);
 
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 5. Write one more record.
-    bdlbb::Blob blob4(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob4(tester.bufferFactory(),
+                      bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob4, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN);
 
     bmqu::BlobPosition start4;
     bmqu::BlobPosition end4(1, 0);
     bmqu::BlobSection  section4(start4, end4);
-    ASSERT_EQ(ledger->writeRecord(&recordId, blob4, section4),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(recordId.logId(), newLogId);
-    ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->writeRecord(&recordId, blob4, section4),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(recordId.logId(), newLogId);
+    BMQTST_ASSERT_EQ(recordId.offset(), k_EXTRA_ENTRY_LEN);
 
     newLogNumBytes += k_EXTRA_ENTRY_LEN;
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + k_LONG_ENTRY_LEN + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), k_LONG_ENTRY_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + k_LONG_ENTRY_LEN +
+                         Tester::k_OLD_LOG_LEN);
 
     // 6. Close and re-open the ledger.  'totalNumBytes' and
     //    'outstandingNumBytes' must be re-calibrated.
@@ -1003,14 +1039,14 @@ static void test8_writeRecordBlobSection()
 
     BSLS_ASSERT_OPT(ledger->open(mqbsi::Ledger::e_READ_ONLY) ==
                     LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
-    ASSERT_EQ(ledger->totalNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
-    ASSERT_EQ(ledger->outstandingNumBytes(),
-              newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(newLogId), newLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(oldLogId), oldLogNumBytes);
+    BMQTST_ASSERT_EQ(ledger->totalNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
+    BMQTST_ASSERT_EQ(ledger->outstandingNumBytes(),
+                     newLogNumBytes + oldLogNumBytes + Tester::k_OLD_LOG_LEN);
 
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
 }
@@ -1064,41 +1100,48 @@ static void test9_readRecordRaw()
 
     // Skip the log ID written at the beginning of the log
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
-    ASSERT_EQ(ledger->readRecord(entry, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(entry, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
 
     // 2. Read each record in Log 2
     recordId.setLogId(logId2).setOffset(mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     // Again, skip the log ID written at the beginning of the log
-    ASSERT_EQ(ledger->readRecord(entry, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(entry, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
 
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
 
-    ASSERT_EQ(ledger->readRecord(entry, k_LONG_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_LONG_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN),
+                     0);
 
     // 3. Read each record in Log 3
     recordId.setLogId(logId3).setOffset(0);
-    ASSERT_EQ(ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN),
+                     0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
 
-    ASSERT_EQ(ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN),
+                     0);
 
     // 4. Close and re-open the ledger
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1119,31 +1162,34 @@ static void test9_readRecordRaw()
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(ledger->readRecord(entry, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
 
-    ASSERT_EQ(ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, extraRecordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(entry, k_EXTRA_ENTRY_LEN, extraRecordId),
+        LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN),
+                     0);
 
     // 7. Read from an invalid log ID should fail
-    ASSERT_EQ(ledger->readRecord(entry,
-                                 k_ENTRY_LEN,
-                                 LedgerRecordId(mqbu::StorageKey(), 0)),
-              LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(ledger->readRecord(entry,
+                                        k_ENTRY_LEN,
+                                        LedgerRecordId(mqbu::StorageKey(), 0)),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
 
     // 8. Read beyond the last record offset should fail
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         ledger->readRecord(entry, k_ENTRY_LEN, LedgerRecordId(logId3, 9999)) %
             100,
         LedgerOpResult::e_RECORD_READ_FAILURE);
 
     // 9. Read beyond the length of a log should fail
-    ASSERT_EQ(ledger->readRecord(entry, 9999, LedgerRecordId(logId1, 0)) % 100,
-              LedgerOpResult::e_RECORD_READ_FAILURE);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(entry, 9999, LedgerRecordId(logId1, 0)) % 100,
+        LedgerOpResult::e_RECORD_READ_FAILURE);
 
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1194,75 +1240,83 @@ static void test10_readRecordBlob()
     BSLS_ASSERT_OPT(ledger->totalNumBytes(logId3) == k_EXTRA_ENTRY_LEN * 2);
 
     // 1. Read each record in Log 1
-    bdlbb::Blob blob(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob(tester.bufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     char        entry[k_DUMMY_LOG_MESSAGE_LEN];
 
     // Skip the log ID written at the beginning of the log
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
-    ASSERT_EQ(ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     blob.removeBuffer(0);
 
     // 2. Read each record in Log 2
     recordId.setLogId(logId2).setOffset(mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     // Again, skip the log ID written at the beginning of the log
-    ASSERT_EQ(ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
     blob.removeBuffer(0);
 
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
         bmqu::BlobUtil::readNBytes(entry,
                                    blob,
                                    bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
 
-    ASSERT_EQ(ledger->readRecord(&blob, k_LONG_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_LONG_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_LONG_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 3. Read each record in Log 3
     recordId.setLogId(logId3).setOffset(0);
-    ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN),
+                     0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
     blob.removeBuffer(0);
 
-    ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 4. Close and re-open the ledger
@@ -1284,41 +1338,44 @@ static void test10_readRecordBlob()
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(ledger->readRecord(&blob, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
         bmqu::BlobUtil::readNBytes(entry,
                                    blob,
                                    bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
 
-    ASSERT_EQ(ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 7. Read from an invalid log ID should fail
-    ASSERT_EQ(ledger->readRecord(&blob,
-                                 k_ENTRY_LEN,
-                                 LedgerRecordId(mqbu::StorageKey(), 0)),
-              LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(ledger->readRecord(&blob,
+                                        k_ENTRY_LEN,
+                                        LedgerRecordId(mqbu::StorageKey(), 0)),
+                     LedgerOpResult::e_LOG_NOT_FOUND);
 
     // 8. Read beyond the last record offset should fail
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         ledger->readRecord(&blob, k_ENTRY_LEN, LedgerRecordId(logId3, 9999)) %
             100,
         LedgerOpResult::e_RECORD_READ_FAILURE);
 
     // 9. Read beyond the length of a log should fail
-    ASSERT_EQ(ledger->readRecord(&blob, 9999, LedgerRecordId(logId1, 0)) % 100,
-              LedgerOpResult::e_RECORD_READ_FAILURE);
+    BMQTST_ASSERT_EQ(
+        ledger->readRecord(&blob, 9999, LedgerRecordId(logId1, 0)) % 100,
+        LedgerOpResult::e_RECORD_READ_FAILURE);
 
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1373,53 +1430,58 @@ static void test11_aliasRecordRaw()
 
     // Skip the log ID written at the beginning of the log
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_DUMMY_LOG_MESSAGE_LEN,
-                                  recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_DUMMY_LOG_MESSAGE_LEN,
+                                         recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
 
     // 2. Read each record in Log 2
     recordId.setLogId(logId2).setOffset(mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     // Again, skip the log ID written at the beginning of the log
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_DUMMY_LOG_MESSAGE_LEN,
-                                  recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_DUMMY_LOG_MESSAGE_LEN,
+                                         recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
 
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                      k_ENTRY_LEN,
-                                      recordId),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                             k_ENTRY_LEN,
+                                             recordId),
+                         LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
 
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_LONG_ENTRY_LEN,
-                                  recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_LONG_ENTRY_LEN,
+                                         recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN),
+                     0);
 
     // 3. Read each record in Log 3
     recordId.setLogId(logId3).setOffset(0);
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_EXTRA_ENTRY_LEN,
-                                  recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_EXTRA_ENTRY_LEN,
+                                         recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN),
+                     0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
 
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_EXTRA_ENTRY_LEN,
-                                  recordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_EXTRA_ENTRY_LEN,
+                                         recordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN),
+                     0);
 
     // 4. Close and re-open the ledger
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1440,39 +1502,41 @@ static void test11_aliasRecordRaw()
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                      k_ENTRY_LEN,
-                                      recordId),
-                  LedgerOpResult::e_SUCCESS);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                             k_ENTRY_LEN,
+                                             recordId),
+                         LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
     }
 
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_EXTRA_ENTRY_LEN,
-                                  extraRecordId),
-              LedgerOpResult::e_SUCCESS);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_EXTRA_ENTRY_LEN,
+                                         extraRecordId),
+                     LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN),
+                     0);
 
     // 7. Read from an invalid log ID should fail
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_ENTRY_LEN,
-                                  LedgerRecordId(mqbu::StorageKey(), 0)),
-              LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                            k_ENTRY_LEN,
+                            LedgerRecordId(mqbu::StorageKey(), 0)),
+        LedgerOpResult::e_LOG_NOT_FOUND);
 
     // 8. Read beyond the last record offset should fail
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  k_ENTRY_LEN,
-                                  LedgerRecordId(logId3, 9999)) %
-                  100,
-              LedgerOpResult::e_RECORD_ALIAS_FAILURE);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         k_ENTRY_LEN,
+                                         LedgerRecordId(logId3, 9999)) %
+                         100,
+                     LedgerOpResult::e_RECORD_ALIAS_FAILURE);
 
     // 9. Read beyond the length of a log should fail
-    ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
-                                  9999,
-                                  LedgerRecordId(logId1, 0)) %
-                  100,
-              LedgerOpResult::e_RECORD_ALIAS_FAILURE);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(reinterpret_cast<void**>(&entry),
+                                         9999,
+                                         LedgerRecordId(logId1, 0)) %
+                         100,
+                     LedgerOpResult::e_RECORD_ALIAS_FAILURE);
 
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1523,75 +1587,83 @@ static void test12_aliasRecordBlob()
     BSLS_ASSERT_OPT(ledger->totalNumBytes(logId3) == k_EXTRA_ENTRY_LEN * 2);
 
     // 1. Read each record in Log 1
-    bdlbb::Blob blob(tester.bufferFactory(), s_allocator_p);
+    bdlbb::Blob blob(tester.bufferFactory(),
+                     bmqtst::TestHelperUtil::allocator());
     char        entry[k_DUMMY_LOG_MESSAGE_LEN];
 
     // Skip the log ID written at the beginning of the log
     LedgerRecordId recordId(logId1, mqbu::StorageKey::e_KEY_LENGTH_BINARY);
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     blob.removeBuffer(0);
 
     // 2. Read each record in Log 2
     recordId.setLogId(logId2).setOffset(mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     // Again, skip the log ID written at the beginning of the log
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(&blob, k_DUMMY_LOG_MESSAGE_LEN, recordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_DUMMY_LOG_MESSAGE_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
-              0);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_DUMMY_LOG_MESSAGE, k_DUMMY_LOG_MESSAGE_LEN),
+        0);
     recordId.setOffset(recordId.offset() + k_DUMMY_LOG_MESSAGE_LEN);
     blob.removeBuffer(0);
 
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
         bmqu::BlobUtil::readNBytes(entry,
                                    blob,
                                    bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
 
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_LONG_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_LONG_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_LONG_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 3. Read each record in Log 3
     recordId.setLogId(logId3).setOffset(0);
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_1, k_EXTRA_ENTRY_LEN),
+                     0);
     recordId.setOffset(recordId.offset() + k_EXTRA_ENTRY_LEN);
     blob.removeBuffer(0);
 
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, recordId),
+                     LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_2, k_EXTRA_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 4. Close and re-open the ledger
@@ -1613,42 +1685,45 @@ static void test12_aliasRecordBlob()
     //    in Log 3
     recordId.setLogId(logId2).setOffset(Tester::k_OLD_LOG_LEN);
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
-        ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
-                  LedgerOpResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(ledger->aliasRecord(&blob, k_ENTRY_LEN, recordId),
+                         LedgerOpResult::e_SUCCESS);
         bmqu::BlobUtil::readNBytes(entry,
                                    blob,
                                    bmqu::BlobPosition(),
                                    k_ENTRY_LEN);
-        ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
+        BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LEN), 0);
         recordId.setOffset(recordId.offset() + k_ENTRY_LEN);
         blob.removeBuffer(0);
     }
 
-    ASSERT_EQ(ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
-              LedgerOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(&blob, k_EXTRA_ENTRY_LEN, extraRecordId),
+        LedgerOpResult::e_SUCCESS);
     bmqu::BlobUtil::readNBytes(entry,
                                blob,
                                bmqu::BlobPosition(),
                                k_EXTRA_ENTRY_LEN);
-    ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN), 0);
+    BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_EXTRA_ENTRY_3, k_EXTRA_ENTRY_LEN),
+                     0);
     blob.removeBuffer(0);
 
     // 7. Read from an invalid log ID should fail
-    ASSERT_EQ(ledger->aliasRecord(&blob,
-                                  k_ENTRY_LEN,
-                                  LedgerRecordId(mqbu::StorageKey(), 0)),
-              LedgerOpResult::e_LOG_NOT_FOUND);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(&blob,
+                            k_ENTRY_LEN,
+                            LedgerRecordId(mqbu::StorageKey(), 0)),
+        LedgerOpResult::e_LOG_NOT_FOUND);
 
     // 8. Read beyond the last record offset should fail
-    ASSERT_EQ(
+    BMQTST_ASSERT_EQ(
         ledger->aliasRecord(&blob, k_ENTRY_LEN, LedgerRecordId(logId3, 9999)) %
             100,
         LedgerOpResult::e_RECORD_ALIAS_FAILURE);
 
     // 9. Read beyond the length of a log should fail
-    ASSERT_EQ(ledger->aliasRecord(&blob, 9999, LedgerRecordId(logId1, 0)) %
-                  100,
-              LedgerOpResult::e_RECORD_ALIAS_FAILURE);
+    BMQTST_ASSERT_EQ(
+        ledger->aliasRecord(&blob, 9999, LedgerRecordId(logId1, 0)) % 100,
+        LedgerOpResult::e_RECORD_ALIAS_FAILURE);
 
     BSLS_ASSERT_OPT(ledger->flush() == LedgerOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(ledger->close() == LedgerOpResult::e_SUCCESS);
@@ -1662,7 +1737,7 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    bmqsys::Time::initialize(s_allocator_p);
+    bmqsys::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
     {
         switch (_testCase) {
@@ -1681,7 +1756,7 @@ int main(int argc, char* argv[])
         case 12: test12_aliasRecordBlob(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-            s_testStatus = -1;
+            bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
     }

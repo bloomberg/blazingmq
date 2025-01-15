@@ -48,7 +48,7 @@ namespace m_bmqstoragetool {
 class LessThanLowerBoundFn {
   private:
     // PRIVATE DATA
-    const Parameters::Range d_range;
+    const Parameters::Range& d_range;
 
   public:
     // CREATORS
