@@ -32,150 +32,20 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-// Helper to print data file meta data
-void printDataFileMeta(bsl::ostream&           ostream,
-                       mqbs::DataFileIterator* dataFile_p)
+// Helper to calculate outstanding ratio
+OutstandingPrintBundle
+calculateOutstandingRatio(bsl::size_t totalMessagesCount,
+                          bsl::size_t deletedMessagesCount)
 {
-    if (!dataFile_p || !dataFile_p->isValid()) {
-        return;  // RETURN
-    }
-    ostream << "\nDetails of data file: \n"
-            << *dataFile_p->mappedFileDescriptor() << " "
-            << dataFile_p->header();
-}
-
-// Helper to print journal file meta data
-void printJournalFileMeta(bsl::ostream&              ostream,
-                          mqbs::JournalFileIterator* journalFile_p,
-                          bslma::Allocator*          allocator)
-{
-    if (!journalFile_p || !journalFile_p->isValid()) {
-        return;  // RETURN
-    }
-
-    ostream << "\nDetails of journal file: \n";
-    ostream << "File descriptor: " << journalFile_p->mappedFileDescriptor()
-            << '\n';
-    mqbs::FileStoreProtocolPrinter::printHeader(
-        ostream,
-        journalFile_p->header(),
-        *journalFile_p->mappedFileDescriptor(),
-        allocator);
-
-    // Print journal-specific fields
-    ostream << "Journal SyncPoint:\n";
-    bsl::vector<const char*> fields(allocator);
-    fields.push_back("Last Valid Record Offset");
-    fields.push_back("Record Type");
-    fields.push_back("Record Timestamp");
-    fields.push_back("Record Epoch");
-    fields.push_back("Last Valid SyncPoint Offset");
-    fields.push_back("SyncPoint Timestamp");
-    fields.push_back("SyncPoint Epoch");
-    fields.push_back("SyncPoint SeqNum");
-    fields.push_back("SyncPoint Primary NodeId");
-    fields.push_back("SyncPoint Primary LeaseId");
-    fields.push_back("SyncPoint DataFileOffset (DWORDS)");
-    fields.push_back("SyncPoint QlistFileOffset (WORDS)");
-
-    bmqu::AlignedPrinter printer(ostream, &fields);
-    bsls::Types::Uint64  lastRecPos = journalFile_p->lastRecordPosition();
-    printer << lastRecPos;
-    if (0 == lastRecPos) {
-        // No valid record
-        printer << "** NA **"
-                << "** NA **";
-    }
-    else {
-        mqbs::OffsetPtr<const mqbs::RecordHeader> recHeader(
-            journalFile_p->mappedFileDescriptor()->block(),
-            lastRecPos);
-        printer << recHeader->type();
-        bdlt::Datetime      datetime;
-        bsls::Types::Uint64 epochValue = recHeader->timestamp();
-        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
-                                                           epochValue);
-        if (0 != rc) {
-            printer << 0;
-        }
-        else {
-            printer << datetime;
-        }
-        printer << epochValue;
-    }
-
-    const bsls::Types::Uint64 syncPointPos =
-        journalFile_p->lastSyncPointPosition();
-
-    printer << syncPointPos;
-    if (0 == syncPointPos) {
-        // No valid syncPoint
-        printer << "** NA **"
-                << "** NA **"
-                << "** NA **"
-                << "** NA **"
-                << "** NA **"
-                << "** NA **";
-    }
-    else {
-        const mqbs::JournalOpRecord& syncPt = journalFile_p->lastSyncPoint();
-
-        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == syncPt.type());
-
-        bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
-        bdlt::Datetime      datetime;
-        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
-                                                           epochValue);
-        if (0 != rc) {
-            printer << 0;
-        }
-        else {
-            printer << datetime;
-        }
-        printer << epochValue;
-
-        printer << syncPt.sequenceNum() << syncPt.primaryNodeId()
-                << syncPt.primaryLeaseId() << syncPt.dataFileOffsetDwords()
-                << syncPt.qlistFileOffsetWords();
-    }
-}
-
-// Helper to print message GUID as a string
-void outputGuidString(bsl::ostream&            ostream,
-                      const bmqt::MessageGUID& messageGUID,
-                      const bool               addNewLine = true)
-{
-    ostream << messageGUID;
-    if (addNewLine)
-        ostream << '\n';
-}
-
-// Helper to calculate and print outstanding ratio
-void outputOutstandingRatio(bsl::ostream& ostream,
-                            bsl::size_t   totalMessagesCount,
-                            bsl::size_t   deletedMessagesCount)
-{
-    if (totalMessagesCount > 0) {
-        bsl::size_t outstandingMessages = totalMessagesCount -
-                                          deletedMessagesCount;
-        ostream << "Outstanding ratio: "
-                << static_cast<int>(bsl::floor(float(outstandingMessages) /
-                                                   float(totalMessagesCount) *
-                                                   100.0f +
-                                               0.5f))
-                << "% (" << outstandingMessages << "/" << totalMessagesCount
-                << ")" << '\n';
-    }
-}
-
-// Helper to print summary of search result
-void outputFooter(bsl::ostream& ostream, bsl::size_t foundMessagesCount)
-{
-    const char* captionForFound    = " message GUID(s) found.";
-    const char* captionForNotFound = "No message GUID found.";
-    foundMessagesCount > 0 ? (ostream << foundMessagesCount << captionForFound)
-                           : ostream << captionForNotFound;
-    ostream << '\n';
+    BSLS_ASSERT_SAFE(totalMessagesCount > 0);
+    bsl::size_t outstandingMessages = totalMessagesCount -
+                                      deletedMessagesCount;
+    return OutstandingPrintBundle(
+        totalMessagesCount,
+        outstandingMessages,
+        static_cast<int>(bsl::floor(float(outstandingMessages) /
+                                        float(totalMessagesCount) * 100.0f +
+                                    0.5f)));
 }
 
 }  // close unnamed namespace
@@ -241,6 +111,11 @@ void SearchResultDecorator::outputResult(const GuidsList& guidFilter)
     d_searchResult->outputResult(guidFilter);
 }
 
+const bsl::shared_ptr<Printer>& SearchResultDecorator::printer()
+{
+    return d_searchResult->printer();
+}
+
 // ====================================
 // class SearchResultTimestampDecorator
 // ====================================
@@ -297,13 +172,13 @@ bool SearchResultTimestampDecorator::processDeletionRecord(
 // =======================
 
 SearchShortResult::SearchShortResult(
-    bsl::ostream&                     ostream,
+    const bsl::shared_ptr<Printer>&   printer,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
     bool                              printImmediately,
     bool                              eraseDeleted,
     bool                              printOnDelete,
     bslma::Allocator*                 allocator)
-: d_ostream(ostream)
+: d_printer(printer)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
@@ -373,7 +248,7 @@ void SearchShortResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printer->printFooter(d_printedMessagesCount);
 }
 
 void SearchShortResult::outputResult(const GuidsList& guidFilter)
@@ -388,17 +263,17 @@ void SearchShortResult::outputResult(const GuidsList& guidFilter)
             }
             else {
                 // this should not happen
-                d_ostream << "Logic error : guid " << *it << " not found\n";
+                d_printer->printGuidNotFound(*it);
             }
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printer->printFooter(d_printedMessagesCount);
 }
 
 void SearchShortResult::outputGuidData(const GuidData& guidData)
 {
-    outputGuidString(d_ostream, guidData.first);
+    d_printer->printGuid(guidData.first);
     if (d_payloadDumper)
         d_payloadDumper->outputPayload(guidData.second);
 
@@ -410,20 +285,25 @@ bool SearchShortResult::hasCache() const
     return !d_guidList.empty();
 }
 
+const bsl::shared_ptr<Printer>& SearchShortResult::printer()
+{
+    return d_printer;
+}
+
 // ========================
 // class SearchDetailResult
 // ========================
 
 SearchDetailResult::SearchDetailResult(
-    bsl::ostream&                     ostream,
     const QueueMap&                   queueMap,
+    const bsl::shared_ptr<Printer>&   printer,
     bslma::ManagedPtr<PayloadDumper>& payloadDumper,
     bool                              printImmediately,
     bool                              eraseDeleted,
     bool                              cleanUnprinted,
     bslma::Allocator*                 allocator)
-: d_ostream(ostream)
-, d_queueMap(queueMap)
+: d_queueMap(queueMap)
+, d_printer(printer)
 , d_payloadDumper(payloadDumper)
 , d_printImmediately(printImmediately)
 , d_eraseDeleted(eraseDeleted)
@@ -491,7 +371,7 @@ void SearchDetailResult::outputResult()
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printer->printFooter(d_printedMessagesCount);
 }
 
 void SearchDetailResult::outputResult(const GuidsList& guidFilter)
@@ -506,12 +386,12 @@ void SearchDetailResult::outputResult(const GuidsList& guidFilter)
             }
             else {
                 // this should not happen
-                d_ostream << "Logic error : guid " << *it << " not found\n";
+                d_printer->printGuidNotFound(*it);
             }
         }
     }
 
-    outputFooter(d_ostream, d_printedMessagesCount);
+    d_printer->printFooter(d_printedMessagesCount);
 }
 
 void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
@@ -520,9 +400,12 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
 {
     d_messageDetailsMap.emplace(
         record.messageGUID(),
-        d_messageDetailsList.insert(
-            d_messageDetailsList.cend(),
-            MessageDetails(record, recordIndex, recordOffset, d_allocator_p)));
+        d_messageDetailsList.insert(d_messageDetailsList.cend(),
+                                    MessageDetails(record,
+                                                   recordIndex,
+                                                   recordOffset,
+                                                   d_queueMap,
+                                                   d_allocator_p)));
 }
 
 void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
@@ -535,7 +418,7 @@ void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
 void SearchDetailResult::outputMessageDetails(
     const MessageDetails& messageDetails)
 {
-    messageDetails.print(d_ostream, d_queueMap);
+    d_printer->printMessage(messageDetails);
     if (d_payloadDumper)
         d_payloadDumper->outputPayload(messageDetails.dataRecordOffset());
 
@@ -545,6 +428,11 @@ void SearchDetailResult::outputMessageDetails(
 bool SearchDetailResult::hasCache() const
 {
     return !d_messageDetailsMap.empty();
+}
+
+const bsl::shared_ptr<Printer>& SearchDetailResult::printer()
+{
+    return d_printer;
 }
 
 // ========================
@@ -575,10 +463,8 @@ bool SearchAllDecorator::processMessageRecord(
 // ================================
 SearchOutstandingDecorator::SearchOutstandingDecorator(
     const bsl::shared_ptr<SearchResult>& component,
-    bsl::ostream&                        ostream,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
-, d_ostream(ostream)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
 , d_guids(allocator)
@@ -620,9 +506,11 @@ bool SearchOutstandingDecorator::processDeletionRecord(
 void SearchOutstandingDecorator::outputResult()
 {
     SearchResultDecorator::outputResult();
-    outputOutstandingRatio(d_ostream,
-                           d_foundMessagesCount,
-                           d_deletedMessagesCount);
+    if (d_foundMessagesCount > 0) {
+        printer()->printOutstandingRatio(
+            calculateOutstandingRatio(d_foundMessagesCount,
+                                      d_deletedMessagesCount));
+    }
 }
 
 // =======================================
@@ -631,10 +519,8 @@ void SearchOutstandingDecorator::outputResult()
 
 SearchPartiallyConfirmedDecorator::SearchPartiallyConfirmedDecorator(
     const bsl::shared_ptr<SearchResult>& component,
-    bsl::ostream&                        ostream,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
-, d_ostream(ostream)
 , d_foundMessagesCount(0)
 , d_deletedMessagesCount(0)
 , d_guidsList(allocator)
@@ -704,9 +590,12 @@ void SearchPartiallyConfirmedDecorator::outputResult()
         d_guidsList.erase(it->second);
     }
     SearchResultDecorator::outputResult(d_guidsList);
-    outputOutstandingRatio(d_ostream,
-                           d_foundMessagesCount,
-                           d_deletedMessagesCount);
+
+    if (d_foundMessagesCount > 0) {
+        printer()->printOutstandingRatio(
+            calculateOutstandingRatio(d_foundMessagesCount,
+                                      d_deletedMessagesCount));
+    }
 }
 
 // =========================
@@ -715,11 +604,9 @@ void SearchPartiallyConfirmedDecorator::outputResult()
 SearchGuidDecorator::SearchGuidDecorator(
     const bsl::shared_ptr<SearchResult>& component,
     const bsl::vector<bsl::string>&      guids,
-    bsl::ostream&                        ostream,
     bool                                 withDetails,
     bslma::Allocator*                    allocator)
 : SearchResultDecorator(component, allocator)
-, d_ostream(ostream)
 , d_withDetails(withDetails)
 , d_guidsMap(allocator)
 , d_guids(allocator)
@@ -768,27 +655,18 @@ bool SearchGuidDecorator::processDeletionRecord(
 void SearchGuidDecorator::outputResult()
 {
     SearchResultDecorator::outputResult();
-    // Print non found GUIDs
-    if (!d_guids.empty()) {
-        d_ostream << '\n'
-                  << "The following " << d_guids.size()
-                  << " GUID(s) not found:" << '\n';
-        GuidsList::const_iterator it = d_guids.cbegin();
-        for (; it != d_guids.cend(); ++it) {
-            outputGuidString(d_ostream, *it);
-        }
-    }
+    printer()->printGuidsNotFound(d_guids);
 }
 
 // ======================
 // class SummaryProcessor
 // ======================
 
-SummaryProcessor::SummaryProcessor(bsl::ostream&              ostream,
+SummaryProcessor::SummaryProcessor(const bsl::shared_ptr<Printer>& printer,
                                    mqbs::JournalFileIterator* journalFile_p,
                                    mqbs::DataFileIterator*    dataFile_p,
                                    bslma::Allocator*          allocator)
-: d_ostream(ostream)
+: d_printer(printer)
 , d_journalFile_p(journalFile_p)
 , d_dataFile_p(dataFile_p)
 , d_foundMessagesCount(0)
@@ -844,32 +722,34 @@ bool SummaryProcessor::processDeletionRecord(
 
 void SummaryProcessor::outputResult()
 {
+    printer()->printFooter(d_foundMessagesCount);
+
     if (d_foundMessagesCount == 0) {
-        d_ostream << "No messages found." << '\n';
         return;  // RETURN
     }
 
-    d_ostream << d_foundMessagesCount << " message(s) found." << '\n';
-    d_ostream << "Number of confirmed messages: " << d_deletedMessagesCount
-              << '\n';
-    d_ostream << "Number of partially confirmed messages: "
-              << d_partiallyConfirmedGuids.size() << '\n';
-    d_ostream << "Number of outstanding messages: "
-              << (d_foundMessagesCount - d_deletedMessagesCount) << '\n';
+    printer()->printSummary(d_foundMessagesCount,
+                            d_deletedMessagesCount,
+                            d_partiallyConfirmedGuids.size());
 
-    outputOutstandingRatio(d_ostream,
-                           d_foundMessagesCount,
-                           d_deletedMessagesCount);
+    printer()->printOutstandingRatio(
+        calculateOutstandingRatio(d_foundMessagesCount,
+                                  d_deletedMessagesCount));
 
     // Print meta data of opened files
-    printJournalFileMeta(d_ostream, d_journalFile_p, d_allocator_p);
-    printDataFileMeta(d_ostream, d_dataFile_p);
+    printer()->printJournalFileMeta(d_journalFile_p, d_allocator_p);
+    printer()->printDataFileMeta(d_dataFile_p);
 }
 
 void SummaryProcessor::outputResult(
     BSLS_ANNOTATION_UNUSED const GuidsList& guidFilter)
 {
     outputResult();
+}
+
+const bsl::shared_ptr<Printer>& SummaryProcessor::printer()
+{
+    return d_printer;
 }
 
 }  // close package namespace

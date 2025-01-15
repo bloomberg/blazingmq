@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // bmqstoragetool
+#include <m_bmqstoragetool_printer.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -26,24 +27,14 @@ namespace m_bmqstoragetool {
 bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     const Parameters*                     params,
     const bslma::ManagedPtr<FileManager>& fileManager,
-    bsl::ostream&                         ostream,
+    const bsl::shared_ptr<Printer>&       printer,
+    bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
     bslma::Allocator*                     allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(params);
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
-
-    // Create payload dumper
-    bslma::ManagedPtr<PayloadDumper> payloadDumper;
-    if (params->d_dumpPayload) {
-        payloadDumper.load(new (*alloc)
-                               PayloadDumper(ostream,
-                                             fileManager->dataFileIterator(),
-                                             params->d_dumpLimit,
-                                             alloc),
-                           alloc);
-    }
 
     // Set up processing flags
     const bool details = params->d_details;
@@ -61,9 +52,17 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
 
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
-    if (details) {
-        searchResult.reset(new (*alloc) SearchDetailResult(ostream,
-                                                           params->d_queueMap,
+    if (params->d_summary) {
+        searchResult.reset(
+            new (*alloc) SummaryProcessor(printer,
+                                          fileManager->journalFileIterator(),
+                                          fileManager->dataFileIterator(),
+                                          alloc),
+            alloc);
+    }
+    else if (details) {
+        searchResult.reset(new (*alloc) SearchDetailResult(params->d_queueMap,
+                                                           printer,
                                                            payloadDumper,
                                                            printImmediately,
                                                            eraseDeleted,
@@ -72,7 +71,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else {
-        searchResult.reset(new (*alloc) SearchShortResult(ostream,
+        searchResult.reset(new (*alloc) SearchShortResult(printer,
                                                           payloadDumper,
                                                           printImmediately,
                                                           eraseDeleted,
@@ -81,45 +80,35 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Create Decorator for specific search
-    if (!params->d_guid.empty()) {
-        // Search GUIDs
-        searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
-                                                            params->d_guid,
-                                                            ostream,
-                                                            details,
-                                                            alloc),
-                           alloc);
-    }
-    else if (params->d_summary) {
-        // Summary
-        searchResult.reset(
-            new (*alloc) SummaryProcessor(ostream,
-                                          fileManager->journalFileIterator(),
-                                          fileManager->dataFileIterator(),
-                                          alloc),
-            alloc);
-    }
-    else if (params->d_outstanding || params->d_confirmed) {
-        // Search outstanding or confirmed
-        searchResult.reset(
-            new (*alloc)
-                SearchOutstandingDecorator(searchResult, ostream, alloc),
-            alloc);
-    }
-    else if (params->d_partiallyConfirmed) {
-        // Search partially confirmed
-        searchResult.reset(new (*alloc)
-                               SearchPartiallyConfirmedDecorator(searchResult,
-                                                                 ostream,
-                                                                 alloc),
-                           alloc);
-    }
-    else {
-        // Drefault: search all
-        searchResult.reset(new (*alloc)
-                               SearchAllDecorator(searchResult, alloc),
-                           alloc);
+    if (!params->d_summary) {
+        // Create Decorator for specific search
+        if (!params->d_guid.empty()) {
+            // Search GUIDs
+            searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
+                                                                params->d_guid,
+                                                                details,
+                                                                alloc),
+                               alloc);
+        }
+        else if (params->d_outstanding || params->d_confirmed) {
+            // Search outstanding or confirmed
+            searchResult.reset(
+                new (*alloc) SearchOutstandingDecorator(searchResult, alloc),
+                alloc);
+        }
+        else if (params->d_partiallyConfirmed) {
+            // Search partially confirmed
+            searchResult.reset(
+                new (*alloc)
+                    SearchPartiallyConfirmedDecorator(searchResult, alloc),
+                alloc);
+        }
+        else {
+            // Drefault: search all
+            searchResult.reset(new (*alloc)
+                                   SearchAllDecorator(searchResult, alloc),
+                               alloc);
+        }
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.

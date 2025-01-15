@@ -47,6 +47,7 @@
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_payloaddumper.h>
+#include <m_bmqstoragetool_printer.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -109,6 +110,11 @@ class SearchResult {
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
     virtual void outputResult(const GuidsList& guidFilter) = 0;
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    virtual const bsl::shared_ptr<Printer>& printer() = 0;
 };
 
 // =======================
@@ -133,8 +139,8 @@ class SearchShortResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Pointer to 'Printer' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -173,7 +179,7 @@ class SearchShortResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
-    explicit SearchShortResult(bsl::ostream&                     ostream,
+    explicit SearchShortResult(const bsl::shared_ptr<Printer>&       printer,
                                bslma::ManagedPtr<PayloadDumper>& payloadDumper,
                                bool              printImmediately = true,
                                bool              eraseDeleted     = false,
@@ -204,6 +210,11 @@ class SearchShortResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -211,6 +222,7 @@ class SearchShortResult : public SearchResult {
 // ========================
 
 /// This class provides logic to handle and output detail result.
+// template <typename PRINTER_TYPE>
 class SearchDetailResult : public SearchResult {
   private:
     // PRIVATE TYPES
@@ -223,10 +235,10 @@ class SearchDetailResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Pointer to 'Printer' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -275,8 +287,8 @@ class SearchDetailResult : public SearchResult {
 
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
-    SearchDetailResult(bsl::ostream&                     ostream,
-                       const QueueMap&                   queueMap,
+    SearchDetailResult(const QueueMap&                   queueMap,
+                       const bsl::shared_ptr<Printer>&       printer,
                        bslma::ManagedPtr<PayloadDumper>& payloadDumper,
                        bool              printImmediately = true,
                        bool              eraseDeleted     = true,
@@ -307,6 +319,11 @@ class SearchDetailResult : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -353,6 +370,8 @@ class SearchResultDecorator : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -436,8 +455,6 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bsl::size_t d_foundMessagesCount;
     // Counter of found messages.
     bsl::size_t d_deletedMessagesCount;
@@ -450,7 +467,6 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult>& component,
-                               bsl::ostream&                        ostream,
                                bslma::Allocator*                    allocator);
 
     // MANIPULATORS
@@ -480,8 +496,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bsl::size_t d_foundMessagesCount;
     // Counter of found messages.
     bsl::size_t d_deletedMessagesCount;
@@ -502,7 +516,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchPartiallyConfirmedDecorator(
         const bsl::shared_ptr<SearchResult>& component,
-        bsl::ostream&                        ostream,
         bslma::Allocator*                    allocator);
 
     // MANIPULATORS
@@ -537,8 +550,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
 class SearchGuidDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
     GuidsMap d_guidsMap;
@@ -553,7 +564,6 @@ class SearchGuidDecorator : public SearchResultDecorator {
     /// `withDetails` and `allocator`.
     SearchGuidDecorator(const bsl::shared_ptr<SearchResult>& component,
                         const bsl::vector<bsl::string>&      guids,
-                        bsl::ostream&                        ostream,
                         bool                                 withDetails,
                         bslma::Allocator*                    allocator);
 
@@ -587,8 +597,8 @@ class SummaryProcessor : public SearchResult {
     // Set of message guids.
 
     // PRIVATE DATA
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Reference to print manager.
     mqbs::JournalFileIterator* d_journalFile_p;
     // Pointer to journal file iterator.
     mqbs::DataFileIterator* d_dataFile_p;
@@ -611,10 +621,10 @@ class SummaryProcessor : public SearchResult {
 
     /// Constructor using the specified `component`, `journalFile_p`,
     /// `dataFile_p` and `allocator`.
-    explicit SummaryProcessor(bsl::ostream&              ostream,
-                              mqbs::JournalFileIterator* journalFile_p,
-                              mqbs::DataFileIterator*    dataFile_p,
-                              bslma::Allocator*          allocator);
+    explicit SummaryProcessor(const bsl::shared_ptr<Printer>& printer,
+                              mqbs::JournalFileIterator*  journalFile_p,
+                              mqbs::DataFileIterator*     dataFile_p,
+                              bslma::Allocator*           allocator);
 
     // MANIPULATORS
 
@@ -640,6 +650,11 @@ class SummaryProcessor : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    virtual const bsl::shared_ptr<Printer>& printer() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

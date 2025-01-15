@@ -17,6 +17,8 @@
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_filemanagermock.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
+#include <m_bmqstoragetool_printermock.h>
+#include <m_bmqstoragetool_searchresultfactory.h>
 
 // MQB
 #include <mqbs_mappedfiledescriptor.h>
@@ -40,12 +42,59 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
 using namespace mqbs;
+using ::testing::_;
+using ::testing::Invoke;
+using ::testing::Sequence;
 
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
 namespace {
+
+typedef bsl::list<bmqt::MessageGUID> GuidsList;
+// List of message guids.
+
+bslma::ManagedPtr<CommandProcessor>
+createCommandProcessor(const Parameters*               params,
+                       const bsl::shared_ptr<Printer>& printer,
+                       bslma::ManagedPtr<FileManager>& fileManager,
+                       bsl::ostream&                   ostream,
+                       bslma::Allocator*               allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    // Create payload dumper
+    bslma::ManagedPtr<PayloadDumper> payloadDumper;
+    if (params->d_dumpPayload) {
+        payloadDumper.load(new (*alloc)
+                               PayloadDumper(ostream,
+                                             fileManager->dataFileIterator(),
+                                             params->d_dumpLimit,
+                                             alloc),
+                           alloc);
+    }
+
+    // Create searchResult for given 'params'.
+    bsl::shared_ptr<SearchResult> searchResult =
+        SearchResultFactory::createSearchResult(params,
+                                                fileManager,
+                                                printer,
+                                                payloadDumper,
+                                                alloc);
+    // Create commandProcessor.
+    bslma::ManagedPtr<CommandProcessor> commandProcessor(
+        new (*alloc) JournalFileProcessor(params,
+                                          fileManager,
+                                          searchResult,
+                                          ostream,
+                                          alloc),
+        alloc);
+    return commandProcessor;
+}
 
 /// Value semantic type representing data message parameters.
 struct DataMessage {
@@ -162,19 +211,49 @@ void outputGuidString(bsl::ostream&            ostream,
         ostream << bsl::endl;
 }
 
+class DetailsChecker {
+    const JournalFile::GuidVectorType&          d_guids;
+    JournalFile::GuidVectorType::const_iterator d_it;
+
+  public:
+    DetailsChecker(const JournalFile::GuidVectorType& guids)
+    : d_guids(guids)
+    , d_it(d_guids.cbegin())
+    {
+    }
+
+    void checkDetails(const MessageDetails& details)
+    {
+        if (d_it != d_guids.cend()) {
+            bmqu::MemOutStream ss(s_allocator_p);
+            outputGuidString(ss, *d_it);
+            bsl::string guidStr(ss.str(), s_allocator_p);
+            ASSERT_D(
+                guidStr,
+                (details.messageRecord().d_record.messageGUID() == *d_it));
+            ASSERT_D("CONFIRM", (!details.confirmRecords().empty()));
+            ASSERT_D("DELETE", (!details.deleteRecord().isNull()));
+            ++d_it;
+        }
+        else {
+            ASSERT_D("DELETE", (details.deleteRecord().isNull()));
+        }
+    }
+};
+
 }  // close unnamed namespace
 
 static void test1_breathingTest()
-// ------------------------------------------------------------------------
-// BREATHING TEST
+//  ------------------------------------------------------------------------
+//  BREATHING TEST
 //
-// Concerns:
-//   Exercise the basic functionality of the tool - output all message GUIDs
-//   found in journal file.
+//  Concerns:
+//    Exercise the basic functionality of the tool - output all message
+//    GUIDs found in journal file.
 //
-// Testing:
-//   Basic functionality
-// ------------------------------------------------------------------------
+//  Testing:
+//    Basic functionality
+//  ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -184,6 +263,8 @@ static void test1_breathingTest()
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
+    bmqu::MemOutStream resultStream(s_allocator_p);
+
     // Prepare parameters
     Parameters params(s_allocator_p);
     // Prepare file manager
@@ -191,17 +272,20 @@ static void test1_breathingTest()
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
-    bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
 
+    // Create command processor
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+
+    Sequence s;
     // Prepare expected output with list of message GUIDs in Journal file
-    bmqu::MemOutStream expectedStream(s_allocator_p);
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
     bsl::size_t foundMessagesCount = 0;
@@ -210,14 +294,14 @@ static void test1_breathingTest()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            outputGuidString(expectedStream, msg.messageGUID());
+            EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
             foundMessagesCount++;
         }
     }
-    expectedStream << foundMessagesCount << " message GUID(s) found."
-                   << bsl::endl;
+    EXPECT_CALL(*printer, printFooter(foundMessagesCount)).InSequence(s);
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    // Run search
+    searchProcessor->process();
 }
 
 static void test2_searchGuidTest()
@@ -233,11 +317,20 @@ static void test2_searchGuidTest()
 {
     bmqtst::TestHelper::printTestName("SEARCH GUID");
 
+    s_ignoreCheckDefAlloc = true;
+    // Disable default allocator check for this test because
+    // EXPECT_CALL(PrinterMock::printGuidsNotFound(const GuidsList&))
+    // uses default allocator
+
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
 
     // Prepare parameters
     Parameters params(s_allocator_p);
@@ -246,6 +339,7 @@ static void test2_searchGuidTest()
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
     bsl::size_t msgCnt = 0;
+    Sequence    s;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -256,32 +350,28 @@ static void test2_searchGuidTest()
             bmqu::MemOutStream ss(s_allocator_p);
             ss << msg.messageGUID();
             searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+            EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
         }
     }
+    EXPECT_CALL(*printer, printFooter(searchGuids.size())).InSequence(s);
+    EXPECT_CALL(*printer, printGuidsNotFound(GuidsList(s_allocator_p)))
+        .InSequence(s);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+    // Run search
     searchProcessor->process();
-
-    // Prepare expected output
-    bmqu::MemOutStream                       expectedStream(s_allocator_p);
-    bsl::vector<bsl::string>::const_iterator guidIt = searchGuids.cbegin();
-    for (; guidIt != searchGuids.cend(); ++guidIt) {
-        expectedStream << (*guidIt) << bsl::endl;
-    }
-    expectedStream << searchGuids.size() << " message GUID(s) found."
-                   << bsl::endl;
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test3_searchNonExistingGuidTest()
@@ -297,22 +387,34 @@ static void test3_searchNonExistingGuidTest()
 {
     bmqtst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
 
+    s_ignoreCheckDefAlloc = true;
+    // Disable default allocator check for this test because
+    // EXPECT_CALL(PrinterMock::printGuidsNotFound(const GuidsList&))
+    // uses default allocator
+
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
     JournalFile                  journalFile(k_NUM_RECORDS, s_allocator_p);
     journalFile.addAllTypesRecords(&records);
 
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare parameters
     Parameters params(s_allocator_p);
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
+    GuidsList                 notFoundGuids(s_allocator_p);
     bmqt::MessageGUID         guid;
+
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         bmqu::MemOutStream ss(s_allocator_p);
         ss << guid;
         searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+        notFoundGuids.push_back(guid);
     }
 
     // Prepare file manager
@@ -320,25 +422,21 @@ static void test3_searchNonExistingGuidTest()
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+
+    Sequence s;
+    EXPECT_CALL(*printer, printFooter(0)).InSequence(s);
+    EXPECT_CALL(*printer, printGuidsNotFound(notFoundGuids)).InSequence(s);
+
+    // Run search
     searchProcessor->process();
-
-    // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
-    expectedStream << "No message GUID found." << bsl::endl;
-
-    expectedStream << bsl::endl
-                   << "The following 2 GUID(s) not found:" << bsl::endl;
-    expectedStream << searchGuids[0] << bsl::endl
-                   << searchGuids[1] << bsl::endl;
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test4_searchExistingAndNonExistingGuidTest()
@@ -355,6 +453,11 @@ static void test4_searchExistingAndNonExistingGuidTest()
 {
     bmqtst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
 
+    s_ignoreCheckDefAlloc = true;
+    // Disable default allocator check for this test because
+    // EXPECT_CALL(PrinterMock::printGuidsNotFound(const GuidsList&))
+    // uses default allocator
+
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(s_allocator_p);
@@ -364,13 +467,19 @@ static void test4_searchExistingAndNonExistingGuidTest()
     // Prepare parameters
     Parameters params(s_allocator_p);
 
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
 
     // Get two existing message GUIDs
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
-    size_t msgCnt = 0;
+    size_t   msgCnt        = 0;
+    size_t   foundGuidsCnt = 0;
+    Sequence s;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
@@ -381,43 +490,41 @@ static void test4_searchExistingAndNonExistingGuidTest()
             bmqu::MemOutStream ss(s_allocator_p);
             ss << msg.messageGUID();
             searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+            ++foundGuidsCnt;
+            EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
         }
     }
 
     // Get two non existing message GUIDs
+    GuidsList         notFoundGuids(s_allocator_p);
     bmqt::MessageGUID guid;
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         bmqu::MemOutStream ss(s_allocator_p);
         ss << guid;
         searchGuids.push_back(bsl::string(ss.str(), s_allocator_p));
+        notFoundGuids.push_back(guid);
     }
+
+    EXPECT_CALL(*printer, printFooter(foundGuidsCnt)).InSequence(s);
+    EXPECT_CALL(*printer, printGuidsNotFound(notFoundGuids)).InSequence(s);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+
+    // Run search
     searchProcessor->process();
-
-    // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
-    expectedStream << searchGuids[0] << bsl::endl
-                   << searchGuids[1] << bsl::endl;
-    expectedStream << "2 message GUID(s) found." << bsl::endl;
-    expectedStream << bsl::endl
-                   << "The following 2 GUID(s) not found:" << bsl::endl;
-    expectedStream << searchGuids[2] << bsl::endl
-                   << searchGuids[3] << bsl::endl;
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test5_searchOutstandingMessagesTest()
@@ -446,39 +553,46 @@ static void test5_searchOutstandingMessagesTest()
     // Configure parameters to search outstanding messages
     Parameters params(s_allocator_p);
     params.d_outstanding = true;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
-    // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    const size_t messageCount     = k_NUM_RECORDS / 3;
+    const int    outstandingRatio = static_cast<int>(bsl::floor(
+        float(outstandingGUIDS.size()) / float(messageCount) * 100.0f + 0.5f));
+
     JournalFile::GuidVectorType::const_iterator guidIt =
         outstandingGUIDS.cbegin();
+
+    Sequence s;
     for (; guidIt != outstandingGUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    EXPECT_CALL(*printer, printFooter(outstandingGUIDS.size())).InSequence(s);
+    EXPECT_CALL(
+        *printer,
+        printOutstandingRatio(OutstandingPrintBundle(messageCount,
+                                                     outstandingGUIDS.size(),
+                                                     outstandingRatio)))
+        .InSequence(s);
 
-    expectedStream << outstandingGUIDS.size() << " message GUID(s) found."
-                   << bsl::endl;
-    const size_t messageCount     = k_NUM_RECORDS / 3;
-    const float  outstandingRatio = static_cast<float>(
-                                       outstandingGUIDS.size()) /
-                                   static_cast<float>(messageCount) * 100.0f;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << outstandingGUIDS.size() << "/" << messageCount << ")"
-                   << bsl::endl;
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    // Run search
+    searchProcessor->process();
 }
 
 static void test6_searchConfirmedMessagesTest()
@@ -507,38 +621,46 @@ static void test6_searchConfirmedMessagesTest()
     // Configure parameters to search confirmed messages
     Parameters params(s_allocator_p);
     params.d_confirmed = true;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
-    // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    const size_t messageCount     = k_NUM_RECORDS / 3;
+    const size_t outstandingCount = messageCount - confirmedGUIDS.size();
+    const int    outstandingRatio = static_cast<int>(bsl::floor(
+        float(outstandingCount) / float(messageCount) * 100.0f + 0.5f));
     JournalFile::GuidVectorType::const_iterator guidIt =
         confirmedGUIDS.cbegin();
-    for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
-    }
-    expectedStream << confirmedGUIDS.size() << " message GUID(s) found."
-                   << bsl::endl;
-    const size_t messageCount     = k_NUM_RECORDS / 3;
-    const float  outstandingRatio = static_cast<float>(messageCount -
-                                                      confirmedGUIDS.size()) /
-                                   static_cast<float>(messageCount) * 100.0f;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << (messageCount - confirmedGUIDS.size()) << "/"
-                   << messageCount << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    Sequence s;
+    for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
+    }
+    EXPECT_CALL(*printer, printFooter(confirmedGUIDS.size())).InSequence(s);
+    EXPECT_CALL(
+        *printer,
+        printOutstandingRatio(OutstandingPrintBundle(messageCount,
+                                                     outstandingCount,
+                                                     outstandingRatio)))
+        .InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test7_searchPartiallyConfirmedMessagesTest()
@@ -570,38 +692,47 @@ static void test7_searchPartiallyConfirmedMessagesTest()
     // Configure parameters to search partially confirmed messages
     Parameters params(s_allocator_p);
     params.d_partiallyConfirmed = true;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
-    // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
+    const size_t messageCount     = (k_NUM_RECORDS + 2) / 3;
+    const size_t outstandingCount = partiallyConfirmedGUIDS.size() + 1;
+    const int    outstandingRatio = static_cast<int>(bsl::floor(
+        float(outstandingCount) / float(messageCount) * 100.0f + 0.5f));
     JournalFile::GuidVectorType::const_iterator guidIt =
         partiallyConfirmedGUIDS.cbegin();
-    for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
-    }
-    expectedStream << partiallyConfirmedGUIDS.size()
-                   << " message GUID(s) found." << bsl::endl;
-    const size_t messageCount     = (k_NUM_RECORDS + 2) / 3;
-    const float  outstandingRatio = static_cast<float>(
-                                       partiallyConfirmedGUIDS.size() + 1) /
-                                   static_cast<float>(messageCount) * 100.0f;
-    expectedStream << "Outstanding ratio: " << outstandingRatio << "% ("
-                   << partiallyConfirmedGUIDS.size() + 1 << "/" << messageCount
-                   << ")" << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    Sequence s;
+    for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
+    }
+    EXPECT_CALL(*printer, printFooter(partiallyConfirmedGUIDS.size()))
+        .InSequence(s);
+    EXPECT_CALL(
+        *printer,
+        printOutstandingRatio(OutstandingPrintBundle(messageCount,
+                                                     outstandingCount,
+                                                     outstandingRatio)))
+        .InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test8_searchMessagesByQueueKeyTest()
@@ -633,32 +764,36 @@ static void test8_searchMessagesByQueueKeyTest()
     // Configure parameters to search messages by queueKey1
     Parameters params(s_allocator_p);
     params.d_queueKey.push_back(queueKey1);
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
-    // Prepare expected output
-    bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
-    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
-    }
-    size_t foundMessagesCount = queueKey1GUIDS.size();
-    expectedStream << foundMessagesCount << " message GUID(s) found."
-                   << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    Sequence s;
+    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
+    }
+    EXPECT_CALL(*printer, printFooter(queueKey1GUIDS.size())).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test9_searchMessagesByQueueNameTest()
@@ -700,32 +835,37 @@ static void test9_searchMessagesByQueueNameTest()
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
 
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
     // Prepare expected output
     bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
-    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
-    }
-    size_t foundMessagesCount = queueKey1GUIDS.size();
-    expectedStream << foundMessagesCount << " message GUID(s) found."
-                   << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    Sequence s;
+    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
+    }
+    EXPECT_CALL(*printer, printFooter(queueKey1GUIDS.size())).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test10_searchMessagesByQueueNameAndQueueKeyTest()
@@ -771,32 +911,37 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     params.d_queueMap.insert(queueInfo);
     params.d_queueKey.push_back(queueKey2);
 
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
-    searchProcessor->process();
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
     // Prepare expected output
     bmqu::MemOutStream                          expectedStream(s_allocator_p);
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
-    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
-        outputGuidString(expectedStream, *guidIt);
-    }
-    size_t foundMessagesCount = queueKey1GUIDS.size();
-    expectedStream << foundMessagesCount << " message GUID(s) found."
-                   << bsl::endl;
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    Sequence s;
+    for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
+        EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
+    }
+    EXPECT_CALL(*printer, printFooter(queueKey1GUIDS.size())).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test11_searchMessagesByTimestamp()
@@ -824,42 +969,48 @@ static void test11_searchMessagesByTimestamp()
     Parameters params(s_allocator_p);
     params.d_timestampGt = ts1;
     params.d_timestampLt = ts2;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Get GUIDs of messages with matching timestamps and prepare expected
-    // output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
+    // Create command processor
+    bmqu::MemOutStream                  resultStream(s_allocator_p);
+    bslma::ManagedPtr<CommandProcessor> searchProcessor =
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
 
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
         records.begin();
     bsl::size_t msgCnt = 0;
+
+    Sequence s;
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
             const bsls::Types::Uint64& ts = msg.header().timestamp();
+            // Get GUIDs of messages with matching timestamps
             if (ts > ts1 && ts < ts2) {
-                outputGuidString(expectedStream, msg.messageGUID());
+                EXPECT_CALL(*printer, printGuid(msg.messageGUID()))
+                    .InSequence(s);
                 msgCnt++;
             }
         }
     }
-    expectedStream << msgCnt << " message GUID(s) found." << bsl::endl;
+    EXPECT_CALL(*printer, printFooter(msgCnt)).InSequence(s);
 
     // Run search
-    bmqu::MemOutStream                  resultStream(s_allocator_p);
-    bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
     searchProcessor->process();
-
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
 }
 
 static void test12_printMessagesDetailsTest()
@@ -894,54 +1045,34 @@ static void test12_printMessagesDetailsTest()
     // Configure parameters to print message details
     Parameters params(s_allocator_p);
     params.d_details = true;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create command processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+
+    DetailsChecker checker(confirmedGUIDS);
+    Sequence       s;
+    EXPECT_CALL(*printer, printMessage(_))
+        .InSequence(s)
+        .WillRepeatedly(Invoke(&checker, &DetailsChecker::checkDetails));
+    EXPECT_CALL(*printer, printFooter(5)).InSequence(s);
+
+    // Run search
     searchProcessor->process();
-
-    // Check that substrings are present in resultStream in correct order
-    bsl::string resultString(resultStream.str(), s_allocator_p);
-    size_t      startIdx             = 0;
-    const char* messageRecordCaption = "MESSAGE Record";
-    const char* confirmRecordCaption = "CONFIRM Record";
-    const char* deleteRecordCaption  = "DELETE Record";
-    for (size_t i = 0; i < confirmedGUIDS.size(); i++) {
-        // Check Message type
-        size_t foundIdx = resultString.find(messageRecordCaption, startIdx);
-        ASSERT_D(messageRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(messageRecordCaption, (foundIdx >= startIdx));
-        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
-
-        // Check GUID
-        bmqu::MemOutStream ss(s_allocator_p);
-        outputGuidString(ss, confirmedGUIDS.at(i));
-        bsl::string guidStr(ss.str(), s_allocator_p);
-        foundIdx = resultString.find(guidStr, startIdx);
-        ASSERT_D(guidStr, (foundIdx != bsl::string::npos));
-        ASSERT_D(guidStr, (foundIdx >= startIdx));
-        startIdx = foundIdx + guidStr.length();
-
-        // Check Confirm type
-        foundIdx = resultString.find(confirmRecordCaption, startIdx);
-        ASSERT_D(confirmRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(confirmRecordCaption, (foundIdx >= startIdx));
-        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
-
-        // Check Delete type
-        foundIdx = resultString.find(deleteRecordCaption, startIdx);
-        ASSERT_D(deleteRecordCaption, (foundIdx != bsl::string::npos));
-        ASSERT_D(deleteRecordCaption, (foundIdx >= startIdx));
-        startIdx = foundIdx + bsl::strlen(messageRecordCaption);
-    }
 }
 
 static void test13_searchMessagesWithPayloadDumpTest()
@@ -1102,29 +1233,36 @@ static void test14_summaryTest()
     // Configure parameters to output summary
     Parameters params(s_allocator_p);
     params.d_summary = true;
+
+    // Create printer mock
+    bsl::shared_ptr<PrinterMock> printer(new (*s_allocator_p) PrinterMock(),
+                                         s_allocator_p);
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*s_allocator_p) FileManagerMock(journalFile),
         s_allocator_p);
 
-    // Run search
+    // Create processor
     bmqu::MemOutStream                  resultStream(s_allocator_p);
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(&params,
-                                                        fileManager,
-                                                        resultStream,
-                                                        s_allocator_p);
+        createCommandProcessor(&params,
+                               printer,
+                               fileManager,
+                               resultStream,
+                               s_allocator_p);
+
+    Sequence s;
+    EXPECT_CALL(*printer, printFooter(5)).InSequence(s);
+    EXPECT_CALL(*printer, printSummary(5, 3, 2)).InSequence(s);
+    EXPECT_CALL(*printer,
+                printOutstandingRatio(OutstandingPrintBundle(5, 2, 40)))
+        .InSequence(s);
+    EXPECT_CALL(*printer, printJournalFileMeta).InSequence(s);
+    EXPECT_CALL(*printer, printDataFileMeta).InSequence(s);
+
+    // Run search
     searchProcessor->process();
-
-    // Prepare expected output
-    bmqu::MemOutStream expectedStream(s_allocator_p);
-    expectedStream
-        << "5 message(s) found.\nNumber of confirmed messages: 3\nNumber of "
-           "partially confirmed messages: 2\n"
-           "Number of outstanding messages: 2\nOutstanding ratio: 40% (2/5)\n";
-
-    bsl::string res(resultStream.str(), s_allocator_p);
-    ASSERT(res.starts_with(expectedStream.str()));
 }
 
 static void test15_timestampSearchTest()
@@ -1257,6 +1395,8 @@ static void test15_timestampSearchTest()
 
 int main(int argc, char* argv[])
 {
+    ::testing::GTEST_FLAG(throw_on_failure) = true;
+    ::testing::InitGoogleMock(&argc, argv);
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {

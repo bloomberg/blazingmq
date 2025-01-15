@@ -49,10 +49,29 @@ static void test1_breathingTest()
                                                    FileManagerMock(),
                                                s_allocator_p);
 
+    bslma::Allocator* alloc = bslma::Default::allocator(s_allocator_p);
+
+    // Create printer
+    bsl::shared_ptr<Printer> printer = createPrinter(params.d_printMode,
+                                                     bsl::cout,
+                                                     alloc);
+
+    // Create payload dumper
+    bslma::ManagedPtr<PayloadDumper> payloadDumper;
+    if (params.d_dumpPayload) {
+        payloadDumper.load(new (*alloc)
+                               PayloadDumper(bsl::cout,
+                                             fileManager->dataFileIterator(),
+                                             params.d_dumpLimit,
+                                             alloc),
+                           alloc);
+    }
+
     bsl::shared_ptr<SearchResult> searchResult =
         SearchResultFactory::createSearchResult(&params,
                                                 fileManager,
-                                                bsl::cout,
+                                                printer,
+                                                payloadDumper,
                                                 s_allocator_p);
     ASSERT(dynamic_cast<SearchResult*>(searchResult.get()) != 0);
 }
