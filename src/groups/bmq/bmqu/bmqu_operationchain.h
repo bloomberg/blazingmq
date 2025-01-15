@@ -192,7 +192,7 @@
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Thu Jan  9 16:44:32 2025
+// Generated on Tue Oct 15 17:39:53 2024
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
 #define COMPILING_BMQU_OPERATIONCHAIN_H
 #include <bmqu_operationchain_cpp03.h>
