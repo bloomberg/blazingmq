@@ -204,22 +204,6 @@ void outputFooter(bsl::ostream&                         ostream,
 // class SearchResult
 // ==================
 
-bool SearchResult::processQueueOpRecord(
-    BSLS_ANNOTATION_UNUSED const mqbs::QueueOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
-{
-    return false;
-}
-
-bool SearchResult::processJournalOpRecord(
-    BSLS_ANNOTATION_UNUSED const mqbs::JournalOpRecord& record,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
-{
-    return false;
-}
-
 SearchResult::~SearchResult()
 {
     // NOTHING
