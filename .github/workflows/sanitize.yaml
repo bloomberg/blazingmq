@@ -31,6 +31,6 @@ jobs:
           path: deps
           key: ${{ needs.get_dependencies.outputs.cache_key }}
       - name: Build [${{ matrix.mode }}]
-        run: ${{ github.workspace }}/.github/workflows/sanitizers/build_sanitizer.sh ${{ inputs.sanitizer-name }}
+        run: ${{ github.workspace }}/.github/workflows/sanitizers/build_sanitizer.sh ${{ matrix.mode }}
       - name: UT [c++,${{ matrix.mode }}]
         run: ${{ github.workspace }}/cmake.bld/Linux/run-unittests.sh
