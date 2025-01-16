@@ -341,13 +341,15 @@ void Ledger::closeAndCleanup(const LogSp& log)
 
     int rc = log->close();
     if (rc != LogOpResult::e_SUCCESS) {
-        BALL_LOG_ERROR << "Failed to close the log " << logPath;
+        BALL_LOG_ERROR << "Failed to close the log " << logPath
+                       << ", rc: " << rc;
         return;  // RETURN
     }
 
     rc = d_config.cleanupCallback()(logPath);
     if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to clean up the log " << logPath;
+        BALL_LOG_ERROR << "Failed to clean up the log " << logPath
+                       << ", rc: " << rc;
         return;  // RETURN
     }
 

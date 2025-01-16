@@ -28,7 +28,6 @@
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbnet_cluster.h>
-#include <mqbs_filestoreprintutil.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_storageutil.h>
 #include <mqbsi_log.h>
@@ -220,17 +219,17 @@ int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 
     const bsl::string& cluster = d_clusterData_p->cluster().name();
 
-    int rc = bdls::FilesystemUtil::remove(logPath);
+    const int rc = bdls::FilesystemUtil::remove(logPath);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << cluster << ": Failed to remove [" << logPath
-            << "] file during log file cleanup, rc: " << rc
+            << "] file during CSL file cleanup, rc: " << rc
             << BMQTSK_ALARMLOG_END;
-        return rc_REMOVE_FILE_FAILURE;
+        return rc_REMOVE_FILE_FAILURE;  // RETURN
     }
 
     BALL_LOG_INFO << cluster << ": Removed file [" << logPath
-                  << "] during log file cleanup";
+                  << "] during CSL file cleanup";
 
     return rc_SUCCESS;
 }
