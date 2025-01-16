@@ -361,7 +361,6 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
-, d_minRecordsPerQueue(arguments.d_minRecordsPerQueue)
 {
     // Set record types to process
     for (bsl::vector<bsl::string>::const_iterator cit =
@@ -426,6 +425,16 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             seqNum.fromString(&success, errorDescr, *cit);
             d_seqNum.push_back(seqNum);
         }
+    }
+
+    if (arguments.d_minRecordsPerQueue > 0) {
+        // Use the provided value if records limit is not default and is valid
+        d_minRecordsPerQueue = arguments.d_minRecordsPerQueue;
+    }
+    else {
+        // Disable output of detailed information, setting the minimum
+        // threshold to max Unit64
+        d_minRecordsPerQueue = bsl::numeric_limits<bsls::Types::Uint64>::max();
     }
 }
 
