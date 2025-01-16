@@ -1361,9 +1361,6 @@ bool SummaryProcessor::processJournalOpRecord(
 
 void SummaryProcessor::outputResult()
 {
-    // Check if queueInfo is present for queue key
-    bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
-
     if (d_processRecordTypes.d_message) {
         if (d_foundMessagesCount == 0) {
             d_ostream << "No messages found." << '\n';
@@ -1433,6 +1430,9 @@ void SummaryProcessor::outputResult()
         }
 
         const mqbu::StorageKey& queueKey = it->first;
+
+        // Check if queueInfo is present for queue key
+        bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
 
         // Get queue information contained in CSL file
         const bool queueInfoPresent = d_queueMap.findInfoByKey(&queueInfo,
