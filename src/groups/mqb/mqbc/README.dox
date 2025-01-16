@@ -1,0 +1,9 @@
+/**
+@dir mqbc
+
+@brief The `MQBC` (BlazingMQ Broker Cluster) package provide
+       definitions and implementations for cluster-related components.
+
+[!INTERNAL!] This package provides definitions and implementations for
+cluster-related components.
+*/
