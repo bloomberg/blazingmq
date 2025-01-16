@@ -1278,7 +1278,7 @@ bool SummaryProcessor::processMessageRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    updateTotalRecordsCounter();
+    d_totalRecordsCount++;
 
     d_notConfirmedGuids.emplace(record.messageGUID());
     d_foundMessagesCount++;
@@ -1294,7 +1294,7 @@ bool SummaryProcessor::processConfirmRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    updateTotalRecordsCounter();
+    d_totalRecordsCount++;
 
     GuidsSet::iterator it = d_notConfirmedGuids.find(record.messageGUID());
     if (it != d_notConfirmedGuids.end()) {
@@ -1316,7 +1316,7 @@ bool SummaryProcessor::processDeletionRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    updateTotalRecordsCounter();
+    d_totalRecordsCount++;
 
     GuidsSet::iterator it = d_partiallyConfirmedGuids.find(
         record.messageGUID());
@@ -1337,7 +1337,7 @@ bool SummaryProcessor::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    updateTotalRecordsCounter();
+    d_totalRecordsCount++;
 
     d_queueOpRecordsCount++;
     d_queueOpCountsMap[record.type()]++;
@@ -1352,7 +1352,7 @@ bool SummaryProcessor::processJournalOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    updateTotalRecordsCounter();
+    d_totalRecordsCount++;
 
     d_journalOpRecordsCount++;
 
