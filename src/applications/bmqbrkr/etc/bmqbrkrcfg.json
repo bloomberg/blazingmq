@@ -1,6 +1,6 @@
 {
     "taskConfig": {
-        "allocatorType": "STACKTRACETEST",
+        "allocatorType": "COUNTING",
         "allocationLimit": 34359738368,
         "logController": {
             "fileName": "localBMQ/logs/logs.%T.%p",
