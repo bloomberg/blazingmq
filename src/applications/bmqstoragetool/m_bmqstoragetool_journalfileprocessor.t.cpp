@@ -175,7 +175,7 @@ Parameters createTestParameters()
     params.d_processRecordTypes.d_message = true;
 
     return params;
-};
+}
 
 }  // close unnamed namespace
 
