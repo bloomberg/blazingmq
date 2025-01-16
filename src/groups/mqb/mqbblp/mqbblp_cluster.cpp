@@ -3665,65 +3665,61 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
         storageResult.clusterStorageSummary();
 }
 
-int Cluster::gcQueueOnDomain(mqbcmd::ClusterResult* result,
-                             const bsl::string&     domainName)
+void Cluster::purgeAndGCQueueOnDomain(mqbcmd::ClusterResult* result,
+                                      const bsl::string&     domainName)
 {
     // exected by *ANY* thread
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&Cluster::gcQueueOnDomainDispatched,
+        bdlf::BindUtil::bind(&Cluster::purgeAndGCQueueOnDomainDispatched,
                              this,
                              result,
                              domainName),
         this);
 
     dispatcher()->synchronize(this);
-
-    return 0;
 }
 
-void Cluster::gcQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
-                                        const bsl::string&     domainName)
+void Cluster::purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
+                                                const bsl::string& domainName)
 {
     // executed by the *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
 
-    // 'true' implies immediate
+    // Check if there's any live connection to a queue
+    if (d_clusterOrchestrator.queueHelper().hasActiveQueue(domainName)) {
+        BALL_LOG_ERROR << "Trying to remove the domain '" << domainName
+                       << "' while there are queues opened or opening";
+        result->makeError().message() =
+            "Trying to remove the domain '" + domainName +
+            "' while there are queues opened or opening";
+        return;  // RETURN
+    }
+
+    // Purge queues on the given domain
+    mqbcmd::StorageResult storageResult;
+    d_storageManager_mp->purgeQueueOnDomain(&storageResult, domainName);
+    result->makeStorageResult(storageResult);
+
+    if (result->isErrorValue()) {
+        result->makeError(result->error());
+        return;  // RETURN
+    }
+
+    // GC queues on the given domain
     const int rc =
         d_clusterOrchestrator.queueHelper().gcExpiredQueues(true, domainName);
     if (rc == -1 || rc == -3) {
         // TBD: We allow the node to not be an active primary for *any*
         // partition; this has to be changed once we allow leader != primary
-        BALL_LOG_ERROR << "Failed to execute force GC queues command (rc: "
-                       << rc << ")";
-        result->makeError().message() = "Failed to execute command (rc: " +
-                                        bsl::to_string(rc) + ")";
+        BALL_LOG_ERROR << "Failed to force GC queues on domain '" << domainName
+                       << "' (rc: " << rc << ")";
+        result->makeError().message() =
+            "Failed to force GC queues on domain '" + domainName +
+            "' (rc: " + bsl::to_string(rc) + ")";
     }
-    else {
-        // Otherwise the command succeeded.
-        result->makeSuccess();
-    }
-}
-
-void Cluster::purgeQueueOnDomain(mqbcmd::ClusterResult* result,
-                                 const bsl::string&     domainName)
-{
-    // exected by *ANY* thread
-
-    mqbcmd::StorageResult storageResult;
-
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&mqbi::StorageManager::purgeQueueOnDomain,
-                             d_storageManager_mp.get(),
-                             &storageResult,
-                             domainName),
-        this);
-
-    dispatcher()->synchronize(this);
-
-    result->makeStorageResult(storageResult);
 }
 
 void Cluster::printClusterStateSummary(bsl::ostream& out,

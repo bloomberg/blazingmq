@@ -185,13 +185,6 @@ class Domain {
     virtual int processCommand(mqbcmd::DomainResult*        result,
                                const mqbcmd::DomainCommand& command) = 0;
 
-    /// Mark the state of domain to be PREREMOVE
-    virtual void removeDomainReset() = 0;
-
-    /// Mark the state of domain to be POSTREMOVE,
-    /// indicating the first round of DOMAINS REMOVE is completed
-    virtual void removeDomainComplete() = 0;
-
     // ACCESSORS
 
     /// Load into the specified `out` the queue corresponding to the
@@ -229,8 +222,8 @@ class Domain {
         bmqp_ctrlmsg::RoutingConfiguration* config) const = 0;
 
     /// Check the state of the queues in this domain, return false if there's
-    /// queues opened or opening.
-    virtual bool tryRemove() const = 0;
+    /// queues opened or opening, or if the domain is closed or closing.
+    virtual bool tryRemove() = 0;
 
     /// Check the state of the domain, return true if the first round
     /// of DOMAINS REMOVE is completed

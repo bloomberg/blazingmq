@@ -1089,6 +1089,8 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     int gcExpiredQueues(bool               immediate  = false,
                         const bsl::string& domainName = "");
 
+    bool hasActiveQueue(const bsl::string& domainName);
+
     /// Start executing multi-step processing of StopRequest or CLOSING node
     /// advisory received from the specified `clusterNode`.   In the case of
     /// StopRequest the specified `request` references the request; in the

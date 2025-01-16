@@ -155,16 +155,6 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     return -1;
 }
 
-void Domain::removeDomainReset()
-{
-    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
-}
-
-void Domain::removeDomainComplete()
-{
-    BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
-}
-
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
 {
@@ -236,7 +226,7 @@ void Domain::loadRoutingConfiguration(
     // NOTHING
 }
 
-bool Domain::tryRemove() const
+bool Domain::tryRemove()
 {
     BSLS_ASSERT_SAFE(false && "NOT IMPLEMENTED!");
     return true;
