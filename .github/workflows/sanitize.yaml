@@ -1,9 +1,6 @@
 name: Sanitize
 
 on:
-  pull_request: # todo: remove
-    branches:
-      - main
   pull_request_review:
     types: [submitted]
 
