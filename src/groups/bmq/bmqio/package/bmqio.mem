@@ -1,4 +1,5 @@
 bmqio_basechannelpartialimp
+bmqio_certificatestore
 bmqio_channel
 bmqio_channelfactory
 bmqio_channelutil

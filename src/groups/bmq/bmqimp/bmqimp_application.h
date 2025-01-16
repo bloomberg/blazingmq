@@ -35,13 +35,13 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_sessionoptions.h>
 
+#include <bmqio_certificatestore.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_ntcchannelfactory.h>
@@ -88,6 +88,59 @@ class Application {
     typedef bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle>
         ChannelFactoryOpHandleMp;
 
+    class ChannelFactoryPipeline : public bmqio::ChannelFactory {
+      public:
+        BSLMF_NESTED_TRAIT_DECLARATION(ChannelFactoryPipeline,
+                                       bslma::UsesBslmaAllocator)
+
+      private:
+        bslma::Allocator*                 d_allocator_p;
+        bmqio::NtcChannelFactory          d_channelFactory;
+        bmqio::ResolvingChannelFactory    d_resolvingChannelFactory;
+        bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
+        bmqio::StatChannelFactory         d_statChannelFactory;
+        NegotiatedChannelFactory          d_negotiatedChannelFactory;
+
+      public:
+        // CREATORS
+
+        /// @brief Initialize the channel factory pipeline that this client
+        /// session will use for creating channels.
+        ChannelFactoryPipeline(
+            const bmqt::SessionOptions& sessionOptions,
+            bdlbb::BlobBufferFactory*   blobBufferFactory,
+            bdlmt::EventScheduler*      scheduler,
+            const bmqio::StatChannelFactoryConfig::StatContextCreatorFn&
+                                                    statContextCreator,
+            const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
+            BlobSpPool*                             blobSpPool,
+            bslma::Allocator*                       allocator = 0);
+
+        // ACCESSORS
+
+        /// @brief Returns this object's allocator
+        inline bslma::Allocator* allocator() const { return d_allocator_p; }
+
+        // MANIPULATORS
+
+        /// @brief Enable the creation TLS channels from this pipeline.
+        int configureTls(const bsl::string& caPath);
+
+        void listen(bmqio::Status*               status,
+                    bslma::ManagedPtr<OpHandle>* handle,
+                    const bmqio::ListenOptions&  options,
+                    const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+        void connect(bmqio::Status*               status,
+                     bslma::ManagedPtr<OpHandle>* handle,
+                     const bmqio::ConnectOptions& options,
+                     const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
+
+        int start();
+
+        void stop();
+    };
+
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQIMP.APPLICATION");
 
@@ -125,15 +178,7 @@ class Application {
     bdlmt::EventScheduler d_scheduler;
     // Scheduler
 
-    bmqio::NtcChannelFactory d_channelFactory;
-
-    bmqio::ResolvingChannelFactory d_resolvingChannelFactory;
-
-    bmqio::ReconnectingChannelFactory d_reconnectingChannelFactory;
-
-    bmqio::StatChannelFactory d_statChannelFactory;
-
-    NegotiatedChannelFactory d_negotiatedChannelFactory;
+    ChannelFactoryPipeline d_channelFactoryPipeline;
 
     ChannelFactoryOpHandleMp d_connectHandle_mp;
 
@@ -158,6 +203,11 @@ class Application {
     // HiRes timer value of the last time
     // the snapshot was performed on the
     // Counting Allocators context
+
+    // todo review NTC symbols exposed here
+    // bmqio::CertificateStore d_certificateStore;
+
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient_sp;
 
   private:
     // PRIVATE MANIPULATORS
@@ -199,6 +249,9 @@ class Application {
     /// specified `isFinal` is true, printed stats do not include the delta
     /// values.
     void printStats(bool isFinal);
+
+    int loadTlsConfig(bmqio::NtcChannelFactory* channelFactory,
+                      const bsl::string&        caPath);
 
     /// To be invoked when the session is being started, in order to setup
     /// the network channel.

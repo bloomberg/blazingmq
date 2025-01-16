@@ -37,6 +37,7 @@
 // NTF
 #include <ntca_interfaceconfig.h>
 #include <ntci_interface.h>
+#include <ntci_upgradecallback.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -106,16 +107,18 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     };
 
     // INSTANCE DATA
-    bsl::shared_ptr<ntci::Interface> d_interface_sp;
-    ListenerCatalog                  d_listeners;
-    ChannelCatalog                   d_channels;
-    bdlmt::Signaler<CreateFnType>    d_createSignaler;
-    bdlmt::Signaler<LimitFnType>     d_limitSignaler;
-    bool                             d_owned;
-    bslmt::Mutex                     d_stateMutex;
-    bslmt::Condition                 d_stateCondition;
-    State                            d_state;
-    bslma::Allocator*                d_allocator_p;
+    bsl::shared_ptr<ntci::Interface>        d_interface_sp;
+    ListenerCatalog                         d_listeners;
+    ChannelCatalog                          d_channels;
+    bdlmt::Signaler<CreateFnType>           d_createSignaler;
+    bdlmt::Signaler<LimitFnType>            d_limitSignaler;
+    bool                                    d_owned;
+    bslmt::Mutex                            d_stateMutex;
+    bslmt::Condition                        d_stateCondition;
+    State                                   d_state;
+    bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer;
+    bsl::shared_ptr<ntci::EncryptionClient> d_encryptionClient;
+    bslma::Allocator*                       d_allocator_p;
 
   private:
     // NOT IMPLEMENTED
@@ -149,6 +152,14 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// Process the closure of the listener identified by the specified
     /// `handle`.
     void processChannelClosed(int handle);
+
+    /// Process a TLS upgrade
+    void processUpgrade(bmqio::ChannelFactoryEvent::Enum          event,
+                        const bmqio::Status&                      status,
+                        const bsl::shared_ptr<bmqio::NtcChannel>& channel,
+                        const bsl::shared_ptr<ntci::Upgradable>&  upgradable,
+                        const ntca::UpgradeEvent&                 upgradeEvent,
+                        const bmqio::ChannelFactory::ResultCallback& callback);
 
   public:
     // PUBLIC TYPES
@@ -245,6 +256,27 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// during the execution of this function will be included.
     template <typename VISITOR>
     void visitChannels(VISITOR& visitor);
+
+    /// @brief Set the factory's encryption server.
+    ///
+    /// Load into the specified `result` a new encryption server with the
+    /// specified `options`. Optionally specify a `basicAllocator` used to
+    /// supply memory. Return the error.
+    NtcChannelFactory& setEncryptionServer(
+        const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer);
+    ntsa::Error
+    configureEncryptionServer(const ntca::EncryptionServerOptions& options);
+
+    /// @brief Create an encryption server using this channel factory's
+    /// interface.
+    ///
+    /// Load into the specified `result` a new encryption client with the
+    /// specified `options`. Optionally specify a `basicAllocator` used to
+    /// supply memory. Return the error.
+    NtcChannelFactory& setEncryptionClient(
+        const bsl::shared_ptr<ntci::EncryptionClient>& encryptionServer);
+    ntsa::Error
+    configureEncryptionClient(const ntca::EncryptionClientOptions& options);
 };
 
 // ============================

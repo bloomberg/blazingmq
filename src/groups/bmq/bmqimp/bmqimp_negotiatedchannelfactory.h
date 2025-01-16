@@ -50,6 +50,15 @@
 
 namespace BloombergLP {
 
+namespace ntca {
+class UpgradeEvent;
+}
+
+namespace ntci {
+class Upgradable;
+class EncryptionClient;
+}
+
 namespace bmqimp {
 
 // ====================================
@@ -61,6 +70,10 @@ class NegotiatedChannelFactoryConfig {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    // #review: docs
+    typedef bsl::function<void(const bsl::shared_ptr<bmqio::Channel>& channel,
+                               const bsl::function<void(void)>&       cb)>
+        TlsUpgradeCallback;
 
   private:
     // PRIVATE DATA
@@ -79,6 +92,12 @@ class NegotiatedChannelFactoryConfig {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
+
+    /// @brief Create a configuration for building a NegotiatedChannelFactory.
+    /// If certificateAuthority is empty, a TLS session will not be created.
+    ///
+    /// @pre base != NULL
+    /// @pre bufferFactory != NULL
     NegotiatedChannelFactoryConfig(
         bmqio::ChannelFactory*                  base,
         const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage,
@@ -89,6 +108,9 @@ class NegotiatedChannelFactoryConfig {
     NegotiatedChannelFactoryConfig(
         const NegotiatedChannelFactoryConfig& original,
         bslma::Allocator*                     basicAllocator = 0);
+
+    // ACCESSORS
+    bslma::Allocator* allocator() const;
 };
 
 // ==============================
@@ -162,6 +184,9 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
     ~NegotiatedChannelFactory() BSLS_KEYWORD_OVERRIDE;
 
   public:
+    // ACCESSORS
+    bslma::Allocator* allocator() const;
+
     // MANIPULATORS
     void listen(bmqio::Status*               status,
                 bslma::ManagedPtr<OpHandle>* handle,
@@ -173,6 +198,28 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
                  const bmqio::ConnectOptions& options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// ====================================
+// class NegotiatedChannelFactoryConfig
+// ====================================
+
+inline bslma::Allocator* NegotiatedChannelFactoryConfig::allocator() const
+{
+    return d_allocator_p;
+}
+
+// ==============================
+// class NegotiatedChannelFactory
+// ==============================
+
+inline bslma::Allocator* NegotiatedChannelFactory::allocator() const
+{
+    return d_config.allocator();
+}
 
 }  // close package namespace
 }  // close enterprise namespace

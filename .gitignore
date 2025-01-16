@@ -35,3 +35,5 @@ src/applications/bmqbrkr/etc/etc
 
 # 'sim_cpp11_features.pl' backups
 *.bak
+/venv
+ 

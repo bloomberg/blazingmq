@@ -28,9 +28,9 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 4.8.0.0
-    fetch_git bloomberg bde 4.8.0.0
-    fetch_git bloomberg ntf-core 2.4.2
+    fetch_git bloomberg bde-tools 4.13.0.0
+    fetch_git bloomberg bde 4.18.0.0
+    fetch_git bloomberg ntf-core 2.5.4
 }
 
 configure() {
