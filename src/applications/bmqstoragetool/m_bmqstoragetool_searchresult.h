@@ -915,7 +915,7 @@ class SummaryProcessor : public SearchResult {
     // message and no delete message associated with them.
 
     bsls::Types::Uint64 d_totalRecordsCount;
-    // Counter of total number of records.
+    // The total number of records.
 
     QueueRecordsMap d_queueRecordsMap;
     // Map containing counts per record type which are not processed by default
