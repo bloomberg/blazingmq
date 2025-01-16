@@ -20,6 +20,10 @@
 // MQB
 #include <mqbsi_ledger.h>
 
+// BMQ
+#include <bmqsys_time.h>
+#include <bmqu_printutil.h>
+
 // BDE
 #include <ball_log.h>
 #include <bdlb_scopeexit.h>
@@ -275,16 +279,12 @@ int Ledger::rollOver()
         return rc;  // RETURN
     }
 
-    // If not keeping old logs, close the log and invoke the cleanup callback
+    // If not keeping old logs, enqueue an event in the scheduler thread
+    // to be executed right away to close and cleanup the log file.
     if (!d_config.keepOldLogs()) {
-        rc = lastLog->close();
-        if (rc != LogOpResult::e_SUCCESS) {
-            return rc * 100 + LedgerOpResult::e_LOG_CLOSE_FAILURE;  // RETURN
-        }
-        rc = d_config.cleanupCallback()(lastLog->logConfig().location());
-        if (rc != 0) {
-            return LedgerOpResult::e_LOG_CLEANUP_FAILURE;  // RETURN
-        }
+        d_config.scheduler()->scheduleEvent(
+            bmqsys::Time::nowMonotonicClock(),
+            bdlf::BindUtil::bind(&Ledger::closeAndCleanup, this, lastLog));
     }
 
     return LedgerOpResult::e_SUCCESS;
@@ -332,6 +332,31 @@ int Ledger::writeRecordImpl(LedgerRecordId* recordId,
     d_totalNumBytes += currLog->totalNumBytes() - oldNumBytes;
 
     return LedgerOpResult::e_SUCCESS;
+}
+
+void Ledger::closeAndCleanup(const LogSp& log)
+{
+    const bsls::Types::Int64 start   = bmqsys::Time::highResolutionTimer();
+    const bsl::string&       logPath = log->logConfig().location();
+
+    int rc = log->close();
+    if (rc != LogOpResult::e_SUCCESS) {
+        BALL_LOG_ERROR << "Failed to close the log " << logPath
+                       << ", rc: " << rc;
+        return;  // RETURN
+    }
+
+    rc = d_config.cleanupCallback()(logPath);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to clean up the log " << logPath
+                       << ", rc: " << rc;
+        return;  // RETURN
+    }
+
+    const bsls::Types::Int64 end = bmqsys::Time::highResolutionTimer();
+
+    BALL_LOG_INFO << "Log closed and cleaned up. Time taken: "
+                  << bmqu::PrintUtil::prettyTimeInterval(end - start);
 }
 
 // CREATORS
