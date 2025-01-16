@@ -944,7 +944,7 @@ class SummaryProcessor : public SearchResult {
     // PRIVATE MANIPULATORS
 
     void updateTotalRecordsCounter();
-    // Update total recrods counter
+    // Update total records counter
 
   public:
     // CREATORS
