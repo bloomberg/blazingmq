@@ -1,4 +1,4 @@
-name: Sanitize with AddressSanitizer, MemorySanitizer, ThreadSanitizer and UndefinedBehaviorSanitizer.
+name: Sanitize
 
 on:
   pull_request_review:
