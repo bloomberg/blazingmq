@@ -165,14 +165,28 @@ void outputGuidString(bsl::ostream&            ostream,
         ostream << bsl::endl;
 }
 
+enum ProcessRecordTypeFlags {
+    /// Do not process any record types
+    e_EMPTY = 0,
+
+    /// Enable processing of message records
+    e_MESSAGE = 1,
+    /// Enable processing of Queue Op records
+    e_QUEUE_OP = 2,
+    /// Enable processing of Journal Op records
+    e_JOURNAL_OP = 4
+};
+
 /// Helper function to instantiate test Parameters
-Parameters createTestParameters()
+Parameters createTestParameters(int flags = e_MESSAGE)
 {
     Parameters params(
         CommandLineArguments(bmqtst::TestHelperUtil::allocator()),
         bmqtst::TestHelperUtil::allocator());
 
-    params.d_processRecordTypes.d_message = true;
+    params.d_processRecordTypes.d_message   = flags & e_MESSAGE;
+    params.d_processRecordTypes.d_queueOp   = flags & e_QUEUE_OP;
+    params.d_processRecordTypes.d_journalOp = flags & e_JOURNAL_OP;
 
     return params;
 }
@@ -1678,12 +1692,10 @@ static void test19_searchQueueOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search queueOp records by offsets
-    Parameters params = createTestParameters();
+    Parameters params = createTestParameters(e_QUEUE_OP);
 
-    params.d_processRecordTypes.d_message = false;
-    params.d_processRecordTypes.d_queueOp = true;
-    params.d_range.d_offsetGt             = offsetGt;
-    params.d_range.d_offsetLt             = offsetLt;
+    params.d_range.d_offsetGt = offsetGt;
+    params.d_range.d_offsetLt = offsetLt;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1756,12 +1768,10 @@ static void test20_searchJournalOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params = createTestParameters();
+    Parameters params = createTestParameters(e_JOURNAL_OP);
 
-    params.d_processRecordTypes.d_message   = false;
-    params.d_processRecordTypes.d_journalOp = true;
-    params.d_range.d_offsetGt               = offsetGt;
-    params.d_range.d_offsetLt               = offsetLt;
+    params.d_range.d_offsetGt = offsetGt;
+    params.d_range.d_offsetLt = offsetLt;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -1834,13 +1844,11 @@ static void test21_searchAllTypesRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params = createTestParameters();
+    Parameters params = createTestParameters(e_MESSAGE | e_QUEUE_OP |
+                                             e_JOURNAL_OP);
 
-    params.d_processRecordTypes.d_message   = true;
-    params.d_processRecordTypes.d_queueOp   = true;
-    params.d_processRecordTypes.d_journalOp = true;
-    params.d_range.d_offsetGt               = offsetGt;
-    params.d_range.d_offsetLt               = offsetLt;
+    params.d_range.d_offsetGt = offsetGt;
+    params.d_range.d_offsetLt = offsetLt;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1934,10 +1942,7 @@ static void test22_searchQueueOpRecordsByOffset()
     const size_t k_HEADER_OFFSET = sizeof(mqbs::FileHeader) / 2;
 
     // Configure parameters to search queueOp records
-    Parameters params = createTestParameters();
-
-    params.d_processRecordTypes.d_message = false;
-    params.d_processRecordTypes.d_queueOp = true;
+    Parameters params = createTestParameters(e_QUEUE_OP);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -2008,10 +2013,7 @@ static void test23_searchJournalOpRecordsBySeqNumber()
     journalFile.addAllTypesRecords(&records);
 
     // Configure parameters to search journalOp
-    Parameters params = createTestParameters();
-
-    params.d_processRecordTypes.d_message   = false;
-    params.d_processRecordTypes.d_journalOp = true;
+    Parameters params = createTestParameters(e_JOURNAL_OP);
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -2088,8 +2090,6 @@ static void test24_summaryWithQueueDetailsTest()
 
     params.d_summary            = true;
     params.d_minRecordsPerQueue = 0;
-
-    params.d_processRecordTypes.d_message = true;
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
