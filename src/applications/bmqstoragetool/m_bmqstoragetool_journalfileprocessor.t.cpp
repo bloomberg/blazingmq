@@ -958,12 +958,6 @@ static void test12_printMessagesDetailsTest()
 {
     bmqtst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
 
-#if defined(BSLS_PLATFORM_OS_SOLARIS)
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test until we can debug
-    // it on Solaris
-#endif
-
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
@@ -2138,6 +2132,12 @@ static void test24_summaryWithQueueDetailsTest()
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+
+#if defined(BSLS_PLATFORM_OS_SOLARIS)
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+    // Disable default allocator check for this test until we can debug
+    // it on Solaris
+#endif
 
     switch (_testCase) {
     case 0:
