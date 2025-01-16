@@ -17,38 +17,35 @@
 #ifndef INCLUDED_MQBBLP_CLUSTERPROXY
 #define INCLUDED_MQBBLP_CLUSTERPROXY
 
-//@PURPOSE: Provide a proxy-like mechanism to communicate with a BlazingMQ
-//          cluster.
-//
-//@CLASSES:
-//  mqbblp::ClusterProxy : proxy-like mechanism for cluster communication
-//
-//@DESCRIPTION: 'mqbblp::ClusterProxy' represent a session with a cluster, used
-// in the remote proxy: it abstracts the communication with the cluster by
-// using one of the nodes (using the 'mqbnet::ClusterNodeActiveManager' to
-// select it).  This object uses an underlying 'mqbnet::Cluster' object to
-// communicate with the cluster.  At any point, one of the node of the cluster
-// (with preference for a node in the same Data Center as this broker is picked
-// and used for communication.  When that node goes down, a new node is
-// selected and everything is resumed in a seamless manner.
-//
-/// TBD:
-///----
-// This current design may lead to uneven distribution: considering a typical
-// cluster of 4 nodes, 2 in each data center, bouncing during the week-end.
-// When the first Cluster node bounce, all proxy brokers will connect to the
-// other node and reopen their queues at the same time; then when that node
-// bounce itself, all proxies will use the first node, which will keep all this
-// load.  Then only the new connections will 'randomly' evenly use one or
-// another node.  We may need to implement some dynamic load balancing where a
-// cluster node could ask a proxy to 'go away' to the other node.
-//
-/// Thread Safety
-///-------------
-//
+/// @file mqbblp_clusterproxy.h
+///
+/// @brief Provide a proxy-like mechanism to communicate with a BlazingMQ
+/// cluster.
+///
+/// @bbref{mqbblp::ClusterProxy} represent a session with a cluster, used in
+/// the remote proxy: it abstracts the communication with the cluster by using
+/// one of the nodes (using the @bbref{mqbnet::ClusterNodeActiveManager} to
+/// select it).  This object uses an underlying @bbref{mqbnet::Cluster} object
+/// to communicate with the cluster.  At any point, one of the node of the
+/// cluster (with preference for a node in the same Data Center as this broker
+/// is picked and used for communication.  When that node goes down, a new node
+/// is selected and everything is resumed in a seamless manner.
+///
+/// @todo This current design may lead to uneven distribution: considering a
+/// typical cluster of 4 nodes, 2 in each data center, bouncing during the
+/// week-end.  When the first Cluster node bounce, all proxy brokers will
+/// connect to the other node and reopen their queues at the same time; then
+/// when that node bounce itself, all proxies will use the first node, which
+/// will keep all this load.  Then only the new connections will 'randomly'
+/// evenly use one or another node.  We may need to implement some dynamic load
+/// balancing where a cluster node could ask a proxy to 'go away' to the other
+/// node.
+///
+/// Thread Safety                                 {#mqbblp_clusterproxy_thread}
+/// =============
+///
 
 // MQB
-
 #include <mqbblp_clusterqueuehelper.h>
 #include <mqbblp_clusterstatemonitor.h>
 #include <mqbc_clusterdata.h>
@@ -136,15 +133,17 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
 
     class ChannelBuffer {
         bsl::deque<bdlbb::Blob> d_queue;
-        bsls::Types::Int64      d_queueBytes;
-        // Bytes sum of all blobs pending in
-        // the 'd_channelBufferQueue'.
+
+        /// Bytes sum of all blobs pending in the `d_channelBufferQueue`.
+        bsls::Types::Int64 d_queueBytes;
+
       private:
         // NOT IMPLEMENTED
+
+        /// Copy construction is not permitted on this object.
         ChannelBuffer(const ChannelBuffer&) BSLS_KEYWORD_DELETED;
+        /// Copy assignment is not permitted on this object.
         ChannelBuffer& operator=(const ChannelBuffer&) BSLS_KEYWORD_DELETED;
-        // Copy constructor and assignment operation are not permitted on this
-        // object.
 
       public:
         // CREATORS
@@ -197,63 +196,54 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
         StopRequestCompletionCallback;
 
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Flag to indicate start/stop status.  This flag is used only inside this
+    /// component.
     bool d_isStarted;
-    // Flag to indicate start/stop
-    // status. This flag is used only
-    // inside this component.
 
+    /// Flag to indicate if this cluster is stopping.  This flag is exposed via
+    /// an accessor.
     bool d_isStopping;
-    // Flag to indicate if this cluster is
-    // stopping.  This flag is exposed via
-    // an accessor.
 
+    /// The transient data associated with the cluster.
     mqbc::ClusterData d_clusterData;
-    // The transient data associated with
-    // the cluster
 
+    /// Persistent state of the cluster.
     mqbc::ClusterState d_state;
-    // Persistent state of the cluster
 
+    /// Manager of the active node.
     mqbnet::ClusterActiveNodeManager d_activeNodeManager;
-    // Manager of the active node
 
+    /// Helper for queue management.
     ClusterQueueHelper d_queueHelper;
-    // Helper for queue management
 
+    /// Map of node to associated stat context.
     NodeStatsMap d_nodeStatsMap;
-    // Map of node to associated stat
-    // context.
 
+    /// Throttling parameters for failed ACK messages.
     bmqu::ThrottledActionParams d_throttledFailedAckMessages;
-    // Throttling parameters for failed ACK
-    // messages.
 
+    /// Throttling parameters for skipped PUT messages.
     bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
-    // Throttling parameters for skipped
-    // PUT messages.
 
+    /// Cluster state monitor.
     ClusterStateMonitor d_clusterMonitor;
-    // Cluster state monitor
 
+    /// Scheduler event handle for the initial `active` node selection (see
+    /// `ClusterActiveNodeManager` documentation).
     bdlmt::EventScheduler::EventHandle d_activeNodeLookupEventHandle;
-    // Scheduler event handle for the
-    // initial 'active' node selection (see
-    // 'ClusterActiveNodeManager'
-    // documentation).
 
+    /// Mechanism used for the `ClusterProxy` graceful shutdown to serialize
+    /// execution of the shutdown callbacks from the client sessions.
     bmqu::OperationChain d_shutdownChain;
-    // Mechanism used for the ClusterProxy
-    // graceful shutdown to serialize
-    // execution of the shutdown callbacks
-    // from the client sessions.
 
-    // Should be part of 'ClusterResources'
+    /// Request manager to send stop requests to connected proxies.
+    ///
+    /// @note Should be part of `ClusterResources`.
     StopRequestManagerType* d_stopRequestsManager_p;
-    // Request manager to send stop
-    // requests to connected proxies.
 
   private:
     // PRIVATE MANIPULATORS
@@ -354,8 +344,8 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// used by this cluster.
     RequestManagerType& requestManager() BSLS_KEYWORD_OVERRIDE;
 
-    // Return a reference offering modifiable access to the multi request
-    // manager used by this cluster.
+    /// Return a reference offering modifiable access to the multi request
+    /// manager used by this cluster.
     MultiRequestManagerType& multiRequestManager() BSLS_KEYWORD_OVERRIDE;
 
     /// Send the specified `request` with the specified `timeout` to the
@@ -627,15 +617,15 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
                                   int           spacesPerLevel = 0) const
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a pointer to cluster proxy config if this @bbref{mqbi::Cluster}
+    /// represents a proxy, otherwise null.
     const mqbcfg::ClusterDefinition*
     clusterConfig() const BSLS_KEYWORD_OVERRIDE;
-    // Returns a pointer to cluster config if this `mqbi::Cluster`
-    // represents a cluster, otherwise null.
 
+    /// Return a pointer to cluster proxy config if this @bbref{mqbi::Cluster}
+    /// represents a proxy, otherwise null.
     const mqbcfg::ClusterProxyDefinition*
     clusterProxyConfig() const BSLS_KEYWORD_OVERRIDE;
-    // Returns a pointer to cluster proxy config if this `mqbi::Cluster`
-    // represents a proxy, otherwise null.
 
     // ACCESSORS
     //   (virtual: mqbi::DispatcherClient)
@@ -643,9 +633,9 @@ class ClusterProxy : public mqbc::ClusterStateObserver,
     /// Return a pointer to the dispatcher this client is associated with.
     const mqbi::Dispatcher* dispatcher() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference to the dispatcherClientData.
     const mqbi::DispatcherClientData&
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
-    // Return a reference to the dispatcherClientData.
 
     /// Return a printable description of the client (e.g. for logging).
     const bsl::string& description() const BSLS_KEYWORD_OVERRIDE;

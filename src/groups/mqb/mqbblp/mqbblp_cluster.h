@@ -17,19 +17,16 @@
 #ifndef INCLUDED_MQBBLP_CLUSTER
 #define INCLUDED_MQBBLP_CLUSTER
 
-//@PURPOSE:
-//
-//@CLASSES:
-//  mqbblp::Cluster:
-//
-//@DESCRIPTION:
-//
-/// Thread Safety
-///-------------
-//
+/// @file mqbblp_cluster.h
+///
+/// @brief
+///
+/// Thread Safety                                      {#mqbblp_cluster_thread}
+/// =============
+///
+/// @todo Document component.
 
 // MQB
-
 #include <mqbblp_clusterorchestrator.h>
 #include <mqbblp_clusterstatemonitor.h>
 #include <mqbc_clusterdata.h>
@@ -50,13 +47,12 @@
 #include <mqbu_exit.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-#include <bmqt_uri.h>
-
 #include <bmqio_channel.h>
 #include <bmqma_countingallocatorstore.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqst_statcontextuserdata.h>
 #include <bmqsys_statmonitorsnapshotrecorder.h>
+#include <bmqt_uri.h>
 #include <bmqu_operationchain.h>
 #include <bmqu_throttledaction.h>
 
@@ -114,13 +110,12 @@ namespace mqbblp {
 // class Cluster
 // =============
 
+/// @todo TBD
 class Cluster : public mqbi::Cluster,
                 public mqbnet::SessionEventProcessor,
                 public mqbc::ElectorInfoObserver,
                 public mqbnet::ClusterObserver,
                 public mqbc::ClusterStateObserver {
-    // TBD
-
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTER");
@@ -251,95 +246,77 @@ class Cluster : public mqbi::Cluster,
 
   private:
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
+    /// Flag to indicate start/stop status.  This flag is used
+    /// only inside this component.
     bool d_isStarted;
-    // Flag to indicate start/stop status
-    // This flag is used only inside this
-    // component.
 
+    /// Flag to indicate if this cluster is stopping.  This flag is exposed via
+    /// an accessor.
     bsls::AtomicBool d_isStopping;
-    // Flag to indicate if this cluster is
-    // stopping.  This flag is exposed via
-    // an accessor.
 
+    /// The transient data of the cluster.
     mqbc::ClusterData d_clusterData;
-    // The transient data of the cluster
 
+    /// Cluster's persistent state.
     mqbc::ClusterState d_state;
-    // Cluster's persistent state
 
+    /// `StorageManager` associated with this cluster.
     StorageManagerMp d_storageManager_mp;
-    // StorageManager associated with this
-    // cluster.
 
     ClusterOrchestrator d_clusterOrchestrator;
 
+    /// Cluster state monitor.
     ClusterStateMonitor d_clusterMonitor;
-    // Cluster state monitor
 
+    /// Throttling parameters for failed PUT messages.
     bmqu::ThrottledActionParams d_throttledFailedPutMessages;
-    // Throttling parameters for failed PUT
-    // messages.
 
+    /// Throttling parameters for dropped PUT messages.
     bmqu::ThrottledActionParams d_throttledSkippedPutMessages;
-    // Throttling parameters for dropped
-    // PUT messages.
 
+    /// Throttling parameters for failed ACK messages.
     bmqu::ThrottledActionParams d_throttledFailedAckMessages;
-    // Throttling parameters for failed ACK
-    // messages.
 
+    /// Throttling parameters for dropped ACK messages.
     bmqu::ThrottledActionParams d_throttledDroppedAckMessages;
-    // Throttling parameters for dropped
-    // ACK messages.
 
+    /// Throttling parameters for failed CONFIRM messages.
     bmqu::ThrottledActionParams d_throttledFailedConfirmMessages;
-    // Throttling parameters for failed
-    // CONFIRM messages.
 
+    /// Throttling parameters for failed REJECT messages.
     bmqu::ThrottledActionParams d_throttledFailedRejectMessages;
-    // Throttling parameters for failed
-    // REJECT messages.
 
+    /// Throttling parameters for dropped CONFIRM messages.
     bmqu::ThrottledActionParams d_throttledDroppedConfirmMessages;
-    // Throttling parameters for dropped
-    // CONFIRM messages.
 
+    /// Throttling parameters for dropped REJECT messages.
     bmqu::ThrottledActionParams d_throttledDroppedRejectMessages;
-    // Throttling parameters for dropped
-    // REJECT messages.
 
+    /// Throttling parameters for failed PUSH messages.
     bmqu::ThrottledActionParams d_throttledFailedPushMessages;
-    // Throttling parameters for failed
-    // PUSH messages.
 
+    /// Throttling parameters for dropped PUSH messages.
     bmqu::ThrottledActionParams d_throttledDroppedPushMessages;
-    // Throttling parameters for dropped
-    // PUSH messages.
 
+    /// Scheduler handle for the recurring cluster summary log.
     RecurringEventHandle d_logSummarySchedulerHandle;
-    // Scheduler handle for the recurring
-    // cluster summary log.
 
+    /// Scheduler handle for the recurring queue gc check.
     RecurringEventHandle d_queueGcSchedulerHandle;
-    // Scheduler handle for the recurring
-    // queue gc check.
 
     StopRequestManagerType* d_stopRequestsManager_p;
 
+    /// Mechanism used for the Cluster graceful shutdown to serialize execution
+    /// of the shutdown callbacks from the client sessions, stop responses from
+    /// proxies and nodes, and the cluster's shutdown callback.
     bmqu::OperationChain d_shutdownChain;
-    // Mechanism used for the Cluster
-    // graceful shutdown to serialize
-    // execution of the shutdown callbacks
-    // from the client sessions, stop
-    // responses from proxies and nodes,
-    // and the cluster's shutdown callback.
 
     /// Callback to enqueue an admin command when this node receives a
     /// routed command from another node.
@@ -460,21 +437,21 @@ class Cluster : public mqbi::Cluster,
 
     void onRelayPushEvent(const mqbi::DispatcherPushEvent& event);
 
+    /// Validate a message of the specified `eventType` using the specified
+    /// `queueId` and `ns`. Return one of `ValidationResult` values. Populate
+    /// the specified `queueHandle` if the queue is found.
     ValidationResult::Enum validateMessage(mqbi::QueueHandle**  queueHandle,
                                            const bmqp::QueueId& queueId,
                                            mqbc::ClusterNodeSession* ns,
                                            bmqp::EventType::Enum eventType);
-    // Validate a message of the specified `eventType` using the specified
-    // `queueId` and `ns`. Return one of `ValidationResult` values. Populate
-    // the specified `queueHandle` if the queue is found.
 
+    /// Validate a relay message using the specified `pid`. Return true if the
+    /// message is valid and false otherwise. Populate the specified `ns` if
+    /// the message is valid or load a descriptive error message into the
+    /// `errorStream` if the message is invalid.
     bool validateRelayMessage(mqbc::ClusterNodeSession** ns,
                               bsl::ostream*              errorStream,
                               const int                  pid);
-    // Validate a relay message using the specified `pid`. Return true if the
-    // message is valid and false otherwise. Populate the specified `ns` if the
-    // message is valid or load a descriptive error message into the
-    // `errorStream` if the message is invalid.
 
     /// Executes in any thread.
     void
@@ -830,15 +807,15 @@ class Cluster : public mqbi::Cluster,
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Returns a pointer to cluster config if this `mqbi::Cluster` represents
+    /// a cluster, otherwise null.
     const mqbcfg::ClusterDefinition*
     clusterConfig() const BSLS_KEYWORD_OVERRIDE;
-    // Returns a pointer to cluster config if this `mqbi::Cluster`
-    // represents a cluster, otherwise null.
 
+    /// Returns a pointer to cluster proxy config if this `mqbi::Cluster`
+    /// represents a proxy, otherwise null.
     const mqbcfg::ClusterProxyDefinition*
     clusterProxyConfig() const BSLS_KEYWORD_OVERRIDE;
-    // Returns a pointer to cluster proxy config if this `mqbi::Cluster`
-    // represents a proxy, otherwise null.
 
     // MANIPULATORS
     //   (virtual: mqbi::Cluster)

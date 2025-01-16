@@ -17,15 +17,13 @@
 #ifndef INCLUDED_MQBBLP_LOCALQUEUE
 #define INCLUDED_MQBBLP_LOCALQUEUE
 
-//@PURPOSE: Provide a queue implementation for a queue managed by this broker.
-//
-//@CLASSES:
-//
-//
-//@DESCRIPTION:
+/// @file mqbblp_localqueue.h
+///
+/// @brief Provide a queue implementation for a queue managed by this broker.
+///
+/// @todo Document component.
 
 // MQB
-
 #include <mqbblp_queuestate.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
@@ -34,7 +32,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqt_messageguid.h>
-
 #include <bmqu_throttledaction.h>
 
 // BDE
@@ -72,9 +69,8 @@ namespace mqbblp {
 // class LocalQueue
 // ================
 
+/// @todo Document this class.
 class LocalQueue BSLS_CPP11_FINAL {
-    // TBD
-
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.LOCALQUEUE");
@@ -86,7 +82,7 @@ class LocalQueue BSLS_CPP11_FINAL {
     bslma::ManagedPtr<mqbi::QueueEngine> d_queueEngine_mp;
     bmqu::ThrottledActionParams          d_throttledFailedPutMessages;
     bdlmt::Throttle                      d_throttledDuplicateMessages;
-    // Throttler for duplicates.
+    /// Throttler for duplicates.
     bool d_haveStrongConsistency;
 
   private:

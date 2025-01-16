@@ -17,81 +17,103 @@
 #ifndef INCLUDED_MQBBLP_QUEUEENGINETESTER
 #define INCLUDED_MQBBLP_QUEUEENGINETESTER
 
-//@PURPOSE: Provide a mechanism to simplify writing Queue Engine test cases.
-//
-//@CLASSES:
-//  mqbblp::QueueEngineTester:      a tester object for Queue Engine
-//  mqbblp::QueueEngineTesterGuard: proctor object for QueueEngineTester
-//  mqbblp::QueueEngineTestUtil:    helper for testing Queue Engine
-//
-//@DESCRIPTION: This component provides a mechanism,
-//  'mqbblp::QueueEngineTester', for testing an implementation of the
-//  'mqbi::QueueEngine' protocol.  It is a wrapper around a 'mqbi::QueueEngine'
-//  object and any supporting objects.  It additionally provides a proctor
-//  mechanism for acquisition and release of a 'mqbblp::QueueEngineTester'
-//  object, handling initialization, creation of the associated Queue Engine,
-//  release, and necessary cleanup (e.g., invoking 'dropHandles()' upon
-//  destruction) for the QueueEngineTester under management.  Finally, it
-//  provides utilities, 'mqbblp::QueueEngineTestUtil', to simplify Queue Engine
-//  test cases.
-//
-/// Thread Safety
-///-------------
-// NOT Thread-Safe.
-//
-/// Usage
-//------
-// This section illustrates intended use of this component.
-//
-/// Example 1: Testing PriorityQueueEngine with 3 consumers
-///- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-// The following code illustrates how to leverage the functionality of this
-// component to perform a basic test of 'mqbblp::PriorityQueueEngine'
-// whereby three distinct consumers having the same priority are brought up
-// and three messages are distributed across the consumers.
-//
-// First, we create a 'QueueEngineTester' object and the Priority Queue Engine.
-//..
-//  mqbblp::QueueEngineTester tester(bmqtst::TestHelperUtil::allocator());
-//  tester.createQueueEngine<mqbblp::PriorityQueueEngine>();
-//..
-// Then, we get handles for three consumers, each with one reader.
-//..
-//  mqbi::MockQueueHandle *handle1 = tester.getHandle("C1 readCount=1");
-//  mqbi::MockQueueHandle *handle2 = tester.getHandle("C2 readCount=1");
-//  mqbi::MockQueueHandle *handle3 = tester.getHandle("C3 readCount=1");
-//..
-// Next, we configure each handle with priority of 1 and a count of 1.
-//..
-//  tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
-//  tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
-//  tester.configureHandle("C3 consumerPriority=1 consumerPriorityCount=1");
-//..
-// Then, we post three messages and inform the tester to distribute them.
-//..
-//  tester.post("a,b,c");
-//  tester.afterNewMessage(0);
-//..
-// Next, we verify the consumers received the corresponding messages.
-//..
-//  BMQTST_ASSERT_EQ(handle1->_messages(), "a");
-//  BMQTST_ASSERT_EQ(handle2->_messages(), "b");
-//  BMQTST_ASSERT_EQ(handle3->_messages(), "c");
-//..
-// Then, for each consumer we confirm the corresponding messages.
-//..
-//  tester.confirm("C1", "a");
-//  tester.confirm("C2", "b");
-//  tester.confirm("C3", "c");
-//
-//  BMQTST_ASSERT_EQ(handle1->_messages(), "");
-//  BMQTST_ASSERT_EQ(handle2->_messages(), "");
-//  BMQTST_ASSERT_EQ(handle3->_messages(), "");
-//..
-// Finally, we release all the handles.
-//..
-//  tester.dropHandles();
-//..
+// Clang-format warns about an overlong line in this comment, which gives a
+// Markdown anchor to a header.  Unfortunately, by Markdown syntax rules, this
+// has to on the same line as the header, meaning we cannot introduce a
+// line-break here.
+
+// clang-format off
+
+/// @file mqbblp_queueenginetester.h
+///
+/// @brief Provide a mechanism to simplify writing Queue Engine test cases.
+///
+/// This component provides a mechanism, @bbref{mqbblp::QueueEngineTester}, for
+/// testing an implementation of the @bbref{mqbi::QueueEngine} protocol.  It is
+/// a wrapper around a @bbref{mqbi::QueueEngine} object and any supporting
+/// objects.  It additionally provides a proctor mechanism for acquisition and
+/// release of a @bbref{mqbblp::QueueEngineTester} object, handling
+/// initialization, creation of the associated Queue Engine, release, and
+/// necessary cleanup (e.g., invoking `dropHandles()` upon destruction) for the
+/// `QueueEngineTester` being managed.  Finally, it provides utilities,
+/// @bbref{mqbblp::QueueEngineTestUtil}, to simplify Queue Engine test cases.
+///
+/// Thread Safety                            {#mqbblp_queueenginetester_thread}
+/// =============
+///
+/// NOT Thread-Safe.
+///
+/// Usage                                     {#mqbblp_queueenginetester_usage}
+/// =====
+///
+/// This section illustrates intended use of this component.
+///
+/// Example 1: Testing PriorityQueueEngine with 3 consumers {#mqbblp_queueenginetester_ex1}
+/// -------------------------------------------------------
+///
+/// The following code illustrates how to leverage the functionality of this
+/// component to perform a basic test of @bbref{mqbblp::PriorityQueueEngine}
+/// whereby three distinct consumers having the same priority are brought up
+/// and three messages are distributed across the consumers.
+///
+/// First, we create a `QueueEngineTester` object and the Priority Queue
+/// Engine.
+///
+/// ```
+/// mqbblp::QueueEngineTester tester(bmqtst::TestHelperUtil::allocator());
+/// tester.createQueueEngine<mqbblp::PriorityQueueEngine>();
+/// ```
+///
+/// Then, we get handles for three consumers, each with one reader.
+///
+/// ```
+/// mqbi::MockQueueHandle *handle1 = tester.getHandle("C1 readCount=1");
+/// mqbi::MockQueueHandle *handle2 = tester.getHandle("C2 readCount=1");
+/// mqbi::MockQueueHandle *handle3 = tester.getHandle("C3 readCount=1");
+/// ```
+///
+/// Next, we configure each handle with priority of 1 and a count of 1.
+///
+/// ```
+/// tester.configureHandle("C1 consumerPriority=1 consumerPriorityCount=1");
+/// tester.configureHandle("C2 consumerPriority=1 consumerPriorityCount=1");
+/// tester.configureHandle("C3 consumerPriority=1 consumerPriorityCount=1");
+/// ```
+///
+/// Then, we post three messages and inform the tester to distribute them.
+///
+/// ```
+/// tester.post("a,b,c");
+/// tester.afterNewMessage(0);
+/// ```
+///
+/// Next, we verify the consumers received the corresponding messages.
+///
+/// ```
+/// BMQTST_ASSERT_EQ(handle1->_messages(), "a");
+/// BMQTST_ASSERT_EQ(handle2->_messages(), "b");
+/// BMQTST_ASSERT_EQ(handle3->_messages(), "c");
+/// ```
+///
+/// Then, for each consumer we confirm the corresponding messages.
+///
+/// ```
+/// tester.confirm("C1", "a");
+/// tester.confirm("C2", "b");
+/// tester.confirm("C3", "c");
+///
+/// BMQTST_ASSERT_EQ(handle1->_messages(), "");
+/// BMQTST_ASSERT_EQ(handle2->_messages(), "");
+/// BMQTST_ASSERT_EQ(handle3->_messages(), "");
+/// ```
+///
+/// Finally, we release all the handles.
+///
+/// ```
+/// tester.dropHandles();
+/// ```
+
+// clang-format on
 
 // MQB
 #include <mqbblp_queuehandlecatalog.h>
@@ -106,9 +128,8 @@
 #include <mqbs_virtualstoragecatalog.h>
 #include <mqbu_storagekey.h>
 
-#include <bmqc_orderedhashmap.h>
-
 // BMQ
+#include <bmqc_orderedhashmap.h>
 #include <bmqt_messageguid.h>
 
 // BDE
@@ -169,78 +190,67 @@ class QueueEngineTester {
 
   protected:
     // DATA
+
+    /// Constant representing a null Message GUID.  This value should be used
+    /// for the GUID of a message whose GUID is not important or unknown.
     const bmqt::MessageGUID d_invalidGuid;
-    // Constant representing a null Message
-    // GUID. This value should be used for
-    // the guid of a message whose GUID is
-    // not important or unknown.
 
+    /// Buffer factory to use for messages.
     bdlbb::PooledBlobBufferFactory d_bufferFactory;
-    // Buffer factory to use for messages
 
+    /// Mock dispatcher.
     bslma::ManagedPtr<mqbmock::Dispatcher> d_mockDispatcher_mp;
-    // Mock dispatcher
 
+    /// Mock dispatcher client.
     bslma::ManagedPtr<mqbmock::DispatcherClient> d_mockDispatcherClient_mp;
-    // Mock dispatcher client
 
+    /// Mock cluster.
     bslma::ManagedPtr<mqbmock::Cluster> d_mockCluster_mp;
-    // Mock cluster
 
+    /// Mock domain.
     bslma::ManagedPtr<mqbmock::Domain> d_mockDomain_mp;
-    // Mock domain
 
+    /// Mock queue.
     bsl::shared_ptr<mqbmock::Queue> d_mockQueue_sp;
-    // Mock queue
 
+    /// Queue state.
     bslma::ManagedPtr<mqbblp::QueueState> d_queueState_mp;
-    // Queue state
 
+    /// Queue Engine being tested.
     bslma::ManagedPtr<mqbi::QueueEngine> d_queueEngine_mp;
-    // Queue Engine being tested
 
+    /// Map of all created handles.  Note that a handle in this map is owned by
+    /// the Queue Handle Catalog and therefore must be "released" accordingly.
     HandleMap d_handles;
-    // Map of all created handles.  Note
-    // that a handle in this map is owned
-    // by the Queue Handle Catalog and
-    // therefore must be 'released'
-    // accordingly.
 
+    /// Map of `appId` to `subId` of all streams of a queue.
     SubIdsMap d_subIds;
-    // Map of 'appId' to 'subId' of all
-    // streams of a queue.
 
+    /// Map of client context for all created handles.
     ClientContextMap d_clientContexts;
-    // Map of client context for all
-    // created handles
 
+    /// Collection of message GUIDs that were posted to the queue.
     MessagesMap d_postedMessages;
-    // Collection of message GUIDs that
-    // were posted to the queue.
 
+    /// Collection of Message GUIDs that have been newly posted to the queue
+    /// and for which `afterNewMessage` of the queue engine under test has not
+    /// yet been invoked.
     MessagesMap d_newMessages;
-    // Collection of Message GUIDs that
-    // have been newly posted to the queue
-    // and for which 'afterNewMessage' of
-    // the queue engine under test has not
-    // yet been invoked.
 
+    /// Counter for distinct clients.
     unsigned int d_clientCounter;
-    // Counter for distinct clients
 
+    /// Counter for distinct subQueueIds.
     unsigned int d_subQueueIdCounter;
-    // Counter for distinct subQueueIds
 
+    // List of handles that were fully dropped (i.e. fully released) but needed
+    // to stay alive to correctly test post-drop state.
     bsl::vector<QueueHandleSp> d_deletedHandles;
-    // List of handles that were fully
-    // dropped (i.e. fully released) but
-    // needed to stay alive to correctly
-    // test post-drop state
 
     size_t d_messageCount;
 
+    // Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
   private:
     // NOT IMPLEMENTED
