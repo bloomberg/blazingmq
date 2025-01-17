@@ -11,6 +11,7 @@ concurrency:
 jobs:
   get_dependencies:
     name: "Dependencies"
+    if: github.event.review.state == 'APPROVED'
     uses: ./.github/workflows/dependencies.yaml
 
   build_and_run_sanitizer:
