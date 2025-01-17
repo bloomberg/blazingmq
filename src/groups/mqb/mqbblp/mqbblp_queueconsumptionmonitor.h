@@ -17,92 +17,94 @@
 #ifndef INCLUDED_MQBBLP_QUEUECONSUMPTIONMONITOR
 #define INCLUDED_MQBBLP_QUEUECONSUMPTIONMONITOR
 
-//@PURPOSE: Provide a component that alerts if a queue is not read for a while.
-//
-//@CLASSES:
-//  mqbblp::QueueConsumptionMonitor: mechanism monitoring queue consumption
-//
-//@DESCRIPTION: 'mqbblp::QueueConsumptionMonitor' provides a mechanism that
-// monitors a queue and alerts if the queue has not been consumed for a
-// configurable amount of time.  Monitoring does not happen until a "maximum
-// idle time" has been set (using 'setMaxIdleTime').  Monitoring can be
-// disabled by setting the maximum idle time to zero.
-//
-// Once in monitoring mode, the component is operated by a series of calls to
-// 'onMessageSent' and 'onTimer(currentTime)', in arbitrary order.  Each time
-// that 'onTimer(currentTime)' is called, the component first checks whether
-// the queue is in 'alive' state.  It is the case if:
-//: o this the first call to 'onTimer' since monitoring was switched on
-//: o 'onMessageSent' was called since 'onTimer' was last called
-//: o the queue is empty
-//
-// Then the component checks how much "time" has elapsed since the queue was
-// last seen in 'active' state (this may be zero, if one of the aforementioned
-// condition was met).  If that period exceeds the value specified via
-// 'setMaxIdleTime', then the queue is in 'idle' state.  Otherwise it is in
-// 'active' state.  If the state changes to 'idle', an alarm is written to the
-// log.  If the state changes to 'active', an INFO record is written to the
-// log.
-//
-// The 'maxIdleTime' represents the minimum time before an alarm will be
-// emitted would the queue be stale, but the alarm may be emitted anytime
-// between '[maxIdleTime, maxIdleTime + frequency[', where 'frequency'
-// represents the time period used between two consecutive calls to 'onTimer'.
-//
-// NOTE: the component does not assume any specific units for "time" - the sole
-// constraint is that the values passed to 'onTimer' monotonically (but not
-// strictly) increase.  Typically, these values are obtained from
-// 'bsls::TimeUtil::getTimer()', which returns a number of nanoseconds elapsed
-// from an arbitrary but fixed point in time.
-//
-/// Thread safety
-///-------------
-// This component is *not* thread safe.  Its functions *must* be called from
-// the queue's dispatcher thread.
-//
-/// Usage Example
-///-------------
-// This example shows how to use this component.
-//..
-//  mqbblp::QueueConsumptionMonitor monitor;
-//  monitor.setMaxIdleTime(20 * bdlt::TimeUnitRatio::k_NS_PER_S);
-//  put 2 messages in queue
-//
-//  some time later, at time T:
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
-//
-//  // 15 seconds later - T + 15s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
-//
-//  // 15 seconds later - T + 30s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
-//
-//  // 15 seconds later - T + 45s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
-//
-//  // 15 seconds later - T + 60s
-//  // consume first message
-//  monitor.onMessageSent(id);
-//
-//  // 15 seconds later - T + 75s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
-//
-//  // 15 seconds later - T + 90s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
-//
-//  // 15 seconds later - T + 105s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
-//
-//  // 15 seconds later - T + 120s
-//  // consume second message
-//  monitor.onMessageSent(id);
-//
-//  // 15 seconds later - T + 135s
-//  monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
-//..
+/// @file mqbblp_queueconsumptionmonitor.h
+///
+/// @brief Provide a component that alerts if a queue is not read for a while.
+///
+/// @brief{mqbblp::QueueConsumptionMonitor} provides a mechanism that
+/// monitors a queue and alerts if the queue has not been consumed for a
+/// configurable amount of time.  Monitoring does not happen until a "maximum
+/// idle time" has been set (using `setMaxIdleTime`).  Monitoring can be
+/// disabled by setting the maximum idle time to zero.
+///
+/// Once in monitoring mode, the component is operated by a series of calls to
+/// `onMessageSent` and `onTimer(currentTime)`, in arbitrary order.  Each time
+/// that `onTimer(currentTime)` is called, the component first checks whether
+/// the queue is in 'alive' state.  It is the case if:
+///
+///   * this the first call to `onTimer` since monitoring was switched on;
+///   * `onMessageSent` was called since `onTimer` was last called; or
+///   * the queue is empty.
+///
+/// Then the component checks how much "time" has elapsed since the queue was
+/// last seen in `active` state (this may be zero, if one of the aforementioned
+/// condition was met).  If that period exceeds the value specified via
+/// `setMaxIdleTime`, then the queue is in `idle` state.  Otherwise it is in
+/// `active` state.  If the state changes to `idle`, an alarm is written to the
+/// log.  If the state changes to `active`, an INFO record is written to the
+/// log.
+///
+/// The `maxIdleTime` represents the minimum time before an alarm will be
+/// emitted would the queue be stale, but the alarm may be emitted anytime
+/// between `[maxIdleTime, maxIdleTime + frequency[`, where `frequency`
+/// represents the time period used between two consecutive calls to `onTimer`.
+///
+/// NOTE: the component does not assume any specific units for "time" - the
+/// sole constraint is that the values passed to `onTimer` monotonically (but
+/// not strictly) increase.  Typically, these values are obtained from
+/// @bbref{bsls::TimeUtil::getTimer()}, which returns a number of nanoseconds
+/// elapsed from an arbitrary but fixed point in time.
+///
+/// Thread safety                      {#mqbblp_queueconsumptionmonitor_thread}
+/// =============
+///
+/// This component is *not* thread safe.  Its functions *must* be called from
+/// the queue's dispatcher thread.
+///
+/// Usage Example                       {#mqbblp_queueconsumptionmonitor_usage}
+/// =============
+///
+/// This example shows how to use this component.
+///
+/// ```
+/// mqbblp::QueueConsumptionMonitor monitor;
+/// monitor.setMaxIdleTime(20 * bdlt::TimeUnitRatio::k_NS_PER_S);
+/// // put 2 messages in queue
+///
+/// // some time later, at time T:
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+///
+/// // 15 seconds later - T + 15s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+///
+/// // 15 seconds later - T + 30s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
+///
+/// // 15 seconds later - T + 45s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+///
+/// // 15 seconds later - T + 60s
+/// // consume first message
+/// monitor.onMessageSent(id);
+///
+/// // 15 seconds later - T + 75s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
+///
+/// // 15 seconds later - T + 90s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // nothing is logged
+///
+/// // 15 seconds later - T + 105s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log ALARM
+///
+/// // 15 seconds later - T + 120s
+/// // consume second message
+/// monitor.onMessageSent(id);
+///
+/// // 15 seconds later - T + 135s
+/// monitor.onTimer(bsls::TimeUtil::getTimer()); // log INFO: back to active
+/// ```
 
 // MQB
-
 #include <mqbblp_queuestate.h>
 #include <mqbi_queue.h>
 
@@ -226,16 +228,16 @@ class QueueConsumptionMonitor {
         SubStreamInfo();
 
         // PUBLIC DATA
+
+        // Timer value, in arbitrary unit, of the last time the substream was
+        // in a good state.
         bsls::Types::Int64 d_lastKnownGoodTimer;
-        // Timer value, in arbitrary unit, of
-        // the last time the substream was in
-        // good state.
 
+        /// Whether a message was sent during the last time slice.
         bool d_messageSent;
-        // Whether a message was sent during
-        // the last time slice
 
-        State::Enum d_state;  // The current state.
+        /// The current state.
+        State::Enum d_state;
     };
 
     typedef bsl::unordered_map<bsl::string, SubStreamInfo> SubStreamInfoMap;
@@ -245,21 +247,21 @@ class QueueConsumptionMonitor {
     typedef SubStreamInfoMap::const_iterator SubStreamInfoMapConstIter;
 
     // DATA
+
+    /// Object representing the state of the queue associated with this object.
+    /// Held but not owned.
     QueueState* d_queueState_p;
-    // Object representing the state of the queue
-    // associated with this object, held but not owned.
 
+    /// Maximum time, in arbitrary units, before the queue is declared idle.
     bsls::Types::Int64 d_maxIdleTime;
-    // Maximum time, in arbitrary units, before the queue
-    // is declared idle.
 
+    /// Timer, in arbitrary unit, of the current time.
     bsls::Types::Int64 d_currentTimer;
-    // Timer, in arbitrary unit, of the current time.
 
     SubStreamInfoMap d_subStreamInfos;
 
-    /// Callback to log alarm info if there are undelivered messages.
-    /// Return `true` if there are undelivered messages, `false` otherwise.
+    /// Callback to log alarm info if there are undelivered messages.  Return
+    /// `true` if there are undelivered messages, `false` otherwise.
     LoggingCb d_loggingCb;
 
     // NOT IMPLEMENTED

@@ -17,31 +17,29 @@
 #ifndef INCLUDED_MQBBLP_MESSAGEGROUPIDMANAGER
 #define INCLUDED_MQBBLP_MESSAGEGROUPIDMANAGER
 
-//@PURPOSE: Provide a class that manages Message Group Id/Handle mapping.
-//
-//@CLASSES:
-//  mqbblp::MessageGroupIdManager: Manages Message Group Id/Handle mapping
-//
-//@DESCRIPTION: This component provides a class 'mqbblp::MessageGroupIdManager'
-// that manages the dynamic mapping between Message Group Ids and Handles.
-// This is necessary in order to support message grouping routing capabilities.
-// Each Message Group Id gets mapped to a single handle and a handle can
-// possibly have many Message Group Ids mapped to it.  There are configurable
-// rules regarding Garbage Collection of those mappings.  Some of them might be
-// short lived while others more long lived.  Maximum number of message group
-// id mappings might also be limited in which case, old mappings might be
-// discarded in favor of more recent ones.
-//
-// Garbage Collection happens after a timeout period configured via the
-// 'timeout' constructor argument.  There's also the 'maxMsgGroupIds'
-// constructor argument which triggers GC of the least recently used Message
-// Group Id if we are in rebalance mode.  Rebalance is the operation of moving
-// Message Group Ids from one Handle to another and occurs when a new Handle is
-// added.  This will get excessive Message Group Ids from Handles with more
-// than average Message Group Ids and re-distribute them to the other Handles.
+/// @file mqbblp_messagegroupidmanager.h
+///
+/// @brief Provide a class that manages Message Group Id/Handle mapping.
+///
+/// This component provides a class @bbref{mqbblp::MessageGroupIdManager} that
+/// manages the dynamic mapping between Message Group Ids and Handles.  This is
+/// necessary in order to support message grouping routing capabilities.  Each
+/// Message Group Id gets mapped to a single handle and a handle can possibly
+/// have many Message Group Ids mapped to it.  There are configurable rules
+/// regarding Garbage Collection of those mappings.  Some of them might be
+/// short lived while others more long lived.  Maximum number of message group
+/// id mappings might also be limited in which case, old mappings might be
+/// discarded in favor of more recent ones.
+///
+/// Garbage Collection happens after a timeout period configured via the
+/// `timeout` constructor argument.  There's also the `maxMsgGroupIds`
+/// constructor argument which triggers GC of the least recently used Message
+/// Group Id if we are in rebalance mode.  Rebalance is the operation of moving
+/// Message Group Ids from one Handle to another and occurs when a new Handle
+/// is added.  This will get excessive Message Group Ids from Handles with more
+/// than average Message Group Ids and re-distribute them to the other Handles.
 
 // MQB
-
 #include <mqbi_queue.h>
 
 // BMQ
@@ -75,46 +73,46 @@ namespace mqbblp {
 class MessageGroupIdManager {
   public:
     // TYPES
+
+    /// @bbref{mqbi::QueueHandle} used as `Handle`.
     typedef mqbi::QueueHandle* Handle;
-    // 'mqbi::QueueHandle' used as 'Handle'.
 
+    /// The type of the identifier of the Message Group Id.
     typedef bmqp::Protocol::MsgGroupId MsgGroupId;
-    // The type of the identifier of the Message Group Id.
 
+    /// `Int64` used as time.
     typedef bsls::Types::Int64 Time;
-    // 'Int64' used as 'Time'
 
+    /// A set of Message Group Ids.
     typedef bsl::set<MsgGroupId> IdsForHandle;
-    // A set of Message Group Ids.
 
-    enum Rebalance {
-        // Currently supported modes for rebalance functionality.
-        k_REBALANCE_ON,
-        k_REBALANCE_OFF
-    };
+    /// Currently supported modes for rebalance functionality.
+    enum Rebalance { k_REBALANCE_ON, k_REBALANCE_OFF };
 
   private:
     // PRIVATE TYPES
+
+    /// Stores and provides operations on Handles and Message Group Ids.
     class Index;
-    // Stores and provides operations on Handles and Message Group Ids.
 
   private:
     // DATA
+
+    /// The allocator to use.
     bslma::Allocator* d_allocator_p;
-    // The allocator to use.
 
+    /// The timeout for the mappings.
     const Time d_timeout;
-    // The timeout for the mappings.
 
+    /// The maximum number of mappings.  If it's negative or zero, then they're
+    /// unlimited.
     const int d_maxMsgGroupIds;
-    // The maximum number of mappings.  If it's
-    // negative or zero, then they're unlimited.
 
+    /// The rebalance policy used.
     const Rebalance d_rebalance;
-    // The rebalance policy used.
 
+    /// Message Group Ids and Handles container.
     bslma::ManagedPtr<Index> d_index;
-    // Message Group Ids and Handles container.
 
   private:
     // PRIVATE MANIPULATORS

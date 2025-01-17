@@ -17,128 +17,144 @@
 #ifndef INCLUDED_MQBBLP_ROUTERS
 #define INCLUDED_MQBBLP_ROUTERS
 
-//@PURPOSE: Abstracts the message-routing related infrastructure.
-//
-//@CLASSES:
-//  mqbblp::Routers: Data hierarchy to support data (PUSH) routing by Queue
-//  engines.  Including support for Topic Based Routing.
-//
-//@DESCRIPTION:
-//  Here is the relationship between major Topic Based Routing concepts:
-//         ---------------------------------------------------
-//        |                                                   |
-//       1|                                              many V
-//        |                                                   V
-//     SubStream <<---------->> QueueHandle <<---------->> Subscription
-//                many-to-many               many-to-many
-//
-//  A QueueEngine builds Routing data hierarchy upon processing ConfigureStream
-//  request.  The topmost structure is 'QueueRoutingContext' holding the
-//  context shared by all SubStreams, followed by one 'AppContext' per each
-//  SubStream.  To build all routing structures, call 'AppContext::load' for
-//  each consumer, followed by one 'AppContext::finalize' call afterwards.
-//  'AppContext::generate' then generates 'bmqp_ctrlmsg::StreamParameters' to
-//  communicate upstream.
-//  To route next PUSH message, call 'AppContext::selectConsumer' which
-//  iterates all matching subscriptions until the specified visitor returns
-//  'false'.
-//  QueueEngine routes to highest priority _subscription_ consumers only.  Note
-//  that different subscription may have different priority and that the same
-//  subscription expression can be used with different priorities.
-//  For example,
-//  handle1: [  subscription1: {expression1, priority: 1},
-//              subscription2: {expression2, priority: 2}
-//           ]
-//  handle2: [  subscription3: {expression1, priority: 2},
-//              subscription4: {expression2, priority: 2},
-//              subscription5: {expression3, priority: 1}
-//           ]
-//  Here, we route:
-//      - data matching 'expression1' to {'handle2'}
-//      - data matching 'expression2' to {'handle1', 'handle2'}
-//      - data matching 'expression3' to {'handle2'}
-//  Note that expressions can overlap. Also, we can use lower ('1') priority of
-//  'expression3' as a hint to evaluate it after expressions with higher ('2')
-//  priorities.
-//  Therefore, the next structure is 'Priority' which is one per received
-//  priority per SubStream.  'Priority' keeps list of 'PriorityGroup' objects
-//  which group all subscriptions received from downstreams by priority and
-//  subscription expression.
-//  Next, each group keeps list of 'Subscription' objects which are the
-//  smallest units in the hierarchy.  The same consumer can have multiple
-//  subscriptions.  Moreover, we group consumers per priority (like groups).
-//  So, last pieces in our hierarchy are:
-//  'Consumer' <- 'Subscriber' ->> 'Subscription'.
-//  In our example:
-//  AppContext: {
-//                 [consumer1: {handle1,
-//                              ['subscription2'
-//                              ]
-//                             },
-//                  consumer2: {handle2,
-//                              ['subscription3',
-//                               'subscription4',
-//                               'subscription5'
-//                              ]
-//                             },
-//                 ],
-//
-//                 [group1:    {expression1,
-//                              ['subscription3']
-//                             },
-//                  group2:    {expression2},
-//                              ['subscription2', 'subscription4'],
-//                             },
-//                  group3:    {expression3,
-//                              ['subscription5']
-//                             }
-//                 ],
-//
-//                 [priority2: {'2',
-//                              ['group1', 'group2'],
-//                              [subscriber1: {consumer1,
-//                                             [subscription2: {'group2',
-//                                                              'subscriber1'}
-//                                             ],
-//                               subscriber2: {consumer2,
-//                                             [subscription3: {'group1',
-//                                                              'subscriber2'},
-//                                              subscription4: {'group2',
-//                                                              'subscriber2'}
-//                                             ]
-//                              ],
-//                             },
-//                  priority1: {'1',
-//                              ['group3'],
-//                              [subscriber1: {consumer1,
-//                                             [subscription1: {'group1'},
-//                               subscriber2: {consumer2,
-//                                             [subscription5: {'group3'}
-//                              ]
-//                             }
-//                 ]
-//              }
-//  Note that 'Subscriber' keeps all received subscriptions while 'Consumer'
-//  and 'PriorityGroup' keep filtered list of highest priority subscriptions.
-//  In our example, 'subscription1' is filtered out.  'subscription5' is not.
-//
-//  The main iteration order when routing is by priorities by expressions which
-//  is in our example [priority2: ['group1', 'group2'], priority1: ['group3']].
-//  The order of ['group1', 'group2'] evaluation is implementation-specific
-//  (influenced by optimizations).
-//
-//  Another order is by highest-priority subscribers:
-//  [consumer1: 'subscription2'], consumer2: ['subscription3', 'subscription4',
-//  'subscription5']].  This order is for broadcast queues.  Another usage is
-//  finding minimal delay consumer for potentially poisonous message.
-//
-/// Thread Safety
-///-------------
-// NOT Thread-Safe.
-//
+/// @file mqbblp_routers.h
+///
+/// @brief Abstracts the message-routing related infrastructure.
+///
+/// Here is the relationship between major Topic Based Routing concepts:
+///
+/// ```
+///         ---------------------------------------------------
+///        |                                                   |
+///       1|                                              many V
+///        |                                                   V
+///     SubStream <<---------->> QueueHandle <<---------->> Subscription
+///                many-to-many               many-to-many
+/// ```
+///
+/// A QueueEngine builds Routing data hierarchy upon processing
+/// `ConfigureStream` request.  The topmost structure is `QueueRoutingContext`
+/// holding the context shared by all SubStreams, followed by one `AppContext`
+/// per each SubStream.  To build all routing structures, call
+/// `AppContext::load` for each consumer, followed by one
+/// `AppContext::finalize` call afterwards.  `AppContext::generate` then
+/// generates `bmqp_ctrlmsg::StreamParameters` to communicate upstream.
+///
+/// To route next PUSH message, call `AppContext::selectConsumer` which
+/// iterates all matching subscriptions until the specified visitor returns
+/// `false`.
+///
+/// QueueEngine routes to highest priority _subscription_ consumers only.  Note
+/// that different subscription may have different priority and that the same
+/// subscription expression can be used with different priorities.  For
+/// example,
+///
+/// ```
+/// handle1: [  subscription1: {expression1, priority: 1},
+///             subscription2: {expression2, priority: 2}
+///          ]
+/// handle2: [  subscription3: {expression1, priority: 2},
+///             subscription4: {expression2, priority: 2},
+///             subscription5: {expression3, priority: 1}
+///          ]
+/// ```
+///
+/// Here, we route:
+///   - data matching `expression1` to `{handle2}`,
+///   - data matching `expression2` to `{handle1, handle2}`, and
+///   - data matching `expression3` to `{handle2}`.
+///
+/// Note that expressions can overlap. Also, we can use lower (`1`) priority of
+/// `expression3` as a hint to evaluate it after expressions with higher (`2`)
+/// priorities.
+///
+/// Therefore, the next structure is `Priority` which is one per received
+/// priority per SubStream.  `Priority` keeps list of `PriorityGroup` objects
+/// which group all subscriptions received from downstreams by priority and
+/// subscription expression.
+///
+/// Next, each group keeps list of `Subscription` objects which are the
+/// smallest units in the hierarchy.  The same consumer can have multiple
+/// subscriptions.  Moreover, we group consumers per priority (like groups).
+/// So, last pieces in our hierarchy are:
+///
+/// ```
+/// Consumer <- Subscriber ->> Subscription
+/// ```
+///
+/// In our example:
+///
+/// ```
+/// AppContext: {
+///                [consumer1: {handle1,
+///                             ['subscription2'
+///                             ]
+///                            },
+///                 consumer2: {handle2,
+///                             ['subscription3',
+///                              'subscription4',
+///                              'subscription5'
+///                             ]
+///                            },
+///                ],
+///
+///                [group1:    {expression1,
+///                             ['subscription3']
+///                            },
+///                 group2:    {expression2},
+///                             ['subscription2', 'subscription4'],
+///                            },
+///                 group3:    {expression3,
+///                             ['subscription5']
+///                            }
+///                ],
+///
+///                [priority2: {'2',
+///                             ['group1', 'group2'],
+///                             [subscriber1: {consumer1,
+///                                            [subscription2: {'group2',
+///                                                             'subscriber1'}
+///                                            ],
+///                              subscriber2: {consumer2,
+///                                            [subscription3: {'group1',
+///                                                             'subscriber2'},
+///                                             subscription4: {'group2',
+///                                                             'subscriber2'}
+///                                            ]
+///                             ],
+///                            },
+///                 priority1: {'1',
+///                             ['group3'],
+///                             [subscriber1: {consumer1,
+///                                            [subscription1: {'group1'},
+///                              subscriber2: {consumer2,
+///                                            [subscription5: {'group3'}
+///                             ]
+///                            }
+///                ]
+///             }
+/// ```
+///
+/// Note that `Subscriber` keeps all received subscriptions while `Consumer`
+/// and `PriorityGroup` keep filtered list of highest priority subscriptions.
+/// In our example, `subscription1` is filtered out.  `subscription5` is not.
+///
+/// The main iteration order when routing is by priorities by expressions which
+/// is in our example `[priority2: [group1, group2], priority1: [group3]]`.
+/// The order of `[group1, group2]` evaluation is implementation-specific
+/// (influenced by optimizations).
+///
+/// Another order is by highest-priority subscribers: `[consumer1:
+/// subscription2], consumer2: [subscription3, subscription4, subscription5]]`.
+/// This order is for broadcast queues.  Another usage is finding minimal delay
+/// consumer for potentially poisonous message.
+///
+/// Thread Safety                                      {#mqbblp_routers_thread}
+/// =============
+///
+/// NOT Thread-Safe.
 
 // MQB
-
 #include <mqbblp_messagegroupidhelper.h>
 #include <mqbcmd_messages.h>
 #include <mqbi_queue.h>
@@ -174,9 +190,9 @@ namespace mqbblp {
 // class Routers
 // =============
 
+/// Data hierarchy to support data (PUSH) routing by Queue engines.  Including
+/// support for Topic Based Routing.
 class Routers {
-    // Abstracts the message-routing related infrastructure.
-
   public:
     // PUBLIC TYPES
 
@@ -341,15 +357,13 @@ class Routers {
         // DATA
         const bmqp_ctrlmsg::StreamParameters d_streamParameters;
 
+        /// Time at which the last message was sent.
         bsls::TimeInterval d_timeLastMessageSent;
-        // Time at which the last
-        // message was sent.
 
         bmqt::MessageGUID d_lastSentMessage;
 
+        /// Subscriptions with highest priorities.
         SubscriptionList d_highestSubscriptions;
-        // Subscriptions with
-        // highest priorities.
 
         unsigned int d_downstreamSubQueueId;
 
@@ -390,8 +404,8 @@ class Routers {
     /// VST representing all `Subscription`s with the same `Expression`.
     /// One per App.
     struct SubscriptionId {
+        /// The Expression.
         const Expressions::SharedItem d_itExpression;
-        // The Expression.
         const unsigned int d_upstreamSubQueueId;
         PriorityGroup*     d_priorityGroup;
 
@@ -411,15 +425,15 @@ class Routers {
         BSLMF_NESTED_TRAIT_DECLARATION(PriorityGroup,
                                        bslma::UsesBslmaAllocator)
 
+        /// App Subscriptions having the same Expression and which priority is
+        /// the highest one.
         SubscriptionList d_highestSubscriptions;
-        // App Subscriptions having the same Expression
-        // and which priority is the highest one.
 
         const SubscriptionIds::SharedItem d_itId;
 
+        /// Vector of accumulated ConsumerInfo in the descending order of
+        /// priorities.
         bsl::vector<bmqp_ctrlmsg::ConsumerInfo> d_ci;
-        // Vector of accumulated ConsumerInfo in the
-        // descending order of priorities.
 
         bool d_canDeliver;
 
@@ -452,9 +466,9 @@ class Routers {
         typedef bsl::list<Subscription> Subscriptions;
 
         // DATA
+
+        /// All Subscriptions have the same priority
         Subscriptions d_subscriptions;
-        // All Subscriptions have the same
-        // priority
 
         const Consumers::SharedItem d_itConsumer;
 
@@ -475,8 +489,9 @@ class Routers {
     struct Subscription {
         const bmqp_ctrlmsg::ConsumerInfo d_ci;
         const unsigned int               d_downstreamSubscriptionId;
-        mutable int                      d_currentConsumerCount;
-        // Transient state assisting round-robin.
+
+        /// Transient state assisting round-robin.
+        mutable int d_currentConsumerCount;
 
         const Subscribers::SharedItem    d_itSubscriber;
         const PriorityGroups::SharedItem d_itGroup;
@@ -504,8 +519,7 @@ class Routers {
     };
 
     /// Mechanism representing all `Subscription` `PriorityGroup`s with the
-    /// same priority.
-    /// One per received priority per App
+    /// same priority.  One per received priority per App
     struct Priority {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Priority, bslma::UsesBslmaAllocator)
@@ -514,18 +528,18 @@ class Routers {
         typedef bsl::list<PriorityGroups::SharedItem> PriorityGroupList;
 
         // DATA
+
+        /// All Subscribers (one per handle) having subscription at this
+        /// priority.
         Subscribers d_subscribers;
-        // All Subscribers (one per handle) having
-        // subscription at this priority.
 
+        /// Subscriptions grouped by their Expressions having highest priority
+        /// equal to the priority of this object.
         PriorityGroupList d_highestGroups;
-        // Subscriptions grouped by their Expressions
-        // having highest priority equal to the
-        // priority of this object.
 
+        /// Sum of those priorityCounts which Subscription's highest priority
+        /// is this one.
         size_t d_count;
-        // Sum of those priorityCounts which
-        // Subscription's highest priority is this one.
 
         explicit Priority(bslma::Allocator* allocator);
         Priority(const Priority& other, bslma::Allocator* allocator);
@@ -541,8 +555,9 @@ class Routers {
         BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.MESSAGEPROPERTIESREADER");
 
         // DATA
+
+        /// Use own context;
         bmqp::SchemaLearner& d_schemaLearner;
-        // Use own context;
 
         bmqp::SchemaLearner::Context d_schemaLearnerContext;
 
@@ -563,13 +578,17 @@ class Routers {
         bdld::Datum get(const bsl::string& name,
                         bslma::Allocator*  allocator) BSLS_KEYWORD_OVERRIDE;
 
-        // Prepare the reader for the next message given the specified
-        // 'currentMessage' or 'appData' and 'messagePropertiesInfo'.
+        /// Prepare the reader for the next message given the specified
+        /// `currentMessage`.
         void next(const mqbi::StorageIterator* currentMessage);
+
+        /// Prepare the reader for the next message given the specified
+        /// `appData` and `messagePropertiesInfo`.
         void next(const bsl::shared_ptr<bdlbb::Blob>& appData,
                   const bmqp::MessagePropertiesInfo&  messagePropertiesInfo);
+
+        /// Reset the reader to the state of empty properties.
         void clear();
-        // Reset the reader to the state of empty properties.
     };
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid
@@ -580,16 +599,17 @@ class Routers {
                                        bslma::UsesBslmaAllocator)
 
         // DATA
+
+        /// Registry of all expressions received by this queue across all
+        /// subQueues.
         Expressions d_expressions;
-        // Registry of all expressions received by
-        // this queue across all subQueues.
 
+        /// Generates unique upstream id.
         unsigned int d_nextSubscriptionId;
-        // Generates unique upstream id.
 
+        /// Subscriptions grouped by expression and advertised upstream with
+        /// unique ids.
         SubscriptionIds d_groupIds;
-        // Subscriptions grouped by expression
-        // and advertised upstream with unique ids.
 
         bsl::shared_ptr<MessagePropertiesReader> d_preader;
 
@@ -613,17 +633,18 @@ class Routers {
     typedef bsl::function<bool(const Routers::Subscription*)> Visitor;
 
     enum Result {
-        e_SUCCESS = 0  // Found Subscription and there is capacity
-        ,
-        e_NO_SUBSCRIPTION = 1  // No matching Subscription
-        ,
-        e_NO_CAPACITY = 2  // Found Subscription(s) without capacity
-        ,
-        e_NO_CAPACITY_ALL = 3  // All Subscription(s) are without capacity
-        ,
-        e_DELAY = 4  // Delay due to Potentially Poisonous data
-        ,
-        e_INVALID = 5  // Not valid anymore due to Confirm/Purge
+        /// Found Subscription and there is capacity.
+        e_SUCCESS = 0,
+        /// No matching Subscription.
+        e_NO_SUBSCRIPTION = 1,
+        /// Found Subscription(s) without capacity.
+        e_NO_CAPACITY = 2,
+        /// All Subscription(s) are without capacity.
+        e_NO_CAPACITY_ALL = 3,
+        /// Delay due to Potentially Poisonous data.
+        e_DELAY = 4,
+        /// Not valid anymore due to Confirm/Purge.
+        e_INVALID = 5
     };
 
     /// Class that implements round-robin routing policy.
@@ -664,25 +685,24 @@ class Routers {
         void print(bsl::ostream& os, int level, int spacesPerLevel) const;
     };
 
+    // Mechanism aggregating all data structures for TBR.  One per App.
     struct AppContext {
       public:
-        // Mechanism aggregating all data structures for TBR.
-        // One per App.
-
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(AppContext, bslma::UsesBslmaAllocator)
 
         // DATA
+
+        /// Subscriptions grouped by expression.
         PriorityGroups d_groups;
-        // Subscriptions grouped by expression
 
         Priorities d_priorities;
         Consumers  d_consumers;
 
         QueueRoutingContext& d_queue;
 
+        /// Round-robin routing policy.
         RoundRobin d_router;
-        // Round-robin routing policy.
 
         bmqeval::CompilationContext d_compilationContext;
 

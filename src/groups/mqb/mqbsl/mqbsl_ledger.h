@@ -151,7 +151,7 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     /// Insert the specified `log` to the list and map of logs maintained by
     /// this object and return true if successful and false otherwise (e.g.,
     /// a log with the same `logId` already exists).
-    bool insert(const bsl::shared_ptr<mqbsi::Log>& log);
+    bool insert(const LogSp& log);
 
     /// Create a new log, add it to the ledger, and populate the specified
     /// `logPtr`.  Return true if was able to successfully add a new log,
@@ -184,6 +184,9 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
                         const RECORD    record,
                         OFFSET          offset,
                         int             length);
+
+    /// Close and cleanup a log. Scheduled to run in seperate thread.
+    void closeAndCleanup(const LogSp& log);
 
     // PRIVATE ACCESSORS
 

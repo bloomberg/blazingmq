@@ -17,16 +17,14 @@
 #ifndef INCLUDED_MQBBLP_RECOVERYMANAGER
 #define INCLUDED_MQBBLP_RECOVERYMANAGER
 
-//@PURPOSE: Provide a mechanism to manage storage recovery in a cluster node.
-//
-//@CLASSES:
-//  mqbblp::RecoveryManager: Mechanism to manage recovery in a cluster node.
-//
-//@DESCRIPTION: 'mqbblp::RecoveryManager' provides a mechanism to manage
-// storage recovery in a cluster node.
+/// @file mqbblp_recoverymanager.h
+///
+/// @brief Provide a mechanism to manage storage recovery in a cluster node.
+///
+/// @bbref{mqbblp::RecoveryManager} provides a mechanism to manage storage
+/// recovery in a cluster node.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusternodesession.h>
 #include <mqbc_clusterutil.h>
@@ -42,7 +40,6 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqu_blob.h>
 
 // BDE
@@ -82,17 +79,16 @@ class RecoveryManager_ChunkDeleter;
 // class RecoveryManager_PartitionInfo
 // ===================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
-/// This class provides a VST representing some static information
-/// associated with a storage partition.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
+/// This class provides a VST representing some static information associated
+/// with a storage partition.
 class RecoveryManager_PartitionInfo {
   private:
     // DATA
     mqbi::DispatcherClientData d_dispData;
 
+    /// Track initialization for associated `d_clientType`.
     bsls::AtomicBool d_initializeDispatcherClient;
-    // Track initialization for associated
-    // 'd_clientType'.
 
   public:
     // CREATORS
@@ -115,9 +111,9 @@ class RecoveryManager_PartitionInfo {
 // class RecoveryManager_FileTransferInfo
 // ======================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
-/// This class provides a VST representing the details associated with a
-/// file transfer operation.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
+/// This class provides a VST representing the details associated with a file
+/// transfer operation.
 class RecoveryManager_FileTransferInfo {
     // FRIENDS
     friend class RecoveryManager_ChunkDeleter;
@@ -132,12 +128,10 @@ class RecoveryManager_FileTransferInfo {
 
     bool d_areFileMapped;
 
+    /// Number of chunk blob buffers referring to data/qlist/journal files.
+    /// Separate counter per file is not maintained, but can be done if
+    /// desired.
     bsls::AtomicInt64 d_aliasedChunksCount;
-    // Number of chunk blob buffers
-    // referring to data/qlist/journal
-    // files.  Separate counter per file is
-    // not maintained, but can be done if
-    // desired.
 
   public:
     // CREATORS
@@ -169,7 +163,7 @@ class RecoveryManager_FileTransferInfo {
 // class RecoveryManager_RecoveryContext
 // =====================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the context associated with a
 /// storage partition.
 class RecoveryManager_RecoveryContext {
@@ -193,11 +187,10 @@ class RecoveryManager_RecoveryContext {
 
   private:
     // DATA
+
+    /// Number of attempts for storage sync at startup.  This variable is
+    /// incremented everytime a request is successfully sent to a peer.
     int d_numAttempts;
-    // Number of attempts for storage sync
-    // at startup.  This variable is
-    // incremented everytime a request is
-    // successfully sent to a peer.
 
     mqbs::MappedFileDescriptor d_journalFd;
 
@@ -207,101 +200,72 @@ class RecoveryManager_RecoveryContext {
 
     FileSet d_fileSet;
 
+    /// Callback to be executed by the recovery manager when recovery for this
+    /// partition is complete or failed.  This callback must be invoked by the
+    /// recovery manager in the dispatcher thread associated with this
+    /// partition.
     PartitionRecoveryCb d_recoveryCb;
-    // Callback to be executed by the
-    // recovery manager when recovery for
-    // this partition is complete or
-    // failed.  This callback must be
-    // invoked by the recovery manager in
-    // the dispatcher thread associated
-    // with this partition.
 
+    /// Last valid sync point in the journal.
     bmqp_ctrlmsg::SyncPoint d_oldSyncPoint;
-    // Last valid sync point in the
-    // journal.
 
+    /// Zero value implies that there is no valid sync point.
     bsls::Types::Uint64 d_oldSyncPointOffset;
-    // Zero value implies that there is no
-    // valid sync point.
 
+    /// New sync point received in the stream.
     bmqp_ctrlmsg::SyncPoint d_newSyncPoint;
-    // New sync point received in the
-    // stream.
 
+    /// Zero value implies that there is no valid sync point.
     bsls::Types::Uint64 d_newSyncPointOffset;
-    // Zero value implies that there is no
-    // valid sync point.
 
+    /// Offset in journal file to which next chunk of PATCH/FILE should be
+    /// written.
     bsls::Types::Uint64 d_journalFileOffset;
-    // Offset in journal file to which next
-    // chunk of PATCH/FILE should be
-    // written.
 
+    /// Offset in data file to which next chunk of PATCH/FILE should be
+    /// written.
     bsls::Types::Uint64 d_dataFileOffset;
-    // Offset in data file to which next
-    // chunk of PATCH/FILE should be
-    // written.
 
+    /// Offset in qlist file to which next chunk of FILE should be written.
     bsls::Types::Uint64 d_qlistFileOffset;
-    // Offset in qlist file to which next
-    // chunk of FILE should be written.
 
+    /// List of storage events which are buffered while recovery is in
+    /// progress.  Once recovery is complete, these events are applied to bring
+    /// the node up-to-date with this partition, and `d_inRecovery` flag is set
+    /// to false.  Note that first message in the first event will be the new
+    /// sync point.
     StorageEvents d_bufferedEvents;
-    // List of storage events which are
-    // buffered while recovery is in
-    // progress.  Once recovery is
-    // complete, these events are applied
-    // to bring the node up-to-date with
-    // this partition, and 'd_inRecovery'
-    // flag is set to false.  Note that
-    // first message in the first event
-    // will be the new sync point.
 
+    /// Flag to indicate if this partition is recovering.  This may or may not
+    /// mean that there is an active recovery going on.  See `d_recoveryPeer_p`
+    /// for that.
     bool d_inRecovery;
-    // Flag to indicate if this partition
-    // is recovering.  This may or may not
-    // mean that there is an active
-    // recovery going on.  See
-    // 'd_recoveryPeer_p' for that.
 
+    /// Peer node which is serving recovery request for this partition.  If
+    /// this is zero, it means there is no active recovery in progress.
     mqbnet::ClusterNode* d_recoveryPeer_p;
-    // Peer node which is serving recovery
-    // request for this partition.  If this
-    // is zero, it means there is no active
-    // recovery in progress.
 
+    /// Type of storage sync response sent by the peer.
     bmqp_ctrlmsg::StorageSyncResponseType::Value d_responseType;
-    // Type of storage sync response sent
-    // by the peer.
 
+    /// Type of file chunk expected next from the peer.
     bmqp::RecoveryFileChunkType::Enum d_expectedChunkFileType;
-    // Type of file chunk expected next
-    // from the peer.
 
+    /// Sequence number of last chunk received from the peer.
     unsigned int d_lastChunkSequenceNumber;
-    // Sequence number of last chunk
-    // received from the peer.
 
+    /// When a node is started, each partition looks to initiate recovery
+    /// (storage sync; see `startRecovery`).  At that time, an event is
+    /// scheduled for each partition to check if a syncPt has been received for
+    /// that partition within a configured time window.  This handle represents
+    /// that timed check.  If no syncPt is received in that time, then self
+    /// node will initiate recovery w/ any AVAILABLE peer.
     EventHandle d_recoveryStartupWaitHandle;
-    // When a node is started, each
-    // partition looks to initiate recovery
-    // (storage sync; see 'startRecovery').
-    // At that time, an event is scheduled
-    // for each partition to check if a
-    // syncPt has been received for that
-    // partition within a configured time
-    // window.  This handle represents that
-    // timed check.  If no syncPt is
-    // received in that time, then self
-    // node will initiate recovery w/ any
-    // AVAILABLE peer.
 
+    /// Once recovery for a partition has been started with a peer, an event is
+    /// scheduled to check the status of recovery, and cancel it if its not
+    /// complete within the stipulated time.
     EventHandle d_recoveryStatusCheckHandle;
-    // Once recovery for a partition has
-    // been started with a peer, an event
-    // is scheduled to check the status of
-    // recovery, and cancel it if its not
-    // complete within the stipulated time.
 
   public:
     // TRAITS
@@ -407,7 +371,7 @@ class RecoveryManager_RecoveryContext {
 // class RecoveryManager_PrimarySyncContext
 // ========================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the context associated with a
 /// partition under primary-sync.
 class RecoveryManager_PrimarySyncContext {
@@ -429,20 +393,16 @@ class RecoveryManager_PrimarySyncContext {
         // DATA
         mqbnet::ClusterNode* d_peer_p;
 
+        /// Peer's sequence number for the associated partition
         bmqp_ctrlmsg::PartitionSequenceNumber d_partitionSeqNum;
-        // Peer's sequence number for the
-        // associated partition
 
+        /// Peer's last sync point and its offset for the associated partition
         bmqp_ctrlmsg::SyncPointOffsetPair d_lastSyncPointOffsetPair;
-        // Peer's last sync point and its
-        // offset for the associated partition
 
+        /// Flag which indicates whether new primary should attempt to sync
+        /// this peer's associated partition.  Note that this flag doesn't mean
+        /// that the peer is necessarily behind.
         bool d_needsPartitionSync;
-        // Flag which indicates whether new
-        // primary should attempt to sync this
-        // peer's associated partition.  Note
-        // that this flag doesn't mean that the
-        // peer is necessarily behind.
 
       public:
         // CREATORS
@@ -486,47 +446,36 @@ class RecoveryManager_PrimarySyncContext {
 
     const mqbs::FileStore* d_fs_p;
 
+    /// Flag to indicate if this partition is under primary-sync.  This may or
+    /// may not mean that there is an active primary-sync going on.  See
+    /// `d_syncPeer_p` for that.
     bool d_syncInProgress;
-    // Flag to indicate if this partition
-    // is under primary-sync.  This may or
-    // may not mean that there is an active
-    // primary-sync going on.  See
-    // 'd_syncPeer_p' for that.
 
+    /// Peer node which is serving primary sync request for this partition.  If
+    /// this is zero, it means there is no active primary-sync in progress.
     mqbnet::ClusterNode* d_syncPeer_p;
-    // Peer node which is serving primary
-    // sync request for this partition.  If
-    // this is zero, it means there is no
-    // active primary-sync in progress.
 
+    /// Callback to be executed by the recovery manager when primary-sync for
+    /// this partition is complete or failed.  This callback must be invoked by
+    /// the recovery manager in the dispatcher thread associated with this
+    /// partition.
     PartitionPrimarySyncCb d_primarySyncCb;
-    // Callback to be executed by the
-    // recovery manager when primary-sync
-    // for this partition is complete or
-    // failed.  This callback must be
-    // invoked by the recovery manager in
-    // the dispatcher thread associated
-    // with this partition.
 
     bmqp_ctrlmsg::PartitionSequenceNumber d_selfPartitionSeqNum;
 
     bmqp_ctrlmsg::SyncPointOffsetPair d_selfLastSyncPtOffsetPair;
 
+    /// @todo When partition replay from archived files is supported, we may
+    /// need to have a vector of this variable.
     FileTransferInfo d_fileTransferInfo;
-    // TBD: when partition replay from
-    // archived files is supported, we may
-    // need to have a vector of this
-    // variable.
 
+    /// Handle to one-time timer event to check primary-sync status for this
+    /// partition.
     PeerPartitionStates d_peerPartitionStates;
-    // Handle to one-time timer event to
-    // check primary-sync status for this
-    // partition.
 
+    /// Handle to one-time timer event to check primary-sync status for this
+    /// partition.
     EventHandle d_syncStatusEventHandle;
-    // Handle to one-time timer event to
-    // check primary-sync status for this
-    // partition.
 
   public:
     // TRAITS
@@ -646,10 +595,10 @@ bsl::ostream& operator<<(bsl::ostream&                            stream,
 // class RecoveryManager_RequestContext
 // ====================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the context associated with a
-/// recovery or partition sync request originating from a peer requester
-/// node for a specific partition.
+/// recovery or partition sync request originating from a peer requester node
+/// for a specific partition.
 class RecoveryManager_RequestContext {
   public:
     // PUBLIC TYPES
@@ -693,7 +642,7 @@ class RecoveryManager_RequestContext {
 // class RecoveryManager_ChunkDeleter
 // ==================================
 
-/// Private class.  Implementation detail of `mqbblp::RecoveryManager`.
+/// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing a custom deleter for a chunk of
 /// file aliasing to the mapped region.
 class RecoveryManager_ChunkDeleter {
@@ -821,62 +770,41 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     mqbs::DataStoreConfig d_dataStoreConfig;
 
+    /// List of partitions information.  Note each entry in this list remains
+    /// valid all the time.  This variable is manipulated only from the storage
+    /// (queue) dispatcher thread.
     PartitionsInfo d_partitionsInfo;
-    // List of partitions information.
-    // Note each entry in this list remains
-    // valid all the time.  This variable
-    // is manipulated only from the storage
-    // (queue) dispatcher thread.
 
+    /// Vector of contexts of partitions which are under recovery.  Items from
+    /// this vector are *not* removed even after corresponding partitions have
+    /// recovered, but a flag is set to indicate that the partition is no
+    /// longer under recovery.  This variable is manipulated only from the
+    /// storage (queue) dispatcher thread.
     RecoveryContexts d_recoveryContexts;
-    // Vector of contexts of partitions
-    // which are under recovery.  Items
-    // from this vector are *not* removed
-    // even after corresponding partitions
-    // have recovered, but a flag is set to
-    // indicate that the partition is no
-    // longer under recovery.  This
-    // variable is manipulated only from
-    // the storage (queue) dispatcher
-    // thread.
 
+    /// Vector of contexts of partitions which are under partition primary
+    /// sync.  Items from this vector are *not* removed even after
+    /// corresponding partitions have synced and this node can transition to
+    /// primary for that partition, but a flag is set to indicate that
+    /// partition is no longer under primary sync.  This variable is
+    /// manipulated only from the storage (queue) dispatcher thread.
     PrimarySyncContexts d_primarySyncContexts;
-    // Vector of contexts of partitions
-    // which are under partition primary
-    // sync.  Items from this vector are
-    // *not* removed even after
-    // corresponding partitions have synced
-    // and this node can transition to
-    // primary for that partition, but a
-    // flag is set to indicate that
-    // partition is no longer under primary
-    // sync.  This variable is manipulated
-    // only from the storage (queue)
-    // dispatcher thread.
 
+    /// List of contexts of recovery sync requests for which this node is
+    /// sending responses to the requester peer node.  Once the response has
+    /// been sent, the request context is removed from this list.
     RequestContexts d_recoveryRequestContexts;
-    // List of contexts of recovery sync
-    // requests for which this node is
-    // sending responses to the requester
-    // peer node.  Once the response has
-    // been sent, the request context is
-    // removed from this list.
 
+    /// List of contexts of primary sync requests for which this node is
+    /// sending responses to the requester peer node.  Once the response has
+    /// been sent, the request context is removed from this list.
     RequestContexts d_primarySyncRequestContexts;
-    // List of contexts of primary sync
-    // requests for which this node is
-    // sending responses to the requester
-    // peer node.  Once the response has
-    // been sent, the request context is
-    // removed from this list.
 
+    /// Lock to protect access to `d_recoveryRequestContexts`.
     bsls::SpinLock d_recoveryRequestContextLock;
-    // Lock to protect access to
-    // 'd_recoveryRequestContexts'.
 
+    // Lock to protect access to `d_primarySyncRequestContexts`.
     bsls::SpinLock d_primarySyncRequestContextLock;
-    // Lock to protect access to
-    // 'd_primarySyncRequestContexts'.
 
   private:
     // NOT IMPLEMENTED
@@ -962,35 +890,32 @@ class RecoveryManager : public mqbnet::ClusterObserver {
     /// Process the partition-sync-state-query response contained in the
     /// specified `requestContext`.
     ///
-    /// THREAD: This method is invoked in the associated cluster's IO
-    ///         thread.
+    /// THREAD: This method is invoked in the associated cluster's IO thread.
     void
     onPartitionSyncStateQueryResponse(const RequestContextSp& requestContext);
 
     /// Process the partition-sync-state-query response contained in the
     /// specified `requestContext`.
     ///
-    /// THREAD: This method is invoked in the associated partition's
-    ///         dispatcher thread.
+    /// THREAD: This method is invoked in the associated partition's dispatcher
+    ///         thread.
     void onPartitionSyncStateQueryResponseDispatched(
         int                     partitionId,
         const RequestContextSp& requestContext);
 
+    /// Process the partition-sync-data-query response contained in the
+    /// specified `requestContext`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's IO thread.
     void onPartitionSyncDataQueryResponse(
         const RequestManagerType::RequestSp& context,
         const mqbnet::ClusterNode*           responder);
 
-    // Process the partition-sync-data-query response contained in the
-    // specified 'requestContext'.
-    //
-    // THREAD: This method is invoked in the associated cluster's IO
-    //         thread.
-
     /// Process the partition-sync-data-query response contained in the
     /// specified `requestContext`.
     ///
-    /// THREAD: This method is invoked in the associated partition's
-    ///         dispatcher thread.
+    /// THREAD: This method is invoked in the associated partition's dispatcher
+    ///         thread.
     void onPartitionSyncDataQueryResponseDispatched(
         int                                  partitionId,
         const RequestManagerType::RequestSp& context,
