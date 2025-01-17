@@ -35,6 +35,7 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [--details]
                         [--dump-payload]
                         [--dump-limit <dump limit>]
+                        [--min-records-per-queue <threshold>]
                         [--summary]
                         [-h|help]
 Where:
@@ -83,6 +84,8 @@ Where:
           specify if you need message payload
        --dump-limit           <dump limit>
           limit of payload output (default: 1024)
+       --min-records-per-queue
+         min number of records per queue for detailed info to be displayed
        --summary
           summary of all matching messages (number of outstanding messages and
           other statistics)
