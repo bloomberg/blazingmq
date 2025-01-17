@@ -85,19 +85,20 @@ struct LedgerOpResult {
         // File specific
         // - - - - - - - - - - - - - - - - - - - - - -
         ,
-        e_LEDGER_READ_ONLY     = -6,
-        e_LOG_CREATE_FAILURE   = -7,
-        e_LOG_OPEN_FAILURE     = -8,
-        e_LOG_CLOSE_FAILURE    = -9,
-        e_LOG_FLUSH_FAILURE    = -10,
-        e_LOG_CLEANUP_FAILURE  = -11,
-        e_LOG_NOT_FOUND        = -12,
-        e_LOG_INVALID          = -13,
-        e_RECORD_WRITE_FAILURE = -14,
-        e_RECORD_READ_FAILURE  = -15,
-        e_RECORD_ALIAS_FAILURE = -16,
-        e_ALIAS_NOT_SUPPORTED  = -17,
-        e_INVALID_BLOB_SECTION = -18
+        e_LEDGER_READ_ONLY        = -6,
+        e_LOG_CREATE_FAILURE      = -7,
+        e_LOG_OPEN_FAILURE        = -8,
+        e_LOG_CLOSE_FAILURE       = -9,
+        e_LOG_FLUSH_FAILURE       = -10,
+        e_LOG_ROLLOVER_CB_FAILURE = -11,
+        e_LOG_CLEANUP_FAILURE     = -12,
+        e_LOG_NOT_FOUND           = -13,
+        e_LOG_INVALID             = -14,
+        e_RECORD_WRITE_FAILURE    = -15,
+        e_RECORD_READ_FAILURE     = -16,
+        e_RECORD_ALIAS_FAILURE    = -17,
+        e_ALIAS_NOT_SUPPORTED     = -18,
+        e_INVALID_BLOB_SECTION    = -19
     };
 
     // CLASS METHODS
@@ -249,7 +250,7 @@ class LedgerConfig {
     /// use the log in earnest and populate the specified `offset` with the
     /// current offset of the log.  Return 0 on success and non-zero error
     /// value otherwise.
-    typedef bsl::function<int(mqbsi::Log::Offset*                offset,
+    typedef bsl::function<int(Log::Offset*                       offset,
                               const bsl::shared_ptr<mqbsi::Log>& log)>
         ValidateLogCb;
 
@@ -448,12 +449,11 @@ class Ledger {
     virtual int setOutstandingNumBytes(const mqbu::StorageKey& logId,
                                        bsls::Types::Int64      value) = 0;
 
-    /// Write the specified `record` starting at the specified `offset` and
-    /// of the specified `length` into this ledger and load into `recordId`
-    /// an identifier which can be used to retrieve the record later.
-    /// Return 0 on success and a non zero value otherwise.  The
-    /// implementation must also adjust outstanding num bytes of the
-    /// corresponding log.
+    /// Write the specified `record` starting at the specified `offset` and of
+    /// the specified `length` into this ledger and load into `recordId` an
+    /// identifier which can be used to retrieve the record later.  Return 0 on
+    /// success and a non zero value otherwise.  The implementation must also
+    /// adjust outstanding num bytes of the corresponding log.
     virtual int writeRecord(LedgerRecordId* recordId,
                             const void*     record,
                             int             offset,
