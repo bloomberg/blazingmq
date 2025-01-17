@@ -103,6 +103,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_outstanding(false)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
+, d_minRecordsPerQueue(0)
 {
     // NOTHING
 }
