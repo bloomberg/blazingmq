@@ -17,25 +17,18 @@
 #ifndef INCLUDED_MQBC_PARTITIONSTATETABLE
 #define INCLUDED_MQBC_PARTITIONSTATETABLE
 
-//@PURPOSE: Provide a state table for the Partition FSM.
-//
-//@CLASSES:
-//  mqbc::PartitionStateTableState:   Enum for state in the partition state
-//                                    table.
-//  mqbc::PartitionStateTableEvent:   Enum for event in the partition state
-//                                    table.
-//  mqbc::PartitionStateTableActions: Actions in the partition state table.
-//  mqbc::PartitionStateTable:        State table for the Partition FSM.
-//
-//@DESCRIPTION: 'mqbc::PartitionStateTable' is a state table for the Partition
-//              FSM.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::PartitionStateTable' object is not thread safe.
+/// @file mqbc_partitionstatetable.h
+///
+/// @brief Provide a state table for the Partition FSM.
+///
+/// @bbref{mqbc::PartitionStateTable} is a state table for the Partition FSM.
+///
+/// Thread Safety                            {#mqbc_partitionstatetable_thread}
+/// =============
+///
+/// The @bbref{mqbc::PartitionStateTable} object is not thread safe.
 
 // MQB
-
 #include <mqbu_statetable.h>
 
 // BDE
@@ -53,9 +46,9 @@ namespace mqbc {
 /// This struct defines the type of state in the cluster state table.
 struct PartitionStateTableState {
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different type of state
 
+    /// Enumeration used to distinguish among different type of state.
+    enum Enum {
         e_UNKNOWN              = 0,
         e_PRIMARY_HEALING_STG1 = 1,
         e_PRIMARY_HEALING_STG2 = 2,
@@ -67,18 +60,17 @@ struct PartitionStateTableState {
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value is incremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `PartitionStateTableState::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// is incremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{PartitionStateTableState::Enum} value.
     static bsl::ostream& print(bsl::ostream&                  stream,
                                PartitionStateTableState::Enum value,
                                int                            level = 0,
@@ -109,9 +101,9 @@ bsl::ostream& operator<<(bsl::ostream&                  stream,
 /// This struct defines the type of event in the cluster state table.
 struct PartitionStateTableEvent {
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different type of event
 
+    /// Enumeration used to distinguish among different type of event.
+    enum Enum {
         e_RST_UNKNOWN                  = 0,
         e_DETECT_SELF_PRIMARY          = 1,
         e_DETECT_SELF_REPLICA          = 2,
@@ -149,18 +141,17 @@ struct PartitionStateTableEvent {
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value ieventremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `PartitionStateTableEvent::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// ieventremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{PartitionStateTableEvent::Enum} value.
     static bsl::ostream& print(bsl::ostream&                  stream,
                                PartitionStateTableEvent::Enum value,
                                int                            level = 0,
