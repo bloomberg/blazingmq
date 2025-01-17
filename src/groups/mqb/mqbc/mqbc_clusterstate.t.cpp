@@ -69,6 +69,28 @@ static void test1_partitionIdExtractor()
     }
 }
 
+static void test2_sanitizer() 
+{
+    bslma::Allocator *alloc = bmqtst::TestHelperUtil::allocator();
+
+    const char     pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
+
+    bdlpcre::RegEx regex(alloc);
+    bsl::string    error(alloc);
+    size_t         errorOffset;
+    BSLA_MAYBE_UNUSED const int rc = regex.prepare(
+        &error,
+        &errorOffset,
+        pattern,
+        bdlpcre::RegEx::k_FLAG_JIT);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT(regex.isPrepared());
+
+    bsl::string str("test.123.test.test", alloc);
+    bsl::vector<bslstl::StringRef> result(alloc);
+    regex.match(&result, str.data(), str.length());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -79,6 +101,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 2: test2_sanitizer(); break;
     case 1: test1_partitionIdExtractor(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
