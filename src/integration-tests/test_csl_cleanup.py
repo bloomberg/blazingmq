@@ -54,7 +54,7 @@ def test_csl_cleanup(cluster: Cluster):
         str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
     )
 
-    assert leader.outputs_regex(r"Log closed and cleaned up. Time taken", timeout)
+    assert leader.outputs_regex(r"Log '.*' closed and cleaned up.", timeout)
 
     assert len(csl_files_after_rollover) == 1
     assert csl_files_before_rollover[0] != csl_files_after_rollover[0]
