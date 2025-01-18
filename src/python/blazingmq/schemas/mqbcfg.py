@@ -397,6 +397,37 @@ class Heartbeat:
     )
 
 
+@dataclass
+class LogDumpConfig:
+    record_buffer_size: int = field(
+        default=32768,
+        metadata={
+            "name": "recordBufferSize",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    recording_level: str = field(
+        default="OFF",
+        metadata={
+            "name": "recordingLevel",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    trigger_level: str = field(
+        default="OFF",
+        metadata={
+            "name": "triggerLevel",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+
+
 class MasterAssignmentAlgorithm(Enum):
     """Enumeration of the various algorithm's used for assigning a master to.
 
@@ -1157,6 +1188,15 @@ class LogController:
             "required": True,
         },
     )
+    log_dump: Optional[LogDumpConfig] = field(
+        default=None,
+        metadata={
+            "name": "logDump",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
 
 
 @dataclass
@@ -1855,7 +1895,8 @@ class AppConfig:
     plugins..............: configuration for the plugins
     msgPropertiesSupport.: information about if/how to advertise support for v2 message properties
     configureStream......: send new ConfigureStream instead of old ConfigureQueue
-    advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK/&gt;
+    advertiseSubscriptions.: temporarily control use of ConfigureStream in SDK
+    routeCommandTimeoutMs: maximum amount of time to wait for a routed command's response
     """
 
     broker_instance_name: Optional[str] = field(
@@ -2013,6 +2054,15 @@ class AppConfig:
         default=False,
         metadata={
             "name": "advertiseSubscriptions",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    route_command_timeout_ms: int = field(
+        default=3000,
+        metadata={
+            "name": "routeCommandTimeoutMs",
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
             "required": True,
