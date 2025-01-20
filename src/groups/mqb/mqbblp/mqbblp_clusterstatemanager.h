@@ -17,22 +17,21 @@
 #ifndef INCLUDED_MQBBLP_CLUSTERSTATEMANAGER
 #define INCLUDED_MQBBLP_CLUSTERSTATEMANAGER
 
-//@PURPOSE: Provide a mechanism to manage the state of a cluster.
-//
-//@CLASSES:
-//  mqbblp::ClusterStateManager: Mechanism to manage the state of a cluster.
-//
-//@DESCRIPTION: 'mqbblp::ClusterStateManager' is a mechanism to manage the
-// state of a cluster.
-//
-/// Thread Safety
-///-------------
-// The 'mqbblp::ClusterStateManager' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless explicitly documented in a method's contract.
+/// @file mqbblp_clusterstatemanager.h
+///
+/// @brief Provide a mechanism to manage the state of a cluster.
+///
+/// @bbref{mqbblp::ClusterStateManager} is a mechanism to manage the state of a
+/// cluster.
+///
+/// Thread Safety                          {#mqbblp_clusterstatemanager_thread}
+/// =============
+///
+/// The @bbref{mqbblp::ClusterStateManager} object is not thread safe and
+/// should always be manipulated from the associated cluster's dispatcher
+/// thread, unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clustermembership.h>
 #include <mqbc_clusterstate.h>
@@ -44,9 +43,8 @@
 #include <mqbnet_multirequestmanager.h>
 #include <mqbu_storagekey.h>
 
-#include <bmqma_countingallocatorstore.h>
-
 // BMQ
+#include <bmqma_countingallocatorstore.h>
 #include <bmqp_ctrlmsg_messages.h>
 
 // BDE
@@ -123,45 +121,41 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
     bool d_isStarted;
 
+    /// Cluster configuration to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
-    // Cluster configuration to use
 
     mqbi::Cluster* d_cluster_p;
 
+    /// Transient cluster data.
     mqbc::ClusterData* d_clusterData_p;
-    // Transient cluster data
 
+    /// Cluster's state.
     mqbc::ClusterState* d_state_p;
-    // Cluster's state.
 
+    /// Underlying cluster state ledger.
+    ///
+    /// @note At this time, it's notified of cluster state events, but does not
+    ///       serve as the "single source of truth".
     ClusterStateLedgerMp d_clusterStateLedger_mp;
-    // Underlying cluster state ledger.
-    //
-    // NOTE: At this time, it's notified of
-    // cluster state events, but does not
-    // server as the "single source of
-    // truth"
 
     mqbi::StorageManager* d_storageManager_p;
 
     bool d_isFirstLeaderAdvisory;
 
+    /// List of queue advisories which were received when self node was
+    /// starting, and will be processed once this node transitions to
+    /// AVAILABLE.  A queue advisory can be either an assignment or an
+    /// un-assignment msg.
     QueueAdvisories d_bufferedQueueAdvisories;
-    // List of queue advisories which were
-    // received when self node was
-    // starting, and will be processed once
-    // this node transitions to AVAILABLE.
-    // A queue advisory can be either an
-    // assignment or an un-assignment msg.
 
     AfterPartitionPrimaryAssignmentCb d_afterPartitionPrimaryAssignmentCb;
 
@@ -298,10 +292,11 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void setStorageManager(mqbi::StorageManager* value) BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the after partition primary assignment callback to the specified
+    /// `value`.
     void setAfterPartitionPrimaryAssignmentCb(
         const AfterPartitionPrimaryAssignmentCb& value) BSLS_KEYWORD_OVERRIDE;
-    // Set the after partition primary assignment callback to the specified
-    // 'value'.
 
     /// Set the primary for the specified `partitionId` to be the specified
     /// `primary` with the specified `leaseId`.

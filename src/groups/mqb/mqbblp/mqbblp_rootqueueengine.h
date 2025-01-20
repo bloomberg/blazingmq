@@ -17,16 +17,14 @@
 #ifndef INCLUDED_MQBBLP_ROOTQUEUEENGINE
 #define INCLUDED_MQBBLP_ROOTQUEUEENGINE
 
-//@PURPOSE: Provide a QueueEngine for use at the primary node.
-//
-//@CLASSES:
-//  mqbblp::RootQueueEngine: QueueEngine for use at the primary mode
-//
-//@DESCRIPTION: 'mqbblp::RootQueueEngine' provides an 'mqbi::QueueEngine'
-// implementation for use at the primary node.
+/// @file mqbblp_rootqueueengine.h
+///
+/// @brief Provide a `QueueEngine` for use at the primary node.
+///
+/// @bbref{mqbblp::RootQueueEngine} provides an @bbref{mqbi::QueueEngine}
+/// implementation for use at the primary node.
 
 // MQB
-
 #include <mqbblp_queueconsumptionmonitor.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbconfm_messages.h>
@@ -38,10 +36,9 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqc_twokeyhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
-
-#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <ball_log.h>
@@ -97,45 +94,42 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     QueueConsumptionMonitor d_consumptionMonitor;
 
+    /// Map of appId to AppState
     Apps d_apps;
-    // Map of appId to AppState
 
+    /// Does this queue engine have any application subscriptions configured?
     bool d_hasAppSubscriptions;
-    // Does this queue engine have any application subscriptions configured
 
     const bool d_isFanout;
 
+    /// Event scheduler currently used for message throttling.  Held, not
+    /// owned.
     bdlmt::EventScheduler* d_scheduler_p;
-    // Event scheduler currently used for
-    // message throttling. Held, not owned.
 
+    /// Thread pool for any standalone work that can be offloaded to
+    /// non-queue-dispatcher threads.  It is used to hex dump the payload of a
+    /// rejected message.
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
-    // Thread pool for any standalone work
-    // that can be offloaded to
-    // non-queue-dispatcher threads. It is
-    // used to hex dump the payload of a
-    // rejected message.
 
+    /// Throttler for REJECTs.
     bdlmt::Throttle d_throttledRejectedMessages;
-    // Throttler for REJECTs.
 
+    /// Throttler for when reject messages are dumped into temp files.
     bdlmt::Throttle d_throttledRejectMessageDump;
-    // Throttler for when reject messages
-    // are dumped into temp files.
 
+    /// Reusable apps delivery context.
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
-    // Reusable apps delivery context
 
+    /// Storage iterator to the logical stream of messages.  Queue Engine
+    /// iterates this one sequentially.
     bslma::ManagedPtr<mqbi::StorageIterator> d_storageIter_mp;
-    // Storage iterator to the logical stream of messages.
-    // Queue Engine iterates this one sequentially.
 
+    /// Storage iterator to access storage state.  Queue Engine uses this one
+    /// to access random message (as in the case of redelivery).
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
-    // Storage iterator to access storage state.
-    // Queue Engine uses this one to access random message (as in the case of
-    // redelivery).
 
-    bslma::Allocator* d_allocator_p;  // Allocator to use
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
   private:
     // CLASS-SCOPE CATEGORY

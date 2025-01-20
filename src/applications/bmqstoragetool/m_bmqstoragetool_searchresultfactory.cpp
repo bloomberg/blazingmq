@@ -122,6 +122,8 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                                           fileManager->journalFileIterator(),
                                           fileManager->dataFileIterator(),
                                           params->d_processRecordTypes,
+                                          params->d_queueMap,
+                                          params->d_minRecordsPerQueue,
                                           alloc),
             alloc);
     }

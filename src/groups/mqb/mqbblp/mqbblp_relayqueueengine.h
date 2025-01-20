@@ -17,27 +17,25 @@
 #ifndef INCLUDED_MQBBLP_RELAYQUEUEENGINE
 #define INCLUDED_MQBBLP_RELAYQUEUEENGINE
 
-//@PURPOSE: Provide a QueueEngine in a relay BlazingMQ node (replica or proxy)
-//
-//@CLASSES:
-//  mqbblp::RelayQueueEngine: QueueEngine in a relay BlazingMQ node
-//  (replica/proxy)
-//
-//@DESCRIPTION: 'mqbblp::RelayQueueEngine' provides an 'mqbi::QueueEngine'
-// implementation for a relay BlazingMQ node (replica or proxy).
-//
-/// KNOWN Issues:
-///------------
-// Since messages are not rejected back to upstream, there is a potential
-// situation of pseudo-starvation: let's imagine a proxy has two readers, one
-// with maxUnackedMessages of 10, and one with maxUnackedMessages of 100,
-// upstream will then deliver up to 110 messages to this proxy.  If the '100
-// unackedMessages' goes down, this proxy will keep those messages to
-// distribute them to the '10 unackedMessages', which might be undesirable;
-// instead the proxy should 'reject' up to 100 messages.
+/// @file mqbblp_relayqueueengine.h
+///
+/// @brief Provide a `QueueEngine` in a relay BlazingMQ node (replica or proxy)
+///
+/// @bbref{mqbblp::RelayQueueEngine} provides an @bbref{mqbi::QueueEngine}
+/// implementation for a relay BlazingMQ node (replica or proxy).
+///
+/// KNOWN Issues                              {#mqbblp_relayqueueengine_issues}
+/// ============
+///
+/// Since messages are not rejected back to upstream, there is a potential
+/// situation of pseudo-starvation: let's imagine a proxy has two readers, one
+/// with maxUnackedMessages of 10, and one with maxUnackedMessages of 100,
+/// upstream will then deliver up to 110 messages to this proxy.  If the 100
+/// unackedMessages reader goes down, this proxy will keep those messages to
+/// distribute them to the 10 unackedMessages reader, which might be
+/// undesirable; instead the proxy should reject up to 100 messages.
 
 // MQB
-
 #include <mqbblp_pushstream.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbblp_queuehandlecatalog.h>
@@ -48,11 +46,10 @@
 #include <mqbi_storage.h>
 
 // BMQ
+#include <bmqc_orderedhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueutil.h>
 #include <bmqt_messageguid.h>
-
-#include <bmqc_orderedhashmap.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -95,9 +92,8 @@ class QueueState;
 // struct RelayQueueEngine_AppState
 // ================================
 
-/// RelayQueueEngine needs to keep track of all parameters advertised
-/// upstream but not necessarily confirmed per each AppId (including
-/// default).
+/// RelayQueueEngine needs to keep track of all parameters advertised upstream
+/// but not necessarily confirmed per each AppId (including default).
 ///
 /// The difference with RootQueueEngine is that they update queue handle
 /// immediately upon `configureHandle` while RelayQueueEngine waits for
@@ -118,8 +114,8 @@ struct RelayQueueEngine_AppState : QueueEngineUtil_AppState {
     typedef bsl::unordered_map<mqbi::QueueHandle*, CachedParameters>
         CachedParametersMap;
 
+    /// Parameters to advertise upstream for this app.
     CachedParametersMap d_cache;
-    // Parameters to advertise upstream for this app
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RelayQueueEngine_AppState,
@@ -162,11 +158,11 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// (appId) -> App_State map
     typedef bsl::unordered_map<bsl::string, AppStateSp> AppIds;
 
+    /// A guard helper class.
     class AutoPurger;
-    // A guard helper class.
 
+    /// Has to have access to private member variables.
     friend class AutoPurger;
-    // Has to have access to private member variables.
 
     /// This struct serves as multiplexor when sending configure request(s)
     /// (plural in the case of wildcard) to upstream.  Once all responses
@@ -215,31 +211,31 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     const mqbconfm::Domain d_domainConfig;
 
+    /// Map of (appId) to App_State.
     AppsMap d_apps;
-    // Map of (appId) to App_State.
 
+    /// (appId) -> App_State map
     AppIds d_appIds;
-    // (appId) -> App_State map
 
+    /// Used to avoid executing a callback if the engine has been destroyed.
+    /// For example, upon queue converting to local.
     bmqu::SharedResource<RelayQueueEngine> d_self;
-    // Used to avoid executing a callback if
-    // the engine has been destroyed.  For
-    // example, upon queue converting to local.
 
+    /// Throttler for REJECTs.
     bdlmt::Throttle d_throttledRejectedMessages;
-    // Throttler for REJECTs.
 
+    /// Reusable apps delivery context
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
-    // Reusable apps delivery context
 
+    /// Storage iterator to the PushStream.
     bslma::ManagedPtr<PushStreamIterator> d_storageIter_mp;
-    // Storage iterator to the PushStream
 
+    /// Storage iterator to access storage state.
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
-    // Storage iterator to access storage state.
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
+
   private:
     // PRIVATE CLASS METHODS
 

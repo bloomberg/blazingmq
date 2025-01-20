@@ -566,17 +566,21 @@ void DomainManager::stop()
                        << k_MAX_WAIT_SECONDS_AT_SHUTDOWN
                        << " seconds while shutting down"
                        << " bmqbrkr. rc:  " << rc << ".";
-
-        // Note that 'self' variable will get invalidated when this function
-        // returns, which will ensure that any pending 'onDomainClosed'
-        // callbacks are not invoked.  So there is no need to explicitly call
-        // 'self.invalidate()' here.
     }
 
     if (d_domainResolver_mp) {
         d_domainResolver_mp->stop();
         d_domainResolver_mp.clear();
     }
+
+    // Notice that this invalidation is necessary.
+    // Without this explicit call, `self` will be invalidated
+    // when the function returns, which will ensure that any pending
+    // `onDomainClosed` callbacks are not invoked. But this is not enough
+    // since we want to prevent a (tiny) possibility where `latch` is
+    // destructed before `self` and `onDomainClosed` would be called on an
+    // invalid `latch`.
+    self.invalidate();
 }
 
 int DomainManager::locateDomain(DomainSp*          domain,
@@ -706,7 +710,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
     else if (command.isRemoveValue()) {
         const bsl::string& name = command.remove().domain();
 
-        // First pass
+        // First round
         if (command.remove().finalize().isNull()) {
             DomainSp domainSp;
 
@@ -717,25 +721,23 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 return -1;  // RETURN
             }
 
-            // 1. Reject if there's any opened or opening queue
+            // 1. Reject if there's any open queue request on the fly
+            //    Mark DOMAIN PREREMOVE to block openQueue requests
             if (!domainSp->tryRemove()) {
                 bmqu::MemOutStream os;
                 os << "Trying to remove the domain '" << name
-                   << "' while there are queues opened or opening";
+                   << "' while there are open queue requests on the fly or "
+                      "the domain is shutting down";
                 result->makeError().message() = os.str();
                 return -1;  // RETURN
             }
 
-            // 2. Mark DOMAIN PREREMOVE to block openQueue requests
-            domainSp->removeDomainReset();
-
-            // 3. Purge inactive queues
-            // remove virtual storage; add a record in journal file
+            // 2. Purge and GC
             mqbcmd::DomainResult  domainResult;
             mqbcmd::ClusterResult clusterResult;
             mqbi::Cluster*        cluster = domainSp->cluster();
 
-            cluster->purgeQueueOnDomain(&clusterResult, name);
+            cluster->purgeAndGCQueueOnDomain(&clusterResult, name);
 
             if (clusterResult.isErrorValue()) {
                 result->makeError(clusterResult.error());
@@ -752,18 +754,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 clusterResult.storageResult().purgedQueues().queues();
             result->makeDomainResult(domainResult);
 
-            // 4. Force GC queues
-            // unregister Queue from domain;
-            // remove queue storage from partition
-            mqbcmd::ClusterResult clusterForceGCResult;
-            int rc = cluster->gcQueueOnDomain(&clusterForceGCResult, name);
-            if (clusterForceGCResult.isErrorValue()) {
-                result->makeError(clusterForceGCResult.error());
-                return -1;  // RETURN
-            }
-
-            // 5. Mark DOMAIN REMOVED to accecpt the second pass
-
+            // 3. Mark DOMAIN REMOVED to accecpt the second pass
             bmqu::SharedResource<DomainManager> self(this);
             bslmt::Latch latch(1, bsls::SystemClockType::e_MONOTONIC);
 
@@ -777,18 +768,19 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
                 bmqsys::Time::nowMonotonicClock().addSeconds(
                     k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE);
 
-            rc = latch.timedWait(timeout);
+            int rc = latch.timedWait(timeout);
             if (0 != rc) {
                 BALL_LOG_ERROR << "DOMAINS REMOVE fail to finish in "
                                << k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE
                                << " seconds. rc:  " << rc << ".";
-                return rc;
             }
 
-            // 6. Mark DOMAINS REMOVE command first round as complete
-            domainSp->removeDomainComplete();
+            // Refer to `DomainManager::stop` to see why we need to invalidate
+            // `self` explicitly.
+            self.invalidate();
+            return rc;  // RETURN
         }
-        // Second pass
+        // Second round
         else {
             DomainSp domainSp;
 
@@ -802,7 +794,7 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
 
             if (!domainSp->isRemoveComplete()) {
                 bmqu::MemOutStream os;
-                os << "First pass of DOMAINS REMOVE '" << name
+                os << "First round of DOMAINS REMOVE '" << name
                    << "' is not completed.";
                 result->makeError().message() = os.str();
                 return -1;  // RETURN
@@ -823,8 +815,6 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             result->makeSuccess();
             return 0;  // RETURN
         }
-
-        return 0;
     }
 
     bmqu::MemOutStream os;

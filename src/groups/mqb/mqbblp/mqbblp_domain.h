@@ -17,16 +17,15 @@
 #ifndef INCLUDED_MQBBLP_DOMAIN
 #define INCLUDED_MQBBLP_DOMAIN
 
-//@PURPOSE: Provide a concrete implementation of the 'mqbi::Domain' interface.
-//
-//@CLASSES:
-//  mqbblp::Domain: Domain implementation
-//
-//@DESCRIPTION: 'mqbblp::Domain' is a concrete implementation of the
-// 'mqbi::Domain' interface.
+/// @file mqbblp_domain.h
+///
+/// @brief Provide a concrete implementation of the @bbref{mqbi::Domain}
+/// interface.
+///
+/// @bbref{mqbblp::Domain} is a concrete implementation of the
+/// @bbref{mqbi::Domain} interface.
 
 // MQB
-
 #include <mqbc_clusterstate.h>
 #include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
@@ -112,84 +111,69 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
         e_STARTED  = 0,
         e_STOPPING = 1,
         e_STOPPED  = 2,
-        // Used for teardownRemove function
-        e_REMOVING = 3,
-        e_REMOVED  = 4,
-        // Used as flags to indicate
-        // the start and finish of
-        // the first round for DOMAINS REMOVE
-        e_PREREMOVE  = 5,
-        e_POSTREMOVE = 6,
+        /// Indicate the start of the first round of DOMAINS REMOVE
+        e_REMOVING = 3
     };
 
   private:
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// State of the domain.  Must be one of the values from `enum
+    /// DomainState`.  This variable is atomic so that we don't need to acquire
+    /// `d_mutex` before accessing it.
     bsls::AtomicInt d_state;
-    // State of the domain.  Must be
-    // one of the values from 'enum
-    // DomainState'.  This variable is
-    // atomic so that we don't need to
-    // acquire 'd_mutex' before
-    // accessing it.
 
+    /// Name of this domain.
     bsl::string d_name;
-    // Name of this domain
 
+    /// Configuration for the domain.
     bdlb::NullableValue<mqbconfm::Domain> d_config;
-    // Configuration for the domain
 
+    /// Cluster to use by this domain.
     bsl::shared_ptr<mqbi::Cluster> d_cluster_sp;
-    // Cluster to use by this domain.
 
+    /// Dispatcher to use.
     mqbi::Dispatcher* d_dispatcher_p;
-    // Dispatcher to use
 
+    /// Blob buffer factory to use.
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
-    // Blob buffer factory to use
 
+    /// Stat context dedicated to this domain, to use as the parent stat
+    /// context for any domain in this domain.
     bmqst::StatContext* d_domainsStatContext_p;
-    // Stat context dedicated to this
-    // domain, to use as the parent
-    // stat context for any domain in
-    // this domain.
 
+    /// Statistics of the domain.
     mqbstat::DomainStats d_domainsStats;
-    // Statistics of the domain.
 
+    /// Stat context dedicated to this domain, to use as the parent stat
+    /// context for any queue in this domain.
     bslma::ManagedPtr<bmqst::StatContext> d_queuesStatContext_mp;
-    // Stat context dedicated to this
-    // domain, to use as the parent
-    // stat context for any queue in
-    // this domain.
 
+    /// Domain resource capacity meter.
     mqbu::CapacityMeter d_capacityMeter;
-    // Domain resource capacity meter
 
+    /// Map of active queues.
     QueueMap d_queues;
-    // Map of active queues
 
+    /// Number of pending requests (i.e., openQueue requests sent to the
+    /// cluster, but for which a response hasn't yet been received).
     bsls::AtomicInt d_pendingRequests;
-    // Number of pending requests
-    // (i.e., openQueue requests sent
-    // to the cluster, but for which a
-    // response hasn't yet been
-    // received).
 
+    /// Callback to be invoked when all queues in this domain have been
+    /// destroyed on shutdown.  This callback is non-null only if `d_state ==
+    /// DomainStats::e_STOPPING`.
     mqbi::Domain::TeardownCb d_teardownCb;
-    // Callback to be invoked when all
-    // queues in this domain have been
-    // destroyed.  This callback is
-    // non-null only if 'd_state ==
-    // DomainStats::e_STOPPING'.
 
+    /// Callback to be invoked when all queues in this domain have been
+    /// destroyed on domain deletion.  This callback is non-null only if
+    /// `d_state == DomainStats::e_REMOVING`.
     mqbi::Domain::TeardownCb d_teardownRemoveCb;
 
+    /// Mutex for protecting the queues map.
     mutable bslmt::Mutex d_mutex;
-    // Mutex for protecting the queues
-    // map
 
   private:
     // PRIVATE MANIPULATORS
@@ -337,13 +321,6 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     processCommand(mqbcmd::DomainResult*        result,
                    const mqbcmd::DomainCommand& command) BSLS_KEYWORD_OVERRIDE;
 
-    /// Mark the state of domain to be PREREMOVE
-    void removeDomainReset() BSLS_KEYWORD_OVERRIDE;
-
-    /// Mark the state of domain to be POSTREMOVE,
-    /// indicating the first round of DOMAINS REMOVE is completed
-    void removeDomainComplete() BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
 
     /// Load into the specified `out` the queue corresponding to the
@@ -381,8 +358,8 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
         const BSLS_KEYWORD_OVERRIDE;
 
     /// Check the state of the queues in this domain, return false if there's
-    /// queues opened or opening.
-    bool tryRemove() const BSLS_KEYWORD_OVERRIDE;
+    /// queues opened or opening, or if the domain is closed or closing.
+    bool tryRemove() BSLS_KEYWORD_OVERRIDE;
 
     /// Check the state of the domain, return true if the first round
     /// of DOMAINS REMOVE is completed

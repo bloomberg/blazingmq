@@ -17,12 +17,9 @@
 #ifndef INCLUDED_MQBBLP_QUEUEHANDLE
 #define INCLUDED_MQBBLP_QUEUEHANDLE
 
-//@PURPOSE:
-//
-//@CLASSES:
-//
-//
-//@DESCRIPTION:
+/// @file mqbblp_queuehandle.h
+///
+/// @todo Component documentation
 
 // MQB
 
@@ -65,9 +62,8 @@ namespace mqbblp {
 // class QueueHandle
 // =================
 
+/// @todo Class documentation.
 class QueueHandle : public mqbi::QueueHandle {
-    // TBD
-
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUEHANDLE");
@@ -91,12 +87,11 @@ class QueueHandle : public mqbi::QueueHandle {
     /// Struct holding information associated to a substream of the queue
     struct Subscription {
         // PUBLIC DATA
+
+        /// Accumulated bytes and messages of all outstanding delivered but
+        /// unconfirmed messages.  Should only be manipulated from the *QUEUE
+        /// DISPATCHER* thread.
         mqbu::ResourceUsageMonitor d_unconfirmedMonitor;
-        // Accumulated bytes and messages of
-        // all outstanding delivered but
-        // unconfirmed messages.  Should only
-        // be manipulated from the
-        // *QUEUE-DISPATCHER* thread.
 
         bsl::shared_ptr<Downstream> d_downstream;
 
@@ -155,58 +150,51 @@ class QueueHandle : public mqbi::QueueHandle {
 
   private:
     // DATA
-    bsl::shared_ptr<mqbi::Queue> d_queue_sp;
-    // Queue this QueueHandle belongs to.
 
+    /// Queue this QueueHandle belongs to.
+    bsl::shared_ptr<mqbi::Queue> d_queue_sp;
+
+    /// Context of the client requesting this QueueHandle.
     bsl::shared_ptr<const mqbi::QueueHandleRequesterContext>
         d_clientContext_sp;
-    // Context of the client requesting
-    // this QueueHandle.
 
+    /// Pointer to the states of this queue, with regards to the domain.
     mqbstat::QueueStatsDomain* d_domainStats_p;
-    // Pointer to the stats of this queue,
-    // with regards to the domain.
 
+    /// Queue handle parameters.  This variable is read/written only from the
+    /// queue dispatcher thread.
     bmqp_ctrlmsg::QueueHandleParameters d_handleParameters;
-    // Queue handle parameters.  This
-    // variable is read/written only from
-    // the queue dispatcher thread.
 
+    /// Map of downstream subscriptions.
     Subscriptions d_subscriptions;
-    // Map of downstream subscriptions,
 
+    /// Map appId to queue subStreams (upstream facing).
     SubStreams d_subStreamInfos;
-    // (Upstream facing) map appId to queue
-    // subStreams.
 
+    /// Downstream facing map of substreams.
     Downstreams d_downstreams;
-    // Downstream facing map of substreams.
 
+    /// Flag indicating if the client associated with this queue handle is a
+    /// cluster member.  If so, queue handle specifies only message GUID when
+    /// delivering a message to the client for efficiency.
     bool d_isClientClusterMember;
-    // Flag indicating if the client
-    // associated with this queue handle is
-    // cluster member.  If so, queue handle
-    // specifies only message guid when
-    // delivering a message to the client
-    // for efficiency.
 
+    /// Throttler for failed ACK messages.
     bdlmt::Throttle d_throttledFailedAckMessages;
-    // Throttler for failed ACK messages.
 
     bdlmt::Throttle d_throttledDroppedPutMessages;
 
+    /// Mechanism to serialize execution of the substream deconfigure callbacks
+    /// and the caller callback invoked when all the substreams are
+    /// deconfigured.
     bmqu::OperationChain d_deconfigureChain;
-    // Mechanism to serialize execution of
-    // the substream deconfigure callbacks
-    // and the caller callback invoked when
-    // all the substreams are deconfigured.
 
     bmqp::SchemaLearner::Context d_schemaLearnerPutContext;
 
     bmqp::SchemaLearner::Context d_schemaLearnerPushContext;
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
   private:
     // PRIVATE MANIPULATORS
@@ -300,10 +288,10 @@ class QueueHandle : public mqbi::QueueHandle {
     /// Return a const pointer to the queue associated to this handle.
     const mqbi::Queue* queue() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return a reference offering non-modifiable access to the parameters
+    /// used to create/configure this queue handle.
     const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const BSLS_KEYWORD_OVERRIDE;
-    // Return a reference offering non-modifiable access to the parameters
-    // used to create/configure this queueHandle.
 
     /// Return a reference offering non-modifiable access to the
     /// subStreamInfos of the queue.
@@ -358,12 +346,12 @@ class QueueHandle : public mqbi::QueueHandle {
                              const mqbi::QueueCounts&            counts,
                              bool isFinal) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the flag indicating whether the client associated with this queue
+    /// handle is cluster member or not to the specified `value`.  Note that
+    /// queue handle leverages this information to perform certain
+    /// optimizations.
     mqbi::QueueHandle*
     setIsClientClusterMember(bool value) BSLS_KEYWORD_OVERRIDE;
-    // Set the flag indicating whether the client associated with this
-    // queue handle is cluster member or not to the specified 'value'.
-    // Note that queue handle leverages this information to perform certain
-    // optimizations.
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
@@ -436,7 +424,7 @@ class QueueHandle : public mqbi::QueueHandle {
                  const mqbi::QueueHandle::HandleReleasedCallback& releasedCb)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// TBD:
+    /// @todo Document
     void drop(bool doDeconfigure = true) BSLS_KEYWORD_OVERRIDE;
 
     /// Clear the client associated with this queue handle.

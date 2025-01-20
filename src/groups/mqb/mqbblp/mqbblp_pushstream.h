@@ -17,44 +17,46 @@
 #ifndef INCLUDED_MQBBLP_PUSHSTREAM
 #define INCLUDED_MQBBLP_PUSHSTREAM
 
-//@PURPOSE: Provide a Storage for one-time PUSH delivery
-//
-//@CLASSES:
-//  mqbblp::PushStream: the ordered sequence of GUID for one time delivery
-//
-//@DESCRIPTION: An additional Storage layer for one-time PUSH delivery at
-// Replica/Proxy.
-// When PUSH message is a result of round-robin, the number of App ids in the
-// message may not be equal to the number of Apps known to the
-// RelayQueueEngine.  Moreover, the order of data replication in Replica may
-// not be equal to the order of PUSH messages.  The main storage DataStream
-// cannot feed the deliver logic, we need an additional layer.
-// This layer supports the 'mqbi::StorageIterator' interface because this is
-// how the delivery logic accesses data in all cases including Primary where
-// the main DataStream storage is used.  And including the future Reliable
-// Broadcast mode.
-// An efficient iteration requires records of variable size per each GUID.
-// On the other side, there is only sequential access - either for each GUID or
-// for each App.  An 'Element' holding PUSH context for a GUID and an App is in
-// two lists - for the GUID for the App.  Removal can be random for the GUID
-// list and always sequential for the App list.
-// The storage supports 'mqbi::StorageIterator' interface but the meaning of
-// 'appOrdinal' in the 'appMessageView' is different; the access is always
-// sequential with monotonically increasing 'appOrdinal' and the 'appOrdinal'
-// can be different for the same App depending on the GUID.
-// Upon GUIDs iteration followed by he GUID list iteration, if the App succeeds
-// in delivering the PUSH, the engine removes the 'Element' from both lists.
-// If the App is at capacity, the 'Element' stays, the iterations continue.
-// Upon 'onHandleUsable', the App need to catchup by iterating the App list.
+/// @file mqbblp_pushstream.h
+///
+/// @brief Provide a Storage for one-time PUSH delivery
+///
+/// An additional Storage layer for one-time PUSH delivery at Replica/Proxy.
+///
+/// When PUSH message is a result of round-robin, the number of App ids in the
+/// message may not be equal to the number of Apps known to the
+/// `RelayQueueEngine`.  Moreover, the order of data replication in Replica may
+/// not be equal to the order of PUSH messages.  The main storage `DataStream`
+/// cannot feed the deliver logic, we need an additional layer.
+///
+/// This layer supports the @bbref{mqbi::StorageIterator} interface because
+/// this is how the delivery logic accesses data in all cases including Primary
+/// where the main `DataStream` storage is used.  And including the future
+/// Reliable Broadcast mode.
+///
+/// An efficient iteration requires records of variable size per each GUID.  On
+/// the other side, there is only sequential access - either for each GUID or
+/// for each App.  An `Element` holding PUSH context for a GUID and an App is
+/// in two lists - for the GUID for the App.  Removal can be random for the
+/// GUID list and always sequential for the App list.
+///
+/// The storage supports @bbref{mqbi::StorageIterator} interface but the
+/// meaning of `appOrdinal` in the `appMessageView` is different; the access is
+/// always sequential with monotonically increasing `appOrdinal` and the
+/// `appOrdinal` can be different for the same App depending on the GUID.
+///
+/// Upon GUIDs iteration followed by he GUID list iteration, if the App
+/// succeeds in delivering the PUSH, the engine removes the `Element` from both
+/// lists.  If the App is at capacity, the `Element` stays, the iterations
+/// continue.  Upon `onHandleUsable`, the App need to catch up by iterating the
+/// App list.
 
 // MQB
-
 #include <mqbi_storage.h>
 
 // BMQ
-#include <bmqt_messageguid.h>
-
 #include <bmqc_orderedhashmap.h>
+#include <bmqt_messageguid.h>
 
 // BDE
 #include <ball_log.h>
@@ -70,6 +72,7 @@ namespace mqbblp {
 // FORWARD DECLARATION
 struct RelayQueueEngine_AppState;
 
+/// The ordered sequence of GUIDs for one-time delivery.
 struct PushStream {
     // forward declaration
     struct Element;
@@ -83,12 +86,10 @@ struct PushStream {
         ElementBase();
     };
 
+    /// A list of Elements to associate Elements with 1) GUID, 2) App.  In the
+    /// case of GUID, the list is doubly-linked for random removal In the case
+    /// of App, the list is singly-linked; the removal is always sequential.
     struct Elements {
-        // A list of Elements to associate Elements with 1) GUID, 2) App.
-        // In the case of GUID, the list is doubly-linked for random removal
-        // In the case of App, the list is singly-linked; the removal is always
-        // sequential.
-
       private:
         Element*     d_first_p;
         Element*     d_last_p;
@@ -227,7 +228,7 @@ struct PushStream {
     unsigned int removeAll();
 
     /// Create new Element associated with the specified `rda`,
-    /// 'subscriptionId`, `iterator` pointing to the corresponding GUID, and
+    /// `subscriptionId`, `iterator` pointing to the corresponding GUID, and
     /// `iteratorApp` pointing to the corresponding App.
     Element* create(const bmqp::RdaInfo&  rda,
                     unsigned int          subscriptionId,
@@ -239,11 +240,10 @@ struct PushStream {
 // class PushStreamIterator
 // ========================
 
+/// A mechanism to iterate the `PushStream`; see above.  To be used by the
+/// `QueueEngine` routing in the same way as another
+/// @bbref{mqbi::StorageIterator} implementation(s).
 class PushStreamIterator : public mqbi::StorageIterator {
-    // A mechanism to iterate the PushStream; see above.  To be used by the
-    // QueueEngine routing in the same way as another `mqbi::StorageIterator`
-    // implementation(s).
-
   private:
     // DATA
     mqbi::Storage* d_storage_p;
@@ -252,12 +252,10 @@ class PushStreamIterator : public mqbi::StorageIterator {
 
     mutable mqbi::StorageMessageAttributes d_attributes;
 
+    /// If this variable is empty, it is assumed that attributes, message, and
+    /// options have not been loaded in this iteration (see also
+    /// `loadMessageAndAttributes` impl).
     mutable bsl::shared_ptr<bdlbb::Blob> d_appData_sp;
-    // If this variable is empty, it is
-    // assumed that attributes, message,
-    // and options have not been loaded in
-    // this iteration (see also
-    // `loadMessageAndAttributes` impl).
 
     mutable bsl::shared_ptr<bdlbb::Blob> d_options_sp;
 
@@ -377,14 +375,13 @@ class PushStreamIterator : public mqbi::StorageIterator {
 // class VirtualStorageIterator
 // ============================
 
+/// A mechanism to iterate `Element`s related to one App only.
 class VirtualPushStreamIterator : public PushStreamIterator {
-    // A mechanism to iterate Elements related to one App only.
-
   private:
     // DATA
 
+    /// An iterator to the App being iterated
     PushStream::Apps::iterator d_itApp;
-    // An iterator to the App being iterated
 
   private:
     // NOT IMPLEMENTED

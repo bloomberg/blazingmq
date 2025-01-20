@@ -17,17 +17,16 @@
 #ifndef INCLUDED_MQBBLP_QUEUEHANDLECATALOG
 #define INCLUDED_MQBBLP_QUEUEHANDLECATALOG
 
-//@PURPOSE: Provide a mechanism to hold and manipulate QueueHandle objects.
-//
-//@CLASSES:
-//  mqbblp::QueueHandleCatalog: Mechanism to hold and manipulate QueueHandles
-//
-//@DESCRIPTION: TBD:
-//
-/// Thread Safety
-///-------------
-// Unless specified otherwise, all methods of the 'mqbblp::QueueHandleCatalog'
-// must be executed by the dispatcher thread of the associated queue.
+/// @file mqbblp_queuehandlecatalog.h
+///
+/// @brief Provide a mechanism to hold and manipulate `QueueHandle` objects.
+///
+/// Thread Safety                           {#mqbblp_queuehandlecatalog_thread}
+/// =============
+///
+/// Unless specified otherwise, all methods of the
+/// @bbref{mqbblp::QueueHandleCatalog} must be executed by the dispatcher
+/// thread of the associated queue.
 
 // MQB
 #include <mqbi_queue.h>
@@ -35,10 +34,9 @@
 #include <mqbu_resourceusagemonitor.h>
 
 // BMQ
+#include <bmqc_twokeyhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
-
-#include <bmqc_twokeyhashmap.h>
 
 // BDE
 #include <bsl_functional.h>
@@ -110,7 +108,7 @@ class QueueHandleCatalog {
     /// * `downstreamSubQueueId`: the downstream subQueueId
     typedef bsl::pair<mqbi::QueueHandle*, unsigned int> DownstreamKey;
 
-    /// 'iterateConsumers` calls visitor for each handle for each registered
+    /// `iterateConsumers` calls visitor for each handle for each registered
     /// subId and streamParameters.
     typedef bsl::function<void(mqbi::QueueHandle*,
                                const mqbi::QueueHandle::StreamInfo&)>
@@ -133,20 +131,19 @@ class QueueHandleCatalog {
 
   private:
     // DATA
+
+    /// The associated queue.
     mqbi::Queue* d_queue_p;
-    // The associated queue.
 
+    /// Factory to use for creating `QueueHandle` objects.
     bslma::ManagedPtr<mqbi::QueueHandleFactory> d_handleFactory_mp;
-    // Factory to use for creating
-    // QueueHandle objects.
 
+    /// Map of all created handles.  `mutable` because `TwoKeyHashMap` doesn't
+    /// expose `const` operators.
     mutable HandleMap d_handles;
-    // Map of all created handles.
-    // 'mutable' because TwoKeyHashMap
-    // doesn't expose const operators.
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
   private:
     // NOT IMPLEMENTED

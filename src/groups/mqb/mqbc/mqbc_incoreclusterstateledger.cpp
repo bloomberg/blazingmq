@@ -208,12 +208,30 @@ void IncoreClusterStateLeger_LogIdGenerator::generateLogId(
 // ------------------------------
 
 // PRIVATE MANIPULATORS
-int IncoreClusterStateLedger::cleanupLog(
-    BSLS_ANNOTATION_UNUSED const bsl::string& logPath)
+int IncoreClusterStateLedger::cleanupLog(const bsl::string& logPath)
 {
-    // TODO: Implement
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS = 0  // Success
+        ,
+        rc_REMOVE_FILE_FAILURE = -1  // Fail to remove log file
+    };
 
-    return 0;
+    const bsl::string& cluster = d_clusterData_p->cluster().name();
+
+    const int rc = bdls::FilesystemUtil::remove(logPath);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << cluster << ": Failed to remove [" << logPath
+            << "] file during CSL file cleanup, rc: " << rc
+            << BMQTSK_ALARMLOG_END;
+        return rc_REMOVE_FILE_FAILURE;  // RETURN
+    }
+
+    BALL_LOG_INFO << cluster << ": Removed file [" << logPath
+                  << "] during CSL file cleanup";
+
+    return rc_SUCCESS;
 }
 
 int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
@@ -1194,6 +1212,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
         .setReserveOnDisk(partitionCfg.preallocate())
         .setPrefaultPages(partitionCfg.prefaultPages())
         .setLogIdGenerator(logIdGenerator)
+        .setScheduler(&clusterData->scheduler())
         .setLogFactory(logFactory)
         .setExtractLogIdCallback(ClusterStateLedgerUtil::extractLogId)
         .setValidateLogCallback(ClusterStateLedgerUtil::validateLog)

@@ -17,34 +17,31 @@
 #ifndef INCLUDED_MQBBLP_REMOTEQUEUE
 #define INCLUDED_MQBBLP_REMOTEQUEUE
 
-//@PURPOSE: Provide a queue implementation for a remotely managed queue.
-//
-//@CLASSES:
-//  mqbblp::RemoteQueue:
-//
-//@DESCRIPTION:
-//
-/// Thread Safety
-///-------------
-//
+/// @file mqbblp_remotequeue.h
+///
+/// @brief Provide a queue implementation for a remotely managed queue.
+///
+/// @todo Document component.
+///
+/// Thread Safety                                  {#mqbblp_remotequeue_thread}
+/// =============
+///
 
 // MQB
-#include <mqbcfg_messages.h>
-
 #include <mqbblp_queuehandlecatalog.h>
 #include <mqbblp_queuestate.h>
 #include <mqbblp_relayqueueengine.h>
+#include <mqbcfg_messages.h>
 #include <mqbi_dispatcher.h>
 #include <mqbi_queue.h>
 #include <mqbs_virtualstoragecatalog.h>
 
-#include <bmqu_atomicstate.h>
 // BMQ
+#include <bmqc_orderedhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_optionsview.h>
 #include <bmqp_protocol.h>
-
-#include <bmqc_orderedhashmap.h>
+#include <bmqu_atomicstate.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -80,6 +77,7 @@ namespace mqbblp {
 // class RemoteQueue
 // =================
 
+/// @todo Document class.
 class RemoteQueue {
   public:
     // PUBLIC TYPES
@@ -111,10 +109,8 @@ class RemoteQueue {
         const bmqp::PutHeader        d_header;
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
-        const bsls::Types::Int64     d_timeReceived;
-        // Insertion time.  Do not
-        // retransmit past 'deduplication'
-        // timeout.
+        /// Insertion time.  Do not retransmit past `deduplication` timeout.
+        const bsls::Types::Int64           d_timeReceived;
         bsl::shared_ptr<bmqu::AtomicState> d_state_sp;
 
         PutMessage(mqbi::QueueHandle*                  handle,
@@ -139,19 +135,20 @@ class RemoteQueue {
 
     struct SubStreamContext {
         enum Enum {
-            e_NONE = 0  // Unknown
-            ,
-            e_CLOSED = 1  // Drop
-            ,
-            e_STOPPED = 2  // Buffer PUTs and CONFIRMs
-            ,
-            e_OPENED = 3  // Send
+            /// Unknown.
+            e_NONE = 0,
+            /// Drop.
+            e_CLOSED = 1,
+            /// Buffer PUTs and CONFIRMs.
+            e_STOPPED = 2,
+            /// Send.
+            e_OPENED = 3,
         };
+        /// Last seen genCount
         bsls::Types::Uint64 d_genCount;
-        // Last seen genCount
 
+        /// Traffic control
         Enum d_state;
-        // Traffic control
 
         SubStreamContext();
 
@@ -191,72 +188,62 @@ class RemoteQueue {
 
     bslma::ManagedPtr<RelayQueueEngine> d_queueEngine_mp;
 
+    /// Map of GUID->Item, to use for ACKs/NACKs and retransmissions.
     Puts d_pendingMessages;
-    // Map of GUID->Item, to use for
-    // ACKs/NACKs and retransmissions
 
     Confirms d_pendingConfirms;
 
+    /// List of messages that need to be delivered to sub-streams, as indicated
+    /// by the upstream node.
     SubStreamMessagesMp d_subStreamMessages_mp;
-    // List of messages that need to be
-    // delivered to sub-streams, as
-    // indicated by the upstream node.
 
+    /// Used to parse options in a message received from upstream.
     bmqp::OptionsView d_optionsView;
-    // Used to parse options in a
-    // message received from upstream.
 
+    /// ThrottledAction parameters for failed puts
     bdlmt::Throttle d_throttledFailedPutMessages;
-    // ThrottledAction parameters for
-    // failed puts
 
+    /// ThrottledAction parameters for failed pushes
     bdlmt::Throttle d_throttledFailedPushMessages;
-    // ThrottledAction parameters for
-    // failed pushes
 
+    /// ThrottledAction parameters for failed acks
     bdlmt::Throttle d_throttledFailedAckMessages;
-    // ThrottledAction parameters for
-    // failed acks
 
+    /// ThrottledAction parameters for failed confirms
     bdlmt::Throttle d_throttledFailedConfirmMessages;
-    // ThrottledAction parameters for
-    // failed confirms
 
+    /// Configured timeout in ns upon which retransmission attempts stop. Must
+    /// be Less or equal to the deduplication timeout.
     bsls::Types::Int64 d_pendingPutsTimeoutNs;
-    // Configured timeout in ns upon
-    // which retransmission attempts
-    // stop. Must be Less or equal to
-    // the deduplication timeout.
 
+    /// Broadcast PUT can be retransmitted if it is guaranteed that the PUT did
+    /// not make it to the primary.  That condition is indicated by
+    /// `e_NOT_READY` NACK. To preserve order when retransmitting, broadcast
+    /// PUTs are cached in d_pendingMessages (GUIDs only).  Since there is no
+    /// e_SUCCESS ACK in the broadcast mode, erasing pending PUTs is done in
+    /// batches.  For every `d_ackWindowSize` broadcast, artificially set
+    /// `e_ACK_REQUESTED` flag and once (N)ACK is received, erase the PUT and
+    /// all prior PUTs.
     bdlmt::EventScheduler::EventHandle d_pendingMessagesTimerEventHandle;
 
-    // Broadcast PUT can be retransmitted if it is guaranteed that the PUT did
-    // not make it to the primary.  That condition is indicated by e_NOT_READY
-    // NACK. To preserve order when retransmitting, broadcast PUTs are cached
-    // in d_pendingMessages (GUIDs only).  Since there is no e_SUCCESS ACK in
-    // the broadcast mode, erasing pending PUTs is done in batches.  For every
-    // 'd_ackWindowSize' broadcast, artificially set 'e_ACK_REQUESTED' flag and
-    // once (N)ACK is received, erase the PUT and all prior PUTs.
+    /// Request ACK after `d_ackWindowSize` unacked broadcast PUTs.
     int d_ackWindowSize;
-    // Request ACK after
-    // 'd_ackWindowSize' unacked
-    // broadcast PUTs.
 
+    /// Counter of unacked broadcast PUTs in the current window.
     int d_unackedPutCounter;
-    // Counter of unacked broadcast
-    // PUTs in the current window.
 
+    /// SubStream states.
     SubQueueIds d_subStreams;
-    // SubStream states.
 
     StateSpPool* d_statePool_p;
 
+    /// To discern consumer and producer which share the same
+    /// `k_DEFAULT_SUBQUEUE_ID` in the priority mode.
     SubStreamContext d_producerState;
-    // To discern consumer and producer which share the same
-    // `k_DEFAULT_SUBQUEUE_ID` in the priority mode.
 
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use
+
   private:
     // PRIVATE MANIPULATORS
     int configureAsProxy(bsl::ostream& errorDescription, bool isReconfigure);

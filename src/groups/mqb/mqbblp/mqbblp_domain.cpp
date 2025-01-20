@@ -14,6 +14,7 @@
 // limitations under the License.
 
 // mqbblp_domain.cpp                                                  -*-C++-*-
+#include <bsls_nullptr.h>
 #include <mqbblp_domain.h>
 
 #include <mqbscm_version.h>
@@ -375,8 +376,7 @@ Domain::Domain(const bsl::string&                     name,
 
 Domain::~Domain()
 {
-    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state ||
-                      e_POSTREMOVE == d_state) &&
+    BSLS_ASSERT_SAFE((e_STOPPING == d_state || e_STOPPED == d_state) &&
                      "'teardown' must be called before the destructor");
 }
 
@@ -485,7 +485,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
 void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state != e_STOPPING && d_state != e_STOPPED);
+    BSLS_ASSERT_SAFE(d_state != e_STOPPING);
     BSLS_ASSERT_SAFE(!d_teardownCb);
     BSLS_ASSERT_SAFE(teardownCb);
 
@@ -507,7 +507,8 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
 
     if (d_queues.empty()) {
         d_teardownCb(d_name);
-        d_state = e_STOPPED;
+        d_teardownCb = bsl::nullptr_t();
+        d_state      = e_STOPPED;
         return;  // RETURN
     }
 
@@ -519,7 +520,7 @@ void Domain::teardown(const mqbi::Domain::TeardownCb& teardownCb)
 
 void Domain::teardownRemove(const TeardownCb& teardownCb)
 {
-    BSLS_ASSERT_SAFE(d_state != e_REMOVING && d_state != e_REMOVED);
+    // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_teardownRemoveCb);
     BSLS_ASSERT_SAFE(teardownCb);
 
@@ -529,13 +530,13 @@ void Domain::teardownRemove(const TeardownCb& teardownCb)
                   << d_queues.size() << " registered queues.";
 
     d_teardownRemoveCb = teardownCb;
-    d_state            = e_REMOVING;
 
     d_cluster_sp->unregisterStateObserver(this);
 
     if (d_queues.empty()) {
         d_teardownRemoveCb(d_name);
-        d_state = e_REMOVED;
+        d_teardownRemoveCb = bsl::nullptr_t();
+        d_state            = e_STOPPED;
         return;  // RETURN
     }
 
@@ -565,8 +566,7 @@ void Domain::openQueue(
 
             bmqp_ctrlmsg::Status status;
 
-            if (d_state == e_REMOVING || d_state == e_REMOVED ||
-                d_state == e_PREREMOVE || d_state == e_POSTREMOVE) {
+            if (d_state == e_REMOVING || d_state == e_STOPPED) {
                 status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
                 status.code()     = mqbi::ClusterErrorCode::e_UNKNOWN;
                 status.message()  = k_DOMAIN_IS_REMOVING_OR_REMOVED;
@@ -731,20 +731,16 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
 
     // Refer to note in 'teardown' routine to see why 'd_state' is updated
     // while 'd_mutex' is acquired.
-    if (d_state == e_STOPPING) {
-        BSLS_ASSERT_SAFE(d_teardownCb);
-
-        if (d_queues.empty()) {
+    if (d_queues.empty()) {
+        if (d_teardownCb) {
             d_teardownCb(d_name);
-            d_state = e_STOPPED;
+            d_teardownCb = bsl::nullptr_t();
+            d_state      = e_STOPPED;
         }
-    }
-    else if (d_state == e_REMOVING) {
-        BSLS_ASSERT_SAFE(d_teardownRemoveCb);
-
-        if (d_queues.empty()) {
+        if (d_teardownRemoveCb) {
             d_teardownRemoveCb(d_name);
-            d_state = e_REMOVED;
+            d_teardownRemoveCb = bsl::nullptr_t();
+            d_state            = e_STOPPED;
         }
     }
 }
@@ -920,21 +916,6 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
     return -1;
 }
 
-void Domain::removeDomainReset()
-{
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-
-    d_state            = e_PREREMOVE;
-    d_teardownRemoveCb = bsl::nullptr_t();
-}
-
-void Domain::removeDomainComplete()
-{
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
-
-    d_state = e_POSTREMOVE;
-}
-
 // ACCESSORS
 int Domain::lookupQueue(bsl::shared_ptr<mqbi::Queue>* out,
                         const bmqt::Uri&              uri) const
@@ -1030,34 +1011,29 @@ void Domain::loadRoutingConfiguration(
     }
 }
 
-bool Domain::tryRemove() const
+bool Domain::tryRemove()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    if (d_state == e_STOPPING) {
+        return false;
+    }
 
     if (d_pendingRequests != 0) {
         return false;
     }
 
-    // If there's queue in this domain, check to see if there's any active
-    // handle to it
-    if (!d_queues.empty()) {
-        for (QueueMapCIter it = d_queues.begin(); it != d_queues.end(); ++it) {
-            // Looks like in RootQueueEngine::releaseHandle, queueHandle is
-            // removed and r/w counts reset (in `proctor.releaseHandle`) before
-            // substreams are unregistered; should we check substream?
-            // handle->subStreamInfos().size() == 0
-            if (it->second->hasActiveHandle()) {
-                return false;
-            }
-        }
-    }
+    // Reset d_teardownRemoveCb in case the first round of
+    // DOMAINS REMOVE fails and we want to call it again
+    d_state            = e_REMOVING;
+    d_teardownRemoveCb = bsl::nullptr_t();
 
     return true;
 }
 
 bool Domain::isRemoveComplete() const
 {
-    return d_state == e_POSTREMOVE;
+    return d_state == e_STOPPED;
 }
 
 }  // close package namespace

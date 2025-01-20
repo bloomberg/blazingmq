@@ -489,23 +489,13 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* out)
     out->makeClusterStatus();
 }
 
-void Cluster::purgeQueueOnDomain(
+void Cluster::purgeAndGCQueueOnDomain(
     mqbcmd::ClusterResult*       result,
     BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
 {
     bmqu::MemOutStream os;
-    os << "MockCluster::gcQueueOnDomain not implemented!";
+    os << "MockCluster::purgeAndGCQueueOnDomain not implemented!";
     result->makeError().message() = os.str();
-}
-
-int Cluster::gcQueueOnDomain(
-    mqbcmd::ClusterResult*       result,
-    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
-{
-    bmqu::MemOutStream os;
-    os << "MockCluster::gcQueueOnDomain not implemented!";
-    result->makeError().message() = os.str();
-    return -1;
 }
 
 // MANIPULATORS

@@ -119,6 +119,7 @@ class SearchResult {
     virtual bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
                                         bsls::Types::Uint64 recordIndex,
                                         bsls::Types::Uint64 recordOffset) = 0;
+
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -872,7 +873,16 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
 class SummaryProcessor : public SearchResult {
   private:
     // PTIVATE TYPES
+
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
+    typedef bsl::unordered_map<mqbu::StorageKey, bsls::Types::Uint64>
+        QueueRecordsMap;
+    typedef bsl::unordered_map<mqbu::StorageKey, QueueRecordsMap>
+        QueueAppRecordsMap;
+    typedef bsl::unordered_map<mqbs::RecordType::Enum, bsls::Types::Uint64>
+        OtherRecordsMap;
+    typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey> >
+        AppsData;
     // Set of message guids.
     typedef bsl::map<mqbs::QueueOpType::Enum, bsls::Types::Uint64>
         QueueOpCountsMap;
@@ -903,6 +913,31 @@ class SummaryProcessor : public SearchResult {
     GuidsSet d_partiallyConfirmedGuids;
     // Set of message guids. Messages stored here have at leas one confirmation
     // message and no delete message associated with them.
+
+    bsls::Types::Uint64 d_totalRecordsCount;
+    // The total number of records.
+
+    QueueRecordsMap d_queueRecordsMap;
+    // Map containing counts per record type which are not processed by default
+    QueueAppRecordsMap d_queueAppRecordsMap;
+    // Map containing counts of records per Queue/App
+
+    QueueRecordsMap d_queueQueueOpRecordsMap;
+    // Map containing Queue Op records counts per queue
+    QueueRecordsMap d_queueMessageRecordsMap;
+    // Map containing Message records counts per queue
+    QueueRecordsMap d_queueConfirmRecordsMap;
+    // Map containing Confirm records counts per queue
+    QueueRecordsMap d_queueDeleteRecordsMap;
+    // Map containing Delete records counts per queue
+
+    const QueueMap& d_queueMap;
+    // Reference to 'QueueMap' instance.
+
+    bsls::Types::Uint64 d_minRecordsPerQueue;
+    // Minimum number of records for the queue to be displayed its detailed
+    // info
+
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
 
@@ -916,6 +951,8 @@ class SummaryProcessor : public SearchResult {
         mqbs::JournalFileIterator*            journalFile_p,
         mqbs::DataFileIterator*               dataFile_p,
         const Parameters::ProcessRecordTypes& processRecordTypes,
+        const QueueMap&                       queueMap,
+        bsls::Types::Uint64                   minRecordsPerQueue,
         bslma::Allocator*                     allocator);
 
     // MANIPULATORS
