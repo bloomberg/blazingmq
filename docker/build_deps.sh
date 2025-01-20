@@ -5,6 +5,17 @@
 
 set -euxo pipefail
 
+if [ $# == 1 ]; then
+  if [[ $1 == "only-download" ]]; then
+    DO_BUILD=false
+  else
+     echo "Unexpected optional argument, only 'only-download' is supported"
+     exit 1
+  fi
+else
+    DO_BUILD=true
+fi
+
 fetch_git() {
     local org=$1
     local repo=$2
@@ -68,4 +79,6 @@ build() {
 
 fetch_deps
 configure
-build
+if [ "${DO_BUILD}" = true ]; then
+    build
+fi

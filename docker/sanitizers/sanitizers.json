@@ -1,0 +1,47 @@
+{
+    "asan": {
+        "bde_compiler_name": "asan",
+        "llvm_sanitizer_name": "Address",
+        "environment": {
+            "ASAN_OPTIONS": {
+                "external_symbolizer_path": "/usr/bin/llvm-symbolizer"
+            },
+            "LSAN_OPTIONS": {
+                "log_threads": 1,
+                "verbosity": 0
+            }
+        }
+    },
+    "msan": {
+        "bde_compiler_name": "msan",
+        "llvm_sanitizer_name": "MemoryWithOrigins",
+        "llvm_specific_cmake_options": "-DLIBCXXABI_USE_LLVM_UNWINDER=OFF",
+        "environment": {
+            "MSAN_OPTIONS": {
+                "external_symbolizer_path": "/usr/bin/llvm-symbolizer"
+            }
+        }
+    },
+    "tsan": {
+        "bde_compiler_name": "tsan",
+        "llvm_sanitizer_name": "Thread",
+        "environment": {
+            "TSAN_OPTIONS": {
+                "external_symbolizer_path": "/usr/bin/llvm-symbolizer",
+                "second_deadlock_stack": 1,
+                "suppressions": "%%SRC%%/etc/tsansup.txt"
+            }
+        }
+    },
+    "ubsan": {
+        "bde_compiler_name": "ubsan",
+        "llvm_sanitizer_name": "Undefined",
+        "environment": {
+            "UBSAN_OPTIONS": {
+                "external_symbolizer_path": "/usr/bin/llvm-symbolizer",
+                "suppressions": "%%SRC%%/etc/ubsansup.txt",
+                "print_stacktrace": "1"
+            }
+        }
+    }
+}
