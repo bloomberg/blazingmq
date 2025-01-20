@@ -97,7 +97,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else if (!params->d_seqNum.empty()) {
-        // Search offsets
+        // Search composite sequence numbers
         searchResult.reset(new (*alloc)
                                SearchSequenceNumberDecorator(searchResult,
                                                              params->d_seqNum,
@@ -107,7 +107,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
     else if (!params->d_offset.empty()) {
-        // Search composite sequence numbers
+        // Search offsets
         searchResult.reset(new (*alloc) SearchOffsetDecorator(searchResult,
                                                               params->d_offset,
                                                               ostream,
@@ -177,6 +177,65 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     BSLS_ASSERT(searchResult);
 
     return searchResult;
+}
+
+bsl::shared_ptr<CslSearchResult>
+SearchResultFactory::createCslSearchResult(const Parameters* params,
+                                           bsl::ostream&     ostream,
+                                           bslma::Allocator* allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    // Create CslSearchResult implementation
+    bsl::shared_ptr<CslSearchResult> cslSearchResult;
+    if (params->d_details) {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchDetailResult(ostream,
+                                               params->d_processCslRecordTypes,
+                                               alloc),
+            alloc);
+    }
+    else if (params->d_summary) {
+        cslSearchResult.reset(
+            new (*alloc) CslSummaryResult(ostream,
+                                          params->d_processCslRecordTypes,
+                                          params->d_queueMap,
+                                          alloc),
+            alloc);
+    }
+    else {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchShortResult(ostream,
+                                              params->d_processCslRecordTypes,
+                                              alloc),
+            alloc);
+    }
+
+    if (!params->d_seqNum.empty()) {
+        // Search composite sequence numbers
+        cslSearchResult.reset(
+            new (*alloc) CslSearchSequenceNumberDecorator(cslSearchResult,
+                                                          params->d_seqNum,
+                                                          ostream,
+                                                          alloc),
+            alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search offsets
+        cslSearchResult.reset(new (*alloc)
+                                  CslSearchOffsetDecorator(cslSearchResult,
+                                                           params->d_offset,
+                                                           ostream,
+                                                           alloc),
+                              alloc);
+    }
+
+    BSLS_ASSERT(cslSearchResult);
+
+    return cslSearchResult;
 }
 
 }  // close package namespace

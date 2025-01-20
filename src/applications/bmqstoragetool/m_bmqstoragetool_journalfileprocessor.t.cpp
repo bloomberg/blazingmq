@@ -216,7 +216,6 @@ static void test1_breathingTest()
 
     // Prepare parameters
     Parameters params = createTestParameters();
-
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -275,7 +274,6 @@ static void test2_searchGuidTest()
 
     // Prepare parameters
     Parameters params = createTestParameters();
-
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bsl::list<JournalFile::NodeType>::const_iterator recordIter =
@@ -344,7 +342,6 @@ static void test3_searchNonExistingGuidTest()
 
     // Prepare parameters
     Parameters params = createTestParameters();
-
     // Get list of message GUIDs for searching
     bsl::vector<bsl::string>& searchGuids = params.d_guid;
     bmqt::MessageGUID         guid;
@@ -494,8 +491,7 @@ static void test5_searchOutstandingMessagesTest()
         true);
 
     // Configure parameters to search outstanding messages
-    Parameters params = createTestParameters();
-
+    Parameters params    = createTestParameters();
     params.d_outstanding = true;
 
     // Prepare file manager
@@ -560,9 +556,9 @@ static void test6_searchConfirmedMessagesTest()
         false);
 
     // Configure parameters to search confirmed messages
-    Parameters params = createTestParameters();
-
+    Parameters params  = createTestParameters();
     params.d_confirmed = true;
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -628,9 +624,9 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         &partiallyConfirmedGUIDS);
 
     // Configure parameters to search partially confirmed messages
-    Parameters params = createTestParameters();
-
+    Parameters params           = createTestParameters();
     params.d_partiallyConfirmed = true;
+
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -697,7 +693,6 @@ static void test8_searchMessagesByQueueKeyTest()
 
     // Configure parameters to search messages by queueKey1
     Parameters params = createTestParameters();
-
     params.d_queueKey.push_back(queueKey1);
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -767,7 +762,6 @@ static void test9_searchMessagesByQueueNameTest()
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
     Parameters params = createTestParameters();
-
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
 
@@ -842,7 +836,6 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
     Parameters params = createTestParameters();
-
     params.d_queueName.push_back("queue1");
     params.d_queueMap.insert(queueInfo);
     params.d_queueKey.push_back(queueKey2);
@@ -900,8 +893,7 @@ static void test11_searchMessagesByTimestamp()
     const bsls::Types::Uint64 ts2 = 40 * journalFile.timestampIncrement();
 
     // Configure parameters to search messages by timestamps
-    Parameters params = createTestParameters();
-
+    Parameters params            = createTestParameters();
     params.d_range.d_timestampGt = ts1;
     params.d_range.d_timestampLt = ts2;
 
@@ -972,8 +964,7 @@ static void test12_printMessagesDetailsTest()
 
     // Configure parameters to print message details
     Parameters params = createTestParameters();
-
-    params.d_details = true;
+    params.d_details  = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1104,8 +1095,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Configure parameters to search confirmed messages GUIDs with dumping
     // messages payload.
-    Parameters params = createTestParameters();
-
+    Parameters params    = createTestParameters();
     params.d_confirmed   = true;
     params.d_dumpPayload = true;
     // Prepare file manager
@@ -1194,8 +1184,7 @@ static void test14_summaryTest()
 
     // Configure parameters to output summary
     Parameters params = createTestParameters();
-
-    params.d_summary = true;
+    params.d_summary  = true;
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1542,8 +1531,7 @@ static void test17_searchMessagesBySequenceNumbersRange()
     const CompositeSequenceNumber seqNumLt(4, 6);
 
     // Configure parameters to search messages by sequence number range
-    Parameters params = createTestParameters();
-
+    Parameters params         = createTestParameters();
     params.d_range.d_seqNumGt = seqNumGt;
     params.d_range.d_seqNumLt = seqNumLt;
     // Prepare file manager
@@ -1615,8 +1603,7 @@ static void test18_searchMessagesByOffsetsRange()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by offsets
-    Parameters params = createTestParameters();
-
+    Parameters params         = createTestParameters();
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     // Prepare file manager
@@ -1686,8 +1673,7 @@ static void test19_searchQueueOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search queueOp records by offsets
-    Parameters params = createTestParameters(e_QUEUE_OP);
-
+    Parameters params         = createTestParameters(e_QUEUE_OP);
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
 
@@ -1762,8 +1748,7 @@ static void test20_searchJournalOpRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params = createTestParameters(e_JOURNAL_OP);
-
+    Parameters params         = createTestParameters(e_JOURNAL_OP);
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
 
@@ -1838,9 +1823,8 @@ static void test21_searchAllTypesRecords()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
-    Parameters params = createTestParameters(e_MESSAGE | e_QUEUE_OP |
+    Parameters params         = createTestParameters(e_MESSAGE | e_QUEUE_OP |
                                              e_JOURNAL_OP);
-
     params.d_range.d_offsetGt = offsetGt;
     params.d_range.d_offsetLt = offsetLt;
     // Prepare file manager

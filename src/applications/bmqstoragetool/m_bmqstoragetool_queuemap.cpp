@@ -55,6 +55,7 @@ class AppIdMatcher {
 QueueMap::QueueMap(bslma::Allocator* allocator)
 : d_queueKeyToInfoMap(allocator)
 , d_queueUriToKeyMap(allocator)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
@@ -115,6 +116,18 @@ bool QueueMap::findKeyByUri(mqbu::StorageKey*  queueKey_p,
         return true;  // RETURN
     }
     return false;
+}
+
+bsl::vector<bmqp_ctrlmsg::QueueInfo> QueueMap::queueInfos() const
+{
+    bsl::vector<bmqp_ctrlmsg::QueueInfo> result(d_allocator_p);
+    result.reserve(d_queueKeyToInfoMap.size());
+
+    QueueKeyToInfoMap::const_iterator it = d_queueKeyToInfoMap.begin();
+    for (; it != d_queueKeyToInfoMap.end(); ++it) {
+        result.push_back(it->second);
+    }
+    return result;
 }
 
 }  // close package namespace
