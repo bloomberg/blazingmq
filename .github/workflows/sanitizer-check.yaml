@@ -11,7 +11,6 @@ on:
 jobs:
   build_and_run_sanitizer:
     name: Build and run Sanitizer
-    name: "Docker [ubuntu]"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
