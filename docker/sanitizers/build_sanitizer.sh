@@ -51,7 +51,8 @@ apt-get install -qy --no-install-recommends \
     ninja-build \
     bison \
     libfl-dev \
-    pkg-config
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
