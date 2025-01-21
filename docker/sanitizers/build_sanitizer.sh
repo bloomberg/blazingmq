@@ -34,8 +34,6 @@ fi
 
 SANITIZER_NAME="${1}"
 
-echo "Building BlazingMQ with sanitizer: ${SANITIZER_NAME}"
-
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
 apt-get update && \

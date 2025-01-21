@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
-        run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --progress=plain --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
+        run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
        
       - name: Run docker container with unit tests under sanitizer
         run: docker run sanitizer-${{ inputs.sanitizer-name }}

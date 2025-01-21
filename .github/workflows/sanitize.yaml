@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - sanitizers-in-docker
-  # pull_request_review:
-  #   types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
