@@ -34,6 +34,9 @@ fi
 
 SANITIZER_NAME="${1}"
 
+# Purge unneeded packages to save space
+apt-get update && apt-get purge -y gcc-13 gcc-14
+
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
 apt-get update && \
@@ -236,6 +239,9 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
+
+# Remove unneeded dependencies directories to save space
+rm -rf "${DIR_EXTERNAL}"
 
 # Build BlazingMQ
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \

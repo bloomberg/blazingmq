@@ -2,6 +2,8 @@
 
 # This script downloads, builds, and installs the required build dependencies of BMQ
 # from github.com/bloomberg. Software packages are installed to the /opt/bb prefix.
+# If the optional argument 'only-download' is provided, the script will only download
+# dependencies, build and install steps are skipped.
 
 set -euxo pipefail
 
