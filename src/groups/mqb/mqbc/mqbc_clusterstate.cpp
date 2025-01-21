@@ -47,10 +47,71 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
     printer.printAttribute("appIdInfos", appInfos());
-    printer.printAttribute("stateOfAssignment", state());
+    ClusterStateQueueInfo::printState(stream, d_state, level, spacesPerLevel);
     printer.end();
 
     return stream;
+}
+
+bsl::ostream&
+ClusterStateQueueInfo::printState(bsl::ostream&                stream,
+                                  ClusterStateQueueInfo::State value,
+                                  int                          level,
+                                  int                          spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level + 1, spacesPerLevel);
+    stream << "stateOfAssignment = ";
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << ClusterStateQueueInfo::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char* ClusterStateQueueInfo::toAscii(ClusterStateQueueInfo::State value)
+{
+#define CASE(X)                                                               \
+    case k_##X: return #X;
+
+    switch (value) {
+        CASE(NONE)
+        CASE(ASSIGNING)
+        CASE(ASSIGNED)
+        CASE(UNASSIGNING)
+    default: return "(* NONE *)";
+    }
+
+#undef CASE
+}
+
+bool ClusterStateQueueInfo::fromAscii(ClusterStateQueueInfo::State* out,
+                                      const bslstl::StringRef&      str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(toAscii(ClusterStateQueueInfo::k_##M), \
+                                       str.data(),                            \
+                                       static_cast<int>(str.length()))) {     \
+        *out = ClusterStateQueueInfo::k_##M;                                  \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(NONE)
+    CHECKVALUE(ASSIGNING)
+    CHECKVALUE(ASSIGNED)
+    CHECKVALUE(UNASSIGNING)
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
 }
 
 // --------------------------

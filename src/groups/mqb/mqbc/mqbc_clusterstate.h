@@ -260,6 +260,40 @@ class ClusterStateQueueInfo {
     /// undefined unless `isValid()` returns true.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+
+    /// Write the string representation of the specified enumeration `value`
+    /// to the specified output `stream`, and return a reference to
+    /// `stream`.  Optionally specify an initial indentation `level`, whose
+    /// absolute value is incremented recursively for nested objects.  If
+    /// `level` is specified, optionally specify `spacesPerLevel`, whose
+    /// absolute value indicates the number of spaces per indentation level
+    /// for this and all of its nested objects.  If `level` is negative,
+    /// suppress indentation of the first line.  If `spacesPerLevel` is
+    /// negative, format the entire output on one line, suppressing all but
+    /// the initial indentation (as governed by `level`).  See `toAscii` for
+    /// what constitutes the string representation of a
+    /// `ClusterStateQueueInfo::State` value.
+    static bsl::ostream& printState(bsl::ostream&                stream,
+                                    ClusterStateQueueInfo::State value,
+                                    int                          level = 0,
+                                    int spacesPerLevel                 = 4);
+
+    /// Return the non-modifiable string representation corresponding to the
+    /// specified enumeration `value`, if it exists, and a unique (error)
+    /// string otherwise.  The string representation of `value` matches its
+    /// corresponding enumerator name with the `e_` prefix elided.  Note
+    /// that specifying a `value` that does not match any of the enumerators
+    /// will result in a string representation that is distinct from any of
+    /// those corresponding to the enumerators, but is otherwise
+    /// unspecified.
+    static const char* toAscii(ClusterStateQueueInfo::State value);
+
+    /// Return true and fills the specified `out` with the enum value
+    /// corresponding to the specified `str`, if valid, or return false and
+    /// leave `out` untouched if `str` doesn't correspond to any value of
+    /// the enum.
+    static bool fromAscii(ClusterStateQueueInfo::State* out,
+                          const bslstl::StringRef&      str);
 };
 
 // FREE OPERATORS
@@ -268,6 +302,11 @@ class ClusterStateQueueInfo {
 /// reference to the modifiable `stream`.
 bsl::ostream& operator<<(bsl::ostream&                stream,
                          const ClusterStateQueueInfo& rhs);
+
+/// Format the specified `value` to the specified output `stream` and return
+/// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream&                stream,
+                         ClusterStateQueueInfo::State value);
 
 /// Return `true` if the specified `rhs` object contains the value of the
 /// same type as contained in the specified `lhs` object and the value
@@ -1170,6 +1209,12 @@ inline bsl::ostream& mqbc::operator<<(bsl::ostream&                stream,
                                       const ClusterStateQueueInfo& rhs)
 {
     return rhs.print(stream, 0, -1);
+}
+
+inline bsl::ostream& mqbc::operator<<(bsl::ostream& stream,
+                                      mqbc::ClusterStateQueueInfo::State value)
+{
+    return mqbc::ClusterStateQueueInfo::printState(stream, value, 0, -1);
 }
 
 inline bool mqbc::operator==(const ClusterStateQueueInfo& lhs,
