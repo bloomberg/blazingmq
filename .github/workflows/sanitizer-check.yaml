@@ -16,7 +16,8 @@ jobs:
       - uses: actions/checkout@v4
 
       -name : Cleanup image
-        run: sudo apt-get update && sudo apt-get purge -y gcc-* clang-16 clang-* ruby-* swift-* kotlin-* julia-* nodejs-* && sudo apt-get autoremove -y && sudo rm -rf /var/lib/apt/lists/*
+        # run: sudo apt-get update && sudo apt-get purge -y gcc-* clang-* ruby-* swift-* kotlin-* julia-* nodejs-* && sudo apt-get autoremove -y && sudo rm -rf /var/lib/apt/lists/*
+        run: sudo apt-get update && sudo apt-get purge -y gcc-*
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
         run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
