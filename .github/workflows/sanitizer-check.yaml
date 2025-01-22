@@ -19,7 +19,7 @@ jobs:
         run: df . -h
 
       - name : Cleanup image
-        run: sudo apt-get purge clang-16
+        run: sudo apt-get purge gcc-* clang-* ruby-* swift-* kotlin-* julia-* nodejs-*
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
         run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
