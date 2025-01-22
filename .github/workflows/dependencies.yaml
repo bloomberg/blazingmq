@@ -12,8 +12,8 @@ on:
     - cron: "10 0 * * *"
 
 concurrency:
-  group: deps-${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
+  group: global
+  cancel-in-progress: false
 
 jobs:
   build_dependencies:
