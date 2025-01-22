@@ -11,7 +11,7 @@ on:
 jobs:
   build_and_run_sanitizer:
     name: Build and run Sanitizer
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
 
@@ -30,16 +30,14 @@ jobs:
           clang-* ruby-* swift-* kotlin-* julia-* nodejs-* \
           && sudo apt-get autoremove && sudo rm -rf /var/lib/apt/lists/*
 
-      - name: Check disk space
+      - name: Check disk space after cleanup
         run: |
           sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr | head
           sudo du /usr/ -hx -d 4 --threshold=1G | sort -hr | head
-
-      - name: Check disk space after cleanup
-        run: df . -h
+          df . -h
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
         run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
        
       - name: Run docker container with unit tests under sanitizer
-        run: docker run sanitizer-${{ inputs.sanitizer-name }}
+        run: docker run --rm sanitizer-${{ inputs.sanitizer-name }}
