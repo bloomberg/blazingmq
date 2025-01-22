@@ -18,8 +18,8 @@ jobs:
       - name: Check disk space
         run: df . -h
 
-      -name : Cleanup image
-        run: sudo apt-get purge -y clang-16
+      # -name : Cleanup image
+      #   run: sudo apt-get purge clang-16
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
         run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
