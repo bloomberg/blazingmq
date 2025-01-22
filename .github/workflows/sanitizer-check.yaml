@@ -22,12 +22,17 @@ jobs:
         run: du ${GITHUB_WORKSPACE} -h -d 1
 
       - name : Cleanup image
-        run: sudo apt-get purge gcc-* java-* clang-* ruby-* swift-* kotlin-* julia-* nodejs-* && sudo rm -rf /var/lib/apt/lists/*
+        run: |
+          sudo apt-get purge \
+          azure-cli microsoft-edge-stable google-cloud-cli \
+          google-chrome-stable temurin-21-jdk temurin-17-jdk \
+          temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \
+          clang-* ruby-* swift-* kotlin-* julia-* nodejs-* \
+          && sudo apt-get autoremove && sudo rm -rf /var/lib/apt/lists/*
 
       - name: Check disk space
         run: |
           sudo dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -nr | head
-          df . -h
           sudo du /usr/ -hx -d 4 --threshold=1G | sort -hr | head
 
       - name: Check disk space after cleanup
