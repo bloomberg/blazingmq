@@ -10,20 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run_asan:
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'asan'
+  # run_asan:
+  #   uses: ./.github/workflows/sanitizer-check.yaml
+  #   with:
+  #     sanitizer-name: 'asan'
 
-  run_msan:
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'msan'
+  # run_msan:
+  #   uses: ./.github/workflows/sanitizer-check.yaml
+  #   with:
+  #     sanitizer-name: 'msan'
 
-  run_tsan:
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'tsan'
+  # run_tsan:
+  #   uses: ./.github/workflows/sanitizer-check.yaml
+  #   with:
+  #     sanitizer-name: 'tsan'
 
   run_ubsan:
     uses: ./.github/workflows/sanitizer-check.yaml

@@ -240,8 +240,10 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
 
-# Remove unneeded build dependencies directories to save space
+# Remove unneeded built dependencies to save space
 rm -rf "${DIR_BUILD_EXT}"
+rm -rf "${DIR_SRCS_EXT}/bde"
+rm -rf "${DIR_SRCS_EXT}/ntf-core"
 
 # Build BlazingMQ
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \
