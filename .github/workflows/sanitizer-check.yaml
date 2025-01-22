@@ -18,17 +18,16 @@ jobs:
       - name: Check disk space
         run: df . -h
 
-      - name: Check working space directory
-        run: du ${GITHUB_WORKSPACE} -h -d 1
-
-      - name : Cleanup image
+      - name : Remove unneeded packages to avoid runner quota exceeding.
         run: |
           sudo apt-get purge \
           azure-cli microsoft-edge-stable google-cloud-cli \
           google-chrome-stable temurin-21-jdk temurin-17-jdk \
           temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \
-          clang-* ruby-* swift-* kotlin-* julia-* nodejs-* \
-          && sudo apt-get autoremove && sudo rm -rf /var/lib/apt/lists/*
+          powershell libllvm17t64 libllvm18 libllvm16t64 \
+          openjdk-21-jre-headless mysql-server-core-8.0
+          sudo apt-get autoremove
+          sudo apt-get autoclean
 
       - name: Check disk space after cleanup
         run: |
@@ -37,7 +36,10 @@ jobs:
           df . -h
 
       - name: Create docker image with BlazingMQ and dependencies built with sanitizer instrumentation
-        run: docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} -t sanitizer-${{ inputs.sanitizer-name }} .
+        run: | 
+          docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
+          --no-cache --build-arg SANITIZER_NAME=${{ inputs.sanitizer-name }} \
+          -t sanitizer-${{ inputs.sanitizer-name }} .
        
       - name: Run docker container with unit tests under sanitizer
         run: docker run --rm sanitizer-${{ inputs.sanitizer-name }}
