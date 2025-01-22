@@ -11,19 +11,16 @@ concurrency:
 
 jobs:
   run_asan:
-    needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'asan'
 
   run_msan:
-    needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'msan'
 
   run_tsan:
-    needs: build_dependencies
     uses: ./.github/workflows/sanitizer-check.yaml
     with:
       sanitizer-name: 'tsan'
