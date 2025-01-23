@@ -70,16 +70,21 @@ void ClusterStateManager::onCommit(
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(advisory.choice().isClusterMessageValue());
 
-    // NOTE: Even when using old workflow, we still apply all advisories to the
-    // CSL. We just don't invoke the commit callbacks.
-    if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        return;  // RETURN
-    }
-
     if (status != mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": Failed to commit advisory: " << advisory
                        << ", with status '" << status << "'";
+        return;  // RETURN
+    }
+
+    const bmqp_ctrlmsg::ClusterMessage& clusterMessage =
+        advisory.choice().clusterMessage();
+
+    // NOTE: Even when using old workflow, we still apply all advisories to the
+    // CSL. We just don't invoke the commit callbacks.
+    // Make an exception for QueueUpdateAdvisory
+    if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
+        !clusterMessage.choice().isQueueUpdateAdvisoryValue()) {
         return;  // RETURN
     }
 
@@ -94,8 +99,6 @@ void ClusterStateManager::onCommit(
                   << ": Committed advisory: " << advisory << ", with status '"
                   << status << "'";
 
-    const bmqp_ctrlmsg::ClusterMessage& clusterMessage =
-        advisory.choice().clusterMessage();
     mqbc::ClusterUtil::apply(d_state_p, clusterMessage, *d_clusterData_p);
 }
 
