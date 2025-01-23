@@ -12,7 +12,6 @@ concurrency:
 jobs:
   build_and_run_sanitizer:
     name: ${{ matrix.mode }}
-    needs: get_dependencies
     strategy:
       matrix:
         mode: ["asan", "msan", "tsan", "ubsan"]
