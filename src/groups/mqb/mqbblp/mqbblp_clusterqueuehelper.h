@@ -328,9 +328,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
         bsl::shared_ptr<mqbi::QueueHandleRequesterContext> d_clientContext;
 
+        /// Callback to invoke when the queue is
+        /// opened (whether success or failure).
         mqbi::Cluster::OpenQueueCallback d_callback;
-        // Callback to invoke when the queue is
-        // opened (whether success or failure).
 
         // NOT IMPLEMENTED
         OpenQueueContext(const OpenQueueContext&) BSLS_CPP11_DELETED;

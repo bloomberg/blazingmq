@@ -177,7 +177,6 @@ ClusterQueueHelper::OpenQueueContext::OpenQueueContext(
 , d_callback(callback)
 {
     BSLS_ASSERT_SAFE(domain);
-    // NOTHING
 }
 
 ClusterQueueHelper::OpenQueueContext::~OpenQueueContext()
@@ -811,6 +810,8 @@ void ClusterQueueHelper::processPendingContexts(
 void ClusterQueueHelper::assignUpstreamSubqueueId(
     const OpenQueueContextSp& context)
 {
+    BSLS_ASSERT_SAFE(context);
+
     QueueLiveState&   info  = context->queueContext()->d_liveQInfo;
     const bsl::string appId = bmqp::QueueUtil::extractAppId(
         context->d_handleParameters);
@@ -863,7 +864,9 @@ void ClusterQueueHelper::processOpenQueueRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(isQueueAssigned(*(context->queueContext())));
+
     // At this time, the Queue must have been assigned an id/partition.
 
     if (d_cluster_p->isRemote()) {
@@ -927,6 +930,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(context);
 
     QueueLiveState& qinfo = context->queueContext()->d_liveQInfo;
     const int       pid   = context->queueContext()->partitionId();
@@ -1101,6 +1105,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(requestContext->request().choice().isOpenQueueValue());
+    BSLS_ASSERT_SAFE(context);
 
     BALL_LOG_INFO << d_cluster_p->description() << ": on OpenQueueResponse "
                   << "from " << responder->nodeDescription() << ": "
@@ -1855,6 +1860,7 @@ bool ClusterQueueHelper::createQueue(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(context);
 
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
