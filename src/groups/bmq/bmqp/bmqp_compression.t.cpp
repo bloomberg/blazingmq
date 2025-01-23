@@ -320,12 +320,12 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
         -1,
         &error,
         bmqtst::TestHelperUtil::allocator());
-    *compressionTime      = bsls::TimeUtil::getTimer() - startTime;
+    *compressionTime = bsls::TimeUtil::getTimer() - startTime;
 
     BMQTST_ASSERT_EQ(rc, 0);
 
-    startTime          = bsls::TimeUtil::getTimer();
-    rc                 = bmqp::Compression_Impl::decompressZlib(
+    startTime = bsls::TimeUtil::getTimer();
+    rc        = bmqp::Compression_Impl::decompressZlib(
         &decompressed,
         &bufferFactory,
         compressed,
@@ -556,7 +556,7 @@ static void test1_breathingTest()
                                bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob decompressed(&bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
-        char                  one[] = "one";
+        char        one[] = "one";
         bsl::shared_ptr<char> onePtr;
         onePtr.reset(one,
                      bslstl::SharedPtrNilDeleter(),
@@ -1133,6 +1133,3 @@ int main(int argc, char* argv[])
 #endif
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
-
-// ----------------------------------------------------------------------------
-// NOTICE:

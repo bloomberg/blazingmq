@@ -971,7 +971,6 @@ NtcChannel::NtcChannel(
 , d_watermarkSignaler(basicAllocator)
 , d_closeSignaler(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
-, d_upgradable()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
@@ -1382,41 +1381,48 @@ void NtcChannel::processUpgrade(
     const ntca::UpgradeEvent&                upgradeEvent,
     const ntci::UpgradeFunction&             cb)
 {
+    BSLS_ASSERT(cb);
+
     BALL_LOG_DEBUG << "Received upgrade event: " << upgradeEvent;
-    if (upgradeEvent.type() == ntca::UpgradeEventType::e_COMPLETE) {
-        if (cb) {
-            cb(upgradable, upgradeEvent);
-        }
-    }
+
+    cb(upgradable, upgradeEvent);
 }
 
-void NtcChannel::setUpgradable(
-    const bsl::shared_ptr<ntci::Upgradable>& upgradable)
-{
-    d_upgradable = upgradable;
-}
-
-void NtcChannel::upgrade(
+int NtcChannel::upgrade(
+    bmqio::Status*                                 status,
     const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer,
     const ntca::UpgradeOptions&                    options,
     const ntci::UpgradeFunction&                   upgradeCallback)
 {
     BSLS_ASSERT(encryptionServer);
+    BSLS_ASSERT(d_streamSocket_sp);
 
-    d_streamSocket_sp->upgrade(
+    BALL_LOG_INFO << "Upgrading connection";
+
+    ntsa::Error error = d_streamSocket_sp->upgrade(
         encryptionServer,
         options,
         d_streamSocket_sp->createUpgradeCallback(
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &NtcChannel::processUpgrade,
-                                  this,
-                                  bdlf::PlaceHolders::_1,
-                                  bdlf::PlaceHolders::_2,
-                                  upgradeCallback),
+            bdlf::BindUtil::bind(&NtcChannel::processUpgrade,
+                                 this,
+                                 bdlf::PlaceHolders::_1,
+                                 bdlf::PlaceHolders::_2,
+                                 upgradeCallback),
             d_allocator_p));
+
+    if (error) {
+        NtcChannelUtil::fail(status,
+                             bmqio::StatusCategory::e_CONNECTION,
+                             "upgrade",
+                             error);
+        return 1;
+    }
+
+    return 0;
 }
 
-void NtcChannel::upgrade(
+int NtcChannel::upgrade(
+    bmqio::Status*                                 status,
     const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient,
     const ntca::UpgradeOptions&                    options,
     const ntci::UpgradeFunction&                   upgradeCallback)
@@ -1426,7 +1432,7 @@ void NtcChannel::upgrade(
 
     BALL_LOG_INFO << "Upgrading connection";
 
-    d_streamSocket_sp->upgrade(
+    ntsa::Error error = d_streamSocket_sp->upgrade(
         encryptionClient,
         options,
         d_streamSocket_sp->createUpgradeCallback(
@@ -1437,6 +1443,16 @@ void NtcChannel::upgrade(
                                   bdlf::PlaceHolders::_2,
                                   upgradeCallback),
             d_allocator_p));
+
+    if (error) {
+        NtcChannelUtil::fail(status,
+                             bmqio::StatusCategory::e_CONNECTION,
+                             "upgrade",
+                             error);
+        return 1;
+    }
+
+    return 0;
 }
 
 // ACCESSORS
@@ -1585,37 +1601,6 @@ void NtcListener::processAccept(
     }
 }
 
-void NtcListener::processUpgrade(
-    const bsl::shared_ptr<ntci::Upgradable>& upgradable,
-    const ntca::UpgradeEvent&                upgradeEvent)
-{
-    if (upgradeEvent.type() == ntca::UpgradeEventType::e_COMPLETE) {
-        if (d_upgradeCallback) {
-            d_upgradeCallback(upgradable, upgradeEvent);
-        }
-    }
-    else {
-        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-        bsl::shared_ptr<NtcListener>   self = this->shared_from_this();
-
-        BMQIO_NTCLISTENER_LOG_ACCEPT_FAILED(this,
-                                            d_listenerSocket_sp,
-                                            upgradeEvent);
-        bmqio::Status status;
-        NtcChannelUtil::fail(&status,
-                             bmqio::StatusCategory::e_CONNECTION,
-                             "upgrade",
-                             upgradeEvent.context().error());
-
-        BMQIO_NTCLISTENER_LOG_CLOSING(this, d_listenerSocket_sp);
-
-        d_state = e_STATE_CLOSING;
-
-        d_listenerSocket_sp->close(
-            bdlf::BindUtil::bind(&NtcListener::processClose, self, status));
-    }
-}
-
 void NtcListener::processClose(const bmqio::Status& status)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
@@ -1653,7 +1638,6 @@ NtcListener::NtcListener(
 , d_properties(basicAllocator)
 , d_closeSignaler(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
-, d_encryptionServer_sp()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
@@ -1934,16 +1918,6 @@ void NtcListenerUtil::fail(Status*                     status,
         status->properties().set("ntfOperation", operation);
         status->properties().set("tcpPlatformError", error.number());
     }
-}
-
-const bsl::shared_ptr<ntci::Upgradable>& NtcChannel::upgradable() const
-{
-    return d_upgradable;
-}
-
-bsl::shared_ptr<ntci::Upgradable>& NtcChannel::upgradable()
-{
-    return d_upgradable;
 }
 
 }  // close package namespace

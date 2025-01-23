@@ -112,18 +112,24 @@ void NtcChannelFactory::processListenerResult(
                                << BALL_LOG_END;
 
                 // Check if we need to upgrade the connection to TLS
-                if (d_encryptionServer) {
-                    alias->upgrade(d_encryptionServer,
-                                   ntca::UpgradeOptions(),
-                                   bdlf::BindUtil::bind(
-                                       &NtcChannelFactory::processUpgrade,
-                                       this,
-                                       event,
-                                       status,
-                                       alias,
-                                       bdlf::PlaceHolders::_1,  // upgradable
-                                       bdlf::PlaceHolders::_2,  // upgradeEvent
-                                       callback));
+                if (d_encryptionServer_sp) {
+                    bmqio::Status upgradeStatus;
+                    int           rc = alias->upgrade(
+                        &upgradeStatus,
+                        d_encryptionServer_sp,
+                        d_upgradeOptions,
+                        bdlf::BindUtil::bind(
+                            &NtcChannelFactory::processUpgrade,
+                            this,
+                            event,
+                            status,
+                            alias,
+                            bdlf::PlaceHolders::_1,  // upgradable
+                            bdlf::PlaceHolders::_2,  // upgradeEvent
+                            callback));
+                    if (rc != 0) {
+                        callback(event, upgradeStatus, channel);
+                    }
                     return;  // RETURN
                 }
             }
@@ -174,18 +180,25 @@ void NtcChannelFactory::processChannelResult(
             }
 
             // Check if we need to upgrade the connection to TLS
-            if (d_encryptionClient) {
-                alias->upgrade(d_encryptionClient,
-                               ntca::UpgradeOptions(),
-                               bdlf::BindUtil::bind(
-                                   &NtcChannelFactory::processUpgrade,
-                                   this,
-                                   event,
-                                   status,
-                                   alias,
-                                   bdlf::PlaceHolders::_1,  // upgradable
-                                   bdlf::PlaceHolders::_2,  // upgradeEvent
-                                   callback));
+            if (d_encryptionClient_sp) {
+                bmqio::Status upgradeStatus;
+                int           rc = alias->upgrade(
+                    &upgradeStatus,
+                    d_encryptionClient_sp,
+                    d_upgradeOptions,
+                    bdlf::BindUtil::bind(
+                        &NtcChannelFactory::processUpgrade,
+                        this,
+                        event,
+                        status,
+                        alias,
+                        bdlf::PlaceHolders::_1,  // upgradable
+                        bdlf::PlaceHolders::_2,  // upgradeEvent
+                        callback));
+                if (rc != 0) {
+                    callback(event, upgradeStatus, channel);
+                }
+
                 return;  // RETURN
             }
         }
@@ -225,15 +238,16 @@ void NtcChannelFactory::processUpgrade(
     const bmqio::ChannelFactory::ResultCallback& callback)
 {
     if (upgradeEvent.isError()) {
-        BALL_LOG_ERROR << "Received error during TLS negotiation: " << event;
-        bmqio::Status st(bmqio::StatusCategory::e_GENERIC_ERROR,
-                         d_allocator_p);
+        BALL_LOG_ERROR << "Received error during TLS negotiation: "
+                       << upgradeEvent;
+        bmqio::Status st(bmqio::StatusCategory::e_GENERIC_ERROR);
         channel->close(st);
         callback(ChannelFactoryEvent::e_CONNECT_FAILED, st, channel);
         return;  // RETURN
     }
 
-    channel->setUpgradable(upgradable);
+    // Note: the `upgradable` object is the channel's underlying stream socket.
+    d_upgradeSignaler(channel, upgradable, upgradeEvent);
 
     callback(event, status, channel);
 }
@@ -252,8 +266,10 @@ NtcChannelFactory::NtcChannelFactory(
 , d_stateMutex()
 , d_stateCondition()
 , d_state(e_STATE_DEFAULT)
-, d_encryptionServer()
-, d_encryptionClient()
+, d_encryptionServer_sp()
+, d_encryptionClient_sp()
+, d_upgradeSignaler(basicAllocator)
+, d_upgradeOptions()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
@@ -271,8 +287,10 @@ NtcChannelFactory::NtcChannelFactory(
 , d_stateMutex()
 , d_stateCondition()
 , d_state(e_STATE_DEFAULT)
-, d_encryptionServer()
-, d_encryptionClient()
+, d_encryptionServer_sp()
+, d_encryptionClient_sp()
+, d_upgradeSignaler(basicAllocator)
+, d_upgradeOptions()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     bsl::shared_ptr<bdlbb::BlobBufferFactory> blobBufferFactory_sp(
@@ -301,6 +319,7 @@ NtcChannelFactory::~NtcChannelFactory()
     BSLS_ASSERT_OPT(d_channels.length() == 0);
     BSLS_ASSERT_OPT(d_createSignaler.slotCount() == 0);
     BSLS_ASSERT_OPT(d_limitSignaler.slotCount() == 0);
+    BSLS_ASSERT_OPT(d_upgradeSignaler.slotCount() == 0);
 }
 
 // MANIPULATORS
@@ -368,6 +387,7 @@ void NtcChannelFactory::stop()
 
     d_createSignaler.disconnectAllSlots();
     d_limitSignaler.disconnectAllSlots();
+    d_upgradeSignaler.disconnectAllSlots();
 
     BALL_LOG_TRACE << "NTC factory has stopped" << BALL_LOG_END;
 }
@@ -512,6 +532,11 @@ bdlmt::SignalerConnection NtcChannelFactory::onLimit(const LimitFn& cb)
     return d_limitSignaler.connect(cb);
 }
 
+bdlmt::SignalerConnection NtcChannelFactory::onUpgrade(const UpgradeFn& cb)
+{
+    return d_upgradeSignaler.connect(cb);
+}
+
 int NtcChannelFactory::lookupChannel(
     bsl::shared_ptr<bmqio::NtcChannel>* result,
     int                                 channelId)
@@ -519,34 +544,70 @@ int NtcChannelFactory::lookupChannel(
     return d_channels.find(channelId, result);
 }
 
-NtcChannelFactory& NtcChannelFactory::setEncryptionServer(
-    const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer)
+void NtcChannelFactory::setEncryptionServer(
+    const EncryptionServerSp& encryptionServer)
 {
-    d_encryptionServer = encryptionServer;
-    return *this;
+    BSLS_ASSERT(d_state != e_STATE_STOPPED || d_state != e_STATE_DEFAULT);
+
+    d_encryptionServer_sp = encryptionServer;
 }
 
 ntsa::Error NtcChannelFactory::configureEncryptionServer(
     const ntca::EncryptionServerOptions& options)
 {
-    return d_interface_sp->createEncryptionServer(&d_encryptionServer,
+    BSLS_ASSERT(d_state != e_STATE_STOPPED || d_state != e_STATE_DEFAULT);
+
+    return d_interface_sp->createEncryptionServer(&d_encryptionServer_sp,
                                                   options,
                                                   d_allocator_p);
 }
 
-NtcChannelFactory& NtcChannelFactory::setEncryptionClient(
-    const bsl::shared_ptr<ntci::EncryptionClient>& encryptionClient)
+void NtcChannelFactory::setEncryptionClient(
+    const EncryptionClientSp& encryptionClient)
 {
-    d_encryptionClient = encryptionClient;
-    return *this;
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    d_encryptionClient_sp = encryptionClient;
 }
 
 ntsa::Error NtcChannelFactory::configureEncryptionClient(
     const ntca::EncryptionClientOptions& options)
 {
-    return d_interface_sp->createEncryptionClient(&d_encryptionClient,
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    return d_interface_sp->createEncryptionClient(&d_encryptionClient_sp,
                                                   options,
                                                   d_allocator_p);
+}
+
+void NtcChannelFactory::setUpgradeOptions(const ntca::UpgradeOptions& options)
+{
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    d_upgradeOptions = options;
+}
+
+// ACCESSORS
+
+const ntci::EncryptionServer& NtcChannelFactory::encryptionServer() const
+{
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    return *d_encryptionServer_sp;
+}
+
+const ntci::EncryptionClient& NtcChannelFactory::encryptionClient() const
+{
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    return *d_encryptionClient_sp;
+}
+
+const ntca::UpgradeOptions& NtcChannelFactory::upgradeOptions() const
+{
+    BSLS_ASSERT(d_state == e_STATE_STOPPED || d_state == e_STATE_DEFAULT);
+
+    return d_upgradeOptions;
 }
 
 // ----------------------------

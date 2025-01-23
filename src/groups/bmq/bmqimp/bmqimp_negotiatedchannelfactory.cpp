@@ -62,20 +62,6 @@ enum RcEnum {
     rc_NEGOTIATION_FAILURE     = -7
 };
 
-bmqio::Channel* findParent(bmqio::Channel* channel)
-{
-    bmqio::Channel*                     self = channel;
-    bmqio::DecoratingChannelPartialImp* decoratedChannel =
-        dynamic_cast<bmqio::DecoratingChannelPartialImp*>(self);
-    while (decoratedChannel != NULL) {
-        self             = decoratedChannel->base();
-        decoratedChannel = dynamic_cast<bmqio::DecoratingChannelPartialImp*>(
-            self);
-    }
-
-    return self;
-}
-
 }  // close unnamed namespace
 
 // ------------------------------------
