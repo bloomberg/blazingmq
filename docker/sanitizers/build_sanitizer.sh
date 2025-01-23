@@ -5,7 +5,7 @@
 #   - Clang
 #   - LLVM libc++ standard library
 #   - A CMake toolchain file specific for instrumented build
-# It is currently used to build instrumented BlazingMQ binaries for CI for all
+# It is used to build instrumented BlazingMQ binaries for all
 # Clang sanitizers (i.e. Address/Leak, Memory, Thread, UndefinedBehavior).
 #
 # It performs the following:
@@ -21,11 +21,10 @@
 # 6) Build sanitizer-instrumented BlazingMQ unit tests.
 # 7) Generate scripts to run unit tests:
 #      ./cmake.bld/Linux/run-unittests.sh
-#    This script is used as-is by CI to run unit tests under sanitizer.
 
 set -eux
 
-# :: Required arguments :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Check required arguments
 if [ -z "${1}" ]; then
     echo 'Error: Missing sanitizer name.' >&2
     echo '  (Usage: build_sanitizer.sh <sanitizer-name>)' >&2
@@ -33,9 +32,6 @@ if [ -z "${1}" ]; then
 fi
 
 SANITIZER_NAME="${1}"
-
-# Purge unneeded packages to save space
-apt-get update && apt-get purge -y gcc-13 gcc-14
 
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
@@ -240,7 +236,7 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
 
-# Remove unneeded built dependencies to save space
+# Remove un-needed folders
 rm -rf "${DIR_BUILD_EXT}"
 rm -rf "${DIR_SRCS_EXT}/bde"
 rm -rf "${DIR_SRCS_EXT}/ntf-core"

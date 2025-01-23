@@ -1,9 +1,13 @@
 # syntax=docker/dockerfile:1
 
-FROM docker.io/ubuntu:24.04 AS build
+FROM docker.io/ubuntu:24.04
 
-# By default
-ARG SANITIZER_NAME="msan"
+# Check if SANITIZER_NAME argument is passed
+ARG SANITIZER_NAME
+RUN if [ -z $SANITIZER_NAME ]; then \
+  echo "Required SANITIZER_NAME build argument is not passed." ;\
+    exit 1 ;\
+  fi
 
 # Copy blazingmq source code
 WORKDIR /blazingmq
@@ -12,12 +16,10 @@ COPY etc etc
 COPY src src
 COPY CMakeLists.txt ./
 
+# Build with sanitizer instrumentation
 RUN chmod +x docker/build_deps.sh
 RUN chmod +x docker/sanitizers/build_sanitizer.sh
 RUN docker/sanitizers/build_sanitizer.sh ${SANITIZER_NAME}
 
-# FROM build AS run
-# Copy the built binaries and run unit test script
-# COPY --from=build /blazingmq/cmake.bld/Linux /blazingmq
-
+# Run unit tests
 CMD [ "/blazingmq/cmake.bld/Linux/run-unittests.sh" ]
