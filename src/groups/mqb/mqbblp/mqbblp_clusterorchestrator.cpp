@@ -1960,6 +1960,30 @@ void ClusterOrchestrator::unregisterAppId(bsl::string         appId,
     d_stateManager_mp->unregisterAppId(appId, &domain);
 }
 
+void ClusterOrchestrator::registerAppIds(
+    bsl::unordered_set<bsl::string> appIds,
+    const mqbi::Domain&             domain)
+{
+    // executed by the cluster* DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+
+    d_stateManager_mp->registerAppIds(appIds, &domain);
+}
+
+void ClusterOrchestrator::unregisterAppIds(
+    bsl::unordered_set<bsl::string> appIds,
+    const mqbi::Domain&             domain)
+{
+    // executed by the cluster* DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+
+    d_stateManager_mp->unregisterAppIds(appIds, &domain);
+}
+
 void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
                                                    int          status,
                                                    unsigned int primaryLeaseId)

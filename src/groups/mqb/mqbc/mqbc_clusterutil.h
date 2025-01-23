@@ -57,6 +57,7 @@
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
+#include <bslstl_unorderedset.h>
 
 namespace BloombergLP {
 
@@ -300,6 +301,34 @@ struct ClusterUtil {
                                 const bsl::string&  appId,
                                 const mqbi::Domain* domain,
                                 bslma::Allocator*   allocator);
+
+    /// Register the specified `appIds` for all queues in the specified
+    /// `domain`, using the specified `clusterData` and `clusterState`.
+    /// Apply the corresponding queue update advisory to the specified
+    /// `ledger`.  Use the specified `allocator` for memory allocations.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    static void registerAppIds(ClusterData*        clusterData,
+                               ClusterStateLedger* ledger,
+                               ClusterState&       clusterState,
+                               const bsl::unordered_set<bsl::string>& appIds,
+                               const mqbi::Domain*                    domain,
+                               bslma::Allocator* allocator);
+
+    /// Unregister the specified `appIds` for all queues in the specified
+    /// `domain`, using the specified `clusterData` and `clusterState`.
+    /// Apply the corresponding queue update advisory to the specified
+    /// `ledger`.  Use the specified `allocator` for memory allocations.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    static void unregisterAppIds(ClusterData*        clusterData,
+                                 ClusterStateLedger* ledger,
+                                 ClusterState&       clusterState,
+                                 const bsl::unordered_set<bsl::string>& appIds,
+                                 const mqbi::Domain*                    domain,
+                                 bslma::Allocator* allocator);
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the specified partition-primary

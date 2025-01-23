@@ -250,6 +250,23 @@ class ClusterStateManager {
     virtual void unregisterAppId(const bsl::string&  appId,
                                  const mqbi::Domain* domain) = 0;
 
+    /// Register the specified `appIds` for all queues in the specified
+    /// `domain`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    virtual void registerAppIds(const bsl::unordered_set<bsl::string>& appIds,
+                                const mqbi::Domain* domain) = 0;
+
+    /// Unregister the specified `appIds` for all queues in the specified
+    /// `domain`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    virtual void
+    unregisterAppIds(const bsl::unordered_set<bsl::string>& appIds,
+                     const mqbi::Domain*                    domain) = 0;
+
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.
     ///
