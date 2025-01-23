@@ -17,19 +17,18 @@
 #ifndef INCLUDED_MQBBLP_STORAGEMANAGER
 #define INCLUDED_MQBBLP_STORAGEMANAGER
 
-//@PURPOSE: Provide a storage manager, in charge of BlazingMQ storage.
-//
-//@CLASSES:
-//  mqbblp::StorageManager:
-//
-//@DESCRIPTION:
-//
-/// Thread Safety
-///-------------
-// Thread safe.
+/// @file mqbblp_storagemanager.h
+///
+/// @brief Provide a storage manager, in charge of BlazingMQ storage.
+///
+/// @todo Document component
+///
+/// Thread Safety                               {#mqbblp_storagemanager_thread}
+/// =============
+///
+/// Thread safe.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_storageutil.h>
@@ -44,9 +43,8 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
-#include <bmqt_uri.h>
-
 #include <bmqma_countingallocatorstore.h>
+#include <bmqt_uri.h>
 
 // BDE
 #include <ball_log.h>
@@ -144,7 +142,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
   private:
     // PRIVATE CONSTANTS
 
-    // For brevity
+    /// For brevity.
     static const int k_KEY_LEN = mqbs::FileStoreProtocol::k_KEY_LENGTH;
 
   private:
@@ -186,46 +184,40 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
   private:
     // DATA
-    bslma::Allocator* d_allocator_p;
-    // Allocator to use
 
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+    /// Allocatro store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
     bsls::AtomicBool d_isStarted;
 
+    /// Flag to denote if a low disk space warning was issued.  This flag is
+    /// used *only* for logging purposes (see `storageMonitorCb` impl).
     bool d_lowDiskspaceWarning;
-    // Flag to denote if a low disk space
-    // warning was issued.  This flag is
-    // used *only* for logging purposes
-    // (see 'storageMonitorCb' impl)
 
+    /// Mutex to protect access to `d_unrecognizedDomains` and its elements.
     bslmt::Mutex d_unrecognizedDomainsLock;
-    // Mutex to protect access to 'd_unrecognizedDomains' and its elements.
 
+    /// List of `DomainQueueMessagesMap`, indexed by `partitionId`.
+    ///
+    /// Each `DomainQueueMessagesMap` is a map of `unrecognized domain name ->
+    /// queue messages info` found during storage recovery, either due to
+    /// genuine domain migration or misconfiguration.
     DomainQueueMessagesCountMaps d_unrecognizedDomains;
-    // List of DomainQueueMessagesMap,
-    // indexed by 'partitionId'.
-    //
-    // Each DomainQueueMessagesMap is a map
-    // of [unrecognized domain name ->
-    // queue messages info] found during
-    // storage recovery either due to
-    // genuine domain migration or
-    // misconfiguration.
 
+    /// `SharedObjectPool` of blobs to use.
     BlobSpPool* d_blobSpPool_p;
-    // SharedObjectPool of blobs to use
 
+    /// Domain factory to use.
     mqbi::DomainFactory* d_domainFactory_p;
-    // Domain factory to use
 
+    /// Dispatcher to use.
     mqbi::Dispatcher* d_dispatcher_p;
-    // Dispatcher to use
 
+    /// Cluster config to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
-    // Cluster config to use
 
     mqbi::Cluster* d_cluster_p;
 
@@ -233,98 +225,71 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     const mqbc::ClusterState& d_clusterState;
 
+    /// Recovery manager.  Empty if this is a local cluster.
     RecoveryManagerMp d_recoveryManager_mp;
-    // Recovery manager.  Empty if its a
-    // local cluster.
 
+    /// List of all partitions, indexed by `partitionId`.
     FileStores d_fileStores;
-    // List of all partitions, indexed by
-    // 'partitionId'
 
+    /// Thread pool used for any standalone work that can be offloaded to
+    /// non-partition-dispatcher therads.  It is used by the partitions owned
+    /// by this object.
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
-    // Thread pool used for any standalone
-    // work that can be offloaded to
-    // non-partition-dispatcher threads.
-    // It is used by the partitions owned
-    // by this object.
 
+    /// Number of partitions whose recovery has been fully completed by the
+    /// recovery manager.  This variable needs to be atomic because it's
+    /// touched from the dispatcher threads of all partitions.
     bsls::AtomicInt d_numPartitionsRecoveredFully;
-    // Number of partitions whose recovery
-    // has been fully completed by the
-    // recovery manager.  This variable
-    // needs to be atomic because it's
-    // touched from the dispatcher threads
-    // of all partitions.
 
+    /// Number of partitions which have completed recovery of file-backed
+    /// queues and their virtual storages.  This variable needs to be atomic
+    /// because it's touched from the dispatched threads of all partitions.
     bsls::AtomicInt d_numPartitionsRecoveredQueues;
-    // Number of partitions which has
-    // completed recovery of file-backed
-    // queues and their virtual storages.
-    // This variable needs to be atomic
-    // because it's touched from the
-    // dispatcher threads of all
-    // partitions.
 
     RecoveryStatusCb d_recoveryStatusCb;
 
     PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
 
+    /// Mutex to protect access to `d_storages` and its elements.  See
+    /// documentation for `d_storages`.
     mutable bslmt::Mutex d_storagesLock;
-    // Mutex to protect access to
-    // 'd_storages' and its elements.  See
-    // comments for 'd_storages'.
 
+    /// Vector of `CanonicalQueueUri -> ReplicatedStorage` maps.  Vector is
+    /// indexed by partitionId.  The maps contain *both* in-memory and
+    /// file-backed storages.  Note that `d_storagesLock` must be held while
+    /// accessing nthis container and any of its elements (`URI -> Storage`
+    /// maps), because they are accessed from partitions' dispatcher threads,
+    /// as well as the cluster dispatcher thread.
     StorageSpMapVec d_storages;
-    // Vector of (CanonicalQueueUri ->
-    // ReplicatedStorage) maps.  Vector is
-    // indexed by partitionId.  The maps
-    // contains *both* in-memory and
-    // file-backed storages.  Note that
-    // 'd_storagesLock' must be held while
-    // accessing this container and any of
-    // its elements (URI->Storage maps),
-    // because they are accessed from
-    // partitions' dispatcher threads, as
-    // well as cluster dispatcher thread.
 
     RecurringEventHandle d_storageMonitorEventHandle;
 
     RecurringEventHandle d_gcMessagesEventHandle;
 
+    /// `PrimaryLeaseIds` recovered from each partition.  Each element in this
+    /// vector represents the recovered primaryLeaseId for the partition at
+    /// that index.  Each element in this vector is modified once in
+    /// `onPartitionRecovery` in the dispatcher therad associated with the
+    /// partition (i.e., index of the element).  This variable is not used once
+    /// this storage manager has notified the upper layer of its recovery
+    /// status via `d_recoveryStatusCb`.
     PrimaryLeaseIds d_recoveredPrimaryLeaseIds;
-    // PrimaryLeaseIds recovered from each
-    // partition.  Each element in this
-    // vector represents the recovered
-    // primaryLeaseId for the partition at
-    // that index.  Each element in this
-    // vector is modified once in
-    // 'onPartitionRecovery' in the
-    // dispatcher thread associated with
-    // the partition (ie, index of the
-    // element).  This variable is not used
-    // once StorageMgr has notified upper
-    // layer of recovery status via
-    // 'd_recoveryStatusCb'.
 
+    /// Vector of `PartitionInfo` indexed by partitionId.  An element in this
+    /// container represents the *latest* primaryNode, leaseId, and status for
+    /// the partitionId at that element's index.
     PartitionInfoVec d_partitionInfoVec;
-    // Vector of 'PartitionInfo' indexed by
-    // partitionId.  An element in this
-    // container represents the *latest*
-    // (primaryNode, leaseId, status) for
-    // the partitionId at that element's
-    // index.
 
     bsls::Types::Uint64 d_minimumRequiredDiskSpace;
 
+    /// Replication factor used to configure `FileStores`.
     int d_replicationFactor;
-    // Replication factor used to configure
-    // FileStores.
 
   private:
-    // NOT IMPLEMENTED
+    /// Not implemented.
     StorageManager(const StorageManager&) BSLS_KEYWORD_DELETED;
 
-    /// Not implemented
+    /// Not implemented.
     StorageManager& operator=(const StorageManager&) BSLS_KEYWORD_DELETED;
 
   private:

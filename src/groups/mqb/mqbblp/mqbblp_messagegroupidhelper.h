@@ -17,23 +17,20 @@
 #ifndef INCLUDED_MQBBLP_MESSAGEGROUPIDHELPER
 #define INCLUDED_MQBBLP_MESSAGEGROUPIDHELPER
 
-//@PURPOSE: Provide a mechanism to map Message Group Ids to Handles.
-//
-//@CLASSES:
-//  mqbblp::MessageGroupIdHelper: Map Message Group Ids to Handles
-//
-//@DESCRIPTION: This component provides a class 'mqbblp::MessageGroupIdHelper'
-// which given a collection of Handles, and an opaque MsgGroupId, returns a
-// QueueHandle.
+/// @file mqbblp_messagegroupidhelper.h
+///
+/// @brief Provide a mechanism to map Message Group Ids to Handles.
+///
+/// This component provides a class @bbref{mqbblp::MessageGroupIdHelper} which
+/// given a collection of Handles, and an opaque MsgGroupId, returns a
+/// QueueHandle.
 
 // MQB
-
 #include <mqbblp_messagegroupidmanager.h>
 #include <mqbconfm_messages.h>
 
 // BMQ
 #include <bmqp_protocol.h>
-
 #include <bmqsys_time.h>
 
 // BDE
@@ -58,8 +55,9 @@ namespace mqbblp {
 class MessageGroupIdHelper {
   private:
     // DATA
+
+    /// Manager providing the required functionality.
     MessageGroupIdManager d_manager;
-    // Manager providing the required functionality
 
   private:
     // NOT IMPLEMENTED

@@ -17,24 +17,20 @@
 #ifndef INCLUDED_MQBBLP_QUEUESESSIONMANAGER
 #define INCLUDED_MQBBLP_QUEUESESSIONMANAGER
 
-//@PURPOSE: Provide a mechanism for opening and closing queues.
-//
-//@CLASSES:
-//  mqbblp::QueueSessionManager: mechanism for opening and closing a queue
-//
-
-//@DESCRIPTION: This component provides a mechanism,
-// 'mqbblp::QueueSessionManager', that immplements opening and closing a queue.
+/// @file mqbblp_queuesessionmanager.h
+///
+/// @brief Provide a mechanism for opening and closing queues.
+///
+/// This component provides a mechanism, @bbref{mqbblp::QueueSessionManager},
+/// that immplements opening and closing a queue.
 
 // MQB
-
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
-
 #include <bmqu_atomicvalidator.h>
 
 // BDE
@@ -72,6 +68,7 @@ namespace mqbblp {
 // class QueueSessionManager
 // =========================
 
+/// Mechanism for opening and closing a queue.
 class QueueSessionManager {
   public:
     // TYPES
@@ -94,12 +91,11 @@ class QueueSessionManager {
     /// Struct holding information associated to a substream of a queue
     /// opened in the session
     struct SubQueueInfo {
+        /// Stats of this `SubQueue`, with regards to the client.
         bsl::shared_ptr<mqbstat::QueueStatsClient> d_stats;
-        // Stats of this SubQueue, with regards
-        // to the client.
 
+        // queueId (id, subId) of the `SubQueue`
         bmqp::QueueId d_queueId;
-        // queueId (id, subId) of the SubQueue
 
         // CREATORS
 
@@ -116,26 +112,26 @@ class QueueSessionManager {
         typedef bmqp::ProtocolUtil::QueueInfo<SubQueueInfo> StreamsMap;
 
         // PUBLIC DATA
+
+        /// `QueueHandle` of the queue
         mqbi::QueueHandle* d_handle_p;
-        // QueueHandle of the queue
 
+        /// Flag to indicate if the final `closeQueue` request for this handle
+        /// has been received.  This flag can be used to reject PUT & CONFIRM
+        /// messages which some clients try to post after closing a queue
+        /// (under certain conditions, such incorrect usage cannot be caught in
+        /// the SDK eg, if messages are being posted from one app thread, while
+        /// `closeQueue` request is being sent from another app thread).  This
+        /// flag can also be used by the queue or queue engine for sanity
+        /// checking.
         bool d_hasReceivedFinalCloseQueue;
-        // Flag to indicate if the 'final' closeQueue
-        // request for this handle has been received.
-        // This flag can be used to reject PUT & CONFIRM
-        // messages which some clients try to post after
-        // closing a queue (under certain conditions, such
-        // incorrect usage cannot be caught in the SDK eg,
-        // if messages are being posted from one app
-        // thread, while closeQueue request is being sent
-        // from another app thread).  This flag can also
-        // be used by the queue or queue engine for sanity
-        // checking.
 
+        /// Map of subQueueId to information associated to a substream of a
+        /// queue opened in this session
         StreamsMap d_subQueueInfosMap;
-        // Map of subQueueId to information associated to
-        // a substream of a queue opened in this session
+
         // TRAITS
+
         BSLMF_NESTED_TRAIT_DECLARATION(QueueState, bslma::UsesBslmaAllocator)
 
         // CREATORS
@@ -160,61 +156,45 @@ class QueueSessionManager {
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUESESSIONMANAGER");
 
     // DATA
+
+    // Dispatcher client to use, held not owned.
     mqbi::DispatcherClient* d_dispatcherClient_p;
-    // Dispatcher client to use, held not
-    // owned
 
+    // StatContext to use, held not owned.
     bmqst::StatContext* d_statContext_p;
-    // StatContext to use, held not owned
 
+    // DomainFactory to use, held not owned.
     mqbi::DomainFactory* d_domainFactory_p;
-    // DomainFactory to use, held not owned
 
-    bslma::Allocator* d_allocator_p;
     // Allocator to use.
+    bslma::Allocator* d_allocator_p;
 
+    // Once this flag is set, either the channel has been destroyed and is no
+    // longer valid or we sent the `DisconnectResponse` to the client; in
+    // either way, *NO* messages of any sort should be delivered to the client.
     bsls::AtomicBool d_shutdownInProgress;
-    // Once this flag is set, either the
-    // channel has been destroyed and is no
-    // longer valid or we sent the
-    // 'DisconnectResponse' to the client;
-    // in either way, *NO* messages of any
-    // sort should be delivered to the
-    // client.
 
-    bmqu::AtomicValidatorSp d_validator_sp;
-    // Object validator used in callbacks,
-    // to avoid executing a callback if the
-    // session has been destroyed: this is
-    // *ONLY* to be used with the callbacks
-    // that will be called from outside of
-    // the dispatcher's thread (such as a
-    // bmqconf IO thread); because we can't
-    // guarantee this queue is drained
+    // Object validator used in callbacks, to avoid executing a callback if the
+    // session has been destroyed: this is *ONLY* to be used with the callbacks
+    // that will be called from outside of the dispatcher's thread (such as a
+    // bmqconf IO thread); because we can't guarantee this queue is drained
     // before destroying the session.
+    bmqu::AtomicValidatorSp d_validator_sp;
 
+    // Map containing the state of all queues opened by this session manager.
+    // Note that value stored in the map is a raw pointer to the QueueHandle,
+    // so the handle *must* be manually released during shutdown of the
+    // session.  This structure is manipulated only from the client dispatcher
+    // thread.
     QueueStateMap d_queues;
-    // Map containing the state of all
-    // queues opened by this session
-    // manager.  Note that value stored in
-    // the map is a raw pointer to the
-    // QueueHandle, so the handle *must* be
-    // manually released during shutdown of
-    // the session.  This structure is
-    // manipulated only from the client
-    // dispatcher thread.
 
+    // Context used to uniquely identify this client when requesting a queue
+    // handle.  A shared pointer is needed because when the source client has
+    // disconnected, this object will be destroyed but the context may still be
+    // needed for processing the open queue response or by the associated queue
+    // handle.
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>
         d_requesterContext_sp;
-    // Context used to uniquely identify
-    // this client when requesting a queue
-    // handle.  A shared pointer is needed
-    // because when the source client has
-    // disconnected, this object will be
-    // destroyed but the context may still
-    // be needed for processing the open
-    // queue response or by the associated
-    // queue handle.
 
     // NOT IMPLEMENTED
     QueueSessionManager(const QueueSessionManager&) BSLS_CPP11_DELETED;

@@ -430,9 +430,6 @@ class Queue : public mqbi::Queue {
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return true if there's queue handle and they're actively used.
-    bool hasActiveHandle() const BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
     //   (specific to mqbi::MockQueue)
 };

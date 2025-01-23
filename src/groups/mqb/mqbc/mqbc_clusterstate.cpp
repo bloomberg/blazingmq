@@ -421,8 +421,9 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
     }
 
     domIt->second->queuesInfo().erase(cit);
+
     if (domIt->second->queuesInfo().empty()) {
-        domIt->second->setDomain(NULL);
+        d_domainStates.erase(domIt);
     }
 
     // POSTCONDITIONS

@@ -1342,27 +1342,14 @@ void ClusterProxy::loadClusterStatus(mqbcmd::ClusterResult* out)
     loadQueuesInfo(&clusterProxyStatus.queuesInfo());
 }
 
-void ClusterProxy::purgeQueueOnDomain(
+void ClusterProxy::purgeAndGCQueueOnDomain(
     mqbcmd::ClusterResult*       result,
     BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
 {
-    bmqu::MemOutStream os;
-    os << "MockCluster::gcQueueOnDomain not implemented!";
-    result->makeError().message() = os.str();
-}
-
-int ClusterProxy::gcQueueOnDomain(
-    mqbcmd::ClusterResult*       result,
-    BSLS_ANNOTATION_UNUSED const bsl::string& domainName)
-{
-    // exected by *ANY* thread
-
     bdlma::LocalSequentialAllocator<256> localAllocator(d_allocator_p);
     bmqu::MemOutStream                   os(&localAllocator);
-    os << "GC Queue not supported on a Proxy.";
+    os << "Purge and GC queue not supported on a Proxy.";
     result->makeError().message() = os.str();
-
-    return 0;
 }
 
 // MANIPULATORS

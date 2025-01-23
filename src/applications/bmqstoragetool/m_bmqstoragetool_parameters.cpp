@@ -103,6 +103,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_outstanding(false)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
+, d_minRecordsPerQueue(0)
 {
     // NOTHING
 }
@@ -344,26 +345,6 @@ Parameters::ProcessRecordTypes::ProcessRecordTypes(bool enableDefault)
     // NOTHING
 }
 
-Parameters::Parameters(bslma::Allocator* allocator)
-: d_processRecordTypes()
-, d_queueMap(allocator)
-, d_range()
-, d_guid(allocator)
-, d_seqNum(allocator)
-, d_offset(allocator)
-, d_queueKey(allocator)
-, d_queueName(allocator)
-, d_dumpLimit(0)
-, d_details(false)
-, d_dumpPayload(false)
-, d_summary(false)
-, d_outstanding(false)
-, d_confirmed(false)
-, d_partiallyConfirmed(false)
-{
-    // NOTHING
-}
-
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_processRecordTypes(false)
@@ -445,6 +426,16 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             seqNum.fromString(&success, errorDescr, *cit);
             d_seqNum.push_back(seqNum);
         }
+    }
+
+    if (arguments.d_minRecordsPerQueue > 0) {
+        // Use the provided value if records limit is not default and is valid
+        d_minRecordsPerQueue = arguments.d_minRecordsPerQueue;
+    }
+    else {
+        // Disable output of detailed information, setting the minimum
+        // threshold to max Unit64
+        d_minRecordsPerQueue = bsl::numeric_limits<bsls::Types::Uint64>::max();
     }
 }
 

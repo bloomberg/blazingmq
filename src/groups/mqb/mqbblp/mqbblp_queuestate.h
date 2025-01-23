@@ -17,12 +17,11 @@
 #ifndef INCLUDED_MQBBLP_QUEUESTATE
 #define INCLUDED_MQBBLP_QUEUESTATE
 
-//@PURPOSE: Provide a value-semantic type holding the state of a queue.
-//
-//@CLASSES:
-//  mqbblp::QueueState: value-semantic type holding the state of a queue.
-//
-//@DESCRIPTION: TBD:
+/// @file mqbblp_queuestate.h
+///
+/// @brief Provide a value-semantic type holding the state of a queue.
+///
+/// @todo Document component.
 
 // MQB
 
@@ -76,7 +75,7 @@ namespace mqbblp {
 // class QueueState
 // ================
 
-/// value-semantic type holding the state of a queue
+/// Value-semantic type holding the state of a queue.
 class QueueState {
   public:
     // TYPES
@@ -105,72 +104,60 @@ class QueueState {
 
   private:
     // DATA
+
+    /// The queue associated to this state.
     mqbi::Queue* d_queue_p;
-    // The queue associated to this state.
 
+    /// The URI of the queue associated to this state.
     bmqt::Uri d_uri;
-    // The URI of the queue associated to
-    // this state.
 
+    /// A description of the queue associated to this state.
     bsl::string d_description;
-    // A description of the queue
-    // associated to this state.
 
+    /// Upstream id of the queue associated to this state.
     unsigned int d_id;
-    // Upstream id of the queue associated
-    // to this state.
 
+    /// QueueKey of the queue associated to this state.
     mqbu::StorageKey d_key;
-    // QueueKey of the queue associated to
-    // this state.
 
+    /// Aggregated parameters of all currently opened queueHandles to the queue
+    /// associated to this state.
     bmqp_ctrlmsg::QueueHandleParameters d_handleParameters;
-    // Aggregated parameters of all
-    // currently opened queueHandles to the
-    // queue associated to this state.
 
     SubQueuesParameters d_subQueuesParametersMap;
 
+    /// Cumulative values per AppId.
     SubQueuesHandleParameters d_subQueuesHandleParameters;
-    // cumulative values per AppId.
 
+    /// PartitionId affected to the queue associated to this state.
     int d_partitionId;
-    // PartitionId affected to the queue
-    // associated to this state.
 
+    /// Domain the queue associated to this state belongs to.
     mqbi::Domain* d_domain_p;
-    // Domain the queue associated to this
-    // state belongs to.
 
+    /// Storage manager to use.
     mqbi::StorageManager* d_storageManager_p;
-    // Storage manager to use.
 
     const mqbi::ClusterResources d_resources;
 
+    /// Thread pool used for any standalone work that can be offloaded to any
+    /// non-dispatcher threads.
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
-    // Thread pool used for any standalone
-    // work that can be  offloaded to any
-    // non-dispatcher threads.
 
+    /// Storage used by the queue associated to this state.
     StorageMp d_storage_mp;
-    // Storage used by the queue associated
-    // to this state.
 
+    /// Dispatcher Client Data of the queue associated to this state.
     mqbi::DispatcherClientData d_dispatcherClientData;
-    // Dispatcher Client Data of the queue
-    // associated to this state.
 
+    /// Statistics of the queue associated to this state.
     bsl::shared_ptr<mqbstat::QueueStatsDomain> d_stats_sp;
-    // Statistics of the queue associated
-    // to this state.
 
+    /// The routing configuration for this queue.
     bmqp_ctrlmsg::RoutingConfiguration d_routingConfig;
-    // The routing configuration for this
-    // queue.
 
+    /// The throttling thresholds and delay values for poison messages.
     mqbcfg::MessageThrottleConfig d_messageThrottleConfig;
-    // The throttling thresholds and delay
-    // values for poison messages
 
     QueueHandleCatalog d_handleCatalog;
 
