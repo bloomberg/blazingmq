@@ -12,9 +12,6 @@
 # 1) Install clang compiler.
 # 2) Download llvm-project required for libc++ instrumentation.
 # 3) Download external dependencies required for instrumentation.
-#    NOTE: It is expected that `bde`, `bde-tools` and `ntf-core` dependencies
-#    are already downloaded by `build_deps.sh`, `build-ubuntu.sh` 
-#    or `build-darwin.sh` script to avoid dependencies versions mismatch.
 # 4) Build libc++ with the instrumentation specified by <LLVM Sanitizer Name>.
 # 5) Build sanitizer-instrumented dependencies including BDE, NTF, GoogleTest,
 #    Google Benchmark and zlib.
