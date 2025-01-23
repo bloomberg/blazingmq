@@ -1,9 +1,8 @@
 name: Sanitize
 
 on:
-  push:
-    branches:
-      - sanitizers-in-docker
+  pull_request_review:
+    types: [submitted]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -17,10 +16,9 @@ jobs:
         mode: ["asan", "msan", "tsan", "ubsan"]
       fail-fast: false
     runs-on: ubuntu-24.04
-    # if: github.event.review.state == 'APPROVED'
+    if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
-
       - name : Strip ubuntu-24.04 to avoid space quota exceeding
         run: |
           sudo apt-get purge \
@@ -31,12 +29,10 @@ jobs:
           openjdk-21-jre-headless mysql-server-core-8.0
           sudo apt-get autoremove
           sudo apt-get autoclean
-
       - name: Build [${{ matrix.mode }}]
         run: | 
           docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
           --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
           -t sanitizer-${{ matrix.mode }} .
-
       - name: UT [c++,${{ matrix.mode }}]
         run: docker run --rm sanitizer-${{ matrix.mode }}
