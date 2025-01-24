@@ -33,6 +33,25 @@ namespace mqbc {
 // class ClusterStateQueueInfo
 // ---------------------------
 
+bool operator==(const ClusterStateQueueInfo::AppInfos& lhs,
+                const ClusterStateQueueInfo::AppInfos& rhs)
+{
+    // This ignores the order
+
+    if (lhs.size() != rhs.size()) {
+        return false;
+    }
+    typedef mqbi::Storage::AppInfos::const_iterator Iter;
+
+    for (Iter iter = lhs.begin(); iter != lhs.end(); ++iter) {
+        if (rhs.count(iter->first) != 1) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
                                            int           level,
                                            int           spacesPerLevel) const
@@ -555,8 +574,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         }
 
         AppInfos& appIdInfos = iter->second->appInfos();
-        for (AppInfosCIter citer = addedAppIds.cbegin();
-             citer != addedAppIds.cend();
+        for (AppInfosCIter citer = addedAppIds.begin();
+             citer != addedAppIds.end();
              ++citer) {
             if (!appIdInfos.insert(*citer).second) {
                 return rc_APPID_ALREADY_EXISTS;  // RETURN
@@ -567,7 +586,7 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
              citer != removedAppIds.end();
              ++citer) {
             const AppInfosCIter appIdInfoCIter = appIdInfos.find(citer->first);
-            if (appIdInfoCIter == appIdInfos.cend()) {
+            if (appIdInfoCIter == appIdInfos.end()) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
             appIdInfos.erase(appIdInfoCIter);

@@ -315,6 +315,12 @@ bool operator==(const ClusterStateQueueInfo& lhs,
 bool operator!=(const ClusterStateQueueInfo& lhs,
                 const ClusterStateQueueInfo& rhs);
 
+bool operator==(const ClusterStateQueueInfo::AppInfos& lhs,
+                const ClusterStateQueueInfo::AppInfos& rhs);
+
+bool operator!=(const ClusterStateQueueInfo::AppInfos& lhs,
+                const ClusterStateQueueInfo::AppInfos& rhs);
+
 // ==========================
 // class ClusterStateObserver
 // ==========================

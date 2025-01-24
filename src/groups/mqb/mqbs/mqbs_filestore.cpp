@@ -945,8 +945,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     }
 
     // Close file set as it is in read mode.
-    close(*fileSetSp,
-          false);  // flush
+    close(*fileSetSp, false);  // flush
 
     // Re-open in write mode, grow & map (do not delete on failure).
     bmqu::MemOutStream errorDesc;
@@ -1158,6 +1157,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     BSLS_ASSERT_SAFE(journalIt.isReverseMode());
 
     // First pass.
+    // Populate 'queueKeyInfoMap' while skipping deleted queues
     int rc = 0;
     while ((rc = journalIt.nextRecord()) == 1) {
         const RecordHeader& recHeader = journalIt.recordHeader();
@@ -1289,6 +1289,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 }
             }
             else {
+                // TODO_CSL: Remove this block.
+                // CSL does not need 'e_DELETION' for Apps
+
                 StorageKeysOffsetsInsertRc irc = deletedAppKeysOffsets.insert(
                     bsl::make_pair(appKey, journalIt.recordOffset()));
 
@@ -1326,6 +1329,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             continue;  // CONTINUE
         }
         else if (QueueOpType::e_ADDITION == queueOpType) {
+            // TODO_CSL: Remove this block.
+            // CSL does not need 'e_ADDITION' for Apps
+
             // No need to keep track of appIds/appKeys in the 1st pass.  It
             // will be done in 2nd pass.  Just perform some basic validation.
 
@@ -1434,7 +1440,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 // 'QueueOpType::e_ADDITION' as well).
 
                 QueueKeyInfoMapInsertRc insertRc = queueKeyInfoMap->insert(
-                    bsl::make_pair(queueKey, DataStoreConfigQueueInfo()));
+                    bsl::make_pair(queueKey, DataStoreConfigQueueInfo(false)));
                 insertRc.first->second.setPartitionId(d_config.partitionId());
 
                 if (false == insertRc.second) {
@@ -1758,6 +1764,14 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
             }
             else if (QueueOpType::e_PURGE == queueOpType) {
+                DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+
+                BALL_LOG_INFO << partitionDesc() << "PurgeOp for " << appKey
+                              << " from "
+                              << DataStoreRecordKey(rec.startSequenceNumber(),
+                                                    rec.startPrimaryLeaseId())
+                              << " to " << key;
+
                 StorageKeysOffsetsConstIter queueIt =
                     deletedQueueKeysOffsets.find(queueKey);
 
@@ -1770,8 +1784,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         continue;  // CONTINUE
                     }
                 }
+                QueueKeyInfoMap::iterator iter = queueKeyInfoMap->find(
+                    queueKey);
 
-                if (0 == queueKeyInfoMap->count(queueKey)) {
+                if (iter == queueKeyInfoMap->end()) {
                     if (d_isFSMWorkflow) {
                         BALL_LOG_ERROR
                             << partitionDesc()
@@ -1801,7 +1817,22 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     purgedQueueKeys.insert(queueKey);
                 }
 
-                DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+                else {
+                    BALL_LOG_INFO
+                        << partitionDesc() << "Adding PurgeOp for " << appKey
+                        << " from "
+                        << DataStoreRecordKey(rec.startSequenceNumber(),
+                                              rec.startPrimaryLeaseId())
+                        << " to " << key;
+
+                    iter->second.addPurgeOp(
+                        appKey,
+                        DataStoreRecordKey(rec.startSequenceNumber(),
+                                           rec.startPrimaryLeaseId()),
+                        key);
+                    // Skip "empty" App PURGE - the one with empty range
+                }
+
                 DataStoreRecord    record(RecordType::e_QUEUE_OP,
                                        jit->recordOffset());
                 d_records.rinsert(bsl::make_pair(key, record));
@@ -1973,6 +2004,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                 QueueKeyInfoMap::iterator iter = queueKeyInfoMap->find(
                     queueKey);
+
                 if (!d_isFSMWorkflow &&
                     QueueOpType::e_ADDITION == queueOpType &&
                     iter == queueKeyInfoMap->end()) {
@@ -2072,8 +2104,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                                         appIdsBlock,
                                                         numAppIds);
 
-                    for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
-                         cit != appIdKeyPairs.cend();
+                    for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
+                         cit != appIdKeyPairs.end();
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             // This appKey is not deleted.  Add it to the list
@@ -2083,7 +2115,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             // StorageMgr because we have recovered all
                             // appId/appKey pairs by that time.
 
-                            qinfo.addAppInfo(cit);
+                            qinfo.addAppInfo(cit->first, cit->second);
 
                             BALL_LOG_INFO << partitionDesc()
                                           << "Recovered appId/appKey pair ['"
@@ -2382,6 +2414,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 deletedGuids.erase(delGuidIter);
                 continue;  // CONTINUE
             }
+
+            // TODO: apply all Apps purge ops, including deleted Apps
 
             // The message needs to be recovered as it is an outstanding one.
             // Check various fields in the message header etc as well as the
@@ -3409,7 +3443,9 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
                                   const mqbu::StorageKey& queueKey,
                                   const mqbu::StorageKey& appKey,
                                   QueueOpType::Enum       queueOpFlag,
-                                  bsls::Types::Uint64     timestamp)
+                                  bsls::Types::Uint64     timestamp,
+                                  unsigned int            startPrimaryLeaseId,
+                                  bsls::Types::Uint64     startSequenceNum)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -3472,6 +3508,8 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
         .setSequenceNumber(++d_sequenceNum)
         .setTimestamp(timestamp);
     qRec->setQueueKey(queueKey).setType(queueOpFlag);
+    qRec->setStartSequenceNumber(startSequenceNum);
+    qRec->setStartPrimaryLeaseId(startPrimaryLeaseId);
 
     if (!appKey.isNull()) {
         qRec->setAppKey(appKey);
@@ -4365,8 +4403,8 @@ int FileStore::writeQueueCreationRecord(
             BALL_LOG_OUTPUT_STREAM << ", queue [" << quri << "]"
                                    << ", with [" << appIdKeyPairs.size()
                                    << "] appId/appKey pairs ";
-            for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
-                 cit != appIdKeyPairs.cend();
+            for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
+                 cit != appIdKeyPairs.end();
                  ++cit) {
                 BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
                                        << cit->second << "]";
@@ -5716,8 +5754,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                       queueUri.asString().length() + queueUriPadding +
                       FileStoreProtocol::k_HASH_LENGTH;
         size_t i = 0;
-        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
-             cit != appIdKeyPairs.cend();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
+             cit != appIdKeyPairs.end();
              ++cit, ++i) {
             BSLS_ASSERT_SAFE(!cit->first.empty());
             BSLS_ASSERT_SAFE(!cit->second.isNull());
@@ -5824,8 +5862,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
 
         // 3) Append AppIds and AppKeys
         size_t i = 0;
-        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
-             cit != appIdKeyPairs.cend();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
+             cit != appIdKeyPairs.end();
              ++cit, ++i) {
             // Append AppIdHeader.
 
@@ -5911,16 +5949,29 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     return rc_SUCCESS;
 }
 
-int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*  handle,
-                                     const mqbu::StorageKey& queueKey,
-                                     const mqbu::StorageKey& appKey,
-                                     bsls::Types::Uint64     timestamp)
+int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
+                                     const mqbu::StorageKey&      queueKey,
+                                     const mqbu::StorageKey&      appKey,
+                                     bsls::Types::Uint64          timestamp,
+                                     const DataStoreRecordHandle& start)
 {
+    unsigned int        startPrimaryLeaseId = 0;
+    bsls::Types::Uint64 startSequenceNum    = 0;
+
+    if (!appKey.isNull()) {
+        BSLS_ASSERT_SAFE(start.isValid());
+
+        startPrimaryLeaseId = start.primaryLeaseId();
+        startSequenceNum    = start.sequenceNum();
+    }
+
     return writeQueueOpRecord(handle,
                               queueKey,
                               appKey,
                               QueueOpType::e_PURGE,
-                              timestamp);
+                              timestamp,
+                              startPrimaryLeaseId,
+                              startSequenceNum);
 }
 
 int FileStore::writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
@@ -5932,7 +5983,9 @@ int FileStore::writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
                               queueKey,
                               appKey,
                               QueueOpType::e_DELETION,
-                              timestamp);
+                              timestamp,
+                              0,
+                              0);
 }
 
 int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,

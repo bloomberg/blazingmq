@@ -41,13 +41,14 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqc_array.h>
+#include <bmqc_orderedhashmap.h>
 #include <bmqp_protocol.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
-
-#include <bmqc_array.h>
+#include <bmqu_printutil.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -295,13 +296,16 @@ struct AppMessage {
 struct DataStreamMessage {
     // VST to track the state associated with a GUID (for all Apps).
 
-    int d_size;
+    unsigned d_numApps;
+    // number of Apps at the time of this object creation
+
+    const int d_size;
     // The message size
 
     bsl::vector<mqbi::AppMessage> d_apps;
     // App states for the message
 
-    DataStreamMessage(int size, bslma::Allocator* allocator);
+    DataStreamMessage(int numApps, int size, bslma::Allocator* allocator);
 
     /// Return reference to the modifiable state of the App corresponding
     /// to the specified 'ordinal.
@@ -395,8 +399,11 @@ class Storage {
   public:
     // PUBLIC TYPES
 
-    /// `AppInfos` is an alias for a map [appId] -> appKey
-    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
+    /// `AppInfos` is an alias for an ordered hashtable [appId] -> appKey
+    /// The chronological order is for deciding if an app is younger than a
+    /// given message (App ordinal < message.refCount).
+
+    typedef bmqc::OrderedHashMap<bsl::string, mqbu::StorageKey> AppInfos;
 
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
@@ -563,7 +570,8 @@ class Storage {
     /// Behavior is undefined unless `appKey` is non-null.  Note that this
     /// method will delete the virtual storage, and any reference to it will
     /// become invalid after this method returns.
-    virtual bool removeVirtualStorage(const mqbu::StorageKey& appKey) = 0;
+    virtual bool removeVirtualStorage(const mqbu::StorageKey& appKey,
+                                      bool                    asPrimary) = 0;
 
     virtual void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID) = 0;
     virtual StorageResult::Enum autoConfirm(const mqbu::StorageKey& appKey,
@@ -725,9 +733,11 @@ inline bool AppMessage::isPushing() const
 // class DataStreamMessage
 // -----------------------
 
-inline DataStreamMessage::DataStreamMessage(int               size,
+inline DataStreamMessage::DataStreamMessage(int               numApps,
+                                            int               size,
                                             bslma::Allocator* allocator)
-: d_size(size)
+: d_numApps(numApps)
+, d_size(size)
 , d_apps(allocator)
 {
     // NOTHING
@@ -918,6 +928,14 @@ inline bool operator!=(const StorageMessageAttributes& lhs,
 }
 
 }  // close package namespace
+
+namespace bmqu {
+
+bsl::ostream&
+operator<<(bsl::ostream&                                 stream,
+           const bmqu::Printer<mqbi::Storage::AppInfos>& printer);
+
+}
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -83,6 +83,10 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 
     d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
+
+    if (isProxy()) {
+        d_virtualStorageCatalog.setDiscontinuousOrdinals();
+    }
 }
 
 InMemoryStorage::~InMemoryStorage()
@@ -170,7 +174,7 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                      mqbi::DataStreamMessage**           out)
 {
     const int msgSize = appData->length();
-
+    unsigned int refCount = attributes->refCount();
     // Proxies are unaware of the number of apps unlike Replicas.
     // The latter can check for duplicates.
     // The former can receive more than one PUSH message for the same GUID for
@@ -202,14 +206,22 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        attributes->arrivalTimepoint());
 
         if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
+            d_virtualStorageCatalog.put(
+                msgGUID,
+                msgSize,
+                d_virtualStorageCatalog.numVirtualStorages(),
+                out);
         }
         else {
             mqbi::DataStreamMessage* dataStreamMessage = 0;
             if (out == 0) {
                 out = &dataStreamMessage;
             }
-            d_virtualStorageCatalog.put(msgGUID, msgSize, out);
+            d_virtualStorageCatalog.put(
+                msgGUID,
+                msgSize,
+                d_virtualStorageCatalog.numVirtualStorages(),
+                out);
 
             // Move auto confirms to the data record
             for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
@@ -246,23 +258,21 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
     ItemsMapIter it = d_items.find(msgGUID);
     if (it != d_items.end()) {
         mqbi::StorageMessageAttributes& existing = it->second.attributes();
-        existing.setRefCount(existing.refCount() +
-                             attributes->refCount());  // Bump up
-
-        if (out) {
-            // Proxy can detect duplicates by inspecting 'DataStreamMessage'.
-            VirtualStorage::DataStreamIterator data =
-                d_virtualStorageCatalog.get(msgGUID);
-            BSLS_ASSERT_SAFE(data != d_virtualStorageCatalog.end());
-            *out = &data->second;
-        }
+        refCount += existing.refCount();
+        existing.setRefCount(refCount);  // Bump up
     }
     else {
         d_items.insert(bsl::make_pair(msgGUID,
                                       Item(appData, options, *attributes)),
                        attributes->arrivalTimepoint());
-        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
     }
+
+    // This overrides  mqbi::DataStreamMessage::d_numApps with 'refCount'
+    // Proxy can detect duplicates by inspecting returned 'DataStreamMessage'.
+    d_virtualStorageCatalog.put(msgGUID,
+                                msgSize,
+                                d_virtualStorageCatalog.numVirtualStorages(),
+                                out);
 
     // We don't verify uniqueness of the insertion because in the case of a
     // proxy, it uses this inMemoryStorage, and when some upstream node
@@ -396,7 +406,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     if (appKey.isNull()) {
         // Clear the 'physical' queue, as well as all virtual storages.
 
-        d_virtualStorageCatalog.removeAll(mqbu::StorageKey::k_NULL_KEY);
+        d_virtualStorageCatalog.removeAll();
         d_items.clear();
         d_capacityMeter.clear();
 
@@ -613,17 +623,24 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-void InMemoryStorage::purge(
+bool InMemoryStorage::purge(
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.
 
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
+
+    return false;
 }
 
 void InMemoryStorage::setPrimary()
 {
     // NOTHING
+}
+
+void InMemoryStorage::calibrate()
+{
+    d_virtualStorageCatalog.calibrate();
 }
 
 // ACCESSORS (for mqbs::ReplicatedStorage)

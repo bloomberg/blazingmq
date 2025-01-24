@@ -106,6 +106,7 @@
 #include <bsl_stdexcept.h>
 #include <bsl_utility.h>
 #include <bslalg_scalarprimitives.h>
+#include <bslalg_typetraithasstliterators.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_usesbslmaallocator.h>
@@ -683,8 +684,7 @@ class OrderedHashMap {
     /// is `true` if a new value was inserted, and `false` if the value was
     /// already present.  Note that this method requires that the (template
     /// parameter) types `KEY` and `VALUE` both be "copy-constructible".
-    template <class SOURCE_TYPE>
-    bsl::pair<iterator, bool> insert(const SOURCE_TYPE& value);
+    bsl::pair<iterator, bool> insert(const VALUE_TYPE& value);
 
     /// Insert the specified `value` into this container at the beginning of
     /// the underlying sequential list if the key (the `first` element) of a
@@ -698,8 +698,7 @@ class OrderedHashMap {
     /// inserted, and `false` if the value was already present.  Note that
     /// this method requires that the (template parameter) types `KEY` and
     /// `VALUE` both be "copy-constructible".
-    template <class SOURCE_TYPE>
-    bsl::pair<iterator, bool> rinsert(const SOURCE_TYPE& value);
+    bsl::pair<iterator, bool> rinsert(const VALUE_TYPE& value);
 
     // void reserve(int numElements);
     // Increase the number of buckets of this set to a quantity such that
@@ -1475,11 +1474,10 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::find(const key_type& key)
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
-template <class SOURCE_TYPE>
 inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
-OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const SOURCE_TYPE& value)
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const VALUE_TYPE& value)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1507,11 +1505,10 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const SOURCE_TYPE& value)
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
-template <class SOURCE_TYPE>
 inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
-OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const SOURCE_TYPE& value)
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const VALUE_TYPE& value)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1629,6 +1626,15 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::get_allocator() const
 }
 
 }  // close package namespace
+
+namespace bslalg {
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+struct HasStlIterators<bmqc::OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE> >
+: bsl::true_type {};
+
+}  // close namespace bslalg
+
 }  // close enterprise namespace
 
 #endif
