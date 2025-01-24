@@ -493,10 +493,11 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// TODO_CSL: This is the current workflow which we should be able to
     /// remove after the new workflow via
     /// ClusterQueueHelper::onQueueAssigned() is stable.
-    void
-    processQueueAssignmentAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
-                                   mqbnet::ClusterNode*                source,
-                                   bool delayed = false) BSLS_KEYWORD_OVERRIDE;
+    void processQueueAssignmentAdvisory(
+        const bmqp_ctrlmsg::ControlMessage& message,
+        mqbnet::ClusterNode*                source,
+        bool                                delayed = false,
+        bool fromLeaderAdvisory = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the queue unAssigned advisory in the specified `message`
     /// received from the specified `source`.
