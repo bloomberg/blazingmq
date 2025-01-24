@@ -1767,8 +1767,7 @@ void ClusterStateManager::processQueueAssignmentRequest(
 void ClusterStateManager::processQueueAssignmentAdvisory(
     BSLA_UNUSED const bmqp_ctrlmsg::ControlMessage& message,
     BSLA_UNUSED mqbnet::ClusterNode* source,
-    BSLA_UNUSED bool                 delayed,
-    BSLA_UNUSED bool                 fromLeaderAdvisory)
+    BSLA_UNUSED bool                 delayed)
 {
     BSLS_ASSERT_SAFE(false &&
                      "This method should only be invoked in non-CSL mode");
