@@ -325,8 +325,7 @@ class ClusterStateManager {
     virtual void
     processQueueAssignmentAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
                                    mqbnet::ClusterNode*                source,
-                                   bool delayed            = false,
-                                   bool fromLeaderAdvisory = false) = 0;
+                                   bool delayed = false) = 0;
 
     /// Process the queue unAssigned advisory in the specified `message`
     /// received from the specified `source`.
