@@ -118,6 +118,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_confirmed(false)
 , d_partiallyConfirmed(false)
 , d_minRecordsPerQueue(0)
+, d_cslSummaryQueuesLimit(0)
 {
     // NOTHING
 }
@@ -234,6 +235,10 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                "and requere either --journal-path "
                "or --journal-file option.\n";
     }
+
+    if (d_cslSummaryQueuesLimit <= 0)
+        stream << "CSL summary queues limit must be positive value greater "
+                  "than zero.\n";
 }
 
 void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
@@ -538,6 +543,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_outstanding(arguments.d_outstanding)
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
+, d_cslSummaryQueuesLimit(arguments.d_cslSummaryQueuesLimit)
 {
     // Determine processing mode: process Journal or CSL file
     if (!arguments.d_cslFile.empty() &&

@@ -203,6 +203,7 @@ SearchResultFactory::createCslSearchResult(const Parameters* params,
             new (*alloc) CslSummaryResult(ostream,
                                           params->d_processCslRecordTypes,
                                           params->d_queueMap,
+                                          params->d_cslSummaryQueuesLimit,
                                           alloc),
             alloc);
     }

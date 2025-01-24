@@ -118,6 +118,8 @@ class CommandLineArguments {
     bool d_partiallyConfirmed;
     /// Min number of records per queue for detailed info to be displayed
     bsls::Types::Int64 d_minRecordsPerQueue;
+    /// Limit number of queues to display in CSL file summary
+    int d_cslSummaryQueuesLimit;
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
@@ -259,6 +261,8 @@ struct Parameters {
     bool d_partiallyConfirmed;
     /// Min number of records per queue for detailed info to be displayed
     bsls::Types::Uint64 d_minRecordsPerQueue;
+    /// Limit number of queues to display in CSL file summary
+    unsigned int d_cslSummaryQueuesLimit;
 
     // CREATORS
     /// Constructor from the specified 'aruments'

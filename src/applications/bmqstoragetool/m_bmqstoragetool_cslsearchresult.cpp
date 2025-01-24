@@ -335,12 +335,14 @@ CslSummaryResult::CslSummaryResult(
     bsl::ostream&                            ostream,
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
     const QueueMap&                          queueMap,
+    unsigned int                             cslSummaryQueuesLimit,
     bslma::Allocator*                        allocator)
 : d_ostream(ostream)
 , d_processCslRecordTypes(processCslRecordTypes)
 , d_recordCount()
 , d_updateChoiceCount(allocator)
 , d_queueMap(queueMap)
+, d_cslSummaryQueuesLimit(cslSummaryQueuesLimit)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -415,7 +417,12 @@ void CslSummaryResult::outputResult() const
     const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
         d_queueMap.queueInfos();
     if (!queueInfos.empty()) {
-        d_ostream << '\n' << queueInfos.size() << " Queues found:" << '\n';
+        size_t queueInfosSize = queueInfos.size();
+        d_ostream << '\n' << queueInfosSize << " Queues found:" << '\n';
+        if (queueInfosSize > d_cslSummaryQueuesLimit) {
+            d_ostream << "Only first " << d_cslSummaryQueuesLimit
+                      << " queues are displayed." << '\n';
+        }
         bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
             queueInfos.cbegin();
         for (; it != queueInfos.cend(); ++it) {

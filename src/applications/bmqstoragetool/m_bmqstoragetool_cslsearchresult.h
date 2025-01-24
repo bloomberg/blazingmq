@@ -325,6 +325,9 @@ class CslSummaryResult : public CslSearchResult {
     UpdateChoiceMap d_updateChoiceCount;
     /// Reference to 'QueueMap' instance.
     const QueueMap& d_queueMap;
+    /// Limit number of queues to display
+    unsigned int d_cslSummaryQueuesLimit;
+
     /// Pointer to allocator that is used inside the class.
     bslma::Allocator* d_allocator_p;
 
@@ -337,6 +340,7 @@ class CslSummaryResult : public CslSearchResult {
         bsl::ostream&                            ostream,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         const QueueMap&                          d_queueMap,
+        unsigned int                             cslSummaryQueuesLimit,
         bslma::Allocator*                        allocator);
 
     // MANIPULATORS

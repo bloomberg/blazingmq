@@ -32,8 +32,8 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [--queue-key <queue key>]*
                         [--timestamp-gt <timestamp greater than>]
                         [--timestamp-lt <timestamp less than>]
-                        [--seqnum-gt <composit sequence number greater than>]
-                        [--seqnum-lt <composit sequence number less than>]
+                        [--seqnum-gt <composite sequence number greater than>]
+                        [--seqnum-lt <composite sequence number less than>]
                         [--offset-gt <offset greater than>]
                         [--offset-lt <offset less than>]
                         [--outstanding]
@@ -42,8 +42,9 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [--details]
                         [--dump-payload]
                         [--dump-limit <dump limit>]
-                        [--min-records-per-queue <threshold>]
                         [--summary]
+                        [--min-records-per-queue <threshold>]
+                        [--summary-queues-limit <queues limit>]                        
                         [-h|help]
 Where:
   -r | --record-type          <record type>
@@ -100,6 +101,8 @@ Where:
        --summary
           summary of all matching messages (number of outstanding messages and
           other statistics)
+       --summary-queues-limit   <queues limit>
+          limit of queues to display in CSL file summary (default: 50)
   -h | --help
           print usage
 ```
@@ -163,6 +166,7 @@ Output summary for CSL file
 Example:
 ```bash
 bmqstoragetool --csl-file=<path> --summary
+bmqstoragetool --csl-file=<path> --summary --summary-queues-limit=100
 ```
 
 Output records from the beginning of CSL file 
