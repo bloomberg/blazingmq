@@ -86,9 +86,9 @@ class ClusterStateManager {
         AfterPartitionPrimaryAssignmentCb;
 
     /// Pair of (appId, appKey)
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey>          AppInfo;
     typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
-    typedef AppInfos::const_iterator                 AppInfosCIter;
+    typedef AppInfos::const_iterator                          AppInfosCIter;
 
     struct QueueAssignmentResult {
         enum Enum {
@@ -336,8 +336,7 @@ class ClusterStateManager {
     virtual void
     processQueueAssignmentAdvisory(const bmqp_ctrlmsg::ControlMessage& message,
                                    mqbnet::ClusterNode*                source,
-                                   bool delayed            = false,
-                                   bool fromLeaderAdvisory = false) = 0;
+                                   bool delayed = false) = 0;
 
     /// Process the queue unAssigned advisory in the specified `message`
     /// received from the specified `source`.
