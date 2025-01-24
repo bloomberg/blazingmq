@@ -49,19 +49,26 @@ namespace BloombergLP {
 
 namespace m_bmqstoragetool {
 
-// ================
-// class Parameters
-// ================
+// ==========================
+// class CommandLineArguments
+// ==========================
 
-struct CommandLineArguments {
+class CommandLineArguments {
+  public:
     // PUBLIC DATA
 
     /// Record types constants
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
     static const char* k_JOURNALOP_TYPE;
+    static const char* k_CSL_SNAPSHOT_TYPE;
+    static const char* k_CSL_UPDATE_TYPE;
+    static const char* k_CSL_COMMIT_TYPE;
+    static const char* k_CSL_ACK_TYPE;
     /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
+    /// List of CSL record types to process (snapshot, update, commit, ack)
+    bsl::vector<bsl::string> d_cslRecordType;
     /// Filter messages by minimum timestamp
     bsls::Types::Int64 d_timestampGt;
     /// Filter messages by maximum timestamp
@@ -82,6 +89,9 @@ struct CommandLineArguments {
     bsl::string d_dataFile;
     /// Path to read CSL files from
     bsl::string d_cslFile;
+    /// If true force to iterate CSL file from the beginning, otherwise iterate
+    /// from the latest snapshot
+    bool d_cslFromBegin;
     /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
     /// Filter messages by record composite sequence numbers
@@ -108,6 +118,8 @@ struct CommandLineArguments {
     bool d_partiallyConfirmed;
     /// Min number of records per queue for detailed info to be displayed
     bsls::Types::Int64 d_minRecordsPerQueue;
+    /// Limit number of queues to display in CSL file summary
+    int d_cslSummaryQueuesLimit;
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
@@ -116,18 +128,46 @@ struct CommandLineArguments {
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
 
+  private:
+    // PRIVATE MANIPULATORS
+
+    void validateJournalModeArgs(bsl::ostream&     stream,
+                                 bslma::Allocator* allocator = 0);
+    // Validate journal mode arguments. Write validation error into the
+    // specified `stream`.
+
+    // PRIVATE ACCESSORS
+    void validateCslModeArgs(bsl::ostream&     stream,
+                             bslma::Allocator* allocator = 0);
+    // Validate CSL mode arguments. Write validation error into the specified
+    // `stream`.
+    bool validateRangeArgs(bsl::ostream&     error,
+                           bslma::Allocator* allocator) const;
+    // Validate range args. Return true if at least one range argument passed,
+    // false otherwise.
+
+  public:
     // CLASS METHODS
     /// Return true if the specified `recordType` is valid, false otherwise.
     /// Error message is written into the specified `stream` if `recordType` is
     /// invalid.
     static bool isValidRecordType(const bsl::string* recordType,
                                   bsl::ostream&      stream);
+    /// Return true if the specified `cslRecordType` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `cslRecordType`
+    /// is invalid.
+    static bool isValidCslRecordType(const bsl::string* cslRecordType,
+                                     bsl::ostream&      stream);
     /// Return true if the specified `fileName` is valid (file exists), false
     /// otherwise. Error message is written into the specified `stream` if
     /// `fileName` is invalid.
     static bool isValidFileName(const bsl::string* fileName,
                                 bsl::ostream&      stream);
 };
+
+// ================
+// struct Parameters
+// ================
 
 struct Parameters {
     // PUBLIC TYPES
@@ -166,24 +206,42 @@ struct Parameters {
         bool d_journalOp;
 
         // CREATORS
-        explicit ProcessRecordTypes(bool enableDefault = true);
+        explicit ProcessRecordTypes();
+    };
+
+    // VST representing CSL record types to process
+    struct ProcessCslRecordTypes {
+        // PUBLIC DATA
+        bool d_snapshot;
+        // Flag to process CSL records of type snapshot
+        bool d_update;
+        // Flag to process CSL records of type d_update
+        bool d_commit;
+        // Flag to process CSL records of type commit
+        bool d_ack;
+        // Flag to process CSL records of type ack
+
+        // CREATORS
+        explicit ProcessCslRecordTypes();
     };
 
     // PUBLIC DATA
-
-    /// Record types to process
+    bool d_cslMode;
+    // Flag to process CSL file instead of Journal one
     ProcessRecordTypes d_processRecordTypes;
-    /// Queue map containing uri to key and key to info mappings
+    // Record types to process
+    ProcessCslRecordTypes d_processCslRecordTypes;
+    // CSL record types to process
     QueueMap d_queueMap;
-    /// Range parameters for filtering
+    // Queue map containing uri to key and key to info mappings
     Range d_range;
-    /// Filter messages by message guids
+    // Range parameters for filtering
     bsl::vector<bsl::string> d_guid;
-    /// Filter messages by message sequence number
+    // Filter messages by message guids
     bsl::vector<CompositeSequenceNumber> d_seqNum;
-    /// Filter messages by message offsets
+    // Filter messages by message sequence number
     bsl::vector<bsls::Types::Int64> d_offset;
-    /// Filter messages by queue keys
+    // Filter messages by message offsets
     bsl::vector<bsl::string> d_queueKey;
     /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;
@@ -203,6 +261,8 @@ struct Parameters {
     bool d_partiallyConfirmed;
     /// Min number of records per queue for detailed info to be displayed
     bsls::Types::Uint64 d_minRecordsPerQueue;
+    /// Limit number of queues to display in CSL file summary
+    unsigned int d_cslSummaryQueuesLimit;
 
     // CREATORS
     /// Constructor from the specified 'aruments'

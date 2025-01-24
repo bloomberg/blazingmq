@@ -49,10 +49,12 @@ class QueueMap {
   private:
     // PRIVATE DATA
 
+    /// Map of queue key -> queue info.
     QueueKeyToInfoMap d_queueKeyToInfoMap;
-    // Map of queue key -> queue info.
+    /// Map of queue uri -> queue key.
     QueueUriToKeyMap d_queueUriToKeyMap;
-    // Map of queue uri -> queue key.
+    /// Allocator used inside the class.
+    bslma::Allocator* d_allocator_p;
 
   public:
     // CREATORS
@@ -79,6 +81,9 @@ class QueueMap {
     /// queueKey_p contains valid data, `false` otherwise.
     bool findKeyByUri(mqbu::StorageKey*  queueKey_p,
                       const bsl::string& uri) const;
+
+    /// Return all queues info
+    bsl::vector<bmqp_ctrlmsg::QueueInfo> queueInfos() const;
 };
 
 }  // close package namespace
