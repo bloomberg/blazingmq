@@ -412,8 +412,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Behavior is undefined unless `appKey` is non-null.  Note that this
     /// method will delete the virtual storage, and any reference to it will
     /// become invalid after this method returns.
-    bool
-    removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    bool removeVirtualStorage(const mqbu::StorageKey& appKey,
+                              bool asPrimary) BSLS_KEYWORD_OVERRIDE;
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
@@ -547,9 +547,13 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    bool purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
+
+    /// Calculate offsets of all Apps (after recovery) in the data stream.
+    /// An App offset is the number of messages older than the App.
+    virtual void calibrate() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual mqbs::ReplicatedStorage)
@@ -674,11 +678,14 @@ inline int InMemoryStorage::addVirtualStorage(bsl::ostream& errorDescription,
 }
 
 inline bool
-InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey)
+InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey, bool)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    return d_virtualStorageCatalog.removeVirtualStorage(appKey);
+    mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.removeVirtualStorage(appKey);
+
+    return mqbi::StorageResult::e_SUCCESS == rc;
 }
 
 // ACCESSORS

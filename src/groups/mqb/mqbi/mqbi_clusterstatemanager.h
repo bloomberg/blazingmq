@@ -37,6 +37,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqc_orderedhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
 
@@ -86,9 +87,9 @@ class ClusterStateManager {
         AfterPartitionPrimaryAssignmentCb;
 
     /// Pair of (appId, appKey)
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
-    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
-    typedef AppInfos::const_iterator                 AppInfosCIter;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey>            AppInfo;
+    typedef bmqc::OrderedHashMap<bsl::string, mqbu::StorageKey> AppInfos;
+    typedef AppInfos::const_iterator                            AppInfosCIter;
 
     struct QueueAssignmentResult {
         enum Enum {

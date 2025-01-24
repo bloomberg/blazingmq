@@ -168,4 +168,29 @@ Storage::~Storage()
 }
 
 }  // close package namespace
+
+bsl::ostream&
+bmqu::operator<<(bsl::ostream&                                 stream,
+                 const bmqu::Printer<mqbi::Storage::AppInfos>& printer)
+{
+    stream << "{";
+
+    typedef mqbi::Storage::AppInfos::const_iterator Iter;
+
+    Iter begin = printer.obj().begin();
+    Iter end   = printer.obj().end();
+    for (Iter iter = begin; iter != end; ++iter) {
+        if (iter != begin) {
+            stream << ", ";
+        }
+
+        stream << bmqu::Printer<bsl::string>(&iter->first) << ":"
+               << bmqu::Printer<mqbu::StorageKey>(&iter->second);
+    }
+
+    stream << "}";
+
+    return stream;
+}
+
 }  // close enterprise namespace

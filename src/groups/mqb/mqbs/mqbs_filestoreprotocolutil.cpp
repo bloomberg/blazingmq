@@ -331,14 +331,12 @@ int FileStoreProtocolUtil::calculateMd5Digest(
 }
 
 void FileStoreProtocolUtil::loadAppInfos(
-    bsl::unordered_map<bsl::string, mqbu::StorageKey>* appIdKeyPairs,
-    const MemoryBlock&                                 appIdsBlock,
-    unsigned int                                       numAppIds)
+    mqbi::Storage::AppInfos* appIdKeyPairs,
+    const MemoryBlock&       appIdsBlock,
+    unsigned int             numAppIds)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appIdKeyPairs);
-
-    appIdKeyPairs->reserve(numAppIds);
 
     // 'appIdsAreaBegin' should point to the beginning of 1st 'AppIdHeader'.
     unsigned int offset = 0;
@@ -351,12 +349,12 @@ void FileStoreProtocolUtil::loadAppInfos(
         const char* appIdBegin = appIdsBlock.base() + offset +
                                  sizeof(AppIdHeader);
 
-        appIdKeyPairs->emplace(
+        appIdKeyPairs->insert(bsl::make_pair(
             bsl::string(appIdBegin,
                         paddedLen - appIdBegin[paddedLen - 1],
                         appIdKeyPairs->get_allocator()),
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                             appIdBegin + paddedLen));
+                             appIdBegin + paddedLen)));
 
         // Move to beginning of next AppIdHeader.
         offset += sizeof(AppIdHeader) + paddedLen +

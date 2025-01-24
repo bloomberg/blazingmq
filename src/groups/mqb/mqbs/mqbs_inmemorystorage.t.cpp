@@ -787,14 +787,14 @@ BMQTST_TEST_F(Test, removeVirtualStorage)
     storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2);
 
     // Verify removal
-    BMQTST_ASSERT(storage.removeVirtualStorage(k_APP_KEY1));
+    BMQTST_ASSERT(storage.removeVirtualStorage(k_APP_KEY1, true));
     BMQTST_ASSERT(!storage.hasVirtualStorage(k_APP_KEY1, &dummyAppId));
     BMQTST_ASSERT_EQ(storage.numVirtualStorages(), 1);
 
-    BMQTST_ASSERT(!storage.removeVirtualStorage(k_APP_KEY3));
+    BMQTST_ASSERT(!storage.removeVirtualStorage(k_APP_KEY3, true));
     BMQTST_ASSERT_EQ(storage.numVirtualStorages(), 1);
 
-    BMQTST_ASSERT(storage.removeVirtualStorage(k_APP_KEY2));
+    BMQTST_ASSERT(storage.removeVirtualStorage(k_APP_KEY2, true));
     BMQTST_ASSERT(!storage.hasVirtualStorage(k_APP_KEY2, &dummyAppId));
     BMQTST_ASSERT_EQ(storage.numVirtualStorages(), 0);
 }

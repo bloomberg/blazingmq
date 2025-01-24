@@ -40,7 +40,8 @@ options:
   -m {all,pull,push}, --mode {all,pull,push}
                         prometheus mode
   --no-docker           don't run Prometheus in docker, assume it is running on localhost
- """
+
+"""
 __test__ = False  # This is not for pytest.
 
 import argparse

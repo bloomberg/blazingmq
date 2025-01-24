@@ -102,7 +102,7 @@ class VirtualStorage {
     // Cumulative count of all messages _removed_ from this App
     // The owner 'VirtualStorageCatalog' keeps track of all messages
 
-    const unsigned int d_ordinal;
+    unsigned int d_ordinal;
     // The ordinal to locate corresponding state in 'DataStreamMessage'
 
   private:
@@ -128,6 +128,7 @@ class VirtualStorage {
                    const bsl::string&      appId,
                    const mqbu::StorageKey& appKey,
                    unsigned int            ordinal,
+                   bsls::Types::Int64      numMessagesSoFar,
                    bslma::Allocator*       allocator);
 
     /// Destructor.
@@ -168,12 +169,19 @@ class VirtualStorage {
     mqbi::StorageResult::Enum
     remove(mqbi::DataStreamMessage* dataStreamMessage);
 
+    bool remove(mqbi::DataStreamMessage* dataStreamMessage,
+                unsigned int             replacingOrdinal);
+
     /// Observe removal of this App from the specified 'dataStreamMessage' by
     /// GC and update bytes and messages counts if needed.
     void onGC(const mqbi::DataStreamMessage& dataStreamMessage);
 
     /// Reset bytes and messages counts as in the case of purging all Apps.
     void resetStats();
+
+    void replaceOrdinal(unsigned int replacingOrdinal);
+
+    void setNumRemoved(bsls::Types::Int64 numRemoved);
 };
 
 // =====================
