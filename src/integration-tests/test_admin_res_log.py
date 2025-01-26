@@ -132,7 +132,8 @@ def test_adminsession_res_log_reconfigure(multi_node: Cluster):
     res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_FANOUT}")
 
     success_count = res.split().count("SUCCESS")
-    assert success_count == num_nodes
+    # TODO Do `assert success_count == num_nodes` when admin command routing is re-enabled
+    assert success_count == 1
 
     assert leader.capture("Send response message", TIMEOUT)
     assert not member1.capture("Send response message", TIMEOUT)
@@ -145,7 +146,8 @@ def test_adminsession_res_log_reconfigure(multi_node: Cluster):
     res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_FANOUT}")
 
     success_count = res.split().count("SUCCESS")
-    assert success_count == num_nodes
+    # TODO Do `assert success_count == num_nodes` when admin command routing is re-enabled
+    assert success_count == 1
 
     assert member1.capture("Send response message", TIMEOUT)
     assert not leader.capture("Send response message", TIMEOUT)

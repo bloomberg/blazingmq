@@ -67,7 +67,10 @@ class TestReconfigureDomains:
             tc.DOMAIN_PRIORITY_SC
         ].definition.parameters.storage.domain_limits.messages = max_num_msgs
         return cluster.reconfigure_domain(
-            tc.DOMAIN_PRIORITY_SC, leader_only=True, succeed=True
+            # TODO: Set `leader_only=True` when admin command routing is re-enabled
+            tc.DOMAIN_PRIORITY_SC,
+            leader_only=False,
+            succeed=True,
         )
 
     # Verify that reconfiguring domain message limits works as expected.
