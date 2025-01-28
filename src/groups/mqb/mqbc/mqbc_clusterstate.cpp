@@ -47,27 +47,24 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.printAttribute("queueKey", key());
     printer.printAttribute("partitionId", partitionId());
     printer.printAttribute("appIdInfos", appInfos());
-    ClusterStateQueueInfo::printState(stream, d_state, level, spacesPerLevel);
+    printer.printAttribute("stateOfAssignment", state());
     printer.end();
 
     return stream;
 }
 
 bsl::ostream&
-ClusterStateQueueInfo::printState(bsl::ostream&                stream,
-                                  ClusterStateQueueInfo::State value,
-                                  int                          level,
-                                  int                          spacesPerLevel)
+ClusterStateQueueInfo::State::print(bsl::ostream&                      stream,
+                                    ClusterStateQueueInfo::State::Enum value,
+                                    int                                level,
+                                    int spacesPerLevel)
 {
     if (stream.bad()) {
         return stream;  // RETURN
     }
 
-    bdlb::Print::indent(stream, level + 1, spacesPerLevel);
-    stream << "stateOfAssignment = ";
-
     bdlb::Print::indent(stream, level, spacesPerLevel);
-    stream << ClusterStateQueueInfo::toAscii(value);
+    stream << ClusterStateQueueInfo::State::toAscii(value);
 
     if (spacesPerLevel >= 0) {
         stream << '\n';
@@ -76,7 +73,8 @@ ClusterStateQueueInfo::printState(bsl::ostream&                stream,
     return stream;
 }
 
-const char* ClusterStateQueueInfo::toAscii(ClusterStateQueueInfo::State value)
+const char*
+ClusterStateQueueInfo::State::toAscii(ClusterStateQueueInfo::State::Enum value)
 {
 #define CASE(X)                                                               \
     case k_##X: return #X;
@@ -92,14 +90,16 @@ const char* ClusterStateQueueInfo::toAscii(ClusterStateQueueInfo::State value)
 #undef CASE
 }
 
-bool ClusterStateQueueInfo::fromAscii(ClusterStateQueueInfo::State* out,
-                                      const bslstl::StringRef&      str)
+bool ClusterStateQueueInfo::State::fromAscii(
+    ClusterStateQueueInfo::State::Enum* out,
+    const bslstl::StringRef&            str)
 {
 #define CHECKVALUE(M)                                                         \
-    if (bdlb::String::areEqualCaseless(toAscii(ClusterStateQueueInfo::k_##M), \
-                                       str.data(),                            \
-                                       static_cast<int>(str.length()))) {     \
-        *out = ClusterStateQueueInfo::k_##M;                                  \
+    if (bdlb::String::areEqualCaseless(                                       \
+            toAscii(ClusterStateQueueInfo::State::k_##M),                     \
+            str.data(),                                                       \
+            static_cast<int>(str.length()))) {                                \
+        *out = ClusterStateQueueInfo::State::k_##M;                           \
         return true;                                                          \
     }
 
@@ -413,7 +413,8 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
         queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
     }
     else {
-        if (queueIt->second->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+        if (queueIt->second->state() ==
+            ClusterStateQueueInfo::State::k_ASSIGNED) {
             // See 'ClusterStateManager::processQueueAssignmentAdvisory' which
             // insists on re-assigning
             isNewAssignment = false;
@@ -425,7 +426,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
     }
 
     // Set the queue as assigned
-    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNED);
+    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
 
     updatePartitionQueueMapped(partitionId, 1);
 

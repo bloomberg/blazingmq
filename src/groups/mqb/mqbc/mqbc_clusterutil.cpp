@@ -344,7 +344,8 @@ void ClusterUtil::setPendingUnassignment(ClusterState*    clusterState,
     if (iter != clusterState->domainStates().cend()) {
         UriToQueueInfoMapIter qiter = iter->second->queuesInfo().find(uri);
         if (qiter != iter->second->queuesInfo().cend()) {
-            qiter->second->setState(ClusterStateQueueInfo::k_UNASSIGNING);
+            qiter->second->setState(
+                ClusterStateQueueInfo::State::k_UNASSIGNING);
         }
     }
 }
@@ -853,7 +854,8 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             k_ASSIGNMENT_WHILE_UNAVAILABLE;  // RETURN
     }
 
-    ClusterStateQueueInfo::State previousState = ClusterStateQueueInfo::k_NONE;
+    ClusterStateQueueInfo::State::Enum previousState =
+        ClusterStateQueueInfo::State::k_NONE;
 
     ClusterState::DomainStates& domainStates = clusterState->domainStates();
     DomainStatesIter domIt = domainStates.find(uri.qualifiedDomain());
@@ -882,13 +884,13 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         previousState = queueIt->second->state();
     }
 
-    if (previousState == ClusterStateQueueInfo::k_ASSIGNING) {
+    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
         BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                       << uri << "' is already pending.";
         return QueueAssignmentResult::k_ASSIGNMENT_OK;
     }
 
-    if (previousState == ClusterStateQueueInfo::k_ASSIGNED) {
+    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
         BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                       << uri << "' is already done.";
         return QueueAssignmentResult::k_ASSIGNMENT_OK;
@@ -966,12 +968,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     }
 
     // Set the queue as assigning (no longer pending unassignment)
-    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNING);
+    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNING);
 
     BALL_LOG_INFO << "Cluster [" << cluster->description()
                   << "]: Transition: " << previousState << " -> "
-                  << ClusterStateQueueInfo::k_ASSIGNING << " for [" << uri
-                  << "].";
+                  << ClusterStateQueueInfo::State::k_ASSIGNING << " for ["
+                  << uri << "].";
 
     // Populate 'queueAssignmentAdvisory'
     bdlma::LocalSequentialAllocator<1024>  localAllocator(allocator);
@@ -2169,7 +2171,8 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
-            if (qCit->second->state() != ClusterStateQueueInfo::k_ASSIGNED) {
+            if (qCit->second->state() !=
+                ClusterStateQueueInfo::State::k_ASSIGNED) {
                 continue;  // CONTINUE
             }
 
