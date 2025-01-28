@@ -1417,10 +1417,20 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
     BSLS_ASSERT_SAFE(primarySyncCtx.primarySyncInProgress());
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << "For Partition [" << partitionId
+                  << "], primary sync returned with status: " << status
+                  << ".  Resetting primary sync peer from "
+                  << (primarySyncCtx.syncPeer()
+                          ? primarySyncCtx.syncPeer()->nodeDescription()
+                          : "** null **")
+                  << " to ** null **.";
+
     d_clusterData_p->scheduler().cancelEventAndWait(
         &primarySyncCtx.primarySyncStatusEventHandle());
 
     primarySyncCtx.partitionPrimarySyncCb()(partitionId, status);
+    primarySyncCtx.setPrimarySyncPeer(0);
 
     if (primarySyncCtx.fileTransferInfo().areFilesMapped()) {
         // Don't clear the 'primarySyncCtx' at this time because files are
