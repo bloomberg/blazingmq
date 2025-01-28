@@ -52,14 +52,17 @@ maintained in separate repositories.
 
 ## Menu
 
-- [Documentation](#documentation)
-- [Quick Start](#quick-start)
-- [Building](#building)
-- [Installation](#installation)
-- [Contributions](#contributions)
-- [License](#license)
-- [Code of Conduct](#code-of-conduct)
-- [Security Vulnerability Reporting](#security-vulnerability-reporting)
+- [BlazingMQ - A Modern, High-Performance Message Queue](#blazingmq---a-modern-high-performance-message-queue)
+  - [Menu](#menu)
+  - [Documentation](#documentation)
+  - [Quick Start](#quick-start)
+  - [Building](#building)
+    - [With vcpkg](#with-vcpkg)
+  - [Installation](#installation)
+  - [Contributions](#contributions)
+  - [License](#license)
+  - [Code of Conduct](#code-of-conduct)
+  - [Security Vulnerability Reporting](#security-vulnerability-reporting)
 
 
 ## Documentation
@@ -85,12 +88,37 @@ BlazingMQ and see them in action.
 [bin/build-ubuntu.sh](bin/build-ubuntu.sh) and
 [bin/build-darwin.sh](bin/build-darwin.sh) build BlazingMQ and its dependencies,
 respectively, on Ubuntu 22.04.2 LTS and Darwin 22.6.0. They can serve as a basis
-to build BlazingMQ on other systems.  
-  
+to build BlazingMQ on other systems.
+
 To build BlazingMQ with plugins, pass '--plugins' argument with desired plugin names to the build script, e.g.
 ```bash
 bin/build-ubuntu.sh --plugins plugin-1-name,plugin-2-name
 ```
+
+To build in a pristine Ubuntu 22.04 container:
+
+Create a container and run a shell:
+
+```shell
+docker run --rm -it ubuntu:22.04 bash
+```
+
+At the command prompt:
+
+```shell
+apt update
+apt install -y git g++ python3 make openssl libssl-dev ninja-build \
+    flex bison google-mock libgmock-dev cmake-extras libgtest-dev \
+    zlib1g-dev libbenchmark-dev
+git clone https://github.com/Kitware/CMake.git
+(cd CMake ; ./bootstrap && make && make install)
+git clone https://github.com/bloomberg/blazingmq.git
+cd blazingmq/
+bin/build-ubuntu.sh
+```
+
+Note that building software as root is not generally recommended; this is
+provided as the _minimal_ procedure to build in a _pristine_ container.
 
 ### With vcpkg
 
