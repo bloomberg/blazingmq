@@ -470,7 +470,7 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
 
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << "PartitionId [" << partitionId() << "] failed to write "
+                << "Partition [" << partitionId() << "] failed to write "
                 << "DELETION record for GUID: " << guid << ", for queue '"
                 << d_queueUri << "', queueKey '" << d_queueKey
                 << "' while attempting to purge the message, rc: " << rc
