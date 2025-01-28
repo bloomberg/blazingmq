@@ -24,21 +24,17 @@ BSLS_IDENT_PRAGMA_ONCE
 
 #include <ball_log.h>
 
-/// PURPOSE: This component provdies a class to validate TcpInterfaceConfig
-/// settings in the broker config.
+/// @file mqbcfg_tcpinterfaceconfigvalidator.h
 ///
-/// CLASSES:
-///  mqbcfg::TcpInterfaceConfigValidator: A predicate object that validates the
-///  TCP interfaces in the broker config
-///
-/// DESCRIPTION:
+/// @brief This component provdies a class to validate `TcpInterfaceConfig`
+///        settings in the broker config.
 
 namespace BloombergLP {
 namespace mqbcfg {
 
-/// @brief This class is a functor that validates the
-/// `appConfig/networkInterfaces/tcpInterface/listeners` property of the broker
-/// config.
+/// This class is a predicate object that validates the
+/// `appConfig`/`networkInterfaces`/`tcpInterface`/`listeners` property of the
+/// broker config.
 class TcpInterfaceConfigValidator {
   private:
     // PRIVATE STATIC FUNCTIONS
@@ -50,6 +46,7 @@ class TcpInterfaceConfigValidator {
 
   public:
     // TYPES
+
     /// Codes to indicate the reason for a validation failure.
     enum ErrorCode {
         /// Indicates a config is valid. Guaranteed to equal zero.
@@ -64,7 +61,7 @@ class TcpInterfaceConfigValidator {
 
     // ACCESSORS
 
-    /// @brief Validate the TCP interface configuration.
+    /// Validate the TCP interface configuration.
     ///
     /// The TCP interface configuration is invalid unless:
     /// 1. The names of each network interface is unique
