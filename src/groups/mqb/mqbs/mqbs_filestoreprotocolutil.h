@@ -28,8 +28,8 @@
 // file store protocol, in the 'mqbs::FileStoreProtocolUtil' namespace.
 
 // MQB
-
 #include <mqbconfm_messages.h>
+#include <mqbi_storage.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbu_storagekey.h>
@@ -108,10 +108,9 @@ struct FileStoreProtocolUtil {
                                   const bmqu::BlobPosition& startPos,
                                   unsigned int              length);
 
-    static void loadAppInfos(
-        bsl::unordered_map<bsl::string, mqbu::StorageKey>* appIdKeyPairs,
-        const MemoryBlock&                                 appIdsBlock,
-        unsigned int                                       numAppIds);
+    static void loadAppInfos(mqbi::Storage::AppInfos* appIdKeyPairs,
+                             const MemoryBlock&       appIdsBlock,
+                             unsigned int             numAppIds);
 };
 
 }  // close package namespace

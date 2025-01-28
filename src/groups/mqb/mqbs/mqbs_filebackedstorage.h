@@ -226,6 +226,15 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Clear the state created by 'selectForAutoConfirming'.
     void clearSelection();
 
+    mqbi::StorageResult::Enum writeAppPurgeRecord(
+        bool                                             alsoDelete,
+        const mqbu::StorageKey&                          appKey,
+        const VirtualStorageCatalog::DataStreamIterator& first);
+    mqbi::StorageResult::Enum writeQueuePurgeRecord();
+    mqbi::StorageResult::Enum
+    writePurgeRecordImpl(bool                        alsoDelete,
+                         const mqbu::StorageKey&     appKey,
+                         const DataStoreRecordHandle start);
     // PRIVATE ACCESSORS
 
     /// Callback function called by `d_capacityMeter` to log appllications
@@ -509,8 +518,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Behavior is undefined unless `appKey` is non-null.  Note that this
     /// method will delete the virtual storage, and any reference to it will
     /// become invalid after this method returns.
-    bool
-    removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    bool removeVirtualStorage(const mqbu::StorageKey& appKey,
+                              bool asPrimary) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS (for mqbs::ReplicatedStorage)
     void processMessageRecord(const bmqt::MessageGUID&     guid,
@@ -531,7 +540,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    bool purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
@@ -546,6 +555,10 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Auto-confirmed Apps do not PUSH the message.
 
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
+
+    /// Calculate offsets of all Apps (after recovery) in the data stream.
+    /// An App offset is the number of messages older than the App.
+    virtual void calibrate() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS (for mqbs::ReplicatedStorage)
     int partitionId() const BSLS_KEYWORD_OVERRIDE;
@@ -609,14 +622,6 @@ inline int FileBackedStorage::addVirtualStorage(bsl::ostream& errorDescription,
     return d_virtualStorageCatalog.addVirtualStorage(errorDescription,
                                                      appId,
                                                      appKey);
-}
-
-inline bool
-FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey)
-{
-    BSLS_ASSERT_SAFE(!appKey.isNull());
-
-    return d_virtualStorageCatalog.removeVirtualStorage(appKey);
 }
 
 // ACCESSORS

@@ -445,6 +445,8 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
         mqbs::QueueOpType::e_ADDITION == rec.type()) {
         fields.push_back("QLIST OffsetWords");
     }
+    fields.push_back("StartPrimaryLeaseId");
+    fields.push_back("StartSequenceNumber");
 
     bmqu::MemOutStream queueKeyStr, appKeyStr;
     queueKeyStr << rec.queueKey();
@@ -475,6 +477,7 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
         mqbs::QueueOpType::e_ADDITION == rec.type()) {
         printer << rec.queueUriRecordOffsetWords();
     }
+    printer << rec.startPrimaryLeaseId() << rec.startSequenceNumber();
 
     stream << "\n";
 }

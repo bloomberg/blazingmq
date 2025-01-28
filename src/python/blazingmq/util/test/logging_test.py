@@ -13,8 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test suite for blazingmq.util.logging.
-"""
+"""Test suite for blazingmq.util.logging."""
 
 from logging import DEBUG, INFO, getLogger
 from unittest.mock import patch

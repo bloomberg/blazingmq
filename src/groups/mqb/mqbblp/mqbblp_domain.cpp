@@ -246,7 +246,7 @@ void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
     }
     bsl::vector<bsl::string>& authorizedAppIds = queueMode.fanout().appIDs();
 
-    for (AppInfosCIter cit = addedAppIds.cbegin(); cit != addedAppIds.cend();
+    for (AppInfosCIter cit = addedAppIds.begin(); cit != addedAppIds.end();
          ++cit) {
         if (bsl::find(authorizedAppIds.begin(),
                       authorizedAppIds.end(),
@@ -260,8 +260,7 @@ void Domain::updateAuthorizedAppIds(const AppInfos& addedAppIds,
         authorizedAppIds.push_back(cit->first);
     }
 
-    for (AppInfosCIter cit = removedAppIds.cbegin();
-         cit != removedAppIds.cend();
+    for (AppInfosCIter cit = removedAppIds.begin(); cit != removedAppIds.end();
          ++cit) {
         const bsl::vector<bsl::string>::const_iterator it = bsl::find(
             authorizedAppIds.begin(),
