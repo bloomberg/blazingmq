@@ -17,20 +17,19 @@
 #ifndef INCLUDED_MQBC_CLUSTERUTIL
 #define INCLUDED_MQBC_CLUSTERUTIL
 
-//@PURPOSE: Provide generic utilities for a cluster.
-//
-//@CLASSES:
-//  mqbc::ClusterUtil: Generic utilities for a cluster.
-//
-//@DESCRIPTION: 'mqbc::ClusterUtil' provides generic utilities for a cluster.
-//
-/// Thread Safety
-///-------------
+/// @file mqbc_clusterutil.h
+///
+/// @brief Provide generic utilities for a cluster.
+///
+/// @bbref{mqbc::ClusterUtil} provides generic utilities for a cluster.
+///
+/// Thread Safety                                    {#mqbc_clusterutil_thread}
+/// =============
+///
 /// This component is designed to be executed only by the cluster *DISPATCHER*
 /// thread.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_clusterstateledger.h>
@@ -104,7 +103,7 @@ struct ClusterUtil {
     typedef mqbi::ClusterStateManager::QueueAssignmentResult
         QueueAssignmentResult;
 
-    /// Map of NodeSession -> number of new partitions to assign to it
+    /// Map of `NodeSession` -> number of new partitions to assign to it
     typedef bsl::unordered_map<ClusterNodeSession*, unsigned int>
                                                 NumNewPartitionsMap;
     typedef NumNewPartitionsMap::const_iterator NumNewPartitionsMapCIter;
@@ -357,7 +356,7 @@ struct ClusterUtil {
     /// THREAD: This method is invoked in the associated cluster's
     /// dispatcher thread.
     ///
-    /// TBD: This is mostly temporary, used during the integrating of CSL.
+    /// @todo This is mostly temporary, used during the integrating of CSL.
     static void validateClusterStateLedger(mqbi::Cluster*            cluster,
                                            const ClusterStateLedger& ledger,
                                            const ClusterState& clusterState,
@@ -397,7 +396,6 @@ struct ClusterUtil {
     /// `ledger`, using the specified `clusterData`.  Return 0 on success,
     /// and a non-zero error code on failure.  Note that this involves
     /// iteration over the entire ledger which can be an expensive operation.
-    /// static
     static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                const ClusterStateLedger&            ledger,
                                const ClusterData& clusterData);

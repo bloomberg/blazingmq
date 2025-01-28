@@ -17,34 +17,34 @@
 #ifndef INCLUDED_MQBC_INCORECLUSTERSTATELEDGER
 #define INCLUDED_MQBC_INCORECLUSTERSTATELEDGER
 
-//@PURPOSE: Provide concrete impl. of 'mqbc::ClusterStateLedger' interface
-//
-//@CLASSES:
-//  mqbc::IncoreClusterStateLedger: Replicated log of cluster's state
-//
-//@DESCRIPTION: The 'mqbc::IncoreClusterStateLedger' class is a concrete
-// implementation of the 'mqbc::ClusterStateLedger' base protocol to maintain a
-// replicated log of cluster's state.  The ledger is written to only upon
-// notification from the leader node, and the leader broadcasts advisories
-// which followers apply to their ledger and its in-memory representation.
-// Leader will apply update to self's ledger, broadcast it asynchronously to
-// cluster nodes, and also advertise the update to cluster state's observers
-// when appropriate consistency level has been achieved.  Note that leader
-// advisories are acknowledged individually by follower nodes and committed
-// individually by the leader (as opposed to in batches or chunks).  The
-// desired consistency level (eventual vs. strong) is configured by the user.
-// This component is in-core because cluster state is persisted, replicated and
-// maintained by BlazingMQ cluster nodes themselves instead of being offloaded
-// to an external meta data server (e.g., ZooKeeper).
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::IncoreClusterStateLedger' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless explicitly documented in a method's contract.
+/// @file mqbc_incoreclusterstateledger.h
+///
+/// @brief Provide a concrete implementation of
+///        @bbref{mqbc::ClusterStateLedger}.
+///
+/// The @bbref{mqbc::IncoreClusterStateLedger} class is a concrete
+/// implementation of the @bbref{mqbc::ClusterStateLedger} base protocol to
+/// maintain a replicated log of cluster's state.  The ledger is written to
+/// only upon notification from the leader node, and the leader broadcasts
+/// advisories which followers apply to their ledger and its in-memory
+/// representation.  Leader will apply update to self's ledger, broadcast it
+/// asynchronously to cluster nodes, and also advertise the update to cluster
+/// state's observers when appropriate consistency level has been achieved.
+/// Note that leader advisories are acknowledged individually by follower nodes
+/// and committed individually by the leader (as opposed to in batches or
+/// chunks).  The desired consistency level (eventual vs. strong) is configured
+/// by the user.  This component is in-core because cluster state is persisted,
+/// replicated and maintained by BlazingMQ cluster nodes themselves instead of
+/// being offloaded to an external meta data server (e.g., ZooKeeper).
+///
+/// Thread Safety                       {#mqbc_incoreclusterstateledger_thread}
+/// =============
+///
+/// The @bbref{mqbc::IncoreClusterStateLedger} object is not thread safe and
+/// should always be manipulated from the associated cluster's dispatcher
+/// thread, unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbc_clusterstateledger.h>
@@ -55,9 +55,8 @@
 #include <mqbsi_ledger.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqc_orderedhashmap.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqu_blob.h>
 
 // BDE
@@ -84,20 +83,18 @@ namespace mqbc {
 /// Struct holding a cluster message and its associated state in the cluster
 /// state ledger (record id, number of acknowledgements received, etc.).
 struct IncoreClusterStateLedger_ClusterMessageInfo {
+    /// Cluster message, one of:
+    ///   - `PartitionPrimaryAdvisory`,
+    ///   - `QueueAssignmentAdvisory`,
+    ///   - `LeaderAdvisory`,
+    ///   - `QueueUnassignedAdvisory`.
     bmqp_ctrlmsg::ClusterMessage d_clusterMessage;
-    // Cluster message, one of:
-    // o 'PartitionPrimaryAdvisory',
-    // o 'QueueAssignmentAdvisory',
-    // o 'LeaderAdvisory',
-    // o 'QueueUnassignedAdvisory'
 
+    // Record id stored in the ledger and associated with the `ClusterMessage`.
     mqbsi::LedgerRecordId d_recordId;
-    // Record id stored in the ledger and
-    // associated with the 'ClusterMessage'
 
+    // Number of ACKs received for this `ClusterMessage`.
     int d_ackCount;
-    // Number of ACKs received for this
-    // ClusterMessage
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(IncoreClusterStateLedger_ClusterMessageInfo,
@@ -118,14 +115,27 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
 };
 
 /// Provide a concrete in-core implementation of the base protocol
-/// `mqbc::ClusterStateLedger` to maintain a replicated log of cluster's
+/// @bbref{mqbc::ClusterStateLedger} to maintain a replicated log of cluster's
 /// state.  A concrete implementation can be configured with the desired
 /// consistency level.  A leader node will apply update to self's ledger,
-/// broadcast it asynchronously, and advertise when the configured
-/// consistency level has been achieved.  This component is in-core because
-/// cluster state is persisted, replicated, and maintained by BlazingMQ
-/// cluster nodes themselves instead of being offloaded to an external meta
-/// data (e.g., ZooKeeper).
+/// broadcast it asynchronously, and advertise when the configured consistency
+/// level has been achieved.  This component is in-core because cluster state
+/// is persisted, replicated, and maintained by BlazingMQ cluster nodes
+/// themselves instead of being offloaded to an external meta data (e.g.,
+/// ZooKeeper).
+///
+/// @todo Declare these methods once the parameter object types have been
+/// defined in @bbref{mqbc::ClusterState}.
+/// ```
+/// virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
+/// virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
+/// virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
+/// virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
+/// ```
+///
+/// @todo Apply the specified message to self and replicate if self is leader.
+///
+/// @todo Notify via `commitCb` when consistency level has been achieved.
 class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
   public:
     // TYPES
@@ -142,7 +152,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Map from a `LeaderMessageSequence` to cluster message and its
     /// associated information.
     ///
-    /// sequenceNumber -> {clusterMessage, recordId, ackCount}
+    /// `sequenceNumber -> {clusterMessage, recordId, ackCount}`
     typedef bmqc::OrderedHashMap<bmqp_ctrlmsg::LeaderMessageSequence,
                                  ClusterMessageInfo>
                                     AdvisoriesMap;
@@ -150,49 +160,45 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
   private:
     // DATA
+
+    /// Allocator used to supply memory.
     bslma::Allocator* d_allocator_p;
-    // Allocator used to supply memory
 
+    /// Flag to indicate open/close status of this object.
     bool d_isOpen;
-    // Flag to indicate open/close status
-    // of this object
 
-    /// Pool of shared pointers to blobs
+    /// Pool of shared pointers to blobs.
     BlobSpPool* d_blobSpPool_p;
 
+    // Brief description for logging.
     bsl::string d_description;
-    // Brief description for logging
 
+    /// Callback invoked when the status of a commit operation becomes
+    /// available.
     CommitCb d_commitCb;
-    // Callback invoked when the status of
-    // a commit operation becomes
-    // available.
 
+    /// Cluster's transient state.
     ClusterData* d_clusterData_p;
-    // Cluster's transient state
 
+    /// Cluster's state.
     const ClusterState* d_clusterState_p;
-    // Cluster's state
 
+    /// Desired consistency level (eventual vs. strong), configured by the
+    /// user.
     ClusterStateLedgerConsistency::Enum d_consistencyLevel;
-    // desired consistency level (eventual
-    // vs. strong), configured by the user.
 
+    /// Number of nodes required to achieve consistency level.
     int d_ackQuorum;
-    // Number of nodes required to achieve
-    // consistency level.
 
+    /// Ledger configuration.
     mqbsi::LedgerConfig d_ledgerConfig;
-    // Ledger configuration
 
+    /// Ledger owned by this object.
     bslma::ManagedPtr<mqbsi::Ledger> d_ledger_mp;
-    // Ledger owned by this object
 
+    /// Map of uncommitted (but not canceled) advisories and associated record
+    /// id from leader message sequence number.
     AdvisoriesMap d_uncommittedAdvisories;
-    // Map of uncommitted (but not
-    // canceled) advisories and associated
-    // record id from leader message
-    // sequence number.
 
   private:
     // NOT IMPLEMENTED
@@ -280,10 +286,10 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 
     // CREATORS
 
-    /// Create a new `mqbc::IncoreClusterStateLedger` with the specified
+    /// Create a new @bbref{mqbc::IncoreClusterStateLedger} with the specified
     /// `clusterDefinition`, `consistencyLevel`, `clusterData` and
-    /// `clusterState`, and using the specified `bufferFactory` and
-    /// `allocator` to supply memory.
+    /// `clusterState`, and using the specified `bufferFactory` and `allocator`
+    /// to supply memory.
     IncoreClusterStateLedger(
         const mqbcfg::ClusterDefinition&    clusterDefinition,
         ClusterStateLedgerConsistency::Enum consistencyLevel,
@@ -326,15 +332,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
     int close() BSLS_KEYWORD_OVERRIDE;
-
-    // TODO: Declare these methods once the parameter object types have been
-    //       defined in 'mqbc::ClusterState'.
-    // virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
-    // virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
-    // virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
-    // virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
-    // Apply the specified message to self and replicate if self is leader.
-    // Notify via 'commitCb' when consistency level has been achieved.
 
     int apply(const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
