@@ -341,7 +341,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
              ++citer) {
             const mqbc::ClusterState::QueueInfoSp& infoSp = citer->second;
 
-            if (infoSp->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+            if (infoSp->state() == ClusterStateQueueInfo::State::k_ASSIGNED) {
                 bmqp_ctrlmsg::QueueInfo queueInfo;
                 infoSp->key().loadBinary(&queueInfo.key());
                 queueInfo.uri()         = infoSp->uri().asString();
