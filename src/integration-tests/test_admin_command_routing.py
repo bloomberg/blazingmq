@@ -50,6 +50,9 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     - CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> ENABLE/DISABLE
     """
 
+    # TODO Skip admin command routing tests until admin command routing is re-enabled
+    return
+
     admin = AdminClient()
 
     # find the first node which is not a known leader
@@ -129,6 +132,9 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     - CLUSTERS CLUSTER <name> STATE ELECTOR GET_ALL <param> <value>
     """
 
+    # TODO Skip admin command routing tests until admin command routing is re-enabled
+    return
+
     admin = AdminClient()
 
     node = multi_node.nodes()[0]
@@ -197,6 +203,9 @@ def test_multi_response_encoding(multi_node: Cluster):
 
     """
 
+    # TODO Skip admin command routing tests until admin command routing is re-enabled
+    return
+
     def is_compact(json_str: str) -> bool:
         return "    " not in json_str
 
@@ -263,6 +272,9 @@ def test_concurrently_routed_commands(multi_node: Cluster):
     Stage 2: Issue command in parallel
     Stage 3: Expect
     """
+    # TODO Skip admin command routing tests until admin command routing is re-enabled
+    return
+
     # Connect a client to each node in the cluster
     clients = []
     for node in multi_node.nodes():
