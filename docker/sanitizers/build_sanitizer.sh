@@ -123,7 +123,7 @@ checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
 
 # Download bde-tools, bde and ntf-core sources
 cd "${DIR_EXTERNAL}"
-"${DIR_ROOT}"/docker/build_deps.sh "only-download"
+"${DIR_ROOT}"/docker/build_deps.sh "--only-download"
 cd -
 
 # Build libc++ with required instrumentation

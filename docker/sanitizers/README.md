@@ -1,5 +1,5 @@
 # Purpose
-This folder contains scripts to run BlazingMQ and it dependencies under sanitizer (asan, msan, tsan and ubsan) in Docker container.
+This folder contains scripts to run BlazingMQ and its dependencies under sanitizer (asan, msan, tsan and ubsan) in Docker container.
 
 Usually sanitizers check is done on CI, but using Docker it is possible to run sanitizers check in both CI and local environment.
 

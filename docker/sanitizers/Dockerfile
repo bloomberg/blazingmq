@@ -17,8 +17,6 @@ COPY src src
 COPY CMakeLists.txt ./
 
 # Build with sanitizer instrumentation
-RUN chmod +x docker/build_deps.sh
-RUN chmod +x docker/sanitizers/build_sanitizer.sh
 RUN docker/sanitizers/build_sanitizer.sh ${SANITIZER_NAME}
 
 # Run unit tests

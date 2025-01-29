@@ -1,8 +1,10 @@
 name: Sanitize
 
 on:
-  pull_request_review:
-    types: [submitted]
+  # pull_request_review:
+  #   types: [submitted]
+  branches:
+    - sanitizers-in-docker
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -16,12 +18,13 @@ jobs:
         mode: ["asan", "msan", "tsan", "ubsan"]
       fail-fast: false
     runs-on: ubuntu-24.04
-    if: github.event.review.state == 'APPROVED'
+    # if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
-      - name : Strip ubuntu-24.04 to avoid space quota exceeding
+      - name : Purge runner
+      # Strip the runner to avoid space quota exceeding
         run: |
-          sudo apt-get purge \
+          sudo apt-get purge -y \
           azure-cli microsoft-edge-stable google-cloud-cli \
           google-chrome-stable temurin-21-jdk temurin-17-jdk \
           temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \

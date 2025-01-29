@@ -2,16 +2,16 @@
 
 # This script downloads, builds, and installs the required build dependencies of BMQ
 # from github.com/bloomberg. Software packages are installed to the /opt/bb prefix.
-# If the optional argument 'only-download' is provided, the script will only download
-# dependencies, build and install steps are skipped.
+# If the optional argument '--only-download' is provided, the script will only download
+# dependencies (build and install steps are skipped).
 
 set -euxo pipefail
 
 if [ $# == 1 ]; then
-  if [[ $1 == "only-download" ]]; then
+  if [[ $1 == "--only-download" ]]; then
     DO_BUILD=false
   else
-     echo "Unexpected optional argument, only 'only-download' is supported"
+     echo "Unexpected optional argument, only '--only-download' is supported"
      exit 1
   fi
 else
