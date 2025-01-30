@@ -86,9 +86,9 @@ class ClusterStateManager {
         AfterPartitionPrimaryAssignmentCb;
 
     /// Pair of (appId, appKey)
-    typedef bsl::pair<bsl::string, mqbu::StorageKey> AppInfo;
+    typedef bsl::pair<bsl::string, mqbu::StorageKey>          AppInfo;
     typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
-    typedef AppInfos::const_iterator                 AppInfosCIter;
+    typedef AppInfos::const_iterator                          AppInfosCIter;
 
     struct QueueAssignmentResult {
         enum Enum {
