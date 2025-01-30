@@ -1770,7 +1770,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
     // TBD: may need to review the order of invoking these routines.
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << " PartitionId [" << primaryAdv.partitionId()
+                  << " Partition [" << primaryAdv.partitionId()
                   << "]: received primary status advisory: " << primaryAdv
                   << ", from: " << source->nodeDescription();
 
