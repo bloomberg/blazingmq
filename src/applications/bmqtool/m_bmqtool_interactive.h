@@ -109,8 +109,9 @@ class Interactive {
     // Session handler to use for events
     // processing, if using custom event handler
 
-    Parameters* d_parameters_p;
-    // Parameters to use
+    /// Parameters to use, the object under this reference is owned by
+    /// the Application that uses this Interactive object
+    const Parameters& d_parameters;
 
     bslmt::Mutex d_mutex;
     // Mutex to protect below map
@@ -171,7 +172,7 @@ class Interactive {
 
     /// Constructor using the specified `parameters`, 'poster',
     /// and `allocator`.
-    Interactive(Parameters*       parameters,
+    Interactive(const Parameters& parameters,
                 Poster*           poster,
                 bslma::Allocator* allocator);
 
