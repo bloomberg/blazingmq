@@ -504,6 +504,24 @@ class ClusterOrchestrator {
     ///       function call.
     void unregisterAppId(bsl::string appId, const mqbi::Domain& domain);
 
+    /// Invoked by @bbref{mqbblp::Cluster} to register new `appIds` for
+    /// `domain`.
+    ///
+    /// Note: As this function is dispatched from a separate thread, `appIds`
+    ///       is taken by value to ensure it survives the lifetime of this
+    ///       function call.
+    void registerAppIds(bsl::unordered_set<bsl::string> appIds,
+                        const mqbi::Domain&             domain);
+
+    /// Invoked by @bbref{mqbblp::Cluster} to unregister `appIds` for
+    /// `domain`.
+    ///
+    /// Note: As this function is dispatched from a separate thread, `appIds`
+    ///       is taken by value to ensure it survives the lifetime of this
+    ///       function call.
+    void unregisterAppIds(bsl::unordered_set<bsl::string> appIds,
+                          const mqbi::Domain&             domain);
+
     /// Register a queue info for the queue with the specified `uri`,
     /// `partitionId`, `queueKey` and `appIdInfos`.  If the specified
     /// `forceUpdate` flag is true, update queue info even if it is valid

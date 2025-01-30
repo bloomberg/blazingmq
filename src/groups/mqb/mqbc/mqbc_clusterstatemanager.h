@@ -506,6 +506,22 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void unregisterAppId(const bsl::string&  appId,
                          const mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
+    /// Register the specified `appIds` for all queues in the specified
+    /// `domain`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void registerAppIds(const bsl::unordered_set<bsl::string>& appIds,
+                        const mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+
+    /// Unregister the specified `appIds` for all queues in the specified
+    /// `domain`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void unregisterAppIds(const bsl::unordered_set<bsl::string>& appIds,
+                          const mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.
     ///

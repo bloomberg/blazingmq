@@ -1291,6 +1291,44 @@ void ClusterStateManager::unregisterAppId(const bsl::string&  appId,
                                        d_allocator_p);
 }
 
+void ClusterStateManager::registerAppIds(
+    const bsl::unordered_set<bsl::string>& appIds,
+    const mqbi::Domain*                    domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(domain);
+
+    mqbc::ClusterUtil::registerAppIds(d_clusterData_p,
+                                      d_clusterStateLedger_mp.get(),
+                                      *d_state_p,
+                                      appIds,
+                                      domain,
+                                      d_allocator_p);
+}
+
+void ClusterStateManager::unregisterAppIds(
+    const bsl::unordered_set<bsl::string>& appIds,
+    const mqbi::Domain*                    domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(domain);
+
+    mqbc::ClusterUtil::unregisterAppIds(d_clusterData_p,
+                                        d_clusterStateLedger_mp.get(),
+                                        *d_state_p,
+                                        appIds,
+                                        domain,
+                                        d_allocator_p);
+}
+
 void ClusterStateManager::initiateLeaderSync(bool wait)
 {
     // executed by the cluster *DISPATCHER* thread
