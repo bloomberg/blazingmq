@@ -9,26 +9,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  get_dependencies:
-    name: "Dependencies"
-    if: github.event.review.state == 'APPROVED'
-    uses: ./.github/workflows/dependencies.yaml
-
   build_and_run_sanitizer:
     name: ${{ matrix.mode }}
-    needs: get_dependencies
     strategy:
       matrix:
         mode: ["asan", "msan", "tsan", "ubsan"]
       fail-fast: false
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
+    if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/cache/restore@v4
-        with:
-          path: deps
-          key: ${{ needs.get_dependencies.outputs.cache_key }}
+      - name : Purge runner
+      # Strip the runner to avoid space quota exceeding
+        run: |
+          sudo apt-get purge -y \
+          azure-cli microsoft-edge-stable google-cloud-cli \
+          google-chrome-stable temurin-21-jdk temurin-17-jdk \
+          temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \
+          powershell libllvm17t64 libllvm18 libllvm16t64 \
+          openjdk-21-jre-headless mysql-server-core-8.0
+          sudo apt-get autoremove
+          sudo apt-get autoclean
       - name: Build [${{ matrix.mode }}]
-        run: ${{ github.workspace }}/.github/workflows/sanitizers/build_sanitizer.sh ${{ matrix.mode }}
+        run: | 
+          docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
+          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
+          -t sanitizer-${{ matrix.mode }} .
       - name: UT [c++,${{ matrix.mode }}]
-        run: ${{ github.workspace }}/cmake.bld/Linux/run-unittests.sh
+        run: docker run --rm sanitizer-${{ matrix.mode }}
