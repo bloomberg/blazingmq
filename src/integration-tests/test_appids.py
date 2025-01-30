@@ -641,3 +641,57 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
             consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
             == Client.e_SUCCESS
         )
+
+
+def test_open_authorize_change_primary(multi_node: Cluster):
+    leader = multi_node.last_known_leader
+    proxies = multi_node.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+
+    all_app_ids = default_app_ids + ["new_app"]
+
+    # ---------------------------------------------------------------------
+    # Create a consumer
+    app_id = all_app_ids[0]
+    consumer = next(proxies).create_client(app_id)
+    consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+
+    # ---------------------------------------------------------------------
+    # Authorize 'quux'.
+    set_app_ids(multi_node, default_app_ids + ["quux"])
+
+    # ---------------------------------------------------------------------
+    # Post a message.
+    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # Ensure that all substreams get 2 messages
+
+    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+
+    assert wait_until(
+        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id={app_id}", block=True)) == 1,
+        3,
+    )
+
+    consumer.close(f"{tc.URI_FANOUT}?id={app_id}", block=True, succeed=True)
+
+    leader.check_exit_code = False
+    leader.kill()
+    leader.wait()
+
+    # wait for new leader
+    leader = multi_node.wait_leader()
+
+    app_id = all_app_ids[1]
+    consumer = next(proxies).create_client(app_id)
+    consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id={app_id}", block=True)) == 1,
+        3,
+    )
+
+    consumer.close(f"{tc.URI_FANOUT}?id={app_id}", block=True, succeed=True)
