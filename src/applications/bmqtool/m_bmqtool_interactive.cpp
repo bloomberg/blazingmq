@@ -184,9 +184,9 @@ void Interactive::processCommand(const StartCommand& command)
         << "<-- session.start(5.0) => " << bmqt::GenericResult::Enum(rc)
         << " (" << rc << ")";
 
-    if (d_parameters_p->noSessionEventHandler()) {
+    if (d_parameters.noSessionEventHandler()) {
         BALL_LOG_INFO << "Creating processing threads";
-        for (int i = 0; i < d_parameters_p->numProcessingThreads(); ++i) {
+        for (int i = 0; i < d_parameters.numProcessingThreads(); ++i) {
             bslmt::ThreadUtil::Handle threadHandle;
             rc = bslmt::ThreadUtil::create(
                 &threadHandle,
@@ -218,7 +218,7 @@ void Interactive::processCommand(const StopCommand& command)
 
     BALL_LOG_INFO << "<-- session.stop()";
 
-    if (d_parameters_p->noSessionEventHandler()) {
+    if (d_parameters.noSessionEventHandler()) {
         // Join on all threads
         BALL_LOG_INFO << "Joining event handler threads";
         for (size_t i = 0; i < d_eventHandlerThreads.size(); ++i) {
@@ -733,7 +733,7 @@ void Interactive::processCommand(const BatchPostCommand& command)
     }
 
     bsl::shared_ptr<PostingContext> postingContext =
-        d_poster_p->createPostingContext(d_session_p, &parameters, queueId);
+        d_poster_p->createPostingContext(d_session_p, parameters, queueId);
 
     while (postingContext->pendingPost()) {
         postingContext->postNext();
@@ -887,12 +887,12 @@ void Interactive::eventHandlerThread()
     BALL_LOG_INFO << "EventHandlerThread terminated";
 }
 
-Interactive::Interactive(Parameters*       parameters,
+Interactive::Interactive(const Parameters& parameters,
                          Poster*           poster,
                          bslma::Allocator* allocator)
 : d_session_p(0)
 , d_sessionEventHandler_p(0)
-, d_parameters_p(parameters)
+, d_parameters(parameters)
 , d_uris(allocator)
 , d_eventHandlerThreads(allocator)
 , d_producerIdProperty("** NONE **", allocator)
@@ -900,7 +900,6 @@ Interactive::Interactive(Parameters*       parameters,
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(parameters);
     BSLS_ASSERT_SAFE(poster);
 
     bdls::ProcessUtil::getProcessName(&d_producerIdProperty);  // ignore rc
@@ -1088,7 +1087,7 @@ void Interactive::onMessage(const bmqa::Message& message)
 
 void Interactive::onOpenQueueStatus(const bmqa::OpenQueueStatus& status)
 {
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
         BALL_LOG_INFO << "==> OPEN_QUEUE_RESULT received: " << status;
     }
 
@@ -1112,7 +1111,7 @@ void Interactive::onOpenQueueStatus(const bmqa::OpenQueueStatus& status)
 void Interactive::onConfigureQueueStatus(
     const bmqa::ConfigureQueueStatus& status)
 {
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
         BALL_LOG_INFO << "==> CONFIGURE_QUEUE_RESULT received: " << status;
     }
 
@@ -1126,7 +1125,7 @@ void Interactive::onConfigureQueueStatus(
 
 void Interactive::onCloseQueueStatus(const bmqa::CloseQueueStatus& status)
 {
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
         BALL_LOG_INFO << "==> CLOSE_QUEUE_RESULT received: " << status;
     }
 
