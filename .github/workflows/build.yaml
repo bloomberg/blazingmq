@@ -232,6 +232,8 @@ jobs:
         with:
           path: |
             build/blazingmq
+            deps
+            /opt/bb/include
           key: cache-${{ github.sha }}
 
       - name: Run Integration Tests
