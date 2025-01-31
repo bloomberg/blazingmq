@@ -13,17 +13,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import pytest
 import blazingmq.dev.paths as paths
 
 
 @pytest.fixture
-def storagetool():
+def storagetool() -> Path:
     return paths.required_paths.storagetool
 
 
 @pytest.fixture
-def journal_file():
+def journal_file() -> Path:
     return (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_journal"
@@ -31,7 +32,7 @@ def journal_file():
 
 
 @pytest.fixture
-def journal_path():
+def journal_path() -> Path:
     return (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/test.*"
@@ -39,7 +40,7 @@ def journal_path():
 
 
 @pytest.fixture
-def data_file():
+def data_file() -> Path:
     return (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_data"
@@ -47,20 +48,20 @@ def data_file():
 
 
 @pytest.fixture
-def csl_file():
+def csl_file() -> Path:
     return (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_csl"
     )
 
 
-def _load_expected_result_file(file_path):
+def _load_expected_result_file(file_path) -> bytes:
     with open(file_path, "r") as f:
         return f.read().encode()
 
 
 @pytest.fixture
-def expected_short_result():
+def expected_short_result() -> bytes:
     short_res_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/short_result.txt"
@@ -69,7 +70,7 @@ def expected_short_result():
 
 
 @pytest.fixture
-def expected_detail_result():
+def expected_detail_result() -> bytes:
     detailt_res_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_result.txt"
@@ -78,7 +79,7 @@ def expected_detail_result():
 
 
 @pytest.fixture
-def expected_payload_dump():
+def expected_payload_dump() -> bytes:
     payload_dump_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/payload_dump.txt"
@@ -87,7 +88,7 @@ def expected_payload_dump():
 
 
 @pytest.fixture
-def expected_summary_result():
+def expected_summary_result() -> bytes:
     summary_result_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result.txt"
@@ -96,7 +97,7 @@ def expected_summary_result():
 
 
 @pytest.fixture
-def expected_queueop_result():
+def expected_queueop_result() -> bytes:
     queueop_result_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/queueop_result.txt"
@@ -105,7 +106,7 @@ def expected_queueop_result():
 
 
 @pytest.fixture
-def expected_journalop_result():
+def expected_journalop_result() -> bytes:
     journalop_result_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/journalop_result.txt"

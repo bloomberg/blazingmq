@@ -237,7 +237,8 @@ jobs:
       - name: Run Integration Tests
         run: |
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
-          ${{ github.workspace }}/src/applications/bmqstoragetool/integration-tests/run-tests
+          cd ${{ github.workspace }}/src/applications/bmqstoragetool/integration-tests
+          ./run-tests
 
   build_macosx:
     name: Build [macosx_${{ matrix.arch }}]
