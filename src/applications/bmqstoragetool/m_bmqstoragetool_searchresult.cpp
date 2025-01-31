@@ -57,7 +57,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     }
 
     ostream << "\nDetails of journal file: \n";
-    ostream << "File descriptor: " << journalFile_p->mappedFileDescriptor()
+    ostream << "File descriptor: " << *journalFile_p->mappedFileDescriptor()
             << '\n';
     mqbs::FileStoreProtocolPrinter::printHeader(
         ostream,

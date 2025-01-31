@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - storagetool-it
   pull_request:
     branches:
       - main
@@ -221,6 +221,23 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           cd src/python
           python3 -m blazingmq.dev.fuzztest --broker-dir ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr --request ${{ matrix.request }}
+
+  integration_tests_storagetool_ubuntu:
+    runs-on: ubuntu-latest
+    needs: build_ubuntu
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache/@v4
+        with:
+          path: |
+            build/blazingmq
+          key: cache-${{ github.sha }}
+
+      - name: Run Integration Tests
+        run: |
+          pip install -r ${{ github.workspace }}/src/python/requirements.txt
+          ${{ github.workspace }}/src/applications/bmqstoragetool/integration-tests/run-tests
 
   build_macosx:
     name: Build [macosx_${{ matrix.arch }}]

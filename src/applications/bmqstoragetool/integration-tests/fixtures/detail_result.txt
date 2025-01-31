@@ -1,0 +1,45 @@
+=====================================
+MESSAGE Record, index: 3, offset: 224
+    PrimaryLeaseId   : 1
+    SequenceNumber   : 4
+    Timestamp        : 29OCT2024_14:01:24.000000
+    Epoch            : 1730210484
+    FileKey          : 0000000000
+    QueueKey         : 26DACDC974
+    RefCount         : 1
+    MsgOffsetDwords  : 5
+    GUID             : 400000000002B471F5B3AC11AA7D7DAB
+    Crc32c           : 3381945770
+
+CONFIRM Record, index: 5, offset: 344
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 6
+    Timestamp       : 29OCT2024_14:02:21.000000
+    Epoch           : 1730210541
+    QueueKey        : 26DACDC974
+    AppKey          : 3000000000
+    GUID            : 400000000002B471F5B3AC11AA7D7DAB
+
+DELETE Record, index: 6, offset: 404
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 7
+    Timestamp       : 29OCT2024_14:02:21.000000
+    Epoch           : 1730210541
+    QueueKey        : 26DACDC974
+    DeletionFlag    : NONE
+    GUID            : 400000000002B471F5B3AC11AA7D7DAB
+
+======================================
+MESSAGE Record, index: 10, offset: 644
+    PrimaryLeaseId   : 2
+    SequenceNumber   : 2
+    Timestamp        : 29OCT2024_14:03:23.000000
+    Epoch            : 1730210603
+    FileKey          : 0000000000
+    QueueKey         : 26DACDC974
+    RefCount         : 1
+    MsgOffsetDwords  : 8
+    GUID             : 40000000000215B2967EEDFA1085BA02
+    Crc32c           : 3381945770
+
+2 message GUID(s) found.

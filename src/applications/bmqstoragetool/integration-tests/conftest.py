@@ -1,0 +1,113 @@
+# Copyright 2024 Bloomberg Finance L.P.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import pytest
+import blazingmq.dev.paths as paths
+
+
+@pytest.fixture
+def storagetool():
+    return paths.required_paths.storagetool
+
+
+@pytest.fixture
+def journal_file():
+    return (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_journal"
+    )
+
+
+@pytest.fixture
+def journal_path():
+    return (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.*"
+    )
+
+
+@pytest.fixture
+def data_file():
+    return (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_data"
+    )
+
+
+@pytest.fixture
+def csl_file():
+    return (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/test.bmq_csl"
+    )
+
+
+def _load_expected_result_file(file_path):
+    with open(file_path, "r") as f:
+        return f.read().encode()
+
+
+@pytest.fixture
+def expected_short_result():
+    short_res_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/short_result.txt"
+    )
+    return _load_expected_result_file(short_res_file)
+
+
+@pytest.fixture
+def expected_detail_result():
+    detailt_res_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_result.txt"
+    )
+    return _load_expected_result_file(detailt_res_file)
+
+
+@pytest.fixture
+def expected_payload_dump():
+    payload_dump_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/payload_dump.txt"
+    )
+    return _load_expected_result_file(payload_dump_file)
+
+
+@pytest.fixture
+def expected_summary_result():
+    summary_result_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result.txt"
+    )
+    return _load_expected_result_file(summary_result_file)
+
+
+@pytest.fixture
+def expected_queueop_result():
+    queueop_result_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/queueop_result.txt"
+    )
+    return _load_expected_result_file(queueop_result_file)
+
+
+@pytest.fixture
+def expected_journalop_result():
+    journalop_result_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/journalop_result.txt"
+    )
+    return _load_expected_result_file(journalop_result_file)
