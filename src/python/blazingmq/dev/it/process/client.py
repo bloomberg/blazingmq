@@ -41,8 +41,8 @@ Message = namedtuple("Message", "guid, uri, correlationId, payload")
 
 
 class CommandResult(NamedTuple):
-    error_code: int | None
-    matches: List[re.Match | None] | None
+    error_code: Optional[int]
+    matches: Optional[List[Optional[re.Match]]]
 
 
 blocktimeout = 15
@@ -378,7 +378,7 @@ class Client(BMQProcess):
 
     def confirm(
         self, uri, guid, block=None, succeed=None, no_except=None
-    ) -> int | None:
+    ) -> Optional[int]:
         command = _build_command(f'confirm uri="{uri}" guid="{guid}"', {}, {})
         with internal_use(self):
             res = self._command_helper(

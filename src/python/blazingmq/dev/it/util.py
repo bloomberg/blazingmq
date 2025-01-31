@@ -26,7 +26,7 @@ import random
 import string
 import time
 
-from typing import List, Generic, TypeVar
+from typing import List, Optional, TypeVar
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -145,7 +145,7 @@ class Queue:
     def list(self, *args, **kwargs):
         return self.client.list(self.uri, *args, **kwargs)
 
-    def confirm(self, *args, **kwargs) -> int | None:
+    def confirm(self, *args, **kwargs) -> Optional[int]:
         return self.client.confirm(self.uri, *args, **kwargs)
 
     def configure(self, *args, **kwargs):

@@ -370,9 +370,8 @@ Tests can be selected using keywords (using the `-k` switch) and/or markers
 | `pr_integrationtest`    | integration tests to be run as part of a Jenkins PR (currently all tests) |
 | `single`                | tests that use a local cluster fixture                                    |
 | `multi`                 | tests that use a 4-node, 2-proxy cluster fixture                          |
-| `legacy_mode`           | choice between: legacy, CSL, FSM                                          |
-| `csl_mode`              | choice between: legacy, CSL, FSM                                          |
-| `fsm_mode`              | choice between: legacy, CSL, FSM                                          |
+| `legacy_mode`           | choice between: legacy, FSM (with CSL)                                    |
+| `fsm_mode`              | choice between: legacy, FSM (with CSL)                                    |
 | `flakey`                | tests that occasionally fail; excluded from the Jenkins PR check          |
 
 ### Erroneous Exits
