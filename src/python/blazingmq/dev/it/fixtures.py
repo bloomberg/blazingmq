@@ -453,22 +453,21 @@ def break_before_test(request, cluster):
 
 class Mode(IntEnum):
     LEGACY = 0
-    CSL = 1
-    FSM = 2
+    FSM = 1
 
     def tweak(self, cluster: mqbcfg.ClusterDefinition):
-        cluster.cluster_attributes.is_cslmode_enabled = self >= Mode.CSL
+        # CSL and FSM settings must be either both enabled or both disabled
+        cluster.cluster_attributes.is_cslmode_enabled = self == Mode.FSM
         cluster.cluster_attributes.is_fsmworkflow = self == Mode.FSM
 
     @property
     def suffix(self) -> str:
-        return ["", "_csl", "_fsm"][self]
+        return ["", "_fsm"][self]
 
     @property
     def marks(self):
         return [
             [pytest.mark.legacy_mode],
-            [pytest.mark.csl_mode],
             [pytest.mark.fsm_mode],
         ][self]
 
