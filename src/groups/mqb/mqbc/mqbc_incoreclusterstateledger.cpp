@@ -267,43 +267,20 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         return rc_SUCCESS;  // RETURN
     }
 
-    bmqp_ctrlmsg::LeaderMessageSequence snapshotLSN;
-    d_clusterData_p->electorInfo().nextLeaderMessageSequence(&snapshotLSN);
-
-    // Write uncommitted advisories into ledger
-    for (AdvisoriesMapIter advisoryIt = d_uncommittedAdvisories.begin();
-         advisoryIt != d_uncommittedAdvisories.end();
-         ++advisoryIt) {
-        BSLS_ASSERT_SAFE(advisoryIt->first < snapshotLSN);
-
-        ClusterMessageInfo& info = advisoryIt->second;
-
-        bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
-        ClusterStateRecordType::Enum recordType =
-            info.d_clusterMessage.choice().isLeaderAdvisoryValue()
-                ? ClusterStateRecordType::e_SNAPSHOT
-                : ClusterStateRecordType::e_UPDATE;
-        rc = ClusterStateLedgerUtil::appendRecord(record.get(),
-                                                  info.d_clusterMessage,
-                                                  advisoryIt->first,
-                                                  currentTime(),
-                                                  recordType);
-        if (rc != 0) {
-            return 10 * rc + rc_CREATE_RECORD_FAILURE;  // RETURN
-        }
-
-        rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                      *record,
-                                      bmqu::BlobPosition(),
-                                      record->length());
-        if (rc != 0) {
-            return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
-        }
-    }
-
-    // Populate cluster state snapshot
+    // Populate cluster state snapshot.  Note that the leader will not
+    // broadcast the rollover snapshot record to the followers; the followers
+    // must write their own snapshot upon rollover to ensure the integrity of
+    // the new log file upon rollover completion.
     bmqp_ctrlmsg::LeaderAdvisory leaderAdvisory;
-    leaderAdvisory.sequenceNumber() = snapshotLSN;
+
+    // The snapshot will have the same sequence number as the record which
+    // caused rollover.  We do not want to bump up leader sequence number
+    // because the snapshot will not be broadcasted,  Note that since we write
+    // the snapshot before the uncommitted records, the records won't be in
+    // monotonically increasing order.  That is okay because we will make a
+    // special case for rollover records.
+    leaderAdvisory.sequenceNumber() =
+        d_clusterData_p->electorInfo().leaderMessageSequence();
 
     bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
         leaderAdvisory.partitions();
@@ -359,13 +336,13 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     }
 
     // Write snapshot into ledger
-    ClusterMessageInfo info;
-    info.d_clusterMessage.choice().makeLeaderAdvisory(leaderAdvisory);
+    bmqp_ctrlmsg::ClusterMessage clusterMessage;
+    clusterMessage.choice().makeLeaderAdvisory(leaderAdvisory);
 
-    bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
-    rc                                  = ClusterStateLedgerUtil::appendRecord(
-        record.get(),
-        info.d_clusterMessage,
+    bsl::shared_ptr<bdlbb::Blob> snapshotRecord = d_blobSpPool_p->getObject();
+    rc = ClusterStateLedgerUtil::appendRecord(
+        snapshotRecord.get(),
+        clusterMessage,
         leaderAdvisory.sequenceNumber(),
         currentTime(),
         ClusterStateRecordType::e_SNAPSHOT);
@@ -373,12 +350,47 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
         return 10 * rc + rc_CREATE_RECORD_FAILURE;  // RETURN
     }
 
-    rc = d_ledger_mp->writeRecord(&(info.d_recordId),
-                                  *record,
+    mqbsi::LedgerRecordId snapshotRecordId;
+    rc = d_ledger_mp->writeRecord(&snapshotRecordId,
+                                  *snapshotRecord,
                                   bmqu::BlobPosition(),
-                                  record->length());
+                                  snapshotRecord->length());
     if (rc != 0) {
         return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
+    }
+
+    // Write uncommitted advisories into ledger
+    for (AdvisoriesMapIter advisoryIt = d_uncommittedAdvisories.begin();
+         advisoryIt != d_uncommittedAdvisories.end();
+         ++advisoryIt) {
+        BSLS_ASSERT_SAFE(
+            advisoryIt->first <=
+            d_clusterData_p->electorInfo().leaderMessageSequence());
+
+        ClusterMessageInfo& info = advisoryIt->second;
+
+        bsl::shared_ptr<bdlbb::Blob> record = d_blobSpPool_p->getObject();
+        ClusterStateRecordType::Enum recordType =
+            info.d_clusterMessage.choice().isLeaderAdvisoryValue()
+                ? ClusterStateRecordType::e_SNAPSHOT
+                : ClusterStateRecordType::e_UPDATE;
+        rc = ClusterStateLedgerUtil::appendRecord(record.get(),
+                                                  info.d_clusterMessage,
+                                                  advisoryIt->first,
+                                                  currentTime(),
+                                                  recordType);
+        if (rc != 0) {
+            return 10 * rc + rc_CREATE_RECORD_FAILURE;  // RETURN
+        }
+
+        mqbsi::LedgerRecordId recordId;
+        rc = d_ledger_mp->writeRecord(&recordId,
+                                      *record,
+                                      bmqu::BlobPosition(),
+                                      record->length());
+        if (rc != 0) {
+            return 10 * rc + rc_WRITE_RECORD_FAILURE;  // RETURN
+        }
     }
 
     return rc_SUCCESS;
@@ -456,7 +468,7 @@ int IncoreClusterStateLedger::applyAdvisoryInternal(
     return rc_SUCCESS;  // RETURN
 }
 
-int IncoreClusterStateLedger::applyRecordInternal(
+int IncoreClusterStateLedger::applyRecordInternalImpl(
     const bdlbb::Blob&                         record,
     int                                        recordOffset,
     const bmqu::BlobPosition&                  recordPosition,
@@ -491,8 +503,13 @@ int IncoreClusterStateLedger::applyRecordInternal(
     switch (recordType) {
     case (ClusterStateRecordType::e_SNAPSHOT):
     case (ClusterStateRecordType::e_UPDATE): {
-        if (sequenceNumber <
-            d_clusterData_p->electorInfo().leaderMessageSequence()) {
+        if (isSelfLeader()) {
+            BSLS_ASSERT_SAFE(
+                sequenceNumber ==
+                d_clusterData_p->electorInfo().leaderMessageSequence());
+        }
+        else if (sequenceNumber <
+                 d_clusterData_p->electorInfo().leaderMessageSequence()) {
             BALL_LOG_ERROR
                 << description()
                 << ": Failed to apply record. [reason: record LSN ("
@@ -500,6 +517,14 @@ int IncoreClusterStateLedger::applyRecordInternal(
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
                 << ")]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
+        if (d_clusterData_p->clusterConfig()
+                .clusterAttributes()
+                .isFSMWorkflow() &&
+            !isSelfLeader()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                sequenceNumber);
         }
 
         mqbsi::LedgerRecordId recordId;
@@ -515,15 +540,9 @@ int IncoreClusterStateLedger::applyRecordInternal(
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
-        if (d_clusterData_p->clusterConfig()
-                .clusterAttributes()
-                .isFSMWorkflow()) {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(
-                sequenceNumber);
-        }
-
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
+        info.d_ackCount       = 0;
         d_uncommittedAdvisories.insert(bsl::make_pair(sequenceNumber, info));
 
         if (isSelfLeader()) {
@@ -618,6 +637,19 @@ int IncoreClusterStateLedger::applyRecordInternal(
         BSLS_ASSERT_SAFE(d_commitCb);
         BSLS_ASSERT_SAFE(
             clusterMessage.choice().isLeaderAdvisoryCommitValue());
+        if (isSelfLeader()) {
+            BSLS_ASSERT_SAFE(
+                sequenceNumber ==
+                d_clusterData_p->electorInfo().leaderMessageSequence());
+        }
+
+        if (d_clusterData_p->clusterConfig()
+                .clusterAttributes()
+                .isFSMWorkflow() &&
+            !isSelfLeader()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(
+                sequenceNumber);
+        }
 
         const bmqp_ctrlmsg::LeaderAdvisoryCommit& commit =
             clusterMessage.choice().leaderAdvisoryCommit();
@@ -646,13 +678,6 @@ int IncoreClusterStateLedger::applyRecordInternal(
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
-        if (d_clusterData_p->clusterConfig()
-                .clusterAttributes()
-                .isFSMWorkflow()) {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(
-                sequenceNumber);
-        }
-
         if (isSelfLeader()) {
             bsl::shared_ptr<bdlbb::Blob> commitEvent =
                 d_blobSpPool_p->getObject();
@@ -675,7 +700,8 @@ int IncoreClusterStateLedger::applyRecordInternal(
         //       while transitioning to using IncoreCSL.  Once transitioned,
         //       the commit callback should be enqueued to be invoked from the
         //       cluster dispatcher thread.
-        // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on the
+        // TODO: In phase 2 of IncoreCSL, this can return to enqueueing on
+        // the
         //       cluster dispatcher thread
         d_commitCb(committedControlMessage,
                    ClusterStateLedgerCommitStatus::e_SUCCESS);
@@ -765,12 +791,12 @@ int IncoreClusterStateLedger::applyRecordInternal(
         bmqu::BlobUtil::findOffsetSafe(&recordPosition, record, recordOffset);
     BSLS_ASSERT_SAFE(rc == 0);
 
-    return applyRecordInternal(record,
-                               recordOffset,
-                               recordPosition,
-                               clusterMessage,
-                               sequenceNumber,
-                               recordType);
+    return applyRecordInternalImpl(record,
+                                   recordOffset,
+                                   recordPosition,
+                                   clusterMessage,
+                                   sequenceNumber,
+                                   recordType);
 }
 
 int IncoreClusterStateLedger::applyRecordInternal(
@@ -787,12 +813,12 @@ int IncoreClusterStateLedger::applyRecordInternal(
         recordPosition);
     BSLS_ASSERT_SAFE(rc == 0);
 
-    return applyRecordInternal(record,
-                               recordOffset,
-                               recordPosition,
-                               clusterMessage,
-                               sequenceNumber,
-                               recordType);
+    return applyRecordInternalImpl(record,
+                                   recordOffset,
+                                   recordPosition,
+                                   clusterMessage,
+                                   sequenceNumber,
+                                   recordType);
 }
 
 void IncoreClusterStateLedger::cancelUncommittedAdvisories()
@@ -1148,12 +1174,12 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         }
     }
 
-    rc = applyRecordInternal(event,
-                             eventHeaderSize,
-                             recordHeaderPosition,
-                             message,
-                             seqNum,
-                             recordHeader->recordType());
+    rc = applyRecordInternalImpl(event,
+                                 eventHeaderSize,
+                                 recordHeaderPosition,
+                                 message,
+                                 seqNum,
+                                 recordHeader->recordType());
     if (rc != 0) {
         BALL_LOG_WARN << description() << ": Failed to apply record from '"
                       << source->nodeDescription()

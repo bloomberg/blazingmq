@@ -260,15 +260,6 @@ class ClusterStateLedger : public ElectorInfoObserver {
     ///         dispatcher thread.
     virtual int close() = 0;
 
-    // TODO: Declare these methods once the parameter object types have been
-    //       defined in 'mqbc::ClusterState'.
-    // virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
-    // virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
-    // virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
-    // virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
-    // Apply the specified message to self and replicate if self is leader.
-    // Notify via 'commitCb' when consistency level has been achieved.
-
     /// Apply the specified `advisory` to self and replicate to followers.
     /// Notify via `commitCb` when consistency level has been achieved.
     /// Note that *only* a leader node may invoke this routine.
@@ -282,7 +273,14 @@ class ClusterStateLedger : public ElectorInfoObserver {
     virtual int
     apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)         = 0;
     virtual int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory) = 0;
-    virtual int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory)      = 0;
+
+    /// Apply the specified `advisory` to self and replicate to followers.
+    /// Notify via `commitCb` when consistency level has been achieved.  Note
+    /// that *only* a leader node may invoke this routine.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory) = 0;
 
     /// Apply the advisory contained in the specified `clusterMessage` to
     /// self and replicate to followers.  Notify via `commitCb` when
