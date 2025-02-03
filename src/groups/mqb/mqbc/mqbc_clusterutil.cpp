@@ -1954,10 +1954,6 @@ int ClusterUtil::load(ClusterState*               state,
         return rc * 10 + rc_ITERATION_ERROR;  // RETURN
     }
 
-    typedef bsl::unordered_map<bmqp_ctrlmsg::LeaderMessageSequence,
-                               bmqp_ctrlmsg::ClusterMessage>
-                  AdvisoriesMap;
-    AdvisoriesMap advisories;
     do {
         BSLS_ASSERT_SAFE(latestIter->isValid());
 
@@ -1968,110 +1964,22 @@ int ClusterUtil::load(ClusterState*               state,
             return rc * 10 + rc_MESSAGE_LOAD_ERROR;  // RETURN
         }
 
-        // Track if advisory, apply if commit
+        // Apply advisories, whether committed or not.  Can ignore commit
+        // records
         typedef bmqp_ctrlmsg::ClusterMessageChoice MsgChoice;  // shortcut
         switch (clusterMessage.choice().selectionId()) {
-        case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .partitionPrimaryAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice().leaderAdvisory().sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record type:"
-                              << latestIter->header().recordType();
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .queueAssignmentAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .queueUnassignedAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
+        case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:
+        case MsgChoice::SELECTION_ID_LEADER_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice().queueUpdateAdvisory().sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;
-        case MsgChoice::SELECTION_ID_LEADER_ADVISORY_COMMIT: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lmsCommitted =
-                clusterMessage.choice()
-                    .leaderAdvisoryCommit()
-                    .sequenceNumberCommitted();
-
-            AdvisoriesMap::const_iterator iter = advisories.find(lmsCommitted);
-            if (iter == advisories.end()) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": Recovered a commit in IncoreCSL for which"
-                              << " a corresponding advisory was not found: "
-                              << clusterMessage;
-                break;  // BREAK
-            }
-            // Finally, the advisory is applied to the state
-            const bmqp_ctrlmsg::ClusterMessage& advisory = iter->second;
             BALL_LOG_INFO << "#CSL_RECOVERY "
                           << clusterData.identity().description()
-                          << ": Applying a commit recovered from IncoreCSL. "
-                          << "Commit: "
-                          << clusterMessage.choice().leaderAdvisoryCommit()
-                          << ", advisory: " << advisory << ".";
-            apply(state, advisory, clusterData);
-            advisories.erase(iter);
+                          << ": Applying a recovered record from IncoreCSL: "
+                          << clusterMessage << ".";
+            apply(state, clusterMessage, clusterData);
+        } break;  // BREAK
+        case MsgChoice::SELECTION_ID_LEADER_ADVISORY_COMMIT: {
         } break;  // BREAK
         case MsgChoice::SELECTION_ID_UNDEFINED:
         default: {
