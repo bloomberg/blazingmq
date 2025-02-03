@@ -44,8 +44,10 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
         mqbu::StorageKey                         key;
         bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
         for (; uriIt != queueUris.cend(); ++uriIt) {
-            if (queueMap.findKeyByUri(&key, *uriIt)) {
-                d_queueKeys.insert(key);
+            bsl::optional<mqbu::StorageKey> key = queueMap.findKeyByUri(
+                *uriIt);
+            if (key.has_value()) {
+                d_queueKeys.insert(key.value());
             }
         }
     }
