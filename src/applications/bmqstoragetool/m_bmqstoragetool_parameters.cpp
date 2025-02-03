@@ -75,9 +75,12 @@ bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 // class CommandLineArguments
 // ==========================
 
-const char* CommandLineArguments::k_MESSAGE_TYPE   = "message";
-const char* CommandLineArguments::k_QUEUEOP_TYPE   = "queue-op";
-const char* CommandLineArguments::k_JOURNALOP_TYPE = "journal-op";
+const char* CommandLineArguments::k_MESSAGE_TYPE     = "message";
+const char* CommandLineArguments::k_QUEUEOP_TYPE     = "queue-op";
+const char* CommandLineArguments::k_JOURNALOP_TYPE   = "journal-op";
+const char* CommandLineArguments::k_HUMAN_MODE       = "human";
+const char* CommandLineArguments::k_JSON_PRETTY_MODE = "json-pretty";
+const char* CommandLineArguments::k_JSON_LINE_MODE   = "json-line";
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_recordType(allocator)
@@ -91,6 +94,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_journalFile(allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
+, d_printMode(allocator)
 , d_guid(allocator)
 , d_seqNum(allocator)
 , d_offset(allocator)
@@ -313,6 +317,19 @@ bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
     return true;
 }
 
+bool CommandLineArguments::isValidPrintMode(const bsl::string* printMode,
+                                            bsl::ostream&      stream)
+{
+    if (*printMode != k_HUMAN_MODE && *printMode != k_JSON_PRETTY_MODE &&
+        *printMode != k_JSON_LINE_MODE) {
+        stream << "--print-mode invalid: " << *printMode << bsl::endl;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
 bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
                                            bsl::ostream&      stream)
 {
@@ -345,10 +362,18 @@ Parameters::ProcessRecordTypes::ProcessRecordTypes(bool enableDefault)
     // NOTHING
 }
 
+bool Parameters::ProcessRecordTypes::operator==(
+    ProcessRecordTypes const& other) const
+{
+    return d_message == other.d_message && d_queueOp == other.d_queueOp &&
+           d_journalOp == other.d_journalOp;
+}
+
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_processRecordTypes(false)
 , d_queueMap(allocator)
+, d_printMode(e_HUMAN)
 , d_range()
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
@@ -363,6 +388,17 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 {
+    // Check print mode
+    if (arguments.d_printMode == CommandLineArguments::k_JSON_PRETTY_MODE) {
+        d_printMode = e_JSON_PRETTY;
+    }
+    else if (arguments.d_printMode == CommandLineArguments::k_JSON_LINE_MODE) {
+        d_printMode = e_JSON_LINE;
+    }
+    if (d_printMode != e_HUMAN && d_dumpPayload) {
+        BSLS_ASSERT(false && "Payload dumping is not supported for Json mode");
+    }
+
     // Set record types to process
     for (bsl::vector<bsl::string>::const_iterator cit =
              arguments.d_recordType.begin();
@@ -432,11 +468,6 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         // Use the provided value if records limit is not default and is valid
         d_minRecordsPerQueue = arguments.d_minRecordsPerQueue;
     }
-    else {
-        // Disable output of detailed information, setting the minimum
-        // threshold to max Unit64
-        d_minRecordsPerQueue = bsl::numeric_limits<bsls::Types::Uint64>::max();
-    }
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
@@ -446,7 +477,7 @@ void Parameters::validateQueueNames(bslma::Allocator* allocator) const
     mqbu::StorageKey                         key;
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {
-        if (!d_queueMap.findKeyByUri(&key, *it)) {
+        if (d_queueMap.findKeyByUri(*it).has_value()) {
             ss << "Queue name: '" << *it << "' is not found in Csl file."
                << bsl::endl;
         }

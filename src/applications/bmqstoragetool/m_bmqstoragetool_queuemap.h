@@ -31,6 +31,7 @@
 #include <mqbs_filestoreprotocol.h>
 
 // BDE
+#include <bsl_optional.h>
 #include <bsl_unordered_map.h>
 
 namespace BloombergLP {
@@ -70,15 +71,15 @@ class QueueMap {
 
     // ACCESSORS
 
-    /// Find queue info by queue key. Return `true` if key found and
-    /// queueInfo_p contains valid data, `false` otherwise.
-    bool findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                       const mqbu::StorageKey&  key) const;
+    /// Find queue info by the specified queue `key`. Return optional
+    /// containing the QueueInfo if the key found, return empty optional
+    /// otherwise.
+    bsl::optional<bmqp_ctrlmsg::QueueInfo>
+    findInfoByKey(const mqbu::StorageKey& key) const;
 
-    /// Find queue key by queue uri. Return `true` if uri found and
-    /// queueKey_p contains valid data, `false` otherwise.
-    bool findKeyByUri(mqbu::StorageKey*  queueKey_p,
-                      const bsl::string& uri) const;
+    /// Find queue key by the specified queue `uri`. Return optional containing
+    /// the key if the uri found, return empty optional otherwise.
+    bsl::optional<mqbu::StorageKey> findKeyByUri(const bsl::string& uri) const;
 };
 
 }  // close package namespace
