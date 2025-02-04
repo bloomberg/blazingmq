@@ -363,17 +363,13 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     assignQueue(const bmqt::Uri&      uri,
                 bmqp_ctrlmsg::Status* status = 0) BSLS_KEYWORD_OVERRIDE;
 
-    /// Register a queue info for the queue with the specified `uri`,
-    /// `partitionId`, `queueKey` and `appIdInfos`.  If the specified
-    /// `forceUpdate` flag is true, update queue info even if it is valid
-    /// but different from the specified `queueKey` and `partitionId`.
+    /// Register a queue info for the queue with the specified `advisory`.
+    /// If the specified `forceUpdate` flag is true, update queue info even if
+    /// it is valid but different from the specified `advisory`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void registerQueueInfo(const bmqt::Uri&        uri,
-                           int                     partitionId,
-                           const mqbu::StorageKey& queueKey,
-                           const AppInfos&         appIdInfos,
+    void registerQueueInfo(const bmqp_ctrlmsg::QueueInfo& advisory,
                            bool forceUpdate) BSLS_KEYWORD_OVERRIDE;
 
     /// Unassign the queue in the specified `advisory` by applying the
@@ -404,21 +400,15 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Register the specified `appId` for all queues in the specified
-    /// `domain`.
+    /// Unregister the specified 'removed' and register the specified `added`
+    /// for the specified  `domain` and optionally specified `uri`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void registerAppId(const bsl::string&  appId,
-                       const mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
-
-    /// Unregister the specified `appId` for all queues in the specified
-    /// `domain`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void unregisterAppId(const bsl::string&  appId,
-                         const mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
+    void updateAppIds(const bsl::vector<bsl::string>& added,
+                      const bsl::vector<bsl::string>& removed,
+                      const bsl::string&              domainName,
+                      const bsl::string& uri) BSLS_KEYWORD_OVERRIDE;
 
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.

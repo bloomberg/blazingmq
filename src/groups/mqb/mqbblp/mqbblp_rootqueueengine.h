@@ -445,7 +445,22 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// the specified `stream`.
     bsl::ostream& logAppSubscriptionInfo(bsl::ostream&     stream,
                                          const AppStateSp& appState) const;
+
+    const mqbconfm::Domain& config() const;
 };
+
+// ============================================================================
+//                           INLINE DEFINITIONS
+// ============================================================================
+
+// ----------------------
+// struct RootQueueEngine
+// ----------------------
+
+inline const mqbconfm::Domain& RootQueueEngine::config() const
+{
+    return d_queueState_p->queue()->domain()->config();
+}
 
 }  // close package namespace
 }  // close enterprise namespace

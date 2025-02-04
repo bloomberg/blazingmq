@@ -66,7 +66,6 @@ const char k_SELF_NODE_IS_STOPPING[]   = "self node is stopping";
 const char k_DOMAIN_CREATION_FAILURE[] = "failed to create domain";
 
 // TYPES
-typedef ClusterUtil::AppInfo       AppInfo;
 typedef ClusterUtil::AppInfos      AppInfos;
 typedef ClusterUtil::AppInfosCIter AppInfosCIter;
 
@@ -98,24 +97,15 @@ void applyQueueAssignment(mqbc::ClusterState* clusterState,
                           const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
 {
     // TODO: refactor to use allocator(s)
-    bslma::Allocator* allocator = 0;
 
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
          ++it) {
         const bmqp_ctrlmsg::QueueInfo& queueInfo = *it;
-        const bmqt::Uri                uri(queueInfo.uri(), allocator);
-        const int                      partitionId(queueInfo.partitionId());
-        const mqbu::StorageKey         queueKey(
-            mqbu::StorageKey::BinaryRepresentation(),
-            queueInfo.key().data());
-
-        AppInfos addedAppIds(allocator);
-        mqbc::ClusterUtil::parseQueueInfo(&addedAppIds, queueInfo, allocator);
 
         // CSL commit
-        clusterState->assignQueue(uri, queueKey, partitionId, addedAppIds);
+        clusterState->assignQueue(queueInfo);
     }
 }
 
@@ -214,41 +204,11 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
                              mqbs::DataStore::k_INVALID_PARTITION_ID);
         }
 
-        AppInfos addedAppIds;
-        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
-                 queueUpdate.addedAppIds().cbegin();
-             citer != queueUpdate.addedAppIds().cend();
-             ++citer) {
-            AppInfo appIdInfo;
-            appIdInfo.first = citer->appId();
-            appIdInfo.second.fromBinary(citer->appKey().data());
-
-            addedAppIds.insert(appIdInfo);
-        }
-
-        AppInfos removedAppIds;
-        for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
-                 queueUpdate.removedAppIds().begin();
-             citer != queueUpdate.removedAppIds().end();
-             ++citer) {
-            AppInfo appIdInfo;
-            appIdInfo.first = citer->appId();
-            appIdInfo.second.fromBinary(citer->appKey().data());
-
-            removedAppIds.insert(appIdInfo);
-        }
-
-        bsl::string domain = queueUpdate.domain();
-        if (domain.empty()) {
-            domain = uri.qualifiedDomain();
-        }
-
-        const int rc =
-            clusterState->updateQueue(uri, domain, addedAppIds, removedAppIds);
+        const int rc = clusterState->updateQueue(queueUpdate);
         if (rc != 0) {
             BALL_LOG_ERROR << clusterData.identity().description()
                            << ": Received QueueUpdateAdvisory for uri: [ "
-                           << uri << "], domain: [" << domain
+                           << uri << "], domain: [" << queueUpdate.domain()
                            << "], but failed to update appIds, "
                            << "rc : " << rc
                            << ". queueUpdate: " << queueUpdate;
@@ -326,24 +286,109 @@ void createDomainCb(const bmqp_ctrlmsg::Status& status,
     domainState->setDomain(domain);
 }
 
+bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
+                         mqbc::ClusterState*                clusterState,
+                         const bsl::vector<bsl::string>&    added,
+                         const bsl::vector<bsl::string>&    removed,
+                         const ClusterStateQueueInfo&       from,
+                         bslma::Allocator*                  allocator)
+{
+    bmqp_ctrlmsg::QueueInfoUpdate queueUpdate(allocator);
+
+    queueUpdate.uri()         = from.uri().asString();
+    queueUpdate.partitionId() = from.partitionId();
+    from.key().loadBinary((&queueUpdate.key()));
+    queueUpdate.domain() = from.uri().qualifiedDomain();
+
+    // TODO: optimize to avoid iterating all Apps
+    // TODO: If a queue can register its own set of (Dynamic) AppId,
+    //       the only meaning of this loop is to build 'appKeys' to
+    //       avoid key collision.
+    bsl::unordered_set<mqbu::StorageKey> appKeys;
+    const AppInfos&                      appInfos = from.appInfos();
+
+    for (AppInfosCIter appInfoCit = appInfos.cbegin();
+         appInfoCit != appInfos.cend();
+         ++appInfoCit) {
+        appKeys.insert(appInfoCit->second);
+    }
+
+    for (bsl::vector<bsl::string>::const_iterator cit = added.begin();
+         cit != added.end();
+         ++cit) {
+        const bsl::string& appId = *cit;
+
+        AppInfos::const_iterator existing = from.appInfos().find(appId);
+
+        if (existing == from.appInfos().end()) {
+            // Populate AppIdInfo
+            bmqp_ctrlmsg::AppIdInfo appIdInfo;
+            appIdInfo.appId() = appId;
+            mqbu::StorageKey appKey;
+            mqbs::StorageUtil::generateStorageKey(&appKey, &appKeys, appId);
+            appKey.loadBinary(&appIdInfo.appKey());
+
+            queueUpdate.addedAppIds().push_back(appIdInfo);
+        }
+    }
+
+    for (bsl::vector<bsl::string>::const_iterator cit = removed.begin();
+         cit != removed.end();
+         ++cit) {
+        const bsl::string&       appId    = *cit;
+        AppInfos::const_iterator existing = from.appInfos().find(appId);
+
+        if (existing != from.appInfos().end()) {
+            // Populate AppIdInfo
+            bmqp_ctrlmsg::AppIdInfo appIdInfo;
+            appIdInfo.appId() = appId;
+            existing->second.loadBinary(&appIdInfo.appKey());
+
+            // do not care about 'appIdInfo.dynamicExpirationSec()'
+            queueUpdate.removedAppIds().push_back(appIdInfo);
+        }
+    }
+
+    if (queueUpdate.removedAppIds().size() == removed.size() &&
+        queueUpdate.addedAppIds().size() == added.size()) {
+        queueAdvisory->queueUpdates().push_back(queueUpdate);
+
+        if (!clusterState->cluster()->isCSLModeEnabled()) {
+            // In CSL mode, we update the queue to ClusterState upon CSL
+            // commit callback of QueueUpdateAdvisory.
+
+            // In non-CSL mode this is the shortcut to call Primary CQH
+            // instead of waiting for the quorum of acks in the ledger.
+
+            BSLA_MAYBE_UNUSED const int assignRc = clusterState->updateQueue(
+                queueUpdate);
+            BSLS_ASSERT_SAFE(assignRc == 0);
+        }
+
+        return true;
+    }
+
+    return false;
+}
+
 }  // close anonymous namespace
 
 // ------------------
 // struct ClusterUtil
 // ------------------
 
-void ClusterUtil::setPendingUnassignment(ClusterState*    clusterState,
-                                         const bmqt::Uri& uri)
+void ClusterUtil::setPendingUnassignment(const ClusterState* clusterState,
+                                         const bmqt::Uri&    uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(uri.isCanonical());
 
-    const DomainStatesIter iter = clusterState->domainStates().find(
-        uri.qualifiedDomain());
-    if (iter != clusterState->domainStates().cend()) {
-        UriToQueueInfoMapIter qiter = iter->second->queuesInfo().find(uri);
-        if (qiter != iter->second->queuesInfo().cend()) {
+    mqbc::ClusterUtil::DomainStatesCIter citer =
+        clusterState->domainStates().find(uri.qualifiedDomain());
+    if (citer != clusterState->domainStates().cend()) {
+        UriToQueueInfoMapIter qiter = citer->second->queuesInfo().find(uri);
+        if (qiter != citer->second->queuesInfo().cend()) {
             qiter->second->setState(
                 ClusterStateQueueInfo::State::k_UNASSIGNING);
         }
@@ -741,7 +786,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     ClusterState*                          clusterState,
     ClusterData*                           clusterData,
     const bmqt::Uri&                       uri,
-    const mqbi::Domain*                    domain)
+    const mqbconfm::QueueMode&             config)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(advisory);
@@ -749,7 +794,6 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(uri.isCanonical());
-    BSLS_ASSERT_SAFE(domain);
     BSLS_ASSERT_SAFE(clusterData->electorInfo().isSelfActiveLeader());
 
     clusterData->electorInfo().nextLeaderMessageSequence(
@@ -765,7 +809,7 @@ void ClusterUtil::populateQueueAssignmentAdvisory(
     key->loadBinary(&queueInfo.key());
 
     // Generate appIds and appKeys
-    populateAppInfos(&queueInfo.appIds(), domain->config().mode());
+    populateAppInfos(&queueInfo.appIds(), config);
 
     BALL_LOG_INFO << clusterData->identity().description()
                   << ": Populated QueueAssignmentAdvisory: " << *advisory;
@@ -990,7 +1034,7 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                                     clusterState,
                                     clusterData,
                                     uri,
-                                    domIt->second->domain());
+                                    domIt->second->domain()->config().mode());
 
     // 'ClusterQueueHelper::onQueueAssigned' (the 'onQueueAssigned' observer
     // callback) will insert the key to 'ClusterState::queueKeys'.
@@ -1020,14 +1064,8 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
         bmqp_ctrlmsg::QueueInfo& queueInfo = queueAdvisory.queues().back();
 
-        AppInfos appInfos(allocator);
-        mqbc::ClusterUtil::parseQueueInfo(&appInfos, queueInfo, allocator);
-
         BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
-            uri,
-            key,
-            queueAdvisory.queues().back().partitionId(),
-            appInfos);
+            queueInfo);
         BSLS_ASSERT_SAFE(assignRc);
 
         BALL_LOG_INFO << cluster->description()
@@ -1040,13 +1078,10 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     return QueueAssignmentResult::k_ASSIGNMENT_OK;
 }
 
-void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
-                                    const mqbi::Cluster*    cluster,
-                                    const bmqt::Uri&        uri,
-                                    int                     partitionId,
-                                    const mqbu::StorageKey& queueKey,
-                                    const AppInfos&         appInfos,
-                                    bool                    forceUpdate)
+void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
+                                    const mqbi::Cluster* cluster,
+                                    const bmqp_ctrlmsg::QueueInfo& advisory,
+                                    bool                           forceUpdate)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1054,6 +1089,10 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
     BSLS_ASSERT_SAFE(cluster->dispatcher()->inDispatcherThread(cluster));
     BSLS_ASSERT_SAFE(!cluster->isRemote());
     BSLS_ASSERT_SAFE(clusterState);
+
+    const bmqt::Uri& uri         = advisory.uri();
+    int              partitionId = advisory.partitionId();
+
     BSLS_ASSERT_SAFE(uri.isCanonical());
     BSLS_ASSERT_SAFE((0 <= partitionId) &&
                      (static_cast<size_t>(partitionId) <
@@ -1075,6 +1114,9 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
     // force-update the queue info.  We may need to change this later once we
     // implement a more robust startup sequence.
 
+    const mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    advisory.key().data());
+
     DomainStatesIter domIt = clusterState->domainStates().find(
         uri.qualifiedDomain());
     if (domIt != clusterState->domainStates().end()) {
@@ -1085,14 +1127,14 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
             BSLS_ASSERT_SAFE(qs);
             BSLS_ASSERT_SAFE(qs->uri() == uri);
 
-            if ((qs->partitionId() == partitionId) &&
-                (qs->key() == queueKey) && qs->hasTheSameAppIds(appInfos)) {
+            if ((qs->equal(advisory))) {
                 // All good.. nothing to update.
                 return;  // RETURN
             }
 
             bmqu::Printer<AppInfos> stateAppInfos(&qs->appInfos());
-            bmqu::Printer<AppInfos> storageAppInfos(&appInfos);
+            bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> >
+                storageAppInfos(&advisory.appIds());
 
             // PartitionId and/or QueueKey and/or AppInfos mismatch.
             if (!forceUpdate) {
@@ -1118,7 +1160,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
 
             clusterState->queueKeys().erase(qs->key());
 
-            clusterState->assignQueue(uri, queueKey, partitionId, appInfos);
+            clusterState->assignQueue(advisory);
 
             BALL_LOG_INFO << cluster->description() << ": Queue assigned: "
                           << "[uri: " << uri << ", queueKey: " << queueKey
@@ -1131,9 +1173,10 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
     }
 
     // Queue is not known, so add it.
-    clusterState->assignQueue(uri, queueKey, partitionId, appInfos);
+    clusterState->assignQueue(advisory);
 
-    bmqu::Printer<AppInfos> printer(&appInfos);
+    bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer(
+        &advisory.appIds());
     BALL_LOG_INFO << cluster->description()
                   << ": Queue assigned: [uri: " << uri
                   << ", queueKey: " << queueKey
@@ -1179,24 +1222,30 @@ void ClusterUtil::populateAppInfos(
     }
 }
 
-void ClusterUtil::registerAppId(ClusterData*        clusterData,
-                                ClusterStateLedger* ledger,
-                                ClusterState&       clusterState,
-                                const bsl::string&  appId,
-                                const mqbi::Domain* domain,
-                                bslma::Allocator*   allocator)
+void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
+                               ClusterStateLedger*             ledger,
+                               ClusterState&                   clusterState,
+                               const bsl::vector<bsl::string>& added,
+                               const bsl::vector<bsl::string>& removed,
+                               const bsl::string&              domainName,
+                               const bsl::string&              uri,
+                               bslma::Allocator*               allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
-    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(!domainName.empty());
     BSLS_ASSERT_SAFE(allocator);
+
+    bmqu::Printer<bsl::vector<bsl::string> > printAdded(&added);
+    bmqu::Printer<bsl::vector<bsl::string> > printRemoved(&removed);
 
     if (mqbnet::ElectorState::e_LEADER !=
         clusterData->electorInfo().electorState()) {
         BALL_LOG_WARN << clusterData->identity().description()
-                      << ": Not registering appId '" << appId
-                      << "' for domain '" << domain->name()
+                      << ": Not unregistering appIds " << printRemoved
+                      << " and registering appIds " << printAdded
+                      << "] for domain '" << domainName
                       << "'. Self is not leader.";
         return;  // RETURN
     }
@@ -1204,8 +1253,9 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
     if (ElectorInfoLeaderStatus::e_ACTIVE !=
         clusterData->electorInfo().leaderStatus()) {
         BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to register appId '" << appId
-                       << "' for domain '" << domain->name()
+                       << ": Failed to unregister appIds " << printRemoved
+                       << " and to register appIds " << printAdded
+                       << "] for domain '" << domainName
                        << "'. Self is leader but is not active.";
         return;  // RETURN
     }
@@ -1213,8 +1263,9 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
     if (clusterData->membership().selfNodeStatus() ==
         bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
         BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to register appId '" << appId
-                       << "' for domain '" << domain->name()
+                       << ": Failed to unregister appIds " << printRemoved
+                       << " and to register appIds " << printAdded
+                       << "] for domain '" << domainName
                        << "'. Self is active leader but is stopping.";
         return;  // RETURN
     }
@@ -1225,8 +1276,10 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
     clusterData->electorInfo().nextLeaderMessageSequence(
         &queueAdvisory.sequenceNumber());
 
-    DomainStatesCIter domCit = clusterState.domainStates().find(
-        domain->name());
+    DomainStatesCIter domCit = clusterState.domainStates().find(domainName);
+
+    bool success = true;
+
     if (domCit == clusterState.domainStates().cend() ||
         domCit->second->queuesInfo().empty()) {
         // We will reach this scenario if we attempt to register an appId for
@@ -1239,182 +1292,77 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
         queueUpdate.uri()         = "";
         queueUpdate.partitionId() = mqbs::DataStore::k_INVALID_PARTITION_ID;
         mqbu::StorageKey::k_NULL_KEY.loadBinary((&queueUpdate.key()));
-        queueUpdate.domain() = domain->name();
+        queueUpdate.domain() = domainName;
 
-        // Populate AppInfo
-        bmqp_ctrlmsg::AppIdInfo appIdInfo;
-        appIdInfo.appId() = appId;
-        mqbu::StorageKey::k_NULL_KEY.loadBinary(&appIdInfo.appKey());
-
-        queueUpdate.addedAppIds().push_back(appIdInfo);
-        queueAdvisory.queueUpdates().push_back(queueUpdate);
-    }
-    else {
-        for (UriToQueueInfoMapCIter qinfoCit =
-                 domCit->second->queuesInfo().cbegin();
-             qinfoCit != domCit->second->queuesInfo().cend();
-             ++qinfoCit) {
-            bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
-            queueUpdate.uri()         = qinfoCit->second->uri().asString();
-            queueUpdate.partitionId() = qinfoCit->second->partitionId();
-            qinfoCit->second->key().loadBinary((&queueUpdate.key()));
-            queueUpdate.domain() = qinfoCit->second->uri().qualifiedDomain();
-            BSLS_ASSERT_SAFE(queueUpdate.domain() == domain->name());
-
-            bsl::unordered_set<mqbu::StorageKey> appKeys;
-            const AppInfos& appInfos = qinfoCit->second->appInfos();
-            for (AppInfosCIter appInfoCit = appInfos.cbegin();
-                 appInfoCit != appInfos.cend();
-                 ++appInfoCit) {
-                if (appInfoCit->first == appId) {
-                    BALL_LOG_ERROR << "Failed to register appId '" << appId
-                                   << "'. It already exists in queue '"
-                                   << qinfoCit->second->uri() << "'.";
-
-                    return;  // RETURN
-                }
-
-                appKeys.insert(appInfoCit->second);
-            }
-
-            // Populate AppInfo
+        // Populate AppInfos
+        for (bsl::vector<bsl::string>::const_iterator cit = added.begin();
+             cit != added.end();
+             ++cit) {
             bmqp_ctrlmsg::AppIdInfo appIdInfo;
-            appIdInfo.appId() = appId;
-            mqbu::StorageKey appKey;
-            mqbs::StorageUtil::generateStorageKey(&appKey, &appKeys, appId);
-            appKey.loadBinary(&appIdInfo.appKey());
+            appIdInfo.appId() = *cit;
+            mqbu::StorageKey::k_NULL_KEY.loadBinary(&appIdInfo.appKey());
 
             queueUpdate.addedAppIds().push_back(appIdInfo);
-            queueAdvisory.queueUpdates().push_back(queueUpdate);
         }
-    }
+        for (bsl::vector<bsl::string>::const_iterator cit = removed.begin();
+             cit != removed.end();
+             ++cit) {
+            bmqp_ctrlmsg::AppIdInfo appIdInfo;
+            appIdInfo.appId() = *cit;
+            mqbu::StorageKey::k_NULL_KEY.loadBinary(&appIdInfo.appKey());
 
-    // Apply 'queueUpdateAdvisory' to CSL
-    BALL_LOG_INFO << clusterData->identity().description()
-                  << ": 'QueueUpdateAdvisory' will be applied to cluster "
-                  << "state ledger: " << queueAdvisory;
+            queueUpdate.removedAppIds().push_back(appIdInfo);
+        }
 
-    const int rc = ledger->apply(queueAdvisory);
-    if (rc != 0) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to apply queue update advisory: "
-                       << queueAdvisory << ", rc: " << rc;
-    }
-    else {
-        BALL_LOG_INFO << "Registered appId '" << appId << "' for domain '"
-                      << domain->name() << "'";
-    }
-}
-
-void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
-                                  ClusterStateLedger* ledger,
-                                  ClusterState&       clusterState,
-                                  const bsl::string&  appId,
-                                  const mqbi::Domain* domain,
-                                  bslma::Allocator*   allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
-    BSLS_ASSERT_SAFE(domain);
-    BSLS_ASSERT_SAFE(allocator);
-
-    if (mqbnet::ElectorState::e_LEADER !=
-        clusterData->electorInfo().electorState()) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to unregister appId '" << appId
-                       << "' for domain '" << domain->name()
-                       << "'. Self is not leader.";
-        return;  // RETURN
-    }
-
-    if (mqbc::ElectorInfoLeaderStatus::e_ACTIVE !=
-        clusterData->electorInfo().leaderStatus()) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to unregister appId '" << appId
-                       << "' for domain '" << domain->name()
-                       << "'. Self is leader but is not active.";
-        return;  // RETURN
-    }
-
-    if (clusterData->membership().selfNodeStatus() ==
-        bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to unregister appId '" << appId
-                       << "' for domain '" << domain->name()
-                       << "'. Self is active leader but is stopping.";
-        return;  // RETURN
-    }
-
-    // Populate 'queueUpdateAdvisory'
-    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
-    bmqp_ctrlmsg::QueueUpdateAdvisory     queueAdvisory(&localAllocator);
-    clusterData->electorInfo().nextLeaderMessageSequence(
-        &queueAdvisory.sequenceNumber());
-
-    DomainStatesCIter domCit = clusterState.domainStates().find(
-        domain->name());
-    if (domCit == clusterState.domainStates().cend() ||
-        domCit->second->queuesInfo().empty()) {
-        // We will reach this scenario if we attempt to unregister an appId for
-        // a domain with no opened queues.  This is still a valid scenario, so
-        // we set a *NULL* queueUri/queueKey/partitionId for the
-        // QueueUpdateAdvisory to indicate that we are updating appIds for the
-        // entire domain.
-
-        bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
-        queueUpdate.uri()         = "";
-        queueUpdate.partitionId() = mqbs::DataStore::k_INVALID_PARTITION_ID;
-        mqbu::StorageKey::k_NULL_KEY.loadBinary((&queueUpdate.key()));
-        queueUpdate.domain() = domain->name();
-
-        // Populate AppInfo
-        bmqp_ctrlmsg::AppIdInfo appIdInfo;
-        appIdInfo.appId() = appId;
-        mqbu::StorageKey::k_NULL_KEY.loadBinary(&appIdInfo.appKey());
-
-        queueUpdate.removedAppIds().push_back(appIdInfo);
         queueAdvisory.queueUpdates().push_back(queueUpdate);
     }
-    else {
+    else if (uri.empty()) {
         for (UriToQueueInfoMapCIter qinfoCit =
                  domCit->second->queuesInfo().cbegin();
              qinfoCit != domCit->second->queuesInfo().cend();
              ++qinfoCit) {
-            bmqp_ctrlmsg::QueueInfoUpdate queueUpdate;
-            queueUpdate.uri()         = qinfoCit->second->uri().asString();
-            queueUpdate.partitionId() = qinfoCit->second->partitionId();
-            qinfoCit->second->key().loadBinary((&queueUpdate.key()));
-            queueUpdate.domain() = qinfoCit->second->uri().qualifiedDomain();
-            BSLS_ASSERT_SAFE(queueUpdate.domain() == domain->name());
+            BSLS_ASSERT_SAFE(qinfoCit->second->uri().qualifiedDomain() ==
+                             domainName);
 
-            bool            appIdFound = false;
-            const AppInfos& appInfos   = qinfoCit->second->appInfos();
-            for (AppInfosCIter appInfoCit = appInfos.cbegin();
-                 appInfoCit != appInfos.cend();
-                 ++appInfoCit) {
-                if (appInfoCit->first == appId) {
-                    // Populate AppInfo
-                    bmqp_ctrlmsg::AppIdInfo appIdInfo;
-                    appIdInfo.appId() = appId;
-                    appInfoCit->second.loadBinary(&appIdInfo.appKey());
-
-                    queueUpdate.removedAppIds().push_back(appIdInfo);
-                    queueAdvisory.queueUpdates().push_back(queueUpdate);
-
-                    appIdFound = true;
-                    break;
-                }
-            }
-
-            if (!appIdFound) {
-                BALL_LOG_ERROR << "Failed to unregister appId '" << appId
-                               << "'. It does not exist in queue '"
-                               << qinfoCit->second->uri() << "'.";
-
-                return;  // RETURN
-            }
+            success = populateQueueUpdate(&queueAdvisory,
+                                          &clusterState,
+                                          added,
+                                          removed,
+                                          *qinfoCit->second,
+                                          allocator);
         }
+    }
+    else {
+        UriToQueueInfoMapCIter qinfoCit = domCit->second->queuesInfo().find(
+            uri);
+
+        if (qinfoCit == domCit->second->queuesInfo().cend()) {
+            BALL_LOG_ERROR << ": Failed to unregister appIds " << printRemoved
+                           << " and to register appIds " << printAdded
+                           << "]. Queue '" << uri << "' does not exist.";
+
+            return;  // RETURN
+        }
+
+        success = populateQueueUpdate(&queueAdvisory,
+                                      &clusterState,
+                                      added,
+                                      removed,
+                                      *qinfoCit->second,
+                                      allocator);
+
+        if (!clusterData->cluster().isCSLModeEnabled()) {
+            BALL_LOG_INFO << clusterData->cluster().description()
+                          << ": Queue updated: " << queueAdvisory;
+        }
+    }
+
+    if (!success) {
+        BALL_LOG_ERROR << "Failed to unregister appIds " << printRemoved
+                       << " and register appIds " << printAdded << "] for '"
+                       << uri << "'.";
+
+        return;  // RETURN
     }
 
     // Apply 'queueUpdateAdvisory' to CSL
@@ -1429,8 +1377,9 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
                        << queueAdvisory << ", rc: " << rc;
     }
     else {
-        BALL_LOG_INFO << "Unregistered appId '" << appId << "' for domain '"
-                      << domain->name() << "'";
+        BALL_LOG_INFO << "Unregister appIds " << printRemoved
+                      << " and registered appIds " << printAdded << " for '"
+                      << uri << "'.";
     }
 }
 
@@ -2042,8 +1991,10 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
     for (DomainStatesCIter domCit = domainsInfo.cbegin();
          domCit != domainsInfo.cend();
          ++domCit) {
+        ClusterState::DomainState& domainState = *domCit->second;
+
         const UriToQueueInfoMap& queuesInfoPerDomain =
-            domCit->second->queuesInfo();
+            domainState.queuesInfo();
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
@@ -2142,29 +2093,6 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                   << " be " << *out;
 
     return rc_SUCCESS;
-}
-
-void ClusterUtil::parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
-                                 const bmqp_ctrlmsg::QueueInfo& queueInfo,
-                                 bslma::Allocator*              allocator)
-{
-    parseQueueInfo(out, queueInfo.appIds(), allocator);
-}
-
-void ClusterUtil::parseQueueInfo(
-    mqbi::ClusterStateManager::AppInfos*        out,
-    const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& apps,
-    bslma::Allocator*                           allocator)
-{
-    for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
-             apps.cbegin();
-         cit != apps.cend();
-         ++cit) {
-        out->insert(bsl::make_pair(
-            bsl::string(cit->appId(), allocator),
-            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                             cit->appKey().data())));
-    }
 }
 
 }  // close package namespace

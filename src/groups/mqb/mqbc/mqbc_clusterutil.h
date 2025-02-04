@@ -134,8 +134,8 @@ struct ClusterUtil {
 
     /// Set the specified `uri` to have the `k_UNASSIGNING` state in the
     /// specified `clusterState`.
-    static void setPendingUnassignment(ClusterState*    clusterState,
-                                       const bmqt::Uri& uri);
+    static void setPendingUnassignment(const ClusterState* clusterState,
+                                       const bmqt::Uri&    uri);
 
     /// Load into the specified `message` the message encoded in the
     /// specified `eventBlob` using the specified `allocator`.
@@ -211,7 +211,7 @@ struct ClusterUtil {
         ClusterState*                          clusterState,
         ClusterData*                           clusterData,
         const bmqt::Uri&                       uri,
-        const mqbi::Domain*                    domain);
+        const mqbconfm::QueueMode&             config);
 
     /// Populate the specified `advisory` with information describing a
     /// queue unassignment of the specified `uri` having the specified `key`
@@ -258,13 +258,10 @@ struct ClusterUtil {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    static void registerQueueInfo(ClusterState*           clusterState,
-                                  const mqbi::Cluster*    cluster,
-                                  const bmqt::Uri&        uri,
-                                  int                     partitionId,
-                                  const mqbu::StorageKey& queueKey,
-                                  const AppInfos&         appIdInfos,
-                                  bool                    forceUpdate);
+    static void registerQueueInfo(ClusterState*                  clusterState,
+                                  const mqbi::Cluster*           cluster,
+                                  const bmqp_ctrlmsg::QueueInfo& advisory,
+                                  bool                           forceUpdate);
 
     /// Generate appKeys based on the appIds in the specified `domainConfig`
     /// and populate them into the specified `appIdInfos`.
@@ -272,33 +269,16 @@ struct ClusterUtil {
     populateAppInfos(bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appIdInfos,
                      const mqbconfm::QueueMode&            domainConfig);
 
-    /// Register the specified `appId` for all queues in the specified
-    /// `domain`, using the specified `clusterData` and `clusterState`.
-    /// Apply the corresponding queue update advisory to the specified
-    /// `ledger`.  Use the specified `allocator` for memory allocations.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    static void registerAppId(ClusterData*        clusterData,
-                              ClusterStateLedger* ledger,
-                              ClusterState&       clusterState,
-                              const bsl::string&  appId,
-                              const mqbi::Domain* domain,
-                              bslma::Allocator*   allocator);
-
-    /// Unregister the specified `appId` for all queues in the specified
-    /// `domain`, using the specified `clusterData` and `clusterState`.
-    /// Apply the corresponding queue update advisory to the specified
-    /// `ledger`.  Use the specified `allocator` for memory allocations.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    static void unregisterAppId(ClusterData*        clusterData,
-                                ClusterStateLedger* ledger,
-                                ClusterState&       clusterState,
-                                const bsl::string&  appId,
-                                const mqbi::Domain* domain,
-                                bslma::Allocator*   allocator);
+    /// Unregister the specified 'removed' and register the specified `added`
+    /// for the specified  `domainName` and the specified `uri`.
+    static void updateAppIds(ClusterData*                    clusterData,
+                             ClusterStateLedger*             ledger,
+                             ClusterState&                   clusterState,
+                             const bsl::vector<bsl::string>& added,
+                             const bsl::vector<bsl::string>& removed,
+                             const bsl::string&              domainName,
+                             const bsl::string&              uri,
+                             bslma::Allocator*               allocator);
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the specified partition-primary
@@ -397,16 +377,6 @@ struct ClusterUtil {
     static int latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                const ClusterStateLedger&            ledger,
                                const ClusterData& clusterData);
-
-    /// Load into the specified `out` all `AppInfo` data from the specified
-    /// `queueInfo` using the specified `allocator`.
-    static void parseQueueInfo(mqbi::ClusterStateManager::AppInfos* out,
-                               const bmqp_ctrlmsg::QueueInfo&       queueInfo,
-                               bslma::Allocator*                    allocator);
-    static void
-    parseQueueInfo(mqbi::ClusterStateManager::AppInfos*        out,
-                   const bsl::vector<bmqp_ctrlmsg::AppIdInfo>& apps,
-                   bslma::Allocator*                           allocator);
 };
 
 // ============================================================================

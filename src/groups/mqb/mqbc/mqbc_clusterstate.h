@@ -225,6 +225,8 @@ class ClusterStateQueueInfo {
     /// / unassigned.
     State::Enum d_state;
 
+    bslma::Allocator* d_allocator_p;
+
   private:
     // NOT IMPLEMENTED
     ClusterStateQueueInfo(const ClusterStateQueueInfo&) BSLS_KEYWORD_DELETED;
@@ -252,15 +254,13 @@ class ClusterStateQueueInfo {
     /// Create a `mqbc::ClusterStateQueueInfo` with the specified `uri`,
     /// `key`, `partitionId` and `appIdInfos` values.  Use the specified
     /// `allocator` for any memory allocation.
-    ClusterStateQueueInfo(const bmqt::Uri&        uri,
-                          const mqbu::StorageKey& key,
-                          int                     partitionId,
-                          const AppInfos&         appIdInfos,
-                          bslma::Allocator*       allocator);
+    ClusterStateQueueInfo(const bmqp_ctrlmsg::QueueInfo& advisory,
+                          bslma::Allocator*              allocator);
 
     // MANIPULATORS
-    ClusterStateQueueInfo& setKey(const mqbu::StorageKey& value);
+    ClusterStateQueueInfo& setKey(const bmqp_ctrlmsg::QueueInfo& advisory);
     ClusterStateQueueInfo& setPartitionId(int value);
+    void                   setApps(const bmqp_ctrlmsg::QueueInfo& advisory);
 
     /// Set the corresponding member to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -283,6 +283,9 @@ class ClusterStateQueueInfo {
     /// Return the value of the corresponding member of this object.
     State::Enum state() const;
     bool        pendingUnassignment() const;
+
+    /// Return `true` if the specified `advisory` matches this object.
+    bool equal(const bmqp_ctrlmsg::QueueInfo& advisory) const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
@@ -426,8 +429,8 @@ class ClusterState {
 
   public:
     // TYPES
-    typedef ClusterStateQueueInfo::AppInfos      AppInfos;
-    typedef ClusterStateQueueInfo::AppInfosCIter AppInfosCIter;
+    typedef ClusterStateQueueInfo::AppInfo  AppInfo;
+    typedef ClusterStateQueueInfo::AppInfos AppInfos;
 
     typedef bsl::vector<ClusterStatePartitionInfo> PartitionsInfo;
 
@@ -625,10 +628,7 @@ class ClusterState {
     ///
     /// THREAD: This method should only be called from the associated
     /// cluster's dispatcher thread.
-    bool assignQueue(const bmqt::Uri&        uri,
-                     const mqbu::StorageKey& key,
-                     int                     partitionId,
-                     const AppInfos&         appIdInfos);
+    bool assignQueue(const bmqp_ctrlmsg::QueueInfo& queueInfo);
 
     /// Un-assign the queue with the specified `uri`.  Return true if
     /// successful, or false if the queue does not exist.
@@ -651,10 +651,7 @@ class ClusterState {
     ///
     /// THREAD: This method should only be called from the associated
     /// cluster's dispatcher thread.
-    int updateQueue(const bmqt::Uri&   uri,
-                    const bsl::string& domain,
-                    const AppInfos&    addedAppIds,
-                    const AppInfos&    removedAppIds = AppInfos());
+    int updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update);
 
     /// Clear this cluster state object, without firing any observers.
     void clear();
@@ -844,30 +841,29 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_partitionId(mqbs::DataStore::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
 , d_state(State::k_NONE)
+, d_allocator_p(allocator)
 {
     // NOTHING
 }
 
 inline ClusterStateQueueInfo::ClusterStateQueueInfo(
-    const bmqt::Uri&        uri,
-    const mqbu::StorageKey& key,
-    int                     partitionId,
-    const AppInfos&         appIdInfos,
-    bslma::Allocator*       allocator)
-: d_uri(uri, allocator)
-, d_key(key)
-, d_partitionId(partitionId)
-, d_appInfos(appIdInfos, allocator)
+    const bmqp_ctrlmsg::QueueInfo& advisory,
+    bslma::Allocator*              allocator)
+: d_uri(advisory.uri(), allocator)
+, d_key(mqbu::StorageKey::BinaryRepresentation(), advisory.key().data())
+, d_partitionId(advisory.partitionId())
+, d_appInfos(allocator)
 , d_state(State::k_NONE)
+, d_allocator_p(allocator)
 {
-    // NOTHING
+    setApps(advisory);
 }
 
 // MANIPULATORS
 inline ClusterStateQueueInfo&
-ClusterStateQueueInfo::setKey(const mqbu::StorageKey& value)
+ClusterStateQueueInfo::setKey(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
-    d_key = value;
+    d_key.fromBinary(advisory.key().data());
     return *this;
 }
 
