@@ -644,6 +644,12 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
 
 
 def test_open_authorize_change_primary(multi_node: Cluster):
+    """Add an App to Domain config of an existing queue, and then force a
+    Replica to become new Primary.  Start new Consumer.  Make sure the Consumer
+    receives previously posted data.
+    This is to address the concern with Replica not processing QueueUpdates
+    before becoming Primary.
+    """
     leader = multi_node.last_known_leader
     proxies = multi_node.proxy_cycle()
 
@@ -660,7 +666,7 @@ def test_open_authorize_change_primary(multi_node: Cluster):
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(multi_node, default_app_ids + ["quux"])
+    set_app_ids(multi_node, all_app_ids)
 
     # ---------------------------------------------------------------------
     # Post a message.
@@ -685,13 +691,12 @@ def test_open_authorize_change_primary(multi_node: Cluster):
     # wait for new leader
     leader = multi_node.wait_leader()
 
-    app_id = all_app_ids[1]
     consumer = next(proxies).create_client(app_id)
-    consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+    consumer.open(f"{tc.URI_FANOUT}?id=new_app", flags=["read"], succeed=True)
 
     assert wait_until(
-        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id={app_id}", block=True)) == 1,
+        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id=new_app", block=True)) == 1,
         3,
     )
 
-    consumer.close(f"{tc.URI_FANOUT}?id={app_id}", block=True, succeed=True)
+    consumer.close(f"{tc.URI_FANOUT}?id=new_app", block=True, succeed=True)
