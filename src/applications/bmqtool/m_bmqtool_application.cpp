@@ -509,16 +509,13 @@ void Application::generateLatencyReport(
     int                                           idx = 0;
     bsl::list<bsls::Types::Int64>::const_iterator it  = itStart;
     while (it != latencies.cend()) {
-        if (idx++ > 0) {
-            if (idx % 10 == 0) {
-                output << ",\n    ";
-            }
-            else {
-                output << ", ";
-            }
+        if (idx++ % 10 == 0) {
+            output << "\n    ";
         }
         output << *it;
-        ++it;
+        if (++it != latencies.cend()) {
+            output << ", ";
+        }
     }
     output << "\n  ]\n"
            << "}\n";
