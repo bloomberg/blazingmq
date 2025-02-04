@@ -193,20 +193,14 @@ class ClusterStateManager {
     virtual QueueAssignmentResult::Enum
     assignQueue(const bmqt::Uri& uri, bmqp_ctrlmsg::Status* status = 0) = 0;
 
-    /// Register a queue info for the queue with the specified `uri`,
-    /// `partitionId`, `queueKey` and the optionally specified `appIdInfos`.
-    /// If no `appIdInfos` is specified, use the appId infos from the domain
-    /// config instead.  If the specified `forceUpdate` flag is true, update
-    /// queue info even if it is valid but different from the specified
-    /// `queueKey` and `partitionId`.
+    /// Register a queue info for the queue with the specified `advisory`.
+    /// If the specified `forceUpdate` flag is true, update queue info even if
+    /// it is valid but different from the specified `advisory`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void registerQueueInfo(const bmqt::Uri&        uri,
-                                   int                     partitionId,
-                                   const mqbu::StorageKey& queueKey,
-                                   const AppInfos&         appIdInfos,
-                                   bool                    forceUpdate) = 0;
+    virtual void registerQueueInfo(const bmqp_ctrlmsg::QueueInfo& advisory,
+                                   bool forceUpdate) = 0;
 
     /// Unassign the queue in the specified `advisory` by applying the
     /// advisory to the cluster state ledger owned by this object.
@@ -235,21 +229,15 @@ class ClusterStateManager {
         const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>()) = 0;
 
-    /// Register the specified `appId` for all queues in the specified
-    /// `domain`.
+    /// Unregister the specified 'removed' and register the specified `added`
+    /// for the specified  `domain` and optionally specified `uri`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    virtual void registerAppId(const bsl::string&  appId,
-                               const mqbi::Domain* domain) = 0;
-
-    /// Unregister the specified `appId` for all queues in the specified
-    /// `domain`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual void unregisterAppId(const bsl::string&  appId,
-                                 const mqbi::Domain* domain) = 0;
+    virtual void updateAppIds(const bsl::vector<bsl::string>& added,
+                              const bsl::vector<bsl::string>& removed,
+                              const bsl::string&              domainName,
+                              const bsl::string&              uri) = 0;
 
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.
