@@ -17,14 +17,13 @@
 #ifndef INCLUDED_MQBCFG_BROKERCONFIG
 #define INCLUDED_MQBCFG_BROKERCONFIG
 
-//@PURPOSE: Provide global access to broker configuration.
-//
-//@CLASSES:
-//  mqbcfg::BrokerConfig: mechanism to set and get the broker configuration.
-//
-//@DESCRIPTION: This component defines a mechanism, 'mqbcfg::BrokerConfig',
-// that provides a safe way of setting and getting a pointer to the global
-// broker configuration.
+/// @file mqbcfg_brokerconfig.h
+///
+/// @brief Provide global access to broker configuration.
+///
+/// This component defines a mechanism, @bbref{mqbcfg::BrokerConfig}, that
+/// provides a safe way of setting and getting a pointer to the global broker
+/// configuration.
 
 // BDE
 #include <bsls_cpp11.h>
@@ -39,6 +38,7 @@ class AppConfig;
 // struct BrokerConfig
 // ===================
 
+/// Mechanism to set and get the broker configuration.
 struct BrokerConfig {
     // NOT IMPLEMENTED
     BrokerConfig() BSLS_CPP11_DELETED;
