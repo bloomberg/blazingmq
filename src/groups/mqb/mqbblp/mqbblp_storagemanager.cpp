@@ -2175,8 +2175,7 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
 
     return mqbc::StorageUtil::isStorageEmpty(&d_storagesLock,
                                              d_storages[partitionId],
-                                             uri,
-                                             partitionId);
+                                             uri);
 }
 
 }  // close package namespace
