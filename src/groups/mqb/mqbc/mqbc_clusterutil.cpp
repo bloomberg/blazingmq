@@ -1010,6 +1010,11 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     }
 
     if (!cluster->isCSLModeEnabled()) {
+        // Broadcast 'queueAssignmentAdvisory' to all followers
+        // Do it before 'assignQueue' so that Replicas receive CSL before
+        // QueueCreationRecord
+        clusterData->messageTransmitter().broadcastMessage(controlMsg);
+
         // In CSL mode, we assign the queue to ClusterState upon CSL commit
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
 
@@ -1032,9 +1037,6 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
         BALL_LOG_INFO << cluster->description()
                       << ": Queue assigned: " << queueAdvisory;
-
-        // Broadcast 'queueAssignmentAdvisory' to all followers
-        clusterData->messageTransmitter().broadcastMessage(controlMsg);
     }
 
     return QueueAssignmentResult::k_ASSIGNMENT_OK;
