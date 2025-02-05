@@ -1286,29 +1286,6 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
             queueUpdate.addedAppIds().push_back(appIdInfo);
             queueAdvisory.queueUpdates().push_back(queueUpdate);
-
-            if (!clusterData->cluster().isCSLModeEnabled()) {
-                // In CSL mode, we update the queue to ClusterState upon CSL
-                // commit callback of QueueUpdateAdvisory.
-
-                // In non-CSL mode this is the shortcut to call Primary CQH
-                // instead of waiting for the quorum of acks in the ledger.
-
-                AppInfos addedApps(allocator);
-                mqbc::ClusterUtil::parseQueueInfo(&addedApps,
-                                                  queueUpdate.addedAppIds(),
-                                                  allocator);
-
-                BSLA_MAYBE_UNUSED const int assignRc =
-                    clusterState.updateQueue(queueUpdate.uri(),
-                                             queueUpdate.domain(),
-                                             addedApps,
-                                             AppInfos(allocator));
-                BSLS_ASSERT_SAFE(assignRc == 0);
-
-                BALL_LOG_INFO << clusterData->cluster().description()
-                              << ": Queue updated: " << queueAdvisory;
-            }
         }
     }
 
@@ -1436,29 +1413,6 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
                                << qinfoCit->second->uri() << "'.";
 
                 return;  // RETURN
-            }
-
-            if (!clusterData->cluster().isCSLModeEnabled()) {
-                // In CSL mode, we update the queue to ClusterState upon CSL
-                // commit callback of QueueUpdateAdvisory.
-
-                // In non-CSL mode this is the shortcut to call Primary CQH
-                // instead of waiting for the quorum of acks in the ledger.
-
-                AppInfos removedApps(allocator);
-                mqbc::ClusterUtil::parseQueueInfo(&removedApps,
-                                                  queueUpdate.removedAppIds(),
-                                                  allocator);
-
-                BSLA_MAYBE_UNUSED const int assignRc =
-                    clusterState.updateQueue(queueUpdate.uri(),
-                                             queueUpdate.domain(),
-                                             AppInfos(allocator),
-                                             removedApps);
-                BSLS_ASSERT_SAFE(assignRc == 0);
-
-                BALL_LOG_INFO << clusterData->cluster().description()
-                              << ": Queue updated: " << queueAdvisory;
             }
         }
     }
