@@ -1430,12 +1430,17 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
         &primarySyncCtx.primarySyncStatusEventHandle());
 
     primarySyncCtx.partitionPrimarySyncCb()(partitionId, status);
-    primarySyncCtx.setPrimarySyncPeer(0);
 
     if (primarySyncCtx.fileTransferInfo().areFilesMapped()) {
         // Don't clear the 'primarySyncCtx' at this time because files are
         // still mapped.  It will be cleaned up when the chunk deleter
         // eventually invokes 'partitionSyncCleanupDispatched' routine.
+
+        // However, we have already received all sync data chunks from the sync
+        // peer, so we can reset our sync peer to *null*.  This prevents false
+        // alarm of primary sync failure if that peer happens to go down before
+        // 'partitionSyncCleanupDispatched' is invoked.
+        primarySyncCtx.setPrimarySyncPeer(0);
 
         return;  // RETURN
     }
