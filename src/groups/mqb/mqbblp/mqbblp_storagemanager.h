@@ -324,19 +324,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// associated with `processorId`.
     void shutdownCb(int partitionId, bslmt::Latch* latch);
 
-    void queueCreationCb(int*                    status,
-                         int                     partitionId,
-                         const bmqt::Uri&        uri,
-                         const mqbu::StorageKey& queueKey,
-                         const AppInfos&         appIdKeyPairs,
-                         bool                    isNewQueue);
-
-    void queueDeletionCb(int*                    status,
-                         int                     partitionId,
-                         const bmqt::Uri&        uri,
-                         const mqbu::StorageKey& queueKey,
-                         const mqbu::StorageKey& appKey);
-
     /// Callback executed when the partition having the specified
     /// `partitionId` has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified

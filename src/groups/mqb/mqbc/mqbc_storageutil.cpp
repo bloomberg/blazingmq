@@ -1181,19 +1181,17 @@ bool StorageUtil::validatePartitionSyncEvent(
 }
 
 int StorageUtil::assignPartitionDispatcherThreads(
-    bdlmt::FixedThreadPool*                     threadPool,
-    mqbc::ClusterData*                          clusterData,
-    const mqbi::Cluster&                        cluster,
-    mqbi::Dispatcher*                           dispatcher,
-    const mqbcfg::PartitionConfig&              config,
-    FileStores*                                 fileStores,
-    BlobSpPool*                                 blobSpPool,
-    bmqma::CountingAllocatorStore*              allocators,
-    bsl::ostream&                               errorDescription,
-    int                                         replicationFactor,
-    const RecoveredQueuesCb&                    recoveredQueuesCb,
-    const bdlb::NullableValue<QueueCreationCb>& queueCreationCb,
-    const bdlb::NullableValue<QueueDeletionCb>& queueDeletionCb)
+    bdlmt::FixedThreadPool*        threadPool,
+    mqbc::ClusterData*             clusterData,
+    const mqbi::Cluster&           cluster,
+    mqbi::Dispatcher*              dispatcher,
+    const mqbcfg::PartitionConfig& config,
+    FileStores*                    fileStores,
+    BlobSpPool*                    blobSpPool,
+    bmqma::CountingAllocatorStore* allocators,
+    bsl::ostream&                  errorDescription,
+    int                            replicationFactor,
+    const RecoveredQueuesCb&       recoveredQueuesCb)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1237,14 +1235,6 @@ int StorageUtil::assignPartitionDispatcherThreads(
             .setMaxQlistFileSize(config.maxQlistFileSize())
             .setMaxArchivedFileSets(config.maxArchivedFileSets())
             .setRecoveredQueuesCb(recoveredQueuesCb);
-
-        if (!queueCreationCb.isNull()) {
-            dsCfg.setQueueCreationCb(queueCreationCb.value());
-        }
-
-        if (!queueDeletionCb.isNull()) {
-            dsCfg.setQueueDeletionCb(queueDeletionCb.value());
-        }
 
         // Get named allocator from associated bmqma::CountingAllocatorStore
         bslma::Allocator* fileStoreAllocator = allocators->get(

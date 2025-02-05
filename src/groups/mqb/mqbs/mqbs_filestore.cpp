@@ -4279,21 +4279,6 @@ int FileStore::writeQueueCreationRecord(
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
 
-    if (!d_isCSLModeEnabled) {
-        int status = 0;
-        BSLS_ASSERT_SAFE(d_config.queueCreationCb());
-        d_config.queueCreationCb()(&status,
-                                   d_config.partitionId(),
-                                   quri,
-                                   queueKey,
-                                   appIdKeyPairs,
-                                   QueueOpType::e_CREATION == queueOpType);
-
-        if (0 != status) {
-            return 10 * status + rc_QUEUE_CREATION_FAILURE;  // RETURN
-        }
-    }
-
     StorageMapIter sit = d_storages.find(queueKey);
     if (sit == d_storages.end()) {
         if (d_isCSLModeEnabled) {
@@ -4464,9 +4449,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
         BSLS_ASSERT_SAFE(!queueKey->isNull());
 
-        if (!(d_isCSLModeEnabled && recordType == RecordType::e_QUEUE_OP &&
+        if (!(recordType == RecordType::e_QUEUE_OP &&
               queueOpType == QueueOpType::e_DELETION)) {
-            // In CSL mode, the FileStore might receive the QueueDeletionRecord
+            // In ANY mode, the FileStore might receive the QueueDeletionRecord
             // after the queue storage has already been removed in the CSL
             // QueueUnassignment commit callback.  Therefore, we will relax the
             // checks below.
@@ -4492,10 +4477,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             }
 
             if (!appKey->isNull()) {
-                if (!(d_isCSLModeEnabled &&
-                      recordType == RecordType::e_QUEUE_OP &&
+                if (!(recordType == RecordType::e_QUEUE_OP &&
                       queueOpType == QueueOpType::e_PURGE)) {
-                    // In CSL mode, if we are unregistering the 'appKey', then
+                    // In ANY mode, if we are unregistering the 'appKey', then
                     // we would have purged the subqueue and removed the
                     // virtual storage for the 'appKey' before receiving this
                     // QueueOp Purge record.
@@ -4701,12 +4685,11 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                 rstorage->purge(*appKey);
             }
             else {
-                // In CSL mode, if we are unregistering the 'appKey', then we
+                // In ANY mode, if we are unregistering the 'appKey', then we
                 // would have purged the subqueue and removed the virtual
                 // storage for the 'appKey' before receiving this QueueOp Purge
                 // record.  That why we don't process this queue-purge command
                 // in CSL mode.
-                BSLS_ASSERT_SAFE(d_isCSLModeEnabled);
             }
             rstorage->addQueueOpRecordHandle(handle);
         }
@@ -4716,32 +4699,11 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             if (appKey->isNull()) {
                 // Entire queue is being deleted.
 
-                if (!d_isCSLModeEnabled) {
-                    // In CSL mode, any outstanding QueueOp records are deleted
-                    // upon receiving queue-unassigned advisory (see
-                    // CQH::onQueueUnassigned and
-                    // StorageMgr::unregisterQueueReplica).  In non-CSL mode,
-                    // outstanding QueueOp records need to be deleted here.
-
-                    const bsls::Types::Int64 numMsgs = rstorage->numMessages(
-                        mqbu::StorageKey::k_NULL_KEY);
-                    if (0 != numMsgs) {
-                        BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                            << partitionDesc()
-                            << "Received QueueOpRecord.DELETION for queue ["
-                            << rstorage->queueUri() << "] which has ["
-                            << numMsgs << "] outstanding messages."
-                            << BMQTSK_ALARMLOG_END;
-                        return rc_QUEUE_DELETION_ERROR;  // RETURN
-                    }
-
-                    const ReplicatedStorage::RecordHandles& recHandles =
-                        rstorage->queueOpRecordHandles();
-
-                    for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-                        removeRecordRaw(recHandles[idx]);
-                    }
-                }
+                // In ANY mode, any outstanding QueueOp records are deleted
+                // upon receiving queue-unassigned advisory (see
+                // CQH::onQueueUnassigned and
+                // StorageMgr::unregisterQueueReplica).  In non-CSL mode,
+                // outstanding QueueOp records need to be deleted here.
 
                 // Delete the QueueOpRecord.DELETION record written above.
                 // This needs to be done in both CSL and non-CSL modes.
@@ -4749,27 +4711,6 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             }
             // else: a non-null appKey is specified in a QueueOpRecord.DELETION
             // record.  No need to remove any queueOpRecords.
-
-            if (d_isCSLModeEnabled) {
-                // No further logic for CSL mode.
-                return rc_SUCCESS;  // RETURN
-            }
-            BSLS_ASSERT_SAFE(!d_isFSMWorkflow);
-
-            // Once below callback returns, 'rstorage' will no longer be
-            // valid.  So invoking this callback should be the last thing
-            // to do in this 'else' snippet.
-
-            int status = 0;
-            BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
-            d_config.queueDeletionCb()(&status,
-                                       d_config.partitionId(),
-                                       rstorage->queueUri(),
-                                       *queueKey,
-                                       *appKey);
-            if (0 != status) {
-                return rc_QUEUE_DELETION_ERROR;  // RETURN
-            }
         }
     }
 
