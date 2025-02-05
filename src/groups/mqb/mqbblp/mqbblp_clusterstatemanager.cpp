@@ -82,7 +82,7 @@ void ClusterStateManager::onCommit(
 
     // NOTE: Even when using old workflow, we still apply all advisories to the
     // CSL. We just don't invoke the commit callbacks.
-    // Make an exception for QueueAssignmentAdvisory
+    // Make an exception for QueueUpdateAdvisory and QueueAssignmentAdvisory
     if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
         !clusterMessage.choice().isQueueUpdateAdvisoryValue() &&
         !clusterMessage.choice().isQueueAssignmentAdvisoryValue()) {
