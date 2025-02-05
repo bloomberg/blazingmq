@@ -91,10 +91,6 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     // o 'LeaderAdvisory',
     // o 'QueueUnassignedAdvisory'
 
-    mqbsi::LedgerRecordId d_recordId;
-    // Record id stored in the ledger and
-    // associated with the 'ClusterMessage'
-
     int d_ackCount;
     // Number of ACKs received for this
     // ClusterMessage
@@ -212,16 +208,17 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     int cleanupLog(const bsl::string& logPath);
 
     /// Callback invoked upon internal rollover to a new log, providing the
-    /// specified `oldLogId` (if any) and `newLogId`.  Return 0 on success
-    /// and non-zero error value otherwise.
+    /// specified `oldLogId` (if any) and `newLogId`.  Return 0 on success and
+    /// non-zero error value otherwise.
     int onLogRolloverCb(const mqbu::StorageKey& oldLogId,
                         const mqbu::StorageKey& newLogId);
 
     /// Internal helper method to apply the advisory in the specified
     /// `clusterMessage`, of the specified `recordType` and identified by
-    /// the specified `sequenceNumber`.  The behavior is undefined unless
-    /// the `clusterMessage` is instantiated with the appropriate advisory.
-    /// Note that *only* a leader node may invoke this routine.
+    /// the specified `sequenceNumber`.  Notify via `commitCb` when consistency
+    /// level has been achieved.  The behavior is undefined unless the
+    /// `clusterMessage` is instantiated with the appropriate advisory.  Note
+    /// that *only* a leader node may invoke this routine.
     int applyAdvisoryInternal(
         const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
@@ -230,9 +227,10 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Internal helper method to apply the specified raw `record` at the
     /// specified `recordOffset` and/or `recordPosition`, containing the
     /// specified `clusterMessage` and having the specified `sequenceNumber`
-    /// and `recordType`.  Note that the `record` can either be generated at
-    /// self node or received from a peer node.
-    int applyRecordInternal(
+    /// and `recordType`.  Notify via `commitCb` when consistency level has
+    /// been achieved.  Note that the `record` can either be generated at self
+    /// node or received from a peer node.
+    int applyRecordInternalImpl(
         const bdlbb::Blob&                         record,
         int                                        recordOffset,
         const bmqu::BlobPosition&                  recordPosition,
@@ -327,15 +325,12 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     int close() BSLS_KEYWORD_OVERRIDE;
 
-    // TODO: Declare these methods once the parameter object types have been
-    //       defined in 'mqbc::ClusterState'.
-    // virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
-    // virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
-    // virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
-    // virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
-    // Apply the specified message to self and replicate if self is leader.
-    // Notify via 'commitCb' when consistency level has been achieved.
-
+    /// Apply the specified `advisory` to self and replicate to followers.
+    /// Notify via `commitCb` when consistency level has been achieved.
+    /// Note that *only* a leader node may invoke this routine.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
     int apply(const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
     int apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory)
@@ -345,9 +340,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply the specified `advisory` to self and replicate if self is
-    /// leader.  Notify via `commitCb` when consistency level has been
-    /// achieved.  Note that *only* a leader node may invoke this routine.
+    /// Apply the specified `advisory` to self and replicate to followers.
+    /// Notify via `commitCb` when consistency level has been achieved.  Note
+    /// that *only* a leader node may invoke this routine.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
@@ -421,7 +416,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 inline IncoreClusterStateLedger_ClusterMessageInfo ::
     IncoreClusterStateLedger_ClusterMessageInfo(bslma::Allocator* allocator)
 : d_clusterMessage(bslma::Default::allocator(allocator))
-, d_recordId()
 , d_ackCount(0)
 {
     // NOTHING
@@ -432,7 +426,6 @@ inline IncoreClusterStateLedger_ClusterMessageInfo ::
         const IncoreClusterStateLedger_ClusterMessageInfo& other,
         bslma::Allocator*                                  allocator)
 : d_clusterMessage(other.d_clusterMessage, allocator)
-, d_recordId(other.d_recordId)
 , d_ackCount(other.d_ackCount)
 {
     // NOTHING

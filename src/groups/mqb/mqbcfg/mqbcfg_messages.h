@@ -1,4 +1,4 @@
-// Copyright 2024 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -5467,6 +5467,7 @@ class PartitionConfig {
     // maxDataFileSize......: maximum size of partitions' data file
     // maxJournalFileSize...: maximum size of partitions' journal file
     // maxQlistFileSize.....: maximum size of partitions' qlist file
+    // maxCSLFileSize.......: maximum size of partitions' CSL file
     // preallocate..........: flag to indicate whether files should be
     // preallocated on disk maxArchivedFileSets..: maximum number of archived
     // file sets per partition to keep prefaultPages........: flag to indicate
@@ -5479,6 +5480,7 @@ class PartitionConfig {
     bsls::Types::Uint64 d_maxDataFileSize;
     bsls::Types::Uint64 d_maxJournalFileSize;
     bsls::Types::Uint64 d_maxQlistFileSize;
+    bsls::Types::Uint64 d_maxCSLFileSize;
     bsl::string         d_location;
     bsl::string         d_archiveLocation;
     StorageSyncConfig   d_syncConfig;
@@ -5503,14 +5505,15 @@ class PartitionConfig {
         ATTRIBUTE_ID_MAX_DATA_FILE_SIZE     = 3,
         ATTRIBUTE_ID_MAX_JOURNAL_FILE_SIZE  = 4,
         ATTRIBUTE_ID_MAX_QLIST_FILE_SIZE    = 5,
-        ATTRIBUTE_ID_PREALLOCATE            = 6,
-        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS = 7,
-        ATTRIBUTE_ID_PREFAULT_PAGES         = 8,
-        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN      = 9,
-        ATTRIBUTE_ID_SYNC_CONFIG            = 10
+        ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE    = 6,
+        ATTRIBUTE_ID_PREALLOCATE            = 7,
+        ATTRIBUTE_ID_MAX_ARCHIVED_FILE_SETS = 8,
+        ATTRIBUTE_ID_PREFAULT_PAGES         = 9,
+        ATTRIBUTE_ID_FLUSH_AT_SHUTDOWN      = 10,
+        ATTRIBUTE_ID_SYNC_CONFIG            = 11
     };
 
-    enum { NUM_ATTRIBUTES = 11 };
+    enum { NUM_ATTRIBUTES = 12 };
 
     enum {
         ATTRIBUTE_INDEX_NUM_PARTITIONS         = 0,
@@ -5519,15 +5522,18 @@ class PartitionConfig {
         ATTRIBUTE_INDEX_MAX_DATA_FILE_SIZE     = 3,
         ATTRIBUTE_INDEX_MAX_JOURNAL_FILE_SIZE  = 4,
         ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE    = 5,
-        ATTRIBUTE_INDEX_PREALLOCATE            = 6,
-        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS = 7,
-        ATTRIBUTE_INDEX_PREFAULT_PAGES         = 8,
-        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN      = 9,
-        ATTRIBUTE_INDEX_SYNC_CONFIG            = 10
+        ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE    = 6,
+        ATTRIBUTE_INDEX_PREALLOCATE            = 7,
+        ATTRIBUTE_INDEX_MAX_ARCHIVED_FILE_SETS = 8,
+        ATTRIBUTE_INDEX_PREFAULT_PAGES         = 9,
+        ATTRIBUTE_INDEX_FLUSH_AT_SHUTDOWN      = 10,
+        ATTRIBUTE_INDEX_SYNC_CONFIG            = 11
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
 
     static const bool DEFAULT_INITIALIZER_PREALLOCATE;
 
@@ -5652,6 +5658,10 @@ class PartitionConfig {
     // Return a reference to the modifiable "MaxQlistFileSize" attribute of
     // this object.
 
+    bsls::Types::Uint64& maxCSLFileSize();
+    // Return a reference to the modifiable "MaxCSLFileSize" attribute of
+    // this object.
+
     bool& preallocate();
     // Return a reference to the modifiable "Preallocate" attribute of this
     // object.
@@ -5735,6 +5745,9 @@ class PartitionConfig {
 
     bsls::Types::Uint64 maxQlistFileSize() const;
     // Return the value of the "MaxQlistFileSize" attribute of this object.
+
+    bsls::Types::Uint64 maxCSLFileSize() const;
+    // Return the value of the "MaxCSLFileSize" attribute of this object.
 
     bool preallocate() const;
     // Return the value of the "Preallocate" attribute of this object.
@@ -9578,9 +9591,9 @@ class Configuration {
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     mqbcfg::Configuration)
 
-//=============================================================================
+// ============================================================================
 //                          INLINE DEFINITIONS
-//=============================================================================
+// ============================================================================
 
 namespace mqbcfg {
 
@@ -14374,6 +14387,7 @@ void PartitionConfig::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     hashAppend(hashAlgorithm, this->maxDataFileSize());
     hashAppend(hashAlgorithm, this->maxJournalFileSize());
     hashAppend(hashAlgorithm, this->maxQlistFileSize());
+    hashAppend(hashAlgorithm, this->maxCSLFileSize());
     hashAppend(hashAlgorithm, this->preallocate());
     hashAppend(hashAlgorithm, this->maxArchivedFileSets());
     hashAppend(hashAlgorithm, this->prefaultPages());
@@ -14389,6 +14403,7 @@ inline bool PartitionConfig::isEqualTo(const PartitionConfig& rhs) const
            this->maxDataFileSize() == rhs.maxDataFileSize() &&
            this->maxJournalFileSize() == rhs.maxJournalFileSize() &&
            this->maxQlistFileSize() == rhs.maxQlistFileSize() &&
+           this->maxCSLFileSize() == rhs.maxCSLFileSize() &&
            this->preallocate() == rhs.preallocate() &&
            this->maxArchivedFileSets() == rhs.maxArchivedFileSets() &&
            this->prefaultPages() == rhs.prefaultPages() &&
@@ -14438,6 +14453,13 @@ int PartitionConfig::manipulateAttributes(t_MANIPULATOR& manipulator)
     ret = manipulator(
         &d_maxQlistFileSize,
         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_maxCSLFileSize,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
     if (ret) {
         return ret;
     }
@@ -14510,6 +14532,11 @@ int PartitionConfig::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
         return manipulator(
             &d_maxQlistFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE]);
+    }
+    case ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE: {
+        return manipulator(
+            &d_maxCSLFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
     }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return manipulator(&d_preallocate,
@@ -14584,6 +14611,11 @@ inline bsls::Types::Uint64& PartitionConfig::maxQlistFileSize()
     return d_maxQlistFileSize;
 }
 
+inline bsls::Types::Uint64& PartitionConfig::maxCSLFileSize()
+{
+    return d_maxCSLFileSize;
+}
+
 inline bool& PartitionConfig::preallocate()
 {
     return d_preallocate;
@@ -14647,6 +14679,12 @@ int PartitionConfig::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_maxQlistFileSize,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_maxCSLFileSize,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
     if (ret) {
         return ret;
     }
@@ -14719,6 +14757,11 @@ int PartitionConfig::accessAttribute(t_ACCESSOR& accessor, int id) const
             d_maxQlistFileSize,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_QLIST_FILE_SIZE]);
     }
+    case ATTRIBUTE_ID_MAX_C_S_L_FILE_SIZE: {
+        return accessor(
+            d_maxCSLFileSize,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MAX_C_S_L_FILE_SIZE]);
+    }
     case ATTRIBUTE_ID_PREALLOCATE: {
         return accessor(d_preallocate,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PREALLOCATE]);
@@ -14789,6 +14832,11 @@ inline bsls::Types::Uint64 PartitionConfig::maxJournalFileSize() const
 inline bsls::Types::Uint64 PartitionConfig::maxQlistFileSize() const
 {
     return d_maxQlistFileSize;
+}
+
+inline bsls::Types::Uint64 PartitionConfig::maxCSLFileSize() const
+{
+    return d_maxCSLFileSize;
 }
 
 inline bool PartitionConfig::preallocate() const
@@ -18561,13 +18609,7 @@ inline const AppConfig& Configuration::appConfig() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2024.10.17
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd
 // ----------------------------------------------------------------------------
-// NOTICE:
-//      Copyright 2024 Bloomberg Finance L.P. All rights reserved.
-//      Property of Bloomberg Finance L.P. (BFLP)
-//      This software is made available solely pursuant to the
-//      terms of a BFLP license agreement which governs its use.
-// ------------------------------- END-OF-FILE --------------------------------

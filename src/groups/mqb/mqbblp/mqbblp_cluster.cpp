@@ -82,7 +82,7 @@ namespace mqbblp {
 namespace {
 const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
-const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minutes
+const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 
 /// Timeout duration for Partition FSM watchdog -- 5 minutes
 const bsls::Types::Int64 k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION = 60 * 5;

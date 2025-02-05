@@ -419,6 +419,15 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
             // insists on re-assigning
             isNewAssignment = false;
 
+            // TODO Remove protection, and ensure idempotency on all these
+            // mqbc::ClusterState modifier functions.
+            if (queueIt->second->key() == key &&
+                queueIt->second->partitionId() == partitionId &&
+                queueIt->second->appInfos() == appIdInfos) {
+                // If queue info is unchanged, can simply return
+                return false;  // RETURN
+            }
+
             updatePartitionQueueMapped(queueIt->second->partitionId(), -1);
         }
         queueIt->second->setKey(key).setPartitionId(partitionId);
