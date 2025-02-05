@@ -426,10 +426,6 @@ class DataStoreConfig {
 
     bsls::Types::Uint64 d_maxQlistFileSize;
 
-    QueueCreationCb d_queueCreationCb;
-
-    QueueDeletionCb d_queueDeletionCb;
-
     RecoveredQueuesCb d_recoveredQueuesCb;
 
     int d_maxArchivedFileSets;
@@ -451,8 +447,6 @@ class DataStoreConfig {
     DataStoreConfig& setMaxDataFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxJournalFileSize(bsls::Types::Uint64 value);
     DataStoreConfig& setMaxQlistFileSize(bsls::Types::Uint64 value);
-    DataStoreConfig& setQueueCreationCb(const QueueCreationCb& value);
-    DataStoreConfig& setQueueDeletionCb(const QueueDeletionCb& value);
     DataStoreConfig& setRecoveredQueuesCb(const RecoveredQueuesCb& value);
 
     /// Set the corresponding member to the specified `value` and return a
@@ -472,8 +466,6 @@ class DataStoreConfig {
     bsls::Types::Uint64       maxDataFileSize() const;
     bsls::Types::Uint64       maxJournalFileSize() const;
     bsls::Types::Uint64       maxQlistFileSize() const;
-    const QueueCreationCb&    queueCreationCb() const;
-    const QueueDeletionCb&    queueDeletionCb() const;
     const RecoveredQueuesCb&  recoveredQueuesCb() const;
 
     /// Return the value of the corresponding member.
@@ -1037,20 +1029,6 @@ DataStoreConfig::setMaxQlistFileSize(bsls::Types::Uint64 value)
 }
 
 inline DataStoreConfig&
-DataStoreConfig::setQueueCreationCb(const QueueCreationCb& value)
-{
-    d_queueCreationCb = value;
-    return *this;
-}
-
-inline DataStoreConfig&
-DataStoreConfig::setQueueDeletionCb(const QueueDeletionCb& value)
-{
-    d_queueDeletionCb = value;
-    return *this;
-}
-
-inline DataStoreConfig&
 DataStoreConfig::setRecoveredQueuesCb(const RecoveredQueuesCb& value)
 {
     d_recoveredQueuesCb = value;
@@ -1122,18 +1100,6 @@ inline bsls::Types::Uint64 DataStoreConfig::maxJournalFileSize() const
 inline bsls::Types::Uint64 DataStoreConfig::maxQlistFileSize() const
 {
     return d_maxQlistFileSize;
-}
-
-inline const DataStoreConfig::QueueCreationCb&
-DataStoreConfig::queueCreationCb() const
-{
-    return d_queueCreationCb;
-}
-
-inline const DataStoreConfig::QueueDeletionCb&
-DataStoreConfig::queueDeletionCb() const
-{
-    return d_queueDeletionCb;
 }
 
 inline const DataStoreConfig::RecoveredQueuesCb&
