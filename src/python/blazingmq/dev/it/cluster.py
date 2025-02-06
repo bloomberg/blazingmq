@@ -206,10 +206,11 @@ class Cluster(contextlib.AbstractContextManager):
         self.last_known_leader = None
         bad_exit = False
         cores_dir = None
+        core_pattern_path = Path("/proc/sys/kernel/core_pattern")
 
-        if self.copy_cores is not None:
+        if self.copy_cores is not None and core_pattern_path.exists():
             try:
-                with open("/proc/sys/kernel/core_pattern") as core_pattern_file:
+                with open(core_pattern_path) as core_pattern_file:
                     pattern = core_pattern_file.readline().strip()
                     if "%p" in pattern:
                         cores_dir = Path(pattern).parent
