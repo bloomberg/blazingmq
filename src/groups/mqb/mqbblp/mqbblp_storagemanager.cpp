@@ -796,13 +796,15 @@ void StorageManager::processPartitionSyncEventDispatched(
             return;  // RETURN
         }
 
-        if (source != d_recoveryManager_mp->primarySyncPeer(partitionId)) {
+        mqbnet::ClusterNode* syncPeer = d_recoveryManager_mp->primarySyncPeer(
+            partitionId);
+        if (source != syncPeer) {
             BALL_LOG_ERROR << d_clusterData_p->identity().description()
                            << " Partition [" << partitionId
                            << "]: received a partition sync event from: "
                            << source->nodeDescription()
                            << ", while partition-sync peer is: "
-                           << source->nodeDescription();
+                           << syncPeer->nodeDescription();
             return;  // RETURN
         }
 
