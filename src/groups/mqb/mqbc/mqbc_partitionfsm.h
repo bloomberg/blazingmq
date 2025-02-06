@@ -17,21 +17,19 @@
 #ifndef INCLUDED_MQBC_PARTITIONFSM
 #define INCLUDED_MQBC_PARTITIONFSM
 
-//@PURPOSE: Provide a finite state machine for controlling partition state.
-//
-//@CLASSES:
-//  mqbc::PartitionFSMEventData: Data of a Partition FSM event.
-//  mqbc::PartitionFSM:          FSM for controlling partition state.
-//
-//@DESCRIPTION: 'mqbc::PartitionFSM' is a finite state machine for controlling
-// partition state.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::PartitionFSM' object is not thread safe.
+/// @file mqbc_partitionfsm.h
+///
+/// @brief Provide a finite state machine for controlling partition state.
+///
+/// @bbref{mqbc::PartitionFSM} is a finite state machine for controlling
+/// partition state.
+///
+/// Thread Safety                                   {#mqbc_partitionfsm_thread}
+/// =============
+///
+/// The @bbref{mqbc::PartitionFSM} object is not thread safe.
 
 // MQB
-
 #include <mqbc_partitionfsmobserver.h>
 #include <mqbc_partitionstatetable.h>
 #include <mqbs_datastore.h>
@@ -73,48 +71,39 @@ class PartitionFSMEventData {
 
   private:
     // DATA
+
+    /// The source cluster node from which this event was originated from.
     mqbnet::ClusterNode* d_source_p;
-    // The source cluster node from
-    // which this event was originated
-    // from.
 
+    /// Associated request Id.
     int d_requestId;
-    // Associated request Id.
 
+    /// Associated partition Id.
     int d_partitionId;
-    // Associated partition Id.
 
+    /// Increment count (for counting number of replica data responses).
     int d_incrementCount;
-    // Increment count (for counting
-    // number of replica data
-    // responses).
 
+    /// The primary for the associated partitionId.
     mqbnet::ClusterNode* d_primary_p;
-    // The primary for the associated
-    // partitionId.
 
+    /// The primary lease id for the associated partitionId.
     unsigned int d_primaryLeaseId;
-    // The primary lease id for the
-    // associated partitionId.
 
+    /// Partition sequence number as sent by the `d_source_p` node for the
+    /// associated partitionId.
     bmqp_ctrlmsg::PartitionSequenceNumber d_partitionSequenceNumber;
-    // Partition sequence number as
-    // sent by the 'd_source_p' node
-    // for the associated partitionId.
 
+    /// The node which has the highest sequence number for the associated
+    /// partitionId.
     mqbnet::ClusterNode* d_highestSeqNumNode;
-    // The node which has the highest
-    // sequence number for the
-    // associated partitionId.
 
+    /// Partition Sequence number range as sent and expected when the data
+    /// exchange takes place.
     PartitionSeqNumDataRange d_partitionSeqNumDataRange;
-    // Partition Sequence number range
-    // as sent and expected when
-    // the data exchange takes place.
 
+    /// The StorageEvent received, consisting of data chunks.
     bsl::shared_ptr<bdlbb::Blob> d_storageEvent;
-    // The StorageEvent received,
-    // consisting of data chunks.
 
   public:
     // CREATORS
@@ -204,10 +193,10 @@ class PartitionFSM {
     struct PartitionFSMArgs {
       private:
         // DATA
+
+        /// Queue containing events which need to be applied to the current
+        /// state of the FSM.
         bsl::queue<EventWithData>* d_eventsQueue_p;
-        // queue containing events which need to
-        // be applied to the current state of the
-        // FSM.
 
       public:
         // CREATORS
@@ -228,8 +217,8 @@ class PartitionFSM {
     typedef StateTable::ActionFunctor               ActionFunctor;
     typedef StateTable::Transition                  Transition;
 
+    /// A set of PartitionFSM observers.
     typedef bsl::unordered_set<PartitionFSMObserver*> ObserversSet;
-    // A set of PartitionFSM observers.
     typedef ObserversSet::iterator ObserversSetIter;
 
   private:
@@ -242,9 +231,8 @@ class PartitionFSM {
 
     PartitionStateTableActions<PartitionFSMArgsSp>& d_actions;
 
+    /// Observers of this object.
     ObserversSet d_observers;
-    // Observers of this
-    // object
 
   public:
     // TRAITS

@@ -17,12 +17,11 @@
 #ifndef INCLUDED_MQBC_RECOVERYUTIL
 #define INCLUDED_MQBC_RECOVERYUTIL
 
-//@PURPOSE: Provide generic utilities used for recovery operations.
-//
-//@CLASSES:
-//  mqbc::StorageUtil: Generic utilities for recovery related operations.
-//
-//@DESCRIPTION: 'mqbc::RecoveryUtil' provides generic utilities.
+/// @file mqbc_recoveryutil.h
+///
+/// @brief Provide generic utilities used for recovery operations.
+///
+/// @bbref{mqbc::RecoveryUtil} provides generic utilities.
 
 // MQB
 #include <mqbi_storage.h>
@@ -111,6 +110,7 @@ struct RecoveryUtil {
     /// The function makes sure that the incremented sequence number is less
     /// than or equal to the specified `endSeqNum` or else it returns
     /// appropriate non-zero return code.
+    ///
     /// This operation is performed for the specified `partitionId`, the
     /// specified `destination` node and the specified `clusterDescription` is
     /// used for logging purposes. The specified `journalIt` is used.

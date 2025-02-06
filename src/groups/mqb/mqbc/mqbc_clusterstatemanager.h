@@ -17,22 +17,21 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATEMANAGER
 #define INCLUDED_MQBC_CLUSTERSTATEMANAGER
 
-//@PURPOSE: Provide a mechanism to manage the state of a cluster.
-//
-//@CLASSES:
-//  mqbc::ClusterStateManager: Mechanism to manage the state of a cluster.
-//
-//@DESCRIPTION: 'mqbc::ClusterStateManager' is a mechanism to manage the
-// state of a cluster.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterStateManager' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless explicitly documented in a method's contract.
+/// @file mqbc_clusterstatemanager.h
+///
+/// @brief Provide a mechanism to manage the state of a cluster.
+///
+/// @bbref{mqbc::ClusterStateManager} is a mechanism to manage the state of a
+/// cluster.
+///
+/// Thread Safety                            {#mqbc_clusterstatemanager_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterStateManager} object is not thread safe and should
+/// always be manipulated from the associated cluster's dispatcher thread,
+/// unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterfsm.h>
 #include <mqbc_clusterstate.h>
@@ -43,9 +42,8 @@
 #include <mqbi_clusterstatemanager.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqma_countingallocatorstore.h>
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <ball_log.h>
@@ -114,56 +112,54 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
   public:
     // TYPES
+
+    /// Map of `(clusterNode -> LeaderSequenceNumber)`.
     typedef bsl::unordered_map<mqbnet::ClusterNode*,
                                bmqp_ctrlmsg::LeaderMessageSequence>
-        NodeToLSNMap;
-    // Map of (clusterNode -> LeaderSequenceNumber)
+                                         NodeToLSNMap;
     typedef NodeToLSNMap::const_iterator NodeToLSNMapCIter;
 
   private:
     // DATA
+
+    /// Allocator for memory allocations.
     bslma::Allocator* d_allocator_p;
-    // Allocator for memory allocations
 
+    /// Allocator store to spawn new allocators for sub-components.
     bmqma::CountingAllocatorStore d_allocators;
-    // Allocator store to spawn new
-    // allocators for sub-components
 
+    /// Event handle for the watch dog.
     bdlmt::EventSchedulerEventHandle d_watchDogEventHandle;
-    // Event handle for the watch dog
 
+    /// Timeout interval for the watch dog.
     bsls::TimeInterval d_watchDogTimeoutInterval;
-    // Timeout interval for the watch dog
 
+    /// Cluster configuration to use.
     const mqbcfg::ClusterDefinition& d_clusterConfig;
-    // Cluster configuration to use
 
+    /// The cluster which owns this object.
     mqbi::Cluster* d_cluster_p;
-    // The cluster which owns this object
 
+    /// Transient cluster data.
     mqbc::ClusterData* d_clusterData_p;
-    // Transient cluster data
 
+    /// Cluster's state.
     mqbc::ClusterState* d_state_p;
-    // Cluster's state.
 
+    /// Underlying finite-state machine to determine state transition and
+    /// action upon an event.
     mqbc::ClusterFSM d_clusterFSM;
-    // Underlying finite-state machine to
-    // determine state transition and
-    // action upon an event.
 
+    /// Map from a cluster node (including self) to its view of the latest
+    /// ledger leader sequence number.
     NodeToLSNMap d_nodeToLedgerLSNMap;
-    // Map from a cluster node (including
-    // self) to its view of the latest
-    // ledger leader sequence number
 
+    /// Number of LSN views gathered from cluster nodes (including self)
+    /// required to achieve a quorum.
     unsigned int d_lsnQuorum;
-    // Number of LSN views gathered from
-    // cluster nodes (including self)
-    // required to achieve a quorum.
 
+    /// Underlying cluster state ledger.
     ClusterStateLedgerMp d_clusterStateLedger_mp;
-    // Underlying cluster state ledger.
 
     mqbi::StorageManager* d_storageManager_p;
 
@@ -692,7 +688,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// THREAD: This method is invoked in the associated cluster's
     /// dispatcher thread.
     ///
-    /// TBD: This is mostly temporary, used in phase I of integrating CSL.
+    /// @todo This is mostly temporary, used in phase I of integrating CSL.
     void validateClusterStateLedger() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `out` the latest ledger LSN associated with
@@ -708,9 +704,9 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     /// Return the health state of the cluster.
     ClusterFSM::State::Enum healthState() const;
 
-    /// Return the map of clusterNode -> leaderSequenceNumber.
+    /// Return the map of `clusterNode -> leaderSequenceNumber`.
     ///
-    /// NOTE: Used for testing purposes only.
+    /// @note Used for testing purposes only.
     const NodeToLSNMap& nodeToLSNMap() const;
 };
 
