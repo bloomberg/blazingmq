@@ -17,7 +17,6 @@
 #include <mqbs_filestoreprotocolprinter.h>
 
 // MQB
-// #include <mqbs_filestoreprotocolutil.h>
 #include <mqbs_filesystemutil.h>
 #include <mqbs_offsetptr.h>
 

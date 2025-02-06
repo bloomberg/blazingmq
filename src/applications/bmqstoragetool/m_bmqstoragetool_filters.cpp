@@ -35,7 +35,7 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     if (!queueKeys.empty()) {
         bsl::vector<bsl::string>::const_iterator keyIt = queueKeys.cbegin();
         for (; keyIt != queueKeys.cend(); ++keyIt) {
-            d_queueKeys.insert(
+            d_queueKeys.emplace(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  keyIt->c_str()));
         }

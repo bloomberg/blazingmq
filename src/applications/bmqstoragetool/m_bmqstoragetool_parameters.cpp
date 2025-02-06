@@ -477,7 +477,7 @@ void Parameters::validateQueueNames(bslma::Allocator* allocator) const
     mqbu::StorageKey                         key;
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {
-        if (d_queueMap.findKeyByUri(*it).has_value()) {
+        if (!d_queueMap.findKeyByUri(*it).has_value()) {
             ss << "Queue name: '" << *it << "' is not found in Csl file."
                << bsl::endl;
         }
