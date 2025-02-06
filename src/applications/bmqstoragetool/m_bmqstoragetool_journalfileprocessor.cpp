@@ -40,13 +40,13 @@ namespace m_bmqstoragetool {
 
 /// Move the journal iterator pointed by the specified 'jit' to the first
 /// record whose value is more then the range lower bound. The specified
-/// `lessThanLowerBoundFn` functor is used for comparison. Return '1' on
+/// `moreThanLowerBoundFn` functor is used for comparison. Return '1' on
 /// success, '0' if there are no such records or negative value if an error was
 /// encountered.  Note that if this method returns < 0, the specified 'jit' is
 /// invalidated.  Behavior is undefined unless last call to `nextRecord` or
 /// 'advance' returned '1' and the iterator points to a valid record.
 int moveToLowerBound(mqbs::JournalFileIterator* jit,
-                     LessThanLowerBoundFn&      lessThanLowerBoundFn)
+                     MoreThanLowerBoundFn&      moreThanLowerBoundFn)
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
@@ -60,7 +60,7 @@ int moveToLowerBound(mqbs::JournalFileIterator* jit,
     bsls::Types::Uint64 left  = 0;
     bsls::Types::Uint64 right = recordsNumber;
     while (right > left + 1) {
-        const bool goBackwards = lessThanLowerBoundFn(jit, true);
+        const bool goBackwards = moreThanLowerBoundFn(jit);
         if (goBackwards != jit->isReverseMode()) {
             jit->flipDirection();
         }
@@ -85,7 +85,7 @@ int moveToLowerBound(mqbs::JournalFileIterator* jit,
         jit->flipDirection();
     }
     // Move to next record if value <= lower bound) {
-    if (lessThanLowerBoundFn(jit) || !lessThanLowerBoundFn(jit, true)) {
+    if (!moreThanLowerBoundFn(jit)) {
         if (jit->recordIndex() < recordsNumber) {
             rc = jit->nextRecord();
         }
@@ -100,10 +100,10 @@ int moveToLowerBound(mqbs::JournalFileIterator* jit,
 }
 
 // ==========================
-// class LessThanLowerBoundFn
+// class MoreThanLowerBoundFn
 // ==========================
 
-LessThanLowerBoundFn::LessThanLowerBoundFn(const Parameters::Range& range)
+MoreThanLowerBoundFn::MoreThanLowerBoundFn(const Parameters::Range& range)
 : d_range(range)
 {
     // One of the `greater than` range values must be set
@@ -111,30 +111,26 @@ LessThanLowerBoundFn::LessThanLowerBoundFn(const Parameters::Range& range)
                 d_range.d_seqNumGt);
 }
 
-bool LessThanLowerBoundFn::operator()(const mqbs::JournalFileIterator* jit,
-                                      bool inverseOrder) const
+bool MoreThanLowerBoundFn::operator()(
+    const mqbs::JournalFileIterator* jit) const
 {
     // PRECONDITIONS
     BSLS_ASSERT(jit);
 
     if (d_range.d_timestampGt) {
-        const bsl::uint64_t timestamp = jit->recordHeader().timestamp();
-        return inverseOrder ? *d_range.d_timestampGt < timestamp
-                            : timestamp < *d_range.d_timestampGt;  // RETURN
+        return d_range.d_timestampGt.value() <
+               jit->recordHeader().timestamp();  // RETURN
     }
 
     if (d_range.d_offsetGt) {
-        const bsl::uint64_t offset = jit->recordOffset();
-        return inverseOrder ? *d_range.d_offsetGt < offset
-                            : offset < *d_range.d_offsetGt;  // RETURN
+        return d_range.d_offsetGt.value() < jit->recordOffset();  // RETURN
     }
 
     if (d_range.d_seqNumGt) {
         const CompositeSequenceNumber seqNum(
             jit->recordHeader().primaryLeaseId(),
             jit->recordHeader().sequenceNumber());
-        return inverseOrder ? *d_range.d_seqNumGt < seqNum
-                            : seqNum < *d_range.d_seqNumGt;  // RETURN
+        return d_range.d_seqNumGt.value() < seqNum;  // RETURN
     }
 
     return false;
@@ -188,8 +184,8 @@ void JournalFileProcessor::process()
         }
 
         if (needMoveToLowerBound) {
-            LessThanLowerBoundFn lessThanLowerBoundFn(d_parameters->d_range);
-            rc = moveToLowerBound(iter, lessThanLowerBoundFn);
+            MoreThanLowerBoundFn moreThanLowerBoundFn(d_parameters->d_range);
+            rc = moveToLowerBound(iter, moreThanLowerBoundFn);
             if (rc == 0) {
                 stopSearch = true;
                 continue;  // CONTINUE
@@ -207,7 +203,6 @@ void JournalFileProcessor::process()
             // MessageRecord
             if (iter->recordType() == mqbs::RecordType::e_MESSAGE) {
                 const mqbs::MessageRecord& record = iter->asMessageRecord();
-
                 // Apply filters
                 if (filters.apply(iter->recordHeader(),
                                   iter->recordOffset(),
