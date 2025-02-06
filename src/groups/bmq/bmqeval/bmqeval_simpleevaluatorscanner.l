@@ -32,6 +32,16 @@
 	return SimpleEvaluatorParser::make_FALSE();
 }
 
+"exists" {
+	updatePosition();
+	return SimpleEvaluatorParser::make_EXISTS();
+}
+
+"abs" {
+	updatePosition();
+	return SimpleEvaluatorParser::make_ABS();
+}
+
 [a-zA-Z][a-zA-Z0-9_.]* {
 	updatePosition();
 	return SimpleEvaluatorParser::make_PROPERTY(yytext);
