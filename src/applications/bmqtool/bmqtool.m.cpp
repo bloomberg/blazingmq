@@ -426,7 +426,7 @@ int main(int argc, const char* argv[])
                                       ? &ta
                                       : bslma::Default::allocator();
 
-    Application app(&parameters, &shutdownSemaphore, allocator);
+    Application app(parameters, &shutdownSemaphore, allocator);
     if (app.start() != 0) {
         return 2;  // RETURN
     }

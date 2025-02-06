@@ -62,8 +62,9 @@ class PostingContext {
     // blob of the published message, used to
     // hold the timestamp information.
 
-    Parameters* d_parameters_p;
-    // Parameters of posting.
+    /// Parameters to use, the object under this reference is owned by
+    /// the Application that uses this Interactive object
+    const Parameters& d_parameters;
 
     bmqa::Session* d_session_p;
     // A session to post messages.
@@ -83,9 +84,6 @@ class PostingContext {
     int d_numMessagesPosted;
     // How many events have already been posted.
 
-    int d_msgUntilNextTimestamp;
-    // In how many events the next timestamp will be posted.
-
     bdlbb::Blob d_blob;
     // Blob to post
 
@@ -103,7 +101,7 @@ class PostingContext {
     // CREATORS
 
     PostingContext(bmqa::Session*                  session,
-                   Parameters*                     parameters,
+                   const Parameters&               parameters,
                    const bmqa::QueueId&            queueId,
                    FileLogger*                     fileLogger,
                    bmqst::StatContext*             statContext,
@@ -166,7 +164,7 @@ class Poster {
     // MANIPULATORS
     bsl::shared_ptr<PostingContext>
     createPostingContext(bmqa::Session*       session,
-                         Parameters*          parameters,
+                         const Parameters&    parameters,
                          const bmqa::QueueId& queueId);
 
   private:
