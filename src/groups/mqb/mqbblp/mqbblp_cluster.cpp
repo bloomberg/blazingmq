@@ -441,10 +441,10 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledFailedAckMessages,
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'" << ", correlationId: " << correlationId
+                          << "', correlationId: " << correlationId
                           << ", GUID: " << messageGUID << ", queue: '"
-                          << (found ? uri : "** null **") << "' "
-                          << "(id: " << queueId << ")] " << "to node "
+                          << (found ? uri : "** null **")
+                          << "' (id: " << queueId << ")] to node "
                           << nodeSession->clusterNode()->nodeDescription(););
     }
 
@@ -453,7 +453,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
                    << "[status: " << status << ", source: '" << source << "'"
                    << ", correlationId: " << correlationId
                    << ", GUID: " << messageGUID << ", queue: '" << uri
-                   << "' (id: " << queueId << ")] to " << "node "
+                   << "' (id: " << queueId << ")] to node "
                    << nodeSession->clusterNode()->nodeDescription();
 
     // Update stats for the queue (or subStream of the queue)
@@ -492,7 +492,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledDroppedAckMessages,
             BALL_LOG_ERROR << description() << ": dropping ACK message "
                            << "[status: " << status << ", source: '" << source
-                           << "'" << ", correlationId: " << correlationId
+                           << "', correlationId: " << correlationId
                            << ", GUID: " << messageGUID
                            << ", queueId: " << queueId << "] to node "
                            << nodeSession->clusterNode()->nodeDescription()
@@ -3074,15 +3074,6 @@ void Cluster::processClusterControlMessage(
                                  &d_clusterOrchestrator,
                                  message,
                                  source),
-            this);
-    } break;  // BREAK
-    case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processQueueAssignmentAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
             this);
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_NODE_STATUS_ADVISORY: {
