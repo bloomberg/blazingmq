@@ -423,6 +423,16 @@ void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
         return;  // RETURN
     }
 
+    // Update the cluster state with the info.  Active node lock must *not* be
+    // held.  Reuse the existing term since this is not a 'new active node'
+    // event.
+
+    d_clusterData.electorInfo().setElectorInfo(
+        mqbnet::ElectorState::e_DORMANT,
+        d_clusterData.electorInfo().electorTerm(),
+        0,  // Leader (or 'active node') pointer
+        mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
+
     // Cancel all requests with the 'CANCELED' category and the 'e_ACTIVE_LOST'
     // code; and the callback will simply re-issue those requests; which then
     // will be added to the pending request list.
@@ -434,16 +444,6 @@ void ClusterProxy::onActiveNodeDown(const mqbnet::ClusterNode* node)
     failure.message()  = "Lost connection with active node";
 
     d_clusterData.requestManager().cancelAllRequests(response, node->nodeId());
-
-    // Update the cluster state with the info.  Active node lock must *not* be
-    // held.  Reuse the existing term since this is not a 'new active node'
-    // event.
-
-    d_clusterData.electorInfo().setElectorInfo(
-        mqbnet::ElectorState::e_DORMANT,
-        d_clusterData.electorInfo().electorTerm(),
-        0,  // Leader (or 'active node') pointer
-        mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
 }
 
 // PRIVATE MANIPULATORS

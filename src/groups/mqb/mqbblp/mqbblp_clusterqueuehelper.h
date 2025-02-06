@@ -1241,7 +1241,10 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
         return queueContext.d_liveQInfo.d_id !=
                    bmqp::QueueId::k_UNASSIGNED_QUEUE_ID &&
                d_clusterData_p->electorInfo().leaderNode() != 0 &&
-               d_clusterData_p->electorInfo().leaderNode() != otherThan;
+               d_clusterData_p->electorInfo().leaderNode() != otherThan &&
+               d_clusterData_p->electorInfo().electorState() ==
+                   mqbnet::ElectorState::e_LEADER;
+
         // RETURN
     }
 
