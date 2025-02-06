@@ -76,9 +76,6 @@ int moveToLowerBound(mqbs::JournalFileIterator* jit,
             }
             left = jit->recordIndex();
         }
-        static int i = 0;
-        bsl::cout << (++i) << " advance(" << bsl::max((right - left) / 2, 1ULL)
-                  << ")\n";
         rc = jit->advance(bsl::max((right - left) / 2, 1ULL));
         if (rc != 1) {
             return rc;  // RETURN
