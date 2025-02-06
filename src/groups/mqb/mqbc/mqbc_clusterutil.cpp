@@ -353,18 +353,6 @@ bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
         queueUpdate.addedAppIds().size() == added.size()) {
         queueAdvisory->queueUpdates().push_back(queueUpdate);
 
-        if (!clusterState->cluster()->isCSLModeEnabled()) {
-            // In CSL mode, we update the queue to ClusterState upon CSL
-            // commit callback of QueueUpdateAdvisory.
-
-            // In non-CSL mode this is the shortcut to call Primary CQH
-            // instead of waiting for the quorum of acks in the ledger.
-
-            BSLA_MAYBE_UNUSED const int assignRc = clusterState->updateQueue(
-                queueUpdate);
-            BSLS_ASSERT_SAFE(assignRc == 0);
-        }
-
         return true;
     }
 
