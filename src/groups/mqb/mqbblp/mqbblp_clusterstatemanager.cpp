@@ -85,7 +85,33 @@ void ClusterStateManager::onCommit(
     // Make an exception for QueueUpdateAdvisory and QueueAssignmentAdvisory
     if (!d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
         !clusterMessage.choice().isQueueUpdateAdvisoryValue() &&
-        !clusterMessage.choice().isQueueAssignmentAdvisoryValue()) {
+        !clusterMessage.choice().isQueueAssignmentAdvisoryValue() &&
+        !clusterMessage.choice().isLeaderAdvisoryValue()) {
+        return;  // RETURN
+    }
+
+    // For LeaderAdvisory, we only apply QueueAssignmentAdvisory part
+    // to CSL for now
+    if (clusterMessage.choice().isLeaderAdvisoryValue()) {
+        bmqp_ctrlmsg::ControlMessage  controlMsg;
+        bmqp_ctrlmsg::ClusterMessage& clusterMsg =
+            controlMsg.choice().makeClusterMessage();
+        bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAsgnAdv =
+            clusterMsg.choice().makeQueueAssignmentAdvisory();
+
+        const bmqp_ctrlmsg::LeaderAdvisory& leaderAdvisory =
+            clusterMessage.choice().leaderAdvisory();
+
+        queueAsgnAdv.sequenceNumber() = leaderAdvisory.sequenceNumber();
+        queueAsgnAdv.queues()         = leaderAdvisory.queues();
+
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description()
+            << ": Committed advisory (Queue Assignment for Leader Advisory): "
+            << advisory << ", with status '" << status << "'";
+
+        mqbc::ClusterUtil::apply(d_state_p, clusterMsg, *d_clusterData_p);
+
         return;  // RETURN
     }
 
@@ -663,21 +689,9 @@ void ClusterStateManager::processBufferedQueueAdvisories()
         BSLS_ASSERT_SAFE(msg.choice()
                              .clusterMessage()
                              .choice()
-                             .isQueueAssignmentAdvisoryValue() ||
-                         msg.choice()
-                             .clusterMessage()
-                             .choice()
                              .isQueueUnAssignmentAdvisoryValue());
 
-        if (msg.choice()
-                .clusterMessage()
-                .choice()
-                .isQueueAssignmentAdvisoryValue()) {
-            processQueueAssignmentAdvisory(msg, source, true /* delayed */);
-        }
-        else {
-            processQueueUnAssignmentAdvisory(msg, source, true /* delayed */);
-        }
+        processQueueUnAssignmentAdvisory(msg, source, true /* delayed */);
     }
 
     d_bufferedQueueAdvisories.clear();
@@ -1467,242 +1481,6 @@ void ClusterStateManager::processQueueAssignmentRequest(
         d_allocator_p);
 }
 
-void ClusterStateManager::processQueueAssignmentAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source,
-    bool                                delayed)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isQueueAssignmentAdvisoryValue());
-
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-
-    // Two cases:
-    //   1. A leader can send a composite 'LeaderAdvisory' message which
-    //      contains both partitionPrimaryAdvisory and queueAssignmentAdvisory.
-    //      This composite message is first processed in
-    //      'processLaderAdvisory', which then forwards QueueAssignmentAdvisory
-    //      part to ClusterQueueHelper after all leader-related validations.
-    //   2. A leader can also send just the 'QueueAssignmentAdvisory' message,
-    //      which is directly processed here.  In this case, we need to perform
-    //      leader-related validations ourselves.
-    // We unconditionally perform validations in both cases.  There is no
-    // side-effect of doing this.
-
-    const bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAdvisory =
-        message.choice().clusterMessage().choice().queueAssignmentAdvisory();
-    const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
-        queueAdvisory.sequenceNumber();
-
-    if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy " << (delayed ? "buffered " : "")
-                       << "queueAssignmentAdvisory: " << queueAdvisory
-                       << " from: " << source << " in CSL mode.";
-
-        return;  // RETURN
-    }
-
-    BALL_LOG_INFO << d_cluster_p->description() << ": Processing"
-                  << (delayed ? " buffered " : " ")
-                  << "queueAssignmentAdvisory message: " << message
-                  << ", from '" << source->nodeDescription() << "'";
-
-    if (!delayed) {
-        // Source (leader) and leader sequence number should not be validated
-        // for delayed (aka buffered) advisories.  Those attributes were
-        // validated when buffered advisories were received.
-
-        if (d_clusterData_p->electorInfo().leaderNode() != source) {
-            // Different leader.  Ignore message.
-            BALL_LOG_WARN << d_cluster_p->description()
-                          << ": ignoring queueAssignmentAdvisory: "
-                          << queueAdvisory
-                          << ", from: " << source->nodeDescription()
-                          << ", but current leader is: "
-                          << (d_clusterData_p->electorInfo().leaderNode()
-                                  ? d_clusterData_p->electorInfo()
-                                        .leaderNode()
-                                        ->nodeDescription()
-                                  : "** none **")
-                          << ", with term: "
-                          << d_clusterData_p->electorInfo().electorTerm();
-            return;  // RETURN
-        }
-
-        const bmqp_ctrlmsg::LeaderMessageSequence& selfLMS =
-            d_clusterData_p->electorInfo().leaderMessageSequence();
-        if (selfLMS > leaderMsgSeq) {
-            if (selfLMS.electorTerm() == leaderMsgSeq.electorTerm() &&
-                selfLMS.sequenceNumber() ==
-                    leaderMsgSeq.sequenceNumber() + 1) {
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << d_cluster_p->description()
-                    << ": got queueAssignmentAdvisory: " << queueAdvisory
-                    << " from current leader: " << source->nodeDescription()
-                    << ", with smaller leader message sequence: "
-                    << leaderMsgSeq << ". Current value: " << selfLMS
-                    << ". However, this is likely due to a known bug where "
-                       "the CSL advisory commit bumps up leader message "
-                       "sequence by one before we apply that advisory. "
-                       "Therefore, **not** ignoring this advisory."
-                    << BMQTSK_ALARMLOG_END;
-            }
-            else {
-                BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                    << d_cluster_p->description()
-                    << ": got queueAssignmentAdvisory: " << queueAdvisory
-                    << " from current leader: " << source->nodeDescription()
-                    << ", with smaller leader message sequence: "
-                    << leaderMsgSeq << ". Current value: " << selfLMS
-                    << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-                return;  // RETURN
-            }
-        }
-        else {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(
-                leaderMsgSeq);
-        }
-
-        // Leader status is updated unconditionally.  It may have been updated
-        // by one of the callers of this routine, but there is no harm is
-        // setting this value again.
-        d_clusterData_p->electorInfo().setLeaderStatus(
-            mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
-    }
-
-    if (d_clusterData_p->membership().selfNodeStatus() ==
-        bmqp_ctrlmsg::NodeStatus::E_STOPPING) {
-        // No need to process the advisory since self is stopping.
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Not processing queue asssignment advisory since "
-                      << "self is stopping.";
-        return;  // RETURN
-    }
-
-    // Advisory and source have been validated.  If self is starting and this
-    // is a "live" advisory, buffer the advisory and it will be applied later,
-    // else apply it right away.
-    if (!delayed && (d_clusterData_p->membership().selfNodeStatus() ==
-                     bmqp_ctrlmsg::NodeStatus::E_STARTING)) {
-        d_bufferedQueueAdvisories.push_back(bsl::make_pair(message, source));
-        return;  // RETURN
-    }
-
-    for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-             queueAdvisory.queues().begin();
-         it != queueAdvisory.queues().end();
-         ++it) {
-        const bmqp_ctrlmsg::QueueInfo& queueInfo = *it;
-        bmqt::Uri                      uri(queueInfo.uri());
-        const mqbu::StorageKey         queueKey(
-            mqbu::StorageKey::BinaryRepresentation(),
-            queueInfo.key().data());
-
-        mqbc::ClusterStateQueueInfo* assigned = d_state_p->getAssigned(uri);
-        // Only Replica can `processQueueAssignmentAdvisory`.  Therefore, the
-        // state cannot be `k_UNASSIGNING`
-
-        if (assigned) {
-            // Queue is assigned.  Verify that the key and partition match
-            // with what we already have.
-
-            if (assigned->partitionId() != queueInfo.partitionId() ||
-                (assigned->key() != queueKey)) {
-                if (!delayed) {
-                    // Leader is telling self node to map a queue to new
-                    // partition or have a new key (basically, its a new
-                    // incarnation of the queue).  This could occur when a
-                    // queue is being opened-closed-opened in very quick
-                    // succession.  Old instance of the queue is deleted by
-                    // the primary, primary broadcasts queue-unasssignment
-                    // advisory, leader broadcasts queue-assignment
-                    // advisory for the new instance of the queue, but self
-                    // node receives those 2 broadcasts out of order
-                    // (leader's advisory followed by primary's advisory).
-                    // In this case, its beneficial to force-update self's
-                    // view of the queue with what the leader is
-                    // advertising (with an error).  When self receives
-                    // queue-unassignment advisory from the primary for the
-                    // old instance of the queue, it will log an error and
-                    // ignore it.
-
-                    BALL_LOG_ERROR
-                        << d_cluster_p->description() << ": "
-                        << "received queueAssignmentAdvisory from leader '"
-                        << source->nodeDescription() << "' for a known and"
-                        << " assigned queue with different "
-                        << "partitionId/key: [received: " << queueInfo
-                        << ", knownPartitionId: " << assigned->partitionId()
-                        << ", knownQueueKey: " << assigned->key() << "]";
-                }
-                else {
-                    // There is partitionId/queueKey mismatch and this is a
-                    // delayed (aka, buffered) advisory.  This is a valid
-                    // scenario.  Here's how: Node starts up, initiates
-                    // storage sync with the primary While recovery is
-                    // underway, a queue, which is active, is deleted and
-                    // unassigned by the primary.  Further, same queue is
-                    // opened again, which means leader may assign it to a
-                    // different partition, and will definitely assign it a
-                    // different queue key, and will issue a queue
-                    // assignment advisory.  But self will buffer it.  When
-                    // recovery is complete, self's storage manager will
-                    // apply all recovered queues (including the previous
-                    // incarnation of this queue) to self's cluster state
-                    // (via 'ClusterStateManager::registerQueueInfo'), and
-                    // thus, populate 'd_queues', and this is how we will
-                    // end up here.  So instead of alarming/asserting, we
-                    // simply log at warn, and overwrite current state with
-                    // the buffered (this) advisory and move on.
-
-                    BALL_LOG_WARN
-                        << d_cluster_p->description()
-                        << ": overwriting current known queue state "
-                        << "with the buffered advisory for queue ["
-                        << assigned->uri() << "]. Current assigned Partition ["
-                        << assigned->partitionId() << "], current queueKey ["
-                        << assigned->key() << "], new Partition ["
-                        << queueInfo.partitionId() << "], new queueKey ["
-                        << queueKey << "].";
-                }
-
-                // Remove existing state, mapping, etc.
-
-                d_state_p->queueKeys().erase(assigned->key());
-                // no need to update d_state_p->domainStates() entry
-                // , queue was already known and registered
-                BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
-                    queueInfo);
-                BSLS_ASSERT_SAFE(rc == false);
-            }
-            else {
-                // Queue is assigned, and there is no partitionId/queueKey
-                // mismatch.  So this assert should not fire.
-                BSLS_ASSERT_SAFE(1 == d_state_p->queueKeys().count(queueKey));
-            }
-        }
-        else {
-            if (delayed) {
-                d_state_p->assignQueue(queueInfo);
-            }
-            // When this function is not buffered, called from
-            // processQueueAssignmentAdvisory, assignQueue will
-            // be triggered through mqbblp::ClusterStateManager::onCommit
-        }
-
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Queue assigned: " << queueInfo;
-    }
-}
-
 void ClusterStateManager::processQueueUnassignedAdvisory(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
@@ -2136,19 +1914,8 @@ void ClusterStateManager::processLeaderAdvisory(
 
     processPartitionPrimaryAdvisoryRaw(advisory.partitions(), source);
 
-    // Process (QueueUri, QueueKey, PartitionId) mapping.
-    bmqp_ctrlmsg::ControlMessage  controlMsg;
-    bmqp_ctrlmsg::ClusterMessage& clusterMsg =
-        controlMsg.choice().makeClusterMessage();
-    bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAsgnAdv =
-        clusterMsg.choice().makeQueueAssignmentAdvisory();
-
-    queueAsgnAdv.sequenceNumber() = advisory.sequenceNumber();
-    queueAsgnAdv.queues()         = advisory.queues();
-
-    processQueueAssignmentAdvisory(controlMsg,
-                                   source,
-                                   false /* not delayed */);
+    // Process (QueueUri, QueueKey, PartitionId) mapping (removed)
+    // this has been done through CSL
 
     // Leader status and sequence number are updated unconditionally.  It may
     // have been updated by one of the routines called earlier in this method,
