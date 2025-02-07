@@ -129,13 +129,16 @@ void PostingContext::postNext()
             }
 
             if (!d_parameters_p->sequentialMessagePattern().empty()) {
-                char buffer[128];
+                char buffer[16];
+                bsl::string messageData(d_allocator_p);
                 length = snprintf(
                     buffer,
                     sizeof(buffer),
-                    d_parameters_p->sequentialMessagePattern().c_str(),
+                    "%09d",
                     d_numMessagesPosted);
-                msg.setDataRef(buffer, length);
+                messageData = d_parameters_p->sequentialMessagePattern();
+                messageData.append(buffer);
+                msg.setDataRef(messageData.c_str(), messageData.length());
             }
             else {
                 // Insert latency if required...
