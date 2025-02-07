@@ -202,9 +202,8 @@ class TestPutsRetransmission:
                 + r" PUSH "  # PUSH
                 + re.escape(uri[0])  # queue url
                 + r"\|(.+)\|"  # |GUID|
-                + r"msg\s*"  # "msg"
-                + r"(\d+)\|"
-            )  # %d
+                + r"msg"  # "msg"
+            )
 
             re_confirm = re.compile(
                 "(?i)"  # case insensitive
@@ -409,7 +408,7 @@ class TestPutsRetransmission:
                 "--queueuri",
                 self.uri,
                 "--messagepattern",
-                "msg%10d|",
+                "msg",
                 f"--messageProperties={self.mps}",
                 "--log",
                 producer_log,
