@@ -205,7 +205,6 @@ class TestPutsRetransmission:
                 + r"msg\s*"  # "msg"
                 + r"(\d+)"
             )  # %d
-            )
 
             re_confirm = re.compile(
                 "(?i)"  # case insensitive
