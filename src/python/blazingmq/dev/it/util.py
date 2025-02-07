@@ -160,7 +160,7 @@ class Queue:
 _T = TypeVar("_T")
 
 
-class ListContextManager(list[_T]):
+class ListContextManager(List[_T]):
     def __enter__(self):
         return self
 
