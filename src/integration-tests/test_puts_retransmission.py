@@ -202,7 +202,9 @@ class TestPutsRetransmission:
                 + r" PUSH "  # PUSH
                 + re.escape(uri[0])  # queue url
                 + r"\|(.+)\|"  # |GUID|
-                + r"msg"  # "msg"
+                + r"msg\s*"  # "msg"
+                + r"(\d+)"
+            )  # %d
             )
 
             re_confirm = re.compile(
