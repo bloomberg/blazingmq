@@ -71,6 +71,13 @@ namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
 
+/// The maximum latencies logged per second
+const int k_MAX_LATENCIES_PER_SECOND = 1000;
+
+/// The average expected time between logged latencies
+const bsls::Types::Int64 k_NS_PER_LATENCY = bdlt::TimeUnitRatio::k_NS_PER_S /
+                                            k_MAX_LATENCIES_PER_SECOND;
+
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
 struct BuildConfirmFunctor {
     // DATA
@@ -128,7 +135,7 @@ void Application::setUpLog()
                                        d_allocator_p);
 
     ball::Severity::Level logLevel = ball::Severity::INFO;
-    switch (d_parameters_p->verbosity()) {
+    switch (d_parameters.verbosity()) {
     case ParametersVerbosity::e_SILENT: {
         logLevel = ball::Severity::OFF;
     } break;
@@ -151,9 +158,9 @@ void Application::setUpLog()
     }
 
     const bsl::string logFormat =
-        d_parameters_p->logFormat().empty()
+        d_parameters.logFormat().empty()
             ? CommandLineParameters::DEFAULT_INITIALIZER_LOG_FORMAT
-            : d_parameters_p->logFormat();
+            : d_parameters.logFormat();
 
     d_consoleObserver.setSeverityThreshold(ball::Severity::TRACE);
     // We use the ballLoggerManager global threshold to determine what gets
@@ -204,7 +211,7 @@ void Application::snapshotStats()
 
     static unsigned int count = 0;
     if (++count % k_STAT_DUMP_INTERVAL == 0 &&
-        d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT &&
+        d_parameters.verbosity() != ParametersVerbosity::e_SILENT &&
         d_isConnected) {
         printStats(k_STAT_DUMP_INTERVAL);
     }
@@ -228,8 +235,8 @@ void Application::printStatHeader() const
     headerPrinted = true;
 
     bool printLatency = bmqt::QueueFlagsUtil::isReader(
-                            d_parameters_p->queueFlags()) &&
-                        d_parameters_p->latency() != ParametersLatency::e_NONE;
+                            d_parameters.queueFlags()) &&
+                        d_parameters.latency() != ParametersLatency::e_NONE;
 
     bsl::cout << "Mode     |"
               << " Msg/s         |"
@@ -283,10 +290,10 @@ void Application::printStats(int interval) const
                                                                         t1);
 
     bmqu::MemOutStream ss;
-    if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags())) {
+    if (bmqt::QueueFlagsUtil::isReader(d_parameters.queueFlags())) {
         ss << "consumed ";
     }
-    else if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
+    else if (bmqt::QueueFlagsUtil::isWriter(d_parameters.queueFlags())) {
         ss << "produced ";
     }
     else {
@@ -318,8 +325,8 @@ void Application::printStats(int interval) const
     }
 
     // Latency
-    if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
-        d_parameters_p->latency() != ParametersLatency::e_NONE) {
+    if (bmqt::QueueFlagsUtil::isReader(d_parameters.queueFlags()) &&
+        d_parameters.latency() != ParametersLatency::e_NONE) {
         const bmqst::StatValue& latency = d_statContext_sp->value(
             bmqst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
@@ -361,10 +368,10 @@ void Application::printFinalStats()
     bsls::Types::Int64 evtBytes = bmqst::StatUtil::value(evt, loc);
 
     bmqu::MemOutStream ss;
-    if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags())) {
+    if (bmqt::QueueFlagsUtil::isReader(d_parameters.queueFlags())) {
         ss << "consumed ";
     }
-    else if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
+    else if (bmqt::QueueFlagsUtil::isWriter(d_parameters.queueFlags())) {
         ss << "produced ";
     }
     else {
@@ -382,8 +389,7 @@ void Application::printFinalStats()
     }
 
     // Latency
-    if (bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
-        d_parameters_p->latency() != ParametersLatency::e_NONE) {
+    if (d_parameters.latency() != ParametersLatency::e_NONE) {
         const bmqst::StatValue& latency = d_statContext_sp->value(
             bmqst::StatContext::e_DIRECT_VALUE,
             k_STAT_LAT);
@@ -399,45 +405,30 @@ void Application::printFinalStats()
               << "Final stats: " << ss.str() << bsl::endl;
 }
 
-void Application::generateLatencyReport()
+void Application::generateLatencyReport(
+    const bsl::list<bsls::Types::Int64>& latencies,
+    const bslstl::StringRef&             name)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_latencies.empty());
-    BSLS_ASSERT_SAFE(!d_parameters_p->latencyReportPath().empty());
-
-    if (!(bmqt::QueueFlagsUtil::isReader(d_parameters_p->queueFlags()) &&
-          d_parameters_p->latency() != ParametersLatency::e_NONE)) {
-        // Not a consumer, or not asked to gather latency, nothing to do
-        return;  // RETURN
-    }
+    BSLS_ASSERT_SAFE(!latencies.empty());
+    BSLS_ASSERT_SAFE(!d_parameters.latencyReportPath().empty());
 
     bsl::cout << "====================\n"
-              << "Latency Report (generated at: "
-              << d_parameters_p->latencyReportPath() << ")\n"
+              << "Latency Report (" << name
+              << "): " << d_parameters.latencyReportPath() << "\n"
               << "====================\n";
 
-    // 1. Remove the first 30s worth of data, to avoid initial warmup to
-    //    interfere and skew the results.  Since we know the frequency at which
-    //    messages are stamped with a timestamp (k_LATENCY_INTERVAL_MS), we can
-    //    easily do the reverse computation to compute how many metrics are in
-    //    30s.  Note that this assumes that the producer and consumer are using
-    //    the same build (the constant is used by the producer only, the
-    //    consumer just checks each message if it has a timestamp).  Also, note
-    //    that the 'k_LATENCY_INTERVAL_MS' represents the maximum sampling
-    //    rate, if the publisher is publishing very little (i.e. at less
-    //    frequently than one message per k_LATENCY_INTERVAL_MS, then all
-    //    messages will be stamped, but also we won't be having lots of
-    //    messages; therefore only delete if we have a large enough sample set.
-    const unsigned int k_toRemoveCount = 1000 / k_LATENCY_INTERVAL_MS * 30;
-    // Number of stamped messages in a 30s time interval
+    // 1. Skip the first 30s worth of data, to avoid initial warmup to
+    //    interfere and skew the results.  We estimate this by using throttle
+    //    parameters.
+    const unsigned int k_TO_REMOVE_COUNT = k_MAX_LATENCIES_PER_SECOND * 30;
 
-    if (d_latencies.size() >= k_toRemoveCount * 2) {
-        bsl::list<bsls::Types::Int64>::iterator itEnd = d_latencies.begin();
-        bsl::advance(itEnd, k_toRemoveCount);
-        d_latencies.erase(d_latencies.begin(), itEnd);
+    bsl::list<bsls::Types::Int64>::const_iterator itStart = latencies.cbegin();
+    if (latencies.size() >= k_TO_REMOVE_COUNT * 2) {
+        bsl::advance(itStart, k_TO_REMOVE_COUNT);
     }
     else {
-        bsl::cout << " **/!\\: Too few data points (" << d_latencies.size()
+        bsl::cout << " **/!\\: Too few data points (" << latencies.size()
                   << "), the resulting statistics may not be representative."
                   << bsl::endl;
     }
@@ -445,8 +436,7 @@ void Application::generateLatencyReport()
     // 2. Convert the list to a sorted vector: we use a list while collecting
     //    data to avoid overhead of resizing the vector; but now convert to a
     //    sorted vector to make it easier to compute some statistic metrics.
-    bsl::vector<bsls::Types::Int64> dataSet(d_latencies.begin(),
-                                            d_latencies.end());
+    bsl::vector<bsls::Types::Int64> dataSet(itStart, latencies.cend());
     bsl::sort(dataSet.begin(), dataSet.end());
 
     // 3. Compute some interesting metrics
@@ -493,14 +483,15 @@ void Application::generateLatencyReport()
         << bsl::endl;
 
     // 5. Generate the JSON report
-    bsl::ofstream output(d_parameters_p->latencyReportPath().c_str());
+    bsl::ofstream output(d_parameters.latencyReportPath().c_str());
     if (!output) {
         bsl::cout << "Unable to generate latency report, failed to open '"
-                  << d_parameters_p->latencyReportPath().c_str() << "'"
+                  << d_parameters.latencyReportPath().c_str() << "'"
                   << bsl::endl;
         return;  // RETURN
     }
     output << "{\n"
+           << "  \"origin\": \"" << name << "\",\n"
            << "  \"min\": " << min << ",\n"
            << "  \"avg\": " << avg << ",\n"
            << "  \"max\": " << max << ",\n"
@@ -515,15 +506,18 @@ void Application::generateLatencyReport()
     // could see the evolution over time and maybe some pattern (for example
     // initial latency being higher due to cache warmup, ...).
     int                                           idx = 0;
-    bsl::list<bsls::Types::Int64>::const_iterator it  = d_latencies.begin();
-    while (it != d_latencies.end()) {
-        if (idx++ % 10 == 0) {
-            output << "\n    ";
+    bsl::list<bsls::Types::Int64>::const_iterator it  = itStart;
+    while (it != latencies.cend()) {
+        if (idx++ > 0) {
+            if (idx % 10 == 0) {
+                output << ",\n    ";
+            }
+            else {
+                output << ", ";
+            }
         }
         output << *it;
-        if (++it != d_latencies.end()) {
-            output << ", ";
-        }
+        ++it;
     }
     output << "\n  ]\n"
            << "}\n";
@@ -543,20 +537,20 @@ int Application::initialize()
     };
 
     // Dump parameters used, unless in silent mode.
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
-        d_parameters_p->dump(bsl::cout);
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
+        d_parameters.dump(bsl::cout);
         bsl::cout << bsl::endl;
     }
 
     // First, setup the session options
     int                  rc = 0;
     bmqt::SessionOptions options;
-    options.setBrokerUri(d_parameters_p->broker())
-        .setNumProcessingThreads(d_parameters_p->numProcessingThreads())
+    options.setBrokerUri(d_parameters.broker())
+        .setNumProcessingThreads(d_parameters.numProcessingThreads())
         .configureEventQueue(1000, 10 * 1000);
 
     // Create the session
-    if (d_parameters_p->noSessionEventHandler()) {
+    if (d_parameters.noSessionEventHandler()) {
         d_session_mp.load(new (*d_allocator_p)
                               bmqa::Session(options, d_allocator_p),
                           d_allocator_p);
@@ -572,7 +566,7 @@ int Application::initialize()
             d_allocator_p);
     }
 
-    if (d_parameters_p->mode() == ParametersMode::e_CLI) {
+    if (d_parameters.mode() == ParametersMode::e_CLI) {
         // Initialize the interactive mode
         rc = d_interactive.initialize(d_session_mp.ptr(), this);
         if (rc != 0) {
@@ -580,7 +574,7 @@ int Application::initialize()
             return e_INIT_INTERACTIVE_ERROR;  // RETURN
         }
     }
-    else if (d_parameters_p->mode() == ParametersMode::e_STORAGE) {
+    else if (d_parameters.mode() == ParametersMode::e_STORAGE) {
         rc = d_storageInspector.initialize();
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to initialize storage inspector  [" << rc
@@ -588,7 +582,7 @@ int Application::initialize()
             return e_INIT_STORAGE_ERROR;  // RETURN
         }
     }
-    else if (d_parameters_p->mode() == ParametersMode::e_AUTO) {
+    else if (d_parameters.mode() == ParametersMode::e_AUTO) {
         rc = d_session_mp->start();
         if (rc != 0) {
             BALL_LOG_ERROR << "Unable to start session [rc: " << rc << " - "
@@ -600,20 +594,19 @@ int Application::initialize()
 
         bmqt::QueueOptions queueOptions;
         queueOptions
-            .setMaxUnconfirmedMessages(d_parameters_p->maxUnconfirmedMsgs())
-            .setMaxUnconfirmedBytes(d_parameters_p->maxUnconfirmedBytes());
+            .setMaxUnconfirmedMessages(d_parameters.maxUnconfirmedMsgs())
+            .setMaxUnconfirmedBytes(d_parameters.maxUnconfirmedBytes());
 
-        if (!InputUtil::populateSubscriptions(
-                &queueOptions,
-                d_parameters_p->subscriptions())) {
+        if (!InputUtil::populateSubscriptions(&queueOptions,
+                                              d_parameters.subscriptions())) {
             BALL_LOG_ERROR << "Invalid subscriptions";
             return e_VALIDATE_SUBSCRIPTION_ERROR;  // RETURN
         }
 
         bmqa::OpenQueueStatus result = d_session_mp->openQueueSync(
             &d_queueId,
-            d_parameters_p->queueUri(),
-            d_parameters_p->queueFlags(),
+            d_parameters.queueUri(),
+            d_parameters.queueFlags(),
             queueOptions);
         if (!result) {
             BALL_LOG_ERROR << "Error while opening queue: [result: " << result
@@ -634,7 +627,7 @@ int Application::initialize()
 
 void Application::onSessionEvent(const bmqa::SessionEvent& event)
 {
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
         BALL_LOG_INFO << "==> EVENT received: " << event;
     }
 
@@ -654,8 +647,8 @@ void Application::onSessionEvent(const bmqa::SessionEvent& event)
 
 void Application::onMessageEvent(const bmqa::MessageEvent& event)
 {
-    if (d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT &&
-        d_parameters_p->mode() == ParametersMode::e_CLI) {
+    if (d_parameters.verbosity() != ParametersVerbosity::e_SILENT &&
+        d_parameters.mode() == ParametersMode::e_CLI) {
         BALL_LOG_INFO << "==> EVENT received: " << event;
     }
 
@@ -670,10 +663,10 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                                       eventImpl->rawEvent().blob()->length());
     }
 
-    if (d_parameters_p->mode() == ParametersMode::e_AUTO) {
+    if (d_parameters.mode() == ParametersMode::e_AUTO) {
         d_autoReadActivity = true;
 
-        if (!d_autoReadInProgress && d_parameters_p->shutdownGrace() != 0) {
+        if (!d_autoReadInProgress && d_parameters.shutdownGrace() != 0) {
             // This is the first message in this session.  Schedule a recurring
             // event to check if a message has been received during the grace
             // period.
@@ -682,7 +675,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             bdlmt::EventScheduler::RecurringEventHandle handle;
             d_scheduler.scheduleRecurringEvent(
                 &handle,
-                bsls::TimeInterval(d_parameters_p->shutdownGrace()),
+                bsls::TimeInterval(d_parameters.shutdownGrace()),
                 bdlf::BindUtil::bind(&Application::autoReadShutdown, this));
         }
     }
@@ -697,12 +690,46 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
          ++msgId) {
         const bmqa::Message& message = iter.message();
         if (event.type() == bmqt::MessageEventType::e_ACK) {
-            if (d_parameters_p->dumpMsg()) {
+            if (d_parameters.dumpMsg()) {
                 BALL_LOG_INFO << "ACK #" << msgId << ": " << message;
             }
 
             // Write to log file
             d_fileLogger.writeAckMessage(message);
+
+            // Try to compute and record ack latency, or break early
+            do {
+                if (d_parameters.latency() == ParametersLatency::e_NONE ||
+                    !message.correlationId().isNumeric()) {
+                    break;  // BREAK
+                }
+
+                // Extract message post timestamp
+                bsls::Types::Int64 postTime =
+                    message.correlationId().theNumeric();
+
+                const bsls::Types::Int64 now = StatUtil::getNowAsNs(
+                    d_parameters.latency());
+                const bsls::Types::Int64 delta = now - postTime;
+
+                // Apparently, for some reasons, the delta sometimes
+                // comes up negative, don't report it so that the stats
+                // remain decently representative of actual measures.
+                if (delta < 0) {
+                    break;  // BREAK
+                }
+
+                d_statContext_sp->reportValue(k_STAT_LAT, delta);
+
+                if (d_parameters.latencyReportPath().empty()) {
+                    break;  // BREAK
+                }
+
+                if (d_ackLatencyThrottle.requestPermission()) {
+                    d_ackLatencies.push_back(delta);
+                }
+
+            } while (false);
 
             if (d_numExpectedAcks != 0 &&
                 d_numExpectedAcks == ++d_numAcknowledged) {
@@ -718,7 +745,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             // Write to log file
             d_fileLogger.writePushMessage(message);
 
-            if (d_parameters_p->confirmMsg()) {
+            if (d_parameters.confirmMsg()) {
                 // disambiguate ConfirmEventBuilder::addMessageConfirmation
                 bdlf::MemFn<bmqt::EventBuilderResult::Enum (
                     bmqa::ConfirmEventBuilder::*)(
@@ -741,41 +768,48 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                 // need to access each individual's message details.
             }
 
-            // Update latency stats if required
-            if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
-                bdlb::BigEndianInt64 time;
+            // Try to compute and record end-to-end latency, or break early
+            do {
+                if (d_parameters.latency() == ParametersLatency::e_NONE) {
+                    break;  // BREAK
+                }
 
-                int rc = bmqu::BlobUtil::readNBytes(
-                    reinterpret_cast<char*>(&time),
+                // Extract message post timestamp
+                bdlb::BigEndianInt64 postTime;
+
+                BSLA_MAYBE_UNUSED int rc = bmqu::BlobUtil::readNBytes(
+                    reinterpret_cast<char*>(&postTime),
                     blob,
                     bmqu::BlobPosition(0, 0),
                     sizeof(bdlb::BigEndianInt64));
                 BSLS_ASSERT_SAFE(rc == 0);
-                (void)rc;
 
-                if (time != 0) {
-                    bsls::Types::Int64 now = StatUtil::getNowAsNs(
-                        d_parameters_p->latency());
-                    bsls::Types::Int64 delta = now - time;
-                    if (delta >= 0) {
-                        // Apparently, for some reasons, the delta sometimes
-                        // comes up negative, don't report it so that the stats
-                        // remain decently representative of actual measures.
-                        d_statContext_sp->reportValue(k_STAT_LAT, delta);
-
-                        // Keep each individual latency when requested to
-                        // generate a latency report.  Note that since only one
-                        // message every k_LATENCY_INTERVAL_MS time interval
-                        // has latency, this list will not grow out of control
-                        // when run during a 'decent' amount of time.  With a
-                        // default of 5ms, this implies 200 items per second,
-                        // or 120,000 for 10 minutes.
-                        if (!d_parameters_p->latencyReportPath().empty()) {
-                            d_latencies.push_back(delta);
-                        }
-                    }
+                if (postTime == 0) {
+                    break;  // BREAK
                 }
-            }
+
+                const bsls::Types::Int64 now = StatUtil::getNowAsNs(
+                    d_parameters.latency());
+                const bsls::Types::Int64 delta = now - postTime;
+
+                // Apparently, for some reasons, the delta sometimes
+                // comes up negative, don't report it so that the stats
+                // remain decently representative of actual measures.
+                if (delta < 0) {
+                    break;  // BREAK
+                }
+
+                d_statContext_sp->reportValue(k_STAT_LAT, delta);
+
+                if (d_parameters.latencyReportPath().empty()) {
+                    break;  // BREAK
+                }
+
+                if (d_confirmLatencyThrottle.requestPermission()) {
+                    d_confirmLatencies.push_back(delta);
+                }
+
+            } while (false);
 
             // Update msg/event stats
             d_statContext_sp->adjustValue(k_STAT_MSG, blob.length());
@@ -784,14 +818,14 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             // until open queue response is logged.  This is done for
             // integration tests that rely on order of those logs.
 
-            if (d_parameters_p->mode() == ParametersMode::e_CLI &&
-                !d_parameters_p->confirmMsg()) {
+            if (d_parameters.mode() == ParametersMode::e_CLI &&
+                !d_parameters.confirmMsg()) {
                 // Save in case of interactive mode.
                 d_interactive.onMessage(message);
             }
 
             // DUMP
-            if (d_parameters_p->dumpMsg()) {
+            if (d_parameters.dumpMsg()) {
                 BALL_LOG_INFO_BLOCK
                 {
                     BALL_LOG_OUTPUT_STREAM << "PUSH #" << msgId << ": "
@@ -808,15 +842,14 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             bmqa::MessageProperties in(d_allocator_p);
             BSLA_MAYBE_UNUSED int   rc = message.loadProperties(&in);
             BSLS_ASSERT_SAFE(rc == 0);
-            InputUtil::verifyProperties(in,
-                                        d_parameters_p->messageProperties());
+            InputUtil::verifyProperties(in, d_parameters.messageProperties());
         }
     }
 
     // Confirm messages in batches if asked for it.  Note that
     // 'bmqa::Session:confirmMessages' method will reset the builder.
     if (bmqt::MessageEventType::e_PUSH == event.type() &&
-        d_parameters_p->confirmMsg()) {
+        d_parameters.confirmMsg()) {
         int rc = d_session_mp->confirmMessages(&confirmBuilder);
         if (rc != 0) {
             BALL_LOG_ERROR << "Failed to send " << msgId << " confirms for "
@@ -831,25 +864,25 @@ void Application::producerThread()
     BSLS_ASSERT_SAFE(d_session_mp);
 
     bslmt::Turnstile turnstile(1000.0);
-    if (d_parameters_p->postInterval() != 0) {
-        turnstile.reset(1000.0 / d_parameters_p->postInterval());
+    if (d_parameters.postInterval() != 0) {
+        turnstile.reset(1000.0 / d_parameters.postInterval());
     }
 
     bsl::shared_ptr<PostingContext> postingContext =
         d_poster.createPostingContext(d_session_mp.get(),
-                                      d_parameters_p,
+                                      d_parameters,
                                       d_queueId);
 
     while (d_isRunning && postingContext->pendingPost()) {
         if (d_isConnected) {
             postingContext->postNext();
         }
-        if (d_parameters_p->postInterval() != 0) {
+        if (d_parameters.postInterval() != 0) {
             turnstile.waitTurn();
         }
     }
 
-    if (!bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
+    if (!bmqt::QueueFlagsUtil::isAck(d_parameters.queueFlags())) {
         d_shutdownSemaphore_p->post();
     }
 }
@@ -909,11 +942,11 @@ int Application::syschk(const m_bmqtool::Parameters& parameters)
 }
 
 // CREATORS
-Application::Application(Parameters*       parameters,
+Application::Application(const Parameters& parameters,
                          bslmt::Semaphore* shutdownSemaphore,
                          bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
-, d_parameters_p(parameters)
+, d_parameters(parameters)
 , d_shutdownSemaphore_p(shutdownSemaphore)
 , d_runningThread(bslmt::ThreadUtil::invalidHandle())
 , d_queueId(d_allocator_p)
@@ -922,16 +955,22 @@ Application::Application(Parameters*       parameters,
 , d_isRunning(false)
 , d_consoleObserver(d_allocator_p)
 , d_storageInspector(d_allocator_p)
-, d_fileLogger(d_parameters_p->logFilePath(), d_allocator_p)
+, d_fileLogger(d_parameters.logFilePath(), d_allocator_p)
 , d_poster(&d_fileLogger, d_statContext_sp.get(), d_allocator_p)
 , d_interactive(parameters, &d_poster, d_allocator_p)
-, d_latencies(allocator)
+, d_confirmLatencyThrottle()
+, d_confirmLatencies(allocator)
+, d_ackLatencyThrottle()
+, d_ackLatencies(allocator)
 , d_autoReadInProgress(false)
 , d_autoReadActivity(false)
 , d_numExpectedAcks(0)
 , d_numAcknowledged(0)
 {
-    // NOTHING
+    d_confirmLatencyThrottle.initialize(k_MAX_LATENCIES_PER_SECOND,
+                                        k_NS_PER_LATENCY);
+    d_ackLatencyThrottle.initialize(k_MAX_LATENCIES_PER_SECOND,
+                                    k_NS_PER_LATENCY);
 }
 
 Application::~Application()
@@ -947,7 +986,7 @@ int Application::start()
 
     d_scheduler.start();
 
-    if (!d_parameters_p->logFilePath().empty()) {
+    if (!d_parameters.logFilePath().empty()) {
         bool rc = d_fileLogger.open();
         BSLS_ASSERT_SAFE(rc);
         (void)rc;  // Compiler happiness
@@ -974,20 +1013,20 @@ int Application::run()
 
     int rc = 0;
 
-    if (d_parameters_p->mode() == ParametersMode::e_CLI) {
+    if (d_parameters.mode() == ParametersMode::e_CLI) {
         // Process commands (returns when user quits)
         rc = d_interactive.mainLoop();
         d_shutdownSemaphore_p->post();
     }
-    else if (d_parameters_p->mode() == ParametersMode::e_STORAGE) {
+    else if (d_parameters.mode() == ParametersMode::e_STORAGE) {
         // Storage inspector (returns when user quits)
         rc = d_storageInspector.mainLoop();
         d_shutdownSemaphore_p->post();
     }
     else {
-        if (bmqt::QueueFlagsUtil::isWriter(d_parameters_p->queueFlags())) {
-            d_numExpectedAcks = d_parameters_p->eventsCount() *
-                                d_parameters_p->eventSize();
+        if (bmqt::QueueFlagsUtil::isWriter(d_parameters.queueFlags())) {
+            d_numExpectedAcks = d_parameters.eventsCount() *
+                                d_parameters.eventSize();
             d_numAcknowledged = 0;
 
             // Start the thread
@@ -1017,10 +1056,10 @@ void Application::stop()
     }
 
     // Disconnect from the broker
-    if (d_parameters_p->mode() == ParametersMode::e_AUTO) {
-        if (d_parameters_p->shutdownGrace() != 0) {
+    if (d_parameters.mode() == ParametersMode::e_AUTO) {
+        if (d_parameters.shutdownGrace() != 0) {
             bslmt::ThreadUtil::sleep(
-                bsls::TimeInterval(d_parameters_p->shutdownGrace()));
+                bsls::TimeInterval(d_parameters.shutdownGrace()));
         }
         if (d_queueId.isValid()) {
             d_session_mp->closeQueueSync(&d_queueId);
@@ -1036,14 +1075,22 @@ void Application::stop()
     }
 
     // Display final stats
-    if (d_parameters_p->mode() != ParametersMode::e_CLI &&
-        d_parameters_p->mode() != ParametersMode::e_STORAGE &&
-        d_parameters_p->verbosity() != ParametersVerbosity::e_SILENT) {
+    if (d_parameters.mode() != ParametersMode::e_CLI &&
+        d_parameters.mode() != ParametersMode::e_STORAGE &&
+        d_parameters.verbosity() != ParametersVerbosity::e_SILENT) {
         printFinalStats();
     }
 
-    if (!d_latencies.empty()) {
-        generateLatencyReport();
+    /// It's possible to have both latency types collected if bmqtool was
+    /// launched with "read,write,ack" mode, but this situation is unprobable.
+    /// So we don't try to generate two report files or merge these 2 latency
+    /// types in one file.  Instead, we prioritize end-to-end latency over ack
+    /// latency.
+    if (!d_confirmLatencies.empty()) {
+        generateLatencyReport(d_confirmLatencies, "end2end");
+    }
+    else if (!d_ackLatencies.empty()) {
+        generateLatencyReport(d_ackLatencies, "ack");
     }
 
     BALL_LOG_INFO << "Goodbye.";
