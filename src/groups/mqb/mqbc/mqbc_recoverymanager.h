@@ -17,13 +17,12 @@
 #ifndef INCLUDED_MQBC_RECOVERYMANAGER
 #define INCLUDED_MQBC_RECOVERYMANAGER
 
-//@PURPOSE: Provide a mechanism to manage storage recovery in a cluster node.
-//
-//@CLASSES:
-//  mqbc::RecoveryManager: Mechanism to manage recovery in a cluster node.
-//
-//@DESCRIPTION: 'mqbc::RecoveryManager' provides a mechanism to manage
-// storage recovery in a cluster node.
+/// @file mqbc_recoverymanager.h
+///
+/// @brief Provide a mechanism to manage storage recovery in a cluster node.
+///
+/// @bbref{mqbc::RecoveryManager} provides a mechanism to manage storage
+/// recovery in a cluster node.
 
 // MQB
 #include <mqbc_clusterdata.h>
@@ -60,8 +59,8 @@ namespace mqbc {
 // class RecoveryManager
 // =====================
 
-/// This component provides a mechanism to manage storage recovery in a
-/// cluster node.
+/// This component provides a mechanism to manage storage recovery in a cluster
+/// node.
 class RecoveryManager {
   public:
     // TYPES
@@ -73,7 +72,7 @@ class RecoveryManager {
     // class ChunkDeleter
     // ==================
 
-    /// Private class.  Implementation detail of `mqbc::RecoveryManager`.
+    /// Private class.  Implementation detail of @bbref{mqbc::RecoveryManager}.
     /// This class provides a custom deleter for a chunk of file aliasing to
     /// the mapped region.
     class ChunkDeleter {
@@ -103,11 +102,11 @@ class RecoveryManager {
     // class ReceiveDataContext
     // ========================
 
-    /// Private class.  Implementation detail of `mqbc::RecoveryManager`.
+    /// Private class.  Implementation detail of @bbref{mqbc::RecoveryManager}.
     /// This class contains important information to keep track of when
-    /// receiving data chunks from an up-to-date node during recovery, such
-    /// as the recovery data source, range of sequence numbers to recover,
-    /// and current sequence number offset.
+    /// receiving data chunks from an up-to-date node during recovery, such as
+    /// the recovery data source, range of sequence numbers to recover, and
+    /// current sequence number offset.
     class ReceiveDataContext {
       public:
         // TYPES
@@ -115,106 +114,86 @@ class RecoveryManager {
 
       public:
         // DATA
+
+        /// Peer node from which we are receiving recovery data.
         mqbnet::ClusterNode* d_recoveryDataSource_p;
-        // Peer node from which we are
-        // receiving recovery data.
 
+        /// Whether self is expecting recovery data chunks.
         bool d_expectChunks;
-        // Whether self is expecting
-        // recovery data chunks.
 
+        /// Id of the ReplicaDataRequest which signals the expectation of
+        /// recovery data chunks.  This value is only meaningful if we are a
+        /// replica receiving data from the primary.
         int d_recoveryRequestId;
-        // Id of the
-        // ReplicaDataRequest which
-        // signals the expectation of
-        // recovery data chunks.  This
-        // value is only meaningful if
-        // we are a replica receiving
-        // data from the primary.
 
+        /// Beginning sequence number of recovery data chunks.  Note that self
+        /// already contains message with this sequence number.  The first
+        /// recovery data chunk is expected to have sequence number
+        /// `d_beginSeqNum + 1`.
         bmqp_ctrlmsg::PartitionSequenceNumber d_beginSeqNum;
-        // Beginning sequence number
-        // of recovery data chunks.
-        // Note that self already
-        // contains message with this
-        // sequence number.  The first
-        // recovery data chunk is
-        // expected to have sequence
-        // number 'd_beginSeqNum + 1'.
 
+        /// Expected ending sequence number of recovery data chunks.
         bmqp_ctrlmsg::PartitionSequenceNumber d_endSeqNum;
-        // Expected ending sequence
-        // number of recovery data
-        // chunks.
 
+        /// Self's current sequence number.
         bmqp_ctrlmsg::PartitionSequenceNumber d_currSeqNum;
-        // Self's current sequence
-        // number.
 
       public:
         // CREATORS
-        ReceiveDataContext();
-        // Create a default 'ReceiveDataContext' object.
 
+        /// Create a default `ReceiveDataContext` object.
+        ReceiveDataContext();
+
+        /// Create a `ReceiveDataContext` object copying the specified `other`.
         ReceiveDataContext(const ReceiveDataContext& other);
-        // Create a 'ReceiveDataContext' object copying the specified
-        // 'other'.
 
         // MANIPULATORS
+
+        /// Reset the members of this object.
         void reset();
-        // Reset the members of this object.
     };
 
     // =====================
     // class RecoveryContext
     // =====================
 
+    /// Private class.  Implementation detail of @bbref{mqbc::RecoveryManager}.
+    /// This class contains important information to keep track during
+    /// recovery, such as recovery file set, mapped journal/data fds, buffered
+    /// storage events, and receive data context.
     class RecoveryContext {
-        // Private class.  Implementation detail of 'mqbc::RecoveryManager'.
-        // This class contains important information to keep track during
-        // recovery, such as recovery file set, mapped journal/data fds,
-        // buffered storage events, and receive data context.
-
       public:
         // TYPES
         typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
 
       public:
         // DATA
+
+        /// Recovery file set.
         mqbs::FileStoreSet d_recoveryFileSet;
-        // Recovery file set.
 
+        /// Journal file descriptor to use for recovery.
         mqbs::MappedFileDescriptor d_mappedJournalFd;
-        // Journal file descriptor to
-        // use for recovery.
 
+        /// Write offset of the journal file.
         bsls::Types::Uint64 d_journalFilePosition;
-        // Write offset of the journal
-        // file.
 
+        /// Data file descriptor to use for recovery.
         mqbs::MappedFileDescriptor d_mappedDataFd;
-        // Data file descriptor to use
-        // for recovery.
 
+        /// Write offset of the data file.
         bsls::Types::Uint64 d_dataFilePosition;
-        // Write offset of the data
-        // file.
 
+        /// Peer node from which we are receiving live data.
         mqbnet::ClusterNode* d_liveDataSource_p;
-        // Peer node from which we are
-        // receiving live data.
 
+        /// List of storage events which are buffered while recovery is in
+        /// progress.  Once recovery is complete, these events are applied to
+        /// bring the node up-to-date with this partition.
         StorageEvents d_bufferedEvents;
-        // List of storage events which
-        // are buffered while recovery
-        // is in progress.  Once
-        // recovery is complete, these
-        // events are applied to bring
-        // the node up-to-date with
-        // this partition.
 
+        /// Receive data context.
         ReceiveDataContext d_receiveDataContext;
-        // Receive data context.
 
       public:
         // TRAITS
@@ -245,7 +224,7 @@ class RecoveryManager {
   private:
     // PRIVATE TYPES
 
-    /// Callback provided by mqbc::StorageManager to this component to
+    /// Callback provided by @bbref{mqbc::StorageManager} to this component to
     /// indicate the status of sendDataChunks to the specified `destination`
     /// i.e. peer to which current node is sending data for the specified
     /// `partitionId`. The status is as per the specified `status`.
@@ -253,9 +232,8 @@ class RecoveryManager {
         void(int partitionId, mqbnet::ClusterNode* destination, int status)>
         PartitionDoneSendDataChunksCb;
 
+    /// Vector per partition of `RecoveryContext`.
     typedef bsl::vector<RecoveryContext> RecoveryContextVec;
-    // Vector per partition of
-    // RecoveryContext.
 
     // This callback is only used when the self node is a replica.
     bsl::function<
@@ -264,6 +242,7 @@ class RecoveryManager {
 
   private:
     // DATA
+
     /// Allocator to use
     bslma::Allocator* d_allocator_p;
 
@@ -276,16 +255,15 @@ class RecoveryManager {
     /// Configuration for file store to use
     const mqbs::DataStoreConfig d_dataStoreConfig;
 
-    /// Associated non-persistent cluster
-    /// data for this node
+    /// Associated non-persistent cluster data for this node
     const mqbc::ClusterData& d_clusterData;
 
-    /// Vector per partition which maintains
-    /// information about RecoveryContext.
-    //
-    // THREAD: Except during the ctor, the i-th index of this data member
-    //         **must** be accessed in the associated Queue dispatcher thread
-    //         for the i-th partitionId.
+    /// Vector per partition which maintains information about
+    /// `RecoveryContext`.
+    ///
+    /// THREAD: Except during the ctor, the i-th index of this data member
+    ///         **must** be accessed in the associated Queue dispatcher thread
+    ///         for the i-th partitionId.
     RecoveryContextVec d_recoveryContextVec;
 
   private:

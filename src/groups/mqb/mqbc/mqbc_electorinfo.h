@@ -17,25 +17,22 @@
 #ifndef INCLUDED_MQBC_ELECTORINFO
 #define INCLUDED_MQBC_ELECTORINFO
 
-//@PURPOSE: Provide a VST for elector information.
-//
-//@CLASSES:
-//  mqbc::ElectorInfoLeaderStatus: Status of a leader node in a cluster
-//  mqbc::ElectorInfo            : VST for elector information
-//  mqbc::ElectorInfoObserver    : Interface for an observer of elector info
-//
-//@DESCRIPTION: 'mqbc::ElectorInfo' is a value-semantic type representing the
-// elector information in a cluster.  Important changes in elector information
-// can be notified to observers, implementing the 'mqbc::ElectorInfoObserver'
-// interface.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ElectorInfo' object is not thread safe and should always be
-// manipulated from the associated cluster's dispatcher thread.
+/// @file mqbc_electorinfo.h
+///
+/// @brief Provide an enhanced VST for elector information.
+///
+/// @bbref{mqbc::ElectorInfo} is a value-semantic type representing the elector
+/// information in a cluster.  Important changes in elector information can be
+/// notified to observers, implementing the @bbref{mqbc::ElectorInfoObserver}
+/// interface.
+///
+/// Thread Safety                                    {#mqbc_electorinfo_thread}
+/// =============
+///
+/// The @bbref{mqbc::ElectorInfo} object is not thread safe and should always
+/// be manipulated from the associated cluster's dispatcher thread.
 
 // MQB
-
 #include <mqbc_clusterfsm.h>
 #include <mqbi_cluster.h>
 #include <mqbnet_elector.h>
@@ -71,18 +68,17 @@ struct ElectorInfoLeaderStatus {
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value is incremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `ElectorInfoLeaderStatus::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// is incremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{ElectorInfoLeaderStatus::Enum} value.
     static bsl::ostream& print(bsl::ostream&                 stream,
                                ElectorInfoLeaderStatus::Enum value,
                                int                           level = 0,
@@ -122,9 +118,9 @@ bsl::ostream& operator<<(bsl::ostream&                 stream,
 /// This interface exposes notifications of events happening on the elector
 /// information state.
 ///
-/// NOTE: This is purposely not a pure interface, each method has a default
-///       void implementation, so that clients only need to implement the
-///       ones they care about.
+/// @note This is purposely not a pure interface, each method has a default
+///       void implementation, so that clients only need to implement the ones
+///       they care about.
 class ElectorInfoObserver {
   public:
     // CREATORS
@@ -161,43 +157,35 @@ class ElectorInfo : public ClusterFSMObserver {
     // TYPES
     typedef bdlmt::EventScheduler::EventHandle SchedulerEventHandle;
 
+    /// A set of ElectorInfo observers.
     typedef bsl::unordered_set<ElectorInfoObserver*> ObserversSet;
-    // A set of ElectorInfo observers.
 
   private:
     // DATA
 
-    // from mqbblp::ClusterState
+    /// Elector's state (from @bbref{mqbblp::ClusterState}).
     mqbnet::ElectorState::Enum d_electorState;
-    // Elector's state
 
+    /// Current leader, as notified by the elector, or null if no leader.
     mqbnet::ClusterNode* d_leaderNode_p;
-    // Current leader, as notified by
-    // the elector, or null if no
-    // leader.
 
+    /// Status of current leader.
     ElectorInfoLeaderStatus::Enum d_leaderStatus;
-    // Status of current leader.
 
+    /// Sequence number of the last message received from the leader (if
+    /// follower), or published (if leader).
     bmqp_ctrlmsg::LeaderMessageSequence d_leaderMessageSequence;
-    // Sequence number of the last
-    // message received from the leader
-    // (if follower), or published (if
-    // leader).
 
+    /// Handle to a one-time event scheduled by leader before initiating leader
+    /// sync with AVAILABLE followers
     SchedulerEventHandle d_leaderSyncEventHandle;
-    // Handle to a one-time event
-    // scheduled by leader before
-    // initiating leader sync with
-    // AVAILABLE followers
 
+    /// Constant pointer to the cluster associated with this elector
+    /// information (held not owned).
     const mqbi::Cluster* d_cluster_p;
-    // Constant pointer to the cluster
-    // associated with this elector
-    // information (held not owned)
 
+    /// Observers of this object.
     ObserversSet d_observers;
-    // Observers of this object.
 
   public:
     // CREATORS
@@ -263,7 +251,7 @@ class ElectorInfo : public ClusterFSMObserver {
                                 ElectorInfoLeaderStatus::Enum status);
 
     /// Bump up the leader sequence number and populate to the optionally
-    /// specified 'sequence'.
+    /// specified `sequence`.
     void nextLeaderMessageSequence(
         bmqp_ctrlmsg::LeaderMessageSequence* sequence = 0);
 
