@@ -383,6 +383,7 @@ void RemoteQueue::pushMessage(
                                   << " failed to store broadcast PUSH ["
                                   << msgGUID << "], result = " << result;
                 }
+                return;  // RETURN
             }
         }
         else {

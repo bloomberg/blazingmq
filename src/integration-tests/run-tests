@@ -11,7 +11,7 @@
 # =====
 #   ./run-tests
 #   ./run-tests "legacy_mode"
-#   ./run-tests "not csl_mode"
+#   ./run-tests "not fsm_mode"
 #   ./run-tests "legacy_mode or fsm_mode"
 #   export BLAZINGMQ_IT_PRESET="fsm_mode" && ./run-tests
 
