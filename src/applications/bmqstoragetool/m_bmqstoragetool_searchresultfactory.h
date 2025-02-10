@@ -48,7 +48,8 @@ class SearchResultFactory {
     static bsl::shared_ptr<SearchResult>
     createSearchResult(const Parameters*                     params,
                        const bslma::ManagedPtr<FileManager>& fileManager,
-                       bsl::ostream&                         ostream,
+                       const bsl::shared_ptr<Printer>&       printer,
+                       bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
                        bslma::Allocator*                     allocator);
 };
 

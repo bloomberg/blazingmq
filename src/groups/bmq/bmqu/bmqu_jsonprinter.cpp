@@ -1,4 +1,4 @@
-// Copyright 2014-2025 Bloomberg Finance L.P.
+// Copyright 2022-2024 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,11 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqstoragetool
-#include <m_bmqstoragetool_recordprinter.h>
+// bmqu_jsonprinter.cpp                                               -*-C++-*-
+#include <bmqu_jsonprinter.h>
 
+#include <bmqscm_version.h>
 namespace BloombergLP {
-namespace m_bmqstoragetool {
+namespace bmqu {
 
 }  // close package namespace
 }  // close enterprise namespace

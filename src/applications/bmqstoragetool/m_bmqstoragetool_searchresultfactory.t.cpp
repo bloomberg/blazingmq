@@ -49,11 +49,30 @@ static void test1_breathingTest()
         new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
         bmqtst::TestHelperUtil::allocator());
 
+    // Create printer
+    bsl::shared_ptr<Printer> printer = createPrinter(
+        params.d_printMode,
+        bsl::cout,
+        bmqtst::TestHelperUtil::allocator());
+
+    // Create payload dumper
+    bslma::ManagedPtr<PayloadDumper> payloadDumper;
+    if (params.d_dumpPayload) {
+        payloadDumper.load(
+            new (*bmqtst::TestHelperUtil::allocator())
+                PayloadDumper(bsl::cout,
+                              fileManager->dataFileIterator(),
+                              params.d_dumpLimit,
+                              bmqtst::TestHelperUtil::allocator()),
+            bmqtst::TestHelperUtil::allocator());
+    }
+
     bsl::shared_ptr<SearchResult> searchResult =
         SearchResultFactory::createSearchResult(
             &params,
             fileManager,
-            bsl::cout,
+            printer,
+            payloadDumper,
             bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT(dynamic_cast<SearchResult*>(searchResult.get()) != 0);
 }

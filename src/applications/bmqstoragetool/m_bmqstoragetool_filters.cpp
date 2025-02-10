@@ -35,7 +35,7 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
     if (!queueKeys.empty()) {
         bsl::vector<bsl::string>::const_iterator keyIt = queueKeys.cbegin();
         for (; keyIt != queueKeys.cend(); ++keyIt) {
-            d_queueKeys.insert(
+            d_queueKeys.emplace(
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  keyIt->c_str()));
         }
@@ -44,8 +44,10 @@ Filters::Filters(const bsl::vector<bsl::string>& queueKeys,
         mqbu::StorageKey                         key;
         bsl::vector<bsl::string>::const_iterator uriIt = queueUris.cbegin();
         for (; uriIt != queueUris.cend(); ++uriIt) {
-            if (queueMap.findKeyByUri(&key, *uriIt)) {
-                d_queueKeys.insert(key);
+            bsl::optional<mqbu::StorageKey> key = queueMap.findKeyByUri(
+                *uriIt);
+            if (key.has_value()) {
+                d_queueKeys.insert(key.value());
             }
         }
     }
