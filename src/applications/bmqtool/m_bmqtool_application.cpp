@@ -167,7 +167,6 @@ void Application::setUpLog()
     // logged, so the console observer should print any logs it receives.
 
     d_consoleObserver.setLogFormat(logFormat)
-        .setCategoryColor("DMC*", "gray")
         .setCategoryColor("BMQ*", "green")
         .setCategoryColor("MQB*", "green")
         .setCategoryColor("APPLICATION", "yellow")
