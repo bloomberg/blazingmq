@@ -2848,30 +2848,20 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
         newDefn.mode().fanout().appIDs().cend(),
         d_allocator_p);
 
-    bsl::unordered_set<bsl::string> addedIds, removedIds;
+    bsl::vector<bsl::string> addedIds(d_allocator_p);
+    bsl::vector<bsl::string> removedIds(d_allocator_p);
     mqbc::StorageUtil::loadAddedAndRemovedEntries(&addedIds,
                                                   &removedIds,
                                                   oldCfgAppIds,
                                                   newCfgAppIds);
 
-    // TODO: This should be one call - one QueueUpdateAdvisory for all Apps
-    bsl::unordered_set<bsl::string>::const_iterator it = addedIds.cbegin();
-    for (; it != addedIds.cend(); ++it) {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterOrchestrator::registerAppId,
-                                 &d_clusterOrchestrator,
-                                 *it,
-                                 bsl::ref(domain)),
-            this);
-    }
-    for (it = removedIds.cbegin(); it != removedIds.cend(); ++it) {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(&ClusterOrchestrator::unregisterAppId,
-                                 &d_clusterOrchestrator,
-                                 *it,
-                                 bsl::ref(domain)),
-            this);
-    }
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterOrchestrator::updateAppIds,
+                             &d_clusterOrchestrator,
+                             addedIds,
+                             removedIds,
+                             domain.name()),
+        this);
 }
 
 int Cluster::processCommand(mqbcmd::ClusterResult*        result,
