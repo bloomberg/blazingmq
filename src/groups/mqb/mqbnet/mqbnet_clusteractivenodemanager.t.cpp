@@ -140,6 +140,80 @@ static void test2_activeNodeWithinDC()
     }
 }
 
+static void test3_activeNodeOutsideDC()
+// Validate that any available node can be promptly selected as the active
+// node if the cluster does not have any nodes in the same data center as the
+// local machine.
+{
+    bmqtst::TestHelper::printTestName("ACTIVE NDOE OUTSIDE DC");
+
+    // Set up mock cluster
+    mqbcfg::ClusterDefinition clusterConfig(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::MockCluster mockCluster(clusterConfig,
+                                    &bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    // Populate cluster nodes
+    // - 1 nodes in "east" data center
+    // - 1 node in "west" data center
+    mqbnet::Cluster::NodesList nodes;
+    mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
+
+    clusterNodeConfig.dataCenter() = "east";
+    clusterNodeConfig.name()       = "east-1";
+    mqbnet::MockClusterNode east1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&east1);
+
+    clusterNodeConfig.dataCenter() = "west";
+    clusterNodeConfig.name()       = "west-1";
+    mqbnet::MockClusterNode west1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&west1);
+
+    // Create ClusterActiveNodeManager
+    bsl::string                      description = "dummy";
+    bsl::string                      dataCenter  = "south";
+    mqbnet::ClusterActiveNodeManager mgr =
+        mqbnet::ClusterActiveNodeManager(nodes, description, dataCenter);
+    BMQTST_ASSERT(!mgr.activeNode());
+
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
+    negotiationMessage.makeClientIdentity().hostName() = "dummyIdentity";
+
+    // "west" node up, it should become active
+    {
+        int rc = mgr.onNodeUp(&west1, negotiationMessage.clientIdentity());
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
+        BMQTST_ASSERT_EQ(mgr.activeNode(), &west1);
+    }
+
+    // "east" node up, it should become active
+    {
+        int rc = mgr.onNodeUp(&east1, negotiationMessage.clientIdentity());
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ(mgr.activeNode(), &west1);
+    }
+
+    // "west" node down, "east" should become active
+    {
+        int rc = mgr.onNodeDown(&west1);
+        BMQTST_ASSERT_EQ(rc,
+                         mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE |
+                             mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
+        BMQTST_ASSERT_EQ(mgr.activeNode(), &east1);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -150,6 +224,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 3: test3_activeNodeOutsideDC(); break;
     case 2: test2_activeNodeWithinDC(); break;
     case 1: test1_breathingTest(); break;
     default: {
