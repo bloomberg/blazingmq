@@ -81,7 +81,7 @@ void printJournalFileMeta(bsl::ostream&              ostream,
     fields.push_back("SyncPoint DataFileOffset (DWORDS)");
     fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-    bmqu::AlignedPrinter printer(ostream, &fields);
+    bmqu::AlignedPrinter printer(ostream, fields);
     bsls::Types::Uint64  lastRecPos = journalFile_p->lastRecordPosition();
     printer << lastRecPos;
     if (0 == lastRecPos) {
@@ -1372,7 +1372,7 @@ void SummaryProcessor::outputResult()
             fields.push_back("Number of partially confirmed messages");
             fields.push_back("Number of confirmed messages");
             fields.push_back("Number of outstanding messages");
-            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            bmqu::AlignedPrinter printer(d_ostream, fields);
             printer << d_deletedMessagesCount
                     << d_partiallyConfirmedGuids.size()
                     << (d_foundMessagesCount - d_deletedMessagesCount);
@@ -1396,7 +1396,7 @@ void SummaryProcessor::outputResult()
             fields.push_back("Number of 'creation' operations");
             fields.push_back("Number of 'deletion' operations");
             fields.push_back("Number of 'addition' operations");
-            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            bmqu::AlignedPrinter printer(d_ostream, fields);
             printer << d_queueOpCountsMap[mqbs::QueueOpType::e_PURGE]
                     << d_queueOpCountsMap[mqbs::QueueOpType::e_CREATION]
                     << d_queueOpCountsMap[mqbs::QueueOpType::e_DELETION]
@@ -1455,7 +1455,7 @@ void SummaryProcessor::outputResult()
         }
         fields.push_back("Num Delete Records");
 
-        bmqu::AlignedPrinter printer(d_ostream, &fields);
+        bmqu::AlignedPrinter printer(d_ostream, fields);
 
         // Print Queue Key id: either Key or URI
         printer << queueKey;
