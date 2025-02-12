@@ -40,6 +40,7 @@
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_heartbeatcheck.h>
 #include <bmqt_sessionoptions.h>
 
 #include <bmqio_channel.h>
@@ -159,6 +160,14 @@ class Application {
     // the snapshot was performed on the
     // Counting Allocators context
 
+    bmqp::HeartbeatChecker d_heartbeatChecker;
+
+    bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
+    // Scheduler handle for the
+    // recurring event used to
+    // heartbeat monitor the
+    // channels.
+
   private:
     // PRIVATE MANIPULATORS
     void onChannelDown(const bsl::string&   peerUri,
@@ -211,6 +220,15 @@ class Application {
     stateCb(bmqimp::BrokerSession::State::Enum    oldState,
             bmqimp::BrokerSession::State::Enum    newState,
             bmqimp::BrokerSession::FsmEvent::Enum event);
+
+    /// Reccuring scheduler event to check for all `heartbeat-enabled`
+    /// channels : this will send a heartbeat if no data has been received
+    /// on a given channel, or proactively reset the channel if too many
+    /// heartbeats have been missed.
+    void
+    onHeartbeatSchedulerEvent(const bsl::shared_ptr<bmqio::Channel>& channel);
+    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>& channel);
+    void stopHeartbeat();
 
   private:
     // NOT IMPLEMENTED
