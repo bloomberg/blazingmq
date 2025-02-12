@@ -2045,10 +2045,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     // Append the message to the builder
     if (pushProperties.isExtended()) {
-        if (!bmqp::ProtocolUtil::hasFeature(
-                bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
-                bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
-                d_clientIdentity_p->features())) {
+        if (!d_supportsMessagePropertiesEX) {
             // Re-encode 'payload'
             // Convert MessageProperties into the old style
             // 1. Copy MPHs (if needed)
@@ -2661,6 +2658,10 @@ ClientSession::ClientSession(
 , d_negotiationMessage(negotiationMessage, allocator)
 , d_clientIdentity_p(extractClientIdentity(d_negotiationMessage))
 , d_isClientGeneratingGUIDs(isClientGeneratingGUIDs(*d_clientIdentity_p))
+, d_supportsMessagePropertiesEX(bmqp::ProtocolUtil::hasFeature(
+      bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
+      bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
+      d_clientIdentity_p->features()))
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
 , d_state(clientStatContext,
