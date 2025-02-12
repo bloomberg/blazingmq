@@ -109,10 +109,10 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
         // Only create a storage if this is the initial configure; reconfigure
         // should reuse the previously created storage.
-        bslma::ManagedPtr<mqbi::Storage> storageMp;
+        bsl::shared_ptr<mqbi::Storage> storageSp;
         rc = d_state_p->storageManager()->makeStorage(
             errorDescription,
-            &storageMp,
+            &storageSp,
             d_state_p->uri(),
             d_state_p->key(),
             d_state_p->partitionId(),
@@ -124,10 +124,10 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         }
 
         if (d_state_p->isAtMostOnce()) {
-            storageMp->capacityMeter()->disable();
+            storageSp->capacityMeter()->disable();
         }
 
-        if (!d_state_p->isStorageCompatible(storageMp)) {
+        if (!d_state_p->isStorageCompatible(storageSp)) {
             errorDescription << "Incompatible storage type for LocalQueue "
                              << "[uri: " << d_state_p->uri() << ", key: '"
                              << d_state_p->key()
@@ -136,7 +136,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
             return rc_INCOMPATIBLE_STORAGE;  // RETURN
         }
 
-        d_state_p->setStorage(storageMp);
+        d_state_p->setStorage(storageSp);
     }
     else {
         d_state_p->storage()->setConsistency(domainCfg.consistency());

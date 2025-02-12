@@ -918,7 +918,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     int makeStorage(bsl::ostream&                      errorDescription,
-                    bslma::ManagedPtr<mqbi::Storage>*  out,
+                    bsl::shared_ptr<mqbi::Storage>*    out,
                     const bmqt::Uri&                   uri,
                     const mqbu::StorageKey&            queueKey,
                     int                                partitionId,
