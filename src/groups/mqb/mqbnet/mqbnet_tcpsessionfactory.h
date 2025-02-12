@@ -90,6 +90,7 @@
 #include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannelfactory.h>
 #include <bmqio_status.h>
+#include <bmqp_heartbeatcheck.h>
 #include <bmqst_statcontext.h>
 #include <bmqu_sharedresource.h>
 
@@ -186,34 +187,12 @@ class TCPSessionFactory {
         // The event processor of Events received on
         // this channel.
 
-        bsls::AtomicInt d_packetReceived;
-        // Used by smart-heartbeat to detect whether
-        // a heartbeat needs to be sent and if
-        // channel is stale.  Written (to 1) by the
-        // IO thread when receiving a packet, read
-        // and reset (to 0) from the heartbeat event
-        // in scheduler thread, hence an atomic
-        // (however, using the 'relaxed' memory
-        // model because we dont need strong
-        // ordering guarantees).
+        bmqp::HeartbeatChecker d_heartbeatChecker;
 
-        char d_maxMissedHeartbeat;
-        // If non-zero, enable smart-heartbeat and
-        // specify that this channel should be
-        // proactively resetted if no data has been
-        // received from this channel for the
-        // 'maxMissedHeartbeat' number of heartbeat
-        // intervals.  When enabled, heartbeat
-        // requests will be sent if no 'regular'
-        // data is being received.
-
-        char d_missedHeartbeatCounter;
-        // Counter of how many of the last
-        // consecutive 'heartbeat' check events
-        // fired with no data received on the
-        // channel.  This variable is entirely and
-        // solely managed from within the event
-        // scheduler thread.
+        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
+                             const NegotiatorContext&               context,
+                             int initialMissedHeartbeatCounter,
+                             const bsl::shared_ptr<Session>& monitoredSession);
     };
 
     /// This class provides mechanism to store a map of port stat contexts.
