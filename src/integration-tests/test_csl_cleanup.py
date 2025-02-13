@@ -30,9 +30,10 @@ timeout = 10
 
 
 @tweak.cluster.partition_config.max_qlist_file_size(2000)
-def test_csl_cleanup(cluster: Cluster):
+def test_csl_cleanup(cluster: Cluster, domain_urls: tc.DomainUrls):
     leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
+    domain_priority = domain_urls.domain_priority
 
     producer = proxy.create_client("producer")
 
@@ -46,9 +47,9 @@ def test_csl_cleanup(cluster: Cluster):
     # opening 10 queues would cause a rollover
     for i in range(0, 10):
         producer.open(
-            f"bmq://{tc.DOMAIN_PRIORITY_SC}/q{i}", flags=["write,ack"], succeed=True
+            f"bmq://{domain_priority}/q{i}", flags=["write,ack"], succeed=True
         )
-        producer.close(f"bmq://{tc.DOMAIN_PRIORITY_SC}/q{i}", succeed=True)
+        producer.close(f"bmq://{domain_priority}/q{i}", succeed=True)
 
     csl_files_after_rollover = glob.glob(
         str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"

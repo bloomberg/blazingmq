@@ -175,34 +175,42 @@ def _verify_max_messages_max_bytes_routing(producer, consumer, other_consumers):
     _verify_delivery(consumer.handle, consumer.uri, ["3"])
 
 
-def _verify_priority_routing(producers, consumers, lowPriorityConsumers):
+def _verify_priority_routing(
+    producers, consumers, lowPriorityConsumers, domain_urls: tc.DomainUrls
+):
+    uri_priority = domain_urls.uri_priority
     # Verify no messages when we start
     for consumer in consumers + lowPriorityConsumers:
         try:
-            assert len(consumer.list(tc.URI_PRIORITY, block=True)) == 0
+            assert len(consumer.list(uri_priority, block=True)) == 0
         except RuntimeError:
             pass  # No messages, that's what we want
 
     # Route messages and verify
     for producer in producers:
         assert (
-            producer.post(tc.URI_PRIORITY, payload=["msg"], block=True, wait_ack=True)
+            producer.post(uri_priority, payload=["msg"], block=True, wait_ack=True)
             == Client.e_SUCCESS
         )
 
     for consumer in consumers:
-        _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+        _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     for consumer in lowPriorityConsumers:
         # assert no PUSH received within 1 second
         assert not consumer.outputs_regex("MESSAGE.*PUSH", timeout=1)
-        assert not consumer.list(tc.URI_PRIORITY, block=True)
+        assert not consumer.list(uri_priority, block=True)
 
 
-def test_open_queue(cartesian_product_cluster: Cluster):
+def test_open_queue(cartesian_product_cluster: Cluster, domain_urls: tc.DomainUrls):
     cluster = cartesian_product_cluster
-    [consumer] = cluster.open_priority_queues(1, flags=["read"])
-    [producer] = cluster.open_priority_queues(1, flags=["write"])
+    uri_priority = domain_urls.uri_priority
+    [consumer] = cluster.open_priority_queues(
+        1, flags=["read"], uri_priority=uri_priority
+    )
+    [producer] = cluster.open_priority_queues(
+        1, flags=["write"], uri_priority=uri_priority
+    )
     producer.post(payload=["foo"], succeed=True)
     consumer.client.wait_push_event()
     msgs = consumer.list(block=True)
@@ -210,7 +218,8 @@ def test_open_queue(cartesian_product_cluster: Cluster):
     assert msgs[0].payload == "foo"
 
 
-def test_verify_priority(cluster: Cluster):
+def test_verify_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
+    uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
 
     # 1: Setup producers and consumers
@@ -219,13 +228,13 @@ def test_verify_priority(cluster: Cluster):
 
     producer1 = proxy1.create_client("producer1")
     assert (
-        producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer1.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     consumer1 = proxy1.create_client("consumer1")
     assert (
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=2, block=True)
+        consumer1.open(uri_priority, flags=["read"], consumer_priority=2, block=True)
         == Client.e_SUCCESS
     )
 
@@ -234,37 +243,40 @@ def test_verify_priority(cluster: Cluster):
 
     producer2 = proxy2.create_client("producer2")
     assert (
-        producer2.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer2.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     consumer2 = proxy2.create_client("consumer2")
     assert (
-        consumer2.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=2, block=True)
+        consumer2.open(uri_priority, flags=["read"], consumer_priority=2, block=True)
         == Client.e_SUCCESS
     )
 
     consumer3 = proxy1.create_client("consumer3")
     assert (
-        consumer3.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=1, block=True)
+        consumer3.open(uri_priority, flags=["read"], consumer_priority=1, block=True)
         == Client.e_SUCCESS
     )
 
     consumer4 = proxy2.create_client("consumer4")
     assert (
-        consumer4.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=1, block=True)
+        consumer4.open(uri_priority, flags=["read"], consumer_priority=1, block=True)
         == Client.e_SUCCESS
     )
 
     # 2: Route messages and verify
     _verify_priority_routing(
-        [producer1, producer2], [consumer1, consumer2], [consumer3, consumer4]
+        [producer1, producer2],
+        [consumer1, consumer2],
+        [consumer3, consumer4],
+        domain_urls,
     )
 
     # 3: Close everything
     _close_clients(
         [producer1, consumer1, producer2, consumer2, consumer3, consumer4],
-        [tc.URI_PRIORITY],
+        [uri_priority],
     )
     _stop_clients([producer1, consumer1, producer2, consumer2, consumer3, consumer4])
 
@@ -272,49 +284,52 @@ def test_verify_priority(cluster: Cluster):
     #    first).
     consumer1 = proxy1.create_client("consumer1")
     assert (
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=2, block=True)
+        consumer1.open(uri_priority, flags=["read"], consumer_priority=2, block=True)
         == Client.e_SUCCESS
     )
 
     consumer2 = proxy2.create_client("consumer2")
     assert (
-        consumer2.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=2, block=True)
+        consumer2.open(uri_priority, flags=["read"], consumer_priority=2, block=True)
         == Client.e_SUCCESS
     )
 
     consumer3 = proxy1.create_client("consumer3")
     assert (
-        consumer3.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=1, block=True)
+        consumer3.open(uri_priority, flags=["read"], consumer_priority=1, block=True)
         == Client.e_SUCCESS
     )
 
     consumer4 = proxy2.create_client("consumer4")
     assert (
-        consumer4.open(tc.URI_PRIORITY, flags=["read"], consumer_priority=1, block=True)
+        consumer4.open(uri_priority, flags=["read"], consumer_priority=1, block=True)
         == Client.e_SUCCESS
     )
 
     producer2 = proxy2.create_client("producer2")
     assert (
-        producer2.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer2.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     producer1 = proxy1.create_client("producer1")
     assert (
-        producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer1.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     # 5: Route messages and verify
     _verify_priority_routing(
-        [producer1, producer2], [consumer1, consumer2], [consumer3, consumer4]
+        [producer1, producer2],
+        [consumer1, consumer2],
+        [consumer3, consumer4],
+        domain_urls,
     )
 
     # 6: test maxUnconfirmedMessages, maxUnconfirmedBytes
     assert (
         consumer2.configure(
-            tc.URI_PRIORITY,
+            uri_priority,
             consumer_priority=3,
             max_unconfirmed_messages=2,
             max_unconfirmed_bytes=3,
@@ -324,20 +339,22 @@ def test_verify_priority(cluster: Cluster):
     )
 
     _verify_max_messages_max_bytes_routing(
-        BmqClient(producer2, tc.URI_PRIORITY),
-        BmqClient(consumer2, tc.URI_PRIORITY),
+        BmqClient(producer2, uri_priority),
+        BmqClient(consumer2, uri_priority),
         [],
     )
 
     # 7: Close everything
     _close_clients(
         [producer1, consumer1, producer2, consumer2, consumer3, consumer4],
-        [tc.URI_PRIORITY],
+        [uri_priority],
     )
     _stop_clients([producer1, consumer1, producer2, consumer2, consumer3, consumer4])
 
 
-def test_verify_fanout(cluster: Cluster):
+def test_verify_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
+
     # 1: Setup producers and consumers
     proxies = cluster.proxy_cycle()
 
@@ -353,26 +370,26 @@ def test_verify_fanout(cluster: Cluster):
 
     assert (
         fooConsumerAndProducerOnPrimaryProxy.open(
-            tc.URI_FANOUT_FOO, flags=["read"], block=True
+            du.uri_fanout_foo, flags=["read"], block=True
         )
         == Client.e_SUCCESS
     )
 
     barConsumerOnPrimaryProxy = proxy1.create_client("barConsumerOnPrimaryProxy")
     assert (
-        barConsumerOnPrimaryProxy.open(tc.URI_FANOUT_BAR, flags=["read"], block=True)
+        barConsumerOnPrimaryProxy.open(du.uri_fanout_bar, flags=["read"], block=True)
         == Client.e_SUCCESS
     )
 
     assert (
         fooConsumerAndProducerOnPrimaryProxy.open(
-            tc.URI_FANOUT, flags=["write", "ack"], block=True
+            du.uri_fanout, flags=["write", "ack"], block=True
         )
         == Client.e_SUCCESS
     )
 
     assert (
-        barConsumerOnPrimaryProxy.close(tc.URI_FANOUT_BAR, block=True)
+        barConsumerOnPrimaryProxy.close(du.uri_fanout_bar, block=True)
         == Client.e_SUCCESS
     )
 
@@ -381,53 +398,53 @@ def test_verify_fanout(cluster: Cluster):
 
     producerOnReplicaProxy = proxy2.create_client("producerOnReplicaProxy")
     assert (
-        producerOnReplicaProxy.open(tc.URI_FANOUT, flags=["write", "ack"], block=True)
+        producerOnReplicaProxy.open(du.uri_fanout, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     barConsumerOnReplicaProxy = proxy2.create_client("barConsumerOnReplicaProxy")
     assert (
-        barConsumerOnReplicaProxy.open(tc.URI_FANOUT_BAR, flags=["read"], block=True)
+        barConsumerOnReplicaProxy.open(du.uri_fanout_bar, flags=["read"], block=True)
         == Client.e_SUCCESS
     )
 
     assert (
-        len(fooConsumerAndProducerOnPrimaryProxy.list(tc.URI_FANOUT_FOO, block=True))
+        len(fooConsumerAndProducerOnPrimaryProxy.list(du.uri_fanout_foo, block=True))
         == 0
     )
-    assert len(barConsumerOnReplicaProxy.list(tc.URI_FANOUT_BAR, block=True)) == 0
+    assert len(barConsumerOnReplicaProxy.list(du.uri_fanout_bar, block=True)) == 0
 
     # 2: Route messages and verify
     assert (
         fooConsumerAndProducerOnPrimaryProxy.post(
-            tc.URI_FANOUT, payload=["msg1"], block=True, wait_ack=True
+            du.uri_fanout, payload=["msg1"], block=True, wait_ack=True
         )
         == Client.e_SUCCESS
     )
 
     _verify_delivery_and_confirm(
-        fooConsumerAndProducerOnPrimaryProxy, tc.URI_FANOUT_FOO, ["msg1"]
+        fooConsumerAndProducerOnPrimaryProxy, du.uri_fanout_foo, ["msg1"]
     )
 
-    _verify_delivery_and_confirm(barConsumerOnReplicaProxy, tc.URI_FANOUT_BAR, ["msg1"])
+    _verify_delivery_and_confirm(barConsumerOnReplicaProxy, du.uri_fanout_bar, ["msg1"])
 
     assert (
         producerOnReplicaProxy.post(
-            tc.URI_FANOUT, payload=["msg2"], block=True, wait_ack=True
+            du.uri_fanout, payload=["msg2"], block=True, wait_ack=True
         )
         == Client.e_SUCCESS
     )
 
     _verify_delivery_and_confirm(
-        fooConsumerAndProducerOnPrimaryProxy, tc.URI_FANOUT_FOO, ["msg2"]
+        fooConsumerAndProducerOnPrimaryProxy, du.uri_fanout_foo, ["msg2"]
     )
 
-    _verify_delivery_and_confirm(barConsumerOnReplicaProxy, tc.URI_FANOUT_BAR, ["msg2"])
+    _verify_delivery_and_confirm(barConsumerOnReplicaProxy, du.uri_fanout_bar, ["msg2"])
 
     # 3: test maxUnconfirmedMessages, maxUnconfirmedBytes
     assert (
         barConsumerOnReplicaProxy.configure(
-            tc.URI_FANOUT_BAR,
+            du.uri_fanout_bar,
             max_unconfirmed_messages=2,
             max_unconfirmed_bytes=3,
             block=True,
@@ -436,9 +453,9 @@ def test_verify_fanout(cluster: Cluster):
     )
 
     _verify_max_messages_max_bytes_routing(
-        BmqClient(handle=producerOnReplicaProxy, uri=tc.URI_FANOUT),
-        BmqClient(handle=barConsumerOnReplicaProxy, uri=tc.URI_FANOUT_BAR),
-        [BmqClient(handle=fooConsumerAndProducerOnPrimaryProxy, uri=tc.URI_FANOUT_FOO)],
+        BmqClient(handle=producerOnReplicaProxy, uri=du.uri_fanout),
+        BmqClient(handle=barConsumerOnReplicaProxy, uri=du.uri_fanout_bar),
+        [BmqClient(handle=fooConsumerAndProducerOnPrimaryProxy, uri=du.uri_fanout_foo)],
     )
 
     # 4: Close everything
@@ -449,7 +466,7 @@ def test_verify_fanout(cluster: Cluster):
             producerOnReplicaProxy,
             barConsumerOnReplicaProxy,
         ],
-        [tc.URI_FANOUT, tc.URI_FANOUT_FOO, tc.URI_FANOUT, tc.URI_FANOUT_BAR],
+        [du.uri_fanout, du.uri_fanout_foo, du.uri_fanout, du.uri_fanout_bar],
     )
 
     _stop_clients(
@@ -521,23 +538,24 @@ def test_verify_broadcast(cluster: Cluster):
     _stop_clients([producer1, consumer1, producer2, consumer2])
 
 
-def test_verify_redelivery(cluster: Cluster):
+def test_verify_redelivery(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Drop one consumer having unconfirmed message while there is another
     consumer unable to take the message (due to max_unconfirmed_messages
     limit).  Then start new consumer and make sure it does not crash and
     receives that unconfirmed message.
     """
+    du = domain_urls
     proxies = cluster.proxy_cycle()
 
     # Proxy in same datacenter as leader/primary
     proxy = next(proxies)
 
     producer = proxy.create_client("producer1")
-    producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
 
     consumer1 = proxy.create_client("consumer1")
     consumer1.open(
-        tc.URI_FANOUT_FOO,
+        du.uri_fanout_foo,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
@@ -546,18 +564,18 @@ def test_verify_redelivery(cluster: Cluster):
 
     consumer2 = proxy.create_client("consumer2")
     consumer2.open(
-        tc.URI_FANOUT_FOO,
+        du.uri_fanout_foo,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
         succeed=True,
     )
 
-    producer.post(tc.URI_FANOUT, payload=["1"], succeed=True, wait_ack=True)
-    producer.post(tc.URI_FANOUT, payload=["2"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, payload=["1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, payload=["2"], succeed=True, wait_ack=True)
 
     consumer1.wait_push_event()
-    before = consumer1.list(tc.URI_FANOUT_FOO, block=True)
+    before = consumer1.list(du.uri_fanout_foo, block=True)
 
     assert len(before) == 1
 
@@ -567,7 +585,7 @@ def test_verify_redelivery(cluster: Cluster):
 
     consumer1 = proxy.create_client("consumer1")
     consumer1.open(
-        tc.URI_FANOUT_FOO,
+        du.uri_fanout_foo,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
@@ -575,7 +593,7 @@ def test_verify_redelivery(cluster: Cluster):
     )
 
     consumer1.wait_push_event()
-    after = consumer1.list(tc.URI_FANOUT_FOO, block=True)
+    after = consumer1.list(du.uri_fanout_foo, block=True)
 
     assert len(after) == 1
 
@@ -584,39 +602,40 @@ def test_verify_redelivery(cluster: Cluster):
     _stop_clients([producer, consumer1, consumer2])
 
 
-def test_verify_priority_queue_redelivery(cluster: Cluster):
+def test_verify_priority_queue_redelivery(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Restart consumer having unconfirmed messages while a producer is
     still present (queue context is not erased).  Make sure the consumer
     receives the unconfirmed messages.
     """
+    uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
 
     # Proxy in same datacenter as leader/primary
     proxy = next(proxies)
 
     producer = proxy.create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
 
     consumer = proxy.create_client("consumer")
     consumer.open(
-        tc.URI_PRIORITY,
+        uri_priority,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
         succeed=True,
     )
 
-    producer.post(tc.URI_PRIORITY, payload=["1"], succeed=True, wait_ack=True)
-    producer.post(tc.URI_PRIORITY, payload=["2"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, payload=["1"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, payload=["2"], succeed=True, wait_ack=True)
 
     consumer.wait_push_event()
-    before = consumer.list(tc.URI_PRIORITY, block=True)
+    before = consumer.list(uri_priority, block=True)
 
     consumer.stop_session(block=True)
 
     consumer = proxy.create_client("consumer")
     consumer.open(
-        tc.URI_PRIORITY,
+        uri_priority,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
@@ -624,34 +643,35 @@ def test_verify_priority_queue_redelivery(cluster: Cluster):
     )
 
     consumer.wait_push_event()
-    after = consumer.list(tc.URI_PRIORITY, block=True)
+    after = consumer.list(uri_priority, block=True)
 
     assert before == after
 
     _stop_clients([producer, consumer])
 
 
-def test_verify_partial_close(multi_node: Cluster):
+def test_verify_partial_close(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Drop one of two producers both having unacked message (primary is
     suspended.  Make sure the remaining producer does not get NACK but gets
     ACK when primary resumes.
     """
+    uri_fanout = domain_urls.uri_fanout
     proxies = multi_node.proxy_cycle()
 
     proxy = next(proxies)
     proxy = next(proxies)
 
     producer1 = proxy.create_client("producer1")
-    producer1.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
+    producer1.open(uri_fanout, flags=["write", "ack"], succeed=True)
 
     producer2 = proxy.create_client("producer2")
-    producer2.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
+    producer2.open(uri_fanout, flags=["write", "ack"], succeed=True)
 
     leader = multi_node.last_known_leader
     leader.suspend()
 
-    producer1.post(tc.URI_FANOUT, payload=["1"], succeed=True, wait_ack=False)
-    producer2.post(tc.URI_FANOUT, payload=["2"], succeed=True, wait_ack=False)
+    producer1.post(uri_fanout, payload=["1"], succeed=True, wait_ack=False)
+    producer2.post(uri_fanout, payload=["2"], succeed=True, wait_ack=False)
 
     producer2.stop_session(block=True)
 
@@ -662,8 +682,9 @@ def test_verify_partial_close(multi_node: Cluster):
     _stop_clients([producer1, producer2])
 
 
-def test_multi_interface_connect(multi_interface: Cluster):
+def test_multi_interface_connect(multi_interface: Cluster, domain_urls: tc.DomainUrls):
     """Simple test to connect to a cluster with multiple ports listening."""
+    uri_priority = domain_urls.uri_priority
     cluster = multi_interface
     brokers = cluster.nodes() + cluster.proxies()
     for broker in brokers:
@@ -671,53 +692,56 @@ def test_multi_interface_connect(multi_interface: Cluster):
             port = listener.port
             producer = broker.create_client(f"producer{i}", port=port)
             consumer = broker.create_client(f"consumer{i}", port=port)
-            producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+            producer.open(uri_priority, flags=["write", "ack"], succeed=True)
             consumer.open(
-                tc.URI_PRIORITY,
+                uri_priority,
                 flags=["read"],
                 consumer_priority=1,
                 max_unconfirmed_messages=1,
                 succeed=True,
             )
-            producer.post(
-                tc.URI_PRIORITY, payload=[f"{i}"], succeed=True, wait_ack=True
-            )
+            producer.post(uri_priority, payload=[f"{i}"], succeed=True, wait_ack=True)
             assert consumer.wait_push_event()
             msgs = consumer.list(block=True)
             assert len(msgs) == 1
             assert msgs[0].payload == f"{i}"
-            consumer.confirm(tc.URI_PRIORITY, msgs[0].guid, succeed=True)
+            consumer.confirm(uri_priority, msgs[0].guid, succeed=True)
             _stop_clients([producer, consumer])
 
 
-def test_multi_interface_share_queues(multi_interface: Cluster):
+def test_multi_interface_share_queues(
+    multi_interface: Cluster, domain_urls: tc.DomainUrls
+):
     """Check that clients connecting on different ports still work together."""
+    uri_priority = domain_urls.uri_priority
     cluster = multi_interface
     broker = next(cluster.proxy_cycle())
     [listener1, listener2] = broker.config.listeners
     producer = broker.create_client("producer", port=listener1.port)
     consumer = broker.create_client("consumer", port=listener2.port)
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+    producer.open(du.uri_priority, flags=["write", "ack"], succeed=True)
     consumer.open(
-        tc.URI_PRIORITY,
+        uri_priority,
         flags=["read"],
         consumer_priority=1,
         max_unconfirmed_messages=1,
         succeed=True,
     )
-    producer.post(tc.URI_PRIORITY, payload=["foo"], succeed=True, wait_ack=True)
+    producer.post(uri_priority, payload=["foo"], succeed=True, wait_ack=True)
     assert consumer.wait_push_event()
     msgs = consumer.list(block=True)
     assert len(msgs) == 1
     assert msgs[0].payload == "foo"
-    consumer.confirm(tc.URI_PRIORITY, msgs[0].guid, succeed=True)
+    consumer.confirm(uri_priority, msgs[0].guid, succeed=True)
     _stop_clients([producer, consumer])
 
 
 @start_cluster(True, True, True)
 @tweak.cluster.queue_operations.open_timeout_ms(2)
-def test_command_timeout(multi_node: Cluster):
+def test_command_timeout(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Simple test to execute onOpenQueueResponse timeout."""
+
+    du = domain_urls
 
     # make sure the cluster is healthy and the queue is assigned
     # Cannot use proxies as they do not read cluster config
@@ -729,43 +753,44 @@ def test_command_timeout(multi_node: Cluster):
 
     client = host.create_client("client")
     # this may fail due to the short timeout; we just need queue assigned
-    client.open(tc.URI_FANOUT, flags=["write", "ack"], block=True)
+    client.open(du.uri_fanout, flags=["write", "ack"], block=True)
 
     leader.suspend()
 
-    result = client.open(tc.URI_FANOUT_FOO, flags=["read"], block=True)
+    result = client.open(du.uri_fanout_foo, flags=["read"], block=True)
     leader.resume()
 
     assert result == Client.e_TIMEOUT
 
 
-def test_queue_purge_command(multi_node: Cluster):
+def test_queue_purge_command(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Ensure that 'queue purge' command is working as expected.  Post a
     message to the queue, then purge the queue, then bring up a consumer.
     Ensure that consumer does not receive any message.
     """
+    du = domain_urls
     proxy = next(multi_node.proxy_cycle())
 
     # Start a producer and post a message
     producer = proxy.create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
-    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+    producer.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     leader = multi_node.last_known_leader
 
     # Purge queue, but *only* for 'foo' appId
-    leader.command(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE foo")
+    leader.command(f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE foo")
 
     # Open consumers for all appIds and ensure that the one with 'foo' appId
     # does not receive the message, while other consumers do.
     consumer1 = proxy.create_client("consumer1")
-    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)
 
     consumer2 = proxy.create_client("consumer2")
-    consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    consumer2.open(du.uri_fanout_bar, flags=["read"], succeed=True)
 
     consumer3 = proxy.create_client("consumer3")
-    consumer3.open(tc.URI_FANOUT_BAZ, flags=["read"], succeed=True)
+    consumer3.open(du.uri_fanout_baz, flags=["read"], succeed=True)
 
     assert consumer2.wait_push_event()
     msgs = consumer2.list(block=True)
@@ -781,26 +806,26 @@ def test_queue_purge_command(multi_node: Cluster):
     msgs = consumer1.list(block=True)
     assert len(msgs) == 0
 
-    consumer2.confirm(tc.URI_FANOUT_BAR, "*", succeed=True)
-    consumer3.confirm(tc.URI_FANOUT_BAZ, "*", succeed=True)
+    consumer2.confirm(du.uri_fanout_bar, "*", succeed=True)
+    consumer3.confirm(du.uri_fanout_baz, "*", succeed=True)
 
     # Stop all consumers, post another message, then purge entire queue
     # (i.e., all appIds), then restart all consumers and ensure that none
     # of them got any messages.
-    consumer1.close(tc.URI_FANOUT_FOO, succeed=True)
-    consumer2.close(tc.URI_FANOUT_BAR, succeed=True)
-    consumer3.close(tc.URI_FANOUT_BAZ, succeed=True)
+    consumer1.close(du.uri_fanout_foo, succeed=True)
+    consumer2.close(du.uri_fanout_bar, succeed=True)
+    consumer3.close(du.uri_fanout_baz, succeed=True)
 
-    producer.post(tc.URI_FANOUT, ["msg2"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["msg2"], succeed=True, wait_ack=True)
 
-    leader.command(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE *")
+    leader.command(f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE *")
 
     consumer1 = proxy.create_client("consumer1")
-    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     consumer2 = proxy.create_client("consumer2")
-    consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    consumer2.open(du.uri_fanout_bar, flags=["read"], succeed=True)
     consumer3 = proxy.create_client("consumer3")
-    consumer3.open(tc.URI_FANOUT_BAZ, flags=["read"], succeed=True)
+    consumer3.open(du.uri_fanout_baz, flags=["read"], succeed=True)
 
     consumers = [consumer1, consumer2, consumer3]
 
@@ -810,8 +835,9 @@ def test_queue_purge_command(multi_node: Cluster):
         assert len(msgs) == 0
 
 
-def test_message_properties(cluster: Cluster):
+def test_message_properties(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Ensure that posting different sequences of MessageProperties works."""
+    uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
 
     # 1: Setup producers and consumers
@@ -820,21 +846,19 @@ def test_message_properties(cluster: Cluster):
 
     producer1 = proxy1.create_client("producer1")
     assert (
-        producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer1.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
     consumer = proxy1.create_client("consumer")
-    assert (
-        consumer.open(tc.URI_PRIORITY, flags=["read"], block=True) == Client.e_SUCCESS
-    )
+    assert consumer.open(uri_priority, flags=["read"], block=True) == Client.e_SUCCESS
 
     # Replica proxy
     proxy2 = next(proxies)
 
     producer2 = proxy2.create_client("producer2")
     assert (
-        producer2.open(tc.URI_PRIORITY, flags=["write", "ack"], block=True)
+        producer2.open(uri_priority, flags=["write", "ack"], block=True)
         == Client.e_SUCCESS
     )
 
@@ -842,7 +866,7 @@ def test_message_properties(cluster: Cluster):
 
     assert (
         producer1.post(
-            tc.URI_PRIORITY,
+            uri_priority,
             payload=["msg"],
             block=True,
             wait_ack=True,
@@ -851,11 +875,11 @@ def test_message_properties(cluster: Cluster):
         == Client.e_SUCCESS
     )
 
-    _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+    _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     assert (
         producer1.post(
-            tc.URI_PRIORITY,
+            uri_priority,
             payload=["msg"],
             block=True,
             wait_ack=True,
@@ -872,11 +896,11 @@ def test_message_properties(cluster: Cluster):
         == Client.e_SUCCESS
     )
 
-    _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+    _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     assert (
         producer1.post(
-            tc.URI_PRIORITY,
+            uri_priority,
             payload=["msg"],
             block=True,
             wait_ack=True,
@@ -895,11 +919,11 @@ def test_message_properties(cluster: Cluster):
         == Client.e_SUCCESS
     )
 
-    _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+    _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     assert (
         producer1.post(
-            tc.URI_PRIORITY,
+            uri_priority,
             payload=["msg"],
             block=True,
             wait_ack=True,
@@ -916,11 +940,11 @@ def test_message_properties(cluster: Cluster):
         == Client.e_SUCCESS
     )
 
-    _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+    _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     assert (
         producer1.post(
-            tc.URI_PRIORITY,
+            uri_priority,
             payload=["msg"],
             block=True,
             wait_ack=True,
@@ -939,11 +963,11 @@ def test_message_properties(cluster: Cluster):
         == Client.e_SUCCESS
     )
 
-    _verify_delivery_and_confirm(consumer, tc.URI_PRIORITY, ["msg"])
+    _verify_delivery_and_confirm(consumer, uri_priority, ["msg"])
 
     # 3: Close everything
     _close_clients(
         [producer1, consumer, producer2],
-        [tc.URI_PRIORITY],
+        [uri_priority],
     )
     _stop_clients([producer1, consumer, producer2])
