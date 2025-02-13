@@ -79,7 +79,6 @@ namespace mqbblp {
 class QueueState {
   public:
     // TYPES
-    typedef bslma::ManagedPtr<mqbi::Storage> StorageMp;
 
     /// `SubQueuesParameters` is an alias for a map of QueueStreamParameters
     /// (subQueueId) -> queueStreamParameters
@@ -145,7 +144,7 @@ class QueueState {
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
 
     /// Storage used by the queue associated to this state.
-    StorageMp d_storage_mp;
+    bsl::shared_ptr<mqbi::Storage> d_storage_sp;
 
     /// Dispatcher Client Data of the queue associated to this state.
     mqbi::DispatcherClientData d_dispatcherClientData;
@@ -200,7 +199,7 @@ class QueueState {
     QueueState& setId(unsigned int value);
     QueueState& setKey(const mqbu::StorageKey& key);
     QueueState& setPartitionId(int value);
-    QueueState& setStorage(StorageMp& value);
+    QueueState& setStorage(const bsl::shared_ptr<mqbi::Storage>& value);
     QueueState& setStorageManager(mqbi::StorageManager* value);
     QueueState&
     setRoutingConfig(const bmqp_ctrlmsg::RoutingConfiguration& routingConfig);
@@ -303,7 +302,8 @@ class QueueState {
 
     /// Return `true` if the specified `storage` is compatible with the
     /// current configuration, or `false` otherwise.
-    bool isStorageCompatible(const StorageMp& storageMp) const;
+    bool
+    isStorageCompatible(const bsl::shared_ptr<mqbi::Storage>& storageSp) const;
 
     /// Return `true` if the configuration for this queue requires
     /// at-most-once semantics or `false` otherwise.
@@ -373,9 +373,10 @@ inline QueueState& QueueState::setPartitionId(int value)
     return *this;
 }
 
-inline QueueState& QueueState::setStorage(StorageMp& value)
+inline QueueState&
+QueueState::setStorage(const bsl::shared_ptr<mqbi::Storage>& value)
 {
-    d_storage_mp = value;
+    d_storage_sp = value;
     return *this;
 }
 
@@ -566,7 +567,7 @@ inline mqbi::Queue* QueueState::queue() const
 
 inline mqbi::Storage* QueueState::storage() const
 {
-    return d_storage_mp.get();
+    return d_storage_sp.get();
 }
 
 inline mqbi::StorageManager* QueueState::storageManager() const

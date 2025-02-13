@@ -23,9 +23,9 @@
 // mode waits for incoming connection; when one is established, it will
 // schedule a read with a short timeout ('k_NEGOTIATION_READTIMEOUT' below).
 // If a valid negotiation message is received, it will reply with its identity
-// and create a session.  If either the read timesout, the received negotiation
-// message is invalid, or the received identity is marked as blacklisted, the
-// negotiation will fail and the connection will be closed.
+// and create a session.  If either the read times out, the received
+// negotiation message is invalid, or the received identity is marked as not
+// allowed, the negotiation will fail and the connection will be closed.
 //
 /// Session creation logic
 ///----------------------

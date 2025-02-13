@@ -1417,6 +1417,15 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
     BSLS_ASSERT_SAFE(primarySyncCtx.primarySyncInProgress());
 
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << "For Partition [" << partitionId
+                  << "], primary sync returned with status: " << status
+                  << ".  Resetting primary sync peer from "
+                  << (primarySyncCtx.syncPeer()
+                          ? primarySyncCtx.syncPeer()->nodeDescription()
+                          : "** null **")
+                  << " to ** null **.";
+
     d_clusterData_p->scheduler().cancelEventAndWait(
         &primarySyncCtx.primarySyncStatusEventHandle());
 
@@ -1426,6 +1435,12 @@ void RecoveryManager::onPartitionPrimarySyncStatus(int partitionId, int status)
         // Don't clear the 'primarySyncCtx' at this time because files are
         // still mapped.  It will be cleaned up when the chunk deleter
         // eventually invokes 'partitionSyncCleanupDispatched' routine.
+
+        // However, we have already received all sync data chunks from the sync
+        // peer, so we can reset our sync peer to *null*.  This prevents false
+        // alarm of primary sync failure if that peer happens to go down before
+        // 'partitionSyncCleanupDispatched' is invoked.
+        primarySyncCtx.setPrimarySyncPeer(0);
 
         return;  // RETURN
     }
