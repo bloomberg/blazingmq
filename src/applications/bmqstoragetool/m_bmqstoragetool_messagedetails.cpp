@@ -30,7 +30,7 @@ namespace m_bmqstoragetool {
 namespace {
 
 // ====================
-// class MessageDetails
+// class AppKeyMatcher
 // ====================
 
 class AppKeyMatcher {
