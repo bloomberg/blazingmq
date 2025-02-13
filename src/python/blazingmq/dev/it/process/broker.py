@@ -363,7 +363,9 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, uri_fanout=tc.URI_FANOUT, **kw):
+    def open_fanout_queues(
+        self, count, start=0, appids=None, uri_fanout=tc.URI_FANOUT, **kw
+    ):
         """
         Open *distinct* fanout queues with the options specified in 'kw', each
         in a distinct, newly created client.  While each queue uses a different
