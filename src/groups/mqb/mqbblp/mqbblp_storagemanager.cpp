@@ -1645,11 +1645,11 @@ void StorageManager::processReplicaDataRequest(
 }
 
 int StorageManager::makeStorage(bsl::ostream& errorDescription,
-                                bslma::ManagedPtr<mqbi::Storage>* out,
-                                const bmqt::Uri&                  uri,
-                                const mqbu::StorageKey&           queueKey,
-                                int                               partitionId,
-                                const bsls::Types::Int64          messageTtl,
+                                bsl::shared_ptr<mqbi::Storage>* out,
+                                const bmqt::Uri&                uri,
+                                const mqbu::StorageKey&         queueKey,
+                                int                             partitionId,
+                                const bsls::Types::Int64        messageTtl,
                                 const int maxDeliveryAttempts,
                                 const mqbconfm::StorageDefinition& storageDef)
 {

@@ -3203,14 +3203,14 @@ void StorageUtil::setQueueDispatched(
     it->second->setQueue(queue);
 }
 
-int StorageUtil::makeStorage(bsl::ostream& errorDescription,
-                             bslma::ManagedPtr<mqbi::Storage>* out,
-                             StorageSpMap*                     storageMap,
-                             bslmt::Mutex*                     storagesLock,
-                             const bmqt::Uri&                  uri,
-                             const mqbu::StorageKey&           queueKey,
-                             int                               partitionId,
-                             const bsls::Types::Int64          messageTtl,
+int StorageUtil::makeStorage(bsl::ostream&                   errorDescription,
+                             bsl::shared_ptr<mqbi::Storage>* out,
+                             StorageSpMap*                   storageMap,
+                             bslmt::Mutex*                   storagesLock,
+                             const bmqt::Uri&                uri,
+                             const mqbu::StorageKey&         queueKey,
+                             int                             partitionId,
+                             const bsls::Types::Int64        messageTtl,
                              const int maxDeliveryAttempts,
                              const mqbconfm::StorageDefinition& storageDef)
 {
@@ -3267,9 +3267,7 @@ int StorageUtil::makeStorage(bsl::ostream& errorDescription,
         return 10 * rc + rc_STORAGE_CFG_FAILURE;  // RETURN
     }
 
-    out->load(storageSp.get(),
-              0,  // cookie
-              bslma::ManagedPtrUtil::noOpDeleter);
+    *out = storageSp;
 
     static_cast<void>(queueKey);
 
