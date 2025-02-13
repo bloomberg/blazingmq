@@ -325,7 +325,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._logger.info(f"panics?: {m}")
             return m
 
-    def open_priority_queues(self, count, start=0, **kw):
+    def open_priority_queues(self, count, start=0, uri_priority=tc.URI_PRIORITY, **kw):
         """
         Open *distinct* priority queues with the options specified in 'kw'.
         While each queue uses a different URI, calling this method multiple
@@ -339,7 +339,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         return ListContextManager(
             [
-                Queue(self.create_client(), f"{tc.URI_PRIORITY}{i}", **kw)
+                Queue(self.create_client(), f"{uri_priority}{i}", **kw)
                 for i in range(start, start + count)
             ]
         )
@@ -363,7 +363,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, **kw):
+    def open_fanout_queues(self, count, start=0, appids=None, uri_fanout=tc.URI_FANOUT, **kw):
         """
         Open *distinct* fanout queues with the options specified in 'kw', each
         in a distinct, newly created client.  While each queue uses a different
@@ -383,14 +383,14 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
         return ListContextManager(
             [
-                Queue(self.create_client(), f"{tc.URI_FANOUT}{i}", **kw)
+                Queue(self.create_client(), f"{uri_fanout}{i}", **kw)
                 for i in range(start, start + count)
             ]
             if appids is None
             else [
                 ListContextManager(
                     [
-                        Queue(self.create_client(), f"{tc.URI_FANOUT}{i}?id={id}", **kw)
+                        Queue(self.create_client(), f"{uri_fanout}{i}?id={id}", **kw)
                         for id in appids
                     ]
                 )
