@@ -719,7 +719,7 @@ def test_multi_interface_share_queues(
     [listener1, listener2] = broker.config.listeners
     producer = broker.create_client("producer", port=listener1.port)
     consumer = broker.create_client("consumer", port=listener2.port)
-    producer.open(du.uri_priority, flags=["write", "ack"], succeed=True)
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     consumer.open(
         uri_priority,
         flags=["read"],

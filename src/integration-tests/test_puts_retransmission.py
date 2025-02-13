@@ -599,7 +599,7 @@ class TestPutsRetransmission:
         producer1.post(uri_priority, payload=["msg"], succeed=True, wait_ack=True)
         consumer1.wait_push_event()
         assert wait_until(
-            lambda: len(consumer1.list(du.uri_priority, block=True)) == 1, 10
+            lambda: len(consumer1.list(uri_priority, block=True)) == 1, 10
         )
         msgs = consumer1.list(uri_priority, block=True)
         assert msgs[0].payload == "msg"
