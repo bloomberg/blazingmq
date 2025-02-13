@@ -64,7 +64,7 @@ def post_n_msgs(
     for _ in range(task.num):
         res = producer.post(task.uri, payload=["msg"], wait_ack=True)
         assert Client.e_SUCCESS == res
-    producer.close(task.uri)
+    producer.close(task.uri, succeed=True)
 
     if posted is not None:
         if task.uri in posted:
