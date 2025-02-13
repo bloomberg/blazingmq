@@ -501,7 +501,9 @@ class Client(BMQProcess):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, uri_fanout=URI_FANOUT, **kw):
+    def open_fanout_queues(
+        self, count, start=0, appids=None, uri_fanout=URI_FANOUT, **kw
+    ):
         """
         Open *distinct* fanout queues with the options specified in 'kw'.
         While each queue uses a different URI, calling this method multiple
