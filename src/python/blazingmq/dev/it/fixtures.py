@@ -386,7 +386,9 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                             request.instance, "setup_cluster"
                         ):
                             if "domain_urls" in request.fixturenames:
-                                request.instance.setup_cluster(cluster, request.getfixturevalue("domain_urls"))
+                                request.instance.setup_cluster(
+                                    cluster, request.getfixturevalue("domain_urls")
+                                )
                             else:
                                 request.instance.setup_cluster(cluster)
 
