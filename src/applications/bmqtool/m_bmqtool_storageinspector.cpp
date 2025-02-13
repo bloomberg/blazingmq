@@ -474,7 +474,7 @@ void StorageInspector::processCommand(
             fields.push_back("SyncPoint DataFileOffset (DWORDS)");
             fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             bsls::Types::Uint64  lastRecPos =
                 d_journalFileIter.lastRecordPosition();
             printer << lastRecPos;
@@ -578,7 +578,7 @@ void StorageInspector::processCommand(
             fields.push_back("QueueKey");
             fields.push_back("Number of AppIds");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             printer << cit->first << qr.d_queueKey << qr.d_appIds.size();
 
             // 'printer' not to be used beyond this point
@@ -592,7 +592,7 @@ void StorageInspector::processCommand(
                 f.push_back("AppKey");
 
                 const int            indent = 8;
-                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
+                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, f, indent);
                 p << ar.d_appId << ar.d_appKey;
             }
 

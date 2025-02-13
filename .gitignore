@@ -35,3 +35,9 @@ src/applications/bmqbrkr/etc/etc
 
 # 'sim_cpp11_features.pl' backups
 *.bak
+.bash_history
+.bde_tools/
+docker/sanitizers/
+lib64/
+src/groups/mqb/mqbc/mqbc_clusterutil.t.cpp
+src/groups/mqb/mqbc/mqbc_clusterutil.t.cpp

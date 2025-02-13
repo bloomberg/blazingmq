@@ -71,7 +71,7 @@ void printRecord(bsl::ostream&                  stream,
     fields.push_back("GUID");
     fields.push_back("Crc32c");
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -155,7 +155,7 @@ void printRecord(bsl::ostream&                  stream,
         }
     }
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -197,7 +197,7 @@ void printRecord(bsl::ostream&                  stream,
     bmqu::MemOutStream queueKeyStr(allocator);
     queueKeyStr << rec.queueKey();
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -258,7 +258,7 @@ void printRecord(bsl::ostream&                  stream,
         }
     }
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();

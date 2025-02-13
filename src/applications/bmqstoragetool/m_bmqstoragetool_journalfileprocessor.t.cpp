@@ -1219,7 +1219,7 @@ static void test14_summaryTest()
     fields.push_back("Number of partially confirmed messages");
     fields.push_back("Number of confirmed messages");
     fields.push_back("Number of outstanding messages");
-    bmqu::AlignedPrinter printer(expectedStream, &fields);
+    bmqu::AlignedPrinter printer(expectedStream, fields);
     printer << 3 << 2 << 2;
     expectedStream << "Outstanding ratio: 40% (2/5)\n";
 
@@ -2108,7 +2108,7 @@ static void test24_summaryWithQueueDetailsTest()
     fields.push_back("Number of partially confirmed messages");
     fields.push_back("Number of confirmed messages");
     fields.push_back("Number of outstanding messages");
-    bmqu::AlignedPrinter printer(expectedStream, &fields);
+    bmqu::AlignedPrinter printer(expectedStream, fields);
     printer << 3 << 2 << 2;
     expectedStream << "Outstanding ratio: 40% (2/5)\n";
 
