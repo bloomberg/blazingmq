@@ -64,8 +64,9 @@ def eventual_consistency_param():
             uri_fanout=URI_FANOUT,
             uri_fanout_foo=URI_FANOUT_FOO,
             uri_fanout_bar=URI_FANOUT_BAR,
-            uri_fanout_baz=URI_FANOUT_BAZ),
-        id="eventual_consistency"
+            uri_fanout_baz=URI_FANOUT_BAZ,
+        ),
+        id="eventual_consistency",
     )
 
 
@@ -78,6 +79,7 @@ def strong_consistency_param():
             uri_fanout=URI_FANOUT_SC,
             uri_fanout_foo=URI_FANOUT_SC_FOO,
             uri_fanout_bar=URI_FANOUT_SC_BAR,
-            uri_fanout_baz=URI_FANOUT_SC_BAZ),
-        id="strong_consistency"
+            uri_fanout_baz=URI_FANOUT_SC_BAZ,
+        ),
+        id="strong_consistency",
     )
