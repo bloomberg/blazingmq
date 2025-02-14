@@ -451,6 +451,33 @@ class SimpleEvaluator {
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
 
+    // ----------
+    // Abs
+    // ----------
+
+    class Abs : public Expression {
+      private:
+        // DATA
+
+        // The expression to negate.
+        ExpressionPtr d_expression;
+
+      public:
+        // CREATORS
+
+        /// Create an object that implements arithmetic negation.
+        explicit Abs(ExpressionPtr expression);
+
+        // ACCESSORS
+
+        /// Evaluate `expression` passed to the constructor. If it is an
+        /// integer, return the negated value as an Int64 Datum. Otherwise,
+        /// set the error in the context to  e_TYPE, stop the evaluation,
+        /// and return a null datum.
+        bdld::Datum
+        evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
+    };
+
     // ---
     // Not
     // ---
@@ -467,6 +494,41 @@ class SimpleEvaluator {
 
         /// Create an object that implements logical negation.
         explicit Not(ExpressionPtr expression);
+
+        // ACCESSORS
+
+        /// Evaluate `expression` passed to the constructor. If it is a
+        /// boolean, return the negated value as a boolean Datum.
+        /// Otherwise, set the error in the context to  e_TYPE, stop the
+        /// evaluation, and return a null datum.
+        bdld::Datum
+        evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
+    };
+
+    // ---
+    // Exists
+    // ---
+
+    class Exists : public Expression {
+      private:
+        // DATA
+
+        // The name of the property.
+        bsl::string d_name;
+
+      public:
+        // CREATORS
+
+        /// Create an object that evaluates property `name`, in the
+        /// evaluation context, as a boolean.
+        explicit Exists(const bsl::string& name);
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+        /// Create an object that evaluates property `name`, in the
+        /// evaluation context, as a boolean.
+        explicit Exists(bsl::string&& name) noexcept;
+#endif
 
         // ACCESSORS
 
@@ -549,6 +611,7 @@ class SimpleEvaluator {
     friend class SimpleEvaluatorScanner;  // for access to Expression hierarchy
     friend class CompilationContext;      // for access to ExpressionPtr
 };
+
 // ========================
 // class CompilationContext
 // ========================
@@ -955,6 +1018,15 @@ inline SimpleEvaluator::UnaryMinus::UnaryMinus(ExpressionPtr expression)
 // -----------------------------------
 
 inline SimpleEvaluator::Not::Not(ExpressionPtr expression)
+: d_expression(expression)
+{
+}
+
+// ------------------------------------------
+// template class SimpleEvaluator::Abs
+// ------------------------------------------
+
+inline SimpleEvaluator::Abs::Abs(ExpressionPtr expression)
 : d_expression(expression)
 {
 }

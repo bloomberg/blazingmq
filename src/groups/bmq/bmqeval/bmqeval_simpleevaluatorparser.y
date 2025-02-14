@@ -75,6 +75,8 @@
 %token PLUS "+" MINUS "-";
 %token TIMES "*" DIVIDES "/" MODULUS "%";
 %token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">";
+%token <bsl::string> EXISTS "exists";
+%token <bsl::string> ABS "abs";
 
 %left OR;
 %left AND;
@@ -84,6 +86,7 @@
 %left TIMES DIVIDES MODULUS;
 %right NOT "!";
 
+%type<bsl::string> variable;
 %type<SimpleEvaluator::ExpressionPtr> expression;
 %type<SimpleEvaluator::ExpressionPtr> predicate;
 %start predicate
@@ -95,18 +98,40 @@ predicate : expression END
             ctx.d_expression = $1;
         }
 
-expression
+variable
     : PROPERTY
         {
+            ++ctx.d_numProperties;
+            $$ = $1;
+        }
+    | EXISTS
+        {
+            ++ctx.d_numProperties;
+            $$ = $1;
+        }
+    | ABS
+        {
+            ++ctx.d_numProperties;
+            $$ = $1;
+        }
 
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) \
+expression
+    : variable {
+        #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) \
 && defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
             $$ = ctx.makeUnaryExpression<SimpleEvaluator::Property, bsl::string>(bsl::move($1));
 #else
             $$ = ctx.makeUnaryExpression<SimpleEvaluator::Property, bsl::string>($1);
 #endif
-
-            ++ctx.d_numProperties;
+    }
+    | EXISTS LPAR variable RPAR
+        {
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) \
+&& defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+            $$ = ctx.makeUnaryExpression<SimpleEvaluator::Exists, bsl::string>(bsl::move($3));
+#else
+            $$ = ctx.makeUnaryExpression<SimpleEvaluator::Exists, bsl::string>($3);
+#endif
         }
     | INTEGER
         { $$ = ctx.makeLiteral<SimpleEvaluator::IntegerLiteral>($1); }
@@ -139,6 +164,8 @@ expression
         { $$ = ctx.makeBooleanBinaryExpression<SimpleEvaluator::Or>($1, $3); }
     | NOT expression
         { $$ = ctx.makeUnaryExpression<SimpleEvaluator::Not>($2); }
+    | ABS LPAR expression RPAR
+        { $$ = ctx.makeUnaryExpression<SimpleEvaluator::Abs>($3); }
     | expression PLUS expression
         { $$ = ctx.makeNumBinaryExpression<bsl::plus>($1, $3); }
     | expression MINUS expression
