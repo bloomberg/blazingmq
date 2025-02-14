@@ -30,11 +30,12 @@ from blazingmq.dev.it.util import random_string
 pytestmark = order(10)
 
 
-def test_compression_restart(cluster: Cluster):
+def test_compression_restart(cluster: Cluster, domain_urls: tc.DomainUrls):
     # Start a producer and post a message.
+    uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_PRIORITY_SC, flags=["write", "ack"], succeed=True)
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
 
     # Note for compression, we use a much larger payload of length greater
     # than 1024 characters. The reason being that internally BMQ SDK skips
@@ -43,7 +44,7 @@ def test_compression_restart(cluster: Cluster):
     # string.
     payload = random_string(len=5000)
     producer.post(
-        tc.URI_PRIORITY_SC,
+        uri_priority,
         payload=[payload],
         wait_ack=True,
         succeed=True,
@@ -61,9 +62,9 @@ def test_compression_restart(cluster: Cluster):
         producer.wait_state_restored()
 
     consumer = next(proxies).create_client("consumer")
-    consumer.open(tc.URI_PRIORITY_SC, flags=["read"], succeed=True)
+    consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
-    msgs = consumer.list(tc.URI_PRIORITY_SC, block=True)
+    msgs = consumer.list(uri_priority, block=True)
 
     # we truncate the message to 32 characters in the bmqtool api used by
     # the consumer.list function
