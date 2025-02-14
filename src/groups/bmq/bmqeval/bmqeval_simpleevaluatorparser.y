@@ -76,6 +76,7 @@
 %token TIMES "*" DIVIDES "/" MODULUS "%";
 %token EQ "=" NE "<>" LT "<" LE "<=" GE ">=" GT ">";
 %token <bsl::string> EXISTS "exists";
+%token <bsl::string> ABS "abs";
 
 %left OR;
 %left AND;
@@ -104,6 +105,11 @@ variable
             $$ = $1;
         }
     | EXISTS
+        {
+            ++ctx.d_numProperties;
+            $$ = $1;
+        }
+    | ABS
         {
             ++ctx.d_numProperties;
             $$ = $1;
@@ -158,6 +164,8 @@ expression
         { $$ = ctx.makeBooleanBinaryExpression<SimpleEvaluator::Or>($1, $3); }
     | NOT expression
         { $$ = ctx.makeUnaryExpression<SimpleEvaluator::Not>($2); }
+    | ABS LPAR expression RPAR
+        { $$ = ctx.makeUnaryExpression<SimpleEvaluator::Abs>($3); }
     | expression PLUS expression
         { $$ = ctx.makeNumBinaryExpression<bsl::plus>($1, $3); }
     | expression MINUS expression
