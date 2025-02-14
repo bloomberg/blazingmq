@@ -90,7 +90,7 @@
 #include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannelfactory.h>
 #include <bmqio_status.h>
-#include <bmqp_heartbeatcheck.h>
+#include <bmqp_heartbeatmonitor.h>
 #include <bmqst_statcontext.h>
 #include <bmqu_sharedresource.h>
 
@@ -187,7 +187,7 @@ class TCPSessionFactory {
         // The event processor of Events received on
         // this channel.
 
-        bmqp::HeartbeatChecker d_heartbeatChecker;
+        bmqp::HeartbeatMonitor d_monitor;
 
         explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
                              const NegotiatorContext&               context,
@@ -361,7 +361,7 @@ class TCPSessionFactory {
     // manipulated from the event
     // scheduler thread.
 
-    const char d_initialMissedHeartbeatCounter;
+    const int d_initialMissedHeartbeatCounter;
     // Value for initializing
     // 'ChannelInfo.d_missedHeartbeatCounter'.
     // See comments in

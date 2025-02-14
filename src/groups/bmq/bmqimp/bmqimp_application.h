@@ -40,7 +40,7 @@
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_heartbeatcheck.h>
+#include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
 
 #include <bmqio_channel.h>
@@ -160,8 +160,6 @@ class Application {
     // the snapshot was performed on the
     // Counting Allocators context
 
-    bmqp::HeartbeatChecker d_heartbeatChecker;
-
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
     // Scheduler handle for the
     // recurring event used to
@@ -176,10 +174,11 @@ class Application {
     void onChannelWatermark(const bsl::string&                peerUri,
                             bmqio::ChannelWatermarkType::Enum type);
 
-    void readCb(const bmqio::Status&                   status,
-                int*                                   numNeeded,
-                bdlbb::Blob*                           blob,
-                const bsl::shared_ptr<bmqio::Channel>& channel);
+    void readCb(const bmqio::Status&                           status,
+                int*                                           numNeeded,
+                bdlbb::Blob*                                   blob,
+                const bsl::shared_ptr<bmqio::Channel>&         channel,
+                const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
 
     void channelStateCallback(const bsl::string&                     endpoint,
                               bmqio::ChannelFactoryEvent::Enum       event,
@@ -225,9 +224,14 @@ class Application {
     /// channels : this will send a heartbeat if no data has been received
     /// on a given channel, or proactively reset the channel if too many
     /// heartbeats have been missed.
+    void onHeartbeatSchedulerEvent(
+        const bsl::shared_ptr<bmqio::Channel>&         channel,
+        const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
+    bsl::shared_ptr<bmqp::HeartbeatMonitor>
+    createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel);
     void
-    onHeartbeatSchedulerEvent(const bsl::shared_ptr<bmqio::Channel>& channel);
-    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>& channel);
+         startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
+                        const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 
   private:

@@ -100,7 +100,15 @@ const char* NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MPS_EX =
 
 /// Temporary safety switch to control configure request.
 const char* NegotiatedChannelFactory::k_CHANNEL_PROPERTY_CONFIGURE_STREAM =
-    "broker.response.confgiure_stream";
+    "broker.response.configure_stream";
+
+const char*
+    NegotiatedChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS =
+        "broker.response.heartbeat_interval_ms";
+
+const char*
+    NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS =
+        "broker.response.max_missed_heartbeats";
 
 // PRIVATE ACCESSORS
 void NegotiatedChannelFactory::baseResultCallback(
@@ -269,15 +277,18 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
         return;  // RETURN
     }
 
+    const bmqp_ctrlmsg::BrokerResponse& brokerResponse =
+        response.brokerResponse();
+
     // Check if it's an error response
-    if (response.brokerResponse().result().category() !=
+    if (brokerResponse.result().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         BALL_LOG_ERROR << "Negotiation with broker failed: " << response;
 
         // Alarm if the client is using an unsupported SDK version.  We can't
         // use a LogAlarmObserver to write to cerr because the task may not
         // have BALL observer.
-        if (response.brokerResponse().result().category() ==
+        if (brokerResponse.result().category() ==
             bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED) {
             bdlma::LocalSequentialAllocator<512> localAllocator(
                 d_config.d_allocator_p);
@@ -301,7 +312,7 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
     // Print an ALMN catchable string to act.log if the client is using a
     // deprecated SDK version.  We can't use a LogAlarmObserver to write to
     // cerr because the task may not have a BALL observer.
-    if (response.brokerResponse().isDeprecatedSdk()) {
+    if (brokerResponse.isDeprecatedSdk()) {
         bdlma::LocalSequentialAllocator<512> localAllocator(
             d_config.d_allocator_p);
         bmqu::MemOutStream os(&localAllocator);
@@ -314,22 +325,27 @@ void NegotiatedChannelFactory::onBrokerNegotiationResponse(
     }
 
     // Negotiation SUCCEEDED
-    BALL_LOG_INFO << "Negotiation with broker was successfull: " << response;
+    BALL_LOG_INFO << "Negotiation with broker was successful: " << response;
 
     // Temporary; shall remove after 2nd roll out of "new style" brokers.
     if (bmqp::ProtocolUtil::hasFeature(
             bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
             bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
-            response.brokerResponse().brokerIdentity().features())) {
+            brokerResponse.brokerIdentity().features())) {
         channel->properties().set(k_CHANNEL_PROPERTY_MPS_EX, 1);
     }
 
     if (bmqp::ProtocolUtil::hasFeature(
             bmqp::SubscriptionsFeatures::k_FIELD_NAME,
             bmqp::SubscriptionsFeatures::k_CONFIGURE_STREAM,
-            response.brokerResponse().brokerIdentity().features())) {
+            brokerResponse.brokerIdentity().features())) {
         channel->properties().set(k_CHANNEL_PROPERTY_CONFIGURE_STREAM, 1);
     }
+
+    channel->properties().set(k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS,
+                              brokerResponse.heartbeatIntervalMs());
+    channel->properties().set(k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS,
+                              brokerResponse.maxMissedHeartbeats());
 
     cb(bmqio::ChannelFactoryEvent::e_CHANNEL_UP, bmqio::Status(), channel);
 }
