@@ -293,8 +293,11 @@ class TestReconfigureDomains:
         time.sleep(1.5)
         assert leader.alarms("QUEUE_STUCK", 1)
 
-        # Confirm all messages in the queue.
-        self.reader.confirm(uri_priority_1, "+2", succeed=True)
+        # Confirm all messages in the queue when they are received.
+        self.reader.wait_push_event()
+        self.reader.confirm(uri_priority_1, "+1", succeed=True)
+        self.reader.wait_push_event()
+        self.reader.confirm(uri_priority_1, "+1", succeed=True)
 
         # Reconfigure domain to tolerate as much as two seconds of idleness.
         multi_node.config.domains[
@@ -310,8 +313,11 @@ class TestReconfigureDomains:
         # Sleep for duration between old and new allowed idleness durations.
         time.sleep(1.5)
 
-        # Confirm both messages.
-        self.reader.confirm(uri_priority_1, "+2", succeed=True)
+        # Confirm both messages when they are received.
+        self.reader.wait_push_event()
+        self.reader.confirm(uri_priority_1, "+1", succeed=True)
+        self.reader.wait_push_event()
+        self.reader.confirm(uri_priority_1, "+1", succeed=True)
 
         # Ensure that no alarm was issued.
         assert not leader.alarms("QUEUE_STUCK", 1)
