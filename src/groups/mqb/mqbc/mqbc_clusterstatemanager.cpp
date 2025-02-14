@@ -1504,11 +1504,9 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           status);
 }
 
-void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
-                                            int              partitionId,
-                                            const mqbu::StorageKey& queueKey,
-                                            const AppInfos&         appIdInfos,
-                                            bool forceUpdate)
+void ClusterStateManager::registerQueueInfo(
+    const bmqp_ctrlmsg::QueueInfo& advisory,
+    bool                           forceUpdate)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1517,10 +1515,7 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
 
     mqbc::ClusterUtil::registerQueueInfo(d_state_p,
                                          d_cluster_p,
-                                         uri,
-                                         partitionId,
-                                         queueKey,
-                                         appIdInfos,
+                                         advisory,
                                          forceUpdate);
 }
 
@@ -1569,38 +1564,26 @@ void ClusterStateManager::sendClusterState(
                                         partitions);
 }
 
-void ClusterStateManager::registerAppId(const bsl::string&  appId,
-                                        const mqbi::Domain* domain)
+void ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
+                                       const bsl::vector<bsl::string>& removed,
+                                       const bsl::string& domainName,
+                                       const bsl::string& uri)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(!domainName.empty());
 
-    mqbc::ClusterUtil::registerAppId(d_clusterData_p,
-                                     d_clusterStateLedger_mp.get(),
-                                     *d_state_p,
-                                     appId,
-                                     domain,
-                                     d_allocator_p);
-}
-
-void ClusterStateManager::unregisterAppId(const bsl::string&  appId,
-                                          const mqbi::Domain* domain)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(domain);
-
-    mqbc::ClusterUtil::unregisterAppId(d_clusterData_p,
-                                       d_clusterStateLedger_mp.get(),
-                                       *d_state_p,
-                                       appId,
-                                       domain,
-                                       d_allocator_p);
+    mqbc::ClusterUtil::updateAppIds(d_clusterData_p,
+                                    d_clusterStateLedger_mp.get(),
+                                    *d_state_p,
+                                    added,
+                                    removed,
+                                    domainName,
+                                    uri,
+                                    d_allocator_p);
 }
 
 void ClusterStateManager::initiateLeaderSync(BSLS_ANNOTATION_UNUSED bool wait)
