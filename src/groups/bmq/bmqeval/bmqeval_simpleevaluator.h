@@ -478,6 +478,41 @@ class SimpleEvaluator {
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
 
+    // ---
+    // Exists
+    // ---
+
+    class Exists : public Expression {
+      private:
+        // DATA
+
+        // The name of the property.
+        bsl::string d_name;
+
+      public:
+        // CREATORS
+
+        /// Create an object that evaluates property `name`, in the
+        /// evaluation context, as a boolean.
+        explicit Exists(const bsl::string& name);
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+        /// Create an object that evaluates property `name`, in the
+        /// evaluation context, as a boolean.
+        explicit Exists(bsl::string&& name) noexcept;
+#endif
+
+        // ACCESSORS
+
+        /// Evaluate `expression` passed to the constructor. If it is a
+        /// boolean, return the negated value as a boolean Datum.
+        /// Otherwise, set the error in the context to  e_TYPE, stop the
+        /// evaluation, and return a null datum.
+        bdld::Datum
+        evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
+    };
+
   private:
     // SimpleEvaluator(const SimpleEvaluator& other) BSLS_KEYWORD_DELETED;
     // SimpleEvaluator& operator=(const SimpleEvaluator& other)
@@ -549,6 +584,7 @@ class SimpleEvaluator {
     friend class SimpleEvaluatorScanner;  // for access to Expression hierarchy
     friend class CompilationContext;      // for access to ExpressionPtr
 };
+
 // ========================
 // class CompilationContext
 // ========================
