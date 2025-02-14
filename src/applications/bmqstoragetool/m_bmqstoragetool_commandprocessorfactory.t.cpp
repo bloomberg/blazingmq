@@ -48,11 +48,12 @@ static void test1_breathingTest()
         new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
         bmqtst::TestHelperUtil::allocator());
 
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> cmdProcessor =
         CommandProcessorFactory::createCommandProcessor(
             &params,
             fileManager,
-            bsl::cout,
+            resultStream,
             bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT(dynamic_cast<JournalFileProcessor*>(cmdProcessor.get()) !=
                   0);

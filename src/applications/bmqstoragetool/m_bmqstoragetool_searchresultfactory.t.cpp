@@ -49,10 +49,12 @@ static void test1_breathingTest()
         new (*bmqtst::TestHelperUtil::allocator()) FileManagerMock(),
         bmqtst::TestHelperUtil::allocator());
 
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+
     // Create printer
     bsl::shared_ptr<Printer> printer = createPrinter(
         params.d_printMode,
-        bsl::cout,
+        resultStream,
         bmqtst::TestHelperUtil::allocator());
 
     // Create payload dumper
@@ -60,7 +62,7 @@ static void test1_breathingTest()
     if (params.d_dumpPayload) {
         payloadDumper.load(
             new (*bmqtst::TestHelperUtil::allocator())
-                PayloadDumper(bsl::cout,
+                PayloadDumper(resultStream,
                               fileManager->dataFileIterator(),
                               params.d_dumpLimit,
                               bmqtst::TestHelperUtil::allocator()),
