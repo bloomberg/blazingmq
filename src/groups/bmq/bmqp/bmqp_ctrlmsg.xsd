@@ -1723,11 +1723,13 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='result'          type='tns:Status'/>
-      <element name='protocolVersion' type='int'/>
-      <element name='brokerVersion'   type='int'/>
-      <element name='isDeprecatedSdk' type='boolean' default='false'/>
-      <element name='brokerIdentity'  type='tns:ClientIdentity'/>
+      <element name='result'                type='tns:Status'/>
+      <element name='protocolVersion'       type='int'/>
+      <element name='brokerVersion'         type='int'/>
+      <element name='isDeprecatedSdk'       type='boolean' default='false'/>
+      <element name='brokerIdentity'        type='tns:ClientIdentity'/>
+      <element name='heartbeatIntervalMs'   type='int' default='3000'/>
+      <element name='maxMissedHeartbeats'   type='int' default='10'/>
     </sequence>
   </complexType>
 
