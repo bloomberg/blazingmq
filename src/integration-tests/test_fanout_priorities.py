@@ -18,6 +18,7 @@ This suite of test cases exercises functionality of prioritizing fanout
 consumers .
 """
 
+
 from blazingmq.dev.it.fixtures import (
     Cluster,
     cluster,
