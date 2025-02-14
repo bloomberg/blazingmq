@@ -1,0 +1,6 @@
+/**
+@dir mqbcmd
+
+@brief The `MQBCMD` (BlazingMQ Commands) package provides a parser and
+       manipulator of command types.
+*/
