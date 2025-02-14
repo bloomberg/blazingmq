@@ -61,7 +61,7 @@ def test_remove_domain_when_cluster_unhealthy(
     # TODO Skip this test until admin command routing is re-enabled
     return
 
-    uri_priority = domain_urls.uri_priority
+    du = domain_urls
     proxies = multi_node.proxy_cycle()
     proxy = next(proxies)
 
@@ -70,7 +70,7 @@ def test_remove_domain_when_cluster_unhealthy(
     replicas = multi_node.nodes(exclude=leader)
     member = replicas[0]
 
-    write_messages(proxy, uri_priority, n_msgs=5, do_confirm=False)
+    write_messages(proxy, du.uri_priority, n_msgs=5, do_confirm=False)
 
     # set quorum to make it impossible to select a leader
     for node in multi_node.nodes():
@@ -85,7 +85,7 @@ def test_remove_domain_when_cluster_unhealthy(
     # command couldn't go through since state is unhealthy
     admin = AdminClient()
     admin.connect(member.config.host, int(member.config.port))  # member = east2
-    res = admin.send_admin(f"DOMAINS REMOVE {uri_priority}")
+    res = admin.send_admin(f"DOMAINS REMOVE {du.domain_priority}")
     assert "Error occurred routing command to this node" in res
     assert res.split("\n").count("No queue purged.") == 3
 
@@ -99,7 +99,7 @@ def test_remove_domain_when_cluster_unhealthy(
 
     # send DOMAINS REMOVE admin command again
     multi_node._logger.info("BEFORE SENDING ADMIN COMMAND AGAIN")
-    res = admin.send_admin(f"DOMAINS REMOVE {uri_priority}")
+    res = admin.send_admin(f"DOMAINS REMOVE {du.domain_priority}")
     assert "Purged 5 message(s) for a total of 20  B from 1 queue(s):" in res
     assert res.split("\n").count("No queue purged.") == 3
 
@@ -525,7 +525,7 @@ def test_second_round(cluster: Cluster, domain_urls: tc.DomainUrls):
     admin = AdminClient()
     leader = cluster.last_known_leader
     admin.connect(leader.config.host, int(leader.config.port))
-    uri = domain_urls.uri_priority
+    uri = du.uri_priority
 
     def remove_from_disk_and_add_back(du):
         """
@@ -564,7 +564,7 @@ def test_second_round(cluster: Cluster, domain_urls: tc.DomainUrls):
     write_messages(proxy, uri)
     res = admin.send_admin(f"DOMAINS REMOVE {du.domain_priority}")
     assert "Purged 0 message(s) for a total of 0  B from 1 queue(s)" in res
-    remove_from_disk_and_add_back()
+    remove_from_disk_and_add_back(du)
 
     # put -> no confirm -> admin command -> remove_from_disk_and_add_back
     producer = proxy.create_client("producer")
