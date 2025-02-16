@@ -105,8 +105,8 @@
 #include <bsl_cstddef.h>
 #include <bsl_stdexcept.h>
 #include <bsl_utility.h>
+#include <bslalg_hasstliterators.h>
 #include <bslalg_scalarprimitives.h>
-#include <bslalg_typetraithasstliterators.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bslma_usesbslmaallocator.h>
@@ -717,11 +717,13 @@ class OrderedHashMap {
     /// maintained by this container, or the `end` iterator if this
     /// containeris empty.
     const_iterator begin() const;
+    const_iterator cbegin() const;
 
     /// Return an iterator providing non-modifiable access to the
     /// past-the-end element in the sequence of `value_type` objects
     /// maintained by this container.
     const_iterator end() const;
+    const_iterator cend() const;
 
     /// Return a local iterator providing non-modifiable access to the first
     /// `value_type` object in the sequence of `value_type` objects of the
@@ -730,6 +732,7 @@ class OrderedHashMap {
     /// bucket is empty.  The behavior is undefined unless 'index <
     /// bucket_count()'.
     const_local_iterator begin(size_t index) const;
+    const_local_iterator cbegin(size_t index) const;
 
     /// Return a local iterator providing non-modifiable access to the
     /// past-the-end element in the sequence of `value_type` objects of the
@@ -737,6 +740,7 @@ class OrderedHashMap {
     /// maintained by this container.  The behavior is undefined unless
     /// `index < bucket_count()`.
     const_local_iterator end(size_t index) const;
+    const_local_iterator cend(size_t index) const;
 
     /// Return the index of the bucket, in the array of buckets maintained
     /// by this container, where values having the specified `key` would be
@@ -1541,7 +1545,21 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::begin() const
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cbegin() const
+{
+    return const_iterator(d_sentinel_p->nextInList());
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end() const
+{
+    return const_iterator(d_sentinel_p);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cend() const
 {
     return const_iterator(d_sentinel_p);
 }
@@ -1558,7 +1576,25 @@ inline
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
+    OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cbegin(size_t index) const
+{
+    BSLS_ASSERT_SAFE(index < d_bucketArraySize);
+    return const_local_iterator(d_bucketArray_p + index);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline
+    typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end(size_t index) const
+{
+    BSLS_ASSERT_SAFE(index < d_bucketArraySize);
+    return const_local_iterator(d_bucketArray_p + index, 0);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline
+    typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
+    OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cend(size_t index) const
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index, 0);

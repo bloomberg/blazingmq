@@ -242,8 +242,8 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
 
             size_t i = 0;
             for (mqbi::Storage::AppInfos::const_iterator cit =
-                     appIdKeyPairs.begin();
-                 cit != appIdKeyPairs.end();
+                     appIdKeyPairs.cbegin();
+                 cit != appIdKeyPairs.cend();
                  ++cit, ++i) {
                 virtualStorages[i].appId() = cit->first;
                 os.reset();

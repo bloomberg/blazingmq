@@ -33,19 +33,19 @@ namespace mqbc {
 // class ClusterStateQueueInfo
 // ---------------------------
 
-bool operator==(const ClusterStateQueueInfo::AppInfos& lhs,
-                const ClusterStateQueueInfo::AppInfos& rhs)
+bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
 {
     // This ignores the order
 
-    if (lhs.size() != rhs.size()) {
-        return false;
+    if (d_appInfos.size() != appInfos.size()) {
+        return false;  // RETURN
     }
-    typedef mqbi::Storage::AppInfos::const_iterator Iter;
 
-    for (Iter iter = lhs.begin(); iter != lhs.end(); ++iter) {
-        if (rhs.count(iter->first) != 1) {
-            return false;
+    for (AppInfos::const_iterator cit = d_appInfos.cbegin();
+         cit != d_appInfos.cend();
+         ++cit) {
+        if (appInfos.count(cit->first) != 1) {
+            return false;  // RETURN
         }
     }
 
@@ -574,8 +574,8 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
         }
 
         AppInfos& appIdInfos = iter->second->appInfos();
-        for (AppInfosCIter citer = addedAppIds.begin();
-             citer != addedAppIds.end();
+        for (AppInfosCIter citer = addedAppIds.cbegin();
+             citer != addedAppIds.cend();
              ++citer) {
             if (!appIdInfos.insert(*citer).second) {
                 return rc_APPID_ALREADY_EXISTS;  // RETURN
@@ -586,7 +586,7 @@ int ClusterState::updateQueue(const bmqt::Uri&   uri,
              citer != removedAppIds.end();
              ++citer) {
             const AppInfosCIter appIdInfoCIter = appIdInfos.find(citer->first);
-            if (appIdInfoCIter == appIdInfos.end()) {
+            if (appIdInfoCIter == appIdInfos.cend()) {
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
             appIdInfos.erase(appIdInfoCIter);

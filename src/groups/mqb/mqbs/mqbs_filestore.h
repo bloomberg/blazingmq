@@ -511,9 +511,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Write a QUEUE_OP record to the journal with the specified
     /// `queueKey`, optional `appKey`, `timestamp`, `opValue` and `subValue`
-    /// to the journal.  If the specified `start` is set, it specifies the
-    /// beginning of the range for which this QUEUE_OP applies; otherwise, the
-    /// range includes all records.
+    /// to the journal.  If the specified `startPrimaryLeaseId` and
+    /// `startSequenceNum` are set, they specify the beginning of the range for
+    /// which this QUEUE_OP applies; otherwise, the range includes all records.
     /// Return zero on success, non-zero value otherwise.
     int writeQueueOpRecord(DataStoreRecordHandle*  handle,
                            const mqbu::StorageKey& queueKey,

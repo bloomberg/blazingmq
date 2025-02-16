@@ -1086,7 +1086,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
             BSLS_ASSERT_SAFE(qs->uri() == uri);
 
             if ((qs->partitionId() == partitionId) &&
-                (qs->key() == queueKey) && (qs->appInfos() == appInfos)) {
+                (qs->key() == queueKey) && qs->hasTheSameAppIds(appInfos)) {
                 // All good.. nothing to update.
                 return;  // RETURN
             }
@@ -1263,8 +1263,8 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
             bsl::unordered_set<mqbu::StorageKey> appKeys;
             const AppInfos& appInfos = qinfoCit->second->appInfos();
-            for (AppInfosCIter appInfoCit = appInfos.begin();
-                 appInfoCit != appInfos.end();
+            for (AppInfosCIter appInfoCit = appInfos.cbegin();
+                 appInfoCit != appInfos.cend();
                  ++appInfoCit) {
                 if (appInfoCit->first == appId) {
                     BALL_LOG_ERROR << "Failed to register appId '" << appId
@@ -1390,8 +1390,8 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
 
             bool            appIdFound = false;
             const AppInfos& appInfos   = qinfoCit->second->appInfos();
-            for (AppInfosCIter appInfoCit = appInfos.begin();
-                 appInfoCit != appInfos.end();
+            for (AppInfosCIter appInfoCit = appInfos.cbegin();
+                 appInfoCit != appInfos.cend();
                  ++appInfoCit) {
                 if (appInfoCit->first == appId) {
                     // Populate AppInfo
@@ -1632,7 +1632,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
     bsl::vector<ClusterStatePartitionInfo> incorrectPartitions;
     for (size_t i = 0; i < state.partitions().size(); ++i) {
         const ClusterStatePartitionInfo& stateInfo = state.partitions()[i];
-        int                              pid       = i;
+        const int                        pid       = i;
         BSLS_ASSERT_SAFE(stateInfo.partitionId() == pid);
 
         const ClusterStatePartitionInfo& referenceInfo =
@@ -1678,7 +1678,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         for (size_t i = 0; i < state.partitions().size(); ++i) {
             const ClusterStatePartitionInfo& referenceInfo =
                 reference.partitions()[i];
-            int pid = i;
+            const int pid = i;
             BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << "Partition [" << pid
@@ -1727,7 +1727,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                     citer->second;
                 const bsl::shared_ptr<ClusterStateQueueInfo>& referenceInfo =
                     refCiter->second;
-                if (*info != *referenceInfo) {
+                if (!info->isEquivalent(*referenceInfo)) {
                     // Incorrect queue information
                     incorrectQueues.push_back(
                         bsl::make_pair(info, referenceInfo));
@@ -2139,8 +2139,8 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
             BSLS_ASSERT_SAFE(!qCit->second->key().isNull());
             qCit->second->key().loadBinary(&queueInfo.key());
 
-            for (AppInfosCIter appIdCit = qCit->second->appInfos().begin();
-                 appIdCit != qCit->second->appInfos().end();
+            for (AppInfosCIter appIdCit = qCit->second->appInfos().cbegin();
+                 appIdCit != qCit->second->appInfos().cend();
                  ++appIdCit) {
                 bmqp_ctrlmsg::AppIdInfo appIdInfo;
                 appIdInfo.appId() = appIdCit->first;

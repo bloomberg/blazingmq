@@ -4332,8 +4332,8 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                     ->domain());
         }
 
-        for (AppInfosCIter cit = removedAppIds.begin();
-             cit != removedAppIds.end();
+        for (AppInfosCIter cit = removedAppIds.cbegin();
+             cit != removedAppIds.cend();
              ++cit) {
             if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {
                 // Note: In non-CSL mode, the queue deletion callback is

@@ -39,6 +39,11 @@ BSLMF_ASSERT(sizeof(DataStoreRecordHandle) ==
 void DataStoreConfigQueueInfo::addAppInfo(const bsl::string&      appId,
                                           const mqbu::StorageKey& appKey)
 {
+    // Comparing ages of Apps and messages relies on chronological order
+    // (hence 'OrderedHashMap'.
+    // The Legacy mode recreates Apps by reverse iterating Journal (w/ QList)
+    // The CSL node recreates Apps in chronological order.
+
     if (d_isCSL) {
         d_appIdKeyPairs.insert(bsl::make_pair(appKey, appId));
     }
@@ -51,6 +56,7 @@ void DataStoreConfigQueueInfo::addAppInfo(const bsl::string&      appId,
 
     if (ghost != d_ghosts.end()) {
         d_purgeOps.erase(ghost->second);
+        d_ghosts.erase(ghost);
     }
 }
 
@@ -64,8 +70,14 @@ void DataStoreConfigQueueInfo::addPurgeOp(const mqbu::StorageKey&   key,
         // This is not a ghost app
     }
     else {
-        PurgeOps::const_iterator cit = d_purgeOps.emplace(start, end);
-        d_ghosts.emplace(key, cit);
+        Ghosts::iterator ghost = d_ghosts.find(key);
+
+        // Keep only one PurgeOp per App - the last one (the first in reverse).
+        // This code relies on 'FileStore::recoverMessages' reverse iteration.
+        if (ghost == d_ghosts.end()) {
+            PurgeOps::const_iterator cit = d_purgeOps.emplace(start, end);
+            d_ghosts.emplace(key, cit);
+        }
     }
 }
 

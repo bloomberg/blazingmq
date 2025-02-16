@@ -623,14 +623,12 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-bool InMemoryStorage::purge(
+void InMemoryStorage::purge(
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.
 
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
-
-    return false;
 }
 
 void InMemoryStorage::setPrimary()

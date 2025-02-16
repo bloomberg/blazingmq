@@ -117,7 +117,7 @@ class VirtualStorageCatalog {
     /// Available ordinal values for virtual storages.
     AvailableOrdinals d_availableOrdinals;
 
-    /// Monotonically increasing value to generate new ordinal.
+    /// All current App storages ordered by their ordinals.
     bsl::vector<VirtualStorageSp> d_ordinals;
 
     /// The DataStream tracking all Apps states.
@@ -132,7 +132,7 @@ class VirtualStorageCatalog {
     /// The default App state
     mqbi::AppMessage d_defaultAppMessage;
 
-    /// The default fastForwarded App state
+    /// The state of message when it is older than the given App
     mqbi::AppMessage d_defaultNonApplicableAppMessage;
 
     /// When Ordinal are Continuous, comparing Apps and messages is possible by
@@ -142,7 +142,7 @@ class VirtualStorageCatalog {
     /// purge) and when recovering messages after adding and removing an App.
     /// For the former, see 'VirtualStorageCatalog::removeVirtualStorage'.
     /// For the latter, see `mqbs::DataStoreConfigQueueInfo::Ghosts`.
-    bool d_areOrdinalsContinuous;
+    bool d_isProxy;
 
     /// This could be null if a local or remote
     /// queue instance has not been created.
@@ -267,10 +267,11 @@ class VirtualStorageCatalog {
                           const bsl::string&      appId,
                           const mqbu::StorageKey& appKey);
 
-    /// If the specified 'appKey' is null, erase the entire DataStream and
-    /// all Virtual Storage instances; erase all states of the App
-    /// corresponding to the 'appKey' and remove the corresponding Virtual
-    /// Storage instance.
+    /// Erase all messages for the App corresponding to the specified 'appKey'
+    /// and remove the corresponding Virtual Storage instance.  If the
+    /// optionally  specified `cb` is valid, invoke it before purging once
+    /// positioned to  the first (oldest) App message.  Cancel the purge if
+    /// `cb` does not return `e_SUCCESS`.
     mqbi::StorageResult::Enum
     removeVirtualStorage(const mqbu::StorageKey& appKey,
                          const PurgeCallback&    cb = PurgeCallback());
@@ -338,6 +339,12 @@ class VirtualStorageCatalog {
     /// Allocate space for all Apps states in the specified 'data' if needed.
     void setup(mqbi::DataStreamMessage* data) const;
 
+    /// Return the state for the message corresponding to specified
+    /// `dataStreamMessage` and the App corresponding to the specified
+    /// `ordinal`.  If the App is younger than the message, return constant
+    /// `d_defaultNonApplicableAppMessage`.  Otherwise, return constant
+    /// `d_defaultAppMessage` if the state has not been updates.   Otherwise,
+    ///  return the (updated) state.
     const mqbi::AppMessage&
     appMessageView(const mqbi::DataStreamMessage& dataStreamMessage,
                    unsigned int                   ordinal) const;
@@ -363,7 +370,7 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
 
 inline void VirtualStorageCatalog::setDiscontinuousOrdinals()
 {
-    d_areOrdinalsContinuous = false;
+    d_isProxy = false;
 }
 
 inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)

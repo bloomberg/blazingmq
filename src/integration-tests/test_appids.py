@@ -644,7 +644,6 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
         )
 
 
-
 def test_open_authorize_change_primary(multi_node: Cluster):
     """Add an App to Domain config of an existing queue, and then force a
     Replica to become new Primary.  Start new Consumer.  Make sure the Consumer
@@ -758,7 +757,15 @@ def test_old_data_new_app(cluster: Cluster):
 
     consumers = {}
 
-    def _verify_clients():
+    def _verify_delivery(consumer, uri, count, andConfirm=False, timeout=2):
+        if count:
+            consumer.wait_push_event()
+
+        assert wait_until(lambda: len(consumer.list(uri, block=True)) == count, timeout)
+        if count and andConfirm:
+            assert consumer.confirm(uri, f"+{count}", block=True) == Client.e_SUCCESS
+
+    def _verify_clients(andConfirm=False):
         # -----------------------------------------------------------------
         # Ensure that all _default_ substreams get 4 messages
 
@@ -769,6 +776,11 @@ def test_old_data_new_app(cluster: Cluster):
             consumer = next(proxies).create_client(app_id)
             consumers[app_id] = consumer
             consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+
+        # Once queue is created
+        leader = cluster.last_known_leader
+        leader.list_messages(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, 0, 100)
+        assert leader.outputs_substr(f"Printing 4 message(s)", 5)
 
         new_consumer_1 = next(proxies).create_client(new_app_1)
         new_consumer_1.open(
@@ -788,40 +800,22 @@ def test_old_data_new_app(cluster: Cluster):
         leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
 
         for app_id in default_app_ids:
-            test_logger.info(f"Check if {app_id} has seen 2 messages")
-            assert wait_until(
-                lambda: len(
-                    consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
-                )
-                == 4,
-                3,
+            test_logger.info(f"Check if {app_id} has seen 4 messages")
+            _verify_delivery(
+                consumers[app_id], f"{tc.URI_FANOUT}?id={app_id}", 4, andConfirm
             )
 
         test_logger.info(f"Check if {new_app_1} has seen 3 messages")
-        assert wait_until(
-            lambda: len(
-                new_consumer_1.list(f"{tc.URI_FANOUT}?id={new_app_1}", block=True)
-            )
-            == 3,
-            3,
+        _verify_delivery(
+            new_consumer_1, f"{tc.URI_FANOUT}?id={new_app_1}", 3, andConfirm
         )
 
         test_logger.info(f"Check if {new_app_2} has seen 0 messages")
-        assert wait_until(
-            lambda: len(
-                new_consumer_2.list(f"{tc.URI_FANOUT}?id={new_app_2}", block=True)
-            )
-            == 0,
-            3,
-        )
+        _verify_delivery(new_consumer_2, f"{tc.URI_FANOUT}?id={new_app_2}", 0, False)
 
-        test_logger.info(f"Check if {new_app_3} has seen 1 messages")
-        assert wait_until(
-            lambda: len(
-                new_consumer_3.list(f"{tc.URI_FANOUT}?id={new_app_3}", block=True)
-            )
-            == 1,
-            3,
+        test_logger.info(f"Check if {new_app_3} has seen 1 message")
+        _verify_delivery(
+            new_consumer_3, f"{tc.URI_FANOUT}?id={new_app_3}", 1, andConfirm
         )
 
         # ---------------------------------------------------------------------
@@ -848,4 +842,9 @@ def test_old_data_new_app(cluster: Cluster):
 
     cluster.start_nodes(wait_leader=True, wait_ready=True)
 
-    _verify_clients()
+    leader = cluster.last_known_leader
+
+    _verify_clients(andConfirm=True)
+
+    leader.list_messages(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, 0, 100)
+    assert leader.outputs_substr(f"Printing 0 message(s)", 5)

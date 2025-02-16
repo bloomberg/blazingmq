@@ -1830,7 +1830,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         DataStoreRecordKey(rec.startSequenceNumber(),
                                            rec.startPrimaryLeaseId()),
                         key);
-                    // Skip "empty" App PURGE - the one with empty range
                 }
 
                 DataStoreRecord    record(RecordType::e_QUEUE_OP,
@@ -2104,8 +2103,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                                         appIdsBlock,
                                                         numAppIds);
 
-                    for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
-                         cit != appIdKeyPairs.end();
+                    for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+                         cit != appIdKeyPairs.cend();
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             // This appKey is not deleted.  Add it to the list
@@ -2414,8 +2413,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 deletedGuids.erase(delGuidIter);
                 continue;  // CONTINUE
             }
-
-            // TODO: apply all Apps purge ops, including deleted Apps
 
             // The message needs to be recovered as it is an outstanding one.
             // Check various fields in the message header etc as well as the
@@ -4403,8 +4400,8 @@ int FileStore::writeQueueCreationRecord(
             BALL_LOG_OUTPUT_STREAM << ", queue [" << quri << "]"
                                    << ", with [" << appIdKeyPairs.size()
                                    << "] appId/appKey pairs ";
-            for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
-                 cit != appIdKeyPairs.end();
+            for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+                 cit != appIdKeyPairs.cend();
                  ++cit) {
                 BALL_LOG_OUTPUT_STREAM << " [" << cit->first << ", "
                                        << cit->second << "]";
@@ -5754,8 +5751,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                       queueUri.asString().length() + queueUriPadding +
                       FileStoreProtocol::k_HASH_LENGTH;
         size_t i = 0;
-        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
-             cit != appIdKeyPairs.end();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
              ++cit, ++i) {
             BSLS_ASSERT_SAFE(!cit->first.empty());
             BSLS_ASSERT_SAFE(!cit->second.isNull());
@@ -5862,8 +5859,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
 
         // 3) Append AppIds and AppKeys
         size_t i = 0;
-        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
-             cit != appIdKeyPairs.end();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
              ++cit, ++i) {
             // Append AppIdHeader.
 

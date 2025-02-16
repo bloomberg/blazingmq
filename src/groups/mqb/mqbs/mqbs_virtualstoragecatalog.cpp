@@ -102,7 +102,7 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
 , d_numMessages(0)
 , d_defaultAppMessage(bmqp::RdaInfo())
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
-, d_areOrdinalsContinuous(true)
+, d_isProxy(true)
 , d_queue_p(0)
 , d_allocator_p(allocator)
 {
@@ -165,7 +165,7 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID&  msgGUID,
 
     if (!insertResult.second) {
         // Duplicate GUID
-        if (!d_areOrdinalsContinuous) {
+        if (!d_isProxy) {
             // A proxy can receive subsequent PUSH messages for the same GUID
             // but different apps
             BSLS_ASSERT_SAFE(refCount <= d_ordinals.size());
@@ -359,7 +359,7 @@ bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
 
     itData = d_dataStream.begin();
 
-    if (!d_areOrdinalsContinuous) {
+    if (!d_isProxy) {
         return 0;
     }
 
@@ -444,8 +444,10 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
                        "storage.";
             }
             else if (result == mqbi::StorageResult::e_NON_ZERO_REFERENCES) {
+                // Not logging this case.
             }
             else if (result == mqbi::StorageResult::e_SUCCESS) {
+                // Not logging this case.
             }
             else {
                 BMQTSK_ALARMLOG_ALARM("STORAGE_PURGE_ERROR")
@@ -495,7 +497,7 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
     Ordinal appOrdinal;
 
-    if (d_availableOrdinals.empty() || d_areOrdinalsContinuous) {
+    if (d_availableOrdinals.empty() || d_isProxy) {
         // Replicas or Primary
         // Grow ordinals
         appOrdinal = d_ordinals.size();
@@ -560,7 +562,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
     VirtualStorageSp replacing;
     unsigned int     replacingOrdinal = removingOrdinal;
 
-    if (d_areOrdinalsContinuous) {
+    if (d_isProxy) {
         replacing        = d_ordinals.back();
         replacingOrdinal = replacing->ordinal();
         BSLS_ASSERT_SAFE(replacingOrdinal + 1 == d_ordinals.size());
@@ -598,7 +600,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
                                                     removingOrdinal);
     }
 
-    if (d_areOrdinalsContinuous) {
+    if (d_isProxy) {
         if (removingOrdinal != replacingOrdinal) {
             // Replacement
 

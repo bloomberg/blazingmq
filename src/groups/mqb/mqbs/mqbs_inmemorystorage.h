@@ -406,7 +406,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // 'errorDescription' with a brief reason in case of failure.  Behavior
     // is undefined unless 'appId' is non-empty and 'appKey' is non-null.
 
-    /// Remove the virtual storage identified by the specified `appKey`.
+    /// Remove the virtual storage identified by the specified `appKey`.  The
+    /// specified `asPrimary` applies to persistent storage types only.
     /// Return true if a virtual storage with `appKey` was found and
     /// deleted, false if a virtual storage with `appKey` does not exist.
     /// Behavior is undefined unless `appKey` is non-null.  Note that this
@@ -547,7 +548,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    bool purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 

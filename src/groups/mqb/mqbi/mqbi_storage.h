@@ -564,7 +564,9 @@ class Storage {
                                   const bsl::string&      appId,
                                   const mqbu::StorageKey& appKey) = 0;
 
-    /// Remove the virtual storage identified by the specified `appKey`.
+    /// Remove the virtual storage identified by the specified `appKey`.  The
+    /// specified `asPrimary` indicates if this storage need to write Purge
+    /// record in the case of persistent storage.
     /// Return true if a virtual storage with `appKey` was found and
     /// deleted, false if a virtual storage with `appKey` does not exist.
     /// Behavior is undefined unless `appKey` is non-null.  Note that this

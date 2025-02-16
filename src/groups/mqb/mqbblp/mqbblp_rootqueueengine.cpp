@@ -1865,8 +1865,8 @@ void RootQueueEngine::afterAppIdRegistered(
         return;  // RETURN;
     }
 
-    for (mqbi::Storage::AppInfos::const_iterator cit = addedAppIds.begin();
-         cit != addedAppIds.end();
+    for (mqbi::Storage::AppInfos::const_iterator cit = addedAppIds.cbegin();
+         cit != addedAppIds.cend();
          ++cit) {
         // We need to handle 2 scenarios here: a consumer with the specified
         // 'appId' may have already opened the queue, or otherwise.
@@ -1915,8 +1915,8 @@ void RootQueueEngine::afterAppIdUnregistered(
         return;  // RETURN
     }
 
-    for (mqbi::Storage::AppInfos::const_iterator cit = removedAppIds.begin();
-         cit != removedAppIds.end();
+    for (mqbi::Storage::AppInfos::const_iterator cit = removedAppIds.cbegin();
+         cit != removedAppIds.cend();
          ++cit) {
         const bsl::string& appId = cit->first;
 

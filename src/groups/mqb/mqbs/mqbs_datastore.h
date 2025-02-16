@@ -272,10 +272,18 @@ struct DataStoreRecordKeyLess {
 class DataStoreConfigQueueInfo {
   public:
     // TYPES
-    typedef bmqc::OrderedHashMap<mqbu::StorageKey, bsl::string>   AppInfos;
+    typedef bmqc::OrderedHashMap<mqbu::StorageKey, bsl::string> AppInfos;
+
+    /// Collection of intervals [`first`, `second`) where `first` is the start
+    /// and `second` is the end of Purge range for some App that does not exist
+    /// anymore - a "ghost" App.
+    /// In other words, `first` is the oldest message which is younger than
+    /// some "ghost" App, and any message after `second` is not purged.
     typedef bsl::multimap<DataStoreRecordKey, DataStoreRecordKey> PurgeOps;
     typedef PurgeOps::const_iterator                              PurgeOp;
-    typedef bsl::unordered_map<mqbu::StorageKey, PurgeOp>         Ghosts;
+
+    /// A collection of all "ghost" App with corresponding last PurgeOp.
+    typedef bsl::unordered_map<mqbu::StorageKey, PurgeOp> Ghosts;
 
   private:
     // DATA
@@ -290,7 +298,8 @@ class DataStoreConfigQueueInfo {
     /// Ghosts are Apps which got removed before the current recovery.
     Ghosts d_ghosts;
 
-    /// Second pass will cache the sequence of Purge intervals for Ghosts
+    /// Second pass of `FileStore::recoverMessages` will cache Purge intervals
+    /// for ghost Apps.
     mutable PurgeOps d_purgeOps;
 
   public:
@@ -324,8 +333,8 @@ class DataStoreConfigQueueInfo {
                     const DataStoreRecordKey& end);
 
     /// Return the number of previously cached Purge intervals which contain
-    /// the specified `current` message.  Erase all Purge intervals for which
-    /// there ends is less than the `current`.
+    /// the specified `current` message.  Erase all Purge intervals whose end
+    /// end is less than the `current` value.
     unsigned int advanceAndCount(const DataStoreRecordKey& current) const;
 
     // ACCESSORS

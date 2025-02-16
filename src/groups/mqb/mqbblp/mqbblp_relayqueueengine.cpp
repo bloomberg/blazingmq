@@ -1617,8 +1617,8 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
         subStreams.reserve(appIdKeyPairs.size());
 
         for (mqbi::Storage::AppInfos::const_iterator cit =
-                 appIdKeyPairs.begin();
-             cit != appIdKeyPairs.end();
+                 appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
              ++cit) {
             subStreams.resize(subStreams.size() + 1);
             mqbcmd::RelayQueueEngineSubStream& subStream = subStreams.back();

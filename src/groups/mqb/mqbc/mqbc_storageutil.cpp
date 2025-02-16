@@ -82,8 +82,8 @@ bool StorageUtil::loadDifference(mqbi::Storage::AppInfos*       result,
                                  bool                           findConflicts)
 {
     bool noConflicts = true;
-    for (mqbi::Storage::AppInfos::const_iterator cit = baseSet.begin();
-         cit != baseSet.end();
+    for (mqbi::Storage::AppInfos::const_iterator cit = baseSet.cbegin();
+         cit != baseSet.cend();
          ++cit) {
         mqbi::Storage::AppInfos::const_iterator match = subtractionSet.find(
             cit->first);
@@ -1502,14 +1502,14 @@ void StorageUtil::recoveredQueuesCb(
         }
 
         if (qinfo.appIdKeyPairs().size() != 1 ||
-            qinfo.appIdKeyPairs().begin()->second !=
+            qinfo.appIdKeyPairs().cbegin()->second !=
                 bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
             // This is a fanout queue
             AppIds appIds;
 
             for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator cit =
-                     qinfo.appIdKeyPairs().begin();
-                 cit != qinfo.appIdKeyPairs().end();
+                     qinfo.appIdKeyPairs().cbegin();
+                 cit != qinfo.appIdKeyPairs().cend();
                  ++cit) {
                 AppIdsInsertRc appIdsIrc = appIds.insert(cit->second);
                 if (false == appIdsIrc.second) {
@@ -1654,8 +1654,8 @@ void StorageUtil::recoveredQueuesCb(
                 BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
 
                 for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator
-                         ait = appIdKeyPairs.begin();
-                     ait != appIdKeyPairs.end();
+                         ait = appIdKeyPairs.cbegin();
+                     ait != appIdKeyPairs.cend();
                      ++ait) {
                     BSLA_MAYBE_UNUSED const bsl::string& appId = ait->second;
                     BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey =
@@ -1789,8 +1789,8 @@ void StorageUtil::recoveredQueuesCb(
         int                rc;
         if (domain->config().mode().isFanoutValue()) {
             for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
-                     appIdKeyPairs.begin();
-                 ait != appIdKeyPairs.end();
+                     appIdKeyPairs.cbegin();
+                 ait != appIdKeyPairs.cend();
                  ++ait) {
                 const bsl::string&      appId  = ait->second;
                 const mqbu::StorageKey& appKey = ait->first;
@@ -2009,7 +2009,7 @@ void StorageUtil::recoveredQueuesCb(
             const mqbs::DataStoreRecordKey current(handle.sequenceNum(),
                                                    handle.primaryLeaseId());
 
-            unsigned int numGhosts = infoMapCit->second.advanceAndCount(
+            const unsigned int numGhosts = infoMapCit->second.advanceAndCount(
                 current);
             BSLS_ASSERT_SAFE(numGhosts < refCount);
 

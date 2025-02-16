@@ -653,7 +653,7 @@ FileBackedStorage::writePurgeRecordImpl(bool                        alsoDelete,
                                         const mqbu::StorageKey&     appKey,
                                         const DataStoreRecordHandle start)
 {
-    bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
         bdlt::CurrentTime::utc());
     DataStoreRecordHandle handle;
     int                   rc = d_store_p->writeQueuePurgeRecord(&handle,
@@ -1060,7 +1060,7 @@ void FileBackedStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-bool FileBackedStorage::purge(const mqbu::StorageKey& appKey)
+void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 {
     purgeCommon(appKey);
 
@@ -1078,8 +1078,6 @@ bool FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 
         queue()->queueEngine()->afterQueuePurged(appId, appKey);
     }
-
-    return true;
 }
 
 void FileBackedStorage::selectForAutoConfirming(

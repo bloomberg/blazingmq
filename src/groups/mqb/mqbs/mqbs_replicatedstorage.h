@@ -96,7 +96,7 @@ class ReplicatedStorage : public mqbi::Storage {
     /// If `appKey` is null, purge the physical as well as all virtual
     /// storages.  Note that this routine is supposed to be invoked at
     /// replica nodes, and the record will not be replicated to peer nodes.
-    virtual bool purge(const mqbu::StorageKey& appKey) = 0;
+    virtual void purge(const mqbu::StorageKey& appKey) = 0;
 
     /// Notify the storage of node role set to primary
     virtual void setPrimary() = 0;

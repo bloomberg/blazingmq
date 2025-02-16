@@ -1738,6 +1738,8 @@ struct QueueOpRecord {
     //  QueueUriRecordOffsetWords..: Offset (in WORDS) of the QueueUriRecord in
     //                               the QLIST file.  Valid only if
     //                               QueueOpType == CREATION or ADDITION.
+    //  Start of the range         : The oldest message affected by PURGE.
+    //                               Valid when QueueOpType == PURGE only.
     //  Magic......................: Magic word
     //..
     //
