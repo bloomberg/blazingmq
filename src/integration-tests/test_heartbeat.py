@@ -15,7 +15,7 @@
 
 """
 Integration test that suspends leader/replica/proxy/tool to trigger missed
-hearbeats followed by dead channel detection
+heartbeats followed by dead channel detection
 """
 
 import blazingmq.dev.it.testconstants as tc
@@ -30,19 +30,19 @@ from blazingmq.dev.it.util import wait_until
 pytestmark = order(6)
 
 
-def _verify_delivery_to_new_consumer(proxy, uri, messages, timeout=2):
-    consumer = proxy.create_client("consumer")
-    consumer.open(uri, flags=["read"], succeed=True)
-    _verify_delivery(consumer, uri, ["msg1", "masg2"], timeout=2)
-    consumer.exit_gracefully()
-
-
 def _verify_delivery(consumer, uri, messages, timeout=2):
     consumer.wait_push_event()
     assert wait_until(
         lambda: len(consumer.list(uri, block=True)) == len(messages), timeout
     )
     consumer.list(uri, block=True)
+
+
+def _verify_delivery_to_new_consumer(proxy, uri, messages, timeout=2):
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri, flags=["read"], succeed=True)
+    _verify_delivery(consumer, uri, ["msg1", "masg2"], timeout=2)
+    consumer.exit_gracefully()
 
 
 def _verify_delivery_and_confirm(consumer, uri, messages):
@@ -53,7 +53,7 @@ def _verify_delivery_and_confirm(consumer, uri, messages):
 """
 `cluster_peer`        cluster node -> cluster node
 `upstream_broker`     proxy -> cluster node
-`downstream_broker`   broker -> proxy 
+`downstream_broker`   broker -> proxy
 `client`              broker -> SDK  _and_  SDK -> broker
 """
 

@@ -778,8 +778,8 @@ void Application::startHeartbeat(
 {
     BSLS_ASSERT_SAFE(monitor);
 
-    if (monitor->maxMissedHeartbeats() == 0) {
-        return;
+    if (!monitor->isHearbeatEnabled()) {
+        return;  // RETURN
     }
 
     int heartbeatIntervalMs = k_DEFAULT_HEARTBEAT_INTERVAL_MS;

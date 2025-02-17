@@ -737,23 +737,7 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         negoMsg.isClientIdentityValue()
             ? negoMsg.clientIdentity()
             : negoMsg.brokerResponse().brokerIdentity();
-    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
-
-    // reading maxMissedHeartbeat from config
-    //
-    // ConnectionType::e_ADMIN                                 - 0
-    //
-    // ConnectionType::e_CLIENT:
-    //      bmqp_ctrlmsg::ClientType::E_TCPCLIENT              - client()
-    //      bmqp_ctrlmsg::ClientType::E_TCPBROKER              -
-    //      downstreamBroker()
-    //
-    // ConnectionType::e_CLUSTER_PROXY:
-    // ConnectionType::e_CLUSTER_MEMBER:
-    //      selfNodeId() == mqbnet::Cluster::k_INVALID_NODE_ID -
-    //      upstreamBroker() selfNodeId() != mqbnet::Cluster::k_INVALID_NODE_ID
-    //      - clusterPeer()
-    //
+    const mqbcfg::AppConfig&         brkrCfg  = mqbcfg::BrokerConfig::get();
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
 

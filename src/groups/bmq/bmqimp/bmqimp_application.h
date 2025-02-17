@@ -160,11 +160,8 @@ class Application {
     // the snapshot was performed on the
     // Counting Allocators context
 
+    /// Scheduler handle of the recurring event to monitor channels heartbeats.
     bdlmt::EventSchedulerRecurringEventHandle d_heartbeatSchedulerHandle;
-    // Scheduler handle for the
-    // recurring event used to
-    // heartbeat monitor the
-    // channels.
 
   private:
     // PRIVATE MANIPULATORS
@@ -220,7 +217,7 @@ class Application {
             bmqimp::BrokerSession::State::Enum    newState,
             bmqimp::BrokerSession::FsmEvent::Enum event);
 
-    /// Reccuring scheduler event to check for all `heartbeat-enabled`
+    /// Recurring scheduler event to check for all `heartbeat-enabled`
     /// channels : this will send a heartbeat if no data has been received
     /// on a given channel, or proactively reset the channel if too many
     /// heartbeats have been missed.
@@ -229,8 +226,7 @@ class Application {
         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     bsl::shared_ptr<bmqp::HeartbeatMonitor>
     createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel);
-    void
-         startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
+    void startHeartbeat(const bsl::shared_ptr<bmqio::Channel>&         channel,
                         const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor);
     void stopHeartbeat();
 

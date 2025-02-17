@@ -444,7 +444,7 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
         return;  // RETURN
     }
 
-    // Not updating d_heartbeatChecker until there is a valid event
+    // Not updating d_heartbeatMonitor until there is a valid event
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(readBlobs.empty())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -513,12 +513,10 @@ void TCPSessionFactory::negotiationComplete(
 
     // Successful negotiation
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "' successfully negotiated a session "
-                  << "[session: '" << session->description() << "', channel: '"
-                  << channel.get() << "'"
-                  << ", maxMissedHeartbeat: "
-                  << static_cast<int>(negotiatorContext->maxMissedHeartbeat())
-                  << "]";
+                  << "' successfully negotiated a session [session: '"
+                  << session->description() << "', channel: '" << channel.get()
+                  << "', maxMissedHeartbeat: "
+                  << negotiatorContext->maxMissedHeartbeat() << "]";
 
     // Session is established; keep a hold to it.
 
@@ -603,7 +601,7 @@ void TCPSessionFactory::negotiationComplete(
         return;  // RETURN
     }
 
-    if (info->d_monitor.maxMissedHeartbeats() != 0) {
+    if (info->d_monitor.isHearbeatEnabled()) {
         // Enable heartbeating
         d_scheduler_p->scheduleEvent(
             bsls::TimeInterval(0),
@@ -765,7 +763,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                       << ", status: " << status << "]";
 
         // Synchronously remove from heartbeat monitored channels
-        if (channelInfo->d_monitor.maxMissedHeartbeats() != 0 &&
+        if (channelInfo->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
             // NOTE: When shutting down, we don't care about heartbeat
             //       verifying the channel, therefore, as an optimization to

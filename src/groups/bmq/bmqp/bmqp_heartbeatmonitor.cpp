@@ -21,7 +21,7 @@ namespace BloombergLP {
 namespace bmqp {
 
 // -----------------------
-// struct HeartbeatChecker
+// struct HeartbeatMonitor
 // -----------------------
 
 HeartbeatMonitor::HeartbeatMonitor(int maxMissedHeartbeats,
@@ -35,19 +35,19 @@ HeartbeatMonitor::HeartbeatMonitor(int maxMissedHeartbeats,
 
 bool HeartbeatMonitor::checkHeartbeat(bmqio::Channel* channel)
 {
-    BSLS_ASSERT_SAFE(channel);
-
     // executed by the *SCHEDULER* thread
+    BSLS_ASSERT_SAFE(channel);
+    BSLS_ASSERT_SAFE(maxMissedHeartbeats() > 0);
 
     // Make sure the remote peer is alive by checking _incoming_ traffic.
     // Absence of data since the last 'onHeartbeatSchedulerEvent' triggers
     // sending heartbeat request - 'heartbeatReqBlob()'.
-    // The remote peer is supposed to reply with heartbeat response -
+    // The remote peer is supposed to reply with a heartbeat response -
     // 'heartbeatRspBlob()'.  After 'd_maxMissedHeartbeat + 1' invocations
     // with no incoming data, forcibly close the channel.
     // There is no concern about remote peer sending high rate of data
     // because sending 'heartbeatRspBlob()' is done in IO thread
-    // immediately upon receiving  'heartbeatReqBlob()'.
+    // immediately upon receiving 'heartbeatReqBlob()'.
 
     // Perform 'incoming' traffic channel monitoring
 
@@ -61,6 +61,8 @@ bool HeartbeatMonitor::checkHeartbeat(bmqio::Channel* channel)
         d_missedHeartbeatCounter = 0;
     }
     else {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
         if (d_missedHeartbeatCounter < d_maxMissedHeartbeats) {
             // Send heartbeat
             channel->write(0,  // status
@@ -69,47 +71,16 @@ bool HeartbeatMonitor::checkHeartbeat(bmqio::Channel* channel)
             // the channel, which is what the heartbeat is trying to expose.
         }
         else if (d_missedHeartbeatCounter == d_maxMissedHeartbeats) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            // This is edge-triggered.   Return 'false' only once to avoid
+            // excessive warnings and 'close' calls.
+
             result = false;
         }
 
-        // This is edge-triggered.   Return 'false' only once to avoid
-        // excessive warnings and 'close' calls.
         ++d_missedHeartbeatCounter;
     }
 
     return result;
-}
-
-bool HeartbeatMonitor::checkData(bmqio::Channel*    channel,
-                                 const bmqp::Event& event)
-{
-    BSLS_ASSERT_SAFE(channel);
-
-    d_packetReceived.storeRelaxed(1);
-
-    // Process heartbeat: if we receive a heartbeat request, simply reply
-    // with a heartbeat response.
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(event.isHeartbeatReqEvent())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        channel->write(0,  // status
-                       bmqp::ProtocolUtil::heartbeatRspBlob());
-        // We explicitly ignore any failure as failure implies issues with
-        // the channel, which is what the heartbeat is trying to expose.
-    }
-    else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                 event.isHeartbeatRspEvent())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-        // Nothing to be done, we already updated the packet's counter
-        // above, just 'drop' that event now.
-    }
-    else {
-        return true;
-    }
-
-    return false;
 }
 
 }  // close package namespace
