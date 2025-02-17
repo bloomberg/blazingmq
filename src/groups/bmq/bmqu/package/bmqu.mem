@@ -4,6 +4,7 @@ bmqu_atomicvalidator
 bmqu_blob
 bmqu_blobiterator
 bmqu_blobobjectproxy
+bmqu_jsonprinter
 bmqu_memoutstream
 bmqu_objectplaceholder
 bmqu_objectplaceholder_cpp03

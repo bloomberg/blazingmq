@@ -53,6 +53,67 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     return stream;
 }
 
+bsl::ostream&
+ClusterStateQueueInfo::State::print(bsl::ostream&                      stream,
+                                    ClusterStateQueueInfo::State::Enum value,
+                                    int                                level,
+                                    int spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << ClusterStateQueueInfo::State::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char*
+ClusterStateQueueInfo::State::toAscii(ClusterStateQueueInfo::State::Enum value)
+{
+#define CASE(X)                                                               \
+    case k_##X: return #X;
+
+    switch (value) {
+        CASE(NONE)
+        CASE(ASSIGNING)
+        CASE(ASSIGNED)
+        CASE(UNASSIGNING)
+    default: return "(* NONE *)";
+    }
+
+#undef CASE
+}
+
+bool ClusterStateQueueInfo::State::fromAscii(
+    ClusterStateQueueInfo::State::Enum* out,
+    const bslstl::StringRef&            str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(                                       \
+            toAscii(ClusterStateQueueInfo::State::k_##M),                     \
+            str.data(),                                                       \
+            static_cast<int>(str.length()))) {                                \
+        *out = ClusterStateQueueInfo::State::k_##M;                           \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(NONE)
+    CHECKVALUE(ASSIGNING)
+    CHECKVALUE(ASSIGNED)
+    CHECKVALUE(UNASSIGNING)
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
+}
+
 // --------------------------
 // class ClusterStateObserver
 // --------------------------
@@ -352,7 +413,8 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
         queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
     }
     else {
-        if (queueIt->second->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+        if (queueIt->second->state() ==
+            ClusterStateQueueInfo::State::k_ASSIGNED) {
             // See 'ClusterStateManager::processQueueAssignmentAdvisory' which
             // insists on re-assigning
             isNewAssignment = false;
@@ -364,7 +426,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
     }
 
     // Set the queue as assigned
-    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNED);
+    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
 
     updatePartitionQueueMapped(partitionId, 1);
 

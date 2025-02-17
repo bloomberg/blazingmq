@@ -88,8 +88,7 @@ namespace mqbblp {
 // ============
 
 /// Domain implementation
-class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
-                                  public mqbc::ClusterStateObserver {
+class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.DOMAIN");
@@ -188,43 +187,13 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain,
     /// `confirmationCookie` to propagate the result to the requester.
     void onOpenQueueResponse(
         const bmqp_ctrlmsg::Status&                       status,
-        mqbi::Queue*                                      queue,
+        mqbi::QueueHandle*                                queuehandle,
         const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
         const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
-        const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
-                                                   clientContext,
-        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
-        const mqbi::Domain::OpenQueueCallback&     callback);
-
-    /// Update the list of authorized appIds by adding the specified
-    /// `addedAppIds` and removing the specified `removedAppIds`.
-    void updateAuthorizedAppIds(const AppInfos& addedAppIds,
-                                const AppInfos& removedAppIds = AppInfos());
+        const mqbi::Domain::OpenQueueCallback&            callback);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateObserver)
-
-    /// Callback invoked when a queue with the specified `info` gets
-    /// assigned to the cluster.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    onQueueAssigned(const bsl::shared_ptr<mqbc::ClusterStateQueueInfo>& info)
-        BSLS_KEYWORD_OVERRIDE;
-
-    /// Callback invoked when a queue with the specified `uri` belonging to
-    /// the specified `domain` is updated with the optionally specified
-    /// `addedAppIds` and `removedAppIds`.  If the specified `uri` is empty,
-    /// the appId updates are applied to the entire `domain` instead.
-    ///
-    /// Note: The `uri` could belong to a different domain than this one, in
-    ///       which case this queue update is ignored.
-    void onQueueUpdated(const bmqt::Uri&   uri,
-                        const bsl::string& domain,
-                        const AppInfos&    addedAppIds,
-                        const AppInfos&    removedAppIds = AppInfos())
-        BSLS_KEYWORD_OVERRIDE;
 
   private:
     // NOT IMPLEMENTED

@@ -90,6 +90,9 @@ const char* CommandLineArguments::k_CSL_SNAPSHOT_TYPE = "snapshot";
 const char* CommandLineArguments::k_CSL_UPDATE_TYPE   = "update";
 const char* CommandLineArguments::k_CSL_COMMIT_TYPE   = "commit";
 const char* CommandLineArguments::k_CSL_ACK_TYPE      = "ack";
+const char* CommandLineArguments::k_HUMAN_MODE       = "human";
+const char* CommandLineArguments::k_JSON_PRETTY_MODE = "json-pretty";
+const char* CommandLineArguments::k_JSON_LINE_MODE   = "json-line";
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_recordType(allocator)
@@ -105,6 +108,7 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_dataFile(allocator)
 , d_cslFile(allocator)
 , d_cslFromBegin(false)
+, d_printMode(allocator)
 , d_guid(allocator)
 , d_seqNum(allocator)
 , d_offset(allocator)
@@ -476,6 +480,18 @@ bool CommandLineArguments::isValidCslRecordType(
         *cslRecordType != k_CSL_COMMIT_TYPE &&
         *cslRecordType != k_CSL_ACK_TYPE) {
         stream << "--csl-record-type invalid: " << *cslRecordType << bsl::endl;
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool CommandLineArguments::isValidPrintMode(const bsl::string* printMode,
+                                            bsl::ostream&      stream)
+{
+    if (*printMode != k_HUMAN_MODE && *printMode != k_JSON_PRETTY_MODE &&
+        *printMode != k_JSON_LINE_MODE) {
+        stream << "--print-mode invalid: " << *printMode << bsl::endl;
 
         return false;  // RETURN
     }
@@ -515,6 +531,13 @@ Parameters::ProcessRecordTypes::ProcessRecordTypes()
     // NOTHING
 }
 
+bool Parameters::ProcessRecordTypes::operator==(
+    ProcessRecordTypes const& other) const
+{
+    return d_message == other.d_message && d_queueOp == other.d_queueOp &&
+           d_journalOp == other.d_journalOp;
+}
+
 Parameters::ProcessCslRecordTypes::ProcessCslRecordTypes()
 : d_snapshot(false)
 , d_update(false)
@@ -530,6 +553,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_processRecordTypes()
 , d_processCslRecordTypes()
 , d_queueMap(allocator)
+, d_printMode(e_HUMAN)
 , d_range()
 , d_guid(arguments.d_guid, allocator)
 , d_seqNum(allocator)
@@ -549,6 +573,17 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     if (!arguments.d_cslFile.empty() &&
         (arguments.d_journalPath.empty() && arguments.d_journalFile.empty())) {
         d_cslMode = true;
+    }
+
+    // Check print mode
+    if (arguments.d_printMode == CommandLineArguments::k_JSON_PRETTY_MODE) {
+        d_printMode = e_JSON_PRETTY;
+    }
+    else if (arguments.d_printMode == CommandLineArguments::k_JSON_LINE_MODE) {
+        d_printMode = e_JSON_LINE;
+    }
+    if (d_printMode != e_HUMAN && d_dumpPayload) {
+        BSLS_ASSERT(false && "Payload dumping is not supported for Json mode");
     }
 
     // Set record types to process
@@ -660,11 +695,6 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         // Use the provided value if records limit is not default and is valid
         d_minRecordsPerQueue = arguments.d_minRecordsPerQueue;
     }
-    else {
-        // Disable output of detailed information, setting the minimum
-        // threshold to max Unit64
-        d_minRecordsPerQueue = bsl::numeric_limits<bsls::Types::Uint64>::max();
-    }
 }
 
 void Parameters::validateQueueNames(bslma::Allocator* allocator) const
@@ -674,7 +704,7 @@ void Parameters::validateQueueNames(bslma::Allocator* allocator) const
     mqbu::StorageKey                         key;
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {
-        if (!d_queueMap.findKeyByUri(&key, *it)) {
+        if (!d_queueMap.findKeyByUri(*it).has_value()) {
             ss << "Queue name: '" << *it << "' is not found in Csl file."
                << bsl::endl;
         }

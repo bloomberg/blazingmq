@@ -65,7 +65,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
 , d_storageManager_p(0)
 , d_resources(resources)
 , d_miscWorkThreadPool_p(0)
-, d_storage_mp(0)
+, d_storage_sp(0)
 , d_stats_sp(0)
 , d_messageThrottleConfig()
 , d_handleCatalog(queue, allocator)
@@ -162,13 +162,14 @@ mqbi::QueueCounts QueueState::consumerAndProducerCounts(
     return mqbi::QueueCounts(0, 0);
 }
 
-bool QueueState::isStorageCompatible(const StorageMp& storageMp) const
+bool QueueState::isStorageCompatible(
+    const bsl::shared_ptr<mqbi::Storage>& storageSp) const
 {
     // executed by either the *QUEUE* or *CLUSTER* thread
 
     // If persistent, then there are no validation rules at the moment.
     // If no persistence, then the storage should be in-memory.
-    return !isAtMostOnce() || !storageMp->isPersistent();
+    return !isAtMostOnce() || !storageSp->isPersistent();
 }
 
 bool QueueState::isAtMostOnce() const
@@ -222,18 +223,18 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
     out->key()         = os.str();
     out->partitionId() = d_partitionId;
 
-    if (d_storage_mp) {
+    if (d_storage_sp) {
         mqbcmd::QueueStorage& queueStorage = out->storage().makeValue();
-        queueStorage.numMessages()         = d_storage_mp->numMessages(
+        queueStorage.numMessages()         = d_storage_sp->numMessages(
             mqbu::StorageKey::k_NULL_KEY);
-        queueStorage.numBytes() = d_storage_mp->numBytes(
+        queueStorage.numBytes() = d_storage_sp->numBytes(
             mqbu::StorageKey::k_NULL_KEY);
-        if (d_storage_mp->numVirtualStorages()) {
+        if (d_storage_sp->numVirtualStorages()) {
             mqbi::Storage::AppInfos appIdKeyPairs;
-            d_storage_mp->loadVirtualStorageDetails(&appIdKeyPairs);
+            d_storage_sp->loadVirtualStorageDetails(&appIdKeyPairs);
             BSLS_ASSERT_SAFE(
                 appIdKeyPairs.size() ==
-                static_cast<size_t>(d_storage_mp->numVirtualStorages()));
+                static_cast<size_t>(d_storage_sp->numVirtualStorages()));
 
             bsl::vector<mqbcmd::VirtualStorage>& virtualStorages =
                 queueStorage.virtualStorages();
@@ -248,17 +249,17 @@ void QueueState::loadInternals(mqbcmd::QueueState* out) const
                 os.reset();
                 os << cit->second;
                 virtualStorages[i].appKey()      = os.str();
-                virtualStorages[i].numMessages() = d_storage_mp->numMessages(
+                virtualStorages[i].numMessages() = d_storage_sp->numMessages(
                     cit->second);
             }
         }
     }
 
-    if (d_storage_mp) {
+    if (d_storage_sp) {
         mqbcmd::CapacityMeter& capacityMeter =
             out->capacityMeter().makeValue();
         mqbu::CapacityMeterUtil::loadState(&capacityMeter,
-                                           *d_storage_mp->capacityMeter());
+                                           *d_storage_sp->capacityMeter());
     }
 
     d_handleCatalog.loadInternals(&out->handles());

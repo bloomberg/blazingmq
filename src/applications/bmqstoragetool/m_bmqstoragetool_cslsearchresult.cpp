@@ -182,11 +182,11 @@ bool CslSearchDetailResult::processRecord(
     const bmqp_ctrlmsg::ClusterMessage&   record,
     const mqbsi::LedgerRecordId&          recordId)
 {
-    RecordPrinter::printRecord(d_ostream,
-                               record,
-                               header,
-                               recordId,
-                               d_allocator_p);
+    // RecordPrinter::printRecord(d_ostream,
+    //                            record,
+    //                            header,
+    //                            recordId,
+    //                            d_allocator_p);
 
     updateRecordCount(&d_recordCount, header.recordType());
 

@@ -38,6 +38,7 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_parameters.h>
+#include <m_bmqstoragetool_printer.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -317,6 +318,7 @@ class CslSummaryResult : public CslSearchResult {
 
     /// Reference to output stream.
     bsl::ostream& d_ostream;
+
     /// CSL Record types to process.
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters

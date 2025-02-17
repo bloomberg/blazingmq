@@ -65,6 +65,10 @@ class CommandLineArguments {
     static const char* k_CSL_UPDATE_TYPE;
     static const char* k_CSL_COMMIT_TYPE;
     static const char* k_CSL_ACK_TYPE;
+    /// Print modes constants
+    static const char* k_HUMAN_MODE;
+    static const char* k_JSON_PRETTY_MODE;
+    static const char* k_JSON_LINE_MODE;
     /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
     /// List of CSL record types to process (snapshot, update, commit, ack)
@@ -92,6 +96,8 @@ class CommandLineArguments {
     /// If true force to iterate CSL file from the beginning, otherwise iterate
     /// from the latest snapshot
     bool d_cslFromBegin;
+    /// Print mode
+    bsl::string d_printMode;
     /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
     /// Filter messages by record composite sequence numbers
@@ -158,6 +164,11 @@ class CommandLineArguments {
     /// is invalid.
     static bool isValidCslRecordType(const bsl::string* cslRecordType,
                                      bsl::ostream&      stream);
+    /// Return true if the specified `printMode` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `printMode` is
+    /// invalid.
+    static bool isValidPrintMode(const bsl::string* printMode,
+                                 bsl::ostream&      stream);
     /// Return true if the specified `fileName` is valid (file exists), false
     /// otherwise. Error message is written into the specified `stream` if
     /// `fileName` is invalid.
@@ -171,6 +182,9 @@ class CommandLineArguments {
 
 struct Parameters {
     // PUBLIC TYPES
+
+    /// Enum with available printing modes
+    enum PrintMode { e_HUMAN, e_JSON_PRETTY, e_JSON_LINE };
 
     /// VST representing search range parameters
     struct Range {
@@ -207,6 +221,8 @@ struct Parameters {
 
         // CREATORS
         explicit ProcessRecordTypes();
+
+        bool operator==(ProcessRecordTypes const& other) const;
     };
 
     // VST representing CSL record types to process
@@ -234,6 +250,9 @@ struct Parameters {
     // CSL record types to process
     QueueMap d_queueMap;
     // Queue map containing uri to key and key to info mappings
+    /// Print mode
+    PrintMode d_printMode;
+    /// Range parameters for filtering
     Range d_range;
     // Range parameters for filtering
     bsl::vector<bsl::string> d_guid;
@@ -260,7 +279,7 @@ struct Parameters {
     /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
     /// Min number of records per queue for detailed info to be displayed
-    bsls::Types::Uint64 d_minRecordsPerQueue;
+    bsl::optional<bsls::Types::Uint64> d_minRecordsPerQueue;
     /// Limit number of queues to display in CSL file summary
     unsigned int d_cslSummaryQueuesLimit;
 

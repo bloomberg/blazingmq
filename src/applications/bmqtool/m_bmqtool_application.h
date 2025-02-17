@@ -49,6 +49,7 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlmt_eventscheduler.h>
+#include <bdlmt_throttle.h>
 #include <bsl_list.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -83,9 +84,10 @@ class Application : public bmqa::SessionEventHandler {
     bslma::Allocator* d_allocator_p;
     // Held, not owned
 
-    Parameters* d_parameters_p;
-    // Command-line parameters.  Held, not
-    // owned
+    /// Run parameters
+    /// Copy is made to ensure lifetime of the Parameters object used by this
+    /// Application
+    const Parameters d_parameters;
 
     bslmt::Semaphore* d_shutdownSemaphore_p;
     // Semaphore holding the main thread
@@ -132,11 +134,26 @@ class Application : public bmqa::SessionEventHandler {
     Interactive d_interactive;
     // CLI handler.
 
-    bsl::list<bsls::Types::Int64> d_latencies;
-    // List of all message latencies (in
-    // ns).  Only populated when requested
-    // to generate a latency report (with
-    // --latency-report).
+    /// A throttle object used to control confirm latency logging on a consumer
+    bdlmt::Throttle d_confirmLatencyThrottle;
+
+    /// List of all confirm message latencies (in ns).
+    /// Confirm message latency is the end-to-end time to deliver a message,
+    /// starting from producer post and ending on a consumer.
+    /// Only populated when requested to generate a latency report (with
+    /// --latency-report).
+    bsl::list<bsls::Types::Int64> d_confirmLatencies;
+
+    /// A throttle object used to control ack latency logging on a consumer
+    bdlmt::Throttle d_ackLatencyThrottle;
+
+    /// List of all ack message latencies (in ns).
+    /// Ack message latency is the time between posting a message and getting
+    /// an ACK for it, meaning that the message was at least replicated with
+    /// a needed quorum (delivery might not have happened yet).
+    /// Only populated when requested to generate a latency report (with
+    /// --latency-report).
+    bsl::list<bsls::Types::Int64> d_ackLatencies;
 
     bsls::AtomicBool d_autoReadInProgress;
     // Auto-consume mode only.  True if a
@@ -198,8 +215,12 @@ class Application : public bmqa::SessionEventHandler {
     /// Print the final stats to the standard output, at exit time.
     void printFinalStats();
 
-    /// Generate the latency report.
-    void generateLatencyReport();
+    /// Generate the latency report from the specified `latencies`.
+    /// The specified `name` represents the origin of the latencies, it is
+    /// either end-to-end latency (producer->consumer) or ack latency
+    /// (producer->cluster->producer-ack).
+    void generateLatencyReport(const bsl::list<bsls::Types::Int64>& latencies,
+                               const bslstl::StringRef&             name);
 
     /// Do any `pre` run initialization, such as connecting to bmqbrkr,
     /// opening a queue, preparing the blob to publish, ...  Return 0 on
@@ -219,9 +240,9 @@ class Application : public bmqa::SessionEventHandler {
     // CREATORS
 
     /// Constructor
-    Application(m_bmqtool::Parameters* parameters,
-                bslmt::Semaphore*      shutdownSemaphore,
-                bslma::Allocator*      allocator);
+    Application(const m_bmqtool::Parameters& parameters,
+                bslmt::Semaphore*            shutdownSemaphore,
+                bslma::Allocator*            allocator);
 
     ~Application() BSLS_KEYWORD_OVERRIDE;
 

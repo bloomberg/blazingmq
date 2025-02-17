@@ -39,7 +39,7 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.POSTER");
 
 PostingContext::PostingContext(
     bmqa::Session*                  session,
-    Parameters*                     parameters,
+    const Parameters&               parameters,
     const bmqa::QueueId&            queueId,
     FileLogger*                     fileLogger,
     bmqst::StatContext*             statContext,
@@ -48,30 +48,28 @@ PostingContext::PostingContext(
     bslma::Allocator*               allocator)
 : d_allocator_p(allocator)
 , d_timeBufferFactory_p(timeBufferFactory)
-, d_parameters_p(parameters)
+, d_parameters(parameters)
 , d_session_p(session)
 , d_fileLogger(fileLogger)
 , d_statContext_p(statContext)
-, d_remainingEvents(d_parameters_p->eventsCount())
+, d_remainingEvents(d_parameters.eventsCount())
 , d_numMessagesPosted(0)
-, d_msgUntilNextTimestamp(0)
 , d_blob(bufferFactory, d_allocator_p)
 , d_queueId(queueId, d_allocator_p)
 , d_properties(d_allocator_p)
 , d_autoIncrementedValue(0)
 {
     BSLS_ASSERT_SAFE(session);
-    BSLS_ASSERT_SAFE(parameters);
     BSLS_ASSERT_SAFE(d_queueId.isValid());
 
     InputUtil::populateProperties(&d_properties,
-                                  d_parameters_p->messageProperties());
+                                  d_parameters.messageProperties());
 
     // Prepare the blob that we will post over and over again
-    if (d_parameters_p->sequentialMessagePattern().empty()) {
-        int msgPayloadSize = d_parameters_p->msgSize();
+    if (d_parameters.sequentialMessagePattern().empty()) {
+        int msgPayloadSize = d_parameters.msgSize();
 
-        if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
+        if (d_parameters.latency() != ParametersLatency::e_NONE) {
             // To optimize, if asked to insert latency, we put in a
             // first blob of 8 bytes that will be swapped out at every
             // post with a new timestamp value.
@@ -97,7 +95,7 @@ bool PostingContext::pendingPost() const
 {
     // eventsCount() == 0 means endless posting,
     // otherwise check if remainingEvents is positive
-    return d_parameters_p->eventsCount() == 0 || d_remainingEvents > 0;
+    return d_parameters.eventsCount() == 0 || d_remainingEvents > 0;
 }
 
 void PostingContext::postNext()
@@ -107,9 +105,9 @@ void PostingContext::postNext()
     bmqa::MessageEventBuilder eventBuilder;
     d_session_p->loadMessageEventBuilder(&eventBuilder);
 
-    for (int evtId = 0; evtId < d_parameters_p->postRate() && pendingPost();
+    for (int evtId = 0; evtId < d_parameters.postRate() && pendingPost();
          ++evtId) {
-        if (d_parameters_p->eventSize() == 0) {
+        if (d_parameters.eventSize() == 0) {
             // To get nice stats chart with round numbers in bench mode, we
             // usually start with eventSize == 0; however posting Events
             // with 0 message in them cause an assert or an error to spew,
@@ -118,54 +116,55 @@ void PostingContext::postNext()
         }
 
         eventBuilder.reset();
-        for (bsl::uint64_t msgId = 0; msgId < d_parameters_p->eventSize();
+        for (bsl::uint64_t msgId = 0; msgId < d_parameters.eventSize();
              ++msgId, ++d_numMessagesPosted) {
             bmqa::Message& msg    = eventBuilder.startMessage();
             int            length = 0;
 
             // Set a correlationId if queue is open in ACK mode
-            if (bmqt::QueueFlagsUtil::isAck(d_parameters_p->queueFlags())) {
-                msg.setCorrelationId(bmqt::CorrelationId::autoValue());
+            if (bmqt::QueueFlagsUtil::isAck(d_parameters.queueFlags())) {
+                if (d_parameters.latency() != ParametersLatency::e_NONE) {
+                    bsls::Types::Int64 nowNs = StatUtil::getNowAsNs(
+                        d_parameters.latency());
+                    // Correlation Ids might be non-unique, and we use this
+                    // quality to store possibly overlapping send timestamps.
+                    // It allows us to calculate ack latencies.
+                    bmqt::CorrelationId cId(nowNs);
+                    msg.setCorrelationId(cId);
+                }
+                else {
+                    // Can use monotonically increasing Correlation Ids if no
+                    // latencies required.
+                    // test_puts_retransmission.py IT relies on this.
+                    msg.setCorrelationId(bmqt::CorrelationId::autoValue());
+                }
             }
 
-            if (!d_parameters_p->sequentialMessagePattern().empty()) {
-                char buffer[128];
-                length = snprintf(
-                    buffer,
-                    sizeof(buffer),
-                    d_parameters_p->sequentialMessagePattern().c_str(),
-                    d_numMessagesPosted);
-                msg.setDataRef(buffer, length);
+            if (!d_parameters.sequentialMessagePattern().empty()) {
+                char buffer[16];
+                length      = snprintf(buffer,
+                                  sizeof(buffer),
+                                  "%09d",
+                                  d_numMessagesPosted);
+
+                bsl::string messageData(
+                    d_parameters.sequentialMessagePattern(),
+                    d_allocator_p);
+                messageData.append(buffer);
+                msg.setDataRef(messageData.c_str(), messageData.length());
             }
             else {
                 // Insert latency if required...
-                if (d_parameters_p->latency() != ParametersLatency::e_NONE) {
-                    bdlb::BigEndianInt64 timeNs;
-
-                    if (d_msgUntilNextTimestamp != 0) {
-                        --d_msgUntilNextTimestamp;
-                        timeNs = bdlb::BigEndianInt64::make(0);
-                    }
-                    else {
-                        // Insert the timestamp
-                        timeNs = bdlb::BigEndianInt64::make(
-                            StatUtil::getNowAsNs(d_parameters_p->latency()));
-
-                        // Update the number of messages until next
-                        // timestamp:
-                        int nbMsgPerSec = d_parameters_p->eventSize() *
-                                          d_parameters_p->postRate() * 1000 /
-                                          d_parameters_p->postInterval();
-                        d_msgUntilNextTimestamp = nbMsgPerSec *
-                                                  k_LATENCY_INTERVAL_MS / 1000;
-                    }
+                if (d_parameters.latency() != ParametersLatency::e_NONE) {
+                    bdlb::BigEndianInt64 postTime = bdlb::BigEndianInt64::make(
+                        StatUtil::getNowAsNs(d_parameters.latency()));
 
                     bdlbb::BlobBuffer buffer;
                     d_timeBufferFactory_p->allocate(&buffer);
                     buffer.setSize(sizeof(bdlb::BigEndianInt64));
                     bsl::memcpy(buffer.buffer().get(),
-                                &timeNs,
-                                sizeof(timeNs));
+                                &postTime,
+                                sizeof(postTime));
                     d_blob.swapBufferRaw(0, &buffer);
                 }
                 msg.setDataRef(&d_blob);
@@ -173,9 +172,9 @@ void PostingContext::postNext()
                 length = d_blob.length();
             }
 
-            if (!d_parameters_p->autoIncrementedField().empty()) {
+            if (!d_parameters.autoIncrementedField().empty()) {
                 d_properties.setPropertyAsInt64(
-                    d_parameters_p->autoIncrementedField(),
+                    d_parameters.autoIncrementedField(),
                     d_autoIncrementedValue++);
             }
 
@@ -218,7 +217,7 @@ void PostingContext::postNext()
         d_statContext_p->adjustValue(k_STAT_EVT,
                                      eventImpl->rawEvent().blob()->length());
 
-        if (d_parameters_p->eventsCount() > 0) {
+        if (d_parameters.eventsCount() > 0) {
             --d_remainingEvents;
         }
     }
@@ -240,7 +239,7 @@ Poster::Poster(FileLogger*         fileLogger,
 
 bsl::shared_ptr<PostingContext>
 Poster::createPostingContext(bmqa::Session*       session,
-                             Parameters*          parameters,
+                             const Parameters&    parameters,
                              const bmqa::QueueId& queueId)
 {
     return bsl::make_shared<PostingContext>(session,

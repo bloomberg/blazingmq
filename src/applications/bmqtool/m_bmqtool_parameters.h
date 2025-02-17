@@ -316,13 +316,13 @@ class Parameters {
     /// error in the specified `stream` and return false on failure.
     bool from(bsl::ostream& stream, const CommandLineParameters& params);
 
-    /// Do a nicer pretty print of all the parameters aligned.
-    void dump(bsl::ostream& stream);
-
     /// Validate the consistency of all settings.
     bool validate(bsl::string* error);
 
     // ACCESSORS
+
+    /// Do a nicer pretty print of all the parameters aligned.
+    void dump(bsl::ostream& stream) const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a

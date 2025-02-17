@@ -90,32 +90,28 @@ void QueueMap::update(const bmqp_ctrlmsg::QueueInfoUpdate& queueInfoUpdate)
 
 // ACCESSORS
 
-bool QueueMap::findInfoByKey(bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                             const mqbu::StorageKey&  key) const
+bsl::optional<bmqp_ctrlmsg::QueueInfo>
+QueueMap::findInfoByKey(const mqbu::StorageKey& key) const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(queueInfo_p);
+    bsl::optional<bmqp_ctrlmsg::QueueInfo> result;
 
     QueueKeyToInfoMap::const_iterator it = d_queueKeyToInfoMap.find(key);
     if (it != d_queueKeyToInfoMap.end()) {
-        *queueInfo_p = it->second;
-        return true;  // RETURN
+        result = it->second;
     }
-    return false;
+    return result;
 }
 
-bool QueueMap::findKeyByUri(mqbu::StorageKey*  queueKey_p,
-                            const bsl::string& uri) const
+bsl::optional<mqbu::StorageKey>
+QueueMap::findKeyByUri(const bsl::string& uri) const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT(queueKey_p);
+    bsl::optional<mqbu::StorageKey> result;
 
     QueueUriToKeyMap::const_iterator it = d_queueUriToKeyMap.find(uri);
     if (it != d_queueUriToKeyMap.end()) {
-        *queueKey_p = it->second;
-        return true;  // RETURN
+        result = it->second;
     }
-    return false;
+    return result;
 }
 
 bsl::vector<bmqp_ctrlmsg::QueueInfo> QueueMap::queueInfos() const

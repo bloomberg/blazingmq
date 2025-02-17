@@ -1,4 +1,4 @@
-name: Sanitize with AddressSanitizer, MemorySanitizer, ThreadSanitizer and UndefinedBehaviorSanitizer.
+name: Sanitize
 
 on:
   pull_request_review:
@@ -9,72 +9,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_dependencies:
-    name: Build deps [ubuntu]
-    runs-on: ubuntu-latest
+  build_and_run_sanitizer:
+    name: ${{ matrix.mode }}
+    strategy:
+      matrix:
+        mode: ["asan", "msan", "tsan", "ubsan"]
+      fail-fast: false
+    runs-on: ubuntu-24.04
     if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
-      - name: Get dependencies hash
-        id: get-hash
-        run: echo "deps_hash=`cat docker/build_deps.sh | shasum`" >> $GITHUB_OUTPUT
-      - name: Cache lookup
-        uses: actions/cache/restore@v4
-        id: cache-lookup
-        with:
-          path: deps
-          key: deps-${{ steps.get-hash.outputs.deps_hash }}
-          lookup-only: true
-      - name: Set up dependencies
-        if: steps.cache-lookup.outputs.cache-hit != 'true'
+      - name : Purge runner
+      # Strip the runner to avoid space quota exceeding
         run: |
-          sudo apt-get update
-          sudo apt-get install -qy build-essential \
-            gdb \
-            curl \
-            python3.10 \
-            python3-pip \
-            cmake \
-            ninja-build \
-            pkg-config \
-            bison \
-            libfl-dev \
-            libbenchmark-dev \
-            libgmock-dev \
-            libz-dev
-      - name: Fetch & Build non packaged dependencies
-        if: steps.cache-lookup.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p deps
-          cd deps
-          ../docker/build_deps.sh
-      - name: Cache save
-        if: steps.cache-lookup.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: deps
-          key: deps-${{ steps.get-hash.outputs.deps_hash }}
-
-  run_asan:
-    needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'asan'
-
-  run_msan:
-    needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'msan'
-
-  run_tsan:
-    needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'tsan'
-
-  run_ubsan:
-    needs: build_dependencies
-    uses: ./.github/workflows/sanitizer-check.yaml
-    with:
-      sanitizer-name: 'ubsan'
+          sudo apt-get purge -y \
+          azure-cli microsoft-edge-stable google-cloud-cli \
+          google-chrome-stable temurin-21-jdk temurin-17-jdk \
+          temurin-11-jdk dotnet-sdk-8.0 firefox temurin-8-jdk \
+          powershell libllvm17t64 libllvm18 libllvm16t64 \
+          openjdk-21-jre-headless mysql-server-core-8.0
+          sudo apt-get autoremove
+          sudo apt-get autoclean
+      - name: Build [${{ matrix.mode }}]
+        run: | 
+          docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
+          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} \
+          -t sanitizer-${{ matrix.mode }} .
+      - name: UT [c++,${{ matrix.mode }}]
+        run: docker run --rm sanitizer-${{ matrix.mode }}

@@ -222,9 +222,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // messages or handles or both).
         bsls::Types::Int64 d_queueExpirationTimestampMs;
 
+        bsl::vector<bsl::shared_ptr<OpenQueueContext> > d_pending;
         // List of all open queue pending contexts which are awaiting for a
         // next step on the queue (assignment, ...).
-        bsl::vector<OpenQueueContext> d_pending;
 
         // Number of in flight contexts, that is the number of contexts for
         // which `d_callback` has not yet been called. Note that this may be
@@ -326,10 +326,34 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// (@bbref{bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID} if unassigned)
         unsigned int d_upstreamSubQueueId;
 
-        /// Callback to invoke when the queue is opened (whether success or
-        /// failure).
+        bsl::shared_ptr<mqbi::QueueHandleRequesterContext> d_clientContext;
+
+        /// Callback to invoke when the queue is
+        /// opened (whether success or failure).
         mqbi::Cluster::OpenQueueCallback d_callback;
+
+        // NOT IMPLEMENTED
+        OpenQueueContext(const OpenQueueContext&) BSLS_CPP11_DELETED;
+
+        /// Copy constructor and assignment operator are not implemented.
+        OpenQueueContext&
+        operator=(const OpenQueueContext&) BSLS_CPP11_DELETED;
+
+        OpenQueueContext(
+            mqbi::Domain*                              domain,
+            const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
+            const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
+                                                    clientContext,
+            const mqbi::Cluster::OpenQueueCallback& callback);
+
+        ~OpenQueueContext();
+
+        void setQueueContext(QueueContext* queueContext);
+
+        QueueContext* queueContext() const;
     };
+
+    typedef bsl::shared_ptr<OpenQueueContext> OpenQueueContextSp;
 
     /// Structure representing all information and context associated to a
     /// queue, whether the queue is opened, being opened, or just aware due
@@ -451,7 +475,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Get the next subQueueId for a subStream of the queue corresponding
     /// to the specified `context`.
-    unsigned int getNextSubQueueId(OpenQueueContext* context);
+    unsigned int getNextSubQueueId(const OpenQueueContextSp& context);
 
     /// Invoked after the specified `partitionId` gets assigned to the
     /// specified `primary` with the specified `status`.  Note that null is
@@ -511,14 +535,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// `context`: that is, depending on the cluster mode and queue
     /// assignment, either send an open queue request or create the queue.
     /// The queue must have been assigned at this point.
-    void processOpenQueueRequest(const OpenQueueContext& context);
+    void processOpenQueueRequest(const OpenQueueContextSp& context);
 
     /// Send an open queue request for the queue and its associated
     /// parameter as contained in the specified `context` to the primary
     /// node in charge of the queue.  The queue must have been assigned at
     /// this point, and the current machine must either be a proxy, or not
     /// the primary of the queue.
-    void sendOpenQueueRequest(const OpenQueueContext& context);
+    void sendOpenQueueRequest(const OpenQueueContextSp& context);
 
     /// Send an open queue request for the queue and its associated
     /// parameters as contained in the specified `requestContext` to the
@@ -538,14 +562,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// queue has already been opened with the appId in the `context`,
     /// assign the upstream subQueueId which was previously generated for
     /// that appId.  Otherwise, generate and assign new unique id.
-    void assignUpstreamSubqueueId(OpenQueueContext* context);
+    void assignUpstreamSubqueueId(const OpenQueueContextSp& context);
 
     /// Response callback of an open queue request, in the specified
     /// `context` and with the request and its associated response in the
     /// specified `requestContext`.
     void
     onOpenQueueResponse(const RequestManagerType::RequestSp& requestContext,
-                        const OpenQueueContext&              context,
+                        const OpenQueueContextSp&            context,
                         mqbnet::ClusterNode*                 responder);
 
     /// Response callback of an open queue request, that was sent due to the
@@ -592,7 +616,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// this method is invoked at the primary node; for every other node,
     /// `upstreamNode` will represent the node to which open-queue request
     /// was sent.
-    bool createQueue(const OpenQueueContext&                context,
+    bool createQueue(const OpenQueueContextSp&              context,
                      const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
                      mqbnet::ClusterNode*                   upstreamNode);
 
@@ -652,11 +676,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void onGetQueueHandle(
         const bmqp_ctrlmsg::Status&                      status,
         mqbi::QueueHandle*                               queueHandle,
+        const OpenQueueContextSp&                        context,
         const bmqp_ctrlmsg::OpenQueueResponse&           openQueueResponse,
-        const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie,
-        const bmqp_ctrlmsg::ControlMessage&              request,
-        mqbc::ClusterNodeSession*                        requester,
-        const int                                        peerInstanceId);
+        const mqbi::Domain::OpenQueueConfirmationCookie& confirmationCookie);
 
     /// Callback invoked in response to an open queue request to the domain
     /// (in the specified `request`).  If the specified `status` is SUCCESS,
@@ -1219,7 +1241,10 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
         return queueContext.d_liveQInfo.d_id !=
                    bmqp::QueueId::k_UNASSIGNED_QUEUE_ID &&
                d_clusterData_p->electorInfo().leaderNode() != 0 &&
-               d_clusterData_p->electorInfo().leaderNode() != otherThan;
+               d_clusterData_p->electorInfo().leaderNode() != otherThan &&
+               d_clusterData_p->electorInfo().electorState() ==
+                   mqbnet::ElectorState::e_LEADER;
+
         // RETURN
     }
 

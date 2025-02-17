@@ -2,8 +2,21 @@
 
 # This script downloads, builds, and installs the required build dependencies of BMQ
 # from github.com/bloomberg. Software packages are installed to the /opt/bb prefix.
+# If the optional argument '--only-download' is provided, the script will only download
+# dependencies (build and install steps are skipped).
 
 set -euxo pipefail
+
+if [ $# == 1 ]; then
+  if [[ $1 == "--only-download" ]]; then
+    DO_BUILD=false
+  else
+     echo "Unexpected optional argument, only '--only-download' is supported"
+     exit 1
+  fi
+else
+    DO_BUILD=true
+fi
 
 fetch_git() {
     local org=$1
@@ -28,8 +41,8 @@ fetch_git() {
 }
 
 fetch_deps() {
-    fetch_git bloomberg bde-tools 4.8.0.0
-    fetch_git bloomberg bde 4.8.0.0
+    fetch_git bloomberg bde-tools 4.13.0.0
+    fetch_git bloomberg bde 4.18.0.0
     fetch_git bloomberg ntf-core 2.4.2
 }
 
@@ -68,4 +81,6 @@ build() {
 
 fetch_deps
 configure
-build
+if [ "${DO_BUILD}" = true ]; then
+    build
+fi

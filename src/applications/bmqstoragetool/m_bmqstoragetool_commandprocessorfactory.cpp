@@ -54,22 +54,40 @@ CommandProcessorFactory::createCommandProcessor(
                                           ostream,
                                           alloc),
             alloc);  // RETURN
-    }
+    }            
     else {
+        // Create printer
+        bsl::shared_ptr<Printer> printer = createPrinter(params->d_printMode,
+                                                        ostream,
+                                                        allocator);
+
+        // Create payload dumper
+        bslma::ManagedPtr<PayloadDumper> payloadDumper;
+        if (params->d_dumpPayload) {
+            payloadDumper.load(new (*alloc)
+                                PayloadDumper(ostream,
+                                                fileManager->dataFileIterator(),
+                                                params->d_dumpLimit,
+                                                alloc),
+                            alloc);
+        }
+
         // Create searchResult for given 'params'.
         bsl::shared_ptr<SearchResult> searchResult =
             SearchResultFactory::createSearchResult(params,
                                                     fileManager,
-                                                    ostream,
+                                                    printer,
+                                                    payloadDumper,
                                                     alloc);
-        // Create JournalFileProcessor
-        return bslma::ManagedPtr<CommandProcessor>(
+        // Create commandProcessor.
+        bslma::ManagedPtr<CommandProcessor> commandProcessor(
             new (*alloc) JournalFileProcessor(params,
-                                              fileManager,
-                                              searchResult,
-                                              ostream,
-                                              alloc),
-            alloc);  // RETURN
+                                            fileManager,
+                                            searchResult,
+                                            ostream,
+                                            alloc),
+            alloc);
+        return commandProcessor;
     }
 }
 

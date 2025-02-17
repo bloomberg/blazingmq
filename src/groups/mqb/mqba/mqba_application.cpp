@@ -832,13 +832,22 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     mqbcmd::InternalResult cmdResult;
 
+    // TODO This boolean is added to address failure during in-progress broker
+    // rollout from v92.8 -> v93.7. If 93.7 broker tries to re-route an admin
+    // command to a 92.8 broker, 92.8 broker will fail to handle. Therefore, we
+    // turn off re-routing until all nodes have been upgraded to 93.7.
+    //
+    // Also, once reroute is re-enabled, revert the integration test changes
+    // introduced in https://github.com/bloomberg/blazingmq/pull/586.
+    const bool neverReroute = true;
+
     // Note that routed commands should never route again to another node.
     // This should always be the "end of the road" for a command.
     // Note that this logic is important to prevent a "deadlock" scenario
     // where two nodes are waiting on a response from each other to continue.
     // Currently commands from reroutes are executed on their own dedicated
     // thread.
-    if (fromReroute) {
+    if (fromReroute || neverReroute) {
         if (0 != executeCommand(command, &cmdResult)) {
             // early exit (caused by "dangerous" command)
             return rc_EARLY_EXIT;  // RETURN

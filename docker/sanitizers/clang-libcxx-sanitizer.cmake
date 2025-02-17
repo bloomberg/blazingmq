@@ -66,6 +66,7 @@ string(CONCAT TOOLCHAIN_CXX_FLAGS
        "-Wno-old-style-cast "
        "-Wno-undef "
        "-Wno-zero-as-null-pointer-constant "
+       "-Wno-unsafe-buffer-usage "
        )
 
 # Define linker flags (used for both shared-objects and executables).

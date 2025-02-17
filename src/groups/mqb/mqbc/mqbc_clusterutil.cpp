@@ -344,7 +344,8 @@ void ClusterUtil::setPendingUnassignment(ClusterState*    clusterState,
     if (iter != clusterState->domainStates().cend()) {
         UriToQueueInfoMapIter qiter = iter->second->queuesInfo().find(uri);
         if (qiter != iter->second->queuesInfo().cend()) {
-            qiter->second->setState(ClusterStateQueueInfo::k_UNASSIGNING);
+            qiter->second->setState(
+                ClusterStateQueueInfo::State::k_UNASSIGNING);
         }
     }
 }
@@ -853,7 +854,8 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
             k_ASSIGNMENT_WHILE_UNAVAILABLE;  // RETURN
     }
 
-    ClusterStateQueueInfo::State previousState = ClusterStateQueueInfo::k_NONE;
+    ClusterStateQueueInfo::State::Enum previousState =
+        ClusterStateQueueInfo::State::k_NONE;
 
     ClusterState::DomainStates& domainStates = clusterState->domainStates();
     DomainStatesIter domIt = domainStates.find(uri.qualifiedDomain());
@@ -882,13 +884,13 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
         previousState = queueIt->second->state();
     }
 
-    if (previousState == ClusterStateQueueInfo::k_ASSIGNING) {
+    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
         BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                       << uri << "' is already pending.";
         return QueueAssignmentResult::k_ASSIGNMENT_OK;
     }
 
-    if (previousState == ClusterStateQueueInfo::k_ASSIGNED) {
+    if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
         BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                       << uri << "' is already done.";
         return QueueAssignmentResult::k_ASSIGNMENT_OK;
@@ -966,12 +968,12 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
     }
 
     // Set the queue as assigning (no longer pending unassignment)
-    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNING);
+    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNING);
 
     BALL_LOG_INFO << "Cluster [" << cluster->description()
                   << "]: Transition: " << previousState << " -> "
-                  << ClusterStateQueueInfo::k_ASSIGNING << " for [" << uri
-                  << "].";
+                  << ClusterStateQueueInfo::State::k_ASSIGNING << " for ["
+                  << uri << "].";
 
     // Populate 'queueAssignmentAdvisory'
     bdlma::LocalSequentialAllocator<1024>  localAllocator(allocator);
@@ -1133,7 +1135,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
 
     bmqu::Printer<AppInfos> printer(&appInfos);
     BALL_LOG_INFO << cluster->description()
-                  << ": Queue assigned: " << "[uri: " << uri
+                  << ": Queue assigned: [uri: " << uri
                   << ", queueKey: " << queueKey
                   << ", partitionId: " << partitionId
                   << ", appInfos: " << printer << "]";
@@ -1284,29 +1286,6 @@ void ClusterUtil::registerAppId(ClusterData*        clusterData,
 
             queueUpdate.addedAppIds().push_back(appIdInfo);
             queueAdvisory.queueUpdates().push_back(queueUpdate);
-
-            if (!clusterData->cluster().isCSLModeEnabled()) {
-                // In CSL mode, we update the queue to ClusterState upon CSL
-                // commit callback of QueueUpdateAdvisory.
-
-                // In non-CSL mode this is the shortcut to call Primary CQH
-                // instead of waiting for the quorum of acks in the ledger.
-
-                AppInfos addedApps(allocator);
-                mqbc::ClusterUtil::parseQueueInfo(&addedApps,
-                                                  queueUpdate.addedAppIds(),
-                                                  allocator);
-
-                BSLA_MAYBE_UNUSED const int assignRc =
-                    clusterState.updateQueue(queueUpdate.uri(),
-                                             queueUpdate.domain(),
-                                             addedApps,
-                                             AppInfos(allocator));
-                BSLS_ASSERT_SAFE(assignRc == 0);
-
-                BALL_LOG_INFO << clusterData->cluster().description()
-                              << ": Queue updated: " << queueAdvisory;
-            }
         }
     }
 
@@ -1409,8 +1388,8 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
             queueUpdate.domain() = qinfoCit->second->uri().qualifiedDomain();
             BSLS_ASSERT_SAFE(queueUpdate.domain() == domain->name());
 
-            bool              appIdFound = false;
-            const AppInfos&   appInfos   = qinfoCit->second->appInfos();
+            bool            appIdFound = false;
+            const AppInfos& appInfos   = qinfoCit->second->appInfos();
             for (AppInfosCIter appInfoCit = appInfos.cbegin();
                  appInfoCit != appInfos.cend();
                  ++appInfoCit) {
@@ -1434,29 +1413,6 @@ void ClusterUtil::unregisterAppId(ClusterData*        clusterData,
                                << qinfoCit->second->uri() << "'.";
 
                 return;  // RETURN
-            }
-
-            if (!clusterData->cluster().isCSLModeEnabled()) {
-                // In CSL mode, we update the queue to ClusterState upon CSL
-                // commit callback of QueueUpdateAdvisory.
-
-                // In non-CSL mode this is the shortcut to call Primary CQH
-                // instead of waiting for the quorum of acks in the ledger.
-
-                AppInfos removedApps(allocator);
-                mqbc::ClusterUtil::parseQueueInfo(&removedApps,
-                                                  queueUpdate.removedAppIds(),
-                                                  allocator);
-
-                BSLA_MAYBE_UNUSED const int assignRc =
-                    clusterState.updateQueue(queueUpdate.uri(),
-                                             queueUpdate.domain(),
-                                             AppInfos(allocator),
-                                             removedApps);
-                BSLS_ASSERT_SAFE(assignRc == 0);
-
-                BALL_LOG_INFO << clusterData->cluster().description()
-                              << ": Queue updated: " << queueAdvisory;
             }
         }
     }
@@ -1675,11 +1631,11 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
     // Validate partition information
     bsl::vector<ClusterStatePartitionInfo> incorrectPartitions;
     for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
-        const ClusterStatePartitionInfo& stateInfo = state.partitions()[pid];
+        const ClusterStatePartitionInfo& stateInfo = state.partition(pid);
         BSLS_ASSERT_SAFE(stateInfo.partitionId() == pid);
 
-        const ClusterStatePartitionInfo& referenceInfo =
-            reference.partitions()[pid];
+        const ClusterStatePartitionInfo& referenceInfo = reference.partition(
+            pid);
         BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
         if (stateInfo.primaryLeaseId() != referenceInfo.primaryLeaseId()) {
             // Partition information mismatch.  Note that we don't compare
@@ -1708,14 +1664,14 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
              ++citer) {
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << "Partition [" << citer->partitionId()
-                << "]: " << " primaryLeaseId: " << citer->primaryLeaseId()
+                << "]:  primaryLeaseId: " << citer->primaryLeaseId()
                 << ", primaryNodeId: " << citer->primaryNodeId();
         }
 
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
         bdlb::Print::newlineAndIndent(out, level);
-        out << "Partition Infos In Cluster State:";
+        out << "Partition Infos In Cluster State :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
         for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
@@ -1723,8 +1679,8 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                 reference.partitions()[pid];
             BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
             bdlb::Print::newlineAndIndent(out, level + 1);
-            out << "Partition [" << pid << "]: " << " primaryLeaseId: "
-                << referenceInfo.primaryLeaseId()
+            out << "Partition [" << pid
+                << "]:  primaryLeaseId: " << referenceInfo.primaryLeaseId()
                 << ", primaryNodeId: " << referenceInfo.primaryNodeId();
         }
     }
@@ -1782,7 +1738,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         bdlb::Print::newlineAndIndent(out, level);
         out << "-----------------";
         bdlb::Print::newlineAndIndent(out, level);
-        out << "Incorrect Queues:";
+        out << "Incorrect Queues :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "-----------------";
         for (bsl::vector<bsl::pair<bsl::shared_ptr<ClusterStateQueueInfo>,
@@ -1791,9 +1747,9 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
              citer != incorrectQueues.cend();
              ++citer) {
             bdlb::Print::newlineAndIndent(out, level + 1);
-            out << citer->first;
+            out << *citer->first;
             bdlb::Print::newlineAndIndent(out, level + 1);
-            out << "(correct queue info) " << citer->second;
+            out << "(correct queue info) " << *citer->second;
         }
     }
 
@@ -1809,7 +1765,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
              citer != extraQueues.cend();
              ++citer) {
             bdlb::Print::newlineAndIndent(out, level + 1);
-            out << *citer;
+            out << **citer;
         }
     }
 
@@ -1862,7 +1818,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
              citer != missingQueues.cend();
              ++citer) {
             bdlb::Print::newlineAndIndent(out, level + 1);
-            out << *citer;
+            out << **citer;
         }
     }
 
@@ -1885,7 +1841,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                  citer != domCit->second->queuesInfo().cend();
                  ++citer) {
                 bdlb::Print::newlineAndIndent(out, level + 1);
-                out << citer->second;
+                out << *citer->second;
             }
         }
     }
@@ -2169,7 +2125,8 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
-            if (qCit->second->state() != ClusterStateQueueInfo::k_ASSIGNED) {
+            if (qCit->second->state() !=
+                ClusterStateQueueInfo::State::k_ASSIGNED) {
                 continue;  // CONTINUE
             }
 
