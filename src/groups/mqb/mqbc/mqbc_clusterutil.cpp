@@ -2007,8 +2007,9 @@ void ClusterUtil::loadPartitionsInfo(
     for (int pid = 0; pid < static_cast<int>(state.partitions().size());
          ++pid) {
         const ClusterStatePartitionInfo&   pinfo = state.partition(pid);
-        bmqp_ctrlmsg::PartitionPrimaryInfo info;
+        BSLS_ASSERT_SAFE(pinfo.partitionId() == pid);
 
+        bmqp_ctrlmsg::PartitionPrimaryInfo info;
         info.partitionId()    = pid;
         info.primaryNodeId()  = pinfo.primaryNode()
                                     ? pinfo.primaryNode()->nodeId()
@@ -2035,26 +2036,28 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
-            if (qCit->second->state() !=
-                ClusterStateQueueInfo::State::k_ASSIGNED) {
+            const ClusterState::QueueInfoSp& infoSp = qCit->second;
+            if (infoSp->state() != ClusterStateQueueInfo::State::k_ASSIGNED &&
+                infoSp->state() !=
+                    ClusterStateQueueInfo::State::k_UNASSIGNING) {
                 continue;  // CONTINUE
             }
 
             bmqp_ctrlmsg::QueueInfo queueInfo;
-            queueInfo.uri()         = qCit->second->uri().asString();
-            queueInfo.partitionId() = qCit->second->partitionId();
+            queueInfo.uri()         = infoSp->uri().asString();
+            queueInfo.partitionId() = infoSp->partitionId();
 
-            BSLS_ASSERT_SAFE(!qCit->second->key().isNull());
-            qCit->second->key().loadBinary(&queueInfo.key());
+            BSLS_ASSERT_SAFE(!infoSp->key().isNull());
+            infoSp->key().loadBinary(&queueInfo.key());
 
-            for (AppInfosCIter appIdCit = qCit->second->appInfos().cbegin();
-                 appIdCit != qCit->second->appInfos().cend();
-                 ++appIdCit) {
-                bmqp_ctrlmsg::AppIdInfo appIdInfo;
-                appIdInfo.appId() = appIdCit->first;
-                appIdCit->second.loadBinary(&appIdInfo.appKey());
-
-                queueInfo.appIds().push_back(appIdInfo);
+            queueInfo.appIds().resize(infoSp->appInfos().size());
+            size_t i = 0;
+            for (AppInfosCIter appCIt = infoSp->appInfos().cbegin();
+                 appCIt != infoSp->appInfos().cend();
+                 ++appCIt) {
+                queueInfo.appIds().at(i).appId() = appCIt->first;
+                appCIt->second.loadBinary(&queueInfo.appIds().at(i).appKey());
+                ++i;
             }
 
             out->push_back(queueInfo);

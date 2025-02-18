@@ -26,6 +26,7 @@
 
 // MQB
 #include <mqbc_clusterstateledgerutil.h>
+#include <mqbc_clusterutil.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbnet_cluster.h>
 #include <mqbs_filestoreprotocol.h>
@@ -281,59 +282,9 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     // special case for rollover records.
     leaderAdvisory.sequenceNumber() =
         d_clusterData_p->electorInfo().leaderMessageSequence();
-
-    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
-        leaderAdvisory.partitions();
-    for (int pid = 0;
-         pid < static_cast<int>(d_clusterState_p->partitions().size());
-         ++pid) {
-        const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
-            pid);
-        if (pinfo.partitionId() == mqbs::DataStore::k_INVALID_PARTITION_ID) {
-            continue;  // CONTINUE
-        }
-        bmqp_ctrlmsg::PartitionPrimaryInfo info;
-
-        info.partitionId()    = pid;
-        info.primaryNodeId()  = pinfo.primaryNode()
-                                    ? pinfo.primaryNode()->nodeId()
-                                    : mqbnet::Cluster::k_INVALID_NODE_ID;
-        info.primaryLeaseId() = pinfo.primaryLeaseId();
-        partitions.push_back(info);
-    }
-
-    for (mqbc::ClusterState::DomainStatesCIter domCit =
-             d_clusterState_p->domainStates().cbegin();
-         domCit != d_clusterState_p->domainStates().cend();
-         ++domCit) {
-        for (mqbc::ClusterState::UriToQueueInfoMapCIter citer =
-                 domCit->second->queuesInfo().cbegin();
-             citer != domCit->second->queuesInfo().cend();
-             ++citer) {
-            const ClusterState::QueueInfoSp& infoSp = citer->second;
-
-            if (infoSp->state() == ClusterStateQueueInfo::State::k_ASSIGNED) {
-                bmqp_ctrlmsg::QueueInfo queueInfo;
-                infoSp->key().loadBinary(&queueInfo.key());
-                queueInfo.uri()         = infoSp->uri().asString();
-                queueInfo.partitionId() = infoSp->partitionId();
-
-                queueInfo.appIds().resize(infoSp->appInfos().size());
-                size_t i = 0;
-                for (ClusterStateQueueInfo::AppInfosCIter appCIt =
-                         infoSp->appInfos().cbegin();
-                     appCIt != infoSp->appInfos().cend();
-                     ++appCIt) {
-                    queueInfo.appIds().at(i).appId() = appCIt->first;
-                    appCIt->second.loadBinary(
-                        &queueInfo.appIds().at(i).appKey());
-                    ++i;
-                }
-
-                leaderAdvisory.queues().push_back(queueInfo);
-            }
-        }
-    }
+    ClusterUtil::loadPartitionsInfo(&leaderAdvisory.partitions(),
+                                    *d_clusterState_p);
+    ClusterUtil::loadQueuesInfo(&leaderAdvisory.queues(), *d_clusterState_p);
 
     // Write snapshot into ledger
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
