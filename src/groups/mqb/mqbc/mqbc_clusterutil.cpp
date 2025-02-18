@@ -1965,7 +1965,16 @@ int ClusterUtil::load(ClusterState*               state,
         }
 
         // Apply advisories, whether committed or not.  Can ignore commit
-        // records
+        // records.
+        //
+        // NOTE: Consider the case where the leader applies an advisory,
+        // receives enough acks, and commits the advisory, but then crashes
+        // before the followers have a chance to write the commit.  One of the
+        // followers becomes the new leader.  The new leader and the remaining
+        // followers will see this as an uncommitted advisory; they must carry
+        // out the last wish of the previous leader and commit this advisory.
+        // That is why upon `ClusterUtil::load`, we apply the uncommitted
+        // advisories knowing that they are about to be committed.
         typedef bmqp_ctrlmsg::ClusterMessageChoice MsgChoice;  // shortcut
         switch (clusterMessage.choice().selectionId()) {
         case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:

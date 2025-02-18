@@ -278,8 +278,7 @@ int IncoreClusterStateLedger::onLogRolloverCb(const mqbu::StorageKey& oldLogId,
     // caused rollover.  We do not want to bump up leader sequence number
     // because the snapshot will not be broadcasted,  Note that since we write
     // the snapshot before the uncommitted records, the records won't be in
-    // monotonically increasing order.  That is okay because we will make a
-    // special case for rollover records.
+    // monotonically increasing order.
     leaderAdvisory.sequenceNumber() =
         d_clusterData_p->electorInfo().leaderMessageSequence();
     ClusterUtil::loadPartitionsInfo(&leaderAdvisory.partitions(),
