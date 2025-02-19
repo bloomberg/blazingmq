@@ -60,6 +60,7 @@
 // BMQ
 
 #include <bmqa_queueid.h>
+#include <bmqp_messageproperties.h>
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
@@ -116,6 +117,8 @@ struct MessageImpl {
 
     /// SubscriptionHandle this message is associated with
     bmqt::SubscriptionHandle d_subscriptionHandle;
+
+    bmqp::MessageProperties::SchemaPtr d_schema_sp;
 
 #ifdef BMQ_ENABLE_MSG_GROUPID
     /// Optional GroupId this message is associated with

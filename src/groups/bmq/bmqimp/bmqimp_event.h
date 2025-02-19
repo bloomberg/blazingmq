@@ -163,6 +163,14 @@ class Event {
         enum Enum { e_UNINITIALIZED, e_READ, e_WRITE };
     };
 
+    struct MessageContext {
+        /// This event can contain multiple messages and needs to cache context
+        /// for each message.
+        bmqt::CorrelationId                d_correlationId;
+        unsigned int                       d_subscriptionHandleId;
+        bmqp::MessageProperties::SchemaPtr d_schema_sp;
+    };
+
   private:
     // PRIVATE TYPES
     typedef bsls::ObjectBuffer<bmqp::PutEventBuilder> PutEventBuilderBuffer;
@@ -251,8 +259,7 @@ class Event {
     // has been constructed in its buffer.  We
     // cannot rely on 'd_msgEventMode'
 
-    bsl::vector<bsl::pair<bmqt::CorrelationId, unsigned int> >
-        d_correlationIds;
+    bsl::vector<MessageContext> d_contexts;
     // Ordered list of correlationIds for all
     // the PUT/ACK/PUSH messages in this event.
     // For PUSH messages optional corresponding
@@ -466,13 +473,7 @@ class Event {
     /// undefined unless 0 <= `position` < numCorrrelationIds(), and event's
     /// type() is MESSAGEEVENT, `messageEventMode()` is READ and the
     /// underlying raw event is of type ACK, PUT or PUSH.
-    const bmqt::CorrelationId& correlationId(int position) const;
-
-    /// Return the subscriptionId at the specified 'position'. Behavior is
-    /// undefined unless 0 <= 'position' < numCorrrelationIds(), and event's
-    /// type() is MESSAGEEVENT, 'messageEventMode()' is READ and the
-    /// underlying raw event is of type PUSH.
-    unsigned int subscriptionId(int position) const;
+    const MessageContext& context(int position) const;
 
     // MANIPULATORS
 
@@ -500,9 +501,11 @@ class Event {
     /// maintained by this instance.  The behavior is undefined unless
     /// event's type() is MESSAGEEVENT, 'messageEventMode()' is READ and the
     /// underlying raw event is of type ACK, PUT or PUSH.
-    void addCorrelationId(const bmqt::CorrelationId& correlationId,
-                          unsigned int               subscriptionHandleId =
-                              bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID);
+    void addContext(const bmqt::CorrelationId& correlationId,
+                    unsigned int               subscriptionHandleId =
+                        bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID,
+                    bmqp::MessageProperties::SchemaPtr schema =
+                        bmqp::MessageProperties::SchemaPtr());
 
     /// Insert the specified `queue` to the queues and the specified
     /// `corrId` to the list of correlationIds associated with this event.
@@ -731,10 +734,10 @@ inline int Event::numCorrrelationIds() const
     BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent() || d_rawEvent.isPutEvent() ||
                      d_rawEvent.isPushEvent());
 
-    return static_cast<int>(d_correlationIds.size());
+    return static_cast<int>(d_contexts.size());
 }
 
-inline const bmqt::CorrelationId& Event::correlationId(int position) const
+inline const Event::MessageContext& Event::context(int position) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(type() == EventType::e_MESSAGE);
@@ -742,21 +745,9 @@ inline const bmqt::CorrelationId& Event::correlationId(int position) const
     BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent() || d_rawEvent.isPutEvent() ||
                      d_rawEvent.isPushEvent());
     BSLS_ASSERT_SAFE(0 <= position);
-    BSLS_ASSERT_SAFE(static_cast<int>(d_correlationIds.size()) > position);
+    BSLS_ASSERT_SAFE(static_cast<int>(d_contexts.size()) > position);
 
-    return d_correlationIds[position].first;
-}
-
-inline unsigned int Event::subscriptionId(int position) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(type() == EventType::e_MESSAGE);
-    BSLS_ASSERT_SAFE(messageEventMode() == MessageEventMode::e_READ);
-    BSLS_ASSERT_SAFE(d_rawEvent.isPushEvent());
-    BSLS_ASSERT_SAFE(0 <= position);
-    BSLS_ASSERT_SAFE(static_cast<int>(d_correlationIds.size()) > position);
-
-    return d_correlationIds[position].second;
+    return d_contexts[position];
 }
 
 inline bmqp::PushMessageIterator* Event::pushMessageIterator()
@@ -798,10 +789,11 @@ inline bmqp::PutEventBuilder* Event::putEventBuilder()
     return &(d_putEventBuilderBuffer.object());
 }
 
-inline void Event::addCorrelationId(const bmqt::CorrelationId& correlationId,
-                                    unsigned int subscriptionHandleId)
+inline void Event::addContext(const bmqt::CorrelationId& correlationId,
+                              unsigned int               subscriptionHandleId,
+                              bmqp::MessageProperties::SchemaPtr schema)
 {
-    // TODO: when ACK event is created locally we have to fill d_correlationIds
+    // TODO: when ACK event is created locally we have to fill d_contexts
     //       before the raw ACK 'bmqp::Event' is created and may be used to
     //       call 'configureAsMessageEvent'.  Deactivate below asserts to allow
     //       adding the correlationIds to the uninitialized event.
@@ -811,8 +803,11 @@ inline void Event::addCorrelationId(const bmqt::CorrelationId& correlationId,
     // BSLS_ASSERT_SAFE(messageEventMode() == MessageEventMode::e_READ);
     // BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent());
 
-    d_correlationIds.push_back(
-        bsl::make_pair(correlationId, subscriptionHandleId));
+    d_contexts.resize(d_contexts.size() + 1);
+    Event::MessageContext& message = d_contexts.back();
+    message.d_correlationId        = correlationId;
+    message.d_subscriptionHandleId = subscriptionHandleId;
+    message.d_schema_sp            = schema;
 }
 
 }  // close package namespace

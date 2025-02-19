@@ -24,7 +24,6 @@
 #include <bmqimp_queue.h>
 #include <bmqp_event.h>
 #include <bmqp_eventutil.h>
-#include <bmqp_messageproperties.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqt_resultcode.h>
@@ -497,10 +496,11 @@ int Message::loadProperties(MessageProperties* buffer) const
     BSLS_ASSERT_SAFE(isInitialized());
     BSLS_ASSERT_SAFE(buffer);
 
-    bmqp::MessageProperties** propertiesImpl =
-        reinterpret_cast<bmqp::MessageProperties**>(buffer);
+    bmqp::MessageProperties* propertiesImpl =
+        *reinterpret_cast<bmqp::MessageProperties**>(buffer);
 
-    const bmqp::Event& rawEvent = d_impl.d_event_p->rawEvent();
+    bmqimp::Event*     event    = d_impl.d_event_p;
+    const bmqp::Event& rawEvent = event->rawEvent();
     int                rc       = -1;
 
     if (rawEvent.isPushEvent()) {
@@ -509,32 +509,30 @@ int Message::loadProperties(MessageProperties* buffer) const
                 d_impl.d_queueId);
 
         if (queue->id() == bmqimp::Queue::k_INVALID_QUEUE_ID) {
-            queue = d_impl.d_event_p->lookupQueue();
+            queue = event->lookupQueue();
         }
         BSLS_ASSERT_SAFE(queue);
 
         bdlbb::Blob                      propertiesBlob;
-        const bmqp::PushMessageIterator& it =
-            *d_impl.d_event_p->pushMessageIterator();
+        const bmqp::PushMessageIterator& it = *event->pushMessageIterator();
         it.loadMessageProperties(&propertiesBlob);
 
         bmqp::MessagePropertiesInfo input(it.header());
 
-        rc = queue->schemaLearner().read(queue->schemaLearnerContext(),
-                                         *propertiesImpl,
-                                         input,
-                                         propertiesBlob);
+        rc = propertiesImpl->streamIn(propertiesBlob,
+                                      input,
+                                      d_impl.d_schema_sp);
 
         // Forcibly load all properties.
         // REVISIT; this can be removed once MPs support dynamic modification
         if (rc == 0) {
             rc = 1000 *
-                 (*propertiesImpl)->loadProperties(false, input.isExtended());
+                 propertiesImpl->loadProperties(false, input.isExtended());
         }
     }
     else if (rawEvent.isPutEvent()) {
-        rc = d_impl.d_event_p->putMessageIterator()->loadMessageProperties(
-            *propertiesImpl);
+        rc = event->putMessageIterator()->loadMessageProperties(
+            propertiesImpl);
         // Schema learning for PUSHs only, not for PUTs assuming 'Message'
         // builds PUTs and receives PUSHs.
     }
