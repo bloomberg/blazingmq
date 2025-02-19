@@ -226,7 +226,7 @@ static void test2_validPushMessagePrint()
                           true);
     implPtr->configureAsMessageEvent(bmqpEvent);
 
-    implPtr->addCorrelationId(bmqt::CorrelationId());
+    implPtr->addContext(bmqt::CorrelationId());
 
     bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
     bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
@@ -329,7 +329,7 @@ static void test3_messageProperties()
                           true);
 
     implPtr->configureAsMessageEvent(bmqpEvent);
-    implPtr->addCorrelationId(bmqt::CorrelationId());
+    implPtr->addContext(bmqt::CorrelationId());
 
     bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
     bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
@@ -493,7 +493,7 @@ static void test4_subscriptionHandle()
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(sId, queueSp);
-        implPtr->addCorrelationId(cId, sId);
+        implPtr->addContext(cId, sId);
 
         bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
@@ -547,7 +547,7 @@ static void test4_subscriptionHandle()
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(defaultSubscriptionId, queueSp);
-        implPtr->addCorrelationId(emptyCorrelationId, defaultSubscriptionId);
+        implPtr->addContext(emptyCorrelationId, defaultSubscriptionId);
 
         bmqa::MessageEvent    pushMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter      = pushMsgEvt.messageIterator();
@@ -592,7 +592,7 @@ static void test4_subscriptionHandle()
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(queueSp);
-        implPtr->addCorrelationId(cId);
+        implPtr->addContext(cId);
 
         bmqa::MessageEvent    putMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter     = putMsgEvt.messageIterator();
@@ -629,7 +629,7 @@ static void test4_subscriptionHandle()
         implPtr->configureAsMessageEvent(bmqpEvent);
 
         implPtr->insertQueue(queueSp);
-        implPtr->addCorrelationId(cId);
+        implPtr->addContext(cId);
 
         bmqa::MessageEvent    ackMsgEvt = event.messageEvent();
         bmqa::MessageIterator mIter     = ackMsgEvt.messageIterator();
