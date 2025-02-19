@@ -103,7 +103,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     typedef QueueMap::iterator       QueueMapIter;
     typedef QueueMap::const_iterator QueueMapCIter;
 
-    typedef mqbi::Storage::AppInfos  AppInfos;
+    typedef mqbc::ClusterState::AppInfos AppInfos;
     typedef AppInfos::const_iterator AppInfosCIter;
 
     enum DomainState {

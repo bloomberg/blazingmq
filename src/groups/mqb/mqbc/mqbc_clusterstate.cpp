@@ -33,6 +33,25 @@ namespace mqbc {
 // class ClusterStateQueueInfo
 // ---------------------------
 
+bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
+{
+    // This ignores the order
+
+    if (d_appInfos.size() != appInfos.size()) {
+        return false;  // RETURN
+    }
+
+    for (AppInfos::const_iterator cit = d_appInfos.cbegin();
+         cit != d_appInfos.cend();
+         ++cit) {
+        if (appInfos.count(cit->first) != 1) {
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
+
 bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
                                            int           level,
                                            int           spacesPerLevel) const

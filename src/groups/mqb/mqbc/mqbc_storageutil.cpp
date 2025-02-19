@@ -89,7 +89,7 @@ bool StorageUtil::loadDifference(mqbi::Storage::AppInfos*       result,
             cit->first);
 
         if (subtractionSet.end() == match) {
-            result->emplace(cit->first, cit->second);
+            result->insert(bsl::make_pair(cit->first, cit->second));
         }
         else if (findConflicts && match->second != cit->second) {
             BALL_LOG_ERROR << "appId [" << cit->first
@@ -378,32 +378,10 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         for (AppInfosCIter cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
-            // Write QueueDeletionRecord to data store for removed appIds.
-            //
-            // TODO_CSL Do not write this record when we logically delete the
-            // QLIST file
-
-            mqbs::DataStoreRecordHandle handle;
-            rc = fs->writeQueueDeletionRecord(&handle,
-                                              storage->queueKey(),
-                                              cit->second,
-                                              timestamp);
-            if (0 != rc) {
-                BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                    << clusterDescription << ": Partition [" << partitionId
-                    << "] failed to write QueueDeletionRecord for queue ["
-                    << storage->queueUri() << "], queueKey ["
-                    << storage->queueKey() << "], appId [" << cit->first
-                    << "], appKey [" << cit->second << "], rc: " << rc
-                    << BMQTSK_ALARMLOG_END;
-                return rc;  // RETURN
-            }
-
-            storage->addQueueOpRecordHandle(handle);
-
             rc = removeVirtualStorageInternal(storage,
                                               cit->second,
-                                              partitionId);
+                                              partitionId,
+                                              true);  // asPrimary
             if (0 != rc) {
                 BALL_LOG_ERROR
                     << clusterDescription << " Partition [" << partitionId
@@ -501,7 +479,8 @@ int StorageUtil::addVirtualStoragesInternal(
 
 int StorageUtil::removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
                                               const mqbu::StorageKey&  appKey,
-                                              int partitionId)
+                                              int  partitionId,
+                                              bool asPrimary)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -514,7 +493,7 @@ int StorageUtil::removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
 
     enum { rc_SUCCESS = 0, rc_VIRTUAL_STORAGE_DOES_NOT_EXIST = -1 };
 
-    bool existed = storage->removeVirtualStorage(appKey);
+    bool existed = storage->removeVirtualStorage(appKey, asPrimary);
     if (!existed) {
         return rc_VIRTUAL_STORAGE_DOES_NOT_EXIST;  // RETURN
     }
@@ -1523,15 +1502,16 @@ void StorageUtil::recoveredQueuesCb(
         }
 
         if (qinfo.appIdKeyPairs().size() != 1 ||
-            qinfo.appIdKeyPairs().cbegin()->first !=
+            qinfo.appIdKeyPairs().cbegin()->second !=
                 bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
             // This is a fanout queue
             AppIds appIds;
 
-            for (AppInfos::const_iterator cit = qinfo.appIdKeyPairs().cbegin();
+            for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator cit =
+                     qinfo.appIdKeyPairs().cbegin();
                  cit != qinfo.appIdKeyPairs().cend();
                  ++cit) {
-                AppIdsInsertRc appIdsIrc = appIds.insert(cit->first);
+                AppIdsInsertRc appIdsIrc = appIds.insert(cit->second);
                 if (false == appIdsIrc.second) {
                     // Duplicate AppId.
 
@@ -1638,7 +1618,8 @@ void StorageUtil::recoveredQueuesCb(
          ++qit) {
         const mqbu::StorageKey&               queueKey = qit->first;
         const mqbs::DataStoreConfigQueueInfo& qinfo    = qit->second;
-        const AppInfos&      appIdKeyPairs             = qinfo.appIdKeyPairs();
+        const mqbs::DataStoreConfigQueueInfo::AppInfos& appIdKeyPairs =
+            qinfo.appIdKeyPairs();
         const bmqt::Uri      queueUri(qinfo.canonicalQueueUri());
         BSLS_ASSERT_SAFE(queueUri.isValid());
 
@@ -1672,12 +1653,13 @@ void StorageUtil::recoveredQueuesCb(
                 BSLS_ASSERT_SAFE(queueKey == rstorage->queueKey());
                 BSLS_ASSERT_SAFE(partitionId == rstorage->partitionId());
 
-                for (AppInfosCIter ait = appIdKeyPairs.begin();
-                     ait != appIdKeyPairs.end();
+                for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator
+                         ait = appIdKeyPairs.cbegin();
+                     ait != appIdKeyPairs.cend();
                      ++ait) {
-                    BSLA_MAYBE_UNUSED const bsl::string& appId = ait->first;
+                    BSLA_MAYBE_UNUSED const bsl::string& appId = ait->second;
                     BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey =
-                        ait->second;
+                        ait->first;
 
                     BSLS_ASSERT_SAFE(!appKey.isNull());
                     BSLS_ASSERT_SAFE(!appId.empty());
@@ -1806,11 +1788,12 @@ void StorageUtil::recoveredQueuesCb(
         bmqu::MemOutStream errorDesc;
         int                rc;
         if (domain->config().mode().isFanoutValue()) {
-            for (AppInfosCIter ait = appIdKeyPairs.begin();
-                 ait != appIdKeyPairs.end();
+            for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator ait =
+                     appIdKeyPairs.cbegin();
+                 ait != appIdKeyPairs.cend();
                  ++ait) {
-                const bsl::string&      appId  = ait->first;
-                const mqbu::StorageKey& appKey = ait->second;
+                const bsl::string&      appId  = ait->second;
+                const mqbu::StorageKey& appKey = ait->first;
 
                 BSLS_ASSERT_SAFE(!appKey.isNull());
                 BSLS_ASSERT_SAFE(!appId.empty());
@@ -1883,7 +1866,7 @@ void StorageUtil::recoveredQueuesCb(
     typedef DataStoreRecordHandles::iterator DataStoreRecordHandlesIter;
 
     mqbs::FileStoreIterator fsIt(fs);
-    DataStoreRecordHandles  recordsToPurge;
+    DataStoreRecordHandles  recordsToPurge;  // TODO: allocator
 
     bsls::Types::Uint64 lastStrongConsistencySequenceNum    = 0;
     unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
@@ -1913,8 +1896,8 @@ void StorageUtil::recoveredQueuesCb(
             confirmReason = confRec.reason();
         }
         else if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
-            // TODO_CSL When we logically delete the QLIST file, will we still
-            // load QueueOp records here?
+            // TODO_CSL When we logically delete the QLIST file, we do not need
+            // 'e_DELETION/e_ADDITION' for Apps but we still need 'e_PURGE'
             mqbs::QueueOpRecord qOpRec;
             fsIt.loadQueueOpRecord(&qOpRec);
             queueKey    = qOpRec.queueKey();
@@ -1986,8 +1969,8 @@ void StorageUtil::recoveredQueuesCb(
             }
         }
 
-        // TODO_CSL When we logically delete the QLIST file, will we still
-        // do this here?
+        // TODO_CSL When we logically delete the QLIST file, we do not need
+        // 'e_DELETION' / 'e_ADDITION' for Apps but we still need 'e_PURGE'
         if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
             BSLS_ASSERT_SAFE(guid.isUnset());
             BSLS_ASSERT_SAFE(mqbs::QueueOpType::e_UNDEFINED != queueOpType);
@@ -2019,10 +2002,27 @@ void StorageUtil::recoveredQueuesCb(
             // even if indicated by the storage record.
         }
         else if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
+            QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap.find(
+                queueKey);
+            BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap.end());
+
+            const mqbs::DataStoreRecordKey current(handle.sequenceNum(),
+                                                   handle.primaryLeaseId());
+
+            const unsigned int numGhosts = infoMapCit->second.advanceAndCount(
+                current);
+            BSLS_ASSERT_SAFE(numGhosts < refCount);
+
+            BALL_LOG_INFO << clusterDescription << " Partition ["
+                          << partitionId << "]: Adjusting queueUri ["
+                          << infoMapCit->second.canonicalQueueUri()
+                          << "], queueKey [" << queueKey << ", current "
+                          << current << "] for " << numGhosts << " ghosts.";
+
             BSLS_ASSERT_SAFE(false == guid.isUnset());
             rs->processMessageRecord(guid,
                                      fs->getMessageLenRaw(handle),
-                                     refCount,
+                                     refCount - numGhosts,
                                      handle);
             if (isStrongConsistency) {
                 lastStrongConsistencySequenceNum    = handle.sequenceNum();
@@ -2064,6 +2064,12 @@ void StorageUtil::recoveredQueuesCb(
 
     fs->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
                                  lastStrongConsistencySequenceNum);
+
+    // Calculate offsets
+    for (StorageSpMapIter it = storageMap->begin(); it != storageMap->end();
+         ++it) {
+        it->second->calibrate();
+    }
 }
 
 void StorageUtil::dumpUnknownRecoveredDomains(
@@ -2512,7 +2518,7 @@ void StorageUtil::registerQueue(
                  ++citer) {
                 mqbu::StorageKey appKey = generateAppKey(&appKeys, *citer);
 
-                appIdKeyPairsToUse.emplace(bsl::make_pair(*citer, appKey));
+                appIdKeyPairsToUse.insert(bsl::make_pair(*citer, appKey));
 
                 int rc = storageSp->addVirtualStorage(errorDesc,
                                                       *citer,
@@ -3050,11 +3056,9 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     }
 
     // A specific appId is being deleted.
-    if (isCSLMode) {
-        rs->purge(appKey);
-    }
+    // No explicit 'purge', storage takes care of that when removing App
 
-    int rc = removeVirtualStorageInternal(rs, appKey, partitionId);
+    int rc = removeVirtualStorageInternal(rs, appKey, partitionId, false);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << clusterDescription << " Partition [" << partitionId

@@ -289,6 +289,14 @@ class ClusterStateQueueInfo {
     /// undefined unless `isValid()` returns true.
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+
+    /// Return `true` if the specified `appInfos` object contains the same
+    /// AppIds (excluding the appKeys) as this object.  Return false otherwise.
+    bool hasTheSameAppIds(const AppInfos& appInfos) const;
+
+    /// Return `true` if the specified `rhs` object contains the same state
+    /// as this object excluding the appKeys.  Return false otherwise.
+    bool isEquivalent(const ClusterStateQueueInfo& rhs) const;
 };
 
 // FREE OPERATORS
@@ -302,18 +310,6 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 /// a reference to the modifiable `stream`.
 bsl::ostream& operator<<(bsl::ostream&                      stream,
                          ClusterStateQueueInfo::State::Enum value);
-
-/// Return `true` if the specified `rhs` object contains the value of the
-/// same type as contained in the specified `lhs` object and the value
-/// itself is the same in both objects, return false otherwise.
-bool operator==(const ClusterStateQueueInfo& lhs,
-                const ClusterStateQueueInfo& rhs);
-
-/// Return `false` if the specified `rhs` object contains the value of the
-/// same type as contained in the specified `lhs` object and the value
-/// itself is the same in both objects, return `true` otherwise.
-bool operator!=(const ClusterStateQueueInfo& lhs,
-                const ClusterStateQueueInfo& rhs);
 
 // ==========================
 // class ClusterStateObserver
@@ -941,6 +937,14 @@ inline bool ClusterStateQueueInfo::pendingUnassignment() const
     return d_state == State::k_UNASSIGNING;
 }
 
+inline bool
+ClusterStateQueueInfo::isEquivalent(const ClusterStateQueueInfo& rhs) const
+{
+    return uri() == rhs.uri() && key() == rhs.key() &&
+           partitionId() == rhs.partitionId() &&
+           hasTheSameAppIds(rhs.appInfos()) && state() == rhs.state();
+}
+
 // ------------------
 // class ClusterState
 // ------------------
@@ -1215,20 +1219,6 @@ mqbc::operator<<(bsl::ostream&                            stream,
                  mqbc::ClusterStateQueueInfo::State::Enum value)
 {
     return mqbc::ClusterStateQueueInfo::State::print(stream, value, 0, -1);
-}
-
-inline bool mqbc::operator==(const ClusterStateQueueInfo& lhs,
-                             const ClusterStateQueueInfo& rhs)
-{
-    return lhs.uri() == rhs.uri() && lhs.key() == rhs.key() &&
-           lhs.partitionId() == rhs.partitionId() &&
-           lhs.appInfos() == rhs.appInfos() && lhs.state() == rhs.state();
-}
-
-inline bool mqbc::operator!=(const ClusterStateQueueInfo& lhs,
-                             const ClusterStateQueueInfo& rhs)
-{
-    return !(lhs == rhs);
 }
 
 }  // close enterprise namespace

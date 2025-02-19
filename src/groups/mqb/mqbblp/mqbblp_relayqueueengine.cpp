@@ -1107,7 +1107,11 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     BSLS_ASSERT_SAFE(app);
 
     if (!app->isAuthorized()) {
-        app->authorize();
+        if (app->authorize()) {
+            BALL_LOG_INFO << "Queue '" << d_queueState_p->uri()
+                          << "' authorized App '" << downstreamInfo.appId()
+                          << "' with ordinal " << app->ordinal() << ".";
+        }
     }
 
     queueHandle->registerSubStream(
@@ -1888,10 +1892,10 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         d_realStorageIter_mp->reset(msgGUID);
         if (!d_realStorageIter_mp->atEnd()) {
-            mqbi::AppMessage& appState = d_realStorageIter_mp->appMessageState(
-                app->ordinal());
+            const mqbi::AppMessage& appView =
+                d_realStorageIter_mp->appMessageView(app->ordinal());
 
-            if (appState.isPushing()) {
+            if (appView.isPushing()) {
                 BMQ_LOGTHROTTLE_INFO()
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
@@ -1931,16 +1935,13 @@ void RelayQueueEngine::storePush(
                 result != mqbi::StorageResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            if (result != mqbi::StorageResult::e_GUID_NOT_UNIQUE ||
-                isOutOfOrder) {
-                BMQ_LOGTHROTTLE_INFO()
-                    << d_queueState_p->uri() << " failed to store GUID ["
-                    << msgGUID << "], result = " << result;
-            }
-            // A redelivery PUSH for one App in the presence of another App
-            // can result in 'e_GUID_NOT_UNIQUE'.
+            BMQ_LOGTHROTTLE_INFO()
+                << d_queueState_p->uri() << " failed to store GUID ["
+                << msgGUID << "], result = " << result;
         }
         else {
+            BSLS_ASSERT_SAFE(dataStreamMessage);
+
             // Reusing previously cached ordinals.
             for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
                      subscriptions.begin();
