@@ -2344,18 +2344,18 @@ void ClusterQueueHelper::onGetDomainDispatched(
     //                      Domain::openQueue
     //                              |
     //                              V
-    //                      Cluster::openQueue
-    //                              |
-    //                              V
-    //                      CQH::openQueue
-    //                              |
-    //                              V
-    //                      Queue::getHandle
-    //                              |
-    //                              V
-    //                      CQH::onGetQueueHandle
-    //                              |
-    //                              V
+    //                          Cluster::openQueue
+    //                                  |
+    //                                  V
+    //                              CQH::openQueue
+    //                                      |
+    //                                      V
+    //                                  Queue::getHandle
+    //                                      |
+    //                                      V
+    //                              CQH::onGetQueueHandle
+    //                                  |
+    //                                  V
     //                      Domain::onOpenQueueResponse
     //                        |                  |
     //                        V                  V
