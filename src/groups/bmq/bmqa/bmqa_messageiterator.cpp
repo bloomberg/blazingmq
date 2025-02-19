@@ -48,6 +48,7 @@ bool MessageIterator::nextMessage()
     msgImpl.d_queueId    = bmqa::QueueId();
     msgImpl.d_correlationId.makeUnset();
     msgImpl.d_subscriptionHandle = bmqt::SubscriptionHandle();
+    msgImpl.d_schema_sp.reset();
 
     int rc = -1;
 
@@ -100,15 +101,20 @@ bool MessageIterator::nextMessage()
         ++d_impl.d_messageIndex;
         BSLS_ASSERT_SAFE(d_impl.d_messageIndex <
                          d_impl.d_event_p->numCorrrelationIds());
-        msgImpl.d_correlationId = d_impl.d_event_p->correlationId(
-            d_impl.d_messageIndex);
+
+        const bmqimp::Event::MessageContext& context =
+            d_impl.d_event_p->context(d_impl.d_messageIndex);
+
+        msgImpl.d_correlationId = context.d_correlationId;
 
         if (d_impl.d_event_p->rawEvent().isPushEvent()) {
-            const unsigned int subscriptionId =
-                d_impl.d_event_p->subscriptionId(d_impl.d_messageIndex);
+            const unsigned int subscriptionId = context.d_subscriptionHandleId;
+
             msgImpl.d_subscriptionHandle = bmqt::SubscriptionHandle(
                 subscriptionId,
                 msgImpl.d_correlationId);
+
+            msgImpl.d_schema_sp = context.d_schema_sp;
         }
 
         return true;  // RETURN

@@ -216,6 +216,8 @@ class QueueManager {
     // both Queue id and Subscription/
     // SubQueue id,
 
+    bmqp::SchemaLearner d_schemaLearner;
+
     bslma::Allocator* d_allocator_p;
     // Allocator to use
 
@@ -309,9 +311,8 @@ class QueueManager {
                     bool* hasMessageWithMultipleSubQueueIds,
                     const bmqp::PushMessageIterator& iterator);
 
-    const QueueSp observePushEvent(bmqt::CorrelationId* correlationId,
-                                   unsigned int*        subscriptionHandleId,
-                                   const bmqp::EventUtilQueueInfo& info);
+    void observePushEvent(Event*                          queueEvent,
+                          const bmqp::EventUtilQueueInfo& info);
 
     /// Update stats for the queue(s) corresponding to the messages pointed
     /// to by the specified `iterator` and populate the specified
@@ -341,6 +342,8 @@ class QueueManager {
 
     void updateSubscriptions(const bsl::shared_ptr<Queue>&         queue,
                              const bmqp_ctrlmsg::StreamParameters& config);
+
+    bmqp::SchemaLearner& schemaLearner();
 
     // ACCESSORS
     QueueSp lookupQueue(const bmqt::Uri& uri) const;
@@ -447,6 +450,11 @@ inline QueueManager::QueueSp QueueManager::lookupQueueBySubscriptionId(
                                              subscriptionHandleId,
                                              queueId,
                                              internalSubscriptionId);
+}
+
+inline bmqp::SchemaLearner& QueueManager::schemaLearner()
+{
+    return d_schemaLearner;
 }
 
 }  // close package namespace

@@ -211,12 +211,15 @@ class SchemaLearner {
     int read(Context&                     context,
              MessageProperties*           mps,
              const MessagePropertiesInfo& messagePropertiesInfo,
-             const bdlbb::Blob&           blob);
+             const bdlbb::Blob&           blob) const;
 
-    /// Reset previously learned schema accumulated with the specified
-    /// `context` and associated with the id in specified `input` if the
-    /// `input` indicates recycling.
-    void observe(Context& context, const MessagePropertiesInfo& input);
+    /// If the specified `input` indicates recycling, reset previously learned
+    /// schema accumulated in the specified `context` and associated with the
+    /// id in `input`.  Return the previously learned schema if it is valid,
+    /// learn and return new schema otherwise.
+    SchemaPtr learn(Context&                     context,
+                    const MessagePropertiesInfo& input,
+                    const bdlbb::Blob&           blob);
 
     /// Return `MessagePropertiesLogic` with a unique id associated with the
     /// specified `context` and the id in the specified `input`.  If there

@@ -504,13 +504,13 @@ static void test4_messageEvent_setterGetterTest()
                                bmqp::EventType::e_ACK);
     bmqp::Event event(&eventBlob, bmqtst::TestHelperUtil::allocator());
     obj.configureAsMessageEvent(event);
-    obj.addCorrelationId(corrId1);
+    obj.addContext(corrId1);
     BMQTST_ASSERT_EQ(1, obj.numCorrrelationIds());
 
-    obj.addCorrelationId(corrId2);
+    obj.addContext(corrId2);
     BMQTST_ASSERT_EQ(2, obj.numCorrrelationIds());
-    BMQTST_ASSERT_EQ(corrId1, obj.correlationId(0));
-    BMQTST_ASSERT_EQ(corrId2, obj.correlationId(1));
+    BMQTST_ASSERT_EQ(corrId1, obj.context(0).d_correlationId);
+    BMQTST_ASSERT_EQ(corrId2, obj.context(1).d_correlationId);
 
     // setMessageCorrelationIdContainer / messageCorrelationIdContainer
     bmqimp::MessageCorrelationIdContainer container(

@@ -111,6 +111,7 @@ QueueManager::QueueManager(bslma::Allocator* allocator)
 , d_uris(allocator)
 , d_nextQueueId(0)
 , d_queuesBySubscriptionIds(allocator)
+, d_schemaLearner(allocator)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -288,26 +289,39 @@ void QueueManager::resetState()
     d_uris.clear();
 }
 
-const QueueManager::QueueSp
-QueueManager::observePushEvent(bmqt::CorrelationId* correlationId,
-                               unsigned int*        subscriptionHandleId,
-                               const bmqp::EventUtilQueueInfo& info)
+void QueueManager::observePushEvent(Event*                          queueEvent,
+                                    const bmqp::EventUtilQueueInfo& info)
 {
+    bmqt::CorrelationId correlationId;
+    unsigned int        subscriptionHandleId;
+
+    int queueId = info.d_header.queueId();
+
     // Update stats
-    const QueueSp queue = lookupQueueBySubscriptionId(
-        correlationId,
-        subscriptionHandleId,
-        info.d_header.queueId(),
-        info.d_subscriptionId);
+    const QueueSp queue = lookupQueueBySubscriptionId(&correlationId,
+                                                      &subscriptionHandleId,
+                                                      queueId,
+                                                      info.d_subscriptionId);
 
     BSLS_ASSERT_SAFE(queue);
     BSLS_ASSERT_SAFE(queue->id() == info.d_header.queueId());
 
     queue->statUpdateOnMessage(info.d_applicationDataSize, false);
 
-    queue->schemaLearner().observe(queue->schemaLearnerContext(),
-                                   bmqp::MessagePropertiesInfo(info.d_header));
-    return queue;
+    BSLS_ASSERT(queue);
+
+    // Use 'subscriptionHandle' instead of the internal
+    // 'info.d_subscriptionId' so that
+    // 'bmqimp::Event::subscriptionId()' returns 'subscriptionHandle'
+
+    queueEvent->insertQueue(info.d_subscriptionId, queue);
+
+    bmqp::MessageProperties::SchemaPtr schema = schemaLearner().learn(
+        schemaLearner().createContext(queueId),
+        bmqp::MessagePropertiesInfo(info.d_header),
+        bdlbb::Blob());
+
+    queueEvent->addContext(correlationId, subscriptionHandleId, schema);
 }
 
 int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,

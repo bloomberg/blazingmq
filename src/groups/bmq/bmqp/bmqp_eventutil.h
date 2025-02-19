@@ -60,7 +60,7 @@ class Event;
 /// `bmqp::QueueId(d_queueId, bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)`.
 /// Otherwise, the key is `d_subscriptionId`
 struct EventUtilQueueInfo {
-    unsigned int d_subscriptionId;
+    const unsigned int d_subscriptionId;
 
     const bmqp::PushHeader d_header;
     const int              d_applicationDataSize;
@@ -81,7 +81,7 @@ struct EventUtilEventInfo {
     typedef bsl::vector<EventUtilQueueInfo> Ids;
 
     // PUBLIC DATA
-    bdlbb::Blob d_blob;
+    const bdlbb::Blob d_blob;
 
     Ids d_ids;
 

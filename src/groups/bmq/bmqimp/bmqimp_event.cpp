@@ -57,7 +57,7 @@ Event::Event(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_putMsgIter(blobBufferFactory, allocator)
 , d_putEventBuilderBuffer()
 , d_isPutEventBuilderConstructed(false)
-, d_correlationIds(allocator)
+, d_contexts(allocator)
 
 {
     // NOTHING
@@ -83,7 +83,7 @@ Event::Event(const Event& other, bslma::Allocator* allocator)
 , d_putMsgIter(other.d_bufferFactory_p, allocator)
 , d_putEventBuilderBuffer()
 , d_isPutEventBuilderConstructed(false)
-, d_correlationIds(other.d_correlationIds, allocator)
+, d_contexts(other.d_contexts, allocator)
 
 {
     // PRECONDITIONS
@@ -156,7 +156,7 @@ Event& Event::operator=(const Event& rhs)
     d_correlationId                   = rhs.d_correlationId;
     d_errorDescription                = rhs.d_errorDescription;
     d_msgEventMode                    = rhs.d_msgEventMode;
-    d_correlationIds                  = rhs.d_correlationIds;
+    d_contexts                        = rhs.d_contexts;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_type ==
                                               EventType::e_SESSION)) {
@@ -224,7 +224,7 @@ void Event::reset()
     d_pushMsgIter.clear();
     d_ackMsgIter.clear();
     d_putMsgIter.clear();
-    d_correlationIds.clear();
+    d_contexts.clear();
 }
 
 void Event::clear()
@@ -356,7 +356,7 @@ Event& Event::upgradeMessageEventModeToWrite()
     d_rawEvent.clear();
     d_queues.clear();
     d_queuesBySubscriptionId.clear();
-    d_correlationIds.clear();
+    d_contexts.clear();
     d_correlationId.makeUnset();
     return *this;
 }
@@ -398,7 +398,7 @@ void Event::addMessageInfo(const bsl::shared_ptr<Queue>& queue,
     // Add correlationId (even if it's empty) to the event's list.  It is
     // used by the message iterator to access correlationId by the message
     // index.
-    addCorrelationId(corrId);
+    addContext(corrId);
 
     // Insert correlationId and queueId and into correlationIds maps of
     // correlationId container.
