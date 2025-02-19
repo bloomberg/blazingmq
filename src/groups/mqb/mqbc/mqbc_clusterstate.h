@@ -236,6 +236,13 @@ class ClusterStateQueueInfo {
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterStateQueueInfo,
                                    bslma::UsesBslmaAllocator)
 
+    // CLASS METHODS
+
+    /// Return true if the specified `appInfos` semantically contains the
+    /// default appId only.  Note that having null appIds is treated as
+    /// equivalent to only having default appId.  Return false otherwise.
+    static bool containsDefaultAppIdOnly(const AppInfos& appInfos);
+
     // CREATORS
 
     /// Create a new `mqbc::ClusterStateQueueInfo` with the specified `uri`,
