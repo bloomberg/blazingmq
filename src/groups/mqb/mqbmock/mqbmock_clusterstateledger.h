@@ -164,7 +164,7 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
     int
-    apply(const bmqp_ctrlmsg::LeaderAdvisory& advisorye) BSLS_KEYWORD_OVERRIDE;
+    apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory) BSLS_KEYWORD_OVERRIDE;
 
     /// Apply the advisory contained in the specified `clusterMessage` to
     /// self and replicate to followers.  Notify via `commitCb` when

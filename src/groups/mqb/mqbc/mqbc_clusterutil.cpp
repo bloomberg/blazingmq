@@ -1974,7 +1974,9 @@ int ClusterUtil::load(ClusterState*               state,
         // followers will see this as an uncommitted advisory; they must carry
         // out the last wish of the previous leader and commit this advisory.
         // That is why upon `ClusterUtil::load`, we apply the uncommitted
-        // advisories knowing that they are about to be committed.
+        // advisories knowing that they are about to be committed.  Also note
+        // that uncommitted advisories must be synchronized by this time by the
+        // new leader.
         typedef bmqp_ctrlmsg::ClusterMessageChoice MsgChoice;  // shortcut
         switch (clusterMessage.choice().selectionId()) {
         case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:

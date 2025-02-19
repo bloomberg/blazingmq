@@ -37,9 +37,25 @@ class TestRolloverCSL:
     @tweak.cluster.partition_config.max_cslfile_size(2000)
     @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
     def test_rollover_queue_assignments(self, cluster: Cluster):
+        """
+        Test that queue and appId information are preserved across rollover of
+        CSL file, even after cluster restart.
+
+        1. Producer opens a fanout queue and posts a message.
+        2. By opening and GC'ing queues, cause the CSL file to rollover.
+        3. Verify that queue and appId information are preserved, after cluster
+           restart, by opening a consumer for each appId of the fanout queue
+           and trying to read the message.
+        """
         leader = cluster.last_known_leader
         proxy = next(cluster.proxy_cycle())
         self.producer = proxy.create_client("producer")
+        self.producer.open(
+            f"bmq://{tc.DOMAIN_FANOUT_SC}/q0", flags=["write,ack"], succeed=True
+        )
+        self.producer.post(
+            f"bmq://{tc.DOMAIN_FANOUT_SC}/q0", ["msg1"], succeed=True, wait_ack=True
+        )
 
         # Cause three QueueAssignmentAdvisories and QueueUnassignedAdvisories to be written to the CSL.  These records will be erased during rollover.
         for i in range(0, 3):
@@ -49,13 +65,6 @@ class TestRolloverCSL:
             self.producer.close(f"bmq://{tc.DOMAIN_PRIORITY_SC}/q{i}", succeed=True)
         for i in range(0, 3):
             assert leader.outputs_regex(r"QueueUnassignedAdvisory", timeout)
-
-        self.producer.open(
-            f"bmq://{tc.DOMAIN_FANOUT_SC}/q0", flags=["write,ack"], succeed=True
-        )
-        self.producer.post(
-            f"bmq://{tc.DOMAIN_FANOUT_SC}/q0", ["msg1"], succeed=True, wait_ack=True
-        )
 
         # Assigning these two queues will cause rollover
         self.producer.open(

@@ -679,7 +679,8 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
     else {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": Failed to fetch latest leader sequence number from"
-                      << " the cluster state ledger, rc: " << rc;
+                      << " the cluster state ledger, rc: " << rc
+                      << ". Using default value: " << ledgerLSN;
     }
 
     d_clusterData_p->electorInfo().setLeaderMessageSequence(ledgerLSN);
