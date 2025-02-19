@@ -3196,9 +3196,15 @@ void StorageUtil::setQueueDispatched(
 
     StorageSpMapIter it = storageMap->find(uri);
     if (it == storageMap->end()) {
-        BALL_LOG_ERROR << clusterDescription << " Partition [" << partitionId
-                       << "]: queue [" << uri
-                       << "] not found in storage manager.";
+        if (queue) {
+            BALL_LOG_ERROR << clusterDescription << " Partition ["
+                           << partitionId << "]: queue [" << uri
+                           << "] not found in storage manager.";
+        }
+        // While transitioning to CSL, Replica can receive both
+        // QueueUnassignmentAdvisory and Queue DELETION.  The latter can delete
+        // the storage.
+
         return;  // RETURN
     }
 
