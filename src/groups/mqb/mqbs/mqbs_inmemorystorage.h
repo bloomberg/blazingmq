@@ -790,7 +790,7 @@ inline void InMemoryStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 
 inline unsigned int InMemoryStorage::numAutoConfirms() const
 {
-    return d_autoConfirms.size();
+    return static_cast<unsigned int>(d_autoConfirms.size());
 }
 
 inline mqbu::CapacityMeter* InMemoryStorage::capacityMeter()
