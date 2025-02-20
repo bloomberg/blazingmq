@@ -768,7 +768,7 @@ def test_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     # ---------------------------------------------------------------------
     # +new_app_3
     new_app_3 = "new_app_3"
-    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3, du])
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3], du)
 
     # ---------------------------------------------------------------------
     # Post
