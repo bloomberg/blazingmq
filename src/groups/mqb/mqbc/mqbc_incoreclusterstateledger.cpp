@@ -469,10 +469,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
-        if (d_clusterData_p->clusterConfig()
-                .clusterAttributes()
-                .isFSMWorkflow() &&
-            !isSelfLeader()) {
+        if (!isSelfLeader()) {
             d_clusterData_p->electorInfo().setLeaderMessageSequence(
                 sequenceNumber);
         }
@@ -592,11 +589,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                 sequenceNumber ==
                 d_clusterData_p->electorInfo().leaderMessageSequence());
         }
-
-        if (d_clusterData_p->clusterConfig()
-                .clusterAttributes()
-                .isFSMWorkflow() &&
-            !isSelfLeader()) {
+        else {
             d_clusterData_p->electorInfo().setLeaderMessageSequence(
                 sequenceNumber);
         }
