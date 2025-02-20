@@ -230,7 +230,7 @@ class ClusterStateManager {
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>()) = 0;
 
     /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domain` and optionally specified `uri`.
+    /// for the specified  `domainName` and optionally specified `uri`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

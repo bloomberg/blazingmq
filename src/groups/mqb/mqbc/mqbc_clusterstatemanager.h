@@ -481,7 +481,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         BSLS_KEYWORD_OVERRIDE;
 
     /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domain` and optionally specified `uri`.
+    /// for the specified  `domainName` and optionally specified `uri`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.

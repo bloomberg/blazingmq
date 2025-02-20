@@ -251,9 +251,8 @@ class ClusterStateQueueInfo {
     /// using the specified `allocator` for any memory allocation.
     ClusterStateQueueInfo(const bmqt::Uri& uri, bslma::Allocator* allocator);
 
-    /// Create a `mqbc::ClusterStateQueueInfo` with the specified `uri`,
-    /// `key`, `partitionId` and `appIdInfos` values.  Use the specified
-    /// `allocator` for any memory allocation.
+    /// Create a `mqbc::ClusterStateQueueInfo` with values from the specified
+    /// `advisory`.  Use the specified `allocator` for any memory allocation.
     ClusterStateQueueInfo(const bmqp_ctrlmsg::QueueInfo& advisory,
                           bslma::Allocator*              allocator);
 
@@ -621,8 +620,9 @@ class ClusterState {
     /// partitionsCount'.
     ClusterState& updatePartitionNumActiveQueues(int partitionId, int delta);
 
-    /// Assign the queue with the specified `uri` and `key` to the specified
-    /// `partitionId`, and register the specified `appIdInfos` to the queue.
+    /// Assign the queue with the values (such as `uri`, `key`, `partitionId`)
+    /// from the specified `queueInfo`, and register the `appIdInfos` from the
+    /// `queueInfo` to the queue.
     /// If the queue already appears in cluster state, return false.  Else,
     /// return true.
     ///
@@ -643,11 +643,12 @@ class ClusterState {
     /// cluster's dispatcher thread.
     void clearQueues();
 
-    /// Update the queue with the specified `uri` belonging to the specified
-    /// `domain` by registering the specified `addedAppIds` and
-    /// un-registering the specified `removedAppIds`.  If the specified
-    /// `uri` is empty, the appId updates are applied to the entire `domain`
-    /// instead.  Return 0 on success or a non-zero error code on failure.
+    /// Update the queue with the values in the specified `update`.  Queue must
+    /// have `uri` from the `update` and belong to the corresponding domain.
+    /// Registering the `addedAppIds` and un-registering the `removedAppIds`
+    /// from the `update` .  If the `uri` is empty, apply the update to the
+    /// entire `domain` instead.
+    /// Return 0 on success or a non-zero error code on failure.
     ///
     /// THREAD: This method should only be called from the associated
     /// cluster's dispatcher thread.

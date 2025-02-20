@@ -489,11 +489,12 @@ class ClusterOrchestrator {
     void validateClusterStateLedger();
 
     /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domain`.
+    /// for the specified  `domainName`.
     /// Invoked by @bbref{mqbblp::Cluster}.
-    void updateAppIds(const bsl::vector<bsl::string>& added,
-                      const bsl::vector<bsl::string>& removed,
-                      const bsl::string&              domainName);
+    void updateAppIds(
+        const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
+        const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
+        const bsl::string&                                      domainName);
 
     /// Register a queue info for the queue with the specified `uri`,
     /// `partitionId`, `queueKey` and `appIdInfos`.  If the specified
