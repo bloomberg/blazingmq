@@ -197,24 +197,21 @@ struct StorageUtil {
                                     const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void
-    registerQueueDispatched(const mqbi::Dispatcher::ProcessorHandle& processor,
-                            mqbs::FileStore*                         fs,
-                            mqbs::ReplicatedStorage*                 storage,
-                            const bsl::string& clusterDescription,
-                            int                partitionId,
-                            const AppInfos&    appIdKeyPairs);
+    static void registerQueueDispatched(mqbs::FileStore*         fs,
+                                        mqbs::ReplicatedStorage* storage,
+                                        const bsl::string& clusterDescription,
+                                        int                partitionId,
+                                        const AppInfos&    appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    static void updateQueuePrimaryDispatched(
-        const mqbi::Dispatcher::ProcessorHandle& processor,
-        mqbs::ReplicatedStorage*                 storage,
-        bslmt::Mutex*                            storagesLock,
-        mqbs::FileStore*                         fs,
-        const bsl::string&                       clusterDescription,
-        int                                      partitionId,
-        const AppInfos&                          appIdKeyPairs,
-        bool                                     isFanout);
+    static void
+    updateQueuePrimaryDispatched(mqbs::ReplicatedStorage* storage,
+                                 bslmt::Mutex*            storagesLock,
+                                 mqbs::FileStore*         fs,
+                                 const bsl::string&       clusterDescription,
+                                 int                      partitionId,
+                                 const AppInfos&          appIdKeyPairs,
+                                 bool                     isFanout);
 
     /// StorageManager's storages lock must be locked before calling this
     /// method.
@@ -627,31 +624,27 @@ struct StorageUtil {
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    static void
-    registerQueue(const mqbi::Cluster*                     cluster,
-                  mqbi::Dispatcher*                        dispatcher,
-                  StorageSpMap*                            storageMap,
-                  bslmt::Mutex*                            storagesLock,
-                  mqbs::FileStore*                         fs,
-                  bmqma::CountingAllocatorStore*           allocators,
-                  const mqbi::Dispatcher::ProcessorHandle& processor,
-                  const bmqt::Uri&                         uri,
-                  const mqbu::StorageKey&                  queueKey,
-                  const bsl::string&                       clusterDescription,
-                  int                                      partitionId,
-                  const AppInfos&                          appIdKeyPairs,
-                  mqbi::Domain*                            domain);
+    static void registerQueue(const mqbi::Cluster*           cluster,
+                              mqbi::Dispatcher*              dispatcher,
+                              StorageSpMap*                  storageMap,
+                              bslmt::Mutex*                  storagesLock,
+                              mqbs::FileStore*               fs,
+                              bmqma::CountingAllocatorStore* allocators,
+                              const bmqt::Uri&               uri,
+                              const mqbu::StorageKey&        queueKey,
+                              const bsl::string& clusterDescription,
+                              int                partitionId,
+                              const AppInfos&    appIdKeyPairs,
+                              mqbi::Domain*      domain);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void unregisterQueueDispatched(
-        const mqbi::Dispatcher::ProcessorHandle& processor,
-        mqbs::FileStore*                         fs,
-        StorageSpMap*                            storageMap,
-        bslmt::Mutex*                            storagesLock,
-        const ClusterData*                       clusterData,
-        int                                      partitionId,
-        const PartitionInfo&                     pinfo,
-        const bmqt::Uri&                         uri);
+    static void unregisterQueueDispatched(mqbs::FileStore*     fs,
+                                          StorageSpMap*        storageMap,
+                                          bslmt::Mutex*        storagesLock,
+                                          const ClusterData*   clusterData,
+                                          int                  partitionId,
+                                          const PartitionInfo& pinfo,
+                                          const bmqt::Uri&     uri);
 
     /// Configure the fanout queue having specified `uri` and `queueKey`,
     /// assigned to the specified `partitionId` to have the specified
@@ -713,14 +706,12 @@ struct StorageUtil {
 
     /// Executed by queue-dispatcher thread with the specified
     /// `processorId`.
-    static void
-    setQueueDispatched(StorageSpMap*                            storageMap,
-                       bslmt::Mutex*                            storagesLock,
-                       const mqbi::Dispatcher::ProcessorHandle& processor,
-                       const bsl::string& clusterDescription,
-                       int                partitionId,
-                       const bmqt::Uri&   uri,
-                       mqbi::Queue*       queue);
+    static void setQueueDispatched(StorageSpMap*      storageMap,
+                                   bslmt::Mutex*      storagesLock,
+                                   const bsl::string& clusterDescription,
+                                   int                partitionId,
+                                   const bmqt::Uri&   uri,
+                                   mqbi::Queue*       queue);
 
     static int makeStorage(bsl::ostream&                   errorDescription,
                            bsl::shared_ptr<mqbi::Storage>* out,

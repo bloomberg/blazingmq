@@ -3713,7 +3713,6 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                                &d_storagesLock,
                                d_fileStores[partitionId].get(),
                                &d_allocators,
-                               processorForPartition(partitionId),
                                uri,
                                queueKey,
                                d_clusterData_p->identity().description(),
@@ -3738,7 +3737,6 @@ void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)
         .setType(mqbi::DispatcherEventType::e_DISPATCHER)
         .setCallback(
             bdlf::BindUtil::bind(&StorageUtil::unregisterQueueDispatched,
-                                 bdlf::PlaceHolders::_1,  // processor
                                  d_fileStores[partitionId].get(),
                                  &d_storages[partitionId],
                                  &d_storagesLock,
@@ -3906,7 +3904,6 @@ void StorageManager::setQueue(mqbi::Queue*     queue,
             bdlf::BindUtil::bind(&StorageUtil::setQueueDispatched,
                                  &d_storages[partitionId],
                                  &d_storagesLock,
-                                 bdlf::PlaceHolders::_1,  // processor
                                  d_clusterData_p->identity().description(),
                                  partitionId,
                                  uri,
@@ -3927,7 +3924,6 @@ void StorageManager::setQueueRaw(mqbi::Queue*     queue,
 
     StorageUtil::setQueueDispatched(&d_storages[partitionId],
                                     &d_storagesLock,
-                                    processorForPartition(partitionId),
                                     d_clusterData_p->identity().description(),
                                     partitionId,
                                     uri,
