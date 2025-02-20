@@ -742,7 +742,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // with the 'tearDownAllQueuesDone' finalize callback having the 'handle'
     // bound to it (so that the session is not yet destroyed).
     dispatcher()->execute(
-        mqbi::Dispatcher::ProcessorFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(&ClientSession::tearDownAllQueuesDone,
                              this,
@@ -1268,7 +1268,7 @@ void ClientSession::processDisconnectAllQueues(
     // type, refer to top level documention for explanation (paragraph about
     // the bmqu::SharedResource).
     dispatcher()->execute(
-        mqbi::Dispatcher::ProcessorFunctor(),  // empty
+        mqbi::Dispatcher::VoidFunctor(),  // empty
         mqbi::DispatcherClientType::e_QUEUE,
         bdlf::BindUtil::bind(
             bmqu::WeakMemFnUtil::weakMemFn(
@@ -3068,9 +3068,9 @@ void ClientSession::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
 
-        BSLS_ASSERT_SAFE(realEvent->callback());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
         flush();  // Flush any pending messages to guarantee ordering of events
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_CONTROL_MSG: {
         BSLS_ASSERT_OPT(false &&

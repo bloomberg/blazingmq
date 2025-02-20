@@ -126,7 +126,7 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// The purpose is to avoid memory allocation by bdlf::BindUtil::bind
     /// when dispatching CONFIRM from Cluster to Queue.
-    class ConfirmFunctor {
+    class ConfirmFunctor : public bmqu::ManagedCallback::CallbackFunctor {
       private:
         // PRIVATE DATA
         QueueHandle*      d_owner_p;
@@ -135,11 +135,13 @@ class QueueHandle : public mqbi::QueueHandle {
 
       public:
         // CREATORS
-        ConfirmFunctor(QueueHandle*      owner_p,
-                       bmqt::MessageGUID guid,
-                       unsigned int      downstreamSubQueueId);
+        explicit ConfirmFunctor(QueueHandle*      owner_p,
+                                bmqt::MessageGUID guid,
+                                unsigned int      downstreamSubQueueId);
 
-        void operator()();
+        ~ConfirmFunctor() BSLS_KEYWORD_OVERRIDE;
+
+        void operator()() const BSLS_KEYWORD_OVERRIDE;
     };
 
   public:
@@ -670,7 +672,7 @@ inline QueueHandle::ConfirmFunctor::ConfirmFunctor(
     // NOTHING
 }
 
-inline void QueueHandle::ConfirmFunctor::operator()()
+inline void QueueHandle::ConfirmFunctor::operator()() const
 {
     d_owner_p->confirmMessageDispatched(d_guid, d_downstreamSubQueueId);
 }
