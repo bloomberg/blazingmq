@@ -75,6 +75,8 @@ bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
 
 void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
 {
+    BSLS_ASSERT_SAFE(uri() == advisory.uri());
+
     d_appInfos.clear();
 
     for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
@@ -84,7 +86,7 @@ void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
         BSLS_ASSERT_SAFE(!cit->appId().empty());
         BSLS_ASSERT_SAFE(!cit->appKey().empty());
 
-        d_appInfos.emplace(mqbi::ClusterStateManager::AppInfo(
+        d_appInfos.insert(mqbi::ClusterStateManager::AppInfo(
             bsl::string(cit->appId(), d_allocator_p),
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                              cit->appKey().data())));
@@ -94,6 +96,8 @@ void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
 bool ClusterStateQueueInfo::equal(
     const bmqp_ctrlmsg::QueueInfo& advisory) const
 {
+    BSLS_ASSERT_SAFE(uri() == advisory.uri());
+
     if (partitionId() != advisory.partitionId()) {
         return false;
     }
@@ -110,7 +114,7 @@ bool ClusterStateQueueInfo::equal(
              advisory.appIds().cbegin();
          cit != advisory.appIds().cend();
          ++cit) {
-        if (!appInfos().contains(cit->appId())) {
+        if (appInfos().count(cit->appId()) == 0) {
             return false;
         }
     }
@@ -466,7 +470,7 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
     BSLS_ASSERT_SAFE(cluster()->dispatcher()->inDispatcherThread(cluster()));
 
     const bmqt::Uri& uri         = advisory.uri();
-    int              partitionId = advisory.partitionId();
+    const int        partitionId = advisory.partitionId();
 
     bool                  isNewAssignment = true;
     DomainStatesIter      domIt = domainStates().find(uri.qualifiedDomain());
@@ -658,15 +662,10 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
                 mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                  citer->appKey().data()));
 
-            if (!appInfos
-                     .emplace(citer->appId(),
-                              mqbu::StorageKey(
-                                  mqbu::StorageKey::BinaryRepresentation(),
-                                  citer->appKey().data()))
-                     .second) {
+            if (!appInfos.insert(appInfo).second) {
                 return rc_APPID_ALREADY_EXISTS;  // RETURN
             }
-            addedAppIds.emplace(appInfo);
+            addedAppIds.insert(appInfo);
         }
 
         for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
@@ -682,7 +681,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
                 return rc_APPID_NOT_FOUND;  // RETURN
             }
 
-            removedAppIds.emplace(appInfo);
+            removedAppIds.insert(appInfo);
         }
 
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer1(

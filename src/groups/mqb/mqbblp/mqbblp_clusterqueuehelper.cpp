@@ -236,7 +236,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(
 , d_numHandleCreationsInProgress(other.d_numHandleCreationsInProgress)
 , d_queueExpirationTimestampMs(other.d_queueExpirationTimestampMs)
 , d_pending(other.d_pending)
-, d_pendingUpdates(other.d_pendingUpdates)
+, d_pendingUpdates(other.d_pendingUpdates, allocator)
 , d_inFlight(other.d_inFlight)
 {
     // NOTHING
@@ -791,10 +791,6 @@ void ClusterQueueHelper::processPendingContexts(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
-
-    // NOTE: We don't check if there are any pending contexts because 1) the
-    //       caller typically would have checked for that already and 2) even
-    //       if there are none, the below code will mostly be a no-op.
 
     if (queueContext->d_liveQInfo.d_pending.empty()) {
         return;  // RETURN
@@ -3628,10 +3624,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext.get()));
             BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext.get()));
 
-            // TODO: verify the CSL if needed by comparing it with the Domain
-            // config
-            //  send QueueUpdateAdvisory and _wait_ for commit
-
+            // Verify the CSL if needed by comparing it with the Domain config
             if (liveQInfo.d_queue_sp) {
                 if (isSelfPrimary) {
                     // We are assuming that it is not possible for a node to be
@@ -3662,9 +3655,9 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                             queueContext,
                             domain);
 
-                        // Add to 'd_pending' before calling 'updateAppIds'
-                        // which can be both synchronous (legacy) and
-                        // asynchronous (CSL)
+                        // Add to 'd_pendingUpdates' before calling
+                        // 'updateAppIds' which can be both synchronous
+                        // (legacy) and asynchronous (CSL)
                         liveQInfo.d_pendingUpdates.push_back(park);
 
                         d_clusterStateManager_p->updateAppIds(added,
@@ -3672,6 +3665,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                                                               domain->name(),
                                                               "");
                         // Cannot continue until 'onQueueUpdated'
+                        // Send QueueUpdateAdvisory and _wait_ for commit
                     }
                     else {
                         convertToLocal(queueContext, domain);
@@ -4420,7 +4414,7 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
     pending.swap(queueContext.d_liveQInfo.d_pendingUpdates);
 
     BALL_LOG_INFO << d_cluster_p->description() << ": processing "
-                  << pending.size() << " pending Dynamic App.";
+                  << pending.size() << " pending Apps Updates.";
 
     for (bsl::vector<VoidFunctor>::iterator it = pending.begin();
          it != pending.end();
@@ -6175,7 +6169,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
             continue;  // CONTINUE
         }
 
-        // With asynchronous CL repair, it is possible to have
+        // With asynchronous CSL repair, it is possible to have
         // '0 == qinfo.d_queue_sp' while waiting for QueueUpdate
 
         if (qinfo.d_numHandleCreationsInProgress) {

@@ -96,8 +96,6 @@ void applyPartitionPrimary(
 void applyQueueAssignment(mqbc::ClusterState* clusterState,
                           const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
 {
-    // TODO: refactor to use allocator(s)
-
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
@@ -287,7 +285,6 @@ void createDomainCb(const bmqp_ctrlmsg::Status& status,
 }
 
 bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
-                         mqbc::ClusterState*                clusterState,
                          const bsl::vector<bsl::string>&    added,
                          const bsl::vector<bsl::string>&    removed,
                          const ClusterStateQueueInfo&       from,
@@ -1079,7 +1076,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
     BSLS_ASSERT_SAFE(clusterState);
 
     const bmqt::Uri& uri         = advisory.uri();
-    int              partitionId = advisory.partitionId();
+    const int        partitionId = advisory.partitionId();
 
     BSLS_ASSERT_SAFE(uri.isCanonical());
     BSLS_ASSERT_SAFE((0 <= partitionId) &&
@@ -1266,8 +1263,6 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
     DomainStatesCIter domCit = clusterState.domainStates().find(domainName);
 
-    bool success = true;
-
     if (domCit == clusterState.domainStates().cend() ||
         domCit->second->queuesInfo().empty()) {
         // We will reach this scenario if we attempt to register an appId for
@@ -1312,12 +1307,20 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             BSLS_ASSERT_SAFE(qinfoCit->second->uri().qualifiedDomain() ==
                              domainName);
 
-            success = populateQueueUpdate(&queueAdvisory,
-                                          &clusterState,
-                                          added,
-                                          removed,
-                                          *qinfoCit->second,
-                                          allocator);
+            const bool success = populateQueueUpdate(&queueAdvisory,
+                                                     added,
+                                                     removed,
+                                                     *qinfoCit->second,
+                                                     allocator);
+
+            if (!success) {
+                BALL_LOG_ERROR << "Failed to unregister appIds "
+                               << printRemoved << " and register appIds "
+                               << printAdded << " for '" << uri
+                               << "'.  Current state: " << *qinfoCit->second;
+
+                return;  // RETURN
+            }
         }
     }
     else {
@@ -1332,25 +1335,19 @@ void ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             return;  // RETURN
         }
 
-        success = populateQueueUpdate(&queueAdvisory,
-                                      &clusterState,
-                                      added,
-                                      removed,
-                                      *qinfoCit->second,
-                                      allocator);
+        const bool success = populateQueueUpdate(&queueAdvisory,
+                                                 added,
+                                                 removed,
+                                                 *qinfoCit->second,
+                                                 allocator);
+        if (!success) {
+            BALL_LOG_ERROR << "Failed to unregister appIds " << printRemoved
+                           << " and register appIds " << printAdded << " for '"
+                           << uri
+                           << "'.  Current state: " << *qinfoCit->second;
 
-        if (!clusterData->cluster().isCSLModeEnabled()) {
-            BALL_LOG_INFO << clusterData->cluster().description()
-                          << ": Queue updated: " << queueAdvisory;
+            return;  // RETURN
         }
-    }
-
-    if (!success) {
-        BALL_LOG_ERROR << "Failed to unregister appIds " << printRemoved
-                       << " and register appIds " << printAdded << "] for '"
-                       << uri << "'.";
-
-        return;  // RETURN
     }
 
     // Apply 'queueUpdateAdvisory' to CSL

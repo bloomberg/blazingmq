@@ -1947,17 +1947,18 @@ void ClusterOrchestrator::validateClusterStateLedger()
     d_stateManager_mp->validateClusterStateLedger();
 }
 
-void ClusterOrchestrator::updateAppIds(const bsl::vector<bsl::string>& added,
-                                       const bsl::vector<bsl::string>& removed,
-                                       const bsl::string& domainName)
+void ClusterOrchestrator::updateAppIds(
+    const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
+    const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
+    const bsl::string&                                      domainName)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
 
-    d_stateManager_mp->updateAppIds(added,
-                                    removed,
+    d_stateManager_mp->updateAppIds(*added,
+                                    *removed,
                                     domainName,
                                     "");  // for all queues
 }

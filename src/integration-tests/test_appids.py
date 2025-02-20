@@ -680,9 +680,13 @@ def test_csl_repair_after_stop(cluster: Cluster):
 
     cluster.stop_nodes()
 
+    updated_app_ids = default_app_ids.copy()
+    updated_app_ids.remove("foo")
+    updated_app_ids.append("new1")
+
     cluster.config.domains[
         tc.DOMAIN_FANOUT_SC
-    ].definition.parameters.mode.fanout.app_ids = default_app_ids + ["new1"]
+    ].definition.parameters.mode.fanout.app_ids = updated_app_ids
 
     cluster.deploy_domains()
 

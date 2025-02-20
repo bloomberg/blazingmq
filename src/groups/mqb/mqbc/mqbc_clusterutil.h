@@ -202,8 +202,8 @@ struct ClusterUtil {
                                   bslma::Allocator*    allocator);
 
     /// Populate the specified `advisory` with information describing a
-    /// queue assignment of the specified `uri` living in the specified
-    /// `domain`, using the specified `clusterState`, `clusterData`.  Load into
+    /// queue assignment of the specified `uri` according to the specified
+    /// `config`, using the specified `clusterState`, `clusterData`.  Load into
     /// the specified `key` the unique queue key generated.
     static void populateQueueAssignmentAdvisory(
         bmqp_ctrlmsg::QueueAssignmentAdvisory* advisory,
@@ -248,13 +248,10 @@ struct ClusterUtil {
                 bslma::Allocator*     allocator,
                 bmqp_ctrlmsg::Status* status = 0);
 
-    /// Register a queue info for the queue with the specified `uri`,
-    /// `partitionId`, `queueKey` and the optionally specified `appIdInfos`
-    /// to the specified `clusterState` of the specified `cluster`.  If no
-    /// `appIdInfos` is specified, use the appId infos from the domain
-    /// config instead.  If the specified `forceUpdate` flag is true, update
-    /// queue info even if it is valid but different from the specified
-    /// `queueKey` and `partitionId`.
+    /// Register a queue info for the queue with the values in the specified
+    /// `advisory` to the specified `clusterState` of the specified `cluster`.
+    /// If the specified `forceUpdate` flag is true, update queue info even if
+    /// it is valid but different from the specified `advisory`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -270,7 +267,8 @@ struct ClusterUtil {
                      const mqbconfm::QueueMode&            domainConfig);
 
     /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domainName` and the specified `uri`.
+    /// for the specified  `domainName` and the specified `uri`.  if the `uri`
+    /// is empty, update all queues in the domain.
     static void updateAppIds(ClusterData*                    clusterData,
                              ClusterStateLedger*             ledger,
                              ClusterState&                   clusterState,

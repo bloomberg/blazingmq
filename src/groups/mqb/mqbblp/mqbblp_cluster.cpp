@@ -2848,10 +2848,15 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
         newDefn.mode().fanout().appIDs().cend(),
         d_allocator_p);
 
-    bsl::vector<bsl::string> addedIds(d_allocator_p);
-    bsl::vector<bsl::string> removedIds(d_allocator_p);
-    mqbc::StorageUtil::loadAddedAndRemovedEntries(&addedIds,
-                                                  &removedIds,
+    bsl::shared_ptr<bsl::vector<bsl::string> > addedIds(
+        new (*d_allocator_p) bsl::vector<bsl::string>(d_allocator_p),
+        d_allocator_p);
+    bsl::shared_ptr<bsl::vector<bsl::string> > removedIds(
+        new (*d_allocator_p) bsl::vector<bsl::string>(d_allocator_p),
+        d_allocator_p);
+
+    mqbc::StorageUtil::loadAddedAndRemovedEntries(addedIds.get(),
+                                                  removedIds.get(),
                                                   oldCfgAppIds,
                                                   newCfgAppIds);
 
