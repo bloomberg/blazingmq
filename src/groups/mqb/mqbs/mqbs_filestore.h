@@ -1248,7 +1248,7 @@ inline const DataStoreConfig& FileStore::config() const
 
 inline unsigned int FileStore::clusterSize() const
 {
-    return d_cluster_p->nodes().size();
+    return static_cast<unsigned int>(d_cluster_p->nodes().size());
 }
 
 inline bsls::Types::Uint64 FileStore::numRecords() const

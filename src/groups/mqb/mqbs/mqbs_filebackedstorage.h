@@ -759,7 +759,7 @@ FileBackedStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 
 inline unsigned int FileBackedStorage::numAutoConfirms() const
 {
-    return d_autoConfirms.size();
+    return static_cast<unsigned int>(d_autoConfirms.size());
 }
 
 }  // close package namespace
