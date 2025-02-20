@@ -7325,22 +7325,18 @@ void FileStore::flush()
         return;  // RETURN
     }
 
-    const bool haveMore        = gcExpiredMessages(bdlt::CurrentTime::utc());
-    const bool haveMoreHistory = gcHistory();
+    BSLA_MAYBE_UNUSED const bool haveMore = gcExpiredMessages(
+        bdlt::CurrentTime::utc());
+    BSLA_MAYBE_UNUSED const bool haveMoreHistory = gcHistory();
 
     // This is either Idle or k_GC_MESSAGES_INTERVAL_SECONDS timeout.
-    // 'gcHistory' attempts to iterate all old items. If there are more of them
-    // than the batchSize (1000), it returns 'true'.  In this case, re-enable
-    // flush client to call it again next Idle time.
-    // If it returns 'false', there is no immediate work.  Wait for the
-    // next k_GC_MESSAGES_INTERVAL_SECONDS.
-
-    if (haveMore || haveMoreHistory) {
-        // Explicitly schedule 'flush()' instead of relying on idleness
-        dispatcher()->execute(bdlf::BindUtil::bind(&FileStore::flush, this),
-                              this,
-                              mqbi::DispatcherEventType::e_CALLBACK);
-    }
+    // We try to remove at most k_GC_MESSAGES_BATCH_SIZE items in history.
+    // If there are more items ready to remove, the container's state changes,
+    // so any additional `insert` operation to the container will cause
+    // additional GC, until all old items are removed.
+    // If we don't balance adding new elements to the history with GC history,
+    // we might lose a lot of time on allocations of new items to the history,
+    // as well as get OOM due to uncontrollable history size increase.
 }
 
 void FileStore::setReplicationFactor(int value)
