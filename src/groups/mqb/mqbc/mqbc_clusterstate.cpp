@@ -21,6 +21,8 @@
 #include <mqbi_domain.h>
 #include <mqbstat_domainstats.h>
 
+// BMQ
+#include <bmqp_protocolutil.h>
 #include <bmqu_printutil.h>
 
 // BDE
@@ -32,6 +34,44 @@ namespace mqbc {
 // ---------------------------
 // class ClusterStateQueueInfo
 // ---------------------------
+
+bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
+{
+    if (appInfos.empty()) {
+        return true;  // RETURN
+    }
+
+    if (appInfos.size() == 1 &&
+        appInfos.count(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) == 1) {
+        return true;  // RETURN
+    }
+
+    return false;
+}
+
+bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
+{
+    if (containsDefaultAppIdOnly(d_appInfos) &&
+        containsDefaultAppIdOnly(appInfos)) {
+        return true;  // RETURN
+    }
+
+    // This ignores the order
+
+    if (d_appInfos.size() != appInfos.size()) {
+        return false;  // RETURN
+    }
+
+    for (AppInfos::const_iterator cit = d_appInfos.cbegin();
+         cit != d_appInfos.cend();
+         ++cit) {
+        if (appInfos.count(cit->first) != 1) {
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
 
 bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
                                            int           level,

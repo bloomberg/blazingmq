@@ -3430,18 +3430,6 @@ void BrokerSession::processControlEvent(const bmqp::Event& event)
     }
 }
 
-void BrokerSession::onHeartbeat()
-{
-    // executed by the *IO* thread
-    // Add to the FSM event queue
-    bsl::shared_ptr<Event> queueEvent = createEvent();
-    queueEvent->configureAsRequestEvent(
-        bdlf::BindUtil::bind(&BrokerSession::doHandleHeartbeat,
-                             this,
-                             bdlf::PlaceHolders::_1));  // eventImpl
-    enqueueFsmEvent(queueEvent);
-}
-
 void BrokerSession::enableMessageRetransmission(
     const bmqp::PutMessageIterator& putIter,
     const bsls::TimeInterval&       sentTime)
@@ -4329,28 +4317,6 @@ void BrokerSession::doHandleChannelWatermark(
 
         BALL_LOG_INFO << "LWM: Channel is ready for user messages";
         d_extensionBufferCondition.broadcast();
-    }
-}
-
-void BrokerSession::doHandleHeartbeat(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<Event>& eventSp)
-{
-    // executed by the FSM thread
-
-    BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
-
-    // The broker sent a heartbeat to check on us, simply reply with a
-    // heartbeat response.
-    //
-    // NOTE: the client doesn't check on the broker, therefore it will never
-    //       send 'HEARTBEAT_REQ' and hence we don't have to handle
-    //       'HEARTBEAT_RSP' type.
-    if (d_channel_sp) {
-        d_channel_sp->write(0,  // status
-                            bmqp::ProtocolUtil::heartbeatRspBlob(),
-                            d_sessionOptions.channelHighWatermark());
-        // We explicitly ignore any failure as failure implies issues with the
-        // channel, which is what the heartbeat is trying to expose.
     }
 }
 
@@ -5851,23 +5817,27 @@ BrokerSession::processPacket(const bdlbb::Blob& packet)
     // executed by the *IO* thread
     // or *APPLICATION* thread
 
-    enum { e_NUM_BYTES_IN_BLOB_TO_DUMP = 256 };
-
     // Create a raw event with a cloned blob
     bmqp::Event event(&packet, d_allocator_p, true);
+
+    return processPacket(event);
+}
+
+bmqt::GenericResult::Enum
+BrokerSession::processPacket(const bmqp::Event& event)
+{
+    // executed by the *IO* thread
+    // or *APPLICATION* thread
+
+    enum { e_NUM_BYTES_IN_BLOB_TO_DUMP = 256 };
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!event.isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << "Received an invalid packet: "
                        << bmqu::BlobStartHexDumper(
-                              &packet,
+                              event.blob(),
                               e_NUM_BYTES_IN_BLOB_TO_DUMP);
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(event.isHeartbeatReqEvent())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        onHeartbeat();
-        return bmqt::GenericResult::e_SUCCESS;  // RETURN
     }
 
     // Add to event queue

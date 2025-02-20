@@ -1086,7 +1086,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
             BSLS_ASSERT_SAFE(qs->uri() == uri);
 
             if ((qs->partitionId() == partitionId) &&
-                (qs->key() == queueKey) && (qs->appInfos() == appInfos)) {
+                (qs->key() == queueKey) && qs->hasTheSameAppIds(appInfos)) {
                 // All good.. nothing to update.
                 return;  // RETURN
             }
@@ -1630,12 +1630,13 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
 
     // Validate partition information
     bsl::vector<ClusterStatePartitionInfo> incorrectPartitions;
-    for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
-        const ClusterStatePartitionInfo& stateInfo = state.partition(pid);
+    for (size_t i = 0; i < state.partitions().size(); ++i) {
+        const ClusterStatePartitionInfo& stateInfo = state.partitions()[i];
+        const int                        pid       = i;
         BSLS_ASSERT_SAFE(stateInfo.partitionId() == pid);
 
-        const ClusterStatePartitionInfo& referenceInfo = reference.partition(
-            pid);
+        const ClusterStatePartitionInfo& referenceInfo =
+            reference.partitions()[i];
         BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
         if (stateInfo.primaryLeaseId() != referenceInfo.primaryLeaseId()) {
             // Partition information mismatch.  Note that we don't compare
@@ -1674,9 +1675,10 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Partition Infos In Cluster State :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
-        for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
+        for (size_t i = 0; i < state.partitions().size(); ++i) {
             const ClusterStatePartitionInfo& referenceInfo =
-                reference.partitions()[pid];
+                reference.partitions()[i];
+            const int pid = i;
             BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << "Partition [" << pid
@@ -1725,7 +1727,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                     citer->second;
                 const bsl::shared_ptr<ClusterStateQueueInfo>& referenceInfo =
                     refCiter->second;
-                if (*info != *referenceInfo) {
+                if (!info->isEquivalent(*referenceInfo)) {
                     // Incorrect queue information
                     incorrectQueues.push_back(
                         bsl::make_pair(info, referenceInfo));
@@ -2236,7 +2238,7 @@ void ClusterUtil::parseQueueInfo(
              apps.cbegin();
          cit != apps.cend();
          ++cit) {
-        out->emplace(mqbi::ClusterStateManager::AppInfo(
+        out->insert(bsl::make_pair(
             bsl::string(cit->appId(), allocator),
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                              cit->appKey().data())));

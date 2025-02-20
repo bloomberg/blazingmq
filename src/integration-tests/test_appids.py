@@ -31,7 +31,7 @@ from blazingmq.dev.it.util import attempt, wait_until
 pytestmark = order(3)
 
 default_app_ids = ["foo", "bar", "baz"]
-timeout = 60
+timeout = 10
 max_msgs = 3
 
 set_max_messages = tweak.domain.storage.queue_limits.messages(max_msgs)
@@ -120,6 +120,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     for app_id in all_app_ids:
+        test_logger.info(f"Check that {app_id} is alive")
         leader.outputs_regex(r"(\w+).*: status=alive", timeout)
 
     # ---------------------------------------------------------------------
@@ -722,3 +723,151 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     )
 
     consumer.close(f"{du.uri_fanout}?id=new_app", block=True, succeed=True)
+
+
+def test_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """Do this: m1, +new_app_1, m2, +new_app2, m3, +new_app3, m4, -new_app2
+    Old apps  receive  4
+    new_app_1 receives 3
+    new_app_2 receives 0 (after it gets deleted)
+    new_app_3 receives 1
+
+    Restart and receive the same (except for new_app_2)
+
+    Confirm everything and verify empty storage
+    """
+    du = domain_urls
+    leader = cluster.last_known_leader
+    proxies = cluster.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # ---------------------------------------------------------------------
+    # Post a message.
+    producer.post(du.uri_fanout, ["m1"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # +new_app_1
+    new_app_1 = "new_app_1"
+    set_app_ids(cluster, default_app_ids + [new_app_1])
+
+    # ---------------------------------------------------------------------
+    # Post
+    producer.post(du.uri_fanout, ["m2"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # +new_app_2
+    new_app_2 = "new_app_2"
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2])
+
+    # ---------------------------------------------------------------------
+    # Post
+    producer.post(du.uri_fanout, ["m3"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # +new_app_3
+    new_app_3 = "new_app_3"
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3])
+
+    # ---------------------------------------------------------------------
+    # Post
+    producer.post(du.uri_fanout, ["m4"], succeed=True, wait_ack=True)
+
+    # ---------------------------------------------------------------------
+    # -new_app_2
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_3])
+
+    consumers = {}
+
+    def _verify_delivery(consumer, uri, count, andConfirm=False, timeout=2):
+        if count:
+            consumer.wait_push_event()
+
+        assert wait_until(lambda: len(consumer.list(uri, block=True)) == count, timeout)
+        if count and andConfirm:
+            assert consumer.confirm(uri, f"+{count}", block=True) == Client.e_SUCCESS
+
+    def _verify_clients(andConfirm=False):
+        # -----------------------------------------------------------------
+        # Ensure that all _default_ substreams get 4 messages
+
+        # -----------------------------------------------------------------
+        # Create a consumer for each default substream.
+
+        for app_id in default_app_ids:
+            consumer = next(proxies).create_client(app_id)
+            consumers[app_id] = consumer
+            consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
+
+        # Once queue is created
+        leader = cluster.last_known_leader
+        leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
+        assert leader.outputs_substr(f"Printing 4 message(s)", 5)
+
+        new_consumer_1 = next(proxies).create_client(new_app_1)
+        new_consumer_1.open(
+            f"{du.uri_fanout}?id={new_app_1}", flags=["read"], succeed=True
+        )
+
+        new_consumer_2 = next(proxies).create_client(new_app_2)
+        new_consumer_2.open(
+            f"{du.uri_fanout}?id={new_app_2}", flags=["read"], succeed=True
+        )
+
+        new_consumer_3 = next(proxies).create_client(new_app_3)
+        new_consumer_3.open(
+            f"{du.uri_fanout}?id={new_app_3}", flags=["read"], succeed=True
+        )
+
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+
+        for app_id in default_app_ids:
+            test_logger.info(f"Check if {app_id} has seen 4 messages")
+            _verify_delivery(
+                consumers[app_id], f"{du.uri_fanout}?id={app_id}", 4, andConfirm
+            )
+
+        test_logger.info(f"Check if {new_app_1} has seen 3 messages")
+        _verify_delivery(
+            new_consumer_1, f"{du.uri_fanout}?id={new_app_1}", 3, andConfirm
+        )
+
+        test_logger.info(f"Check if {new_app_2} has seen 0 messages")
+        _verify_delivery(new_consumer_2, f"{du.uri_fanout}?id={new_app_2}", 0, False)
+
+        test_logger.info(f"Check if {new_app_3} has seen 1 message")
+        _verify_delivery(
+            new_consumer_3, f"{du.uri_fanout}?id={new_app_3}", 1, andConfirm
+        )
+
+        # ---------------------------------------------------------------------
+        # Stop all clients
+
+        for app_id in default_app_ids:
+            consumers[app_id].close(
+                f"{du.uri_fanout}?id={app_id}", block=True, succeed=True
+            )
+
+        new_consumer_1.close(
+            f"{du.uri_fanout}?id={new_app_1}", block=True, succeed=True
+        )
+        new_consumer_2.close(
+            f"{du.uri_fanout}?id={new_app_2}", block=True, succeed=True
+        )
+        new_consumer_3.close(
+            f"{du.uri_fanout}?id={new_app_3}", block=True, succeed=True
+        )
+
+    _verify_clients()
+
+    cluster.stop_nodes()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    leader = cluster.last_known_leader
+
+    _verify_clients(andConfirm=True)
+
+    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
+    assert leader.outputs_substr(f"Printing 0 message(s)", 5)

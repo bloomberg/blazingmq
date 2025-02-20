@@ -237,7 +237,8 @@ struct StorageUtil {
 
     static int removeVirtualStorageInternal(mqbs::ReplicatedStorage* storage,
                                             const mqbu::StorageKey&  appKey,
-                                            int partitionId);
+                                            int  partitionId,
+                                            bool asPrimary);
 
     /// Load the list of queue storages on the partition from the specified
     /// `fileStores` having the specified `partitionId` into the

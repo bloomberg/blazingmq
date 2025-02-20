@@ -32,6 +32,78 @@ BSLMF_ASSERT(sizeof(DataStoreRecordHandle) ==
              sizeof(DataStoreConfig::RecordIterator));
 }  // close unnamed namespace
 
+// ------------------------------
+// class DataStoreConfigQueueInfo
+// ------------------------------
+
+void DataStoreConfigQueueInfo::addAppInfo(const bsl::string&      appId,
+                                          const mqbu::StorageKey& appKey)
+{
+    // Comparing ages of Apps and messages relies on chronological order
+    // (hence 'OrderedHashMap'.
+    // The Legacy mode recreates Apps by reverse iterating Journal (w/ QList)
+    // The CSL node recreates Apps in chronological order.
+
+    if (d_isCSL) {
+        d_appIdKeyPairs.insert(bsl::make_pair(appKey, appId));
+    }
+    else {
+        d_appIdKeyPairs.rinsert(bsl::make_pair(appKey, appId));
+    }
+
+    // In case PURGE records got processed _before_ addAppInfo (legacy)
+    Ghosts::iterator ghost = d_ghosts.find(appKey);
+
+    if (ghost != d_ghosts.end()) {
+        d_purgeOps.erase(ghost->second);
+        d_ghosts.erase(ghost);
+    }
+}
+
+void DataStoreConfigQueueInfo::addPurgeOp(const mqbu::StorageKey&   key,
+                                          const DataStoreRecordKey& start,
+                                          const DataStoreRecordKey& end)
+{
+    // In case PURGE records got processed _after_ addAppInfo (legacy)
+
+    if (d_appIdKeyPairs.count(key)) {
+        // This is not a ghost app
+    }
+    else {
+        Ghosts::iterator ghost = d_ghosts.find(key);
+
+        // Keep only one PurgeOp per App - the last one (the first in reverse).
+        // This code relies on 'FileStore::recoverMessages' reverse iteration.
+        if (ghost == d_ghosts.end()) {
+            PurgeOps::const_iterator cit = d_purgeOps.emplace(start, end);
+            d_ghosts.emplace(key, cit);
+        }
+    }
+}
+
+unsigned int DataStoreConfigQueueInfo::advanceAndCount(
+    const DataStoreRecordKey& current) const
+{
+    unsigned int count = 0;
+    for (PurgeOps::const_iterator cit = d_purgeOps.begin();
+         cit != d_purgeOps.end();) {
+        if (current < cit->first) {
+            // 'current' is not in any (more) range
+            return count;
+        }
+        else if (!(cit->second < current)) {
+            // current is in [cit->first, cit->second]
+            ++count;
+            ++cit;
+        }
+        else {
+            // current is past [cit->first, cit->second]
+            cit = d_purgeOps.erase(cit);
+        }
+    }
+    return count;
+}
+
 // ---------------------
 // class DataStoreConfig
 // ---------------------
