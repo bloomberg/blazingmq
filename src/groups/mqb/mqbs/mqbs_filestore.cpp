@@ -3219,6 +3219,13 @@ void FileStore::truncate(FileSet* fileSet)
 
 void FileStore::close(FileSet& fileSetRef, bool flush)
 {
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM << partitionDesc()
+                               << "Closing file store with config: \n";
+        d_config.print(BALL_LOG_OUTPUT_STREAM);
+    }
+
     if (flush) {
         BALL_LOG_INFO << partitionDesc() << "Flushing partition to disk.";
 

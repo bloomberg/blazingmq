@@ -372,15 +372,13 @@ struct ClusterUtil {
                     const ClusterData&          clusterData,
                     bslma::Allocator*           allocator = 0);
 
-    /// Load the partitions info of the specified `state` into the
-    /// specified `out`.
+    /// Load the partitions info of the specified `state` into the specified
+    /// `out`.
     static void
     loadPartitionsInfo(bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* out,
                        const ClusterState&                              state);
 
-    /// Load in the specified `out` the queues info of the specified
-    /// `state`.  If the specified `includeAppIds` is true, then the appId
-    /// info for the queues will be loaded as well.
+    /// Load in the specified `out` the queues info of the specified `state`.
     static void loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
                                const ClusterState&                   state);
 

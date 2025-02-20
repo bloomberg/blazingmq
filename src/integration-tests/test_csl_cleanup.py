@@ -29,7 +29,7 @@ pytestmark = order(2)
 timeout = 10
 
 
-@tweak.cluster.partition_config.max_qlist_file_size(2000)
+@tweak.cluster.partition_config.max_cslfile_size(2000)
 def test_csl_cleanup(cluster: Cluster):
     leader = cluster.last_known_leader
     proxy = next(cluster.proxy_cycle())
@@ -54,7 +54,7 @@ def test_csl_cleanup(cluster: Cluster):
         str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
     )
 
-    assert leader.outputs_regex(r"Log closed and cleaned up. Time taken", timeout)
+    assert leader.outputs_regex(r"Log '.*' closed and cleaned up.", timeout)
 
     assert len(csl_files_after_rollover) == 1
     assert csl_files_before_rollover[0] != csl_files_after_rollover[0]

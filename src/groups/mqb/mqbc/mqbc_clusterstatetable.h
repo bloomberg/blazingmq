@@ -555,7 +555,6 @@ class ClusterStateTable
                 FOL_LSN_RQST,
                 sendFailureFollowerLSNResponse,
                 LDR_HEALED);
-        CST_CFG(LDR_HEALED, FOL_LSN_RSPN, applyCSLSelf, LDR_HEALED);
         CST_CFG(LDR_HEALED,
                 REGISTRATION_RQST,
                 sendRegistrationResponse_applyCSLSelf,

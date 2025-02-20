@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterutil.t.cpp                                     -*-C++-*-
+// mqbc_clusterutil.t.cpp                                             -*-C++-*-
 
 // MQB
 #include <mqbc_clusterutil.h>
