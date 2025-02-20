@@ -547,6 +547,13 @@ Parameters::ProcessCslRecordTypes::ProcessCslRecordTypes()
     // NOTHING
 }
 
+bool Parameters::ProcessCslRecordTypes::operator==(
+    ProcessCslRecordTypes const& other) const
+{
+    return d_snapshot == other.d_snapshot && d_update == other.d_update &&
+    d_commit == other.d_commit && d_ack == other.d_ack;
+}
+
 Parameters::Parameters(const CommandLineArguments& arguments,
                        bslma::Allocator*           allocator)
 : d_cslMode(false)

@@ -25,6 +25,7 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_printer.h>
+#include <m_bmqstoragetool_cslprinter.h>
 
 // GMOCK
 // If bmqst_testhelper.h was defined before gtest.h, preserve macroses values.
@@ -102,6 +103,28 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printGuidsNotFound, void(const GuidsList&));
     MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec&));
     MOCK_CONST_METHOD1(printCompositesNotFound, void(const CompositesVec&));
+};
+
+class CslPrinterMock : public CslPrinter {
+  public:
+    // CREATORS
+    CslPrinterMock() {}
+
+    ~CslPrinterMock() BSLS_KEYWORD_OVERRIDE {}
+
+    // PUBLIC METHODS
+
+    MOCK_CONST_METHOD2(printShortResult, void(const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId));
+
+    MOCK_CONST_METHOD3(printDetailResult, void(const bmqp_ctrlmsg::ClusterMessage& record, const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId));
+
+    MOCK_CONST_METHOD5(printFooter,
+      void(bsls::Types::Uint64,
+           bsls::Types::Uint64,
+           bsls::Types::Uint64,
+           bsls::Types::Uint64,
+           const Parameters::ProcessCslRecordTypes&));
+
 };
 
 }  // close package namespace

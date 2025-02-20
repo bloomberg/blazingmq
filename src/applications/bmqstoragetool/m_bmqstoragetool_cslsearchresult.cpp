@@ -29,24 +29,6 @@ namespace BloombergLP {
 namespace m_bmqstoragetool {
 
 namespace {
-// Helper to print CSL record header
-void printClusterStateRecordHeader(
-    bsl::ostream&                         ostream,
-    const mqbc::ClusterStateRecordHeader& header,
-    int                                   level          = 0,
-    int                                   spacesPerLevel = -1)
-{
-    BSLS_ASSERT(ostream.good());
-
-    bslim::Printer printer(&ostream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("recordType", header.recordType());
-    printer.printAttribute("electorTerm", header.electorTerm());
-    printer.printAttribute("sequenceNumber", header.sequenceNumber());
-    printer.printAttribute("timestamp", header.timestamp());
-    printer.end();
-}
-
 // Helper to update record counters
 void updateRecordCount(CslSearchResult::RecordCount*      recordCount_p,
                        mqbc::ClusterStateRecordType::Enum recordType)
@@ -65,40 +47,6 @@ void updateRecordCount(CslSearchResult::RecordCount*      recordCount_p,
         recordCount_p->d_ackCount++;
         break;
     default: BSLS_ASSERT(false && "Unknown record type");
-    }
-}
-
-// Helper to print summary of search result
-void outputFooter(
-    bsl::ostream&                            ostream,
-    const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
-    const CslSearchResult::RecordCount&      recordCount)
-{
-    BSLS_ASSERT(ostream.good());
-
-    if (processCslRecordTypes.d_snapshot) {
-        recordCount.d_snapshotCount > 0
-            ? (ostream << recordCount.d_snapshotCount << " snapshot")
-            : ostream << "No snapshot";
-        ostream << " record(s) found.\n";
-    }
-    if (processCslRecordTypes.d_update) {
-        recordCount.d_updateCount > 0
-            ? (ostream << recordCount.d_updateCount << " update")
-            : ostream << "No update";
-        ostream << " record(s) found.\n";
-    }
-    if (processCslRecordTypes.d_commit) {
-        recordCount.d_commitCount > 0
-            ? (ostream << recordCount.d_commitCount << " commit")
-            : ostream << "No commit";
-        ostream << " record(s) found.\n";
-    }
-    if (processCslRecordTypes.d_ack) {
-        recordCount.d_ackCount > 0
-            ? (ostream << recordCount.d_ackCount << " ack")
-            : ostream << "No ack";
-        ostream << " record(s) found.\n";
     }
 }
 
@@ -131,10 +79,10 @@ CslSearchResult::RecordCount::RecordCount()
 // ==========================
 
 CslSearchShortResult::CslSearchShortResult(
-    bsl::ostream&                            ostream,
+    const bsl::shared_ptr<CslPrinter>&       printer,
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
     bslma::Allocator*                        allocator)
-: d_ostream(ostream)
+: d_printer(printer)
 , d_processCslRecordTypes(processCslRecordTypes)
 , d_recordCount()
 , d_allocator_p(allocator)
@@ -147,8 +95,7 @@ bool CslSearchShortResult::processRecord(
     BSLS_ANNOTATION_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
     const mqbsi::LedgerRecordId&                               recordId)
 {
-    printClusterStateRecordHeader(d_ostream, header);
-    d_ostream << recordId << '\n';
+    d_printer->printShortResult(header, recordId);
 
     updateRecordCount(&d_recordCount, header.recordType());
 
@@ -158,7 +105,9 @@ bool CslSearchShortResult::processRecord(
 void CslSearchShortResult::outputResult() const
 {
     // Print summary counters
-    outputFooter(d_ostream, d_processCslRecordTypes, d_recordCount);
+    d_printer->printFooter(d_recordCount.d_snapshotCount,
+                            d_recordCount.d_updateCount, d_recordCount.d_commitCount,
+                            d_recordCount.d_ackCount, d_processCslRecordTypes);
 }
 
 // ===========================
@@ -166,10 +115,10 @@ void CslSearchShortResult::outputResult() const
 // ===========================
 
 CslSearchDetailResult::CslSearchDetailResult(
-    bsl::ostream&                            ostream,
+    const bsl::shared_ptr<CslPrinter>&       printer,
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
     bslma::Allocator*                        allocator)
-: d_ostream(ostream)
+: d_printer(printer)
 , d_processCslRecordTypes(processCslRecordTypes)
 , d_recordCount()
 , d_allocator_p(allocator)
@@ -187,6 +136,7 @@ bool CslSearchDetailResult::processRecord(
     //                            header,
     //                            recordId,
     //                            d_allocator_p);
+    d_printer->printDetailResult(record, header, recordId);
 
     updateRecordCount(&d_recordCount, header.recordType());
 
@@ -196,7 +146,9 @@ bool CslSearchDetailResult::processRecord(
 void CslSearchDetailResult::outputResult() const
 {
     // Print summary counters
-    outputFooter(d_ostream, d_processCslRecordTypes, d_recordCount);
+    d_printer->printFooter(d_recordCount.d_snapshotCount,
+        d_recordCount.d_updateCount, d_recordCount.d_commitCount,
+        d_recordCount.d_ackCount, d_processCslRecordTypes);
 }
 
 // ==============================

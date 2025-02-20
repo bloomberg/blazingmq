@@ -59,6 +59,7 @@ class SearchResultFactory {
         const Parameters* params,
         //  const bslma::ManagedPtr<FileManager>& fileManager,
         bsl::ostream&     ostream,
+        const bsl::shared_ptr<CslPrinter>&       printer,
         bslma::Allocator* allocator);
 };
 

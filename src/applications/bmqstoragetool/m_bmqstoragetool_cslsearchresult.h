@@ -38,7 +38,7 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_parameters.h>
-#include <m_bmqstoragetool_printer.h>
+#include <m_bmqstoragetool_cslprinter.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -110,8 +110,9 @@ class CslSearchShortResult : public CslSearchResult {
   private:
     // PRIVATE DATA
 
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
+    /// Pointer to 'Printer' instance.
+    const bsl::shared_ptr<CslPrinter> d_printer;
+
     /// Record types to process
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
@@ -122,10 +123,10 @@ class CslSearchShortResult : public CslSearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `ostream`, `processCslRecordTypes`
+    /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
     explicit CslSearchShortResult(
-        bsl::ostream&                            ostream,
+        const bsl::shared_ptr<CslPrinter>&       printer,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         bslma::Allocator*                        allocator = 0);
 
@@ -153,8 +154,8 @@ class CslSearchDetailResult : public CslSearchResult {
   private:
     // PRIVATE DATA
 
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
+    /// Pointer to 'Printer' instance.
+    const bsl::shared_ptr<CslPrinter> d_printer;
     /// Record types to process
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
@@ -165,10 +166,10 @@ class CslSearchDetailResult : public CslSearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `ostream`, `processCslRecordTypes`
+    /// Constructor using the specified `printer`, `processCslRecordTypes`
     /// and `allocator`.
     explicit CslSearchDetailResult(
-        bsl::ostream&                            ostream,
+        const bsl::shared_ptr<CslPrinter>&       printer,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         bslma::Allocator*                        allocator = 0);
 

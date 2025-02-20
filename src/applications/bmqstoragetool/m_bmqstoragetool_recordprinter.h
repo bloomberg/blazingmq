@@ -77,23 +77,6 @@ class RecordDetailsPrinter {
     /// Print the specified journal operation record `rec`.
     void printRecord(const RecordDetails<mqbs::JournalOpRecord>& rec);
 
-/// Print the specified cluater state ledger record `rec`, 'header' and
-/// `recId` to the specified `stream`, using the specified `allocator`
-/// for memory allocation.
-// void printRecord(bsl::ostream&                         stream,
-//                  const bmqp_ctrlmsg::ClusterMessage&   rec,
-//                  const mqbc::ClusterStateRecordHeader& header,
-//                  const mqbsi::LedgerRecordId&          recId,
-//                  bslma::Allocator*                     allocator);
-
-// /// Find AppId in the specified `appIds` by the specified `appKey` and store
-// /// the result in the specified `appId`. Return `true` on success and `false
-// /// otherwise.
-// bool findQueueAppIdByAppKey(
-//     bsl::string*                                             appId,
-//     const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
-//     const mqbu::StorageKey&                                  appKey);
-
     template <typename RECORD_TYPE>
     void printAppInfo(const RecordDetails<RECORD_TYPE>& rec);
 
@@ -106,9 +89,14 @@ class RecordDetailsPrinter {
 
     // PUBLIC METHODS
 
-    /// Print this object.
+    /// Print journal record details.
     template <typename RECORD_TYPE>
     void printRecordDetails(const RecordDetails<RECORD_TYPE>& rec);
+
+    /// Print the specified cluster state ledger (CSL) record details.
+    void printCslRecordDetails(const bmqp_ctrlmsg::ClusterMessage&   rec,
+        const mqbc::ClusterStateRecordHeader& header,
+        const mqbsi::LedgerRecordId&          recId);
 };
 
 // ============================================================================
@@ -295,12 +283,51 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
                   << rec.d_record.dataFileOffsetDwords();
 }
 
-// template <typename PRINTER_TYPE>
-// void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
-//     const RecordDetails<mqbs::JournalOpRecord>& rec)
-// {
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printCslRecordDetails(
+    const bmqp_ctrlmsg::ClusterMessage&   rec,
+                    const mqbc::ClusterStateRecordHeader& header,
+                    const mqbsi::LedgerRecordId&          recId)
+{
+    d_fields.clear();
+    d_fields.reserve(9);  // max number of fields
+    d_fields.push_back("RecordType");
+    d_fields.push_back("Offset");
+    d_fields.push_back("LogId");
+    d_fields.push_back("ElectorTerm");
+    d_fields.push_back("SequenceNumber");
+    d_fields.push_back("HeaderWords");
+    d_fields.push_back("LeaderAdvisoryWords");
+    d_fields.push_back("Timestamp");
+    d_fields.push_back("Epoch");
 
-// }
+    // It's ok to pass a vector by pointer and push elements after that as
+    // we've reserved it's capacity in advance. Hense, no reallocations will
+    // happen and the pointer won't get invalidated.
+    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
+                      d_allocator_p);
+
+    *d_printer_mp << header.recordType() << recId.offset()
+                  << recId.logId() << header.electorTerm() << header.sequenceNumber()
+                  << header.headerWords() << header.leaderAdvisoryWords();
+                  
+    const bsls::Types::Uint64 epochValue = header.timestamp();
+    bdlt::Datetime            datetime;
+    const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    if (0 != rc) {
+        *d_printer_mp << 0;
+    }
+    else {
+        *d_printer_mp << datetime;
+    }
+    *d_printer_mp << epochValue;
+
+    // Print record
+    rec.print(d_ostream, 2, 2);
+
+    d_printer_mp.reset();
+    printDelimeter<PRINTER_TYPE>(d_ostream);
+}
 
 }  // close namespace RecordPrinter
 

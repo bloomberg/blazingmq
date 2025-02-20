@@ -19,6 +19,8 @@
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
 #include <m_bmqstoragetool_filemanagermock.h>
+#include <m_bmqstoragetool_printermock.h>
+#include <m_bmqstoragetool_searchresultfactory.h>
 
 // MQB
 #include <mqbc_clusterstateledgerprotocol.h>
@@ -60,6 +62,13 @@
 using namespace BloombergLP;
 using namespace bsl;
 using namespace m_bmqstoragetool;
+using namespace bmqp_ctrlmsg;
+using ::testing::_;
+using ::testing::Eq;
+using ::testing::Field;
+using ::testing::Invoke;
+using ::testing::Property;
+using ::testing::Sequence;
 
 // ============================================================================
 //                            TEST HELPERS UTILITY
@@ -272,6 +281,37 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
     BSLS_ASSERT_OPT(rc == 0);
 
     recordInfos->push_back(bsl::make_pair(msg, record.length()));
+}
+
+/// Create a 'CommandProcessor' instance with the specified arguments
+bslma::ManagedPtr<CommandProcessor>
+createCommandProcessor(const Parameters*               params,
+                       const bsl::shared_ptr<CslPrinter>& printer,
+                       bslma::ManagedPtr<FileManager>& fileManager,
+                       bsl::ostream&                   ostream,
+                       bslma::Allocator*               allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+
+    // Create searchResult for given 'params'.
+    bsl::shared_ptr<CslSearchResult> searchResult =
+        SearchResultFactory::createCslSearchResult(params,
+                                                ostream,
+                                                printer,
+                                                alloc);
+    // Create commandProcessor.
+    bslma::ManagedPtr<CommandProcessor> commandProcessor(
+        new (*alloc) CslFileProcessor(params,
+                                          fileManager,
+                                          searchResult,
+                                          ostream,
+                                          alloc),
+        alloc);
+    return commandProcessor;
 }
 
 // CLASSES
@@ -507,51 +547,50 @@ static void test1_breathingTest()
             FileManagerMock(&incoreCslIt),
         bmqtst::TestHelperUtil::allocator());
 
-    // Run search
+    // Create printer mock
+    bsl::shared_ptr<CslPrinterMock> printer(
+        new (*bmqtst::TestHelperUtil::allocator()) CslPrinterMock(),
+        bmqtst::TestHelperUtil::allocator());
+        
+    // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(
+        createCommandProcessor(
             &params,
+            printer,
             fileManager,
             resultStream,
             bmqtst::TestHelperUtil::allocator());
-    searchProcessor->process();
 
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
-    standardCslIt.next();
-    bsl::size_t        snapshotCount = 0;
-    bsl::size_t        commitCount   = 0;
-    bsl::size_t        updateCount   = 0;
-    bsl::size_t        ackCount      = 0;
+    CslSearchResult::RecordCount recordCount;
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-        expectedStream << "[ recordType = " << test.d_recordType
-                       << " electorTerm = " << test.d_electorTerm
-                       << " sequenceNumber = " << test.d_sequenceNumber
-                       << " timestamp = " << test.d_timeStamp << " ]";
-        expectedStream << standardCslIt.currRecordId() << '\n';
-        if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
-            snapshotCount++;
-        }
-        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_UPDATE) {
-            updateCount++;
-        }
-        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_COMMIT) {
-            commitCount++;
-        }
-        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_ACK) {
-            ackCount++;
-        }
-        standardCslIt.next();
-    }
-    expectedStream << snapshotCount << " snapshot record(s) found.\n";
-    expectedStream << updateCount << " update record(s) found.\n";
-    expectedStream << commitCount << " commit record(s) found.\n";
-    expectedStream << ackCount << " ack record(s) found.\n";
+    Sequence    s;
+    while(standardCslIt.next() == 0) {
+        // standardCslIt.header() has no `operator==` defined, so skip it by using `_`
+        EXPECT_CALL(*printer, printShortResult(_, standardCslIt.currRecordId())).InSequence(s);
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+        if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            recordCount.d_snapshotCount++;
+        }
+        else if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_UPDATE) {
+            recordCount.d_updateCount++;
+        }
+        else if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_COMMIT) {
+            recordCount.d_commitCount++;
+        }
+        else if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_ACK) {
+            recordCount.d_ackCount++;
+        }
+    }
+
+    EXPECT_CALL(*printer, printFooter(recordCount.d_snapshotCount,
+        recordCount.d_updateCount, recordCount.d_commitCount,
+        recordCount.d_ackCount, params.d_processCslRecordTypes)).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test2_searchRecordsByTypeTest()
@@ -675,46 +714,45 @@ static void test2_searchRecordsByTypeTest()
             FileManagerMock(&incoreCslIt),
         bmqtst::TestHelperUtil::allocator());
 
-    // Run search
+    // Create printer mock
+    bsl::shared_ptr<CslPrinterMock> printer(
+        new (*bmqtst::TestHelperUtil::allocator()) CslPrinterMock(),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(
+        createCommandProcessor(
             &params,
+            printer,
             fileManager,
             resultStream,
             bmqtst::TestHelperUtil::allocator());
-    searchProcessor->process();
 
-    // Prepare expected output with list of snapshot records in CSL file
+    // Prepare expected output
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
-    standardCslIt.next();
-    bsl::size_t        snapshotCount = 0;
-    bsl::size_t        commitCount   = 0;
+    CslSearchResult::RecordCount recordCount;
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-        if (test.d_recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
-            expectedStream << "[ recordType = " << test.d_recordType
-                           << " electorTerm = " << test.d_electorTerm
-                           << " sequenceNumber = " << test.d_sequenceNumber
-                           << " timestamp = " << test.d_timeStamp << " ]";
-            expectedStream << standardCslIt.currRecordId() << '\n';
-            snapshotCount++;
+    Sequence    s;
+    while(standardCslIt.next() == 0) {
+        if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            // standardCslIt.header() has no `operator==` defined, so skip it by using `_`
+            EXPECT_CALL(*printer, printShortResult(_, standardCslIt.currRecordId())).InSequence(s);
+            recordCount.d_snapshotCount++;
         }
-        else if (test.d_recordType == mqbc::ClusterStateRecordType::e_COMMIT) {
-            expectedStream << "[ recordType = " << test.d_recordType
-                           << " electorTerm = " << test.d_electorTerm
-                           << " sequenceNumber = " << test.d_sequenceNumber
-                           << " timestamp = " << test.d_timeStamp << " ]";
-            expectedStream << standardCslIt.currRecordId() << '\n';
-            commitCount++;
+        else if (standardCslIt.header().recordType() == mqbc::ClusterStateRecordType::e_COMMIT) {
+            // standardCslIt.header() has no `operator==` defined, so skip it by using `_`
+            EXPECT_CALL(*printer, printShortResult(_, standardCslIt.currRecordId())).InSequence(s);
+            recordCount.d_commitCount++;
         }
-        standardCslIt.next();
     }
-    expectedStream << snapshotCount << " snapshot record(s) found.\n";
-    expectedStream << commitCount << " commit record(s) found.\n";
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    EXPECT_CALL(*printer, printFooter(recordCount.d_snapshotCount,
+        recordCount.d_updateCount, recordCount.d_commitCount,
+        recordCount.d_ackCount, params.d_processCslRecordTypes)).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test3_searchRecordsByQueueKeyTest()
@@ -849,37 +887,40 @@ static void test3_searchRecordsByQueueKeyTest()
             FileManagerMock(&incoreCslIt),
         bmqtst::TestHelperUtil::allocator());
 
-    // Run search
+    // Create printer mock
+    bsl::shared_ptr<CslPrinterMock> printer(
+        new (*bmqtst::TestHelperUtil::allocator()) CslPrinterMock(),
+        bmqtst::TestHelperUtil::allocator());
+
+    // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bslma::ManagedPtr<CommandProcessor> searchProcessor =
-        CommandProcessorFactory::createCommandProcessor(
+        createCommandProcessor(
             &params,
+            printer,
             fileManager,
             resultStream,
             bmqtst::TestHelperUtil::allocator());
-    searchProcessor->process();
 
-    // Prepare expected output with list of snapshot records in CSL file
+    // Prepare expected output
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
-    standardCslIt.next();
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    Sequence    s;
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        standardCslIt.next();
+
         const Test& test = k_DATA[idx];
         if (test.d_queueKey == "2222222222" ||
             test.d_queueKey == "3333333333") {
-            expectedStream << "[ recordType = " << test.d_recordType
-                           << " electorTerm = " << test.d_electorTerm
-                           << " sequenceNumber = " << test.d_sequenceNumber
-                           << " timestamp = " << test.d_timeStamp << " ]";
-            expectedStream << standardCslIt.currRecordId() << '\n';
+            // standardCslIt.header() has no `operator==` defined, so skip it by using `_`
+            EXPECT_CALL(*printer, printShortResult(_, standardCslIt.currRecordId())).InSequence(s);
         }
-        standardCslIt.next();
     }
-    expectedStream << "1 snapshot record(s) found.\n";
-    expectedStream << "3 update record(s) found.\n";
-    expectedStream << "No commit record(s) found.\n";
 
-    ASSERT_EQ(resultStream.str(), expectedStream.str());
+    EXPECT_CALL(*printer, printFooter(1, 3, 0, 0, params.d_processCslRecordTypes)).InSequence(s);
+
+    // Run search
+    searchProcessor->process();
 }
 
 static void test4_searchRecordsByTimestampRangeTest()

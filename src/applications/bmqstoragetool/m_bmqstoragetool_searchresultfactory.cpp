@@ -170,6 +170,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
 bsl::shared_ptr<CslSearchResult>
 SearchResultFactory::createCslSearchResult(const Parameters* params,
                                            bsl::ostream&     ostream,
+                                           const bsl::shared_ptr<CslPrinter>&       printer,
                                            bslma::Allocator* allocator)
 {
     // PRECONDITIONS
@@ -181,7 +182,7 @@ SearchResultFactory::createCslSearchResult(const Parameters* params,
     bsl::shared_ptr<CslSearchResult> cslSearchResult;
     if (params->d_details) {
         cslSearchResult.reset(
-            new (*alloc) CslSearchDetailResult(ostream,
+            new (*alloc) CslSearchDetailResult(printer,
                                                params->d_processCslRecordTypes,
                                                alloc),
             alloc);
@@ -197,7 +198,7 @@ SearchResultFactory::createCslSearchResult(const Parameters* params,
     }
     else {
         cslSearchResult.reset(
-            new (*alloc) CslSearchShortResult(ostream,
+            new (*alloc) CslSearchShortResult(printer,
                                               params->d_processCslRecordTypes,
                                               alloc),
             alloc);

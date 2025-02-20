@@ -16,6 +16,7 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
+#include <m_bmqstoragetool_cslprinter.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
@@ -39,11 +40,17 @@ CommandProcessorFactory::createCommandProcessor(
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
     if (params->d_cslMode) {
+        // Create CSL printer
+        bsl::shared_ptr<CslPrinter> printer = createCslPrinter(params->d_printMode,
+            ostream,
+            allocator);
+
         // Create CslSearchResult for given 'params'.
         bsl::shared_ptr<CslSearchResult> cslSearchResult =
             SearchResultFactory::createCslSearchResult(params,
                                                        // fileManager,
                                                        ostream,
+                                                       printer,
                                                        alloc);
 
         // Create CslFileProcessor
