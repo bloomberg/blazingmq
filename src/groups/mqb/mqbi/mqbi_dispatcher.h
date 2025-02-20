@@ -116,6 +116,7 @@
 #include <bmqex_executor.h>
 
 #include <bmqu_atomicstate.h>
+#include <bmqu_managedcallback.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -326,22 +327,12 @@ class Dispatcher {
     typedef int ProcessorHandle;
 
     /// Signature of a `void` functor method.
-    typedef bsl::function<void(void)> VoidFunctor;
-
-    /// Signature of a functor method with one parameter, the processor
-    /// handle on which it is being executed.
-    typedef bsl::function<void(const ProcessorHandle&)> ProcessorFunctor;
+    typedef bmqu::ManagedCallback::VoidFunctor VoidFunctor;
 
     // PUBLIC CLASS DATA
 
     /// Value of an invalid processor handle.
     static const ProcessorHandle k_INVALID_PROCESSOR_HANDLE = -1;
-
-    // CLASS METHODS
-
-    /// Convenient utility to convert the specified `functor` from a
-    /// `VoidFunctor` into a `ProcessorFunctor` type.
-    static ProcessorFunctor voidToProcessorFunctor(const VoidFunctor& functor);
 
   public:
     // CREATORS
@@ -425,7 +416,7 @@ class Dispatcher {
     /// clients of the specified `type`, and invoke the specified
     /// `doneCallback` (if any) when all the relevant processors are done
     /// executing the `functor`.
-    virtual void execute(const ProcessorFunctor&    functor,
+    virtual void execute(const VoidFunctor&         functor,
                          DispatcherClientType::Enum type,
                          const VoidFunctor& doneCallback = VoidFunctor()) = 0;
 
@@ -496,11 +487,11 @@ class DispatcherDispatcherEvent {
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    virtual const Dispatcher::ProcessorFunctor& callback() const = 0;
+    virtual const bmqu::ManagedCallback& callback() const = 0;
 
     /// Return a reference not offering modifiable access to the finalize
     /// callback, if any, associated to this event.
-    virtual const Dispatcher::VoidFunctor& finalizeCallback() const = 0;
+    virtual const bmqu::ManagedCallback& finalizeCallback() const = 0;
 };
 
 // =============================
@@ -520,7 +511,7 @@ class DispatcherCallbackEvent {
 
     /// Return a reference not offering modifiable access to the callback
     /// associated to this event.
-    virtual const Dispatcher::ProcessorFunctor& callback() const = 0;
+    virtual const bmqu::ManagedCallback& callback() const = 0;
 };
 
 // ===================================
@@ -934,9 +925,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     // DispatcherEvent view interfaces
     // for more specific information.
 
-    Dispatcher::ProcessorFunctor d_callback;
-    // Callback embedded in this event.
-
     mqbnet::ClusterNode* d_clusterNode_p;
     // 'ClusterNode' associated to this
     // event.
@@ -949,15 +937,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
     bmqp_ctrlmsg::ControlMessage d_controlMessage;
     // ControlMessage in this event..
-
-    Dispatcher::VoidFunctor d_finalizeCallback;
-    // Callback embedded in this event.
-    // This callback is called when the
-    // 'Dispatcher::execute' method is
-    // used to enqueue an event to
-    // multiple processors, and will be
-    // called when the last processor
-    // finished processing it.
 
     bmqt::MessageGUID d_guid;
     // GUID of the message in this event.
@@ -1005,6 +984,15 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
     bsl::shared_ptr<bmqu::AtomicState> d_state;
 
+    /// In-place storage for the callback in this event.
+    bmqu::ManagedCallback d_callback;
+
+    /// Callback embedded in this event.  This callback is called when the
+    /// 'Dispatcher::execute' method is used to enqueue an event to multiple
+    /// processors, and will be called when the last processor finished
+    /// processing it.
+    bmqu::ManagedCallback d_finalizeCallback;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DispatcherEvent, bslma::UsesBslmaAllocator)
@@ -1031,14 +1019,14 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     const bmqp::AckMessage& ackMessage() const BSLS_KEYWORD_OVERRIDE;
     const bsl::shared_ptr<bdlbb::Blob>& blob() const BSLS_KEYWORD_OVERRIDE;
     const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE;
-    const Dispatcher::ProcessorFunctor& callback() const BSLS_KEYWORD_OVERRIDE;
+    const bmqu::ManagedCallback&        callback() const BSLS_KEYWORD_OVERRIDE;
+    const bmqu::ManagedCallback&
+                                finalizeCallback() const BSLS_KEYWORD_OVERRIDE;
     mqbnet::ClusterNode*        clusterNode() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::ConfirmMessage& confirmMessage() const BSLS_KEYWORD_OVERRIDE;
     const bmqp::RejectMessage&  rejectMessage() const BSLS_KEYWORD_OVERRIDE;
     const bmqp_ctrlmsg::ControlMessage&
-    controlMessage() const BSLS_KEYWORD_OVERRIDE;
-    const Dispatcher::VoidFunctor&
-                             finalizeCallback() const BSLS_KEYWORD_OVERRIDE;
+                             controlMessage() const BSLS_KEYWORD_OVERRIDE;
     const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE;
     bool                     isRelay() const BSLS_KEYWORD_OVERRIDE;
     int                      partitionId() const BSLS_KEYWORD_OVERRIDE;
@@ -1062,13 +1050,20 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
 
   public:
     // MANIPULATORS
+    bmqu::ManagedCallback& callback();
+    bmqu::ManagedCallback& finalizeCallback();
+
+    DispatcherEvent&
+    setCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value);
+    DispatcherEvent&
+    setFinalizeCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value);
+
     DispatcherEvent& setType(DispatcherEventType::Enum value);
     DispatcherEvent& setSource(DispatcherClient* value);
     DispatcherEvent& setDestination(DispatcherClient* value);
     DispatcherEvent& setAckMessage(const bmqp::AckMessage& value);
     DispatcherEvent& setBlob(const bsl::shared_ptr<bdlbb::Blob>& value);
     DispatcherEvent& setOptions(const bsl::shared_ptr<bdlbb::Blob>& value);
-    DispatcherEvent& setCallback(const Dispatcher::ProcessorFunctor& value);
     DispatcherEvent& setClusterNode(mqbnet::ClusterNode* value);
     DispatcherEvent& setConfirmMessage(const bmqp::ConfirmMessage& value);
     DispatcherEvent& setRejectMessage(const bmqp::RejectMessage& value);
@@ -1292,12 +1287,10 @@ inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_ackMessage()
 , d_blob_sp(0, allocator)
 , d_options_sp(0, allocator)
-, d_callback(bsl::allocator_arg, allocator)
 , d_clusterNode_p(0)
 , d_confirmMessage()
 , d_rejectMessage()
 , d_controlMessage(allocator)
-, d_finalizeCallback(bsl::allocator_arg, allocator)
 , d_guid(bmqt::MessageGUID())
 , d_isRelay(false)
 , d_partitionId(-1)
@@ -1310,6 +1303,8 @@ inline DispatcherEvent::DispatcherEvent(bslma::Allocator* allocator)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
 , d_isOutOfOrder(false)
 , d_genCount(0)
+, d_callback(allocator)
+, d_finalizeCallback(allocator)
 {
     // NOTHING
 }
@@ -1329,9 +1324,24 @@ inline const bsl::shared_ptr<bdlbb::Blob>& DispatcherEvent::options() const
     return d_options_sp;
 }
 
-inline const Dispatcher::ProcessorFunctor& DispatcherEvent::callback() const
+inline const bmqu::ManagedCallback& DispatcherEvent::callback() const
 {
     return d_callback;
+}
+
+inline bmqu::ManagedCallback& DispatcherEvent::callback()
+{
+    return d_callback;
+}
+
+inline const bmqu::ManagedCallback& DispatcherEvent::finalizeCallback() const
+{
+    return d_finalizeCallback;
+}
+
+inline bmqu::ManagedCallback& DispatcherEvent::finalizeCallback()
+{
+    return d_finalizeCallback;
 }
 
 inline mqbnet::ClusterNode* DispatcherEvent::clusterNode() const
@@ -1353,11 +1363,6 @@ inline const bmqp_ctrlmsg::ControlMessage&
 DispatcherEvent::controlMessage() const
 {
     return d_controlMessage;
-}
-
-inline const Dispatcher::VoidFunctor& DispatcherEvent::finalizeCallback() const
-{
-    return d_finalizeCallback;
 }
 
 inline const bmqt::MessageGUID& DispatcherEvent::guid() const
@@ -1470,9 +1475,16 @@ DispatcherEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
 }
 
 inline DispatcherEvent&
-DispatcherEvent::setCallback(const Dispatcher::ProcessorFunctor& value)
+DispatcherEvent::setCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value)
 {
-    d_callback = value;
+    d_callback.set(value);
+    return *this;
+}
+
+inline DispatcherEvent& DispatcherEvent::setFinalizeCallback(
+    bslmf::MovableRef<Dispatcher::VoidFunctor> value)
+{
+    d_finalizeCallback.set(value);
     return *this;
 }
 
@@ -1501,13 +1513,6 @@ inline DispatcherEvent&
 DispatcherEvent::setControlMessage(const bmqp_ctrlmsg::ControlMessage& value)
 {
     d_controlMessage = value;
-    return *this;
-}
-
-inline DispatcherEvent&
-DispatcherEvent::setFinalizeCallback(const Dispatcher::VoidFunctor& value)
-{
-    d_finalizeCallback = value;
     return *this;
 }
 
@@ -1605,11 +1610,11 @@ inline void DispatcherEvent::reset()
     d_ackMessage    = bmqp::AckMessage();
     d_blob_sp.reset();
     d_options_sp.reset();
-    d_callback         = bsl::nullptr_t();
+    d_callback.reset();
+    d_finalizeCallback.reset();
     d_clusterNode_p    = 0;
     d_confirmMessage   = bmqp::ConfirmMessage();
     d_rejectMessage    = bmqp::RejectMessage();
-    d_finalizeCallback = bsl::nullptr_t();
     d_guid             = bmqt::MessageGUID();
     d_isRelay          = false;
     d_putHeader        = bmqp::PutHeader();
