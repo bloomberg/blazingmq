@@ -37,6 +37,17 @@ struct DTTracerTestImp : public bsls::ProtocolTestImp<bmqpi::DTTracer> {
         const bsl::shared_ptr<bmqpi::DTSpan>& parent,
         const bsl::string_view&               operation,
         const bmqpi::DTSpan::Baggage& baggage) const BSLS_KEYWORD_OVERRIDE;
+
+    virtual int serializeSpan(bsl::vector<unsigned char>*           out,
+                              const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    virtual int deserializeAndCreateChildSpan(
+        bsl::shared_ptr<bmqpi::DTSpan>*   out,
+        const bsl::vector<unsigned char>& in,
+        const bsl::string_view&           operation,
+        const bmqpi::DTSpan::Baggage& baggage = bmqpi::DTSpan::Baggage()) const
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 // Define one of DTTracerTestImp methods out-of-line, to instruct the
@@ -45,6 +56,21 @@ bsl::shared_ptr<bmqpi::DTSpan>
 DTTracerTestImp::createChildSpan(const bsl::shared_ptr<bmqpi::DTSpan>&,
                                  const bsl::string_view&,
                                  const bmqpi::DTSpan::Baggage&) const
+{
+    return markDone();
+}
+
+int DTTracerTestImp::serializeSpan(bsl::vector<unsigned char>*,
+                                   const bsl::shared_ptr<bmqpi::DTSpan>&) const
+{
+    return markDone();
+}
+
+int DTTracerTestImp::deserializeAndCreateChildSpan(
+    bsl::shared_ptr<bmqpi::DTSpan>*,
+    const bsl::vector<unsigned char>&,
+    const bsl::string_view&,
+    const bmqpi::DTSpan::Baggage&) const
 {
     return markDone();
 }
@@ -102,8 +128,13 @@ static void test1_breathingTest()
     BMQTST_ASSERT(tracer.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
-    bmqpi::DTSpan::Baggage empty;
+    bmqpi::DTSpan::Baggage     empty;
+    bsl::vector<unsigned char> emptyVec;
     BSLS_PROTOCOLTEST_ASSERT(tracer, createChildSpan(NULL, "", empty));
+    BSLS_PROTOCOLTEST_ASSERT(tracer, serializeSpan(NULL, NULL));
+    BSLS_PROTOCOLTEST_ASSERT(
+        tracer,
+        deserializeAndCreateChildSpan(NULL, emptyVec, "", empty));
 }
 
 // ============================================================================
