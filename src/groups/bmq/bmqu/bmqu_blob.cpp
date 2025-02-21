@@ -585,7 +585,7 @@ char* BlobUtil::getAlignedSection(char*               storage,
                                   bool                copyFromBlob)
 {
     BlobPosition end;
-    int          ret = findOffset(&end, blob, start, length);
+    auto          ret = findOffset(&end, blob, start, length);
     if (ret) {
         return 0;  // RETURN
     }
