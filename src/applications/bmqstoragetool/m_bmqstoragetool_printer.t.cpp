@@ -64,66 +64,6 @@ bsls::Types::Uint64 recordOffset(const RECORD_TYPE& record)
                                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
 
-class my_CountingAllocator : public bslma::Allocator {
-    // This concrete allocator maintains: (1) a count of the number of
-    // blocks allocated that have not yet been deallocated, and (2) a count
-    // of the cumulative number of blocks ever allocated.
-
-    // DATA
-    int d_numBlocksInUse;  // number of blocks currently allocated
-    int d_numBlocksTotal;  // cumulative blocks ever requested
-
-    // NOT IMPLEMENTED
-    my_CountingAllocator(const my_CountingAllocator&);
-    my_CountingAllocator& operator=(const my_CountingAllocator&);
-
-  public:
-    // CREATORS
-    my_CountingAllocator()
-    : d_numBlocksInUse(0)
-    , d_numBlocksTotal(0)
-    {
-    }
-    // Create a counting allocator.
-
-    virtual ~my_CountingAllocator() {}
-    // Destroy this counting allocator.
-
-    // MANIPULATORS
-    virtual void* allocate(size_type size)
-    {
-        BSLS_ASSERT(0);
-        ++d_numBlocksInUse;
-        ++d_numBlocksTotal;
-        return ::operator new(size);
-    }
-    // Return a newly allocated block of memory of (at least) the
-    // specified positive 'size' (bytes).  If 'size' is 0, a null
-    // pointer is returned with no effect.  Note that the alignment of
-    // the address returned is the maximum alignment for any
-    // fundamental type defined for this platform.
-
-    virtual void deallocate(void* address)
-    {
-        --d_numBlocksInUse;
-        ::operator delete(address);
-    }
-    // Return the memory at the specified 'address' back to this
-    // allocator.  If 'address' is 0, this function has no effect.  The
-    // behavior is undefined if 'address' was not allocated using this
-    // allocator, or has already been deallocated.
-
-    // ACCESSORS
-    int numBlocksInUse() const { return d_numBlocksInUse; }
-    // Return the number of blocks currently in use from this counting
-    // allocator.
-
-    int numBlocksTotal() const { return d_numBlocksTotal; }
-    // Return the cumulative number of blocks ever allocated using this
-    // counting allocator.  Note that
-    // numBlocksTotal() >= numBlocksInUse().
-};
-
 }
 
 // ============================================================================
