@@ -120,10 +120,7 @@ jobs:
             -DBDE_BUILD_TARGET_SAFE=ON \
             -DBDE_BUILD_TARGET_64=ON \
             -DBDE_BUILD_TARGET_CPP17=OFF \
-            -DCMAKE_CXX_STANDARD=98 \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DCMAKE_CXX_EXTENSIONS=OFF \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
+            -DCMAKE_CXX_FLAGS="-std=c++98" \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cat build/blazingmq/CMakeCache.txt
