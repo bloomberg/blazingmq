@@ -119,7 +119,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug \
             -DBDE_BUILD_TARGET_SAFE=ON \
             -DBDE_BUILD_TARGET_64=ON \
-            -BDE_BUILD_TARGET_CPP03=ON \
+            -DBDE_BUILD_TARGET_CPP03=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cmake --build build/blazingmq --parallel 8 --target all all.t
