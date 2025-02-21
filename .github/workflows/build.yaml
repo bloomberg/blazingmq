@@ -121,8 +121,9 @@ jobs:
             -DBDE_BUILD_TARGET_64=ON \
             -DBDE_BUILD_TARGET_CPP17=OFF \
             -DCMAKE_CXX_STANDARD=98 \
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON \
-            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DCMAKE_CXX_STANDARD_REQUIRED=On \
+            -DCMAKE_CXX_EXTENSIONS=Off \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
           cmake --build build/blazingmq --parallel 8 --target all all.t
