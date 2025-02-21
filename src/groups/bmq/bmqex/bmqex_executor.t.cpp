@@ -115,7 +115,7 @@ class StatExecutor {
     void post(bslmf::MovableRef<FUNCTION> f) const
     {
         ++d_statistics_p->d_postCallCount;
-        f();
+        bslmf::MovableRefUtil::access(f)();
     }
 
     /// Perform `++statistics()->d_dispatchCallCount` followed by `f()`.
@@ -123,7 +123,7 @@ class StatExecutor {
     void dispatch(bslmf::MovableRef<FUNCTION> f) const
     {
         ++d_statistics_p->d_dispatchCallCount;
-        f();
+        bslmf::MovableRefUtil::access(f)();
     }
 
   public:
