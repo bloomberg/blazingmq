@@ -255,10 +255,6 @@ class Queue {
 
     bmqp::SchemaGenerator d_schemaGenerator;
 
-    bmqp::SchemaLearner d_schemaLearner;
-
-    bmqp::SchemaLearner::Context d_schemaLearnerContext;
-
     bmqp_ctrlmsg::StreamParameters d_config;
 
     bsl::unordered_map<unsigned int, SubscriptionHandle>
@@ -676,16 +672,6 @@ inline bool Queue::isSuspendedWithBroker() const
 inline const bmqp_ctrlmsg::StreamParameters& Queue::config() const
 {
     return d_config;
-}
-
-inline bmqp::SchemaLearner& Queue::schemaLearner()
-{
-    return d_schemaLearner;
-}
-
-inline bmqp::SchemaLearner::Context& Queue::schemaLearnerContext()
-{
-    return d_schemaLearnerContext;
 }
 
 inline bmqp::SchemaGenerator& Queue::schemaGenerator()
