@@ -122,7 +122,6 @@ jobs:
             -BDE_BUILD_TARGET_CPP03=ON \
             -DCMAKE_PREFIX_PATH=${{ github.workspace }}/deps/srcs/bde-tools/BdeBuildSystem \
             -DCMAKE_INSTALL_LIBDIR=lib64
-          cat build/blazingmq/CMakeCache.txt
           cmake --build build/blazingmq --parallel 8 --target all all.t
 
   unit_tests_cxx:
