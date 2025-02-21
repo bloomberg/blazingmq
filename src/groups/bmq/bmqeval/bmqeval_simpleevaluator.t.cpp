@@ -20,14 +20,15 @@
 #include <bmqeval_simpleevaluatorparser.hpp>
 #include <bmqeval_simpleevaluatorscanner.h>
 
+// TEST DRIVER
+#include <bmqtst_testhelper.h>
+
 // BENCHMARKING LIBRARY
 #ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
 #endif  // BMQTST_BENCHMARK_ENABLED
 
-// TEST DRIVER
-#include <bmqtst_testhelper.h>
-
+// BDE
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_sstream.h>
 
