@@ -924,8 +924,8 @@ class SummaryProcessor : public SearchResult {
   public:
     // CREATORS
 
-    /// Constructor using the specified `component`, `journalFile_p`,
-    /// `dataFile_p` and `allocator`.
+    /// Constructor using the specified `ostream`, `journalFile_p`,
+    /// `dataFile_p` , `processRecordTypes` and `allocator`.
     explicit SummaryProcessor(
         const bsl::shared_ptr<Printer>&       printer,
         mqbs::JournalFileIterator*            journalFile_p,
