@@ -531,7 +531,7 @@ class Cluster(contextlib.AbstractContextManager):
         return self.last_known_leader
 
     def open_priority_queues(
-        self, count, start=0, port=None, **kw
+        self, count, start=0, port=None, uri_priority=tc.URI_PRIORITY, **kw
     ) -> ListContextManager[Queue]:
         """Open *distinct* priority queues with the options specified in 'kw'.
 
@@ -550,7 +550,7 @@ class Cluster(contextlib.AbstractContextManager):
             [
                 Queue(
                     next(proxies).create_client(port=port),
-                    f"{tc.URI_PRIORITY}{i}",
+                    f"{uri_priority}{i}",
                     **kw,
                 )
                 for i in range(start, start + count)
@@ -578,7 +578,9 @@ class Cluster(contextlib.AbstractContextManager):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, **kw):
+    def open_fanout_queues(
+        self, count, start=0, appids=None, uri_fanout=tc.URI_FANOUT, **kw
+    ):
         """Open *distinct* fanout queues with the options specified in 'kw'.
 
         While each queue uses a different URI, calling this method multiple
@@ -599,7 +601,7 @@ class Cluster(contextlib.AbstractContextManager):
         proxies = self.proxy_cycle()
         return ListContextManager(
             [
-                Queue(next(proxies).create_client(), f"{tc.URI_FANOUT}{i}", **kw)
+                Queue(next(proxies).create_client(), f"{uri_fanout}{i}", **kw)
                 for i in range(start, start + count)
             ]
             if appids is None
@@ -608,7 +610,7 @@ class Cluster(contextlib.AbstractContextManager):
                     [
                         Queue(
                             next(proxies).create_client(),
-                            f"{tc.URI_FANOUT}{i}?id={id}",
+                            f"{uri_fanout}{i}?id={id}",
                             **kw,
                         )
                         for id in appids
