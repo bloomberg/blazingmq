@@ -731,7 +731,7 @@
 /* Define benchmarking macros */
 /// We want to be able to build on Linux with older C++03 standard.
 /// In this case we have to disable Benchmark code that uses C++11 features.
-#ifdef BSLS_PLATFORM_OS_LINUX && (__cplusplus >= 201103L)
+#if defined(BSLS_PLATFORM_OS_LINUX) && (__cplusplus >= 201103L)
 #define BMQTST_BENCHMARK_ENABLED
 #endif
 
