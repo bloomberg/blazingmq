@@ -37,9 +37,9 @@
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -660,7 +660,7 @@ static void testN1_performance_allocation()
               << '\n';
 }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void
 testN1_bslmaperformance_allocation_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -776,7 +776,8 @@ testN1_defaultperformance_allocation_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -795,7 +796,7 @@ int main(int argc, char** argv)
     case 2: test2_allocate(); break;
     case 1: test1_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
         BENCHMARK(testN1_defaultperformance_allocation_GoogleBenchmark)
             ->Unit(benchmark::kMillisecond);
         BENCHMARK(testN1_bslmaperformance_allocation_GoogleBenchmark)
