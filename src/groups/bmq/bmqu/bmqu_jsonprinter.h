@@ -149,6 +149,9 @@ inline JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::
     ~JsonPrinter()
 {
     if (braceNeeded) {
+        if (pretty) {
+            d_ostream << '\n';
+        }
         if (pretty && braceIndent > 0) {
             d_ostream << bsl::setw(braceIndent) << ' ';
         }
@@ -164,6 +167,10 @@ JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
 {
     BSLS_ASSERT_SAFE(d_counter < d_fields_p->size());
 
+    if (d_counter != 0) {
+        d_ostream << ',' << (pretty ? '\n' : ' ');
+    }
+
     if (pretty) {
         d_ostream << bsl::setw(fieldIndent) << ' ';
     }
@@ -177,8 +184,6 @@ JsonPrinter<pretty, braceNeeded, braceIndent, fieldIndent>::operator<<(
     if (quotes) {
         d_ostream << '\"';
     }
-
-    d_ostream << ',' << (pretty ? '\n' : ' ');
 
     ++d_counter;
 
