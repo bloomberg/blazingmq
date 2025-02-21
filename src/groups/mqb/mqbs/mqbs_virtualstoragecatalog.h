@@ -381,7 +381,7 @@ inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
 // ACCESSORS
 inline int VirtualStorageCatalog::numVirtualStorages() const
 {
-    return d_virtualStorages.size();
+    return static_cast<int>(d_virtualStorages.size());
 }
 
 inline bsls::Types::Int64
