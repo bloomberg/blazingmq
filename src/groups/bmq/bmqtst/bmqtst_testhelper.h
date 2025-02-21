@@ -728,19 +728,25 @@
         Test##NAME ::run);                                                    \
     void Test##NAME ::body()
 
-/*Define benchmarking macros*/
+/* Define benchmarking macros */
 /// We want to be able to build on Linux with older C++03 standard.
 /// In this case we have to disable Benchmark code that uses C++11 features.
 #ifdef BSLS_PLATFORM_OS_LINUX && (__cplusplus >= 201103L)
 #define BMQTST_BENCHMARK_ENABLED
+#endif
+
+#ifdef BMQTST_BENCHMARK_ENABLED
+
 #define BMQTST_BENCHMARK_WITH_ARGS(BM_NAME, ARGS)                             \
     BENCHMARK(BM_NAME##_GoogleBenchmark)->ARGS;
 #define BMQTST_BENCHMARK(BM_NAME) BENCHMARK(BM_NAME##_GoogleBenchmark);
-#else  // !BSLS_PLATFORM_OS_LINUX
+
+#else  // !BMQTST_BENCHMARK_ENABLED
+
 #define BMQTST_BENCHMARK(BM_NAME) BM_NAME();
 #define BMQTST_BENCHMARK_WITH_ARGS(BM_NAME, ARGS) BM_NAME();
 
-#endif  // BSLS_PLATFORM_OS_LINUX && (__cplusplus >= 201103L)
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 namespace BloombergLP {
 namespace bmqtst {
