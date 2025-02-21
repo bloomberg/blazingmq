@@ -77,8 +77,8 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
-  build_ubuntu_cxx_98:
-    name: Build [ubuntu,C++98]
+  build_ubuntu_cxx_03:
+    name: Build [ubuntu,C++03]
     runs-on: ubuntu-latest
     needs: get_dependencies
     steps:
