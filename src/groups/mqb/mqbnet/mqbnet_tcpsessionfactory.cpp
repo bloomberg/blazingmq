@@ -1541,8 +1541,8 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
             static_cast<bsls::Types::Int64>(port),
             &localAllocator);
         bsl::shared_ptr<bmqst::StatContext> portStatContext =
-            parent->addSubcontext(
-                portConfig.storeExpiredSubcontextValues(true));
+            bslmf::MovableRefUtil::move(parent->addSubcontext(
+                portConfig.storeExpiredSubcontextValues(true)));
         channelStatContext      = portStatContext->addSubcontext(statConfig);
         PortContext portContext = {portStatContext, 1};
         d_portMap.emplace(port, portContext);
