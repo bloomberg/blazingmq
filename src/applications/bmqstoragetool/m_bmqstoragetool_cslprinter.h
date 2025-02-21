@@ -36,27 +36,56 @@
 #include <bsl_list.h>
 #include <bsl_map.h>
 #include <bslma_managedptr.h>
+#include <bsl_unordered_map.h>
 
 namespace BloombergLP {
 
 namespace m_bmqstoragetool {
+
+/// Map of found `update` record choices.
+typedef bsl::unordered_map<int, bsls::Types::Uint64> CslUpdateChoiceMap;
+
+// =====================
+// struct CslRecordCount
+// =====================
+
+/// VST representing CSL record counters.
+struct CslRecordCount {
+    /// Counter of snapshot records.
+    bsls::Types::Uint64 d_snapshotCount;
+    /// Counter of update records.
+    bsls::Types::Uint64 d_updateCount;
+    /// Counter of commit records.
+    bsls::Types::Uint64 d_commitCount;
+    // Counter of ack records.
+    bsls::Types::Uint64 d_ackCount;
+
+    // CREATORS
+
+    /// Create a 'CslRecordCount' object with all counters set to 0.
+    CslRecordCount()
+    : d_snapshotCount(0)
+    , d_updateCount(0)
+    , d_commitCount(0)
+    , d_ackCount(0)
+    {
+        // NOTHING
+    }
+};
+
 
 // ================
 // class CslPrinter
 // ================
 
 class CslPrinter {
-  // protected:
+  protected:
     // PROTECTED TYPES
 
-    // /// List of message guids.
-    // typedef bsl::list<bmqt::MessageGUID> GuidsList;
-    // /// Queue operations count vector.
-    // typedef bsl::vector<bsls::Types::Uint64> QueueOpCountsVec;
-    // /// Offsets vector.
-    // typedef bsl::vector<bsls::Types::Int64> OffsetsVec;
-    // /// Composite sequence numbers vector.
-    // typedef bsl::vector<CompositeSequenceNumber> CompositesVec;
+    /// Offsets vector.
+    typedef bsl::vector<bsls::Types::Int64> OffsetsVec;
+    /// Composite sequence numbers vector.
+    typedef bsl::vector<CompositeSequenceNumber> CompositesVec;
 
   public:
     // CREATORS
@@ -71,8 +100,19 @@ class CslPrinter {
     /// Print the result in a detail form.
     virtual void printDetailResult(const bmqp_ctrlmsg::ClusterMessage& record, const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId) const = 0;
 
+    /// Print not found `offsets`.
+    virtual void printOffsetsNotFound(const OffsetsVec& offsets) const = 0;
+
+    /// Print not found composite sequence numbers `seqNums`.
+    virtual void
+    printCompositesNotFound(const CompositesVec& seqNums) const = 0;
+
+    /// Print search summary result.
+    virtual void
+    printSummaryResult(const CslRecordCount& recordCount, const CslUpdateChoiceMap& updateChoiceMap, const QueueMap& queueMap, const Parameters::ProcessCslRecordTypes& processCslRecordTypes, unsigned int queuesLimit) const = 0;
+
     /// Print footer of thr result
-    virtual void printFooter(bsls::Types::Uint64 snapshotCount, bsls::Types::Uint64 updateCount, bsls::Types::Uint64 commitCount, bsls::Types::Uint64 ackCount, const Parameters::ProcessCslRecordTypes& processCslRecordTypes) const = 0;
+    virtual void printFooter(const CslRecordCount& recordCount, const Parameters::ProcessCslRecordTypes& processCslRecordTypes) const = 0;
 };
 
 /// Create an instance of CSL printer to print data to the specified 'stream'

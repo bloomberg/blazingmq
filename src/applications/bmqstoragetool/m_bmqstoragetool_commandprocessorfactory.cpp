@@ -48,8 +48,6 @@ CommandProcessorFactory::createCommandProcessor(
         // Create CslSearchResult for given 'params'.
         bsl::shared_ptr<CslSearchResult> cslSearchResult =
             SearchResultFactory::createCslSearchResult(params,
-                                                       // fileManager,
-                                                       ostream,
                                                        printer,
                                                        alloc);
 

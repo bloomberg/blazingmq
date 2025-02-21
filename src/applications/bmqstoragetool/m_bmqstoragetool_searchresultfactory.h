@@ -57,8 +57,6 @@ class SearchResultFactory {
     /// specified 'ostream' and 'allocator'.
     static bsl::shared_ptr<CslSearchResult> createCslSearchResult(
         const Parameters* params,
-        //  const bslma::ManagedPtr<FileManager>& fileManager,
-        bsl::ostream&     ostream,
         const bsl::shared_ptr<CslPrinter>&       printer,
         bslma::Allocator* allocator);
 };

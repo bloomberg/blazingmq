@@ -47,9 +47,6 @@
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
 
-// BDE
-#include <bsl_map.h>
-
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
@@ -60,28 +57,6 @@ namespace m_bmqstoragetool {
 /// This class provides an interface for CSL search processors.
 class CslSearchResult {
   public:
-    // PUBLIC TYPES
-
-    // ==================
-    // struct RecordCount
-    // ==================
-
-    /// VST representing record counters.
-    struct RecordCount {
-        /// Counter of snapshot records.
-        bsls::Types::Uint64 d_snapshotCount;
-        /// Counter of update records.
-        bsls::Types::Uint64 d_updateCount;
-        /// Counter of commit records.
-        bsls::Types::Uint64 d_commitCount;
-        // Counter of ack records.
-        bsls::Types::Uint64 d_ackCount;
-
-        // CREATORS
-        /// Create a 'RecordCount' object with all counters set to 0.
-        RecordCount();
-    };
-
     // CREATORS
 
     /// Destructor
@@ -99,6 +74,9 @@ class CslSearchResult {
 
     /// Output result of a search.
     virtual void outputResult() const = 0;
+
+    /// Return a reference to the non-modifiable CSL printer
+    virtual const bsl::shared_ptr<CslPrinter>& printer() const = 0;
 };
 
 // ==========================
@@ -116,7 +94,7 @@ class CslSearchShortResult : public CslSearchResult {
     /// Record types to process
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
-    RecordCount d_recordCount;
+    CslRecordCount d_recordCount;
     /// Allocator used inside the class.
     bslma::Allocator* d_allocator_p;
 
@@ -143,6 +121,9 @@ class CslSearchShortResult : public CslSearchResult {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable CSL printer
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
 };
 
 // ===========================
@@ -159,7 +140,7 @@ class CslSearchDetailResult : public CslSearchResult {
     /// Record types to process
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
-    RecordCount d_recordCount;
+    CslRecordCount d_recordCount;
     /// Allocator used inside the class.
     bslma::Allocator* d_allocator_p;
 
@@ -186,6 +167,9 @@ class CslSearchDetailResult : public CslSearchResult {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable CSL printer
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ==============================
@@ -221,6 +205,9 @@ class CslSearchResultDecorator : public CslSearchResult {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable CSL printer
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
 };
 
 // ======================================
@@ -235,8 +222,6 @@ class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
 
     /// List of composite sequence numbers to search for.
     bsl::vector<CompositeSequenceNumber> d_seqNums;
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
 
   public:
     // CREATORS
@@ -246,7 +231,6 @@ class CslSearchSequenceNumberDecorator : public CslSearchResultDecorator {
     CslSearchSequenceNumberDecorator(
         const bsl::shared_ptr<CslSearchResult>&     component,
         const bsl::vector<CompositeSequenceNumber>& seqNums,
-        bsl::ostream&                               ostream,
         bslma::Allocator*                           allocator);
 
     // MANIPULATORS
@@ -275,8 +259,6 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 
     /// List of offsets to search for.
     bsl::vector<bsls::Types::Int64> d_offsets;
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
 
   public:
     // CREATORS
@@ -285,7 +267,6 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
     /// `allocator`.
     CslSearchOffsetDecorator(const bsl::shared_ptr<CslSearchResult>& component,
                              const bsl::vector<bsls::Types::Int64>&  offsets,
-                             bsl::ostream&                           ostream,
                              bslma::Allocator* allocator);
 
     // MANIPULATORS
@@ -301,7 +282,7 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
-};
+  };
 
 // ======================
 // class CslSummaryResult
@@ -310,22 +291,17 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 /// This class provides logic to process summary of CSL file.
 class CslSummaryResult : public CslSearchResult {
   private:
-    // PRIVATE TYPES
-
-    /// Map of found update record choices.
-    typedef bsl::map<int, bsls::Types::Uint64> UpdateChoiceMap;
-
     // PRIVATE DATA
 
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
+    /// Pointer to 'Printer' instance.
+    const bsl::shared_ptr<CslPrinter> d_printer;
 
     /// CSL Record types to process.
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
-    RecordCount d_recordCount;
+    CslRecordCount d_recordCount;
     /// Map of found update record choices.
-    UpdateChoiceMap d_updateChoiceCount;
+    CslUpdateChoiceMap d_updateChoiceCount;
     /// Reference to 'QueueMap' instance.
     const QueueMap& d_queueMap;
     /// Limit number of queues to display
@@ -340,8 +316,8 @@ class CslSummaryResult : public CslSearchResult {
     /// Constructor using the specified `ostream`, `processCslRecordTypes` and
     /// `allocator`.
     explicit CslSummaryResult(
-        bsl::ostream&                            ostream,
-        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+      const bsl::shared_ptr<CslPrinter>&       printer,
+      const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         const QueueMap&                          d_queueMap,
         unsigned int                             cslSummaryQueuesLimit,
         bslma::Allocator*                        allocator);
@@ -359,6 +335,9 @@ class CslSummaryResult : public CslSearchResult {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable CSL printer
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
 };
 
 }  // close package namespace

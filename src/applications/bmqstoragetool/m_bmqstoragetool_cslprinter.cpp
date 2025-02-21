@@ -67,36 +67,133 @@ class HumanReadableCslPrinter : public CslPrinter {
 
     void printDetailResult(const bmqp_ctrlmsg::ClusterMessage& record, const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId) const BSLS_KEYWORD_OVERRIDE
     {
-        d_ostream << "===================================\n\n";
+        // Print aligned delimiter
+        bsl::string aiignedDelimiter(bsl::strlen(mqbc::ClusterStateRecordType::toAscii(header.recordType())), '=', d_allocator_p);
+        d_ostream << "===========================" << aiignedDelimiter << "\n\n";
 
         RecordPrinter::RecordDetailsPrinter<bmqu::AlignedPrinter> printer(d_ostream, d_allocator_p);
         printer.printCslRecordDetails(record, header, recordId);
     }
 
-    void printFooter(bsls::Types::Uint64 snapshotCount, bsls::Types::Uint64 updateCount, bsls::Types::Uint64 commitCount, bsls::Types::Uint64 ackCount,
+    void printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
+    {
+        if (!offsets.empty()) {
+            d_ostream << "\nThe following " << offsets.size()
+                      << " offset(s) not found:\n";
+            OffsetsVec::const_iterator it = offsets.cbegin();
+            for (; it != offsets.cend(); ++it) {
+                d_ostream << *it << '\n';
+            }
+        }
+    }
+
+    void printCompositesNotFound(const CompositesVec& seqNums) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        if (!seqNums.empty()) {
+            d_ostream << "\nThe following " << seqNums.size()
+                      << " sequence number(s) not found:\n";
+            CompositesVec::const_iterator it = seqNums.cbegin();
+            for (; it != seqNums.cend(); ++it) {
+                d_ostream << *it << '\n';
+            }
+        }
+    }
+
+    void printSummaryResult(const CslRecordCount& recordCount, const CslUpdateChoiceMap& updateChoiceMap, const QueueMap& queueMap, const Parameters::ProcessCslRecordTypes& processCslRecordTypes, unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    {
+        // TODO: consider to enhance printFooter with optional updateChoiceMap
+        if (processCslRecordTypes.d_snapshot) {
+            recordCount.d_snapshotCount > 0
+                ? (d_ostream << '\n'
+                            << recordCount.d_snapshotCount << " snapshot")
+                : d_ostream << "\nNo snapshot";
+            d_ostream << " record(s) found.\n";
+        }
+        if (processCslRecordTypes.d_update) {
+            if (recordCount.d_updateCount > 0) {
+                d_ostream << '\n'
+                          << recordCount.d_updateCount
+                          << " update record(s) found, including:" << '\n';
+                bsl::vector<const char*>           fields(d_allocator_p);
+                bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
+                    d_allocator_p);
+                for (CslUpdateChoiceMap::const_iterator it =
+                    updateChoiceMap.begin();
+                     it != updateChoiceMap.end();
+                     ++it) {
+                    clusterMessageChoice.makeSelection(it->first);
+                    fields.push_back(clusterMessageChoice.selectionName());
+                }
+                bmqu::AlignedPrinter printer(d_ostream, &fields);
+                for (CslUpdateChoiceMap::const_iterator it =
+                    updateChoiceMap.begin();
+                     it != updateChoiceMap.end();
+                     ++it) {
+                    printer << it->second;
+                }
+            }
+            else {
+                d_ostream << "\nNo update record(s) found." << '\n';
+            }
+        }
+        if (processCslRecordTypes.d_commit) {
+            recordCount.d_commitCount > 0
+                ? (d_ostream << '\n'
+                             << recordCount.d_commitCount << " commit")
+                : d_ostream << "\nNo commit";
+            d_ostream << " record(s) found.\n";
+        }
+        if (processCslRecordTypes.d_ack) {
+            recordCount.d_ackCount > 0
+                ? (d_ostream << '\n'
+                             << recordCount.d_ackCount << " ack")
+                : d_ostream << "\nNo ack";
+            d_ostream << " record(s) found.\n";
+        }
+
+        // Print queues info
+        const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
+            queueMap.queueInfos();
+        if (!queueInfos.empty()) {
+            size_t queueInfosSize = queueInfos.size();
+            d_ostream << '\n' << queueInfosSize << " Queues found:" << '\n';
+            if (queueInfosSize > queuesLimit) {
+                d_ostream << "Only first " << queuesLimit
+                          << " queues are displayed." << '\n';
+            }
+            bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
+                queueInfos.cbegin();
+            for (; it != queueInfos.cend(); ++it) {
+                d_ostream << *it << '\n';
+            }
+        }
+    }
+
+    void printFooter(const CslRecordCount& recordCount,
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
     {
         if (processCslRecordTypes.d_snapshot) {
-            snapshotCount > 0
-                ? (d_ostream << snapshotCount << " snapshot")
+            recordCount.d_snapshotCount > 0
+                ? (d_ostream << recordCount.d_snapshotCount << " snapshot")
                 : d_ostream << "No snapshot";
                 d_ostream << " record(s) found.\n";
         }
         if (processCslRecordTypes.d_update) {
-            updateCount > 0
-                ? (d_ostream << updateCount << " update")
+            recordCount.d_updateCount > 0
+                ? (d_ostream << recordCount.d_updateCount << " update")
                 : d_ostream << "No update";
                 d_ostream << " record(s) found.\n";
         }
         if (processCslRecordTypes.d_commit) {
-            commitCount > 0
-                ? (d_ostream << commitCount << " commit")
+            recordCount.d_commitCount > 0
+                ? (d_ostream << recordCount.d_commitCount << " commit")
                 : d_ostream << "No commit";
                 d_ostream << " record(s) found.\n";
         }
         if (processCslRecordTypes.d_ack) {
-            ackCount > 0
-                ? (d_ostream << ackCount << " ack")
+            recordCount.d_ackCount > 0
+                ? (d_ostream << recordCount.d_ackCount << " ack")
                 : d_ostream << "No ack";
                 d_ostream << " record(s) found.\n";
         }
