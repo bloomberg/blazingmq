@@ -1540,11 +1540,11 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
         bmqst::StatContextConfiguration portConfig(
             static_cast<bsls::Types::Int64>(port),
             &localAllocator);
-        bsl::shared_ptr<bmqst::StatContext> portStatContext =
-            bslmf::MovableRefUtil::move(parent->addSubcontext(
-                portConfig.storeExpiredSubcontextValues(true)));
-        channelStatContext      = portStatContext->addSubcontext(statConfig);
-        PortContext portContext = {portStatContext, 1};
+        bslma::ManagedPtr<bmqst::StatContext> portStatContext_mp = parent->addSubcontext(
+                portConfig.storeExpiredSubcontextValues(true));
+        bsl::shared_ptr<bmqst::StatContext> portStatContext_sp = portStatContext_mp;
+        channelStatContext      = portStatContext_sp->addSubcontext(statConfig);
+        PortContext portContext = {portStatContext_sp, 1};
         d_portMap.emplace(port, portContext);
     }
 
