@@ -112,7 +112,7 @@ class StatExecutor {
 
     /// Perform `++statistics()->d_postCallCount` followed by `f()`.
     template <class FUNCTION>
-    void post(bslmf::MovableRef<FUNCTION> f) const
+    void post(FUNCTION f) const
     {
         ++d_statistics_p->d_postCallCount;
         bslmf::MovableRefUtil::access(f)();
@@ -120,7 +120,7 @@ class StatExecutor {
 
     /// Perform `++statistics()->d_dispatchCallCount` followed by `f()`.
     template <class FUNCTION>
-    void dispatch(bslmf::MovableRef<FUNCTION> f) const
+    void dispatch(FUNCTION f) const
     {
         ++d_statistics_p->d_dispatchCallCount;
         bslmf::MovableRefUtil::access(f)();
