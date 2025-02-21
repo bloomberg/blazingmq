@@ -21,9 +21,9 @@
 #include <bmqeval_simpleevaluatorscanner.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -76,7 +76,7 @@ class MockPropertiesReader : public PropertiesReader {
     }
 };
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_SimpleEvaluator_GoogleBenchmark(benchmark::State& state)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK: SimpleEvaluator");
@@ -569,7 +569,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
     if (_testCase < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
