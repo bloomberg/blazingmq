@@ -455,9 +455,10 @@ void StorageInspector::processCommand(
             BALL_LOG_OUTPUT_STREAM << "Details of journal file: \n";
             BALL_LOG_OUTPUT_STREAM << d_journalFd;
             BALL_LOG_OUTPUT_STREAM << "Journal File Header: \n";
-            printJournalFileHeader(BALL_LOG_OUTPUT_STREAM,
-                                   d_journalFileIter.header(),
-                                   d_journalFd);
+            printJournalFileHeader<bmqu::AlignedPrinter>(
+                BALL_LOG_OUTPUT_STREAM,
+                d_journalFileIter.header(),
+                d_journalFd);
             BALL_LOG_OUTPUT_STREAM << "\n";
 
             // Print journal-specific fields

@@ -474,12 +474,10 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // The handle has a valid consumer priority, meaning that a
             // downstream client is attempting to release the consumer portion
             // of the handle without having first configured it to have null
-            // streamParameters (i.e. invalid consumerPriority).  This is not
-            // the expected flow since we expect an incoming configureQueue
-            // with null streamParameters to precede a 'releaseHandle' that
-            // releases the consumer portion of the handle.
-            BALL_LOG_ERROR
-                << "#QUEUE_IMPROPER_BEHAVIOR "
+            // streamParameters (i.e. invalid consumerPriority).
+            // This is expected in shutdown V2 where we minimize the
+            // number of requests.
+            BALL_LOG_INFO
                 << "For queue [" << d_queueState_p->uri() << "],  received a "
                 << "'releaseHandle' releasing the consumer portion of handle "
                 << "[id: " << handle->id()
