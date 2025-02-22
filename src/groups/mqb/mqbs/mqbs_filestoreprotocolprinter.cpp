@@ -96,6 +96,17 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
     FileStoreProtocolPrinter::printDataFileHeader<bmqu::AlignedPrinter>(
         stream,
         header);
+    bsl::vector<bsl::string> fields;
+    fields.push_back("HeaderWords");
+    fields.push_back("FileId (FileKey)");
+
+    stream << "Data File Header: \n";
+
+    bmqu::MemOutStream os;
+    os << header.fileKey();
+
+    bmqu::AlignedPrinter printer(stream, fields);
+    printer << static_cast<unsigned int>(header.headerWords()) << os.str();
     stream << '\n';
 
     return stream;
@@ -104,12 +115,12 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 bsl::ostream& operator<<(bsl::ostream&                stream,
                          const mqbs::QlistFileHeader& header)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.push_back("HeaderWords");
 
     stream << "Qlist File Header: \n";
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << static_cast<int>(header.headerWords());
     stream << '\n';
 
@@ -123,6 +134,20 @@ bsl::ostream& operator<<(bsl::ostream&                     stream,
 
     FileStoreProtocolPrinter::printFileHeader<bmqu::AlignedPrinter>(stream,
                                                                     mfd);
+    bsl::vector<bsl::string> fields;
+    fields.push_back("Protocol Version");
+    fields.push_back("Bitness");
+    fields.push_back("FileType");
+    fields.push_back("HeaderWords");
+    fields.push_back("PartitionId");
+
+    const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
+    stream << "BlazingMQ File Header" << '\n';
+
+    bmqu::AlignedPrinter printer(stream, fields);
+    printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
+            << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
+            << fh.partitionId();
 
     stream << '\n';
 
@@ -252,6 +277,69 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
 {
     bsl::vector<const char*> fields;
     fields.reserve(10);
+void printHeader(bsl::ostream&                     stream,
+                 const mqbs::JournalFileHeader&    header,
+                 const mqbs::MappedFileDescriptor& journalFd,
+                 bslma::Allocator*                 allocator)
+{
+    bsl::vector<bsl::string> fields(allocator);
+    fields.push_back("HeaderWords");
+    fields.push_back("RecordWords");
+    fields.push_back("First SyncPointRecord offset words");
+    fields.push_back("First SyncPointRecord type");
+    fields.push_back("First SyncPointRecord primaryNodeId");
+    fields.push_back("First SyncPointRecord primaryLeaseId");
+    fields.push_back("First SyncPointRecord sequenceNumber");
+    fields.push_back("First SyncPointRecord dataFileOffset");
+    fields.push_back("First SyncPointRecord timestamp");
+    fields.push_back("First SyncPointRecord epoch");
+
+    stream << "Journal File Header: \n";
+
+    bsls::Types::Uint64 offsetW = header.firstSyncPointOffsetWords();
+
+    bmqu::AlignedPrinter printer(stream, fields);
+    printer << static_cast<unsigned int>(header.headerWords())
+            << static_cast<unsigned int>(header.recordWords()) << offsetW;
+
+    if (0 == offsetW) {
+        printer << " ** NA** "
+                << " ** NA ** "
+                << " ** NA** "
+                << " ** NA ** "
+                << " ** NA** "
+                << " ** NA** "
+                << " ** NA ** ";
+    }
+    else {
+        mqbs::OffsetPtr<const mqbs::JournalOpRecord> spRec(
+            journalFd.block(),
+            offsetW * bmqp::Protocol::k_WORD_SIZE);
+
+        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
+
+        printer << spRec->syncPointType() << spRec->primaryNodeId()
+                << spRec->primaryLeaseId() << spRec->sequenceNum()
+                << spRec->dataFileOffsetDwords();
+
+        bsls::Types::Uint64 epochValue = spRec->header().timestamp();
+        bdlt::Datetime      datetime;
+        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+    }
+
+    stream << '\n';
+}
+
+void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
+{
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -263,7 +351,7 @@ void printRecord(bsl::ostream& stream, const mqbs::MessageRecord& rec)
     fields.push_back("GUID");
     fields.push_back("Crc32c");
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -291,6 +379,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 {
     bsl::vector<const char*> fields;
     fields.reserve(7);
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -309,7 +398,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
         appKeyStr << rec.appKey();
     }
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -328,7 +417,7 @@ void printRecord(bsl::ostream& stream, const mqbs::ConfirmRecord& rec)
 
 void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
 {
-    bsl::vector<const char*> fields;
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -340,7 +429,7 @@ void printRecord(bsl::ostream& stream, const mqbs::DeletionRecord& rec)
     bmqu::MemOutStream queueKeyStr;
     queueKeyStr << rec.queueKey();
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -361,6 +450,7 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
 {
     bsl::vector<const char*> fields;
     fields.reserve(8);
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -385,7 +475,7 @@ void printRecord(bsl::ostream& stream, const mqbs::QueueOpRecord& rec)
         appKeyStr << rec.appKey();
     }
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -413,6 +503,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
 {
     bsl::vector<const char*> fields;
     fields.reserve(10);
+    bsl::vector<bsl::string> fields;
     fields.push_back("PrimaryLeaseId");
     fields.push_back("SequenceNumber");
     fields.push_back("Timestamp");
@@ -424,7 +515,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     fields.push_back("PrimaryNodeId");
     fields.push_back("DataFileOffsetDwords");
 
-    bmqu::AlignedPrinter printer(stream, &fields);
+    bmqu::AlignedPrinter printer(stream, fields);
     printer << rec.header().primaryLeaseId() << rec.header().sequenceNumber();
 
     bsls::Types::Uint64 epochValue = rec.header().timestamp();
@@ -612,13 +703,14 @@ void printIterator(mqbs::QlistFileIterator& it)
     it.loadQueueUri(&uri, &uriLen);
     it.loadQueueUriHash(&queueKey);
 
-    bsl::vector<bsl::pair<const char*, unsigned int> > appIdLenPairs;
-    bsl::vector<const char*>                           appIdHashes;
+    bsl::vector<bsl::pair<bsl::string, unsigned int> > appIdLenPairs;
+    bsl::vector<bsl::string>                           appIdHashes;
     it.loadAppIds(&appIdLenPairs);
     it.loadAppIdHashes(&appIdHashes);
 
     bsl::vector<const char*> fields;
     fields.reserve(3);
+    bsl::vector<bsl::string> fields;
     fields.push_back("Queue URI");
     fields.push_back("QueueKey");
     fields.push_back("NumAppIds");
@@ -630,20 +722,20 @@ void printIterator(mqbs::QlistFileIterator& it)
                                << ", offset: " << it.recordOffset() << '\n'
                                << "QueueUriRecord:" << '\n';
 
-        bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+        bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
         printer << bsl::string(uri, uriLen)
                 << mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                                     queueKey)
                 << numAppIds;
 
         if (0 != numAppIds) {
-            bsl::vector<const char*> appIdsInfo;
+            bsl::vector<bsl::string> appIdsInfo;
             for (size_t n = 0; n < numAppIds; ++n) {
                 appIdsInfo.push_back("AppId");
                 appIdsInfo.push_back("AppKey");
             }
 
-            bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &appIdsInfo);
+            bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, appIdsInfo);
             for (size_t n = 0; n < numAppIds; ++n) {
                 p << bsl::string(appIdLenPairs[n].first,
                                  appIdLenPairs[n].second)

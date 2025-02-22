@@ -447,7 +447,7 @@ static void test2_backwardIteration()
 
         bsl::vector<AppIdLenPair> appIdLenPairVector(
             bmqtst::TestHelperUtil::allocator());
-        bsl::vector<const char*> appKeysVector(
+        bsl::vector<bsl::string> appKeysVector(
             bmqtst::TestHelperUtil::allocator());
 
         it.loadAppIds(&appIdLenPairVector);
@@ -668,7 +668,7 @@ static void test4_iteratorAppKeys()
 
         bsl::vector<AppIdLenPair> appIdLenPairVector(
             bmqtst::TestHelperUtil::allocator());
-        bsl::vector<const char*> appKeysVector(
+        bsl::vector<bsl::string> appKeysVector(
             bmqtst::TestHelperUtil::allocator());
 
         it.loadAppIds(&appIdLenPairVector);

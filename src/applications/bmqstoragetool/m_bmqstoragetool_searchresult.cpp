@@ -48,6 +48,163 @@ calculateOutstandingRatio(bsl::size_t totalMessagesCount,
         float(outstandingMessagesCount) / float(totalMessagesCount) * 100.0f +
         0.5f));
     return bsl::make_pair(outstandingMessagesCount, ratio);
+    if (!dataFile_p || !dataFile_p->isValid()) {
+        return;  // RETURN
+    }
+    ostream << "\nDetails of data file: \n"
+            << *dataFile_p->mappedFileDescriptor() << " "
+            << dataFile_p->header();
+}
+
+// Helper to print journal file meta data
+void printJournalFileMeta(bsl::ostream&              ostream,
+                          mqbs::JournalFileIterator* journalFile_p,
+                          bslma::Allocator*          allocator)
+{
+    if (!journalFile_p || !journalFile_p->isValid()) {
+        return;  // RETURN
+    }
+
+    ostream << "\nDetails of journal file: \n";
+    ostream << "File descriptor: " << journalFile_p->mappedFileDescriptor()
+            << '\n';
+    mqbs::FileStoreProtocolPrinter::printHeader(
+        ostream,
+        journalFile_p->header(),
+        *journalFile_p->mappedFileDescriptor(),
+        allocator);
+
+    // Print journal-specific fields
+    ostream << "Journal SyncPoint:\n";
+    bsl::vector<bsl::string> fields(allocator);
+    fields.push_back("Last Valid Record Offset");
+    fields.push_back("Record Type");
+    fields.push_back("Record Timestamp");
+    fields.push_back("Record Epoch");
+    fields.push_back("Last Valid SyncPoint Offset");
+    fields.push_back("SyncPoint Timestamp");
+    fields.push_back("SyncPoint Epoch");
+    fields.push_back("SyncPoint SeqNum");
+    fields.push_back("SyncPoint Primary NodeId");
+    fields.push_back("SyncPoint Primary LeaseId");
+    fields.push_back("SyncPoint DataFileOffset (DWORDS)");
+    fields.push_back("SyncPoint QlistFileOffset (WORDS)");
+
+    bmqu::AlignedPrinter printer(ostream, fields);
+    bsls::Types::Uint64  lastRecPos = journalFile_p->lastRecordPosition();
+    printer << lastRecPos;
+    if (0 == lastRecPos) {
+        // No valid record
+        printer << "** NA **"
+                << "** NA **";
+    }
+    else {
+        mqbs::OffsetPtr<const mqbs::RecordHeader> recHeader(
+            journalFile_p->mappedFileDescriptor()->block(),
+            lastRecPos);
+        printer << recHeader->type();
+        bdlt::Datetime      datetime;
+        bsls::Types::Uint64 epochValue = recHeader->timestamp();
+        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
+                                                           epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+    }
+
+    const bsls::Types::Uint64 syncPointPos =
+        journalFile_p->lastSyncPointPosition();
+
+    printer << syncPointPos;
+    if (0 == syncPointPos) {
+        // No valid syncPoint
+        printer << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **"
+                << "** NA **";
+    }
+    else {
+        const mqbs::JournalOpRecord& syncPt = journalFile_p->lastSyncPoint();
+
+        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == syncPt.type());
+
+        bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
+        bdlt::Datetime      datetime;
+        const int           rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
+                                                           epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+
+        printer << syncPt.sequenceNum() << syncPt.primaryNodeId()
+                << syncPt.primaryLeaseId() << syncPt.dataFileOffsetDwords()
+                << syncPt.qlistFileOffsetWords();
+    }
+}
+
+// Helper to print message GUID as a string
+void outputGuidString(bsl::ostream&            ostream,
+                      const bmqt::MessageGUID& messageGUID,
+                      const bool               addNewLine = true)
+{
+    ostream << messageGUID;
+    if (addNewLine)
+        ostream << '\n';
+}
+
+// Helper to calculate and print outstanding ratio
+void outputOutstandingRatio(bsl::ostream&       ostream,
+                            bsls::Types::Uint64 totalMessagesCount,
+                            bsls::Types::Uint64 deletedMessagesCount)
+{
+    if (totalMessagesCount > 0) {
+        bsls::Types::Uint64 outstandingMessages = totalMessagesCount -
+                                                  deletedMessagesCount;
+        ostream << "Outstanding ratio: "
+                << static_cast<int>(bsl::floor(float(outstandingMessages) /
+                                                   float(totalMessagesCount) *
+                                                   100.0f +
+                                               0.5f))
+                << "% (" << outstandingMessages << "/" << totalMessagesCount
+                << ")" << '\n';
+    }
+}
+
+// Helper to print summary of search result
+void outputFooter(bsl::ostream&                         ostream,
+                  bsls::Types::Uint64                   foundMessagesCount,
+                  bsls::Types::Uint64                   foundQueueOpCount,
+                  bsls::Types::Uint64                   foundJournalOpCount,
+                  const Parameters::ProcessRecordTypes& processRecordTypes)
+{
+    if (processRecordTypes.d_message) {
+        foundMessagesCount > 0
+            ? (ostream << foundMessagesCount << " message GUID(s)")
+            : ostream << "No message GUID";
+        ostream << " found.\n";
+    }
+    if (processRecordTypes.d_queueOp) {
+        foundQueueOpCount > 0
+            ? (ostream << foundQueueOpCount << " queueOp record(s)")
+            : ostream << "No queueOp record";
+        ostream << " found.\n";
+    }
+    if (processRecordTypes.d_journalOp) {
+        foundJournalOpCount > 0
+            ? (ostream << foundJournalOpCount << " journalOp record(s)")
+            : ostream << "No journalOp record";
+        ostream << " found.\n";
+    }
 }
 
 }  // close unnamed namespace
@@ -1298,12 +1455,42 @@ void SummaryProcessor::outputResult()
             printer()->printOutstandingRatio(outstanding.second,
                                              outstanding.first,
                                              d_foundMessagesCount);
+            bsl::vector<bsl::string> fields(d_allocator_p);
+            fields.push_back("Number of partially confirmed messages");
+            fields.push_back("Number of confirmed messages");
+            fields.push_back("Number of outstanding messages");
+            bmqu::AlignedPrinter printer(d_ostream, fields);
+            printer << d_deletedMessagesCount
+                    << d_partiallyConfirmedGuids.size()
+                    << (d_foundMessagesCount - d_deletedMessagesCount);
+
+            outputOutstandingRatio(d_ostream,
+                                   d_foundMessagesCount,
+                                   d_deletedMessagesCount);
         }
     }
 
     if (d_processRecordTypes.d_queueOp) {
         printer()->printQueueOpSummary(d_queueOpRecordsCount,
                                        d_queueOpCountsVec);
+        if (d_queueOpRecordsCount == 0) {
+            d_ostream << "\nNo queueOp records found." << '\n';
+        }
+        else {
+            d_ostream << "\nTotal number of queueOp records: "
+                      << d_queueOpRecordsCount << '\n';
+
+            bsl::vector<bsl::string> fields(d_allocator_p);
+            fields.push_back("Number of 'purge' operations");
+            fields.push_back("Number of 'creation' operations");
+            fields.push_back("Number of 'deletion' operations");
+            fields.push_back("Number of 'addition' operations");
+            bmqu::AlignedPrinter printer(d_ostream, fields);
+            printer << d_queueOpCountsMap[mqbs::QueueOpType::e_PURGE]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_CREATION]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_DELETION]
+                    << d_queueOpCountsMap[mqbs::QueueOpType::e_ADDITION];
+        }
     }
 
     if (d_processRecordTypes.d_journalOp) {
@@ -1312,6 +1499,105 @@ void SummaryProcessor::outputResult()
 
     finalizeQueueDetails();
     printer()->printRecordSummary(d_totalRecordsCount, d_queueDetailsMap);
+    d_ostream << "Total number of records: " << d_totalRecordsCount << "\n";
+
+    // Print information per Queue:
+    d_ostream << "Number of records per Queue:\n";
+    for (QueueRecordsMap::const_iterator it = d_queueRecordsMap.cbegin();
+         it != d_queueRecordsMap.cend();
+         ++it) {
+        bsls::Types::Uint64 totalRecordsCount = it->second;
+
+        // Skip this queue if the number of records for this queue is smaller
+        // than threshold
+        if (totalRecordsCount < d_minRecordsPerQueue) {
+            continue;
+        }
+
+        const mqbu::StorageKey& queueKey = it->first;
+
+        // Check if queueInfo is present for queue key
+        bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
+
+        // Get queue information contained in CSL file
+        const bool queueInfoPresent = d_queueMap.findInfoByKey(&queueInfo,
+                                                               queueKey);
+
+        bsl::size_t appKeysCount = d_queueAppRecordsMap[queueKey].size();
+
+        // Setup fields to be displayed
+        bsl::vector<bsl::string> fields(d_allocator_p);
+        fields.push_back("Queue Key");
+        if (queueInfoPresent) {
+            fields.push_back("Queue URI");
+        }
+        fields.push_back("Total Records");
+        fields.push_back("Num Queue Op Records");
+        fields.push_back("Num Message Records");
+        fields.push_back("Num Confirm Records");
+        if (appKeysCount > 1U) {
+            fields.push_back("Num Records Per App");
+        }
+        fields.push_back("Num Delete Records");
+
+        bmqu::AlignedPrinter printer(d_ostream, fields);
+
+        // Print Queue Key id: either Key or URI
+        printer << queueKey;
+
+        // Print Queue URI if it's available in CSL file
+        if (queueInfoPresent) {
+            printer << queueInfo.uri();
+        }
+
+        // Print number of records of all types related to the queue
+        printer << totalRecordsCount;
+        printer << d_queueQueueOpRecordsMap[queueKey];
+        printer << d_queueMessageRecordsMap[queueKey];
+        printer << d_queueConfirmRecordsMap[queueKey];
+
+        // Print number of records per App Key/Id
+        if (appKeysCount > 1U) {
+            bmqu::MemOutStream ss(d_allocator_p);
+
+            // Sort Apps by number of records ascending
+            AppsData appsData(d_allocator_p);
+            for (QueueRecordsMap::const_iterator it =
+                     d_queueAppRecordsMap[queueKey].cbegin();
+                 it != d_queueAppRecordsMap[queueKey].cend();
+                 ++it) {
+                appsData.emplace_back(it->second, it->first);
+            }
+            bsl::sort(appsData.begin(), appsData.end());
+
+            // Print number of records per App
+            for (AppsData::const_iterator it = appsData.cbegin();
+                 it != appsData.cend();
+                 ++it) {
+                const mqbu::StorageKey& appKey = it->second;
+
+                // Try resolve App Key to string App Id
+                bsl::string appIdStr(d_allocator_p);
+                if (queueInfoPresent) {
+                    RecordPrinter::findQueueAppIdByAppKey(&appIdStr,
+                                                          queueInfo.appIds(),
+                                                          appKey);
+                }
+
+                if (!appIdStr.empty()) {
+                    ss << appIdStr;
+                }
+                else {
+                    ss << appKey;
+                }
+
+                ss << "=" << it->first << " ";
+            }
+            printer << ss.str();
+        }
+
+        printer << d_queueDeleteRecordsMap[queueKey];
+    }
 
     // Print meta data of opened files
     printer()->printJournalFileMeta(d_journalFile_p);
