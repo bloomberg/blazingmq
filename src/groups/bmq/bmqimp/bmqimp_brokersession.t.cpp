@@ -2630,6 +2630,26 @@ class DTTestTracer : public bmqpi::DTTracer {
             d_allocator_p);
         return result;
     }
+
+    int
+    serializeSpan(BSLS_ANNOTATION_UNUSED bsl::vector<unsigned char>* buffer,
+                  BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqpi::DTSpan>&
+                      dtSpan) const BSLS_KEYWORD_OVERRIDE
+    {
+        // NOT IMPLEMENTED
+        return 0;
+    }
+
+    int deserializeAndCreateChildSpan(
+        BSLS_ANNOTATION_UNUSED bsl::shared_ptr<bmqpi::DTSpan>* child,
+        BSLS_ANNOTATION_UNUSED const bsl::vector<unsigned char>& buffer,
+        BSLS_ANNOTATION_UNUSED const bsl::string_view& operation,
+        BSLS_ANNOTATION_UNUSED const bmqpi::DTSpan::Baggage& baggage) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        // NOT IMPLEMENTED
+        return 0;
+    }
 };
 
 }  // close unnamed namespace
