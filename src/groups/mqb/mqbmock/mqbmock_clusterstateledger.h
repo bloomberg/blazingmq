@@ -142,6 +142,12 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///         dispatcher thread.
     int close() BSLS_KEYWORD_OVERRIDE;
 
+    /// Apply the specified `advisory` to self and replicate to followers.
+    /// Notify via `commitCb` when consistency level has been achieved.
+    /// Note that *only* a leader node may invoke this routine.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
     int apply(const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
     int apply(const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory)
@@ -152,8 +158,8 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
         BSLS_KEYWORD_OVERRIDE;
 
     /// Apply the specified `advisory` to self and replicate to followers.
-    /// Notify via `commitCb` when consistency level has been achieved.
-    /// Note that *only* a leader node may invoke this routine.
+    /// Notify via `commitCb` when consistency level has been achieved.  Note
+    /// that *only* a leader node may invoke this routine.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.

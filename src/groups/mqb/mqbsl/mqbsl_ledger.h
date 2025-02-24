@@ -168,25 +168,28 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     LogSp& currentLog();
 
     /// Implementation of rollover from the current log being written to (if
-    /// any), identified by the specified `oldLogId`, to a new one.  Return
-    /// 0 on success, or a non-zero `mqbsi::LedgerOpResult::Enum` otherwise.
-    /// If successful, invoke the optional `OnRolloverCb` (found in the
-    /// ledger config) when finished.
+    /// any), identified by the specified `oldLogId`, to a new one.  Return 0
+    /// on success, or a non-zero `mqbsi::LedgerOpResult::Enum` otherwise.  If
+    /// successful, invoke the optional `OnRolloverCb` (found in the ledger
+    /// config) when finished.
     int rollOverImpl(const mqbu::StorageKey& oldLogId);
 
-    /// Roll over the current log being written to and return 0 on success,
-    /// or a non-zero `mqbsi::LedgerOpResult` otherwise.  If successful,
-    /// invoke the optional `OnRolloverCb` when finished.
+    /// Roll over the current log being written to and return 0 on success, or
+    /// a non-zero `mqbsi::LedgerOpResult` otherwise.  If successful, invoke
+    /// the optional `OnRolloverCb` when finished.
     int rollOver();
 
     template <typename RECORD, typename OFFSET>
     int writeRecordImpl(LedgerRecordId* recordId,
-                        const RECORD    record,
+                        const RECORD&   record,
                         OFFSET          offset,
                         int             length);
 
-    /// Close and cleanup a log. Scheduled to run in seperate thread.
-    void closeAndCleanup(const LogSp& log);
+    /// Close and cleanup the specified `log` at the specified `logIndex`.
+    /// Return 0 on success, and non-zero error code otherwise.
+    ///
+    /// THREAD: Scheduled to run in seperate thread.
+    int closeAndCleanup(const LogSp& log, const size_t logIndex);
 
     // PRIVATE ACCESSORS
 
@@ -245,17 +248,16 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
     int setOutstandingNumBytes(const mqbu::StorageKey& logId,
                                bsls::Types::Int64 value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Write the specified `record` starting at the specified `offset`
+    /// and of the specified `length` into this ledger and load into `recordId`
+    /// an identifier which can be used to retrieve the record later.
+    /// Return 0 on success, 1 on rollover success, and a non zero value
+    /// otherwise.  The implementation must also adjust outstanding num bytes
+    /// of the corresponding log.
     int writeRecord(LedgerRecordId* recordId,
                     const void*     record,
                     int             offset,
                     int             length) BSLS_KEYWORD_OVERRIDE;
-
-    /// Write the specified `record` starting at the specified `offset` and
-    /// of the specified `length` into this ledger and load into `recordId`
-    /// an identifier which can be used to retrieve the record later.
-    /// Return 0 on success and a non zero value otherwise.  The
-    /// implementation must also adjust outstanding num bytes of the
-    /// corresponding log.
     int writeRecord(LedgerRecordId*           recordId,
                     const bdlbb::Blob&        record,
                     const bmqu::BlobPosition& offset,
@@ -263,9 +265,9 @@ class Ledger BSLS_KEYWORD_FINAL : public mqbsi::Ledger {
 
     /// Write the specified `section` of the specified `record` into this
     /// ledger and load into the specified `recordId` an identifier which
-    /// can be used to retrieve the record later.  Return 0 on success and a
-    /// non zero value otherwise.  The implementation must also adjust
-    /// outstanding num bytes of the corresponding log.
+    /// can be used to retrieve the record later.  Return 0 on success, 1 on
+    /// rollover success, and a non zero value otherwise.  The implementation
+    /// must also adjust outstanding num bytes of the corresponding log.
     int writeRecord(LedgerRecordId*          recordId,
                     const bdlbb::Blob&       record,
                     const bmqu::BlobSection& section) BSLS_KEYWORD_OVERRIDE;
