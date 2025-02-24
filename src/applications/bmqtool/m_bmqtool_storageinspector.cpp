@@ -463,7 +463,7 @@ void StorageInspector::processCommand(
 
             // Print journal-specific fields
             BALL_LOG_OUTPUT_STREAM << "Journal SyncPoint:\n";
-            bsl::vector<const char*> fields;
+            bsl::vector<bsl::string> fields;
             fields.push_back("Last Valid Record Offset");
             fields.push_back("Record Type");
             fields.push_back("Record Timestamp");
@@ -477,7 +477,7 @@ void StorageInspector::processCommand(
             fields.push_back("SyncPoint DataFileOffset (DWORDS)");
             fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             bsls::Types::Uint64  lastRecPos =
                 d_journalFileIter.lastRecordPosition();
             printer << lastRecPos;
@@ -576,12 +576,12 @@ void StorageInspector::processCommand(
             BALL_LOG_OUTPUT_STREAM << "Queue #" << qnum << "\n";
             const QueueRecord& qr = cit->second;
 
-            bsl::vector<const char*> fields;
+            bsl::vector<bsl::string> fields;
             fields.push_back("Queue URI");
             fields.push_back("QueueKey");
             fields.push_back("Number of AppIds");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             printer << cit->first << qr.d_queueKey << qr.d_appIds.size();
 
             // 'printer' not to be used beyond this point
@@ -590,12 +590,12 @@ void StorageInspector::processCommand(
             for (unsigned int i = 0; i < appRecs.size(); ++i) {
                 const AppIdRecord& ar = appRecs[i];
                 BALL_LOG_OUTPUT_STREAM << "        AppId #" << i + 1 << "\n";
-                bsl::vector<const char*> f;
+                bsl::vector<bsl::string> f;
                 f.push_back("AppId");
                 f.push_back("AppKey");
 
                 const int            indent = 8;
-                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
+                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, f, indent);
                 p << ar.d_appId << ar.d_appKey;
             }
 
