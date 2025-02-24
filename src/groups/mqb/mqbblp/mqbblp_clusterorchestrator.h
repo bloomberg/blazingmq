@@ -488,21 +488,13 @@ class ClusterOrchestrator {
     /// IncoreCSL.
     void validateClusterStateLedger();
 
-    /// Invoked by @bbref{mqbblp::Cluster} to register a new `appId` for
-    /// `domain`.
-    ///
-    /// Note: As this function is dispatched from a separate thread, `appId`
-    ///       is taken by value to ensure it survives the lifetime of this
-    ///       function call.
-    void registerAppId(bsl::string appId, const mqbi::Domain& domain);
-
-    /// Invoked by @bbref{mqbblp::Cluster} to unregister an `appId` for
-    /// `domain`.
-    ///
-    /// Note: As this function is dispatched from a separate thread, `appId`
-    ///       is taken by value to ensure it survives the lifetime of this
-    ///       function call.
-    void unregisterAppId(bsl::string appId, const mqbi::Domain& domain);
+    /// Unregister the specified 'removed' and register the specified `added`
+    /// for the specified  `domainName`.
+    /// Invoked by @bbref{mqbblp::Cluster}.
+    void updateAppIds(
+        const bsl::shared_ptr<const bsl::vector<bsl::string> >& added,
+        const bsl::shared_ptr<const bsl::vector<bsl::string> >& removed,
+        const bsl::string&                                      domainName);
 
     /// Register a queue info for the queue with the specified `uri`,
     /// `partitionId`, `queueKey` and `appIdInfos`.  If the specified
@@ -511,6 +503,7 @@ class ClusterOrchestrator {
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
+    /// TODO_CSL: Legacy only.  Remove.
     void registerQueueInfo(const bmqt::Uri&        uri,
                            int                     partitionId,
                            const mqbu::StorageKey& queueKey,
