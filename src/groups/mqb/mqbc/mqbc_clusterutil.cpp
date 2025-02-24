@@ -1090,6 +1090,38 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                        << queueAdvisory << ", rc: " << rc;
     }
 
+    if (!cluster->isCSLModeEnabled()) {
+        // In CSL mode, we assign the queue to ClusterState upon CSL commit
+        // callback of QueueAssignmentAdvisory, so we don't assign it here.
+
+        // In non-CSL mode this is the shortcut to call Primary CQH instead of
+        // waiting for the quorum of acks in the ledger.
+
+        // We keep this branching for now since due to backward compatibility.
+        // If the followers are still in old version, they need to
+        // receive a `queueAssignmentAdvisory`.
+
+        BSLS_ASSERT_SAFE(queueAdvisory.queues().size() == 1);
+
+        bmqp_ctrlmsg::QueueInfo& queueInfo = queueAdvisory.queues().back();
+
+        AppInfos appInfos(allocator);
+        mqbc::ClusterUtil::parseQueueInfo(&appInfos, queueInfo, allocator);
+
+        BSLA_MAYBE_UNUSED const bool assignRc = clusterState->assignQueue(
+            uri,
+            key,
+            queueAdvisory.queues().back().partitionId(),
+            appInfos);
+        BSLS_ASSERT_SAFE(assignRc);
+
+        BALL_LOG_INFO << cluster->description()
+                      << ": Queue assigned: " << queueAdvisory;
+
+        // Broadcast 'queueAssignmentAdvisory' to all followers
+        clusterData->messageTransmitter().broadcastMessage(controlMsg);
+    }
+
     return QueueAssignmentResult::k_ASSIGNMENT_OK;
 }
 
