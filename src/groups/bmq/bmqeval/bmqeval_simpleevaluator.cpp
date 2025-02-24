@@ -364,5 +364,62 @@ bdld::Datum SimpleEvaluator::Not::evaluate(EvaluationContext& context) const
     return bdld::Datum::createBoolean(!value.theBoolean());
 }
 
+// ---------------------------------
+// class SimpleEvaluator::Abs
+// ---------------------------------
+
+bdld::Datum SimpleEvaluator::Abs::evaluate(EvaluationContext& context) const
+{
+    bdld::Datum expr = d_expression->evaluate(context);
+    if (context.d_stop) {
+        return bdld::Datum::createNull();  // RETURN
+    }
+
+    bsls::Types::Int64 value;
+    if (expr.isInteger64()) {
+        value = expr.theInteger64();
+    }
+
+    else if (expr.isInteger()) {
+        value = expr.theInteger();
+    }
+    else {
+        context.d_lastError = ErrorType::e_TYPE;
+        return context.stop();  // RETURN
+    }
+
+    value = abs(value);
+    return bdld::Datum::createInteger64(value, context.d_allocator);
+}
+
+// --------------------------
+// class SimpleEvaluator::Exists
+// --------------------------
+
+SimpleEvaluator::Exists::Exists(const bsl::string& name)
+: d_name(name)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+SimpleEvaluator::Exists::Exists(bsl::string&& name) noexcept
+: d_name(bsl::move(name))
+{
+}
+#endif
+
+bdld::Datum SimpleEvaluator::Exists::evaluate(EvaluationContext& context) const
+{
+    bdld::Datum value = context.d_propertiesReader->get(d_name,
+                                                        context.d_allocator);
+
+    if (value.isError()) {
+        return bdld::Datum::createBoolean(false);
+    }
+
+    return bdld::Datum::createBoolean(true);
+}
+
 }  // close package namespace
 }  // close enterprise namespace

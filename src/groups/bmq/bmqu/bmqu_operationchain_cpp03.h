@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Oct 17 16:05:19 2024
+// Generated on Fri Feb 14 17:43:15 2025
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
 
 #ifdef COMPILING_BMQU_OPERATIONCHAIN_H
@@ -1288,6 +1288,3 @@ inline void bmqu::swap(OperationChainLink& lhs,
 #endif  // ! defined(COMPILING_BMQU_OPERATIONCHAIN_H)
 
 #endif  // ! defined(INCLUDED_BMQU_OPERATIONCHAIN_CPP03)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: 7610aa7a0ecb116c786702dfc71b197eda2f52aa0f3efa66433723466764a626
