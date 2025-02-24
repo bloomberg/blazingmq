@@ -3029,6 +3029,9 @@ void Cluster::processClusterControlMessage(
                                  source),
             this);
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
+        // NO-OP
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_NODE_STATUS_ADVISORY: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(
