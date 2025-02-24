@@ -194,9 +194,9 @@
 // Include version that can be compiled with C++03
 // Generated on Fri Feb 14 17:43:15 2025
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
-# define COMPILING_BMQU_OPERATIONCHAIN_H
-# include <bmqu_operationchain_cpp03.h>
-# undef COMPILING_BMQU_OPERATIONCHAIN_H
+#define COMPILING_BMQU_OPERATIONCHAIN_H
+#include <bmqu_operationchain_cpp03.h>
+#undef COMPILING_BMQU_OPERATIONCHAIN_H
 #else
 
 namespace BloombergLP {
@@ -301,7 +301,7 @@ class OperationChain_CompletionCallbackWrapper {
 
   public:
     // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 
     /// Invoke the associated completion callback with the specified `args`
     /// arguments and notify the associated operation chain. Propagate any
@@ -806,7 +806,7 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
 }
 
 // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES // $var-args=9
+#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 template <class CO_CALLBACK>
 template <class... ARGS>
 inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
@@ -1021,6 +1021,6 @@ inline void bmqu::swap(OperationChainLink& lhs,
 
 }  // close enterprise namespace
 
-#endif // End C++11 code
+#endif  // End C++11 code
 
 #endif

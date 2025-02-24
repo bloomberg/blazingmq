@@ -368,8 +368,7 @@ bdld::Datum SimpleEvaluator::Not::evaluate(EvaluationContext& context) const
 // class SimpleEvaluator::Abs
 // ---------------------------------
 
-bdld::Datum
-SimpleEvaluator::Abs::evaluate(EvaluationContext& context) const
+bdld::Datum SimpleEvaluator::Abs::evaluate(EvaluationContext& context) const
 {
     bdld::Datum expr = d_expression->evaluate(context);
     if (context.d_stop) {
@@ -388,7 +387,7 @@ SimpleEvaluator::Abs::evaluate(EvaluationContext& context) const
         context.d_lastError = ErrorType::e_TYPE;
         return context.stop();  // RETURN
     }
-    
+
     value = abs(value);
     return bdld::Datum::createInteger64(value, context.d_allocator);
 }
