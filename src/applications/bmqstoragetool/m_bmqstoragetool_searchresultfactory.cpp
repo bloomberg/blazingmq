@@ -65,7 +65,6 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
             alloc);
     }
     else if (details) {
-        bsl::cout << "create SearchDetailResult\n";
         searchResult.reset(new (*alloc)
                                SearchDetailResult(printer,
                                                   params->d_processRecordTypes,
