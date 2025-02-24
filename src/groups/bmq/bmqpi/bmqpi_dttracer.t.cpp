@@ -33,18 +33,18 @@ using namespace BloombergLP;
 
 /// A test implementation of the `bmqpi::DTTracer` protocol.
 struct DTTracerTestImp : public bsls::ProtocolTestImp<bmqpi::DTTracer> {
-    virtual bsl::shared_ptr<bmqpi::DTSpan> createChildSpan(
+    bsl::shared_ptr<bmqpi::DTSpan> createChildSpan(
         const bsl::shared_ptr<bmqpi::DTSpan>& parent,
         const bsl::string_view&               operation,
         const bmqpi::DTSpan::Baggage& baggage) const BSLS_KEYWORD_OVERRIDE;
 
-    virtual int serializeSpan(bsl::vector<unsigned char>*           out,
-                              const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan)
-        const BSLS_KEYWORD_OVERRIDE;
+    int serializeSpan(bsl::vector<unsigned char>*           buffer,
+                      const bsl::shared_ptr<bmqpi::DTSpan>& dtSpan) const
+        BSLS_KEYWORD_OVERRIDE;
 
-    virtual int deserializeAndCreateChildSpan(
-        bsl::shared_ptr<bmqpi::DTSpan>*   out,
-        const bsl::vector<unsigned char>& in,
+    int deserializeAndCreateChildSpan(
+        bsl::shared_ptr<bmqpi::DTSpan>*   child,
+        const bsl::vector<unsigned char>& buffer,
         const bsl::string_view&           operation,
         const bmqpi::DTSpan::Baggage& baggage = bmqpi::DTSpan::Baggage()) const
         BSLS_KEYWORD_OVERRIDE;
@@ -128,8 +128,8 @@ static void test1_breathingTest()
     BMQTST_ASSERT(tracer.testVirtualDestructor());
 
     PV("Verify that all methods are public and virtual");
-    bmqpi::DTSpan::Baggage     empty;
-    bsl::vector<unsigned char> emptyVec;
+    bmqpi::DTSpan::Baggage     empty(bmqtst::TestHelperUtil::allocator());
+    bsl::vector<unsigned char> emptyVec(bmqtst::TestHelperUtil::allocator());
     BSLS_PROTOCOLTEST_ASSERT(tracer, createChildSpan(NULL, "", empty));
     BSLS_PROTOCOLTEST_ASSERT(tracer, serializeSpan(NULL, NULL));
     BSLS_PROTOCOLTEST_ASSERT(
