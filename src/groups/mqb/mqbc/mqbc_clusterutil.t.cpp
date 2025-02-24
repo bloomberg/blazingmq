@@ -242,9 +242,9 @@ static void test1_validateState()
                                  6,
                                  mqbc::ClusterState::AppInfos());
     mqbc::ClusterState::AppInfos defaultAppInfos;
-    defaultAppInfos.insert(
-        bsl::make_pair(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                       mqbi::QueueEngine::k_DEFAULT_APP_KEY));
+    defaultAppInfos.insert(bsl::make_pair(
+        bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, tester.allocator()),
+        mqbi::QueueEngine::k_DEFAULT_APP_KEY));
     mqbc::ClusterState::QueueInfoSp correctQueueInfoSp2DefaultApp =
         tester.createQueueInfoSp(queueCorrectQueue2,
                                  correctQueueKey2,
