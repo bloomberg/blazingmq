@@ -85,7 +85,7 @@ build_ntf() {
         --without-usage-examples        \
         --without-applications          \
         --without-warnings-as-errors    \
-        --ufid opt_64_cpp17
+        --ufid "${DEPS_CONFIGURE_UFID}"
     make -j8
     make install
     popd
