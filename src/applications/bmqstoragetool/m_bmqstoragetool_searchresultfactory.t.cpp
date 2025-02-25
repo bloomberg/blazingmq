@@ -95,10 +95,16 @@ static void test2_cslSearchResultTest()
     // CSL mode parameters
     params.d_cslMode = true;
 
+    // Create printer
+    bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
+        params.d_printMode,
+        bsl::cout,
+        bmqtst::TestHelperUtil::allocator());
+
     bsl::shared_ptr<CslSearchResult> searchResult =
         SearchResultFactory::createCslSearchResult(
             &params,
-            bsl::cout,
+            printer,
             bmqtst::TestHelperUtil::allocator());
     ASSERT(dynamic_cast<CslSearchResult*>(searchResult.get()) != 0);
 }

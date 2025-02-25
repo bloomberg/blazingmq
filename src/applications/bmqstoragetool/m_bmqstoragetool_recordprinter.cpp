@@ -19,50 +19,5 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// void printRecord(bsl::ostream&                         stream,
-//         const bmqp_ctrlmsg::ClusterMessage&   rec,
-//         const mqbc::ClusterStateRecordHeader& header,
-//         const mqbsi::LedgerRecordId&          recId,
-//         bslma::Allocator*                     allocator)
-// {
-// // PRECONDITION
-// BSLS_ASSERT(stream.good());
-
-// // Print record header and recordId
-// bmqu::MemOutStream ss(allocator);
-// ss << header.recordType() << " Record, offset: " << recId.offset();
-// bsl::string delimiter(ss.length(), '=', allocator);
-// stream << delimiter << '\n' << ss.str() << '\n';
-
-// const bsls::Types::Uint64 epochValue = header.timestamp();
-// bdlt::Datetime            datetime;
-// const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
-
-// bsl::vector<const char*> fields(allocator);
-// fields.push_back("LogId");
-// fields.push_back("ElectorTerm");
-// fields.push_back("SequenceNumber");
-// fields.push_back("HeaderWords");
-// fields.push_back("LeaderAdvisoryWords");
-// fields.push_back("Timestamp");
-// if (rc == 0) {
-// fields.push_back("Epoch");
-// }
-
-// bmqu::AlignedPrinter printer(stream, &fields);
-// printer << recId.logId() << header.electorTerm() << header.sequenceNumber()
-//    << header.headerWords() << header.leaderAdvisoryWords();
-// if (rc == 0) {
-// printer << datetime << epochValue;
-// }
-// else {
-// printer << epochValue;
-// }
-
-// // Print record
-// rec.print(stream, 0, 2);
-// stream << '\n';
-// }
-
 }  // close package namespace
 }  // close enterprise namespace
