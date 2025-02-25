@@ -2330,35 +2330,35 @@ void ClusterQueueHelper::onGetDomainDispatched(
         request.choice().openQueue().handleParameters();
 
     //  CQH::processPeerOpenQueueRequest  QueueSessionManager::processOpenQueue
-    //              \                       /
+    //               |                     |
     //               V                     V
     //              DomainFactory::createDomain
-    //              /                      \
-    //             V                        V
-    //  CQH::onGetDomain                  QueueSessionManager::onDomainOpenCb
-    //          |                           /
-    //          V                          /
-    //      CQH::onGetDomainDispatched    /
-    //                      \            /
-    //                       V          V
+    //               |                     |
+    //               V                     V
+    //      CQH::onGetDomain          QueueSessionManager::onDomainOpenCb
+    //               |                     |
+    //               V                     |
+    //      CQH::onGetDomainDispatched     |
+    //                       |             |
+    //                       V             V
     //                      Domain::openQueue
     //                              |
     //                              V
     //                          Cluster::openQueue
-    //                              |
-    //                              V
+    //                                  |
+    //                                  V
     //                              CQH::openQueue
-    //                                      \
-    //                                       V
+    //                                      |
+    //                                      V
     //                                  Queue::getHandle
-    //                                      /
-    //                                     V
+    //                                      |
+    //                                      V
     //                              CQH::onGetQueueHandle
-    //                                    /
-    //                                   V
+    //                                  |
+    //                                  V
     //                      Domain::onOpenQueueResponse
-    //                        /                 \
-    //                       V                   V
+    //                        |                  |
+    //                        V                  V
     //  CQH::onGetQueueHandleDispatched     QueueSessionManager::onQueueOpenCb
     //
 

@@ -1551,14 +1551,14 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             return;  // RETURN
         }
 
-        if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
-              leaderMsgSeq)) {
+        if (d_clusterData_p->electorInfo().leaderMessageSequence() >
+            leaderMsgSeq) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_cluster_p->description()
                 << ": got queueAssignmentAdvisory: " << queueAdvisory
                 << " from current leader: " << source->nodeDescription()
-                << ", with smaller/equal leader message sequence: "
-                << leaderMsgSeq << ". Current value: "
+                << ", with smaller leader message sequence: " << leaderMsgSeq
+                << ". Current value: "
                 << d_clusterData_p->electorInfo().leaderMessageSequence()
                 << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
             return;  // RETURN
@@ -2063,13 +2063,13 @@ void ClusterStateManager::processPartitionPrimaryAdvisory(
     const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
         advisory.sequenceNumber();
 
-    if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
-          leaderMsgSeq)) {
+    if (d_clusterData_p->electorInfo().leaderMessageSequence() >
+        leaderMsgSeq) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER")
             << d_clusterData_p->identity().description()
             << ": Got partition-primary advisory: " << advisory
             << " from leader node " << source->nodeDescription()
-            << " with smaller/equal leader message sequence: " << leaderMsgSeq
+            << " with smaller leader message sequence: " << leaderMsgSeq
             << ". Current value: "
             << d_clusterData_p->electorInfo().leaderMessageSequence()
             << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
@@ -2125,13 +2125,13 @@ void ClusterStateManager::processLeaderAdvisory(
 
     const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
         advisory.sequenceNumber();
-    if (!(d_clusterData_p->electorInfo().leaderMessageSequence() <
-          leaderMsgSeq)) {
+    if (d_clusterData_p->electorInfo().leaderMessageSequence() >
+        leaderMsgSeq) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_clusterData_p->identity().description()
             << ": got leader advisory: " << advisory << " from leader node ["
             << source->nodeDescription()
-            << " with smaller/equal leader message sequence: " << leaderMsgSeq
+            << " with smaller leader message sequence: " << leaderMsgSeq
             << ". Current value: "
             << d_clusterData_p->electorInfo().leaderMessageSequence()
             << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
