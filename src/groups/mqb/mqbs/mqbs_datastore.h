@@ -40,6 +40,7 @@
 #include <mqbu_storagekey.h>
 
 // BMQ
+#include <bmqc_orderedhashmap.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_uri.h>
@@ -271,15 +272,35 @@ struct DataStoreRecordKeyLess {
 class DataStoreConfigQueueInfo {
   public:
     // TYPES
-    typedef mqbi::Storage::AppInfos AppInfos;
+    typedef bmqc::OrderedHashMap<mqbu::StorageKey, bsl::string> AppInfos;
+
+    /// Collection of intervals [`first`, `second`) where `first` is the start
+    /// and `second` is the end of Purge range for some App that does not exist
+    /// anymore - a "ghost" App.
+    /// In other words, `first` is the oldest message which is younger than
+    /// some "ghost" App, and any message after `second` is not purged.
+    typedef bsl::multimap<DataStoreRecordKey, DataStoreRecordKey> PurgeOps;
+    typedef PurgeOps::const_iterator                              PurgeOp;
+
+    /// A collection of all "ghost" App with corresponding last PurgeOp.
+    typedef bsl::unordered_map<mqbu::StorageKey, PurgeOp> Ghosts;
 
   private:
     // DATA
+    bool d_isCSL;
+
     bsl::string d_canonicalUri;
 
     int d_partitionId;
 
     AppInfos d_appIdKeyPairs;
+
+    /// Ghosts are Apps which got removed before the current recovery.
+    Ghosts d_ghosts;
+
+    /// Second pass of `FileStore::recoverMessages` will cache Purge intervals
+    /// for ghost Apps.
+    mutable PurgeOps d_purgeOps;
 
   public:
     // TRAITS
@@ -287,7 +308,8 @@ class DataStoreConfigQueueInfo {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit DataStoreConfigQueueInfo(bslma::Allocator* basicAllocator = 0);
+    explicit DataStoreConfigQueueInfo(bool              isCSL,
+                                      bslma::Allocator* basicAllocator = 0);
 
     DataStoreConfigQueueInfo(const DataStoreConfigQueueInfo& other,
                              bslma::Allocator* basicAllocator = 0);
@@ -297,7 +319,23 @@ class DataStoreConfigQueueInfo {
 
     void setPartitionId(int value);
 
-    void addAppInfo(const AppInfos::const_iterator& value);
+    /// Save the specified `appId` and the specified `appKey` as a valid App
+    /// for which a Storage will be created.  If the same key was specified in
+    /// a previous `addPurgeOp` call, remove the App from the cache of Ghost
+    /// Apps.
+    void addAppInfo(const bsl::string& appId, const mqbu::StorageKey& appKey);
+
+    /// Cache the Purge interval from the specified `start` to the specified
+    /// `end` for the specified `key` unless the `key` was specified in a
+    /// previous `addAppInfo` call.
+    void addPurgeOp(const mqbu::StorageKey&   key,
+                    const DataStoreRecordKey& start,
+                    const DataStoreRecordKey& end);
+
+    /// Return the number of previously cached Purge intervals which contain
+    /// the specified `current` message.  Erase all Purge intervals whose end
+    /// end is less than the `current` value.
+    unsigned int advanceAndCount(const DataStoreRecordKey& current) const;
 
     // ACCESSORS
     const bsl::string& canonicalQueueUri() const;
@@ -594,10 +632,11 @@ class DataStore : public mqbi::DispatcherClient {
                                          bsls::Types::Uint64     timestamp,
                                          bool isNewQueue) = 0;
 
-    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*  handle,
-                                      const mqbu::StorageKey& queueKey,
-                                      const mqbu::StorageKey& appKey,
-                                      bsls::Types::Uint64     timestamp) = 0;
+    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
+                                      const mqbu::StorageKey&      queueKey,
+                                      const mqbu::StorageKey&      appKey,
+                                      bsls::Types::Uint64          timestamp,
+                                      const DataStoreRecordHandle& start) = 0;
 
     virtual int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
                                          const mqbu::StorageKey& queueKey,
@@ -857,19 +896,26 @@ DataStoreRecordKeyLess::operator()(const DataStoreRecordKey& lhs,
 
 // CREATORS
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
+    bool              isCSL,
     bslma::Allocator* basicAllocator)
-: d_canonicalUri(basicAllocator)
+: d_isCSL(isCSL)
+, d_canonicalUri(basicAllocator)
 , d_partitionId(DataStore::k_INVALID_PARTITION_ID)
 , d_appIdKeyPairs(basicAllocator)
+, d_ghosts(basicAllocator)
+, d_purgeOps(basicAllocator)
 {
 }
 
 inline DataStoreConfigQueueInfo::DataStoreConfigQueueInfo(
     const DataStoreConfigQueueInfo& other,
     bslma::Allocator*               basicAllocator)
-: d_canonicalUri(other.d_canonicalUri, basicAllocator)
+: d_isCSL(other.d_isCSL)
+, d_canonicalUri(other.d_canonicalUri, basicAllocator)
 , d_partitionId(other.d_partitionId)
 , d_appIdKeyPairs(other.d_appIdKeyPairs, basicAllocator)
+, d_ghosts(other.d_ghosts, basicAllocator)
+, d_purgeOps(other.d_purgeOps, basicAllocator)
 {
 }
 
@@ -883,12 +929,6 @@ DataStoreConfigQueueInfo::setCanonicalQueueUri(const bsl::string& value)
 inline void DataStoreConfigQueueInfo::setPartitionId(int value)
 {
     d_partitionId = value;
-}
-
-inline void
-DataStoreConfigQueueInfo::addAppInfo(const AppInfos::const_iterator& value)
-{
-    d_appIdKeyPairs.emplace(value->first, value->second);
 }
 
 // ACCESSORS

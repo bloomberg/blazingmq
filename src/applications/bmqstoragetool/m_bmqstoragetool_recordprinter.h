@@ -206,7 +206,6 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
 
     printRecord(details);
     d_printer_mp.reset();
-    printDelimeter<PRINTER_TYPE>(d_ostream);
 }
 
 template <typename PRINTER_TYPE>

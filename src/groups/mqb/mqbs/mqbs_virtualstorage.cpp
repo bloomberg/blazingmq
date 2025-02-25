@@ -36,13 +36,14 @@ VirtualStorage::VirtualStorage(mqbi::Storage*          storage,
                                const bsl::string&      appId,
                                const mqbu::StorageKey& appKey,
                                unsigned int            ordinal,
+                               bsls::Types::Int64      numMessagesSoFar,
                                bslma::Allocator*       allocator)
 : d_allocator_p(allocator)
 , d_storage_p(storage)
 , d_appId(appId, allocator)
 , d_appKey(appKey)
 , d_removedBytes(0)
-, d_numRemoved(0)
+, d_numRemoved(numMessagesSoFar)
 , d_ordinal(ordinal)
 {
     BSLS_ASSERT_SAFE(d_storage_p);
@@ -79,20 +80,66 @@ VirtualStorage::confirm(mqbi::DataStreamMessage* dataStreamMessage)
 mqbi::StorageResult::Enum
 VirtualStorage::remove(mqbi::DataStreamMessage* dataStreamMessage)
 {
-    mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
+    if (ordinal() < dataStreamMessage->d_numApps) {
+        mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
 
-    if (appMessage.isPending()) {
+        if (appMessage.isPending()) {
+            appMessage.setRemovedState();
+
+            d_removedBytes += dataStreamMessage->d_size;
+            ++d_numRemoved;
+
+            return mqbi::StorageResult::e_SUCCESS;
+        }
+        else {
+            // already deleted
+            return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
+        }
+    }
+    else {
+        // 'dataStreamMessage' is older than this VirtualStorage
+        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
+    }
+}
+
+bool VirtualStorage::remove(mqbi::DataStreamMessage* dataStreamMessage,
+                            unsigned int             replacingOrdinal)
+{
+    const unsigned int thisOrdinal = ordinal();
+
+    if (thisOrdinal >= dataStreamMessage->d_numApps) {
+        // This App is newer than the message
+
+        return false;
+    }
+
+    // This App is either older than the message, or the result of
+    // previous replacement.  In either case, it's state is accurate.
+
+    mqbi::AppMessage& appMessage = dataStreamMessage->app(thisOrdinal);
+
+    const bool wasPending = appMessage.isPending();
+
+    if (wasPending) {
         appMessage.setRemovedState();
 
         d_removedBytes += dataStreamMessage->d_size;
         ++d_numRemoved;
+    }
 
-        return mqbi::StorageResult::e_SUCCESS;
+    if (replacingOrdinal < dataStreamMessage->d_numApps) {
+        if (thisOrdinal < replacingOrdinal) {
+            BSLS_ASSERT_SAFE(replacingOrdinal + 1 ==
+                             dataStreamMessage->d_numApps);
+
+            // replace 'thisOrdinal' with 'maxOrdinal'
+            appMessage = dataStreamMessage->d_apps[replacingOrdinal];
+        }
+        // shrink the set of ordinals
+        --dataStreamMessage->d_numApps;
     }
-    else {
-        // already deleted
-        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
-    }
+
+    return wasPending;
 }
 
 void VirtualStorage::onGC(const mqbi::DataStreamMessage& dataStreamMessage)
@@ -111,6 +158,16 @@ void VirtualStorage::resetStats()
 {
     d_removedBytes = 0;
     d_numRemoved   = 0;
+}
+
+void VirtualStorage::replaceOrdinal(unsigned int replacingOrdinal)
+{
+    d_ordinal = replacingOrdinal;
+}
+
+void VirtualStorage::setNumRemoved(bsls::Types::Int64 numRemoved)
+{
+    d_numRemoved = numRemoved;
 }
 
 bool VirtualStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
@@ -211,10 +268,7 @@ StorageIterator::appMessageView(unsigned int appOrdinal) const
 
     const mqbi::DataStreamMessage& dataStreamMessage = d_iterator->second;
 
-    if (dataStreamMessage.d_apps.size() > appOrdinal) {
-        return d_iterator->second.app(appOrdinal);
-    }
-    return d_owner_p->defaultAppMessage();
+    return d_owner_p->appMessageView(dataStreamMessage, appOrdinal);
 }
 
 mqbi::AppMessage& StorageIterator::appMessageState(unsigned int appOrdinal)

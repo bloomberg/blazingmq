@@ -439,7 +439,7 @@ class Proto:
                 ),
                 network_interfaces=mqbcfg.NetworkInterfaces(
                     heartbeats=mqbcfg.Heartbeat(
-                        client=0,
+                        client=10,
                         downstream_broker=10,
                         upstream_broker=10,
                         cluster_peer=10,

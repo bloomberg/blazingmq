@@ -105,6 +105,7 @@
 #include <bsl_cstddef.h>
 #include <bsl_stdexcept.h>
 #include <bsl_utility.h>
+#include <bslalg_hasstliterators.h>
 #include <bslalg_scalarprimitives.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
@@ -683,8 +684,7 @@ class OrderedHashMap {
     /// is `true` if a new value was inserted, and `false` if the value was
     /// already present.  Note that this method requires that the (template
     /// parameter) types `KEY` and `VALUE` both be "copy-constructible".
-    template <class SOURCE_TYPE>
-    bsl::pair<iterator, bool> insert(const SOURCE_TYPE& value);
+    bsl::pair<iterator, bool> insert(const VALUE_TYPE& value);
 
     /// Insert the specified `value` into this container at the beginning of
     /// the underlying sequential list if the key (the `first` element) of a
@@ -698,8 +698,7 @@ class OrderedHashMap {
     /// inserted, and `false` if the value was already present.  Note that
     /// this method requires that the (template parameter) types `KEY` and
     /// `VALUE` both be "copy-constructible".
-    template <class SOURCE_TYPE>
-    bsl::pair<iterator, bool> rinsert(const SOURCE_TYPE& value);
+    bsl::pair<iterator, bool> rinsert(const VALUE_TYPE& value);
 
     // void reserve(int numElements);
     // Increase the number of buckets of this set to a quantity such that
@@ -718,11 +717,13 @@ class OrderedHashMap {
     /// maintained by this container, or the `end` iterator if this
     /// containeris empty.
     const_iterator begin() const;
+    const_iterator cbegin() const;
 
     /// Return an iterator providing non-modifiable access to the
     /// past-the-end element in the sequence of `value_type` objects
     /// maintained by this container.
     const_iterator end() const;
+    const_iterator cend() const;
 
     /// Return a local iterator providing non-modifiable access to the first
     /// `value_type` object in the sequence of `value_type` objects of the
@@ -731,6 +732,7 @@ class OrderedHashMap {
     /// bucket is empty.  The behavior is undefined unless 'index <
     /// bucket_count()'.
     const_local_iterator begin(size_t index) const;
+    const_local_iterator cbegin(size_t index) const;
 
     /// Return a local iterator providing non-modifiable access to the
     /// past-the-end element in the sequence of `value_type` objects of the
@@ -738,6 +740,7 @@ class OrderedHashMap {
     /// maintained by this container.  The behavior is undefined unless
     /// `index < bucket_count()`.
     const_local_iterator end(size_t index) const;
+    const_local_iterator cend(size_t index) const;
 
     /// Return the index of the bucket, in the array of buckets maintained
     /// by this container, where values having the specified `key` would be
@@ -1475,11 +1478,10 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::find(const key_type& key)
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
-template <class SOURCE_TYPE>
 inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
-OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const SOURCE_TYPE& value)
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const VALUE_TYPE& value)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1507,11 +1509,10 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::insert(const SOURCE_TYPE& value)
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
-template <class SOURCE_TYPE>
 inline bsl::pair<
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::iterator,
     bool>
-OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const SOURCE_TYPE& value)
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::rinsert(const VALUE_TYPE& value)
 {
     Bucket* bucket    = getBucketForKey(get_key(value));
     Link*   foundLink = 0;
@@ -1544,7 +1545,21 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::begin() const
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cbegin() const
+{
+    return const_iterator(d_sentinel_p->nextInList());
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
 OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end() const
+{
+    return const_iterator(d_sentinel_p);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_iterator
+OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cend() const
 {
     return const_iterator(d_sentinel_p);
 }
@@ -1561,7 +1576,25 @@ inline
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline
     typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
+    OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cbegin(size_t index) const
+{
+    BSLS_ASSERT_SAFE(index < d_bucketArraySize);
+    return const_local_iterator(d_bucketArray_p + index);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline
+    typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
     OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::end(size_t index) const
+{
+    BSLS_ASSERT_SAFE(index < d_bucketArraySize);
+    return const_local_iterator(d_bucketArray_p + index, 0);
+}
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+inline
+    typename OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::const_local_iterator
+    OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::cend(size_t index) const
 {
     BSLS_ASSERT_SAFE(index < d_bucketArraySize);
     return const_local_iterator(d_bucketArray_p + index, 0);
@@ -1629,6 +1662,15 @@ OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::get_allocator() const
 }
 
 }  // close package namespace
+
+namespace bslalg {
+
+template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
+struct HasStlIterators<bmqc::OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE> >
+: bsl::true_type {};
+
+}  // close namespace bslalg
+
 }  // close enterprise namespace
 
 #endif

@@ -708,7 +708,6 @@ void Parameters::validateQueueNames(bslma::Allocator* allocator) const
 {
     // Validate given queue names agains existing in csl file
     bmqu::MemOutStream                       ss(allocator);
-    mqbu::StorageKey                         key;
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {
         if (!d_queueMap.findKeyByUri(*it).has_value()) {

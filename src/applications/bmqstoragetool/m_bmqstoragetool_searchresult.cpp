@@ -548,17 +548,17 @@ bool SearchDetailResult::processQueueOpRecord(
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordIndex,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 recordOffset)
 {
-    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo_p =
+    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
         d_queueMap.findInfoByKey(record.queueKey());
 
     RecordDetails<mqbs::QueueOpRecord> details(record,
                                                recordIndex,
                                                recordOffset);
 
-    if (queueInfo_p.has_value()) {
-        details.d_queueUri = queueInfo_p->uri();
+    if (queueInfo.has_value()) {
+        details.d_queueUri = queueInfo->uri();
         if (!findQueueAppIdByAppKey(&details.d_appId,
-                                    queueInfo_p->appIds(),
+                                    queueInfo->appIds(),
                                     record.appKey())) {
             details.d_appId = "** NULL **";
         }
@@ -629,7 +629,7 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
                                            bsls::Types::Uint64 recordIndex,
                                            bsls::Types::Uint64 recordOffset)
 {
-    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo_p =
+    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
         d_queueMap.findInfoByKey(record.queueKey());
 
     d_messageDetailsMap.emplace(
@@ -638,7 +638,7 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
                                     MessageDetails(record,
                                                    recordIndex,
                                                    recordOffset,
-                                                   queueInfo_p,
+                                                   queueInfo,
                                                    d_allocator_p)));
 }
 
@@ -1118,7 +1118,7 @@ SummaryProcessor::SummaryProcessor(
 , d_deletedMessagesCount(0)
 , d_journalOpRecordsCount(0)
 , d_queueOpRecordsCount(0)
-, d_queueOpCountsVec(allocator)
+, d_queueOpCountsVec(mqbs::QueueOpType::e_ADDITION + 1, 0, allocator)
 , d_notConfirmedGuids(allocator)
 , d_partiallyConfirmedGuids(allocator)
 , d_totalRecordsCount(0)
@@ -1221,7 +1221,7 @@ bool SummaryProcessor::processQueueOpRecord(
 
     if (d_processRecordTypes.d_queueOp) {
         d_queueOpRecordsCount++;
-        BSLS_ASSERT_SAFE(record.type() <= mqbs::QueueOpType::e_ADDITION);
+        BSLS_ASSERT_SAFE(record.type() < d_queueOpCountsVec.size());
         d_queueOpCountsVec[record.type()]++;
     }
 

@@ -1086,7 +1086,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*           clusterState,
             BSLS_ASSERT_SAFE(qs->uri() == uri);
 
             if ((qs->partitionId() == partitionId) &&
-                (qs->key() == queueKey) && (qs->appInfos() == appInfos)) {
+                (qs->key() == queueKey) && qs->hasTheSameAppIds(appInfos)) {
                 // All good.. nothing to update.
                 return;  // RETURN
             }
@@ -1630,12 +1630,13 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
 
     // Validate partition information
     bsl::vector<ClusterStatePartitionInfo> incorrectPartitions;
-    for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
-        const ClusterStatePartitionInfo& stateInfo = state.partition(pid);
+    for (size_t i = 0; i < state.partitions().size(); ++i) {
+        const ClusterStatePartitionInfo& stateInfo = state.partitions()[i];
+        const int                        pid       = i;
         BSLS_ASSERT_SAFE(stateInfo.partitionId() == pid);
 
-        const ClusterStatePartitionInfo& referenceInfo = reference.partition(
-            pid);
+        const ClusterStatePartitionInfo& referenceInfo =
+            reference.partitions()[i];
         BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
         if (stateInfo.primaryLeaseId() != referenceInfo.primaryLeaseId()) {
             // Partition information mismatch.  Note that we don't compare
@@ -1674,9 +1675,10 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Partition Infos In Cluster State :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
-        for (size_t pid = 0; pid < state.partitions().size(); ++pid) {
+        for (size_t i = 0; i < state.partitions().size(); ++i) {
             const ClusterStatePartitionInfo& referenceInfo =
-                reference.partitions()[pid];
+                reference.partitions()[i];
+            const int pid = i;
             BSLS_ASSERT_SAFE(referenceInfo.partitionId() == pid);
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << "Partition [" << pid
@@ -1725,7 +1727,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                     citer->second;
                 const bsl::shared_ptr<ClusterStateQueueInfo>& referenceInfo =
                     refCiter->second;
-                if (*info != *referenceInfo) {
+                if (!info->isEquivalent(*referenceInfo)) {
                     // Incorrect queue information
                     incorrectQueues.push_back(
                         bsl::make_pair(info, referenceInfo));
@@ -1952,10 +1954,6 @@ int ClusterUtil::load(ClusterState*               state,
         return rc * 10 + rc_ITERATION_ERROR;  // RETURN
     }
 
-    typedef bsl::unordered_map<bmqp_ctrlmsg::LeaderMessageSequence,
-                               bmqp_ctrlmsg::ClusterMessage>
-                  AdvisoriesMap;
-    AdvisoriesMap advisories;
     do {
         BSLS_ASSERT_SAFE(latestIter->isValid());
 
@@ -1966,110 +1964,33 @@ int ClusterUtil::load(ClusterState*               state,
             return rc * 10 + rc_MESSAGE_LOAD_ERROR;  // RETURN
         }
 
-        // Track if advisory, apply if commit
+        // Apply advisories, whether committed or not.  Can ignore commit
+        // records.
+        //
+        // NOTE: Consider the case where the leader applies an advisory,
+        // receives enough acks, and commits the advisory, but then crashes
+        // before the followers have a chance to write the commit.  One of the
+        // followers becomes the new leader.  The new leader and the remaining
+        // followers will see this as an uncommitted advisory; they must carry
+        // out the last wish of the previous leader and commit this advisory.
+        // That is why upon `ClusterUtil::load`, we apply the uncommitted
+        // advisories knowing that they are about to be committed.  Also note
+        // that uncommitted advisories must be synchronized by this time by the
+        // new leader.
         typedef bmqp_ctrlmsg::ClusterMessageChoice MsgChoice;  // shortcut
         switch (clusterMessage.choice().selectionId()) {
-        case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .partitionPrimaryAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice().leaderAdvisory().sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record type:"
-                              << latestIter->header().recordType();
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .queueAssignmentAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
-        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice()
-                    .queueUnassignedAdvisory()
-                    .sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;  // BREAK
+        case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY:
+        case MsgChoice::SELECTION_ID_LEADER_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY:
+        case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY:
         case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lms =
-                clusterMessage.choice().queueUpdateAdvisory().sequenceNumber();
-            bsl::pair<AdvisoriesMap::iterator, bool> insertRc =
-                advisories.insert(bsl::make_pair(lms, clusterMessage));
-            if (!insertRc.second) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": When loading from cluster state ledger, "
-                              << "discovered records with duplicate LSN ["
-                              << lms << "].  Older record type: "
-                              << advisories.at(lms).choice().selectionId()
-                              << "; newer record: " << clusterMessage;
-            };
-        } break;
-        case MsgChoice::SELECTION_ID_LEADER_ADVISORY_COMMIT: {
-            const bmqp_ctrlmsg::LeaderMessageSequence& lmsCommitted =
-                clusterMessage.choice()
-                    .leaderAdvisoryCommit()
-                    .sequenceNumberCommitted();
-
-            AdvisoriesMap::const_iterator iter = advisories.find(lmsCommitted);
-            if (iter == advisories.end()) {
-                BALL_LOG_WARN << clusterData.identity().description()
-                              << ": Recovered a commit in IncoreCSL for which"
-                              << " a corresponding advisory was not found: "
-                              << clusterMessage;
-                break;  // BREAK
-            }
-            // Finally, the advisory is applied to the state
-            const bmqp_ctrlmsg::ClusterMessage& advisory = iter->second;
             BALL_LOG_INFO << "#CSL_RECOVERY "
                           << clusterData.identity().description()
-                          << ": Applying a commit recovered from IncoreCSL. "
-                          << "Commit: "
-                          << clusterMessage.choice().leaderAdvisoryCommit()
-                          << ", advisory: " << advisory << ".";
-            apply(state, advisory, clusterData);
-            advisories.erase(iter);
+                          << ": Applying a recovered record from IncoreCSL: "
+                          << clusterMessage << ".";
+            apply(state, clusterMessage, clusterData);
+        } break;  // BREAK
+        case MsgChoice::SELECTION_ID_LEADER_ADVISORY_COMMIT: {
         } break;  // BREAK
         case MsgChoice::SELECTION_ID_UNDEFINED:
         default: {
@@ -2097,8 +2018,9 @@ void ClusterUtil::loadPartitionsInfo(
     for (int pid = 0; pid < static_cast<int>(state.partitions().size());
          ++pid) {
         const ClusterStatePartitionInfo&   pinfo = state.partition(pid);
-        bmqp_ctrlmsg::PartitionPrimaryInfo info;
+        BSLS_ASSERT_SAFE(pinfo.partitionId() == pid);
 
+        bmqp_ctrlmsg::PartitionPrimaryInfo info;
         info.partitionId()    = pid;
         info.primaryNodeId()  = pinfo.primaryNode()
                                     ? pinfo.primaryNode()->nodeId()
@@ -2125,26 +2047,28 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
         for (UriToQueueInfoMapCIter qCit = queuesInfoPerDomain.cbegin();
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
-            if (qCit->second->state() !=
-                ClusterStateQueueInfo::State::k_ASSIGNED) {
+            const ClusterState::QueueInfoSp& infoSp = qCit->second;
+            if (infoSp->state() != ClusterStateQueueInfo::State::k_ASSIGNED &&
+                infoSp->state() !=
+                    ClusterStateQueueInfo::State::k_UNASSIGNING) {
                 continue;  // CONTINUE
             }
 
             bmqp_ctrlmsg::QueueInfo queueInfo;
-            queueInfo.uri()         = qCit->second->uri().asString();
-            queueInfo.partitionId() = qCit->second->partitionId();
+            queueInfo.uri()         = infoSp->uri().asString();
+            queueInfo.partitionId() = infoSp->partitionId();
 
-            BSLS_ASSERT_SAFE(!qCit->second->key().isNull());
-            qCit->second->key().loadBinary(&queueInfo.key());
+            BSLS_ASSERT_SAFE(!infoSp->key().isNull());
+            infoSp->key().loadBinary(&queueInfo.key());
 
-            for (AppInfosCIter appIdCit = qCit->second->appInfos().cbegin();
-                 appIdCit != qCit->second->appInfos().cend();
-                 ++appIdCit) {
-                bmqp_ctrlmsg::AppIdInfo appIdInfo;
-                appIdInfo.appId() = appIdCit->first;
-                appIdCit->second.loadBinary(&appIdInfo.appKey());
-
-                queueInfo.appIds().push_back(appIdInfo);
+            queueInfo.appIds().resize(infoSp->appInfos().size());
+            size_t i = 0;
+            for (AppInfosCIter appCIt = infoSp->appInfos().cbegin();
+                 appCIt != infoSp->appInfos().cend();
+                 ++appCIt) {
+                queueInfo.appIds().at(i).appId() = appCIt->first;
+                appCIt->second.loadBinary(&queueInfo.appIds().at(i).appKey());
+                ++i;
             }
 
             out->push_back(queueInfo);
@@ -2236,7 +2160,7 @@ void ClusterUtil::parseQueueInfo(
              apps.cbegin();
          cit != apps.cend();
          ++cit) {
-        out->emplace(mqbi::ClusterStateManager::AppInfo(
+        out->insert(bsl::make_pair(
             bsl::string(cit->appId(), allocator),
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                              cit->appKey().data())));

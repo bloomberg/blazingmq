@@ -17,29 +17,27 @@
 #ifndef INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
 #define INCLUDED_MQBC_CONTROLMESSAGETRANSMITTER
 
-//@PURPOSE: Provide a mechanism to transmit control messages to peer nodes.
-//
-//@CLASSES:
-//  mqbc::ControlMessageTransmitter: Transmitter of messages to peer nodes.
-//
-//@DESCRIPTION: 'mqbc::ControlMessageTransmitter' provides a mechanism to
-// transmit messages to peer nodes in the same cluster.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ControlMessageTransmitter' object is not thread safe and should
-// always be manipulated from the associated cluster's dispatcher thread,
-// unless specified by the function (such as 'sendMessageSafe').
+/// @file mqbc_controlmessagetransmitter.h
+///
+/// @brief Provide a mechanism to transmit control messages to peer nodes.
+///
+/// @bbref{mqbc::ControlMessageTransmitter} provides a mechanism to transmit
+/// messages to peer nodes in the same cluster.
+///
+/// Thread Safety                      {#mqbc_controlmessagetransmitter_thread}
+/// =============
+///
+/// The @bbref{mqbc::ControlMessageTransmitter} object is not thread safe and
+/// should always be manipulated from the associated cluster's dispatcher
+/// thread, unless specified by the function (such as `sendMessageSafe`).
 
 // MQB
-
 #include <mqbnet_transportmanager.h>
 
 // BMQ
+#include <bmqio_channel.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_schemaeventbuilder.h>
-
-#include <bmqio_channel.h>
 
 // BDE
 #include <ball_log.h>
@@ -77,18 +75,19 @@ class ControlMessageTransmitter {
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.ControlMessageTransmitter");
 
     // DATA
+
+    /// Allocator to use.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use.
 
     /// Blob pool to use.  Held, not owned.
     BlobSpPool* d_blobSpPool_p;
 
+    /// Schema event builder to use.  Must be used only in cluster dispatcher
+    /// thread.
     bmqp::SchemaEventBuilder d_schemaBuilder;
-    // Schema event builder to use.  Must be used
-    // only in cluster dispatcher thread.
 
+    /// Associated cluster.
     mqbi::Cluster* d_cluster_p;
-    // Associated cluster.
 
     mqbnet::TransportManager* d_transportManager_p;
 
@@ -142,12 +141,18 @@ class ControlMessageTransmitter {
     // MANIPULATORS
 
     /// Encode and send the specified schema `message` to the specified
-    /// peer `destination` or the specified `channel`.
+    /// peer `destination`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void sendMessage(const bmqp_ctrlmsg::ControlMessage& message,
                      mqbnet::ClusterNode*                destination);
+
+    /// Encode and send the specified schema `message` to the specified
+    /// `channel` with the specified `description`.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
     void sendMessage(const bmqp_ctrlmsg::ControlMessage&    message,
                      const bsl::shared_ptr<bmqio::Channel>& channel,
                      const bsl::string&                     description);

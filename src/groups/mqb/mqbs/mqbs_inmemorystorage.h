@@ -406,14 +406,15 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // 'errorDescription' with a brief reason in case of failure.  Behavior
     // is undefined unless 'appId' is non-empty and 'appKey' is non-null.
 
-    /// Remove the virtual storage identified by the specified `appKey`.
+    /// Remove the virtual storage identified by the specified `appKey`.  The
+    /// specified `asPrimary` applies to persistent storage types only.
     /// Return true if a virtual storage with `appKey` was found and
     /// deleted, false if a virtual storage with `appKey` does not exist.
     /// Behavior is undefined unless `appKey` is non-null.  Note that this
     /// method will delete the virtual storage, and any reference to it will
     /// become invalid after this method returns.
-    bool
-    removeVirtualStorage(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    bool removeVirtualStorage(const mqbu::StorageKey& appKey,
+                              bool asPrimary) BSLS_KEYWORD_OVERRIDE;
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
@@ -551,6 +552,10 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 
+    /// Calculate offsets of all Apps (after recovery) in the data stream.
+    /// An App offset is the number of messages older than the App.
+    virtual void calibrate() BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual mqbs::ReplicatedStorage)
     int partitionId() const BSLS_KEYWORD_OVERRIDE;
@@ -674,11 +679,14 @@ inline int InMemoryStorage::addVirtualStorage(bsl::ostream& errorDescription,
 }
 
 inline bool
-InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey)
+InMemoryStorage::removeVirtualStorage(const mqbu::StorageKey& appKey, bool)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    return d_virtualStorageCatalog.removeVirtualStorage(appKey);
+    mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.removeVirtualStorage(appKey);
+
+    return mqbi::StorageResult::e_SUCCESS == rc;
 }
 
 // ACCESSORS
@@ -782,7 +790,7 @@ inline void InMemoryStorage::loadVirtualStorageDetails(AppInfos* buffer) const
 
 inline unsigned int InMemoryStorage::numAutoConfirms() const
 {
-    return d_autoConfirms.size();
+    return static_cast<unsigned int>(d_autoConfirms.size());
 }
 
 inline mqbu::CapacityMeter* InMemoryStorage::capacityMeter()

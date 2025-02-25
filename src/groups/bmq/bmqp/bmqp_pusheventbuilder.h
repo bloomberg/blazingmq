@@ -288,7 +288,8 @@ inline int PushEventBuilder::eraseCurrentMessage()
         // Flush any buffered changes if necessary, and make this object
         // not refer to any valid blob object.
 
-        d_blob_sp->setLength(d_blob_sp->length() - sizeof(PushHeader) -
+        d_blob_sp->setLength(d_blob_sp->length() -
+                             static_cast<int>(sizeof(PushHeader)) -
                              optionsSize);
 
         d_options.reset();
@@ -352,7 +353,8 @@ inline int PushEventBuilder::eventSize() const
                      (optionsCount == 0 && !d_currPushHeader.isSet()));
 
     if (optionsCount > 0) {
-        return d_blob_sp->length() - sizeof(PushHeader) - d_options.size();
+        return d_blob_sp->length() - static_cast<int>(sizeof(PushHeader)) -
+               d_options.size();
         // RETURN
     }
     return d_blob_sp->length();
