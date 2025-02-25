@@ -34,11 +34,11 @@ CompositeSequenceNumber::CompositeSequenceNumber()
 }
 
 CompositeSequenceNumber::CompositeSequenceNumber(
-    unsigned int        leaseId,
-    bsls::Types::Uint64 sequenceNumber)
+    const bsls::Types::Uint64 leaseId,
+    const bsls::Types::Uint64 sequenceNumber)
 : d_compositeSequenceNumber(leaseId, sequenceNumber)
 {
-    // NOTHING
+    BSLS_ASSERT(sequenceNumber > 0);
 }
 
 CompositeSequenceNumber&
