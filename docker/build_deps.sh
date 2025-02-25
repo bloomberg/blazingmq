@@ -66,7 +66,7 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u ${DEPS_CONFIGURE_UFID})"
+    eval "$(bbs_build_env -u "${DEPS_CONFIGURE_UFID}")"
 }
 
 build_bde() {
