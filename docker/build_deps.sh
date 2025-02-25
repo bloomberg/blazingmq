@@ -5,7 +5,7 @@
 # If the optional argument '--only-download' is provided, the script will only download
 # dependencies (build and install steps are skipped).
 
-set -euxo pipefail
+set -exo pipefail
 
 DEPS_CONFIGURE_UFID="opt_64_cpp17"
 DEPS_SKIP_BUILD=0
@@ -66,7 +66,7 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u ${DEPS_CONFIGURE_UFID})"
+    eval "$(bbs_build_env -u \"${DEPS_CONFIGURE_UFID})\""
 }
 
 build_bde() {
@@ -85,7 +85,7 @@ build_ntf() {
         --without-usage-examples     \
         --without-applications       \
         --without-warnings-as-errors \
-        --ufid ${DEPS_CONFIGURE_UFID}
+        --ufid "${DEPS_CONFIGURE_UFID}"
     make -j8
     make install
     popd
@@ -98,6 +98,6 @@ build() {
 
 fetch_deps
 configure
-if [ "${DO_BUILD}" = true ]; then
+if [ "${DEPS_SKIP_BUILD}" = 0 ]; then
     build
 fi
