@@ -71,7 +71,7 @@ configure() {
 
 build_bde() {
     pushd srcs/bde
-    bbs_build configure
+    bbs_build configure -u "${DEPS_CONFIGURE_UFID}"
     bbs_build build -j8
     bbs_build --install=/opt/bb --prefix=/ install
     popd
@@ -85,7 +85,7 @@ build_ntf() {
         --without-usage-examples        \
         --without-applications          \
         --without-warnings-as-errors    \
-        --ufid "${DEPS_CONFIGURE_UFID}"
+        --ufid opt_64_cpp17
     make -j8
     make install
     popd
