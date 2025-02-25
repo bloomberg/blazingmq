@@ -92,7 +92,7 @@ bool CslSearchShortResult::processRecord(
 void CslSearchShortResult::outputResult() const
 {
     // Print summary counters
-    d_printer->printFooter(d_recordCount, d_processCslRecordTypes);
+    printer()->printFooter(d_recordCount, d_processCslRecordTypes);
 }
 
 const bsl::shared_ptr<CslPrinter>& CslSearchShortResult::printer() const
@@ -207,7 +207,10 @@ void CslSearchSequenceNumberDecorator::outputResult() const
 {
     CslSearchResultDecorator::outputResult();
 
-    printer()->printCompositesNotFound(d_seqNums);
+    // Print non found sequence numbers
+    if (!d_seqNums.empty()) {
+        printer()->printCompositesNotFound(d_seqNums);
+    }
 }
 
 // ==============================
@@ -245,7 +248,10 @@ void CslSearchOffsetDecorator::outputResult() const
 {
     CslSearchResultDecorator::outputResult();
 
-    printer()->printOffsetsNotFound(d_offsets);
+    // Print non found offsets
+    if (!d_offsets.empty()) {
+        printer()->printOffsetsNotFound(d_offsets);
+    }
 }
 
 // ======================
@@ -288,71 +294,6 @@ void CslSummaryResult::outputResult() const
     printer()->printSummaryResult(d_recordCount,
                                   d_updateChoiceCount, d_queueMap,
                                   d_processCslRecordTypes, d_cslSummaryQueuesLimit);
-    // if (d_processCslRecordTypes.d_snapshot) {
-    //     d_recordCount.d_snapshotCount > 0
-    //         ? (d_ostream << '\n'
-    //                      << d_recordCount.d_snapshotCount << " snapshot")
-    //         : d_ostream << "\nNo snapshot";
-    //     d_ostream << " record(s) found.\n";
-    // }
-    // if (d_processCslRecordTypes.d_update) {
-    //     if (d_recordCount.d_updateCount > 0) {
-    //         d_ostream << '\n'
-    //                   << d_recordCount.d_updateCount
-    //                   << " update record(s) found, including:" << '\n';
-    //         bsl::vector<const char*>           fields(d_allocator_p);
-    //         bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
-    //             d_allocator_p);
-    //         for (UpdateChoiceMap::const_iterator it =
-    //                  d_updateChoiceCount.begin();
-    //              it != d_updateChoiceCount.end();
-    //              ++it) {
-    //             clusterMessageChoice.makeSelection(it->first);
-    //             fields.push_back(clusterMessageChoice.selectionName());
-    //         }
-    //         bmqu::AlignedPrinter printer(d_ostream, &fields);
-    //         for (UpdateChoiceMap::const_iterator it =
-    //                  d_updateChoiceCount.begin();
-    //              it != d_updateChoiceCount.end();
-    //              ++it) {
-    //             printer << it->second;
-    //         }
-    //     }
-    //     else {
-    //         d_ostream << "\nNo update record(s) found." << '\n';
-    //     }
-    // }
-    // if (d_processCslRecordTypes.d_commit) {
-    //     d_recordCount.d_commitCount > 0
-    //         ? (d_ostream << '\n'
-    //                      << d_recordCount.d_commitCount << " commit")
-    //         : d_ostream << "\nNo commit";
-    //     d_ostream << " record(s) found.\n";
-    // }
-    // if (d_processCslRecordTypes.d_ack) {
-    //     d_recordCount.d_ackCount > 0
-    //         ? (d_ostream << '\n'
-    //                      << d_recordCount.d_ackCount << " ack")
-    //         : d_ostream << "\nNo ack";
-    //     d_ostream << " record(s) found.\n";
-    // }
-
-    // // Print queues info
-    // const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
-    //     d_queueMap.queueInfos();
-    // if (!queueInfos.empty()) {
-    //     size_t queueInfosSize = queueInfos.size();
-    //     d_ostream << '\n' << queueInfosSize << " Queues found:" << '\n';
-    //     if (queueInfosSize > d_cslSummaryQueuesLimit) {
-    //         d_ostream << "Only first " << d_cslSummaryQueuesLimit
-    //                   << " queues are displayed." << '\n';
-    //     }
-    //     bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-    //         queueInfos.cbegin();
-    //     for (; it != queueInfos.cend(); ++it) {
-    //         d_ostream << *it << '\n';
-    //     }
-    // }
 }
 
 const bsl::shared_ptr<CslPrinter>& CslSummaryResult::printer() const

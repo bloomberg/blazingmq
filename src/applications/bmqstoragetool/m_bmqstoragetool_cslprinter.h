@@ -71,6 +71,14 @@ struct CslRecordCount {
     {
         // NOTHING
     }
+
+    bool operator==(const CslRecordCount& rhs) const
+    {
+        return d_snapshotCount == rhs.d_snapshotCount &&
+               d_updateCount == rhs.d_updateCount &&
+               d_commitCount == rhs.d_commitCount &&
+               d_ackCount == rhs.d_ackCount;
+    }
 };
 
 
