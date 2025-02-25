@@ -30,9 +30,9 @@
 #include <bmqtst_testhelper.h>
 
 // BENCHMARKING LIBRARY
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 #include <benchmark/benchmark.h>
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -317,7 +317,7 @@ static void testN1_performance()
 }
 
 // Begin benchmarking tests
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_defaultPerformance_GoogleBenchmark(benchmark::State& state)
 {
     // Default function call
@@ -378,7 +378,8 @@ static void testN1_bindPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
-#endif
+#endif  // BMQTST_BENCHMARK_ENABLED
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -393,7 +394,7 @@ int main(int argc, char* argv[])
     case 2: test2_defaultInitializeShutdown(); break;
     case 1: test1_breathingTest(); break;
     case -1:
-#ifdef BSLS_PLATFORM_OS_LINUX
+#ifdef BMQTST_BENCHMARK_ENABLED
         BENCHMARK(testN1_defaultPerformance_GoogleBenchmark)
             ->RangeMultiplier(10)
             ->Range(1000, 100000000)
