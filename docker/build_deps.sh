@@ -66,7 +66,7 @@ fetch_deps() {
 configure() {
     PATH="$PATH:$(realpath srcs/bde-tools/bin)"
     export PATH
-    eval "$(bbs_build_env -u \"${DEPS_CONFIGURE_UFID})\""
+    eval "$(bbs_build_env -u ${DEPS_CONFIGURE_UFID})"
 }
 
 build_bde() {
@@ -79,12 +79,12 @@ build_bde() {
 
 build_ntf() {
     pushd srcs/ntf-core
-    ./configure                      \
-        --keep                       \
-        --prefix /opt/bb             \
-        --without-usage-examples     \
-        --without-applications       \
-        --without-warnings-as-errors \
+    ./configure                         \
+        --keep                          \
+        --prefix /opt/bb                \
+        --without-usage-examples        \
+        --without-applications          \
+        --without-warnings-as-errors    \
         --ufid "${DEPS_CONFIGURE_UFID}"
     make -j8
     make install
