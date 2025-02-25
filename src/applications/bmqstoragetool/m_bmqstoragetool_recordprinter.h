@@ -95,8 +95,8 @@ class RecordDetailsPrinter {
 
     /// Print the specified cluster state ledger (CSL) record details.
     void printCslRecordDetails(const bmqp_ctrlmsg::ClusterMessage&   rec,
-        const mqbc::ClusterStateRecordHeader& header,
-        const mqbsi::LedgerRecordId&          recId);
+                               const mqbc::ClusterStateRecordHeader& header,
+                               const mqbsi::LedgerRecordId&          recId);
 };
 
 // ============================================================================
@@ -286,8 +286,8 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
 template <typename PRINTER_TYPE>
 void RecordDetailsPrinter<PRINTER_TYPE>::printCslRecordDetails(
     const bmqp_ctrlmsg::ClusterMessage&   rec,
-                    const mqbc::ClusterStateRecordHeader& header,
-                    const mqbsi::LedgerRecordId&          recId)
+    const mqbc::ClusterStateRecordHeader& header,
+    const mqbsi::LedgerRecordId&          recId)
 {
     d_fields.clear();
     d_fields.reserve(9);  // max number of fields
@@ -307,10 +307,10 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printCslRecordDetails(
     d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
                       d_allocator_p);
 
-    *d_printer_mp << header.recordType() << recId.offset()
-                  << recId.logId() << header.electorTerm() << header.sequenceNumber()
+    *d_printer_mp << header.recordType() << recId.offset() << recId.logId()
+                  << header.electorTerm() << header.sequenceNumber()
                   << header.headerWords() << header.leaderAdvisoryWords();
-                  
+
     const bsls::Types::Uint64 epochValue = header.timestamp();
     bdlt::Datetime            datetime;
     const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);

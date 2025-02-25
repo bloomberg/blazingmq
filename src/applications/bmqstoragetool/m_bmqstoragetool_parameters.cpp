@@ -90,9 +90,9 @@ const char* CommandLineArguments::k_CSL_SNAPSHOT_TYPE = "snapshot";
 const char* CommandLineArguments::k_CSL_UPDATE_TYPE   = "update";
 const char* CommandLineArguments::k_CSL_COMMIT_TYPE   = "commit";
 const char* CommandLineArguments::k_CSL_ACK_TYPE      = "ack";
-const char* CommandLineArguments::k_HUMAN_MODE       = "human";
-const char* CommandLineArguments::k_JSON_PRETTY_MODE = "json-pretty";
-const char* CommandLineArguments::k_JSON_LINE_MODE   = "json-line";
+const char* CommandLineArguments::k_HUMAN_MODE        = "human";
+const char* CommandLineArguments::k_JSON_PRETTY_MODE  = "json-pretty";
+const char* CommandLineArguments::k_JSON_LINE_MODE    = "json-line";
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_recordType(allocator)
@@ -551,7 +551,7 @@ bool Parameters::ProcessCslRecordTypes::operator==(
     ProcessCslRecordTypes const& other) const
 {
     return d_snapshot == other.d_snapshot && d_update == other.d_update &&
-    d_commit == other.d_commit && d_ack == other.d_ack;
+           d_commit == other.d_commit && d_ack == other.d_ack;
 }
 
 Parameters::Parameters(const CommandLineArguments& arguments,

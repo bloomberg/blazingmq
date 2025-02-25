@@ -55,10 +55,10 @@ class SearchResultFactory {
 
     /// Create CslSearchResult object for the specified 'params' using
     /// specified 'ostream' and 'allocator'.
-    static bsl::shared_ptr<CslSearchResult> createCslSearchResult(
-        const Parameters* params,
-        const bsl::shared_ptr<CslPrinter>&       printer,
-        bslma::Allocator* allocator);
+    static bsl::shared_ptr<CslSearchResult>
+    createCslSearchResult(const Parameters*                  params,
+                          const bsl::shared_ptr<CslPrinter>& printer,
+                          bslma::Allocator*                  allocator);
 };
 
 }  // close package namespace

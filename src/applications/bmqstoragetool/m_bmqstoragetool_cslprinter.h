@@ -35,8 +35,8 @@
 // BDE
 #include <bsl_list.h>
 #include <bsl_map.h>
-#include <bslma_managedptr.h>
 #include <bsl_unordered_map.h>
+#include <bslma_managedptr.h>
 
 namespace BloombergLP {
 
@@ -81,7 +81,6 @@ struct CslRecordCount {
     }
 };
 
-
 // ================
 // class CslPrinter
 // ================
@@ -103,10 +102,15 @@ class CslPrinter {
     // ACCESSORS
 
     /// Print the result in a short form.
-    virtual void printShortResult(const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId) const = 0;
+    virtual void
+    printShortResult(const mqbc::ClusterStateRecordHeader& header,
+                     const mqbsi::LedgerRecordId&          recordId) const = 0;
 
     /// Print the result in a detail form.
-    virtual void printDetailResult(const bmqp_ctrlmsg::ClusterMessage& record, const mqbc::ClusterStateRecordHeader& header, const mqbsi::LedgerRecordId& recordId) const = 0;
+    virtual void
+    printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                      const mqbc::ClusterStateRecordHeader& header,
+                      const mqbsi::LedgerRecordId& recordId) const = 0;
 
     /// Print not found `offsets`.
     virtual void printOffsetsNotFound(const OffsetsVec& offsets) const = 0;
@@ -116,18 +120,24 @@ class CslPrinter {
     printCompositesNotFound(const CompositesVec& seqNums) const = 0;
 
     /// Print search summary result.
-    virtual void
-    printSummaryResult(const CslRecordCount& recordCount, const CslUpdateChoiceMap& updateChoiceMap, const QueueMap& queueMap, const Parameters::ProcessCslRecordTypes& processCslRecordTypes, unsigned int queuesLimit) const = 0;
+    virtual void printSummaryResult(
+        const CslRecordCount&                    recordCount,
+        const CslUpdateChoiceMap&                updateChoiceMap,
+        const QueueMap&                          queueMap,
+        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+        unsigned int                             queuesLimit) const = 0;
 
     /// Print footer of thr result
-    virtual void printFooter(const CslRecordCount& recordCount, const Parameters::ProcessCslRecordTypes& processCslRecordTypes) const = 0;
+    virtual void printFooter(const CslRecordCount& recordCount,
+                             const Parameters::ProcessCslRecordTypes&
+                                 processCslRecordTypes) const = 0;
 };
 
 /// Create an instance of CSL printer to print data to the specified 'stream'
 /// according to the specified 'mode' using the specified 'allocator'.
 bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
-    std::ostream&         stream,
-    bslma::Allocator*     allocator);
+                                             std::ostream&         stream,
+                                             bslma::Allocator*     allocator);
 
 }  // close package namespace
 

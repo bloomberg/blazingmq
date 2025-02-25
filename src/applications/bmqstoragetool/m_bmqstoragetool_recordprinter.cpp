@@ -64,7 +64,5 @@ namespace m_bmqstoragetool {
 // stream << '\n';
 // }
 
-
-
 }  // close package namespace
 }  // close enterprise namespace

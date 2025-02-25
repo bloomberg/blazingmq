@@ -41,15 +41,12 @@ CommandProcessorFactory::createCommandProcessor(
 
     if (params->d_cslMode) {
         // Create CSL printer
-        bsl::shared_ptr<CslPrinter> printer = createCslPrinter(params->d_printMode,
-            ostream,
-            allocator);
+        bsl::shared_ptr<CslPrinter> printer =
+            createCslPrinter(params->d_printMode, ostream, allocator);
 
         // Create CslSearchResult for given 'params'.
         bsl::shared_ptr<CslSearchResult> cslSearchResult =
-            SearchResultFactory::createCslSearchResult(params,
-                                                       printer,
-                                                       alloc);
+            SearchResultFactory::createCslSearchResult(params, printer, alloc);
 
         // Create CslFileProcessor
         return bslma::ManagedPtr<CommandProcessor>(
@@ -59,22 +56,22 @@ CommandProcessorFactory::createCommandProcessor(
                                           ostream,
                                           alloc),
             alloc);  // RETURN
-    }            
+    }
     else {
         // Create printer
         bsl::shared_ptr<Printer> printer = createPrinter(params->d_printMode,
-                                                        ostream,
-                                                        allocator);
+                                                         ostream,
+                                                         allocator);
 
         // Create payload dumper
         bslma::ManagedPtr<PayloadDumper> payloadDumper;
         if (params->d_dumpPayload) {
-            payloadDumper.load(new (*alloc)
-                                PayloadDumper(ostream,
-                                                fileManager->dataFileIterator(),
-                                                params->d_dumpLimit,
-                                                alloc),
-                            alloc);
+            payloadDumper.load(
+                new (*alloc) PayloadDumper(ostream,
+                                           fileManager->dataFileIterator(),
+                                           params->d_dumpLimit,
+                                           alloc),
+                alloc);
         }
 
         // Create searchResult for given 'params'.
@@ -87,10 +84,10 @@ CommandProcessorFactory::createCommandProcessor(
         // Create commandProcessor.
         bslma::ManagedPtr<CommandProcessor> commandProcessor(
             new (*alloc) JournalFileProcessor(params,
-                                            fileManager,
-                                            searchResult,
-                                            ostream,
-                                            alloc),
+                                              fileManager,
+                                              searchResult,
+                                              ostream,
+                                              alloc),
             alloc);
         return commandProcessor;
     }

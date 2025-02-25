@@ -241,7 +241,7 @@ struct Parameters {
         explicit ProcessCslRecordTypes();
 
         bool operator==(ProcessCslRecordTypes const& other) const;
-      };
+    };
 
     // PUBLIC DATA
     bool d_cslMode;

@@ -167,10 +167,10 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     return searchResult;
 }
 
-bsl::shared_ptr<CslSearchResult>
-SearchResultFactory::createCslSearchResult(const Parameters* params,
-                                           const bsl::shared_ptr<CslPrinter>&       printer,
-                                           bslma::Allocator* allocator)
+bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
+    const Parameters*                  params,
+    const bsl::shared_ptr<CslPrinter>& printer,
+    bslma::Allocator*                  allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(params);

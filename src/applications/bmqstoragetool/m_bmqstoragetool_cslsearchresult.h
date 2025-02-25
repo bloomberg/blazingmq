@@ -37,8 +37,8 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_compositesequencenumber.h>
-#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_cslprinter.h>
+#include <m_bmqstoragetool_parameters.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -123,7 +123,7 @@ class CslSearchShortResult : public CslSearchResult {
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference to the non-modifiable CSL printer
-    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -207,7 +207,7 @@ class CslSearchResultDecorator : public CslSearchResult {
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference to the non-modifiable CSL printer
-    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ======================================
@@ -282,7 +282,7 @@ class CslSearchOffsetDecorator : public CslSearchResultDecorator {
 
     /// Output result of a search.
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
-  };
+};
 
 // ======================
 // class CslSummaryResult
@@ -316,8 +316,8 @@ class CslSummaryResult : public CslSearchResult {
     /// Constructor using the specified `ostream`, `processCslRecordTypes` and
     /// `allocator`.
     explicit CslSummaryResult(
-      const bsl::shared_ptr<CslPrinter>&       printer,
-      const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+        const bsl::shared_ptr<CslPrinter>&       printer,
+        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         const QueueMap&                          d_queueMap,
         unsigned int                             cslSummaryQueuesLimit,
         bslma::Allocator*                        allocator);
@@ -337,7 +337,7 @@ class CslSummaryResult : public CslSearchResult {
     void outputResult() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference to the non-modifiable CSL printer
-    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;    
+    const bsl::shared_ptr<CslPrinter>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

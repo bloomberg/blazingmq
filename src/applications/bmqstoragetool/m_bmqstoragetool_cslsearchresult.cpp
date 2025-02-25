@@ -30,7 +30,7 @@ namespace m_bmqstoragetool {
 
 namespace {
 // Helper to update record counters
-void updateRecordCount(CslRecordCount*      recordCount_p,
+void updateRecordCount(CslRecordCount*                    recordCount_p,
                        mqbc::ClusterStateRecordType::Enum recordType)
 {
     switch (recordType) {
@@ -292,15 +292,16 @@ bool CslSummaryResult::processRecord(
 void CslSummaryResult::outputResult() const
 {
     printer()->printSummaryResult(d_recordCount,
-                                  d_updateChoiceCount, d_queueMap,
-                                  d_processCslRecordTypes, d_cslSummaryQueuesLimit);
+                                  d_updateChoiceCount,
+                                  d_queueMap,
+                                  d_processCslRecordTypes,
+                                  d_cslSummaryQueuesLimit);
 }
 
 const bsl::shared_ptr<CslPrinter>& CslSummaryResult::printer() const
 {
     return d_printer;
 }
-
 
 }  // close package namespace
 }  // close enterprise namespace
