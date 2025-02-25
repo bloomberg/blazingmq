@@ -489,14 +489,15 @@ static void test6_humanReadableFooterTest()
         bmqtst::TestHelperUtil::allocator());
 
     {
-        Parameters::ProcessRecordTypes recordTypes(false);
+        Parameters::ProcessRecordTypes recordTypes;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
         BMQTST_ASSERT(resultStream.isEmpty());
     }
 
     {
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -509,7 +510,8 @@ static void test6_humanReadableFooterTest()
     {
         resultStream.reset();
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -1310,7 +1312,7 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1331,7 +1333,8 @@ static void test14_jsonPrettyFooterTest()
                 Parameters::PrintMode::e_JSON_PRETTY,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -1362,7 +1365,8 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -1868,33 +1872,49 @@ static void test18_jsonLineMessageTest()
         printer->printMessage(*details);
 
         // Prepare expected output
-        expectedStream
-            << "{\n"
-            << "  \"MessagesFound\": [\n"
-            << "    {" << "\"RecordType\": \"MESSAGE\", "
-            << "\"Index\": \"1\", " << "\"Offset\": \"44\", "
-            << "\"PrimaryLeaseId\": \"100\", " << "\"SequenceNumber\": \"1\", "
-            << "\"Timestamp\": \"01JAN1970_00:01:40.000000\", "
-            << "\"Epoch\": \"100\", " << "\"QueueKey\": \"6162636465\", "
-            << "\"FileKey\": \"3132333435\", " << "\"RefCount\": \"1\", "
-            << "\"MsgOffsetDwords\": \"1\", " << "\"GUID\": \"" << guid
-            << "\", " << "\"Crc32c\": \"1\"" << "},\n"
-            << "    {" << "\"RecordType\": \"CONFIRM\", "
-            << "\"Index\": \"2\", " << "\"Offset\": \"104\", "
-            << "\"PrimaryLeaseId\": \"100\", " << "\"SequenceNumber\": \"2\", "
-            << "\"Timestamp\": \"01JAN1970_00:03:20.000000\", "
-            << "\"Epoch\": \"200\", " << "\"QueueKey\": \"6162636465\", "
-            << "\"AppKey\": \"6170706964\", " << "\"GUID\": \"" << guid << "\""
-            << "},\n"
-            << "    {" << "\"RecordType\": \"DELETION\", "
-            << "\"Index\": \"3\", " << "\"Offset\": \"164\", "
-            << "\"PrimaryLeaseId\": \"100\", " << "\"SequenceNumber\": \"3\", "
-            << "\"Timestamp\": \"01JAN1970_00:05:00.000000\", "
-            << "\"Epoch\": \"300\", " << "\"QueueKey\": \"6162636465\", "
-            << "\"DeletionFlag\": \"IMPLICIT_CONFIRM\", " << "\"GUID\": \""
-            << guid << "\"" << "}\n"
-            << "  ]\n"
-            << "}\n";
+        expectedStream << "{\n"
+                       << "  \"MessagesFound\": [\n"
+                       << "    {"
+                       << "\"RecordType\": \"MESSAGE\", "
+                       << "\"Index\": \"1\", "
+                       << "\"Offset\": \"44\", "
+                       << "\"PrimaryLeaseId\": \"100\", "
+                       << "\"SequenceNumber\": \"1\", "
+                       << "\"Timestamp\": \"01JAN1970_00:01:40.000000\", "
+                       << "\"Epoch\": \"100\", "
+                       << "\"QueueKey\": \"6162636465\", "
+                       << "\"FileKey\": \"3132333435\", "
+                       << "\"RefCount\": \"1\", "
+                       << "\"MsgOffsetDwords\": \"1\", "
+                       << "\"GUID\": \"" << guid << "\", "
+                       << "\"Crc32c\": \"1\""
+                       << "},\n"
+                       << "    {"
+                       << "\"RecordType\": \"CONFIRM\", "
+                       << "\"Index\": \"2\", "
+                       << "\"Offset\": \"104\", "
+                       << "\"PrimaryLeaseId\": \"100\", "
+                       << "\"SequenceNumber\": \"2\", "
+                       << "\"Timestamp\": \"01JAN1970_00:03:20.000000\", "
+                       << "\"Epoch\": \"200\", "
+                       << "\"QueueKey\": \"6162636465\", "
+                       << "\"AppKey\": \"6170706964\", "
+                       << "\"GUID\": \"" << guid << "\""
+                       << "},\n"
+                       << "    {"
+                       << "\"RecordType\": \"DELETION\", "
+                       << "\"Index\": \"3\", "
+                       << "\"Offset\": \"164\", "
+                       << "\"PrimaryLeaseId\": \"100\", "
+                       << "\"SequenceNumber\": \"3\", "
+                       << "\"Timestamp\": \"01JAN1970_00:05:00.000000\", "
+                       << "\"Epoch\": \"300\", "
+                       << "\"QueueKey\": \"6162636465\", "
+                       << "\"DeletionFlag\": \"IMPLICIT_CONFIRM\", "
+                       << "\"GUID\": \"" << guid << "\""
+                       << "}\n"
+                       << "  ]\n"
+                       << "}\n";
     }
 
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1947,7 +1967,8 @@ static void test19_jsonLineRecordsTest()
             // Prepare expected output
             expectedStream << "{\n"
                            << "  \"QueueOpRecordsFound\": [\n"
-                           << "    {" << "\"RecordType\": \"QUEUE_OP\", "
+                           << "    {"
+                           << "\"RecordType\": \"QUEUE_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
                            << "\"PrimaryLeaseId\": \"100\", "
@@ -1956,7 +1977,8 @@ static void test19_jsonLineRecordsTest()
                            << "\"Epoch\": \"100\", "
                            << "\"QueueKey\": \"6162636465\", "
                            << "\"AppKey\": \"6170706964\", "
-                           << "\"QueueOpType\": \"PURGE\"" << "}\n"
+                           << "\"QueueOpType\": \"PURGE\""
+                           << "}\n"
                            << "  ]\n"
                            << "}\n";
         }
@@ -1997,7 +2019,8 @@ static void test19_jsonLineRecordsTest()
             // Prepare expected output
             expectedStream << "{\n"
                            << "  \"JournalOpRecordsFound\": [\n"
-                           << "    {" << "\"RecordType\": \"JOURNAL_OP\", "
+                           << "    {"
+                           << "\"RecordType\": \"JOURNAL_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
                            << "\"PrimaryLeaseId\": \"100\", "
@@ -2009,7 +2032,8 @@ static void test19_jsonLineRecordsTest()
                            << "\"SyncPtPrimaryLeaseId\": \"25\", "
                            << "\"SyncPtSequenceNumber\": \"1234567\", "
                            << "\"PrimaryNodeId\": \"121\", "
-                           << "\"DataFileOffsetDwords\": \"8800\"" << "}\n"
+                           << "\"DataFileOffsetDwords\": \"8800\""
+                           << "}\n"
                            << "  ]\n"
                            << "}\n";
         }
@@ -2187,7 +2211,7 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2208,7 +2232,8 @@ static void test22_jsonLineFooterTest()
                 Parameters::PrintMode::e_JSON_LINE,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -2239,7 +2264,8 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -2417,14 +2443,16 @@ static void test24_jsonLineSummaryTest()
                 << "{\n"
                 << "  \"totalRecordsNumber\": 123,\n"
                 << "  \"perQueueRecordsNumber\": [\n"
-                << "    {" << "\"Queue Key\": \"5175657565\", "
+                << "    {"
+                << "\"Queue Key\": \"5175657565\", "
                 << "\"Queue URI\": \"QueueUri1\", "
                 << "\"Total Records\": \"12345\", "
                 << "\"Num Queue Op Records\": \"78\", "
                 << "\"Num Message Records\": \"12\", "
                 << "\"Num Confirm Records\": \"34\", "
                 << "\"Num Records Per App\": \"AppId2=99 AppId1=9 \", "
-                << "\"Num Delete Records\": \"56\"" << "}\n"
+                << "\"Num Delete Records\": \"56\""
+                << "}\n"
                 << "  ]\n"
                 << "}\n";
 

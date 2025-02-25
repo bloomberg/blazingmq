@@ -218,6 +218,98 @@ class HumanReadableCslPrinter : public CslPrinter {
     }
 };
 
+class CslJsonPrinter : public CslPrinter {
+  protected:
+    bsl::ostream&     d_ostream;
+    bslma::Allocator* d_allocator_p;
+    mutable bool      d_braceOpen;
+    mutable bool      d_firstRaw;
+
+    void openBraceIfNotOpen(const std::string& fieldName) const
+    {
+        if (!d_braceOpen) {
+            d_ostream << "  \"" << fieldName << "\": [\n";
+            d_braceOpen = true;
+        }
+        else {
+            RecordPrinter::printDelimeter<void>(d_ostream);
+        }
+    }
+
+    void closeBraceIfOpen() const
+    {
+        if (d_braceOpen) {
+            d_ostream << "\n  ]";
+            d_braceOpen = false;
+        }
+        if (!d_firstRaw) {
+            RecordPrinter::printDelimeter<void>(d_ostream);
+        }
+        else {
+            d_firstRaw = false;
+        }
+    }
+
+  public:
+    // CREATORS
+    CslJsonPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    : d_ostream(os)
+    , d_allocator_p(allocator)
+    , d_braceOpen(false)
+    , d_firstRaw(true)
+    {
+        d_ostream << "{\n";
+    }
+
+    ~CslJsonPrinter() BSLS_KEYWORD_OVERRIDE
+    {
+        if (d_braceOpen) {
+            d_ostream << "\n  ]";
+            d_braceOpen = false;
+        }
+        d_ostream << "\n}\n";
+    }
+
+    // PUBLIC METHODS
+
+    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+                          const mqbsi::LedgerRecordId&          recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                           const mqbc::ClusterStateRecordHeader& header,
+                           const mqbsi::LedgerRecordId& recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void
+    printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void printCompositesNotFound(const CompositesVec& seqNums) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void printSummaryResult(
+        const CslRecordCount&                    recordCount,
+        const CslUpdateChoiceMap&                updateChoiceMap,
+        const QueueMap&                          queueMap,
+        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
+        unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+    void printFooter(const CslRecordCount& recordCount,
+                     const Parameters::ProcessCslRecordTypes&
+                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+};
+
 bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
                                              std::ostream&         stream,
                                              bslma::Allocator*     allocator)
