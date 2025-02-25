@@ -108,7 +108,7 @@ jobs:
 
       - name: Install cached non packaged dependencies
         working-directory: deps
-        run: ../docker/build_deps.sh
+        run: ../docker/build_deps.sh --ufid opt_64_cpp03
 
       - name: Build BlazingMQ
         env:
