@@ -153,6 +153,24 @@ class Paths:
 
         return self._broker
 
+    def getBrokerWithVersion(self, version: Optional[int]) -> Path:
+        if version is None:
+            return self.broker
+
+        path_str = os.environ.get(f"BLAZINGMQ_BROKER{version}")
+        
+        if not path_str:
+            raise FileNotFoundError(path_str)
+        
+        brokerPath = Path(path_str)
+
+        if not brokerPath.exists():
+            logger.warning("path %s does not exist", brokerPath)
+            if self.must_exist:
+                raise FileNotFoundError(brokerPath)
+
+        return brokerPath
+
     @property
     def tool(self) -> Path:
         """
