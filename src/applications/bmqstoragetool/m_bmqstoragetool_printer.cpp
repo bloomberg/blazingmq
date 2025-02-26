@@ -564,6 +564,7 @@ class JsonPrinter : public Printer {
         if (d_braceOpen) {
             d_ostream << "\n  ]";
             d_braceOpen = false;
+            d_firstRaw  = false;
         }
         if (!d_firstRaw) {
             RecordPrinter::printDelimeter<void>(d_ostream);
@@ -787,7 +788,6 @@ class JsonPrettyPrinter : public JsonPrinter {
             bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                   journalFile_p,
                                                   d_allocator_p);
-        printDelimeter<void>(d_ostream);
     }
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
