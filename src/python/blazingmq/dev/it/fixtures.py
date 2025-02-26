@@ -650,7 +650,7 @@ def multiversion_multi_node_cluster_config(
                 broker_version=broker_version
             )
             for data_center in ("east", "west")
-            for broker_version in (90, 93)
+            for broker_version in (1, 2)
         ],
     )
 
