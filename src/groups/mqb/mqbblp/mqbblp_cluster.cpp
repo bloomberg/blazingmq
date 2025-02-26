@@ -2229,8 +2229,6 @@ void Cluster::onRecoveryStatusDispatched(
                 ++(*itMp);
             }
         }
-
-        d_clusterOrchestrator.validateClusterStateLedger();
     }
 
     // Indicate queue helper to apply any buffered queue assignment advisories.
@@ -2241,6 +2239,9 @@ void Cluster::onRecoveryStatusDispatched(
                   << "buffered queue [un]assignment advisories, if any.";
 
     d_clusterOrchestrator.processBufferedQueueAdvisories();
+    if (!isFSMWorkflow()) {
+        d_clusterOrchestrator.validateClusterStateLedger();
+    }
 
     d_clusterOrchestrator.transitionToAvailable();
 
