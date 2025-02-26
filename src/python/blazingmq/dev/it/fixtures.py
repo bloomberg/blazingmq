@@ -628,6 +628,63 @@ def multi_node(request):
 
 
 ###############################################################################
+# multiversion_multi_node cluster
+
+
+def multiversion_multi_node_cluster_config(
+    configurator: cfg.Configurator,
+    port_allocator: Iterator[int],
+    mode: Mode,
+    reverse_proxy: bool = False,
+) -> None:
+    mode.tweak(configurator.proto.cluster)
+
+    cluster = configurator.cluster(
+        name="itCluster",
+        nodes=[
+            configurator.broker(
+                name=f"{data_center}/v{broker_version}",
+                tcp_host="localhost",
+                tcp_port=next(port_allocator),
+                data_center=data_center,
+                broker_version=broker_version
+            )
+            for data_center in ("east", "west")
+            for broker_version in (90, 93)
+        ],
+    )
+
+    add_test_domains(cluster)
+
+    for data_center in ("east", "west"):
+        configurator.broker(
+            name=f"{data_center}p",
+            tcp_host="localhost",
+            tcp_port=next(port_allocator),
+            data_center=data_center,
+        ).proxy(cluster, reverse=reverse_proxy)
+
+
+multiversion_multi_node_cluster_params = [
+    pytest.param(
+        functools.partial(multiversion_multi_node_cluster_config, mode=mode),
+        id=f"multiversion_multi_node{mode.suffix}",
+        marks=[
+            # pytest.mark.integrationtest,
+            # pytest.mark.pr_integrationtest,
+            pytest.mark.multiversion,
+            *mode.marks,
+        ],
+    )
+    for mode in Mode.__members__.values()
+]
+
+@pytest.fixture(params=multiversion_multi_node_cluster_params)
+def multiversion_multi_node(request):
+    yield from cluster_fixture(request, request.param)
+
+
+###############################################################################
 # multi_node cluster with multiple TCP listeners
 
 

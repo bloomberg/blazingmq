@@ -130,6 +130,7 @@ class Configurator:
         instance: Optional[str] = None,
         data_center: str = "dc",
         listeners: List[Tuple[str, int]] = [],
+        broker_version: Optional[int] = None,
     ) -> Broker:
         """Create a broker config and add it to the list of broker configs in
         the current configs.
@@ -143,6 +144,8 @@ class Configurator:
                 to.
             listeners: A list of TCP interfaces the broker will listen on. The
                 option overrides tcp_host and tcp_port if non-empty.
+            broker_version: Optional broker version to specify binaries folder
+                "BLAZINGMQ_BROKER{version}"
 
         Returns:
             A Broker object representing the fully configured broker
@@ -155,6 +158,7 @@ class Configurator:
         config.app_config.host_data_center = data_center
         config.app_config.host_name = name
         config.app_config.broker_instance_name = instance
+        config.app_config.broker_version = broker_version
         config.app_config.network_interfaces.tcp_interface.name = tcp_host
         config.app_config.network_interfaces.tcp_interface.port = tcp_port
         config.app_config.network_interfaces.tcp_interface.listeners = [
@@ -262,7 +266,8 @@ class Configurator:
         self.deploy_domains(broker, site)
 
     def deploy_programs(self, broker: Broker, site: Site) -> None:
-        site.install(str(paths.broker), "bin")
+        # print(f"deploy_programs {broker.config.app_config}")
+        site.install(str(paths.getBrokerWithVersion(broker.version)), "bin")
         site.install(str(paths.tool), "bin")
         site.install(str(paths.plugins), ".")
 
