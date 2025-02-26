@@ -357,10 +357,12 @@ void RemoteQueue::pushMessage(
 {
     // executed by the *QUEUE DISPATCHER* thread
 
-    mqbi::StorageMessageAttributes attributes(0ULL,  // Timestamp; unused
-                                              1,     // RefCount
-                                              messagePropertiesInfo,
-                                              compressionAlgorithmType);
+    mqbi::StorageMessageAttributes attributes(
+        0ULL,  // Timestamp; unused
+        1,     // RefCount
+        static_cast<unsigned int>(appData->length()),
+        messagePropertiesInfo,
+        compressionAlgorithmType);
     mqbi::StorageResult::Enum      result  = mqbi::StorageResult::e_SUCCESS;
     mqbi::Storage*                 storage = d_state_p->storage();
     int                            msgSize = 0;
@@ -442,6 +444,7 @@ void RemoteQueue::pushMessage(
     BSLS_ASSERT_SAFE(d_state_p->hasMultipleSubStreams() ||
                      subQueueInfos.size() == 1);
 
+    // attributes.setAppDataLen(static_cast<unsigned int>(msgSize));
     d_queueEngine_mp->push(&attributes,
                            msgGUID,
                            appData,

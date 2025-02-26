@@ -321,9 +321,7 @@ class QueueHandle : public mqbi::QueueHandle {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
-    deliverMessage(const bsl::shared_ptr<bdlbb::Blob>&       message,
-                   const bmqt::MessageGUID&                  msgGUID,
-                   const mqbi::StorageMessageAttributes&     attributes,
+    deliverMessage(const mqbi::StorageIterator&              message,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
@@ -338,13 +336,10 @@ class QueueHandle : public mqbi::QueueHandle {
     /// information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageNoTrack(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const bmqt::MessageGUID&                  msgGUID,
-        const mqbi::StorageMessageAttributes&     attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subscriptions)
-        BSLS_KEYWORD_OVERRIDE;
+    void deliverMessageNoTrack(const mqbi::StorageIterator&      message,
+                               const bmqp::Protocol::MsgGroupId& msgGroupId,
+                               const bmqp::Protocol::SubQueueInfosArray&
+                                   subscriptions) BSLS_KEYWORD_OVERRIDE;
 
     /// Used by the client to configure a given queue handle with the
     /// specified `streamParameters`.  Invoke the specified `configuredCb`
