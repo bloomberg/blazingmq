@@ -25,6 +25,7 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     tweak,
 )
 from blazingmq.dev.it.util import wait_until
+import glob
 import time
 
 pytestmark = order(4)
@@ -34,6 +35,39 @@ timeout = 120
 
 
 class TestRolloverCSL:
+    @tweak.cluster.partition_config.max_cslfile_size(2000)
+    def test_csl_cleanup(cluster: Cluster):
+        """
+        Test that rolling over CSL cleans up the old file.
+        """
+        leader = cluster.last_known_leader
+        proxy = next(cluster.proxy_cycle())
+
+        producer = proxy.create_client("producer")
+
+        cluster._logger.info("Start to write to clients")
+
+        csl_files_before_rollover = glob.glob(
+            str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
+        )
+        assert len(csl_files_before_rollover) == 1
+
+        # opening 10 queues would cause a rollover
+        for i in range(0, 10):
+            producer.open(
+                f"bmq://{tc.DOMAIN_PRIORITY_SC}/q{i}", flags=["write,ack"], succeed=True
+            )
+            producer.close(f"bmq://{tc.DOMAIN_PRIORITY_SC}/q{i}", succeed=True)
+
+        csl_files_after_rollover = glob.glob(
+            str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
+        )
+
+        assert leader.outputs_regex(r"Log '.*' closed and cleaned up.", 10)
+
+        assert len(csl_files_after_rollover) == 1
+        assert csl_files_before_rollover[0] != csl_files_after_rollover[0]
+
     @tweak.cluster.partition_config.max_cslfile_size(2000)
     @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
     def test_rollover_queue_assignments(self, cluster: Cluster):
