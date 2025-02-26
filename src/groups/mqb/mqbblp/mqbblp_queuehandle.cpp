@@ -481,7 +481,6 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
 
 void QueueHandle::deliverMessageImpl(
     const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const int                                 msgSize,
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
@@ -499,7 +498,7 @@ void QueueHandle::deliverMessageImpl(
                      subQueueInfos.size() <= d_subscriptions.size());
 
     d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUSH>(
-        msgSize);
+        attributes.appDataLen());
 
     // Create an event to dispatch delivery of the message to the client
     mqbi::DispatcherClient* client = d_clientContext_sp->client();
@@ -786,9 +785,7 @@ void QueueHandle::rejectMessage(const bmqt::MessageGUID& msgGUID,
 }
 
 void QueueHandle::deliverMessageNoTrack(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const bmqt::MessageGUID&                  msgGUID,
-    const mqbi::StorageMessageAttributes&     attributes,
+    const mqbi::StorageIterator&              iter,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
 {
@@ -798,19 +795,16 @@ void QueueHandle::deliverMessageNoTrack(
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
 
-    deliverMessageImpl(message,
-                       message->length(),
-                       msgGUID,
-                       attributes,
+    deliverMessageImpl(iter.appData(),
+                       iter.guid(),
+                       iter.attributes(),
                        msgGroupId,
                        subQueueInfos,
                        false);
 }
 
 void QueueHandle::deliverMessage(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const bmqt::MessageGUID&                  msgGUID,
-    const mqbi::StorageMessageAttributes&     attributes,
+    const mqbi::StorageIterator&              iter,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
@@ -823,7 +817,7 @@ void QueueHandle::deliverMessage(
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
 
-    const int                          msgSize = message->length();
+    const unsigned int msgSize = iter.attributes().appDataLen();
     bmqp::Protocol::SubQueueInfosArray targetSubscriptions;
     bsls::Types::Int64 now = bmqsys::Time::highResolutionTimer();
     for (size_t i = 0; i < subscriptions.size(); ++i) {
@@ -840,7 +834,7 @@ void QueueHandle::deliverMessage(
 
         bsl::pair<mqbi::QueueHandle::UnconfirmedMessageInfoMap::iterator, bool>
             rc = messages->insert(bsl::make_pair(
-                msgGUID,
+                iter.guid(),
                 mqbi::UnconfirmedMessageInfo(msgSize, now, subscriptionId)));
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc.second == false)) {
@@ -861,7 +855,7 @@ void QueueHandle::deliverMessage(
             // (delivered, non-delivered, skipped).
             if (d_throttledDroppedPutMessages.requestPermission()) {
                 BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                              << "' skipping duplicate PUSH " << msgGUID;
+                              << "' skipping duplicate PUSH " << iter.guid();
             }
             continue;  // CONTINUE
         }
@@ -920,10 +914,9 @@ void QueueHandle::deliverMessage(
     }
 
     deliverMessageImpl(isClientClusterMember() ? bsl::shared_ptr<bdlbb::Blob>()
-                                               : message,
-                       msgSize,
-                       msgGUID,
-                       attributes,
+                                               : iter.appData(),
+                       iter.guid(),
+                       iter.attributes(),
                        msgGroupId,
                        targetSubscriptions,
                        isOutOfOrder);
