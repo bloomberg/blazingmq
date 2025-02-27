@@ -169,6 +169,11 @@ class Event {
         bmqt::CorrelationId                d_correlationId;
         unsigned int                       d_subscriptionHandleId;
         bmqp::MessageProperties::SchemaPtr d_schema_sp;
+
+        explicit MessageContext(
+            const bmqt::CorrelationId&                correlationId,
+            unsigned int                              subscriptionHandleId,
+            const bmqp::MessageProperties::SchemaPtr& schema);
     };
 
   private:
@@ -263,7 +268,7 @@ class Event {
     // Ordered list of correlationIds for all
     // the PUT/ACK/PUSH messages in this event.
     // For PUSH messages optional corresponding
-    // subscription Ids may be provided.
+    // subscription Ids and Schemas may be provided.
 
   public:
     // TRAITS
@@ -469,7 +474,7 @@ class Event {
     /// the underlying raw event is of type ACK.
     int numCorrrelationIds() const;
 
-    /// Return the correlationId at the specified `position`. Behavior is
+    /// Return the message context at the specified `position`. Behavior is
     /// undefined unless 0 <= `position` < numCorrrelationIds(), and event's
     /// type() is MESSAGEEVENT, `messageEventMode()` is READ and the
     /// underlying raw event is of type ACK, PUT or PUSH.
@@ -497,14 +502,14 @@ class Event {
     bmqp::PutEventBuilder* putEventBuilder();
 
     /// Add the specified 'correlationId' and the optionally specified
-    /// 'subscriptionId' to the list of correlationId-subscriptionId pairs
-    /// maintained by this instance.  The behavior is undefined unless
-    /// event's type() is MESSAGEEVENT, 'messageEventMode()' is READ and the
-    /// underlying raw event is of type ACK, PUT or PUSH.
+    /// 'subscriptionId' and `schema` to the context maintained by this
+    /// instance.  The behavior is undefined unless event's type() is
+    /// MESSAGEEVENT, 'messageEventMode()' is READ and the underlying raw event
+    /// is of type ACK, PUT or PUSH.
     void addContext(const bmqt::CorrelationId& correlationId,
                     unsigned int               subscriptionHandleId =
                         bmqt::SubscriptionHandle::k_INVALID_HANDLE_ID,
-                    bmqp::MessageProperties::SchemaPtr schema =
+                    const bmqp::MessageProperties::SchemaPtr& schema =
                         bmqp::MessageProperties::SchemaPtr());
 
     /// Insert the specified `queue` to the queues and the specified
@@ -590,6 +595,21 @@ inline bool operator==(const SubscriptionId& lhs, const SubscriptionId& rhs)
 {
     return lhs.d_queueId == rhs.d_queueId &&
            lhs.d_subscriptionId == rhs.d_subscriptionId;
+}
+
+// ---------------------------
+// class Event::MessageContext
+// ---------------------------
+
+inline Event::MessageContext::MessageContext(
+    const bmqt::CorrelationId&                correlationId,
+    unsigned int                              subscriptionHandleId,
+    const bmqp::MessageProperties::SchemaPtr& schema)
+: d_correlationId(correlationId)
+, d_subscriptionHandleId(subscriptionHandleId)
+, d_schema_sp(schema)
+{
+    // NOTHING
 }
 
 // -----------
@@ -791,7 +811,7 @@ inline bmqp::PutEventBuilder* Event::putEventBuilder()
 
 inline void Event::addContext(const bmqt::CorrelationId& correlationId,
                               unsigned int               subscriptionHandleId,
-                              bmqp::MessageProperties::SchemaPtr schema)
+                              const bmqp::MessageProperties::SchemaPtr& schema)
 {
     // TODO: when ACK event is created locally we have to fill d_contexts
     //       before the raw ACK 'bmqp::Event' is created and may be used to
@@ -803,11 +823,7 @@ inline void Event::addContext(const bmqt::CorrelationId& correlationId,
     // BSLS_ASSERT_SAFE(messageEventMode() == MessageEventMode::e_READ);
     // BSLS_ASSERT_SAFE(d_rawEvent.isAckEvent());
 
-    d_contexts.resize(d_contexts.size() + 1);
-    Event::MessageContext& message = d_contexts.back();
-    message.d_correlationId        = correlationId;
-    message.d_subscriptionHandleId = subscriptionHandleId;
-    message.d_schema_sp            = schema;
+    d_contexts.emplace_back(correlationId, subscriptionHandleId, schema);
 }
 
 }  // close package namespace

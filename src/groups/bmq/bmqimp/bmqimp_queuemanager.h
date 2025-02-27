@@ -71,6 +71,7 @@
 #include <bmqp_pushmessageiterator.h>
 #include <bmqp_putmessageiterator.h>
 #include <bmqp_queueid.h>
+#include <bmqp_schemalearner.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_uri.h>
 
