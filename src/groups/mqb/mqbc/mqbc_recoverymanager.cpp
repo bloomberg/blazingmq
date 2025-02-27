@@ -130,6 +130,8 @@ RecoveryManager::RecoveryManager(
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
+                     d_clusterConfig.clusterAttributes().isFSMWorkflow());
 
     d_recoveryContextVec.resize(
         clusterConfig.partitionConfig().numPartitions());
@@ -971,8 +973,7 @@ int RecoveryManager::openRecoveryFileSet(bsl::ostream& errorDescription,
         partitionId,
         k_MAX_NUM_FILE_SETS_TO_CHECK,
         d_dataStoreConfig,
-        false,  // readOnly
-        true);  // isFSMWorkflow
+        false);  // readOnly
     if (rc == 1) {
         return rc_NO_FILE_SETS_TO_RECOVER;  // RETURN
     }

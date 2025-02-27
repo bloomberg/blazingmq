@@ -2994,8 +2994,7 @@ void RecoveryManager::startRecovery(
                                                   partitionId,
                                                   k_MAX_NUM_FILE_SETS_TO_CHECK,
                                                   d_dataStoreConfig,
-                                                  true,   // readOnly
-                                                  false,  // isFSMWorkflow
+                                                  true,  // readOnly
                                                   &recoveryCtx.qlistFd());
 
     if ((rc != 0) && (rc != 1)) {

@@ -3376,6 +3376,8 @@ StorageManager::StorageManager(
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_recoveryStatusCb);
     BSLS_ASSERT_SAFE(d_partitionPrimaryStatusCb);
+    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isCSLModeEnabled() &&
+                     d_clusterConfig.clusterAttributes().isFSMWorkflow());
 
     const mqbcfg::PartitionConfig& partitionCfg =
         d_clusterConfig.partitionConfig();
