@@ -308,8 +308,6 @@ void QueueManager::observePushEvent(Event*                          queueEvent,
 
     queue->statUpdateOnMessage(info.d_applicationDataSize, false);
 
-    BSLS_ASSERT(queue);
-
     // Use 'subscriptionHandle' instead of the internal
     // 'info.d_subscriptionId' so that
     // 'bmqimp::Event::subscriptionId()' returns 'subscriptionHandle'
