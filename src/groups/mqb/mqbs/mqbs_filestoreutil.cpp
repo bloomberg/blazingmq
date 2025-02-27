@@ -1043,8 +1043,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        int                   numSetsToCheck,
                                        const mqbs::DataStoreConfig& config,
                                        bool                         readOnly,
-                                       bool                  isFSMWorkflow,
-                                       MappedFileDescriptor* qlistFd)
+                                       MappedFileDescriptor*        qlistFd)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -1115,7 +1114,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
             // can write to it.
             fs.setJournalFileSize(config.maxJournalFileSize())
                 .setDataFileSize(config.maxDataFileSize());
-            if (!isFSMWorkflow) {
+            if (qlistFd) {
                 fs.setQlistFileSize(config.maxQlistFileSize());
             }
 
@@ -1159,7 +1158,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
 
         // Files have now been opened and basic validation has been performed.
         rc = FileStoreProtocolUtil::hasValidFirstSyncPointRecord(*journalFd);
-        if (isFSMWorkflow || 0 == rc) {
+        if (0 == rc) {
             *journalFilePos = journalFileSize;
             *dataFilePos    = dataFileSize;
             recoveryIndex   = i;

@@ -1262,6 +1262,7 @@ int StorageUtil::assignPartitionDispatcherThreads(
                                 threadPool,
                                 cluster.isCSLModeEnabled(),
                                 cluster.isFSMWorkflow(),
+                                cluster.doesFSMwriteQLIST(),
                                 replicationFactor,
                                 fileStoreAllocator),
             fileStoreAllocator);
