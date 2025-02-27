@@ -15,7 +15,7 @@
 
 // bmqa_messageiterator.cpp                                           -*-C++-*-
 #include <bmqa_messageiterator.h>
-
+#include <bmqp_messageproperties.h>
 #include <bmqscm_version.h>
 // BMQ
 #include <bmqa_queueid.h>
