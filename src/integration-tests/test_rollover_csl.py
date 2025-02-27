@@ -71,7 +71,9 @@ class TestRolloverCSL:
 
     @tweak.cluster.partition_config.max_cslfile_size(2000)
     @tweak.cluster.queue_operations.keepalive_duration_ms(1000)
-    def test_rollover_queue_assignments(self, cluster: Cluster, domain_urls: tc.DomainUrls):
+    def test_rollover_queue_assignments(
+        self, cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         """
         Test that queue and appId information are preserved across rollover of
         CSL file, even after cluster restart.
