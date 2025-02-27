@@ -34,7 +34,6 @@
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_queueid.h>
 #include <bmqp_schemagenerator.h>
-#include <bmqp_schemalearner.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_queueflags.h>
 #include <bmqt_queueoptions.h>
@@ -379,9 +378,7 @@ class Queue {
     bool                                  isOldStyle() const;
     const bmqp_ctrlmsg::StreamParameters& config() const;
 
-    bmqp::SchemaGenerator&        schemaGenerator();
-    bmqp::SchemaLearner&          schemaLearner();
-    bmqp::SchemaLearner::Context& schemaLearnerContext();
+    bmqp::SchemaGenerator& schemaGenerator();
 
     /// Return whether this Queue is valid, i.e., is associated to an
     /// initialized queue.
