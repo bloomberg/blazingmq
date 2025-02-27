@@ -812,6 +812,25 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     QueueKeyInfoMap  queueKeyInfoMapEmpty;
     if (d_isFSMWorkflow) {
         queueKeyInfoMap_p = const_cast<QueueKeyInfoMap*>(&queueKeyInfoMap);
+        BALL_LOG_INFO_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << "xiuxiuman 3.0\n"; // TODO rm these logs
+            for (QueueKeyInfoMapConstIter cit = queueKeyInfoMap.cbegin();
+                 cit != queueKeyInfoMap.cend();
+                 ++cit) {
+                BALL_LOG_OUTPUT_STREAM
+                    << cit->first << ": " << cit->second.canonicalQueueUri()
+                    << " " << cit->second.partitionId() << " ";
+                for (DataStoreConfigQueueInfo::AppInfos::const_iterator appcit =
+                         cit->second.appIdKeyPairs().cbegin();
+                     appcit != cit->second.appIdKeyPairs().cend();
+                     ++appcit) {
+                    BALL_LOG_OUTPUT_STREAM << "[" << appcit->first << ", "
+                                           << appcit->second << "] ";
+                }
+                BALL_LOG_OUTPUT_STREAM << "\n";
+            }
+        }
     }
     else {
         queueKeyInfoMap_p = &queueKeyInfoMapEmpty;
