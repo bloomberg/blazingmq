@@ -271,8 +271,7 @@ struct FileStoreUtil {
     /// with the retrieved set, update the specified 'journalFilePos' and
     /// 'dataFilePos' with the corresponding write offsets, and archive the
     /// remaining sets to the specified 'config' archiveLocation.  If the
-    /// specified 'readOnly' is true, open the files in read-only mode. The
-    /// behavior also depends on the specified 'isFSMWorkflow' flag.  Return
+    /// specified 'readOnly' is true, open the files in read-only mode.  Return
     /// 0 on success, non zero value otherwise along with populating the
     /// specified 'errorDescription' with a brief reason for logging
     /// purposes.  Note that a return value of '1' is special and indicates
@@ -288,7 +287,6 @@ struct FileStoreUtil {
                                    int                   numSetsToCheck,
                                    const mqbs::DataStoreConfig& config,
                                    bool                         readOnly,
-                                   bool                         isFSMWorkflow,
                                    MappedFileDescriptor*        qlistFd = 0);
 
     /// Set the specified 'journalOffset' and 'dataOffset' to the end of
