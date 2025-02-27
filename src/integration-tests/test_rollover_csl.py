@@ -36,7 +36,7 @@ timeout = 120
 
 class TestRolloverCSL:
     @tweak.cluster.partition_config.max_cslfile_size(2000)
-    def test_csl_cleanup(cluster: Cluster, domain_urls: tc.DomainUrls):
+    def test_csl_cleanup(self, cluster: Cluster, domain_urls: tc.DomainUrls):
         """
         Test that rolling over CSL cleans up the old file.
         """
