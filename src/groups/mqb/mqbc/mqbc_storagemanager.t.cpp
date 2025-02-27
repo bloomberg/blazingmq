@@ -908,6 +908,7 @@ struct TestHelper {
                            &threadPool,
                            d_cluster_mp->isCSLModeEnabled(),
                            d_cluster_mp->isFSMWorkflow(),
+                           d_cluster_mp->doesFSMwriteQLIST(),
                            1,  // replicationFactor
                            bmqtst::TestHelperUtil::allocator());
 
