@@ -1098,8 +1098,7 @@ void StorageManager::unregisterQueueReplica(int              partitionId,
             partitionId,
             uri,
             queueKey,
-            appKey,
-            d_cluster_p->isCSLModeEnabled()));
+            appKey));
 
     d_fileStores[partitionId]->dispatchEvent(queueEvent);
 }
