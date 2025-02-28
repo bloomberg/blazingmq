@@ -546,7 +546,7 @@ class JsonPrinter : public Printer {
     bsl::ostream&     d_ostream;
     bslma::Allocator* d_allocator_p;
     mutable bool      d_braceOpen;
-    mutable bool      d_firstRaw;
+    mutable bool      d_firstRow;
 
     void openBraceIfNotOpen(const std::string& fieldName) const
     {
@@ -564,13 +564,13 @@ class JsonPrinter : public Printer {
         if (d_braceOpen) {
             d_ostream << "\n  ]";
             d_braceOpen = false;
-            d_firstRaw  = false;
+            d_firstRow  = false;
         }
-        if (!d_firstRaw) {
+        if (!d_firstRow) {
             RecordPrinter::printDelimeter<void>(d_ostream);
         }
         else {
-            d_firstRaw = false;
+            d_firstRow = false;
         }
     }
 
@@ -580,7 +580,7 @@ class JsonPrinter : public Printer {
     : d_ostream(os)
     , d_allocator_p(allocator)
     , d_braceOpen(false)
-    , d_firstRaw(true)
+    , d_firstRow(true)
     {
         d_ostream << "{\n";
     }

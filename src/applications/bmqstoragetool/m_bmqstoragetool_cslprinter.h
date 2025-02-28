@@ -24,8 +24,7 @@
 //@DESCRIPTION: Interface class to print storage files.
 
 // bmqstoragetool
-#include <m_bmqstoragetool_messagedetails.h>
-#include <m_bmqstoragetool_parameters.h>
+#include <m_bmqstoragetool_cslrecordprinter.h>
 
 // BMQ
 #include <mqbc_clusterstateledgerprotocol.h>
@@ -33,53 +32,13 @@
 // #include <bmqt_messageguid.h>
 
 // BDE
-#include <bsl_list.h>
-#include <bsl_map.h>
-#include <bsl_unordered_map.h>
-#include <bslma_managedptr.h>
+// #include <bsl_list.h>
+// #include <bsl_map.h>
+// #include <bslma_managedptr.h>
 
 namespace BloombergLP {
 
 namespace m_bmqstoragetool {
-
-/// Map of found `update` record choices.
-typedef bsl::unordered_map<int, bsls::Types::Uint64> CslUpdateChoiceMap;
-
-// =====================
-// struct CslRecordCount
-// =====================
-
-/// VST representing CSL record counters.
-struct CslRecordCount {
-    /// Counter of snapshot records.
-    bsls::Types::Uint64 d_snapshotCount;
-    /// Counter of update records.
-    bsls::Types::Uint64 d_updateCount;
-    /// Counter of commit records.
-    bsls::Types::Uint64 d_commitCount;
-    // Counter of ack records.
-    bsls::Types::Uint64 d_ackCount;
-
-    // CREATORS
-
-    /// Create a 'CslRecordCount' object with all counters set to 0.
-    CslRecordCount()
-    : d_snapshotCount(0)
-    , d_updateCount(0)
-    , d_commitCount(0)
-    , d_ackCount(0)
-    {
-        // NOTHING
-    }
-
-    bool operator==(const CslRecordCount& rhs) const
-    {
-        return d_snapshotCount == rhs.d_snapshotCount &&
-               d_updateCount == rhs.d_updateCount &&
-               d_commitCount == rhs.d_commitCount &&
-               d_ackCount == rhs.d_ackCount;
-    }
-};
 
 // ================
 // class CslPrinter

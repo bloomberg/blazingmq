@@ -130,10 +130,10 @@ static void test2_humanReadableDetailResultTest()
         expectedStream << "==================================="
                        << "\n\n";
 
-        RecordPrinter::RecordDetailsPrinter<bmqu::AlignedPrinter> printer(
+        CslRecordDetailsPrinter<bmqu::AlignedPrinter> printer(
             expectedStream,
             bmqtst::TestHelperUtil::allocator());
-        printer.printCslRecordDetails(record, header, recordId);
+        printer.printRecordDetails(record, header, recordId);
     }
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
