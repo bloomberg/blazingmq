@@ -304,8 +304,7 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1),
-                                 storage.d_iterator.get()),
+                                                      bdlf::PlaceHolders::_1)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -343,8 +342,7 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1),
-                                 storage.d_iterator.get()),
+                                                      bdlf::PlaceHolders::_1)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -393,15 +391,13 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor1,
-                                                      bdlf::PlaceHolders::_1),
-                                 storage.d_iterator.get()),
+                                                      bdlf::PlaceHolders::_1)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1),
-                                 storage.d_iterator.get()),
+                                                      bdlf::PlaceHolders::_1)),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(visitor2.d_handle, visitor1.d_handle);
@@ -410,8 +406,7 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(router.iterateGroups(
                                  bdlf::BindUtil::bind(&Visitor::visit,
                                                       &visitor2,
-                                                      bdlf::PlaceHolders::_1),
-                                 storage.d_iterator.get()),
+                                                      bdlf::PlaceHolders::_1)),
                              mqbblp::Routers::e_SUCCESS);
 
             if (visitor1.d_handle == &handle1) {
