@@ -334,7 +334,7 @@ class ClusterActiveNodeManager {
 
     // ACCESSORS
 
-    /// Return the currently active node, or a null pointer if there are no
+    /// Return the currently active node, or a null pointer if there is no
     /// node currently active.
     ClusterNode* activeNode() const;
 
