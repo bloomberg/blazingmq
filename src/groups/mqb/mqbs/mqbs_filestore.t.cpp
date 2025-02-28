@@ -255,7 +255,7 @@ struct Tester {
                                          &d_dispatcher,
                                          d_cluster_mp.get(),
                                          &d_clusterStats,
-                                         d_blobSpPool_sp.get(),
+                                         d_blobSpPool_sp,
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
                                          false,  // isCSLModeEnabled
