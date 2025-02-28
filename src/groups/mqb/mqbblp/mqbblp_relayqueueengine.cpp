@@ -917,11 +917,6 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
     BSLS_ASSERT_SAFE(queueState->queue());
     BSLS_ASSERT_SAFE(queueState->storage());
 
-    d_throttledRejectedMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
-
     resetState();  // Ensure 'resetState' is doing what is expected, similarly
                    // to the constructor.
 }
@@ -1455,12 +1450,11 @@ int RelayQueueEngine::onRejectMessage(
 
         result = rda.counter();
 
-        if (d_throttledRejectedMessages.requestPermission()) {
-            BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                          << "' rejecting PUSH [GUID: '" << msgGUID
-                          << "', subQueueId: " << app->upstreamSubQueueId()
-                          << "] with the counter: [" << rda << "]";
-        }
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Queue '" << d_queueState_p->uri()
+            << "' rejecting PUSH [GUID: '" << msgGUID
+            << "', subQueueId: " << app->upstreamSubQueueId()
+            << "] with the counter: [" << rda << "]";
 
         if (!rda.isUnlimited()) {
             BSLS_ASSERT_SAFE(result);
@@ -1484,11 +1478,11 @@ int RelayQueueEngine::onRejectMessage(
             }
         }
     }
-    else if (d_throttledRejectedMessages.requestPermission()) {
-        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                      << "' got reject for an unknown message [GUID: '"
-                      << msgGUID
-                      << "', subQueueId: " << app->upstreamSubQueueId() << "]";
+    else {
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Queue '" << d_queueState_p->uri()
+            << "' got reject for an unknown message [GUID: '" << msgGUID
+            << "', subQueueId: " << app->upstreamSubQueueId() << "]";
     }
 
     return result;
@@ -1600,8 +1594,8 @@ void RelayQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
 
     mqbcmd::RelayQueueEngine& relayQueueEngine = out->makeRelay();
 
-    int                          numSubStreams = 0;
-    mqbi::Storage::AppInfos      appIdKeyPairs;
+    int                     numSubStreams = 0;
+    mqbi::Storage::AppInfos appIdKeyPairs;
 
     numSubStreams = storage()->numVirtualStorages();
     storage()->loadVirtualStorageDetails(&appIdKeyPairs);

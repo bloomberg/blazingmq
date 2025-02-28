@@ -279,11 +279,6 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
     BSLS_ASSERT_SAFE(
         d_queueState_p->queue()->domain()->cluster()->isClusterMember());
 
-    d_throttledRejectedMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
-
     d_throttledRejectMessageDump.initialize(
         1,
         15 * bdlt::TimeUnitRatio::k_NS_PER_S);
@@ -1477,13 +1472,12 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
 
         counter = rda.counter();
 
-        if (d_throttledRejectedMessages.requestPermission()) {
-            BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                          << "' rejecting PUSH [GUID: '" << msgGUID
-                          << "', appId: " << app.appId()
-                          << ", subQueueId: " << app.upstreamSubQueueId()
-                          << "] with the counter: [" << rda << "]";
-        }
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Queue '" << d_queueState_p->uri()
+            << "' rejecting PUSH [GUID: '" << msgGUID
+            << "', appId: " << app.appId()
+            << ", subQueueId: " << app.upstreamSubQueueId()
+            << "] with the counter: [" << rda << "]";
 
         if (!rda.isUnlimited()) {
             BSLS_ASSERT_SAFE(counter);
@@ -1537,11 +1531,11 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
             }
         }
     }
-    else if (d_throttledRejectedMessages.requestPermission()) {
-        BALL_LOG_INFO << "[THROTTLED] Queue '" << d_queueState_p->uri()
-                      << "' got reject for an unknown message [GUID: '"
-                      << msgGUID
-                      << "', subQueueId: " << app.upstreamSubQueueId() << "]";
+    else {
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Queue '" << d_queueState_p->uri()
+            << "' got reject for an unknown message [GUID: '" << msgGUID
+            << "', subQueueId: " << app.upstreamSubQueueId() << "]";
     }
 
     return counter;

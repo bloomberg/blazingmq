@@ -181,6 +181,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <ball_logthrottle.h>
 #include <bdlb_nullablevalue.h>
 #include <bdlb_scopeexit.h>
 #include <bdld_datum.h>
@@ -359,20 +360,9 @@ ClientSessionState::ClientSessionState(
 , d_schemaEventBuilder(blobSpPool, encodingType, allocator)
 , d_pushBuilder(blobSpPool, allocator)
 , d_ackBuilder(blobSpPool, allocator)
-, d_throttledFailedAckMessages()
-, d_throttledFailedPutMessages()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(encodingType != bmqp::EncodingType::e_UNKNOWN);
-
-    d_throttledFailedAckMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
-    d_throttledFailedPutMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
 }
 
 // -------------------
@@ -595,15 +585,12 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
         // Throttle error log if this is a 'failed Ack': note that we log at
         // INFO level in order not to overwhelm the dashboard, if a queue is
         // full, every post will nack, which could be a lot.
-        if (d_state.d_throttledFailedAckMessages.requestPermission()) {
-            BALL_LOG_INFO << description() << ": failed Ack "
-                          << "[status: " << status << ", source: '" << source
-                          << "'"
-                          << ", correlationId: " << correlationId
-                          << ", GUID: " << messageGUID << ", queue: '" << uri
-                          << "' "
-                          << "(id: " << queueId << ")]";
-        }
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << description() << ": failed Ack " << "[status: " << status
+            << ", source: '" << source << "'"
+            << ", correlationId: " << correlationId
+            << ", GUID: " << messageGUID << ", queue: '" << uri << "' "
+            << "(id: " << queueId << ")]";
     }
 
     // Always print at trace level
@@ -2379,18 +2366,15 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
                 //
                 // In order to not lose the data, we do send the message
                 // upstream and here we just log the error.
-                if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-                    BALL_LOG_WARN
-                        << "#UNACKED_PUT_GUID_COLLISION " << description()
-                        << ": GUID collision detected "
-                        << "for a PUT message at first hop for queue ["
-                        << queueStatePtr->d_handle_p->queue()->uri()
-                        << "], correlationId: " << correlationId
-                        << ", message size: " << putIt.applicationDataSize()
-                        << ", GUID: " << insertRc.first->first << ". "
-                        << "This could be due to retransmitted PUT "
-                        << "message.";
-                }
+                BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+                    << "#UNACKED_PUT_GUID_COLLISION " << description()
+                    << ": GUID collision detected "
+                    << "for a PUT message at first hop for queue ["
+                    << queueStatePtr->d_handle_p->queue()->uri()
+                    << "], correlationId: " << correlationId
+                    << ", message size: " << putIt.applicationDataSize()
+                    << ", GUID: " << insertRc.first->first
+                    << ". This could be due to retransmitted PUT message.";
             }
         }
 
@@ -2412,14 +2396,12 @@ void ClientSession::onPutEvent(const mqbi::DispatcherPutEvent& event)
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_ERROR_BLOCK
-            {
-                BALL_LOG_OUTPUT_STREAM << "#CORRUPTED_EVENT " << description()
-                                       << ": Invalid Put event [rc: " << rc
-                                       << "]\n";
-                putIt.dumpBlob(BALL_LOG_OUTPUT_STREAM);
-            }
+        BALL_LOGTHROTTLE_ERROR_BLOCK(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+        {
+            BALL_LOG_OUTPUT_STREAM << "#CORRUPTED_EVENT " << description()
+                                   << ": Invalid Put event [rc: " << rc
+                                   << "]\n";
+            putIt.dumpBlob(BALL_LOG_OUTPUT_STREAM);
         }
     }
 }
@@ -2505,24 +2487,22 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_ERROR_BLOCK
-            {
-                BALL_LOG_OUTPUT_STREAM
-                    << "#CORRUPTED_EVENT " << description()
-                    << ": Failed to load PUT message payload [queueId: "
-                    << queueId;
+        BALL_LOGTHROTTLE_ERROR_BLOCK(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << "#CORRUPTED_EVENT " << description()
+                << ": Failed to load PUT message payload [queueId: "
+                << queueId;
 
-                if (isFirstHop && !d_isClientGeneratingGUIDs) {
-                    BALL_LOG_OUTPUT_STREAM << ", correlationId: "
-                                           << putIt.header().correlationId();
-                }
-                else {
-                    BALL_LOG_OUTPUT_STREAM << ", GUID: "
-                                           << putIt.header().messageGUID();
-                }
-                BALL_LOG_OUTPUT_STREAM << ", rc: " << rc << "]";
+            if (isFirstHop && !d_isClientGeneratingGUIDs) {
+                BALL_LOG_OUTPUT_STREAM << ", correlationId: "
+                                       << putIt.header().correlationId();
             }
+            else {
+                BALL_LOG_OUTPUT_STREAM << ", GUID: "
+                                       << putIt.header().messageGUID();
+            }
+            BALL_LOG_OUTPUT_STREAM << ", rc: " << rc << "]";
         }
 
         ackStatus      = bmqt::AckResult::e_INVALID_ARGUMENT;
@@ -2534,11 +2514,9 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
         // queue)
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_WARN << "#CLIENT_INVALID_PUT " << description()
-                          << ": PUT message for queue with unknown Id ("
-                          << queueId << ")";
-        }
+        BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "#CLIENT_INVALID_PUT " << description()
+            << ": PUT message for queue with unknown Id (" << queueId << ")";
 
         ackStatus      = bmqt::AckResult::e_INVALID_ARGUMENT;
         ackDescription = "putEvent::unknownQueue";
@@ -2548,12 +2526,10 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
         // Has this client already sent the 'final' closeQueue request?
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_WARN << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                          << ": PUT message for queue Id (" << queueId
-                          << ") after final"
-                          << " closeQueue request.";
-        }
+        BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "#CLIENT_IMPROPER_BEHAVIOR " << description()
+            << ": PUT message for queue Id (" << queueId << ") after final"
+            << " closeQueue request.";
 
         ackStatus      = bmqt::AckResult::e_REFUSED;
         ackDescription = "putEvent::afterFinalCloseQueue";
@@ -2570,24 +2546,21 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-                BALL_LOG_ERROR_BLOCK
-                {
-                    BALL_LOG_OUTPUT_STREAM << "#CORRUPTED_EVENT "
-                                           << description()
-                                           << ": Failed to load PUT message "
-                                           << "options [queueId: " << queueId;
-                    if (isFirstHop && !d_isClientGeneratingGUIDs) {
-                        BALL_LOG_OUTPUT_STREAM
-                            << ", correlationId: "
-                            << putIt.header().correlationId();
-                    }
-                    else {
-                        BALL_LOG_OUTPUT_STREAM << ", GUID: "
-                                               << putIt.header().messageGUID();
-                    }
-                    BALL_LOG_OUTPUT_STREAM << ", rc: " << rc << "]";
+            BALL_LOGTHROTTLE_ERROR_BLOCK(1,
+                                         5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            {
+                BALL_LOG_OUTPUT_STREAM << "#CORRUPTED_EVENT " << description()
+                                       << ": Failed to load PUT message "
+                                       << "options [queueId: " << queueId;
+                if (isFirstHop && !d_isClientGeneratingGUIDs) {
+                    BALL_LOG_OUTPUT_STREAM << ", correlationId: "
+                                           << putIt.header().correlationId();
                 }
+                else {
+                    BALL_LOG_OUTPUT_STREAM << ", GUID: "
+                                           << putIt.header().messageGUID();
+                }
+                BALL_LOG_OUTPUT_STREAM << ", rc: " << rc << "]";
             }
 
             ackStatus      = bmqt::AckResult::e_INVALID_ARGUMENT;
@@ -2600,11 +2573,9 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
         // Check if SDK sent PUT with non-empty GUID
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        if (d_state.d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_ERROR << "#CLIENT_INVALID_PUT " << description()
-                           << ": PUT message with unset GUID [queueId: "
-                           << queueId << "]";
-        }
+        BALL_LOGTHROTTLE_ERROR(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "#CLIENT_INVALID_PUT " << description()
+            << ": PUT message with unset GUID [queueId: " << queueId << "]";
 
         ackStatus      = bmqt::AckResult::e_INVALID_ARGUMENT;
         ackDescription = "putEvent::unsetGUID";

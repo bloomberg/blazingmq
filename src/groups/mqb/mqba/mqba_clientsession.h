@@ -193,12 +193,6 @@ struct ClientSessionState {
     /// Builder for ack messages.  To be used only in client dispatcher thread.
     bmqp::AckEventBuilder d_ackBuilder;
 
-    /// Throttler for failed ACK messages.
-    bdlmt::Throttle d_throttledFailedAckMessages;
-
-    /// Throttler for failed PUT messages.
-    bdlmt::Throttle d_throttledFailedPutMessages;
-
     /// Stats associated with an unknown queue, lazily created when the first
     /// usage of an unknown queue is encountered
     bdlb::NullableValue<mqbstat::QueueStatsClient> d_invalidQueueStats;

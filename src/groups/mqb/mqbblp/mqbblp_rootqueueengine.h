@@ -111,9 +111,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// rejected message.
     bdlmt::FixedThreadPool* d_miscWorkThreadPool_p;
 
-    /// Throttler for REJECTs.
-    bdlmt::Throttle d_throttledRejectedMessages;
-
     /// Throttler for when reject messages are dumped into temp files.
     bdlmt::Throttle d_throttledRejectMessageDump;
 

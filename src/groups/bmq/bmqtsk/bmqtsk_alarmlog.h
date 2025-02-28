@@ -124,18 +124,22 @@
 // 'BALL_LOG_ERROR_BLOCK', meaning that:
 //:  o log message is streamed into the macro
 //:  o the call must be ended by a terminal 'BMQTSK_ALARMLOG_END'
+#define BMQTSK_ALARMLOG_ALARM_HEAD(CATEGORY)                                  \
+    BALL_LOG_OUTPUT_STREAM << "ALARM [" << CATEGORY << "] ";                  \
+    BALL_LOG_RECORD->customFields().appendString("ALARM");                    \
+    BALL_LOG_OUTPUT_STREAM
+#define BMQTSK_ALARMLOG_PANIC_HEAD(CATEGORY)                                  \
+    BALL_LOG_OUTPUT_STREAM << "PANIC [" << CATEGORY << "] ";                  \
+    BALL_LOG_RECORD->customFields().appendString("PANIC");                    \
+    BALL_LOG_OUTPUT_STREAM
 #define BMQTSK_ALARMLOG_ALARM(CATEGORY)                                       \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "ALARM [" << CATEGORY << "] ";              \
-        BALL_LOG_RECORD->customFields().appendString("ALARM");                \
-        BALL_LOG_OUTPUT_STREAM
+        BMQTSK_ALARMLOG_ALARM_HEAD(CATEGORY)
 #define BMQTSK_ALARMLOG_PANIC(CATEGORY)                                       \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "PANIC [" << CATEGORY << "] ";              \
-        BALL_LOG_RECORD->customFields().appendString("PANIC");                \
-        BALL_LOG_OUTPUT_STREAM
+        BMQTSK_ALARMLOG_PANIC_HEAD(CATEGORY)
 #define BMQTSK_ALARMLOG_END                                                   \
     "";                                                                       \
     }

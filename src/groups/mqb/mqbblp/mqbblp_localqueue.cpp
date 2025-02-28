@@ -39,6 +39,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_nullablevalue.h>
 #include <bdlb_print.h>
 #include <bdlma_localsequentialallocator.h>
@@ -66,17 +67,11 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 , d_state_p(state)
 , d_queueEngine_mp(0)
 , d_throttledFailedPutMessages(5000, 1)  // 1 log per 5s interval
-, d_throttledDuplicateMessages()
 , d_haveStrongConsistency(false)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->id() == bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     // A LocalQueue has no 'upstream', hence no id
-
-    d_throttledDuplicateMessages.initialize(
-        1,
-        1 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // Maximum one per 1 seconds
 
     d_state_p->setDescription(d_state_p->uri().asString());
 }
@@ -517,12 +512,11 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         if (res == mqbi::StorageResult::e_DUPLICATE) {
-            if (d_throttledDuplicateMessages.requestPermission()) {
-                BALL_LOG_WARN << "Duplicate PUT message queue ["
-                              << d_state_p->uri() << "] from client ["
-                              << source->client()->description() << "], GUID ["
-                              << putHeader.messageGUID() << "]";
-            }
+            // Maximum one per second
+            BALL_LOGTHROTTLE_WARN(1, 1 * bdlt::TimeUnitRatio::k_NS_PER_S)
+                << "Duplicate PUT message queue [" << d_state_p->uri()
+                << "] from client [" << source->client()->description()
+                << "], GUID [" << putHeader.messageGUID() << "]";
         }
         else {
             d_state_p->stats()
