@@ -29,6 +29,7 @@
 #include <bsl_string.h>
 
 // TEST DRIVER
+#include <bmqtst_scopedlogobserver.h>
 #include <bmqtst_testhelper.h>
 
 // CONVENIENCE
@@ -43,6 +44,9 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+                                          bmqtst::TestHelperUtil::allocator());
+
     mqbnet::Cluster::NodesList nodes;
     bsl::string                description = "dummy";
     bsl::string                dataCenter  = "east";
@@ -51,6 +55,7 @@ static void test1_breathingTest()
         mqbnet::ClusterActiveNodeManager(nodes, description, dataCenter);
 
     BMQTST_ASSERT(!mgr.activeNode());
+    BMQTST_ASSERT(logObserver.records().empty());
 }
 
 static void test2_activeNodeWithinDC()
@@ -59,6 +64,9 @@ static void test2_activeNodeWithinDC()
 // selected until the selection criteria is explicitly extended.
 {
     bmqtst::TestHelper::printTestName("ACTIVE NODE IN SAME DC");
+
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // Set up mock cluster
     mqbcfg::ClusterDefinition clusterConfig(
@@ -138,6 +146,8 @@ static void test2_activeNodeWithinDC()
         BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
         BMQTST_ASSERT_EQ(mgr.activeNode(), &west1);
     }
+
+    BMQTST_ASSERT(logObserver.records().empty());
 }
 
 static void test3_activeNodeOutsideDC()
@@ -146,6 +156,9 @@ static void test3_activeNodeOutsideDC()
 // local machine.
 {
     bmqtst::TestHelper::printTestName("ACTIVE NDOE OUTSIDE DC");
+
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+                                          bmqtst::TestHelperUtil::allocator());
 
     // Set up mock cluster
     mqbcfg::ClusterDefinition clusterConfig(
@@ -158,7 +171,7 @@ static void test3_activeNodeOutsideDC()
                                     bmqtst::TestHelperUtil::allocator());
 
     // Populate cluster nodes
-    // - 1 nodes in "east" data center
+    // - 1 node in "east" data center
     // - 1 node in "west" data center
     mqbnet::Cluster::NodesList nodes;
     mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
@@ -212,6 +225,96 @@ static void test3_activeNodeOutsideDC()
                              mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
         BMQTST_ASSERT_EQ(mgr.activeNode(), &east1);
     }
+
+    BMQTST_ASSERT(logObserver.records().empty());
+}
+
+static void test4_panicInExtendedMode()
+// Validate that a PANIC log is emitted if in extended mode and unable to
+// select an active node.
+{
+    bmqtst::TestHelper::printTestName("ACTIVE NDOE OUTSIDE DC");
+
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::ERROR,
+                                          bmqtst::TestHelperUtil::allocator());
+
+    // Set up mock cluster
+    mqbcfg::ClusterDefinition clusterConfig(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::MockCluster mockCluster(clusterConfig,
+                                    &bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    // Populate cluster nodes
+    // - 1 node in "east" data center
+    // - 1 node in "west" data center
+    mqbnet::Cluster::NodesList nodes;
+    mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
+
+    clusterNodeConfig.dataCenter() = "east";
+    clusterNodeConfig.name()       = "east-1";
+    mqbnet::MockClusterNode east1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&east1);
+
+    clusterNodeConfig.dataCenter() = "west";
+    clusterNodeConfig.name()       = "west-1";
+    mqbnet::MockClusterNode west1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&west1);
+
+    // Create ClusterActiveNodeManager
+    bsl::string                      description = "dummy";
+    bsl::string                      dataCenter  = "east";
+    mqbnet::ClusterActiveNodeManager mgr =
+        mqbnet::ClusterActiveNodeManager(nodes, description, dataCenter);
+    BMQTST_ASSERT(!mgr.activeNode());
+
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
+    negotiationMessage.makeClientIdentity().hostName() = "dummyIdentity";
+
+    // Refresh should not panic in normal mode
+    {
+        int rc = mgr.refresh();
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NO_CHANGE);
+        BMQTST_ASSERT(logObserver.records().empty());
+    }
+
+    // Refresh with extended selection should panic
+    {
+        mgr.enableExtendedSelection();
+        int rc = mgr.refresh();
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NO_CHANGE);
+        BMQTST_ASSERT_EQ(1L, logObserver.records().size());
+        BMQTST_ASSERT(
+            logObserver.records().back().fixedFields().messageRef().find(
+                "PANIC [CLUSTER_ACTIVE_NODE]") != bsl::string::npos);
+    }
+
+    // "west" node up, new active node
+    {
+        int rc = mgr.onNodeUp(&west1, negotiationMessage.clientIdentity());
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
+        BMQTST_ASSERT_EQ(mgr.activeNode(), &west1);
+    }
+
+    // "west" node down, should panic again
+    {
+        int rc = mgr.onNodeDown(&west1);
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE);
+        BMQTST_ASSERT_EQ(2L, logObserver.records().size());
+        BMQTST_ASSERT(
+            logObserver.records().back().fixedFields().messageRef().find(
+                "PANIC [CLUSTER_ACTIVE_NODE]") != bsl::string::npos);
+    }
 }
 
 // ============================================================================
@@ -224,6 +327,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_panicInExtendedMode(); break;
     case 3: test3_activeNodeOutsideDC(); break;
     case 2: test2_activeNodeWithinDC(); break;
     case 1: test1_breathingTest(); break;
