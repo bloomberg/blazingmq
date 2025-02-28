@@ -4323,7 +4323,7 @@ void ClusterQueueHelper::onQueueUpdated(const bmqt::Uri&   uri,
                                                    ->domain());
     }
 
-        for (AppInfos::const_iterator cit = removedAppIds.cbegin();
+    for (AppInfos::const_iterator cit = removedAppIds.cbegin();
          cit != removedAppIds.cend();
          ++cit) {
         if (!d_clusterState_p->isSelfPrimary(partitionId) || queue == 0) {

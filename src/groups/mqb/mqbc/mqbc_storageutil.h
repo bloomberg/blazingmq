@@ -681,8 +681,7 @@ struct StorageUtil {
                                      int                partitionId,
                                      const bmqt::Uri&   uri,
                                      const mqbu::StorageKey& queueKey,
-                                     const mqbu::StorageKey& appKey,
-                                     bool                    isCSLMode);
+                                     const mqbu::StorageKey& appKey);
 
     static void
     updateQueueReplicaDispatched(int*                    status,

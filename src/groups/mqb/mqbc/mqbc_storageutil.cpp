@@ -2929,8 +2929,7 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     int                     partitionId,
     const bmqt::Uri&        uri,
     const mqbu::StorageKey& queueKey,
-    const mqbu::StorageKey& appKey,
-    bool                    isCSLMode)
+    const mqbu::StorageKey& appKey)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with `partitionId`
 
@@ -2997,28 +2996,25 @@ void StorageUtil::unregisterQueueReplicaDispatched(
     if (appKey.isNull()) {
         // Entire queue is being deleted.
 
-        if (isCSLMode) {
-            const bsls::Types::Int64 numMsgs = rs->numMessages(
-                mqbu::StorageKey::k_NULL_KEY);
-            if (0 != numMsgs) {
-                BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                    << clusterDescription << " Partition [" << partitionId
-                    << "]: Attempt to delete storage for queue [ " << uri
-                    << "], queueKey [" << queueKey << "] which has ["
-                    << numMsgs << "] outstanding messages."
-                    << BMQTSK_ALARMLOG_END;
-                if (status) {
-                    *status = rc_QUEUE_HAS_MESSAGES;
-                }
-
-                return;  // RETURN
+        const bsls::Types::Int64 numMsgs = rs->numMessages(
+            mqbu::StorageKey::k_NULL_KEY);
+        if (0 != numMsgs) {
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << clusterDescription << " Partition [" << partitionId
+                << "]: Attempt to delete storage for queue [ " << uri
+                << "], queueKey [" << queueKey << "] which has [" << numMsgs
+                << "] outstanding messages." << BMQTSK_ALARMLOG_END;
+            if (status) {
+                *status = rc_QUEUE_HAS_MESSAGES;
             }
 
-            const mqbs::ReplicatedStorage::RecordHandles& recHandles =
-                rs->queueOpRecordHandles();
-            for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-                fs->removeRecordRaw(recHandles[idx]);
-            }
+            return;  // RETURN
+        }
+
+        const mqbs::ReplicatedStorage::RecordHandles& recHandles =
+            rs->queueOpRecordHandles();
+        for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+            fs->removeRecordRaw(recHandles[idx]);
         }
 
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
