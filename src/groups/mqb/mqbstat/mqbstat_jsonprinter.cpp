@@ -21,6 +21,8 @@
 // MQB
 #include <mqbstat_queuestats.h>
 
+// BMQ
+#include <bmqst_statutil.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
@@ -169,6 +171,54 @@ struct ConversionUtils {
                                    *domainIt);
         }
     }
+
+    inline static void
+    populateAllAllocatorsStats(bdljsn::JsonObject*       parent,
+                               const bmqst::StatContext& ctx)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(parent);
+
+        if (ctx.numValues() == 1) {
+            // BSLS_ASSERT_SAFE(ctx.valueName(0) == "Memory");
+
+            const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
+            const bmqst::StatValue&                  memory =
+                ctx.value(bmqst::StatContext::ValueType::e_TOTAL_VALUE, 0);
+
+            bslstl::StringRef   nodeName = ctx.hasName() ? ctx.name()
+                                                         : "UNDEFINED";
+            bdljsn::JsonObject& node     = (*parent)[nodeName].makeObject();
+
+            node["numAllocated"].makeNumber() =
+                bmqst::StatUtil::value(memory, latestSnapshot);
+            node["maxAllocated"].makeNumber() = bmqst::StatUtil::absoluteMax(
+                memory);
+            node["numAllocations"].makeNumber() =
+                bmqst::StatUtil::increments(memory, latestSnapshot);
+            node["numDeallocations"].makeNumber() =
+                bmqst::StatUtil::decrements(memory, latestSnapshot);
+
+            if (ctx.numSubcontexts() > 0) {
+                bdljsn::JsonObject& childAllocators =
+                    node["allocators"].makeObject();
+
+                for (bmqst::StatContextIterator allocIt =
+                         ctx.subcontextIterator();
+                     allocIt;
+                     ++allocIt) {
+                    populateAllAllocatorsStats(&childAllocators, *allocIt);
+                }
+            }
+        }
+        else {
+            for (bmqst::StatContextIterator allocIt = ctx.subcontextIterator();
+                 allocIt;
+                 ++allocIt) {
+                populateAllAllocatorsStats(parent, *allocIt);
+            }
+        }
+    }
 };
 
 }  // close unnamed namespace
@@ -261,6 +311,16 @@ inline int JsonPrinter::JsonPrinterImpl::printStats(bsl::string* out,
         bdljsn::JsonObject& domainQueuesObj = obj["domainQueues"].makeObject();
 
         ConversionUtils::populateAllDomainsStats(&domainQueuesObj, ctx);
+    }
+
+    {
+        bdljsn::JsonObject& allocatorsObj = obj["allocators"].makeObject();
+
+        StatContextsMap::const_iterator it = d_contexts.find("allocators");
+        if (it != d_contexts.end()) {
+            ConversionUtils::populateAllAllocatorsStats(&allocatorsObj,
+                                                        *it->second);
+        }
     }
 
     const bdljsn::WriteOptions& ops = compact ? d_opsCompact : d_opsPretty;
