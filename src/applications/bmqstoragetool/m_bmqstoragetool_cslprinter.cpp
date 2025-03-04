@@ -33,14 +33,14 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-// Helper to convert record to json string
+// Helper to convert record to json string (escaped single line)
 template <typename RECORD_TYPE>
-bsl::string recordToJsonString(const RECORD_TYPE record,
-                               bslma::Allocator* allocator,
-                               bool              removeTrailingQuotes = true)
+bsl::string recordToJsonString(const RECORD_TYPE* record,
+                               bslma::Allocator*  allocator,
+                               bool               removeTrailingQuotes = true)
 {
     bmqu::MemOutStream recStr(allocator);
-    record.print(recStr, 0, -1);
+    record->print(recStr, -1, -1);
 
     bmqu::MemOutStream escapedStr(allocator);
     escapedStr << bsl::quoted(recStr.str());
@@ -53,6 +53,41 @@ bsl::string recordToJsonString(const RECORD_TYPE record,
     }
 
     return resultStr;
+}
+
+void printQueueInfo(bsl::ostream&     ostream,
+                    const QueueMap&   queueMap,
+                    unsigned int      queuesLimit,
+                    bslma::Allocator* allocator)
+{
+    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
+        queueMap.queueInfos();
+    if (!queueInfos.empty()) {
+        ostream << ",\n";
+        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
+            queueInfos.cend();
+        if (queueInfos.size() > queuesLimit) {
+            ostream << "  \"First" << queuesLimit << "Queues\": [";
+            itEnd = queueInfos.cbegin() + queuesLimit;
+        }
+        else {
+            ostream << "    \"Queues\": [";
+        }
+        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
+            queueInfos.cbegin();
+        for (; it != itEnd; ++it) {
+            if (it != queueInfos.cbegin()) {
+                ostream << ",";
+            }
+            bsl::string recStr = recordToJsonString(it, allocator, false);
+
+            ostream << "\n      " << recStr;
+        }
+        ostream << "\n    ]";
+    }
+    else {
+        ostream << "    \"Queues\": []";
+    }
 }
 
 }  // close unnamed namespace
@@ -149,7 +184,6 @@ class HumanReadableCslPrinter : public CslPrinter {
         const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
         unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
     {
-        // TODO: consider to enhance printFooter with optional updateChoiceMap
         if (processCslRecordTypes.d_snapshot) {
             recordCount.d_snapshotCount > 0
                 ? (d_ostream << '\n'
@@ -306,41 +340,6 @@ class JsonCslPrinter : public CslPrinter {
 
     // PUBLIC METHODS
 
-    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
-                          const mqbsi::LedgerRecordId&          recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        // bmqp_ctrlmsg::ClusterMessage   record;
-        openBraceIfNotOpen("Records");
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-        printer.printRecordDetails("", header, recordId, true);
-    }
-
-    void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
-                           const mqbc::ClusterStateRecordHeader& header,
-                           const mqbsi::LedgerRecordId& recordId) const
-        BSLS_KEYWORD_OVERRIDE
-    {
-        openBraceIfNotOpen("Records");
-
-        // Print record.
-        // Since `record` uses `bslim::Printer` to print its objects hierarchy,
-        // it is not easy (and error prone) to do the same for json printer
-        // without changing nested `record` objects.
-        // So, we will use the output of `print` method and store it in json as
-        // escaped string.
-        bsl::string recStr = recordToJsonString(record, d_allocator_p);
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordDetails(recStr, header, recordId);
-    }
-
     void
     printOffsetsNotFound(const OffsetsVec& offsets) const BSLS_KEYWORD_OVERRIDE
     {
@@ -374,114 +373,19 @@ class JsonCslPrinter : public CslPrinter {
         d_ostream << "\n  ]";
     }
 
-    void printSummaryResult(
-        const CslRecordCount&                    recordCount,
-        const CslUpdateChoiceMap&                updateChoiceMap,
-        const QueueMap&                          queueMap,
-        const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
-        unsigned int queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    void
+    printFooter(const CslRecordCount&        recordCount,
+                BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
+                    processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
     {
-        // openBraceIfNotOpen("Summary");
-
-        // if (processCslRecordTypes.d_snapshot) {
-        //     closeBraceIfOpen();
-        //     d_ostream << "  \"SnapshotRecords\": " <<
-        //     recordCount.d_snapshotCount;
-        // }
-        // if (processCslRecordTypes.d_update) {
-        //     closeBraceIfOpen();
-        //     d_ostream << "  \"UpdateRecords\": " <<
-        //     recordCount.d_updateCount << '\n';; d_ostream << "
-        //     \"UpdateRecordChoices\": [\n";
-        //     bmqp_ctrlmsg::ClusterMessageChoice
-        //     clusterMessageChoice(d_allocator_p); for
-        //     (CslUpdateChoiceMap::const_iterator it =
-        //              updateChoiceMap.begin();
-        //          it != updateChoiceMap.end();
-        //          ++it) {
-        //         if (it != updateChoiceMap.begin()) {
-        //             d_ostream << ",";
-        //         }
-        //         clusterMessageChoice.makeSelection(it->first);
-        //         d_ostream << "    \"" <<
-        //         clusterMessageChoice.selectionName()
-        //                   << "\": " << it->second << "\n";
-        //     }
-        //     d_ostream << "  ]";
-        // }
-        // if (processCslRecordTypes.d_commit) {
-        //     closeBraceIfOpen();
-        //     d_ostream << "  \"CommitRecords\": " <<
-        //     recordCount.d_commitCount;
-        // }
-        // if (processCslRecordTypes.d_ack) {
-        //     closeBraceIfOpen();
-        //     d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
-        // }
-
-        d_ostream << "  \"Summary\":\n";
-
-        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-            d_ostream,
-            d_allocator_p);
-
-        printer.printRecordsSummary(recordCount, updateChoiceMap);
-
-        // Print queues info
-        const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
-            queueMap.queueInfos();
-        if (!queueInfos.empty()) {
-            // closeBraceIfOpen();
-            d_ostream << ",\n";
-            bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
-                queueInfos.cend();
-            if (queueInfos.size() > queuesLimit) {
-                d_ostream << "  \"First" << queuesLimit << "Queues\": [";
-                itEnd = queueInfos.cbegin() + queuesLimit;
-            }
-            else {
-                d_ostream << "  \"Queues\": [";
-            }
-            bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-                queueInfos.cbegin();
-            for (; it != itEnd; ++it) {
-                if (it != queueInfos.cbegin()) {
-                    d_ostream << ",";
-                }
-                bsl::string recStr = recordToJsonString(*it,
-                                                        d_allocator_p,
-                                                        false);
-
-                d_ostream << "\n    " << recStr;
-            }
-            d_ostream << "\n  ]";
-        }
-        else {
-            d_ostream << "  \"Queues\": []";
-        }
-    }
-
-    void printFooter(const CslRecordCount& recordCount,
-                     const Parameters::ProcessCslRecordTypes&
-                         processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
-    {
-        if (processCslRecordTypes.d_snapshot) {
-            closeBraceIfOpen();
-            d_ostream << "  \"SnapshotRecords\": "
-                      << recordCount.d_snapshotCount;
-        }
-        if (processCslRecordTypes.d_update) {
-            closeBraceIfOpen();
-            d_ostream << "  \"UpdateRecords\": " << recordCount.d_updateCount;
-        }
-        if (processCslRecordTypes.d_commit) {
-            closeBraceIfOpen();
-            d_ostream << "  \"CommitRecords\": " << recordCount.d_commitCount;
-        }
-        if (processCslRecordTypes.d_ack) {
-            closeBraceIfOpen();
-            d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
-        }
+        closeBraceIfOpen();
+        d_ostream << "  \"SnapshotRecords\": " << recordCount.d_snapshotCount
+                  << ",\n";
+        d_ostream << "  \"UpdateRecords\": " << recordCount.d_updateCount
+                  << ",\n";
+        d_ostream << "  \"CommitRecords\": " << recordCount.d_commitCount
+                  << ",\n";
+        d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
     }
 };
 
@@ -496,6 +400,124 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
     ~JsonPrettyCslPrinter() BSLS_KEYWORD_OVERRIDE {}
 
     // PUBLIC METHODS
+
+    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+                          const mqbsi::LedgerRecordId&          recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        openBraceIfNotOpen("Records");
+
+        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+        printer.printRecordDetails("", header, recordId);
+    }
+
+    void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                           const mqbc::ClusterStateRecordHeader& header,
+                           const mqbsi::LedgerRecordId& recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        openBraceIfNotOpen("Records");
+
+        // Print record.
+        // Since `record` uses `bslim::Printer` to print its objects hierarchy,
+        // it is not easy (and error prone) to do the same for json printer
+        // without changing nested `record` objects.
+        // So, we will use the output of `print` method and store it in json as
+        // escaped string.
+        bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+
+        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+
+        printer.printRecordDetails(recStr, header, recordId);
+    }
+
+    void printSummaryResult(
+        const CslRecordCount&        recordCount,
+        const CslUpdateChoiceMap&    updateChoiceMap,
+        const QueueMap&              queueMap,
+        BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
+                                     processCslRecordTypes,
+        unsigned int                 queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    {
+        d_ostream << "    \"Summary\":\n";
+
+        CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+
+        printer.printRecordsSummary(recordCount, updateChoiceMap);
+
+        printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
+    }
+};
+
+class JsonLineCslPrinter : public JsonCslPrinter {
+  public:
+    // CREATORS
+    JsonLineCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    : JsonCslPrinter(os, allocator)
+    {
+    }
+
+    ~JsonLineCslPrinter() BSLS_KEYWORD_OVERRIDE {}
+
+    // PUBLIC METHODS
+    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+                          const mqbsi::LedgerRecordId&          recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        openBraceIfNotOpen("Records");
+
+        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+        printer.printRecordDetails("", header, recordId);
+    }
+
+    void printDetailResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                           const mqbc::ClusterStateRecordHeader& header,
+                           const mqbsi::LedgerRecordId& recordId) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        openBraceIfNotOpen("Records");
+
+        // Print record.
+        // Since `record` uses `bslim::Printer` to print its objects hierarchy,
+        // it is not easy (and error prone) to do the same for json printer
+        // without changing nested `record` objects.
+        // So, we will use the output of `print` method and store it in json as
+        // escaped string.
+        bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+
+        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+
+        printer.printRecordDetails(recStr, header, recordId);
+    }
+
+    void printSummaryResult(
+        const CslRecordCount&        recordCount,
+        const CslUpdateChoiceMap&    updateChoiceMap,
+        const QueueMap&              queueMap,
+        BSLS_ANNOTATION_UNUSED const Parameters::ProcessCslRecordTypes&
+                                     processCslRecordTypes,
+        unsigned int                 queuesLimit) const BSLS_KEYWORD_OVERRIDE
+    {
+        d_ostream << "  \"Summary\":\n";
+
+        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+            d_ostream,
+            d_allocator_p);
+
+        printer.printRecordsSummary(recordCount, updateChoiceMap);
+
+        printQueueInfo(d_ostream, queueMap, queuesLimit, d_allocator_p);
+    }
 };
 
 bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
@@ -512,10 +534,10 @@ bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
         printer.load(new (*allocator) JsonPrettyCslPrinter(stream, allocator),
                      allocator);
     }
-    // else if (mode == Parameters::e_JSON_LINE) {
-    //     printer.load(new (*allocator) JsonLinePrinter(stream, allocator),
-    //                 allocator);
-    // }
+    else if (mode == Parameters::e_JSON_LINE) {
+        printer.load(new (*allocator) JsonLineCslPrinter(stream, allocator),
+                     allocator);
+    }
     return printer;
 }
 

@@ -17,7 +17,7 @@
 #define INCLUDED_M_BMQSTORAGETOOL_CSLRECORDPRINTER_H
 
 //@PURPOSE: Provide utilities for printing CSL file records for different
-//formats.
+// formats.
 //
 //@CLASSES:
 // - m_bmqstoragetool::CslRecordCount: VST representing CSL record counters.
@@ -105,8 +105,7 @@ class CslRecordPrinter {
     /// Print cluster state ledger (CSL) record details.
     void printRecordDetails(const bsl::string&                    recStr,
                             const mqbc::ClusterStateRecordHeader& header,
-                            const mqbsi::LedgerRecordId&          recId,
-                            bool onlyHeader = false);
+                            const mqbsi::LedgerRecordId&          recId);
 
     /// Print cluster state ledger (CSL) records summary.
     void printRecordsSummary(const CslRecordCount&     recordCount,
@@ -137,8 +136,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     // const bmqp_ctrlmsg::ClusterMessage&   rec,
     const bsl::string&                    recStr,
     const mqbc::ClusterStateRecordHeader& header,
-    const mqbsi::LedgerRecordId&          recId,
-    bool                                  onlyHeader)
+    const mqbsi::LedgerRecordId&          recId)
 {
     d_fields.clear();
     d_fields.reserve(9);  // max number of fields
@@ -151,7 +149,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     d_fields.push_back("LeaderAdvisoryWords");
     d_fields.push_back("Timestamp");
     d_fields.push_back("Epoch");
-    if (!onlyHeader) {
+    if (!recStr.empty()) {
         d_fields.push_back("Record");
     }
     // It's ok to pass a vector by pointer and push elements after that as
@@ -175,7 +173,7 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     }
     *d_printer_mp << epochValue;
 
-    if (!onlyHeader) {
+    if (!recStr.empty()) {
         // // Print record.
         // // Since `record` uses `bslim::Printer` to print its objects
         // hierarchy,

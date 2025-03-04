@@ -17,12 +17,12 @@
 #define INCLUDED_M_BMQSTORAGETOOL_RECORDPRINTER
 
 //@PURPOSE: Provide utilities for printing journal file records for different
-//formats.
+// formats.
 //
 //@CLASSES: m_bmqstoragetool::RecordPrinter::RecordDetailsPrinter
 //
 //@DESCRIPTION: 'm_bmqstoragetool::RecordPrinter' namespace provides classes
-//and methods
+// and methods
 // for printing journal file records details. These methods are enhanced
 // versions of
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
