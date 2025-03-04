@@ -459,6 +459,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
             mqbi::StorageMessageAttributes attributes(
                 timestamp,
                 refCount,
+                static_cast<unsigned int>(appData->length()),
                 translation,
                 putHeader.compressionAlgorithmType(),
                 !d_haveStrongConsistency,

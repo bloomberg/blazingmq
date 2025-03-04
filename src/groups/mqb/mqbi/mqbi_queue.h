@@ -565,9 +565,7 @@ class QueueHandle {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    deliverMessage(const bsl::shared_ptr<bdlbb::Blob>&       message,
-                   const bmqt::MessageGUID&                  msgGUID,
-                   const StorageMessageAttributes&           attributes,
+    deliverMessage(const mqbi::StorageIterator&              message,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool                                      isOutOfOrder) = 0;
@@ -582,9 +580,7 @@ class QueueHandle {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void deliverMessageNoTrack(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const bmqt::MessageGUID&                  msgGUID,
-        const StorageMessageAttributes&           attributes,
+        const mqbi::StorageIterator&              message,
         const bmqp::Protocol::MsgGroupId&         msgGroupId,
         const bmqp::Protocol::SubQueueInfosArray& subscriptions) = 0;
 
