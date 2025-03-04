@@ -5,6 +5,8 @@ bmqu_blob
 bmqu_blobiterator
 bmqu_blobobjectproxy
 bmqu_jsonprinter
+bmqu_managedcallback
+bmqu_managedcallback_cpp03
 bmqu_memoutstream
 bmqu_objectplaceholder
 bmqu_objectplaceholder_cpp03
