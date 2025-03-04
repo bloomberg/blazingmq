@@ -738,7 +738,7 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         // Early return.
         // If all Apps return 'e_NO_CAPACITY_ALL', stop the iteration
-        // (d_numApps == 0).
+        // (d_numApps == d_numStops).
 
         ++d_numStops;
 
@@ -956,7 +956,8 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
                          result == Routers::e_NO_CAPACITY ||
                          result == Routers::e_NO_SUBSCRIPTION)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-                d_putAsideList.add(start->guid());
+
+                putAside(start->guid());
                 // Do not block other Subscriptions. Continue.
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(

@@ -1503,7 +1503,20 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
         d_queueState_p->queue()));
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
+        d_storageIter_mp->removeAllElements();
+
         d_storageIter_mp->advance();
+    }
+    else {
+        PushStreamIterator del(storage(),
+                               &d_pushStream,
+                               d_pushStream.d_stream.find(msgGUID));
+
+        if (!del.atEnd()) {
+            del.removeAllElements();
+
+            del.advance();
+        }
     }
 }
 
