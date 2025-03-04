@@ -425,32 +425,41 @@ class TestPoisonMessages:
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_proxy_and_replica_priority(self, multi_node: Cluster):
+    def test_poison_proxy_and_replica_priority(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
-        self._post_crash_consumers(multi_node, proxy, tc.DOMAIN_PRIORITY, [""])
+        self._post_crash_consumers(multi_node, proxy, domain_urls.domain_priority, [""])
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_proxy_and_replica_fanout(self, multi_node: Cluster):
+    def test_poison_proxy_and_replica_fanout(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._post_crash_consumers(
-            multi_node, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
+            multi_node,
+            proxy,
+            domain_urls.domain_fanout,
+            ["?id=foo", "?id=bar", "?id=baz"],
         )
 
     @max_delivery_attempts(3)
-    def test_poison_rda_reset_priority_active(self, multi_node: Cluster):
+    def test_poison_rda_reset_priority_active(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_consumer_restart_leader(
-            multi_node, proxy, tc.DOMAIN_PRIORITY, True
+            multi_node, proxy, domain_urls.domain_priority, True
         )  # when set to true, make the
         # active node of the proxy
         # the new leader
@@ -458,55 +467,72 @@ class TestPoisonMessages:
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
     @start_cluster(True, True, True)
-    def test_poison_rda_reset_priority_non_active(self, multi_node: Cluster):
+    def test_poison_rda_reset_priority_non_active(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_consumer_restart_leader(
-            multi_node, proxy, tc.DOMAIN_PRIORITY, False
+            multi_node, proxy, domain_urls.domain_priority, False
         )
 
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
-    def test_poison_fanout_crash_one_app(self, multi_node: Cluster):
+    def test_poison_fanout_crash_one_app(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
         self._crash_one_consumer(
-            multi_node, proxy, tc.DOMAIN_FANOUT, ["?id=foo", "?id=bar", "?id=baz"]
+            multi_node,
+            proxy,
+            domain_urls.domain_fanout,
+            ["?id=foo", "?id=bar", "?id=baz"],
         )
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_consumer_graceful_shutdown(self, multi_node: Cluster):
+    def test_poison_consumer_graceful_shutdown(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         proxy = next(proxies)
-        self._stop_consumer_gracefully(multi_node, proxy, tc.DOMAIN_PRIORITY)
+        self._stop_consumer_gracefully(multi_node, proxy, domain_urls.domain_priority)
 
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
-    def test_poison_replica_receives_updated_rda(self, multi_node: Cluster):
+    def test_poison_replica_receives_updated_rda(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._crash_consumer_connected_to_replica(multi_node, proxy, tc.DOMAIN_PRIORITY)
+        self._crash_consumer_connected_to_replica(
+            multi_node, proxy, domain_urls.domain_priority
+        )
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_no_reject_broker_crash(self, multi_node: Cluster):
+    def test_poison_no_reject_broker_crash(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._stop_proxy(multi_node, proxy, tc.DOMAIN_PRIORITY, True)
+        self._stop_proxy(multi_node, proxy, domain_urls.domain_priority, True)
 
     @max_delivery_attempts(1)
     @message_throttling(high=0, low=0)
-    def test_poison_no_reject_broker_graceful_shutdown(self, multi_node: Cluster):
+    def test_poison_no_reject_broker_graceful_shutdown(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         proxies = multi_node.proxy_cycle()
         next(proxies)
         proxy = next(proxies)
-        self._stop_proxy(multi_node, proxy, tc.DOMAIN_PRIORITY, False)
+        self._stop_proxy(multi_node, proxy, domain_urls.domain_priority, False)

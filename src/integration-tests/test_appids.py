@@ -37,19 +37,20 @@ max_msgs = 3
 set_max_messages = tweak.domain.storage.queue_limits.messages(max_msgs)
 
 
-def set_app_ids(cluster: Cluster, app_ids: List[str]):  # noqa: F811
+def set_app_ids(cluster: Cluster, app_ids: List[str], du: tc.DomainUrls):  # noqa: F811
     cluster.config.domains[
-        tc.DOMAIN_FANOUT
+        du.domain_fanout
     ].definition.parameters.mode.fanout.app_ids = app_ids  # type: ignore
-    cluster.reconfigure_domain(tc.DOMAIN_FANOUT, succeed=True)
+    cluster.reconfigure_domain(du.domain_fanout, succeed=True)
 
 
-def test_open_alarm_authorize_post(cluster: Cluster):
+def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     all_app_ids = default_app_ids + ["quux"]
 
@@ -61,7 +62,7 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     for app_id in default_app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
-        consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+        consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Create a consumer for the unauthorized substream. This should succeed
@@ -70,7 +71,7 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     quux = next(proxies).create_client("quux")
     consumers["quux"] = quux
     assert (
-        quux.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], block=True)
+        quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
     assert leader.alarms()
@@ -78,7 +79,7 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     # ---------------------------------------------------------------------
     # Check that authorized substreams are alive and 'quux' is unauthorized.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     bar_status, baz_status, foo_status, quuxStatus = sorted(
         [
@@ -94,29 +95,29 @@ def test_open_alarm_authorize_post(cluster: Cluster):
 
     assert (
         quux.configure(
-            f"{tc.URI_FANOUT}?id=quux", max_unconfirmed_messages=10, block=True
+            f"{du.uri_fanout}?id=quux", max_unconfirmed_messages=10, block=True
         )
         == Client.e_SUCCESS
     )
 
     # ---------------------------------------------------------------------
     # Post a message.
-    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # Check that 'quux' (unauthorized) client did not receive it.
     test_logger.info('Check that "quux" has not seen any messages')
     assert not quux.wait_push_event(timeout=2, quiet=True)
-    assert len(quux.list(f"{tc.URI_FANOUT}?id=quux", block=True)) == 0
+    assert len(quux.list(f"{du.uri_fanout}?id=quux", block=True)) == 0
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     for app_id in all_app_ids:
         test_logger.info(f"Check that {app_id} is alive")
@@ -125,20 +126,20 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     # ---------------------------------------------------------------------
     # Post a second message.
 
-    producer.post(tc.URI_FANOUT, ["msg2"])
+    producer.post(du.uri_fanout, ["msg2"])
     assert producer.outputs_regex(r"MESSAGE.*ACK", timeout)
 
     # ---------------------------------------------------------------------
     # Ensure that previously authorized substreams get 2 messages and the
     # newly authorized gets one.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in default_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
-                consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
             )
             == 2,
             3,
@@ -146,12 +147,12 @@ def test_open_alarm_authorize_post(cluster: Cluster):
 
     test_logger.info("Check if quux has seen 1 message")
     assert wait_until(
-        lambda: len(quux.list(f"{tc.URI_FANOUT}?id=quux", block=True)) == 1, 3
+        lambda: len(quux.list(f"{du.uri_fanout}?id=quux", block=True)) == 1, 3
     )
 
     for app_id in all_app_ids:
         assert (
-            consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            consumers[app_id].close(f"{du.uri_fanout}?id={app_id}", block=True)
             == Client.e_SUCCESS
         )
 
@@ -159,190 +160,195 @@ def test_open_alarm_authorize_post(cluster: Cluster):
     # leader/primary when a consumer for a recently authorized appId is
     # stopped and started.
 
-    quux.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], succeed=True)
+    quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], succeed=True)
     assert not leader.alarms()
 
 
-def test_create_authorize_open_post(cluster: Cluster):
+def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
 
     quux = next(proxies).create_client("quux")
     assert (
-        quux.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], block=True)
+        quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     leader.outputs_regex(r"quux.*: status=alive", timeout)
 
 
-def test_load_domain_authorize_open_post(cluster: Cluster):
+def test_load_domain_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT + "_another", flags=["write"], succeed=True)
+    producer.open(du.uri_fanout + "_another", flags=["write"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create a consumer for 'quux. This should succeed.
 
     quux = next(proxies).create_client("quux")
-    quux.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], succeed=True)
+    quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     leader.outputs_regex(r"quux.*: status=alive", timeout)
 
 
 # following test cannot run yet, because domain manager claims domain
 # does not exist if no queue exists in it
-def _test_authorize_before_domain_loaded(cluster):
+def _test_authorize_before_domain_loaded(cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Create the queue.
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Create a consumer for quux. This should succeed.
 
     quux = next(proxies).create_client("quux")
-    quux.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"])
+    quux.open(f"{du.uri_fanout}?id=quux", flags=["read"])
     assert quux.outputs_regex(r"openQueue.*\[SUCCESS\]", timeout)
 
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     leader.outputs_regex(r"quux.*: status=alive", timeout)
 
 
 # following test cannot run yet, because domain manager claims domain
 # does not exist if no queue exists in it
-def _test_command_errors(cluster):
+def _test_command_errors(cluster, domain_urls: tc.DomainUrls):
     proxies = cluster.proxy_cycle()
     next(proxies).create_client("producer")
 
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], domain_urls)
 
-    set_app_ids(cluster, default_app_ids)
+    set_app_ids(cluster, default_app_ids, domain_urls)
 
 
-def test_unregister_in_presence_of_queues(cluster: Cluster):
+def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    producer.post(tc.URI_FANOUT, ["before-unregister"], block=True)
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    producer.post(du.uri_fanout, ["before-unregister"], block=True)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     foo = next(proxies).create_client("foo")
-    foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     bar = next(proxies).create_client("bar")
-    bar.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    bar.open(du.uri_fanout_bar, flags=["read"], succeed=True)
     baz = next(proxies).create_client("baz")
-    baz.open(tc.URI_FANOUT_BAZ, flags=["read"], succeed=True)
+    baz.open(du.uri_fanout_baz, flags=["read"], succeed=True)
 
     # In a moment we'll make sure no messages are sent to 'foo' after it
     # has been unregistered, so we need to eat the push event for the
     # message posted while 'foo' was still valid.
     foo.wait_push_event()
 
-    set_app_ids(cluster, [a for a in default_app_ids if a not in ["foo"]])
+    set_app_ids(cluster, [a for a in default_app_ids if a not in ["foo"]], du)
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
         assert leader.outputs_substr("Num virtual storages: 2")
         assert leader.outputs_substr("foo: status=unauthorized")
 
     test_logger.info("confirm msg 1 for bar, expecting 1 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
-    bar.confirm(tc.URI_FANOUT_BAR, "+1", succeed=True)
+    bar.confirm(du.uri_fanout_bar, "+1", succeed=True)
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
         assert leader.outputs_regex("Storage.*: 1 messages")
 
     test_logger.info("confirm msg 1 for baz, expecting 0 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
-    baz.confirm(tc.URI_FANOUT_BAZ, "+1", succeed=True)
+    baz.confirm(du.uri_fanout_baz, "+1", succeed=True)
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
         assert leader.outputs_regex("Storage.*: 0 messages")
 
-    producer.post(tc.URI_FANOUT, ["after-unregister"], block=True)
+    producer.post(du.uri_fanout, ["after-unregister"], block=True)
 
     assert bar.wait_push_event()
-    assert len(bar.list(tc.URI_FANOUT_BAR, block=True)) == 1
+    assert len(bar.list(du.uri_fanout_bar, block=True)) == 1
     assert baz.wait_push_event()
-    assert len(baz.list(tc.URI_FANOUT_BAZ, block=True)) == 1
+    assert len(baz.list(du.uri_fanout_baz, block=True)) == 1
 
     assert not foo.wait_push_event(timeout=1)
-    foo_msgs = foo.list(tc.URI_FANOUT_FOO, block=True)
+    foo_msgs = foo.list(du.uri_fanout_foo, block=True)
     assert len(foo_msgs) == 1
     assert foo_msgs[0].payload == "before-unregister"
 
     assert Client.e_SUCCESS == foo.confirm(
-        tc.URI_FANOUT_FOO, foo_msgs[0].guid, block=True
+        du.uri_fanout_foo, foo_msgs[0].guid, block=True
     )
-    assert Client.e_SUCCESS == foo.close(tc.URI_FANOUT_FOO, block=True)
+    assert Client.e_SUCCESS == foo.close(du.uri_fanout_foo, block=True)
 
     # Re-authorize
-    set_app_ids(cluster, default_app_ids)
+    set_app_ids(cluster, default_app_ids, du)
 
-    foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
-    producer.post(tc.URI_FANOUT, ["after-reauthorize"], block=True)
+    foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
+    producer.post(du.uri_fanout, ["after-reauthorize"], block=True)
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
         leader.outputs_regex(r"foo.*: status=alive")
 
     assert foo.wait_push_event()
-    foo_msgs = foo.list(tc.URI_FANOUT_FOO, block=True)
+    foo_msgs = foo.list(du.uri_fanout_foo, block=True)
     assert len(foo_msgs) == 1
     assert foo_msgs[0].payload == "after-reauthorize"
 
 
-def test_dynamic_twice_alarm_once(cluster: Cluster):
+def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
+    uri_fanout = domain_urls.uri_fanout
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Create a consumer for the unauthorized substream. This should succeed
@@ -350,7 +356,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster):
 
     consumer1 = next(proxies).create_client("consumer1")
     assert (
-        consumer1.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], block=True)
+        consumer1.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
     assert leader.alarms()
@@ -362,7 +368,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster):
     leader.drain()
     consumer2 = next(proxies).create_client("consumer2")
     assert (
-        consumer2.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], block=True)
+        consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
     assert not leader.alarms()
@@ -371,38 +377,41 @@ def test_dynamic_twice_alarm_once(cluster: Cluster):
     # Close both unauthorized substreams and re-open new one.  It should
     # succeed and alarm again.
 
-    consumer1.close(f"{tc.URI_FANOUT}?id=quux", succeed=True)
-    consumer2.close(f"{tc.URI_FANOUT}?id=quux", succeed=True)
+    consumer1.close(f"{uri_fanout}?id=quux", succeed=True)
+    consumer2.close(f"{uri_fanout}?id=quux", succeed=True)
 
     assert (
-        consumer2.open(f"{tc.URI_FANOUT}?id=quux", flags=["read"], block=True)
+        consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
     assert leader.alarms()
 
 
 @set_max_messages
-def test_unauthorized_appid_doesnt_hold_messages(cluster: Cluster):
+def test_unauthorized_appid_doesnt_hold_messages(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
     # Goal: check that dynamically allocated, but not yet authorized,
     # substreams do not hold messages in fanout queues.
+    uri_fanout = domain_urls.uri_fanout
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # ---------------------------------------------------------------------
     # fill queue to capacity
 
     for i in range(max_msgs):
-        producer.post(tc.URI_FANOUT, [f"msg{i}"], block=True)
+        producer.post(uri_fanout, [f"msg{i}"], block=True)
         if producer.outputs_regex("ERROR.*Failed ACK.*LIMIT_MESSAGES", timeout=0):
             break
 
     # ---------------------------------------------------------------------
     # dynamically create a substream
     unauthorized_consumer = next(proxies).create_client("unauthorized_consumer")
-    unauthorized_consumer.open(f"{tc.URI_FANOUT}?id=unauthorized", flags=["read"])
+    unauthorized_consumer.open(f"{uri_fanout}?id=unauthorized", flags=["read"])
     assert leader.alarms()
 
     # ---------------------------------------------------------------------
@@ -410,7 +419,7 @@ def test_unauthorized_appid_doesnt_hold_messages(cluster: Cluster):
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in default_app_ids:
-        appid_uri = f"{tc.URI_FANOUT}?id={app_id}"
+        appid_uri = f"{uri_fanout}?id={app_id}"
         consumer = next(proxies).create_client(app_id)
         consumer.open(appid_uri, flags=["read"], succeed=True)
         assert consumer.wait_push_event()
@@ -422,45 +431,50 @@ def test_unauthorized_appid_doesnt_hold_messages(cluster: Cluster):
     # ---------------------------------------------------------------------
     # process a new message to confirm that 'unauthorized' substream did
     # not hold messages
-    producer.post(tc.URI_FANOUT, ["newMsg"], block=True)
+    producer.post(uri_fanout, ["newMsg"], block=True)
     assert consumer.wait_push_event()
     msgs = consumer.list(appid_uri, block=True)
     assert len(msgs) == 1
 
 
 @set_max_messages
-def test_deauthorized_appid_doesnt_hold_messages(cluster: Cluster):
+def test_deauthorized_appid_doesnt_hold_messages(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
     # Goal: check that dynamically de-authorized substreams do not hold
     # messages in fanout queues.
+    uri_fanout = domain_urls.uri_fanout
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     # ---------------------------------------------------------------------
     # force the leader to load the domain so we can unregister the appids
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
     # ---------------------------------------------------------------------
     # and remove all the queues otherwise unregistration will fail
-    producer.close(tc.URI_FANOUT, succeed=True)
+    producer.close(uri_fanout, succeed=True)
     leader.force_gc_queues(succeed=True)
 
     # ---------------------------------------------------------------------
     # unauthorize 'bar' and 'baz'
-    set_app_ids(cluster, [a for a in default_app_ids if a not in ["bar", "baz"]])
+    set_app_ids(
+        cluster, [a for a in default_app_ids if a not in ["bar", "baz"]], domain_urls
+    )
 
     # ---------------------------------------------------------------------
     # fill queue to capacity
     time.sleep(1)
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(uri_fanout, flags=["write,ack"], succeed=True)
     num_msgs = 4
 
     for i in range(0, num_msgs):
-        producer.post(tc.URI_FANOUT, [f"msg{i}"], succeed=True)
+        producer.post(uri_fanout, [f"msg{i}"], succeed=True)
 
     # ---------------------------------------------------------------------
     # consume messages in the 'foo' substream
-    appid_uri = f"{tc.URI_FANOUT}?id=foo"
+    appid_uri = f"{uri_fanout}?id=foo"
     consumer = next(proxies).create_client("foo")
     consumer.open(appid_uri, flags=["read"], succeed=True)
     assert consumer.wait_push_event()
@@ -471,50 +485,54 @@ def test_deauthorized_appid_doesnt_hold_messages(cluster: Cluster):
 
     # process a new message to confirm that 'bar' and 'baz' substreams did
     # not hold messages
-    producer.post(tc.URI_FANOUT, ["newMsg"], block=True)
+    producer.post(uri_fanout, ["newMsg"], block=True)
     assert consumer.wait_push_event()
     msgs = consumer.list(appid_uri, block=True)
     assert len(msgs) == 1
 
 
-def test_unauthorization(cluster: Cluster):
+def test_unauthorization(cluster: Cluster, domain_urls: tc.DomainUrls):
     # Goal: check that dynamically unauthorizing apps with live consumers
     #       invalidates their virtual iterators
+    uri_fanout = domain_urls.uri_fanout
     proxies = cluster.proxy_cycle()
 
     # ---------------------------------------------------------------------
     # get producer and "foo" consumer
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
-    appid_uri = f"{tc.URI_FANOUT}?id=foo"
+    appid_uri = f"{uri_fanout}?id=foo"
     consumer = next(proxies).create_client("foo")
     consumer.open(appid_uri, flags=["read"], succeed=True)
 
-    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True)
+    producer.post(uri_fanout, ["msg1"], succeed=True)
 
     # ---------------------------------------------------------------------
     # unauthorize everything
-    set_app_ids(cluster, [])
+    set_app_ids(cluster, [], domain_urls)
 
     # ---------------------------------------------------------------------
     # if iterators are not invalidated, 'afterNewMessage' will crash
-    producer.post(tc.URI_FANOUT, ["msg2"], succeed=True)
+    producer.post(uri_fanout, ["msg2"], succeed=True)
 
     # ---------------------------------------------------------------------
     # check if the leader is still there
-    appid_uri = f"{tc.URI_FANOUT}?id=bar"
+    appid_uri = f"{uri_fanout}?id=bar"
     consumer = next(proxies).create_client("bar")
     consumer.open(appid_uri, flags=["read"], succeed=True)
 
 
-def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
+def test_two_consumers_of_unauthorized_app(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
     """Ticket 167201621: First client open authorized and unauthorized apps;
     second client opens unauthorized app.
     Then, primary shuts down causing replica to issue wildcard close
     requests to primary.
     """
 
+    du = domain_urls
     leader = multi_node.last_known_leader
 
     replica1 = multi_node.nodes()[0]
@@ -524,15 +542,15 @@ def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
     # ---------------------------------------------------------------------
     # Two "foo" and "unauthorized" consumers
     consumer1 = replica1.create_client("consumer1")
-    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
-    consumer1.open(f"{tc.URI_FANOUT}?id=unauthorized", flags=["read"], succeed=True)
+    consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)
+    consumer1.open(f"{du.uri_fanout}?id=unauthorized", flags=["read"], succeed=True)
 
     replica2 = multi_node.nodes()[2]
     if replica2 == leader:
         replica2 = multi_node.nodes()[3]
 
     consumer2 = replica2.create_client("consumer2")
-    consumer2.open(f"{tc.URI_FANOUT}?id=unauthorized", flags=["read"], succeed=True)
+    consumer2.open(f"{du.uri_fanout}?id=unauthorized", flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # shutdown and wait
@@ -542,12 +560,15 @@ def test_two_consumers_of_unauthorized_app(multi_node: Cluster):
 
 @tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
 @tweak.cluster.cluster_attributes.is_fsmworkflow(False)
-def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
+def test_open_authorize_restart_from_non_FSM_to_FSM(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     all_app_ids = default_app_ids + ["quux"]
 
@@ -559,43 +580,43 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
     for app_id in all_app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
-        consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+        consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(cluster, default_app_ids + ["quux"])
+    set_app_ids(cluster, default_app_ids + ["quux"], du)
 
     # ---------------------------------------------------------------------
     # Post a message.
-    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # Post a second message.
 
-    producer.post(tc.URI_FANOUT, ["msg2"])
+    producer.post(du.uri_fanout, ["msg2"])
     assert producer.outputs_regex(r"MESSAGE.*ACK", timeout)
 
     # ---------------------------------------------------------------------
     # Ensure that all substreams get 2 messages
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in all_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
-                consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
             )
             == 2,
             3,
         )
 
     # Save one confirm to the storage for 'quux' only
-    consumers["quux"].confirm(f"{tc.URI_FANOUT}?id=quux", "+1", succeed=True)
+    consumers["quux"].confirm(f"{du.uri_fanout}?id=quux", "+1", succeed=True)
 
     for app_id in all_app_ids:
         assert (
-            consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            consumers[app_id].close(f"{du.uri_fanout}?id={app_id}", block=True)
             == Client.e_SUCCESS
         )
 
@@ -618,44 +639,45 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(cluster: Cluster):
     for app_id in all_app_ids:
         consumer = next(proxies).create_client(app_id)
         consumers[app_id] = consumer
-        consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+        consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in default_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
         assert wait_until(
             lambda: len(
-                consumers[app_id].list(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+                consumers[app_id].list(f"{du.uri_fanout}?id={app_id}", block=True)
             )
             == 2,
             3,
         )
 
     assert wait_until(
-        lambda: len(consumers["quux"].list(f"{tc.URI_FANOUT}?id=quux", block=True))
+        lambda: len(consumers["quux"].list(f"{du.uri_fanout}?id=quux", block=True))
         == 1,
         3,
     )
 
     for app_id in all_app_ids:
         assert (
-            consumers[app_id].close(f"{tc.URI_FANOUT}?id={app_id}", block=True)
+            consumers[app_id].close(f"{du.uri_fanout}?id={app_id}", block=True)
             == Client.e_SUCCESS
         )
 
 
-def test_open_authorize_change_primary(multi_node: Cluster):
+def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Add an App to Domain config of an existing queue, and then force a
     Replica to become new Primary.  Start new Consumer.  Make sure the Consumer
     receives previously posted data.
     This is to address the concern with Replica not processing QueueUpdates
     before becoming Primary.
     """
+    du = domain_urls
     leader = multi_node.last_known_leader
     proxies = multi_node.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     all_app_ids = default_app_ids + ["new_app"]
 
@@ -663,27 +685,27 @@ def test_open_authorize_change_primary(multi_node: Cluster):
     # Create a consumer
     app_id = all_app_ids[0]
     consumer = next(proxies).create_client(app_id)
-    consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+    consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
-    set_app_ids(multi_node, all_app_ids)
+    set_app_ids(multi_node, all_app_ids, du)
 
     # ---------------------------------------------------------------------
     # Post a message.
-    producer.post(tc.URI_FANOUT, ["msg1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # Ensure that all substreams get 2 messages
 
-    leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     assert wait_until(
-        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id={app_id}", block=True)) == 1,
+        lambda: len(consumer.list(f"{du.uri_fanout}?id={app_id}", block=True)) == 1,
         3,
     )
 
-    consumer.close(f"{tc.URI_FANOUT}?id={app_id}", block=True, succeed=True)
+    consumer.close(f"{du.uri_fanout}?id={app_id}", block=True, succeed=True)
 
     leader.check_exit_code = False
     leader.kill()
@@ -693,17 +715,17 @@ def test_open_authorize_change_primary(multi_node: Cluster):
     leader = multi_node.wait_leader()
 
     consumer = next(proxies).create_client(app_id)
-    consumer.open(f"{tc.URI_FANOUT}?id=new_app", flags=["read"], succeed=True)
+    consumer.open(f"{du.uri_fanout}?id=new_app", flags=["read"], succeed=True)
 
     assert wait_until(
-        lambda: len(consumer.list(f"{tc.URI_FANOUT}?id=new_app", block=True)) == 1,
+        lambda: len(consumer.list(f"{du.uri_fanout}?id=new_app", block=True)) == 1,
         3,
     )
 
-    consumer.close(f"{tc.URI_FANOUT}?id=new_app", block=True, succeed=True)
+    consumer.close(f"{du.uri_fanout}?id=new_app", block=True, succeed=True)
 
 
-def test_old_data_new_app(cluster: Cluster):
+def test_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     """Do this: m1, +new_app_1, m2, +new_app2, m3, +new_app3, m4, -new_app2
     Old apps  receive  4
     new_app_1 receives 3
@@ -714,46 +736,47 @@ def test_old_data_new_app(cluster: Cluster):
 
     Confirm everything and verify empty storage
     """
+    du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     # ---------------------------------------------------------------------
     # Post a message.
-    producer.post(tc.URI_FANOUT, ["m1"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["m1"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # +new_app_1
     new_app_1 = "new_app_1"
-    set_app_ids(cluster, default_app_ids + [new_app_1])
+    set_app_ids(cluster, default_app_ids + [new_app_1], du)
 
     # ---------------------------------------------------------------------
     # Post
-    producer.post(tc.URI_FANOUT, ["m2"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["m2"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # +new_app_2
     new_app_2 = "new_app_2"
-    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2])
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2], du)
 
     # ---------------------------------------------------------------------
     # Post
-    producer.post(tc.URI_FANOUT, ["m3"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["m3"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # +new_app_3
     new_app_3 = "new_app_3"
-    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3])
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3], du)
 
     # ---------------------------------------------------------------------
     # Post
-    producer.post(tc.URI_FANOUT, ["m4"], succeed=True, wait_ack=True)
+    producer.post(du.uri_fanout, ["m4"], succeed=True, wait_ack=True)
 
     # ---------------------------------------------------------------------
     # -new_app_2
-    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_3])
+    set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_3], du)
 
     consumers = {}
 
@@ -775,47 +798,47 @@ def test_old_data_new_app(cluster: Cluster):
         for app_id in default_app_ids:
             consumer = next(proxies).create_client(app_id)
             consumers[app_id] = consumer
-            consumer.open(f"{tc.URI_FANOUT}?id={app_id}", flags=["read"], succeed=True)
+            consumer.open(f"{du.uri_fanout}?id={app_id}", flags=["read"], succeed=True)
 
         # Once queue is created
         leader = cluster.last_known_leader
-        leader.list_messages(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, 0, 100)
+        leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
         assert leader.outputs_substr(f"Printing 4 message(s)", 5)
 
         new_consumer_1 = next(proxies).create_client(new_app_1)
         new_consumer_1.open(
-            f"{tc.URI_FANOUT}?id={new_app_1}", flags=["read"], succeed=True
+            f"{du.uri_fanout}?id={new_app_1}", flags=["read"], succeed=True
         )
 
         new_consumer_2 = next(proxies).create_client(new_app_2)
         new_consumer_2.open(
-            f"{tc.URI_FANOUT}?id={new_app_2}", flags=["read"], succeed=True
+            f"{du.uri_fanout}?id={new_app_2}", flags=["read"], succeed=True
         )
 
         new_consumer_3 = next(proxies).create_client(new_app_3)
         new_consumer_3.open(
-            f"{tc.URI_FANOUT}?id={new_app_3}", flags=["read"], succeed=True
+            f"{du.uri_fanout}?id={new_app_3}", flags=["read"], succeed=True
         )
 
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT, tc.TEST_QUEUE)
+        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
         for app_id in default_app_ids:
             test_logger.info(f"Check if {app_id} has seen 4 messages")
             _verify_delivery(
-                consumers[app_id], f"{tc.URI_FANOUT}?id={app_id}", 4, andConfirm
+                consumers[app_id], f"{du.uri_fanout}?id={app_id}", 4, andConfirm
             )
 
         test_logger.info(f"Check if {new_app_1} has seen 3 messages")
         _verify_delivery(
-            new_consumer_1, f"{tc.URI_FANOUT}?id={new_app_1}", 3, andConfirm
+            new_consumer_1, f"{du.uri_fanout}?id={new_app_1}", 3, andConfirm
         )
 
         test_logger.info(f"Check if {new_app_2} has seen 0 messages")
-        _verify_delivery(new_consumer_2, f"{tc.URI_FANOUT}?id={new_app_2}", 0, False)
+        _verify_delivery(new_consumer_2, f"{du.uri_fanout}?id={new_app_2}", 0, False)
 
         test_logger.info(f"Check if {new_app_3} has seen 1 message")
         _verify_delivery(
-            new_consumer_3, f"{tc.URI_FANOUT}?id={new_app_3}", 1, andConfirm
+            new_consumer_3, f"{du.uri_fanout}?id={new_app_3}", 1, andConfirm
         )
 
         # ---------------------------------------------------------------------
@@ -823,17 +846,17 @@ def test_old_data_new_app(cluster: Cluster):
 
         for app_id in default_app_ids:
             consumers[app_id].close(
-                f"{tc.URI_FANOUT}?id={app_id}", block=True, succeed=True
+                f"{du.uri_fanout}?id={app_id}", block=True, succeed=True
             )
 
         new_consumer_1.close(
-            f"{tc.URI_FANOUT}?id={new_app_1}", block=True, succeed=True
+            f"{du.uri_fanout}?id={new_app_1}", block=True, succeed=True
         )
         new_consumer_2.close(
-            f"{tc.URI_FANOUT}?id={new_app_2}", block=True, succeed=True
+            f"{du.uri_fanout}?id={new_app_2}", block=True, succeed=True
         )
         new_consumer_3.close(
-            f"{tc.URI_FANOUT}?id={new_app_3}", block=True, succeed=True
+            f"{du.uri_fanout}?id={new_app_3}", block=True, succeed=True
         )
 
     _verify_clients()
@@ -846,5 +869,5 @@ def test_old_data_new_app(cluster: Cluster):
 
     _verify_clients(andConfirm=True)
 
-    leader.list_messages(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, 0, 100)
+    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
     assert leader.outputs_substr(f"Printing 0 message(s)", 5)
