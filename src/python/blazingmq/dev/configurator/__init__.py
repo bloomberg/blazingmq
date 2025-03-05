@@ -90,6 +90,10 @@ class Broker:
         return self.config.app_config.host_name  # type: ignore
 
     @property
+    def version(self) -> Optional[int]:
+        return self.config.app_config.broker_version  # type: ignore
+
+    @property
     def data_center(self) -> str:
         return self.config.app_config.host_data_center  # type: ignore
 
