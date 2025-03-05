@@ -33,9 +33,9 @@
 #include <mqbsi_ledger.h>
 
 // BDE
+#include <bdlt_epochutil.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
-#include <bdlt_epochutil.h>
 
 namespace BloombergLP {
 
