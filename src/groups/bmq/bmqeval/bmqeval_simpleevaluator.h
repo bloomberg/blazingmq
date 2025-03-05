@@ -505,9 +505,9 @@ class SimpleEvaluator {
 
         // ACCESSORS
 
-        /// Evaluate `expression` passed to the constructor. If it is a
+        /// Evaluate `expression` passed to the constructor.  If it is a
         /// boolean, return the negated value as a boolean Datum.
-        /// Otherwise, set the error in the context to  e_TYPE, stop the
+        /// Otherwise, set the error in the context to e_TYPE, stop the
         /// evaluation, and return a null datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
