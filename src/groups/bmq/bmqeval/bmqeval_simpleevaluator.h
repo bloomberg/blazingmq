@@ -478,9 +478,9 @@ class SimpleEvaluator {
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
 
-    // ---
+    // ------
     // Exists
-    // ---
+    // ------
 
     class Exists : public Expression {
       private:
