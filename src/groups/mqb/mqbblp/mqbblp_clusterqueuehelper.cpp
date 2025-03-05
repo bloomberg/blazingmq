@@ -5254,14 +5254,40 @@ void ClusterQueueHelper::processNodeStoppingNotification(
             if (stopRequest.version() == 1) {
                 supportShutdownV2 = false;
             }
-            else {
-                BSLS_ASSERT_SAFE(stopRequest.version() == 2);
-            }
         }
         // StopRequests have replaced E_STOPPING advisory.
         // In any case, do minimal (V2) work unless explicitly requested
 
         if (supportShutdownV2) {
+            // StopRequest processing:
+            // Upstream deconfigures all handles open by Downstream.
+            // Downstream makes all open queues buffer PUTs by calling
+            // 'onOpenUpstream' with '0' as 'genCount'.
+            // Upstream has open handles.
+            // Downstream has queues in 'ns->primaryPartitions()' or
+            // 'd_clusterData_p->electorInfo().leaderNode() == clusterNode'.
+            //
+            // 1) from Replica ('ns') to Primary, by Cluster.
+            //    The Upstream (Primary) deconfigures all open handles.
+            //
+            // 2) from Primary ('ns') to Replica: by Cluster
+            //    Replica does not have open handles.
+            //    Replica makes all open queues buffer PUTs.
+            //
+            // 3) from Proxy to Replica: by ClientSession (not here)
+            //    The Replica deconfigures all open handles.
+            //
+            // 4) from Replica ('ns') to Proxy: by ClusterProxy
+            //    Proxy does not have open handles, nothing to do.
+            //    Proxy makes all open queues buffer PUTs.
+            //
+            // 5) from Replica to Replica: not supported
+
+            // The buffering of PUTs must happen before deconfiguring,
+            // otherwise Primary can receive broadcast PUTs without consumers.
+            // For this reason, shutting down broker sends StopRequest cluster
+            // nodes only after StopeResponses from all Proxies (if any).
+
             if (ns) {
                 // As an Upstream, deconfigure queues of the (shutting down)
                 // ClusterNodeSession 'ns'.
@@ -5287,9 +5313,7 @@ void ClusterQueueHelper::processNodeStoppingNotification(
                               << clusterNode->nodeDescription() << " "
                               << contextSp.numReferences();
             }
-            // else, this is a ClusterProxy (downstream) receiving request from
-            // an upstream Cluster Node (a request from a Proxy would arrive to
-            // ClientSession).
+
             // Downstreams do not deconfigure queues in V2.
             // See comment in 'ClusterProxy::processPeerStopRequest'
 
