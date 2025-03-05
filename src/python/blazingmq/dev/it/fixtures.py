@@ -647,7 +647,7 @@ def multiversion_multi_node_cluster_config(
                 tcp_host="localhost",
                 tcp_port=next(port_allocator),
                 data_center=data_center,
-                broker_version=broker_version
+                broker_version=broker_version,
             )
             for data_center in ("east", "west")
             for broker_version in (1, 2)
@@ -670,14 +670,13 @@ multiversion_multi_node_cluster_params = [
         functools.partial(multiversion_multi_node_cluster_config, mode=mode),
         id=f"multiversion_multi_node{mode.suffix}",
         marks=[
-            # pytest.mark.integrationtest,
-            # pytest.mark.pr_integrationtest,
             pytest.mark.multiversion,
             *mode.marks,
         ],
     )
     for mode in Mode.__members__.values()
 ]
+
 
 @pytest.fixture(params=multiversion_multi_node_cluster_params)
 def multiversion_multi_node(request):
