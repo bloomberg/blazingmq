@@ -364,5 +364,30 @@ bdld::Datum SimpleEvaluator::Not::evaluate(EvaluationContext& context) const
     return bdld::Datum::createBoolean(!value.theBoolean());
 }
 
+// -----------------------------
+// class SimpleEvaluator::Exists
+// -----------------------------
+
+SimpleEvaluator::Exists::Exists(const bsl::string& name)
+: d_name(name)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+SimpleEvaluator::Exists::Exists(bsl::string&& name) noexcept
+: d_name(bsl::move(name))
+{
+}
+#endif
+
+bdld::Datum SimpleEvaluator::Exists::evaluate(EvaluationContext& context) const
+{
+    bdld::Datum value = context.d_propertiesReader->get(d_name,
+                                                        context.d_allocator);
+
+    return bdld::Datum::createBoolean(!value.isError());
+}
+
 }  // close package namespace
 }  // close enterprise namespace
