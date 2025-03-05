@@ -101,6 +101,9 @@ static void test2_humanReadableDetailResultTest()
 {
     bmqtst::TestHelper::printTestName("HUMAN DETAIL RESULT TEST");
 
+    // Ignore check default allocator due to issue with bslim::Printer::print()
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
     // Create human printer
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
@@ -127,8 +130,7 @@ static void test2_humanReadableDetailResultTest()
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
     {
-        expectedStream << "==================================="
-                       << "\n\n";
+        expectedStream << "===================================" << "\n\n";
 
         bmqu::MemOutStream recordStream(bmqtst::TestHelperUtil::allocator());
         record.print(recordStream, 2, 2);
@@ -410,10 +412,11 @@ static void test7_prettyDetailResultTest()
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
-    // Create record data
-    // Ignore check default allocator because ClusterMessage is not initialized
-    // properly for the sake of simplicity.
+    // Ignore check default allocator due to issue with bslim::Printer::print()
+    // used in recordToJsonString()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    // Create record data
     bmqp_ctrlmsg::ClusterMessage record(bmqtst::TestHelperUtil::allocator());
     record.choice().makeLeaderAdvisory();
 
@@ -467,7 +470,7 @@ static void test7_prettyDetailResultTest()
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
 
-static void test8_PrettySummaryTest()
+static void test8_prettySummaryTest()
 // ------------------------------------------------------------------------
 // JSON PRETTY SUMMARY TEST
 //
@@ -479,6 +482,10 @@ static void test8_PrettySummaryTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRETTY SUMMARY TEST");
+
+    // Ignore check default allocator due to issue with bslim::Printer::print()
+    // used in recordToJsonString()
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
 
@@ -551,6 +558,214 @@ static void test8_PrettySummaryTest()
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
 
+static void test9_lineShortResultTest()
+// ------------------------------------------------------------------------
+// JSON LINE SHORT RESULT TEST
+//
+// Concerns:
+//   Exercise the output of the JsonLineCslPrinter::printShortResult().
+//
+// Testing:
+//   JsonLineCslPrinter::printShortResult
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LINE SHORT TEST");
+
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+
+    // Create record data
+    mqbc::ClusterStateRecordHeader header;
+    header.setHeaderWords(8)
+        .setRecordType(mqbc::ClusterStateRecordType::e_SNAPSHOT)
+        .setLeaderAdvisoryWords(10)
+        .setElectorTerm(1)
+        .setSequenceNumber(2)
+        .setTimestamp(123456789);
+    mqbsi::LedgerRecordId recordId;
+    mqbu::StorageKey      storageKey(1);
+    recordId.setLogId(storageKey).setOffset(2);
+
+    {
+        // Create printer
+        bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
+            Parameters::PrintMode::e_JSON_LINE,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+
+        // Print short result
+        printer->printShortResult(header, recordId);
+    }
+
+    // Prepare expected output
+    expectedStream
+        << "{\n"
+        << "  \"Records\": [\n"
+        << "    {\"RecordType\": \"SNAPSHOT\", \"Offset\": \"2\", \"LogId\": "
+           "\"3000000001\", \"ElectorTerm\": \"1\", \"SequenceNumber\": "
+           "\"2\", \"HeaderWords\": \"8\", \"LeaderAdvisoryWords\": \"10\", "
+           "\"Timestamp\": \"29NOV1973_21:33:09.000000\", \"Epoch\": "
+           "\"123456789\"}\n"
+        << "  ]\n"
+        << "}\n";
+
+    bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
+    bdljsn::Error error(bmqtst::TestHelperUtil::allocator());
+    const int rc = bdljsn::JsonUtil::read(&json, &error, resultStream.str());
+    BMQTST_ASSERT_D(error, (rc == 0));
+    BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
+}
+
+static void test10_lineDetailResultTest()
+// ------------------------------------------------------------------------
+// JSON LINE DETAIL RESULT TEST
+//
+// Concerns:
+//   Exercise the output of the JsonLineCslPrinter::printDetailResult().
+//
+// Testing:
+//   JsonLineCslPrinter::printDetailResult
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LINE SHORT TEST");
+
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+
+    // Ignore check default allocator due to issue with bslim::Printer::print()
+    // used in recordToJsonString()
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    // Create record data
+    bmqp_ctrlmsg::ClusterMessage record(bmqtst::TestHelperUtil::allocator());
+    record.choice().makeLeaderAdvisory();
+
+    mqbc::ClusterStateRecordHeader header;
+    header.setHeaderWords(8)
+        .setRecordType(mqbc::ClusterStateRecordType::e_SNAPSHOT)
+        .setLeaderAdvisoryWords(10)
+        .setElectorTerm(1)
+        .setSequenceNumber(2)
+        .setTimestamp(123456789);
+
+    mqbsi::LedgerRecordId recordId;
+    mqbu::StorageKey      storageKey(1);
+    recordId.setLogId(storageKey).setOffset(2);
+
+    {
+        // Create printer
+        bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
+            Parameters::PrintMode::e_JSON_LINE,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+
+        // Print detail result
+        printer->printDetailResult(record, header, recordId);
+    }
+
+    // Prepare expected output
+    expectedStream
+        << "{\n"
+        << "  \"Records\": [\n"
+        << "    {\"RecordType\": \"SNAPSHOT\", \"Offset\": \"2\", \"LogId\": "
+           "\"3000000001\", \"ElectorTerm\": \"1\", \"SequenceNumber\": "
+           "\"2\", \"HeaderWords\": \"8\", \"LeaderAdvisoryWords\": \"10\", "
+           "\"Timestamp\": \"29NOV1973_21:33:09.000000\", \"Epoch\": "
+           "\"123456789\", \"Record\": \"[ choice = [ leaderAdvisory = [ "
+           "sequenceNumber = [ electorTerm = 0 sequenceNumber = 0 ] "
+           "partitions = [ ] queues = [ ] ] ] \"}\n"
+        << "  ]\n"
+        << "}\n";
+
+    bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
+    bdljsn::Error error(bmqtst::TestHelperUtil::allocator());
+    const int rc = bdljsn::JsonUtil::read(&json, &error, resultStream.str());
+    BMQTST_ASSERT_D(error, (rc == 0));
+    BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
+}
+
+static void test11_lineSummaryTest()
+// ------------------------------------------------------------------------
+// JSON PRETTY SUMMARY TEST
+//
+// Concerns:
+//   Exercise the output of the JsonLineCslPrinter::printSummaryResult().
+//
+// Testing:
+//   JsonLineCslPrinter::printSummaryResult
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LINE SUMMARY TEST");
+
+    // Ignore check default allocator due to issue with bslim::Printer::print()
+    // used in recordToJsonString()
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
+
+    // Create record data
+    CslRecordCount recordCount;
+    recordCount.d_snapshotCount = 2;
+    recordCount.d_updateCount   = 3;
+    recordCount.d_commitCount   = 4;
+    recordCount.d_ackCount      = 5;
+
+    Parameters::ProcessCslRecordTypes processCslRecordTypes;
+    processCslRecordTypes.d_snapshot = true;
+    processCslRecordTypes.d_update   = true;
+    processCslRecordTypes.d_commit   = true;
+    processCslRecordTypes.d_ack      = true;
+
+    CslUpdateChoiceMap updateChoiceMap(bmqtst::TestHelperUtil::allocator());
+    updateChoiceMap[1] = 2;
+    updateChoiceMap[2] = 3;
+    QueueMap                queueMap(bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::QueueInfo queueInfo(bmqtst::TestHelperUtil::allocator());
+    queueInfo.uri()         = "bmq://bmq.test.persistent.priority/first-queue";
+    queueInfo.partitionId() = 2;
+    queueInfo.key().push_back('a');
+    queueMap.insert(queueInfo);
+    queueInfo.uri() = "bmq://bmq.test.persistent.priority/second-queue";
+    queueInfo.partitionId() = 3;
+    queueInfo.key().clear();
+    queueInfo.key().push_back('b');
+    queueMap.insert(queueInfo);
+
+    {
+        // Create printer
+        bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
+            Parameters::PrintMode::e_JSON_LINE,
+            resultStream,
+            bmqtst::TestHelperUtil::allocator());
+
+        // Print summary
+        printer->printSummaryResult(recordCount,
+                                    updateChoiceMap,
+                                    queueMap,
+                                    processCslRecordTypes,
+                                    10);
+    }
+
+    // Prepare expected output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    expectedStream
+        << "{\n"
+        << "    \"Summary\": {\"SnapshotRecords\": \"2\", \"UpdateRecords\": "
+           "\"3\", \"queueAssignmentAdvisory\": \"3\", \"leaderAdvisory\": "
+           "\"2\", \"CommitRecords\": \"4\", \"AckRecords\": \"5\"},\n"
+        << "    \"Queues\": [\n"
+        << "      \"[ uri = "
+           "\\\"bmq://bmq.test.persistent.priority/second-queue\\\" key = [ "
+           "62 ] partitionId = 3 appIds = [ ] ]\",\n"
+        << "      \"[ uri = "
+           "\\\"bmq://bmq.test.persistent.priority/first-queue\\\" key = [ 61 "
+           "] partitionId = 2 appIds = [ ] ]\"\n"
+        << "    ]\n"
+        << "}\n";
+
+    BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -568,7 +783,10 @@ int main(int argc, char* argv[])
     case 5: test5_humanReadableSummaryTest(); break;
     case 6: test6_prettyShortResultTest(); break;
     case 7: test7_prettyDetailResultTest(); break;
-    case 8: test8_PrettySummaryTest(); break;
+    case 8: test8_prettySummaryTest(); break;
+    case 9: test9_lineShortResultTest(); break;
+    case 10: test10_lineDetailResultTest(); break;
+    case 11: test11_lineSummaryTest(); break;
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
                   << bsl::endl;

@@ -18,7 +18,6 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
-#include <m_bmqstoragetool_recordprinter.h>
 
 // BMQ
 #include <bmqu_alignedprinter.h>
@@ -299,7 +298,7 @@ class JsonCslPrinter : public CslPrinter {
             d_braceOpen = true;
         }
         else {
-            RecordPrinter::printDelimeter<void>(d_ostream);
+            d_ostream << "\n";
         }
     }
 
@@ -311,7 +310,7 @@ class JsonCslPrinter : public CslPrinter {
             d_firstRow  = false;
         }
         if (!d_firstRow) {
-            RecordPrinter::printDelimeter<void>(d_ostream);
+            d_ostream << "\n";
         }
         else {
             d_firstRow = false;
@@ -508,9 +507,9 @@ class JsonLineCslPrinter : public JsonCslPrinter {
                                      processCslRecordTypes,
         unsigned int                 queuesLimit) const BSLS_KEYWORD_OVERRIDE
     {
-        d_ostream << "  \"Summary\":\n";
+        d_ostream << "    \"Summary\": ";
 
-        CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
+        CslRecordPrinter<bmqu::JsonPrinter<false, true, 0, 6> > printer(
             d_ostream,
             d_allocator_p);
 
