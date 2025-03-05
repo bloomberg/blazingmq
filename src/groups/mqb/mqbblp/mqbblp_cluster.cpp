@@ -82,7 +82,7 @@ namespace mqbblp {
 namespace {
 const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
-const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minutes
+const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 
 /// Timeout duration for Partition FSM watchdog -- 5 minutes
 const bsls::Types::Int64 k_PARTITION_FSM_WATCHDOG_TIMEOUT_DURATION = 60 * 5;
@@ -400,12 +400,11 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
     // uri, for logging (we don't leverage that the caller might already have
     // that queue looked up, because not all code path calling 'sendAck' have
     // it).
-    bmqt::Uri uri;
+    const bmqt::Uri* uri_p = NULL;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(status !=
                                               bmqt::AckResult::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        bool                           found = false;
         QueueHandleMap::const_iterator it = nodeSession->queueHandles().find(
             queueId);
         if (it != nodeSession->queueHandles().end()) {
@@ -413,8 +412,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             // was called, it is possible for the 'queueId' to not exist in the
             // list of queue handles owned by this node session.
 
-            uri   = it->second.d_handle_p->queue()->uri();
-            found = true;
+            uri_p = &it->second.d_handle_p->queue()->uri();
 
             // If queue exists, report self generated NACK
             if (isSelfGenerated) {
@@ -441,10 +439,10 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledFailedAckMessages,
             BALL_LOG_INFO << description() << ": failed Ack "
                           << "[status: " << status << ", source: '" << source
-                          << "'" << ", correlationId: " << correlationId
+                          << "', correlationId: " << correlationId
                           << ", GUID: " << messageGUID << ", queue: '"
-                          << (found ? uri : "** null **") << "' "
-                          << "(id: " << queueId << ")] " << "to node "
+                          << (uri_p ? (*uri_p) : "** null **") << "' "
+                          << "(id: " << queueId << ")] to node "
                           << nodeSession->clusterNode()->nodeDescription(););
     }
 
@@ -452,8 +450,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
     BALL_LOG_TRACE << description() << ": sending Ack "
                    << "[status: " << status << ", source: '" << source << "'"
                    << ", correlationId: " << correlationId
-                   << ", GUID: " << messageGUID << ", queue: '" << uri
-                   << "' (id: " << queueId << ")] to " << "node "
+                   << ", GUID: " << messageGUID << ", queue: '"
+                   << (uri_p ? (*uri_p) : "** null **") << "' (id: " << queueId
+                   << ")] to node "
                    << nodeSession->clusterNode()->nodeDescription();
 
     // Update stats for the queue (or subStream of the queue)
@@ -2229,8 +2228,6 @@ void Cluster::onRecoveryStatusDispatched(
                 ++(*itMp);
             }
         }
-
-        d_clusterOrchestrator.validateClusterStateLedger();
     }
 
     // Indicate queue helper to apply any buffered queue assignment advisories.
@@ -2241,6 +2238,9 @@ void Cluster::onRecoveryStatusDispatched(
                   << "buffered queue [un]assignment advisories, if any.";
 
     d_clusterOrchestrator.processBufferedQueueAdvisories();
+    if (!isFSMWorkflow()) {
+        d_clusterOrchestrator.validateClusterStateLedger();
+    }
 
     d_clusterOrchestrator.transitionToAvailable();
 

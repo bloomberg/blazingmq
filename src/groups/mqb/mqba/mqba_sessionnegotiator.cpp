@@ -493,6 +493,7 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
     const int clientVersion = clientIdentity.sdkVersion();
     const bmqp_ctrlmsg::ClientLanguage::Value& sdkLanguage =
         clientIdentity.sdkLanguage();
+    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
 
     if (checkIsUnsupportedSdkVersion(*context)) {
         response.result().category() =
@@ -515,7 +516,7 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
         response.isDeprecatedSdk()   = checkIsDeprecatedSdkVersion(*context);
     }
     response.protocolVersion() = bmqp::Protocol::k_VERSION;
-    response.brokerVersion()   = mqbcfg::BrokerConfig::get().brokerVersion();
+    response.brokerVersion()   = appConfig.brokerVersion();
 
     const bsl::string& clusterName = clientIdentity.clusterName();
 
@@ -566,14 +567,12 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
         // Regardless of SDK, brokers now decompress MPs and send
         // ConfigureStream.
 
-        if (mqbcfg::BrokerConfig::get().brokerVersion() == 999999) {
+        if (appConfig.brokerVersion() == 999999) {
             // Always advertise v2 (EX) support in test build (developer
             // workflow, CI, Jenkins, etc).
             shouldExtendMessageProperties = true;
         }
-        else if (mqbcfg::BrokerConfig::get()
-                     .messagePropertiesV2()
-                     .advertiseV2Support()) {
+        else if (appConfig.messagePropertiesV2().advertiseV2Support()) {
             // In non test build (i.e., dev and non-dev deployments, advertise
             // v2 (EX) support only if configured like that *and* if the SDK
             // version is the configured one.
@@ -589,20 +588,31 @@ SessionNegotiator::onClientIdentityMessage(bsl::ostream& errorDescription,
                            shouldExtendMessageProperties);
     }
 
-    int rc = sendNegotiationMessage(errorDescription,
-                                    negotiationResponse,
-                                    context);
-    if (rc != 0) {
-        return session;  // RETURN
-    }
-
-    // Create the session
+    // Create the session.  That also calculates 'maxMissedHeartbeats'
     bsl::string description;
     loadSessionDescription(&description,
                            clientIdentity,
                            *(context->d_channelSp.get()));
 
     createSession(errorDescription, &session, context, description);
+
+    // Communicate heartbeat settings.  Currently, only for SDK use
+    const mqbcfg::NetworkInterfaces& niConfig = appConfig.networkInterfaces();
+
+    response.maxMissedHeartbeats() =
+        context->d_negotiatorContext_p->maxMissedHeartbeat();
+
+    if (niConfig.tcpInterface().has_value()) {
+        response.heartbeatIntervalMs() =
+            niConfig.tcpInterface().value().heartbeatIntervalMs();
+    }
+
+    int rc = sendNegotiationMessage(errorDescription,
+                                    negotiationResponse,
+                                    context);
+    if (rc != 0) {
+        session.reset();
+    }
 
     return session;
 }
@@ -727,7 +737,9 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         negoMsg.isClientIdentityValue()
             ? negoMsg.clientIdentity()
             : negoMsg.brokerResponse().brokerIdentity();
-    const mqbcfg::AppConfig& brkrCfg = mqbcfg::BrokerConfig::get();
+    const mqbcfg::AppConfig&         brkrCfg  = mqbcfg::BrokerConfig::get();
+    const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
+    int                              maxMissedHeartbeats = 0;
 
     if (context->d_connectionType == ConnectionType::e_ADMIN) {
         mqba::AdminSession* session = new (*d_allocator_p)
@@ -767,13 +779,11 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         // Configure heartbeat
         if (negoMsg.clientIdentity().clientType() ==
             bmqp_ctrlmsg::ClientType::E_TCPCLIENT) {
-            context->d_negotiatorContext_p->setMaxMissedHeartbeat(
-                brkrCfg.networkInterfaces().heartbeats().client());
+            maxMissedHeartbeats = niConfig.heartbeats().client();
         }
         else if (negoMsg.clientIdentity().clientType() ==
                  bmqp_ctrlmsg::ClientType::E_TCPBROKER) {
-            context->d_negotiatorContext_p->setMaxMissedHeartbeat(
-                brkrCfg.networkInterfaces().heartbeats().downstreamBroker());
+            maxMissedHeartbeats = niConfig.heartbeats().downstreamBroker();
         }
 
         const bsl::string& clusterName = peerIdentity.clusterName();
@@ -817,14 +827,14 @@ void SessionNegotiator::createSession(bsl::ostream& errorDescription,
         // Configure heartbeat
         if (clusterNode->cluster()->selfNodeId() ==
             mqbnet::Cluster::k_INVALID_NODE_ID) {
-            context->d_negotiatorContext_p->setMaxMissedHeartbeat(
-                brkrCfg.networkInterfaces().heartbeats().upstreamBroker());
+            maxMissedHeartbeats = niConfig.heartbeats().upstreamBroker();
         }
         else {
-            context->d_negotiatorContext_p->setMaxMissedHeartbeat(
-                brkrCfg.networkInterfaces().heartbeats().clusterPeer());
+            maxMissedHeartbeats = niConfig.heartbeats().clusterPeer();
         }
     }
+
+    context->d_negotiatorContext_p->setMaxMissedHeartbeat(maxMissedHeartbeats);
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(

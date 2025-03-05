@@ -667,28 +667,23 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
     }
 
-    bsls::Types::Uint64 electorTerm = mqbnet::Elector::k_INVALID_TERM;
-
-    // If CSLMode is enabled, fetch latest elector term from the ledger and
-    // assign it to the elector term.
-    if (d_cluster_p->isCSLModeEnabled()) {
-        bmqp_ctrlmsg::LeaderMessageSequence ledgerLSN;
-        rc = d_stateManager_mp->latestLedgerLSN(&ledgerLSN);
-        if (rc == 0) {
-            electorTerm = ledgerLSN.electorTerm();
-
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": Latest elector term fetched from the cluster "
-                          << "state ledger: " << electorTerm;
-        }
-        else {
-            BALL_LOG_WARN << d_clusterData_p->identity().description()
-                          << ": Failed to fetch latest elector term from the "
-                          << "cluster state ledger, rc: " << rc;
-        }
+    // Fetch latest leader sequence number from the ledger and supply it to the
+    // elector.
+    bmqp_ctrlmsg::LeaderMessageSequence ledgerLSN;
+    rc = d_stateManager_mp->latestLedgerLSN(&ledgerLSN);
+    if (rc == 0) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Latest leader sequence number fetched from the "
+                      << "cluster state ledger: " << ledgerLSN;
+    }
+    else {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Failed to fetch latest leader sequence number from"
+                      << " the cluster state ledger, rc: " << rc
+                      << ". Using default value: " << ledgerLSN;
     }
 
-    d_clusterData_p->electorInfo().setElectorTerm(electorTerm);
+    d_clusterData_p->electorInfo().setLeaderMessageSequence(ledgerLSN);
 
     using namespace bdlf::PlaceHolders;
     d_elector_mp.load(
@@ -701,7 +696,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
                                  _2,   // ElectorTransitionCode
                                  _3,   // LeaderNodeId
                                  _4),  // Term
-            electorTerm,
+            ledgerLSN.electorTerm(),
             &d_clusterData_p->blobSpPool(),
             d_allocator_p),
         d_allocator_p);

@@ -462,7 +462,7 @@ QueueState::adopt(const bsl::shared_ptr<QueueEngineUtil_AppState>& app)
     unsigned int upstreamSubQueueId = app->upstreamSubQueueId();
 
     if (upstreamSubQueueId == bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID) {
-        upstreamSubQueueId = d_subStreams.size();
+        upstreamSubQueueId = static_cast<unsigned int>(d_subStreams.size());
         app->setUpstreamSubQueueId(upstreamSubQueueId);
     }
 

@@ -105,7 +105,7 @@ const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
 
-char calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
+int calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 {
     // Calculate the value with which 'ChannelInfo.d_missedHeartbeatCounter'
     // should be initialized when a channel is established.  We want to give
@@ -126,10 +126,10 @@ char calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
     // we calculate initial value of 'MissedHbCount' like so (taking into
     // account the possibility of overflow):
 
-    const char retVal = bsl::min(
-        bsl::numeric_limits<char>::max(),
-        static_cast<char>((3 * bdlt::TimeUnitRatio::k_MS_PER_M) /
-                          config.heartbeatIntervalMs()));
+    const int retVal = bsl::min(
+        bsl::numeric_limits<int>::max(),
+        static_cast<int>((3 * bdlt::TimeUnitRatio::k_MS_PER_M) /
+                         config.heartbeatIntervalMs()));
 
     return -retVal;
 }
@@ -444,10 +444,7 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
         return;  // RETURN
     }
 
-    if (channelInfo->d_maxMissedHeartbeat != 0) {
-        // Heartbeat is enabled on this channel, record incoming packet
-        channelInfo->d_packetReceived.storeRelaxed(1);
-    }
+    // Not updating d_heartbeatMonitor until there is a valid event
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(readBlobs.empty())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -473,31 +470,12 @@ void TCPSessionFactory::readCallback(const bmqio::Status& status,
             continue;  // CONTINUE
         }
 
-        // Process heartbeat: if we receive a heartbeat request, simply reply
-        // with a heartbeat response.
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                event.isHeartbeatReqEvent())) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            channelInfo->d_channel_p->write(
-                0,  // status
-                bmqp::ProtocolUtil::heartbeatRspBlob());
-            // We explicitly ignore any failure as failure implies issues with
-            // the channel, which is what the heartbeat is trying to expose.
-            continue;  // CONTINUE
+        if (channelInfo->d_monitor.checkData(channelInfo->d_channel_p,
+                                             event)) {
+            channelInfo->d_eventProcessor_p->processEvent(
+                event,
+                channelInfo->d_session_sp->clusterNode());
         }
-        else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                     event.isHeartbeatRspEvent())) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            // Nothing to be done, we already updated the packet's counter
-            // above, just 'drop' that event now.
-            continue;  // CONTINUE
-        }
-
-        channelInfo->d_eventProcessor_p->processEvent(
-            event,
-            channelInfo->d_session_sp->clusterNode());
     }
 }
 
@@ -509,6 +487,8 @@ void TCPSessionFactory::negotiationComplete(
     const bsl::shared_ptr<OperationContext>&  context,
     const bsl::shared_ptr<NegotiatorContext>& negotiatorContext)
 {
+    // executed by one of the *IO* threads
+
     if (statusCode != 0) {
         // Failed to negotiate
         BALL_LOG_WARN << "#SESSION_NEGOTIATION "
@@ -533,12 +513,10 @@ void TCPSessionFactory::negotiationComplete(
 
     // Successful negotiation
     BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "' successfully negotiated a session "
-                  << "[session: '" << session->description() << "', channel: '"
-                  << channel.get() << "'"
-                  << ", maxMissedHeartbeat: "
-                  << static_cast<int>(negotiatorContext->maxMissedHeartbeat())
-                  << "]";
+                  << "' successfully negotiated a session [session: '"
+                  << session->description() << "', channel: '" << channel.get()
+                  << "', maxMissedHeartbeat: "
+                  << negotiatorContext->maxMissedHeartbeat() << "]";
 
     // Session is established; keep a hold to it.
 
@@ -567,18 +545,11 @@ void TCPSessionFactory::negotiationComplete(
 
         ++d_nbSessions;
 
-        info.createInplace(d_allocator_p);
-        info->d_channel_p        = channel.get();
-        info->d_session_sp       = monitoredSession;
-        info->d_eventProcessor_p = negotiatorContext->eventProcessor();
-        if (!info->d_eventProcessor_p) {
-            // No eventProcessor was provided default to the negotiated session
-            info->d_eventProcessor_p = monitoredSession.get();
-        }
-
-        info->d_packetReceived     = 0;
-        info->d_maxMissedHeartbeat = negotiatorContext->maxMissedHeartbeat();
-        info->d_missedHeartbeatCounter = d_initialMissedHeartbeatCounter;
+        info.createInplace(d_allocator_p,
+                           channel,
+                           *negotiatorContext,
+                           d_initialMissedHeartbeatCounter,
+                           monitoredSession);
         // See comments in 'calculateInitialMissedHbCounter'.
 
         bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
@@ -630,7 +601,7 @@ void TCPSessionFactory::negotiationComplete(
         return;  // RETURN
     }
 
-    if (info->d_maxMissedHeartbeat != 0) {
+    if (info->d_monitor.isHearbeatEnabled()) {
         // Enable heartbeating
         d_scheduler_p->scheduleEvent(
             bsls::TimeInterval(0),
@@ -792,7 +763,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                       << ", status: " << status << "]";
 
         // Synchronously remove from heartbeat monitored channels
-        if (channelInfo->d_maxMissedHeartbeat != 0 &&
+        if (channelInfo->d_monitor.isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
             // NOTE: When shutting down, we don't care about heartbeat
             //       verifying the channel, therefore, as an optimization to
@@ -823,72 +794,30 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
 {
     // executed by the *SCHEDULER* thread
 
-    bsl::unordered_map<bmqio::Channel*, ChannelInfo*>::const_iterator it;
-    for (it = d_heartbeatChannels.begin(); it != d_heartbeatChannels.end();
-         ++it) {
+    for (bsl::unordered_map<bmqio::Channel*, ChannelInfo*>::const_iterator it =
+             d_heartbeatChannels.begin();
+         it != d_heartbeatChannels.end();) {
         ChannelInfo* info = it->second;
+        if (!info->d_monitor.checkHeartbeat(info->d_channel_p)) {
+            const Session* session = info->d_session_sp.get();
+            BSLS_ASSERT_SAFE(session);
+            const ClusterNode* node = session->clusterNode();
 
-        // Always proactively send a sporadic heartbeat response message to
-        // notify remote peer of the 'good functioning' of that unidirectional
-        // part of the channel.
-        //
-        /// NOTE
-        ///----
-        //  - this is necessary in the scenario where broker (A) is sending a
-        //    huge amount of data to its peer (B), and (B) is just reading, not
-        //    sending anything; therefore (A) will try to send heartbeat
-        //    requests, which will be queued behind the data, and not being
-        //    delivered in time.
-        //  - sending a 'heartbeatRsp' unconditionally make it sound
-        //    superfluous to also do the remaining of this method (i.e.,
-        //    sending 'heartbeatReq' in case we haven't received any data from
-        //    the remote peer), but we still do it as it's a very low
-        //    insignificant overhead that can be helpful to ensure good
-        //    detection of any one-way TCP issue.
-        //
-        /// TBD
-        ///---
-        //  - ideally, we should be 'smart' here too, and only send heartbeats
-        //    if we detect we haven't written anything to the channel recently
-        //    (similar to the current smart heartbeat logic which monitors
-        //    'incoming' traffic).  But this can't be done with current design
-        //    as we don't have access to the lower level channel 'write'
-        //    wrapper, allowing us to capture all sent out traffic; once
-        //    dmcsbte is forked into bmq, smart-heartbeat technology can be
-        //    embedded into it: the new channel will keep track of its own
-        //    metric (in/out bytes and packets) which can be leveraged to
-        //    detect if the channel is idle.
-        info->d_channel_p->write(0,  // status
-                                 bmqp::ProtocolUtil::heartbeatRspBlob());
-
-        // Perform 'incoming' traffic channel monitoring
-        if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
-                info->d_packetReceived.loadRelaxed() != 0)) {
-            // A packet was received on the channel since the last heartbeat
-            // check, simply reset the associated counters.
-            info->d_packetReceived.storeRelaxed(0);
-            info->d_missedHeartbeatCounter = 0;
-            continue;  // CONTINUE
-        }
-
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (++info->d_missedHeartbeatCounter == info->d_maxMissedHeartbeat) {
-            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL "
-                          << "TCPSessionFactory '" << d_config.name() << "'"
+            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL " << "TCPSessionFactory '"
+                          << d_config.name() << "'"
                           << ": Closing unresponsive channel after "
-                          << static_cast<int>(info->d_maxMissedHeartbeat)
+                          << info->d_monitor.maxMissedHeartbeats()
                           << " missed heartbeats [session: '"
-                          << info->d_session_sp->description()
-                          << "', channel: '" << info->d_channel_p << "']";
+                          << session->description() << "', channel: '"
+                          << info->d_channel_p << "', node: '"
+                          << (node ? node->nodeDescription() : "") << "' ]";
 
             info->d_channel_p->close();
+            // Avoid interference with new connection on the channel
+            it = d_heartbeatChannels.erase(it);
         }
         else {
-            // Send heartbeat
-            info->d_channel_p->write(0,  // status
-                                     bmqp::ProtocolUtil::heartbeatReqBlob());
-            // We explicitly ignore any failure as failure implies issues with
-            // the channel, which is what the heartbeat is trying to expose.
+            ++it;
         }
     }
 }
@@ -904,9 +833,13 @@ void TCPSessionFactory::disableHeartbeat(
     const bsl::shared_ptr<ChannelInfo>& channelInfo)
 {
     // executed by the *SCHEDULER* thread
+    BSLS_ASSERT_SAFE(channelInfo);
+    BSLS_ASSERT_SAFE(channelInfo->d_session_sp);
 
     BALL_LOG_INFO << "Disabling TCPSessionFactory '" << d_config.name()
-                  << "' Heartbeat";
+                  << "' Heartbeat for [session: '"
+                  << channelInfo->d_session_sp->description()
+                  << "', channel: '" << channelInfo->d_channel_p << "' ]";
 
     d_heartbeatChannels.erase(channelInfo->d_channel_p);
 }
@@ -1554,6 +1487,26 @@ bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
     return bsl::any_of(d_config.listeners().cbegin(),
                        d_config.listeners().cend(),
                        portMatcher);
+}
+
+// ------------------------------------
+// class TCPSessionFactory::ChannelInfo
+// ------------------------------------
+
+TCPSessionFactory::ChannelInfo::ChannelInfo(
+    const bsl::shared_ptr<bmqio::Channel>& channel,
+    const NegotiatorContext&               context,
+    int                                    initialMissedHeartbeatCounter,
+    const bsl::shared_ptr<Session>&        monitoredSession)
+: d_channel_p(channel.get())
+, d_session_sp(monitoredSession)
+, d_eventProcessor_p(context.eventProcessor())
+, d_monitor(context.maxMissedHeartbeat(), initialMissedHeartbeatCounter)
+{
+    if (!d_eventProcessor_p) {
+        // No eventProcessor was provided default to the negotiated session
+        d_eventProcessor_p = monitoredSession.get();
+    }
 }
 
 // ------------------------------------

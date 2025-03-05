@@ -1718,11 +1718,11 @@ struct QueueOpRecord {
     //   +---------------+---------------+---------------+---------------+
     //   |                   QueueUriRecordOffsetWords                   |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |          Start of the range Sequence Number Upper Bits        |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |          Start of the range Sequence Number Lower Bits        |
     //   +---------------+---------------+---------------+---------------+
-    //   |                           Reserved                            |
+    //   |          Start of the range Primary Lease Id                  |
     //   +---------------+---------------+---------------+---------------+
     //   |                           Reserved                            |
     //   +---------------+---------------+---------------+---------------+
@@ -1738,6 +1738,8 @@ struct QueueOpRecord {
     //  QueueUriRecordOffsetWords..: Offset (in WORDS) of the QueueUriRecord in
     //                               the QLIST file.  Valid only if
     //                               QueueOpType == CREATION or ADDITION.
+    //  Start of the range         : The oldest message affected by PURGE.
+    //                               Valid when QueueOpType == PURGE only.
     //  Magic......................: Magic word
     //..
     //
@@ -1760,7 +1762,13 @@ struct QueueOpRecord {
 
     bdlb::BigEndianUint32 d_queueUriRecordOffsetWords;
 
-    char d_reserved2[16];
+    bdlb::BigEndianUint32 d_startSequenceNumberUpper;
+
+    bdlb::BigEndianUint32 d_startSequenceNumberLower;
+
+    bdlb::BigEndianUint32 d_startPrimaryLeaseId;
+
+    char d_reserved2[4];
 
     bdlb::BigEndianUint32 d_magic;
 
@@ -1783,6 +1791,9 @@ struct QueueOpRecord {
 
     QueueOpRecord& setQueueUriRecordOffsetWords(unsigned int value);
 
+    QueueOpRecord& setStartSequenceNumber(bsls::Types::Uint64 value);
+    QueueOpRecord& setStartPrimaryLeaseId(unsigned int value);
+
     QueueOpRecord& setMagic(unsigned int value);
 
     // ACCESSORS
@@ -1797,6 +1808,10 @@ struct QueueOpRecord {
     QueueOpType::Enum type() const;
 
     unsigned int queueUriRecordOffsetWords() const;
+
+    bsls::Types::Uint64 startSequenceNumber() const;
+
+    unsigned int startPrimaryLeaseId() const;
 
     unsigned int magic() const;
 
@@ -2993,6 +3008,21 @@ QueueOpRecord::setQueueUriRecordOffsetWords(unsigned int value)
     return *this;
 }
 
+inline QueueOpRecord&
+QueueOpRecord::setStartSequenceNumber(bsls::Types::Uint64 value)
+{
+    bmqp::Protocol::split(&d_startSequenceNumberUpper,
+                          &d_startSequenceNumberLower,
+                          value);
+    return *this;
+}
+
+inline QueueOpRecord& QueueOpRecord::setStartPrimaryLeaseId(unsigned int value)
+{
+    d_startPrimaryLeaseId = value;
+    return *this;
+}
+
 inline QueueOpRecord& QueueOpRecord::setMagic(unsigned int value)
 {
     d_magic = value;
@@ -3028,6 +3058,17 @@ inline QueueOpType::Enum QueueOpRecord::type() const
 inline unsigned int QueueOpRecord::queueUriRecordOffsetWords() const
 {
     return d_queueUriRecordOffsetWords;
+}
+
+inline bsls::Types::Uint64 QueueOpRecord::startSequenceNumber() const
+{
+    return bmqp::Protocol::combine(d_startSequenceNumberUpper,
+                                   d_startSequenceNumberLower);
+}
+
+inline unsigned int QueueOpRecord::startPrimaryLeaseId() const
+{
+    return d_startPrimaryLeaseId;
 }
 
 inline unsigned int QueueOpRecord::magic() const

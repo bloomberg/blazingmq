@@ -82,7 +82,7 @@ class NegotiatorContext {
     // from a remote peer (i.e., a 'listen'); false if
     // it originates from us (i.e., a 'connect).
 
-    char d_maxMissedHeartbeat;
+    int d_maxMissedHeartbeat;
     // If non-zero, enable smart-heartbeat and specify
     // that the connection should be proactively
     // resetted if no data has been received from this
@@ -148,7 +148,7 @@ class NegotiatorContext {
     NegotiatorContext(bool isIncoming);
 
     // MANIPULATORS
-    NegotiatorContext& setMaxMissedHeartbeat(char value);
+    NegotiatorContext& setMaxMissedHeartbeat(int value);
     NegotiatorContext& setUserData(void* value);
     NegotiatorContext& setResultState(void* value);
     NegotiatorContext& setEventProcessor(SessionEventProcessor* value);
@@ -160,7 +160,7 @@ class NegotiatorContext {
     // ACCESSORS
     bool     isIncoming() const;
     Cluster* cluster() const;
-    char     maxMissedHeartbeat() const;
+    int      maxMissedHeartbeat() const;
     void*    userData() const;
     void*    resultState() const;
 
@@ -232,7 +232,7 @@ inline NegotiatorContext::NegotiatorContext(bool isIncoming)
     // NOTHING
 }
 
-inline NegotiatorContext& NegotiatorContext::setMaxMissedHeartbeat(char value)
+inline NegotiatorContext& NegotiatorContext::setMaxMissedHeartbeat(int value)
 {
     d_maxMissedHeartbeat = value;
     return *this;
@@ -273,7 +273,7 @@ inline Cluster* NegotiatorContext::cluster() const
     return d_cluster_p;
 }
 
-inline char NegotiatorContext::maxMissedHeartbeat() const
+inline int NegotiatorContext::maxMissedHeartbeat() const
 {
     return d_maxMissedHeartbeat;
 }

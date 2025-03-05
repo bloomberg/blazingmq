@@ -92,15 +92,6 @@ typedef bsl::pair<mqbs::DataStoreRecordHandle, Record> HandleRecordPair;
 
 // FUNCTIONS
 
-/// Create a new blob at the specified `arena` address, using the specified
-/// `bufferFactory` and `allocator`.
-void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
-                void*                     arena,
-                bslma::Allocator*         allocator)
-{
-    new (arena) bdlbb::Blob(bufferFactory, allocator);
-}
-
 void queueCreationCb(int*                    status,
                      int                     partitionId,
                      const bmqt::Uri&        uri,
@@ -658,7 +649,8 @@ struct Tester {
                 rc = fs->writeQueuePurgeRecord(&handle,
                                                rec.d_queueKey,
                                                mqbu::StorageKey(),
-                                               rec.d_timestamp);
+                                               rec.d_timestamp,
+                                               mqbs::DataStoreRecordHandle());
                 if (0 != rc) {
                     bsl::cout << "Error writing QueuePurgeRecord, rc: " << rc
                               << bsl::endl;

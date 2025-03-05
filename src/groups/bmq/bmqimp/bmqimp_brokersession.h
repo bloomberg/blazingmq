@@ -967,10 +967,6 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// the broker) is available on the channel.
     void processControlEvent(const bmqp::Event& event);
 
-    /// This method gets called each time a new heart beat event (sent by
-    /// the broker) is available on the channel.
-    void onHeartbeat();
-
     void enableMessageRetransmission(const bmqp::PutMessageIterator& putIter,
                                      const bsls::TimeInterval&       sentTime);
 
@@ -1360,10 +1356,6 @@ class BrokerSession BSLS_CPP11_FINAL {
     void doHandleChannelWatermark(bmqio::ChannelWatermarkType::Enum type,
                                   const bsl::shared_ptr<Event>&     eventSp);
 
-    /// Invoked from the FSM thread as a handler to the heartbeat event
-    /// specified as `eventSp` sent by the IO thread.
-    void doHandleHeartbeat(const bsl::shared_ptr<Event>& eventSp);
-
     /// Invoked from the FSM thread to start channel closing.
     void disconnectChannel();
 
@@ -1525,6 +1517,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Return error status in case the packet cannot be handled by any
     /// reason.
     bmqt::GenericResult::Enum processPacket(const bdlbb::Blob& packet);
+    bmqt::GenericResult::Enum processPacket(const bmqp::Event& event);
 
     /// Set the specified `channel` to use for communication with the
     /// bmqbrkr.  If `channel` is non null, this is a newly-established

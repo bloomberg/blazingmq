@@ -68,7 +68,7 @@ struct QueueDetails {
         }
     };
     typedef bsl::unordered_map<mqbu::StorageKey, AppDetails> AppDetailsMap;
-    // Map of records deteils per App
+    // Map of records details per App
 
     // PUBLIC DATA
 

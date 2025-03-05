@@ -740,7 +740,7 @@ void RemoteQueue::onHandleReleased(
                         d_state_p->storage()->hasVirtualStorage(appId,
                                                                 &appKey);
                     BSLS_ASSERT_SAFE(hasVirtualStorage);
-                    d_state_p->storage()->removeVirtualStorage(appKey);
+                    d_state_p->storage()->removeVirtualStorage(appKey, false);
 
                     (void)
                         hasVirtualStorage;  // Compiler happiness in opt build
@@ -750,7 +750,8 @@ void RemoteQueue::onHandleReleased(
                          d_state_p->handleParameters().flags())) {
                 // Lost last reader in non-fanout mode
                 d_state_p->storage()->removeVirtualStorage(
-                    mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+                    mqbi::QueueEngine::k_DEFAULT_APP_KEY,
+                    false);
                 d_state_p->storage()->removeAll(mqbu::StorageKey::k_NULL_KEY);
             }
         }

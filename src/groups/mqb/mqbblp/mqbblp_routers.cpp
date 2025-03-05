@@ -196,8 +196,7 @@ bool Routers::Expression::evaluate()
     return true;
 }
 
-bool Routers::PriorityGroup::evaluate(
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& data)
+bool Routers::PriorityGroup::evaluate()
 {
     const Expressions::SharedItem& it         = d_itId->value().d_itExpression;
     Expression&                    expression = it->value();
@@ -625,7 +624,7 @@ Routers::Result Routers::AppContext::selectConsumer(
                    : e_NO_CAPACITY;  // RETURN
     }
     else {
-        return d_router.iterateGroups(visitor, currentMessage);  // RETURN
+        return d_router.iterateGroups(visitor);  // RETURN
     }
 }
 
@@ -633,13 +632,8 @@ Routers::Result Routers::AppContext::selectConsumer(
 // class Routers::RoundRobin
 // -------------------------
 
-Routers::Result
-Routers::RoundRobin::iterateGroups(const Visitor&               visitor,
-                                   const mqbi::StorageIterator* message)
+Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(message);
-
     bool haveMatch        = false;
     bool noneHaveCapacity = true;
 
@@ -657,7 +651,7 @@ Routers::RoundRobin::iterateGroups(const Visitor&               visitor,
             BSLS_ASSERT_SAFE(!group.d_highestSubscriptions.empty());
 
             if (group.d_canDeliver) {
-                if (group.evaluate(message->appData())) {
+                if (group.evaluate()) {
                     if (iterateSubscriptions(visitor, group)) {
                         return e_SUCCESS;  // RETURN
                     }
@@ -730,8 +724,8 @@ bool Routers::AppContext::iterateConsumers(
     for (Consumers::const_iterator itConsumer = d_consumers.begin();
          itConsumer != d_consumers.end();
          ++itConsumer) {
-        const Routers::Subscription* subscription =
-            selectSubscription(itConsumer->second.lock(), message);
+        const Routers::Subscription* subscription = selectSubscription(
+            itConsumer->second.lock());
         if (subscription) {
             if (visitor(subscription)) {
                 return true;  // RETURN
@@ -743,12 +737,8 @@ bool Routers::AppContext::iterateConsumers(
 }
 
 const Routers::Subscription* Routers::AppContext::selectSubscription(
-    const Consumers::SharedItem& itConsumer,
-    const mqbi::StorageIterator* message) const
+    const Consumers::SharedItem& itConsumer) const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(message);
-
     const mqbi::QueueHandle* handle        = itConsumer->key();
     const Consumer&          consumer      = itConsumer->value();
     const SubscriptionList&  subscriptions = consumer.d_highestSubscriptions;
@@ -761,14 +751,14 @@ const Routers::Subscription* Routers::AppContext::selectSubscription(
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
                 subscription->d_downstreamSubscriptionId))) {
             PriorityGroup& group = subscription->d_itGroup->value();
-            if (group.evaluate(message->appData())) {
+            if (group.evaluate()) {
                 return subscription;  // RETURN
             }
         }
     }
 
-    // No subscriptions were able to process that message, or the handle is
-    // busy.
+    // No subscriptions were able to process the current message, or the handle
+    // is busy.
 
     return 0;
 }

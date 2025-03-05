@@ -280,6 +280,7 @@ MATCHER_P(OffsetMatcher, expectedOffset, "")
     return arg.d_recordOffset == expectedOffset;
 }
 
+/// Calculate record offset
 template <typename RECORD_TYPE>
 bsls::Types::Uint64 recordOffset(const RECORD_TYPE& record)
 {
@@ -287,33 +288,6 @@ bsls::Types::Uint64 recordOffset(const RECORD_TYPE& record)
     return k_HEADER_SIZE + (record.header().sequenceNumber() - 1) *
                                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
-
-class RecordSequenceNumbersChecker {
-  public:
-    typedef bsl::vector<CompositeSequenceNumber> CompositesVec;
-
-  private:
-    const CompositesVec&          d_composites;
-    CompositesVec::const_iterator d_it;
-
-  public:
-    explicit RecordSequenceNumbersChecker(const CompositesVec& composites)
-    : d_composites(composites)
-    , d_it(d_composites.cbegin())
-    {
-    }
-
-    template <typename RECORD_TYPE>
-    void checkDetails(const RecordDetails<RECORD_TYPE>& details)
-    {
-        BMQTST_ASSERT_D("TOO MANY CALLS", (d_it != d_composites.cend()));
-        BMQTST_ASSERT_EQ(CompositeSequenceNumber(
-                             details.d_record.header().primaryLeaseId(),
-                             details.d_record.header().sequenceNumber()),
-                         *d_it);
-        ++d_it;
-    }
-};
 
 /// Helper matcher to check the offset of the record. Return 'true' if the
 /// specified 'expectedOffset' is equal to the offset of the RecordDetails
@@ -1895,9 +1869,7 @@ static void test18_searchMessagesByOffsetsRange()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            const bsls::Types::Uint64& offset =
-                msg.header().sequenceNumber() *
-                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+            const bsls::Types::Uint64 offset = recordOffset(msg);
             if (offset > offsetGt && offset < offsetLt) {
                 EXPECT_CALL(*printer, printGuid(msg.messageGUID()))
                     .InSequence(s);
@@ -1961,7 +1933,7 @@ static void test19_searchQueueOpRecords()
         createCommandProcessor(&params,
                                printer,
                                fileManager,
-                               bsl::cout,
+                               resultStream,
                                bmqtst::TestHelperUtil::allocator());
 
     // Get queueOp records content within offsets range and prepare
@@ -1976,7 +1948,7 @@ static void test19_searchQueueOpRecords()
             const QueueOpRecord& queueOp =
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(queueOp);
+            const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (offset > offsetGt && offset < offsetLt) {
                 ++queueOpCount;
                 EXPECT_CALL(*printer,
@@ -2056,7 +2028,7 @@ static void test20_searchJournalOpRecords()
             const JournalOpRecord& journalOp =
                 *reinterpret_cast<const JournalOpRecord*>(
                     recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(journalOp);
+            const bsls::Types::Uint64 offset = recordOffset(journalOp);
             if (offset > offsetGt && offset < offsetLt) {
                 ++journalOpCount;
                 EXPECT_CALL(*printer,
@@ -2140,7 +2112,7 @@ static void test21_searchAllTypesRecords()
         if (rtype == RecordType::e_MESSAGE) {
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(msg);
+            const bsls::Types::Uint64 offset = recordOffset(msg);
             if (offset > offsetGt && offset < offsetLt) {
                 msgCnt++;
                 EXPECT_CALL(*printer, printGuid(msg.messageGUID()))
@@ -2151,7 +2123,7 @@ static void test21_searchAllTypesRecords()
             const QueueOpRecord& queueOp =
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(queueOp);
+            const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (offset > offsetGt && offset < offsetLt) {
                 queueOpCnt++;
                 EXPECT_CALL(*printer,
@@ -2163,7 +2135,7 @@ static void test21_searchAllTypesRecords()
             const JournalOpRecord& journalOp =
                 *reinterpret_cast<const JournalOpRecord*>(
                     recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(journalOp);
+            const bsls::Types::Uint64 offset = recordOffset(journalOp);
             if (offset > offsetGt && offset < offsetLt) {
                 journalOpCnt++;
                 EXPECT_CALL(*printer,
@@ -2233,7 +2205,7 @@ static void test22_searchQueueOpRecordsByOffset()
             const QueueOpRecord& queueOp =
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
-            const bsls::Types::Uint64& offset = recordOffset(queueOp);
+            const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (queueOpCnt++ % 3 == 0) {
                 params.d_offset.push_back(offset);
                 EXPECT_CALL(*printer,
