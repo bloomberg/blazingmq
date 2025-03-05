@@ -523,6 +523,9 @@ static void test3_evaluation()
         {"i_0 != -9223372036854775808", true},  // -(2 ** 63)
 
         // exists
+        // Note that we allow to set a message property with name `exists`.
+        // In this case the usage context defines whether it's a function call
+        // or a property value.
         {"exists(i_42)", true},
         {"exists(non_existing_property)", false},
         {"!exists(non_existing_property) || non_existing_property > 41", true},
