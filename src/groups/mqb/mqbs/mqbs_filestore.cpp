@@ -57,6 +57,7 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlb_bigendian.h>
 #include <bdlb_print.h>
 #include <bdlb_string.h>
@@ -1832,7 +1833,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         key);
                 }
 
-                DataStoreRecord    record(RecordType::e_QUEUE_OP,
+                DataStoreRecord record(RecordType::e_QUEUE_OP,
                                        jit->recordOffset());
                 d_records.rinsert(bsl::make_pair(key, record));
 
@@ -3759,8 +3760,10 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
         BSLS_ASSERT_SAFE(FileType::e_UNDEFINED != needAlarmFileType);
 
         // Alarm that the high watermark (soft-limit) has been reached
-        if (d_alarmSoftLimiter.requestPermission()) {
-            bmqu::MemOutStream out;
+        BALL_LOGTHROTTLE_ERROR_BLOCK(1, 15 * bdlt::TimeUnitRatio::k_NS_PER_M)
+        {
+            // Throttling of one maximum alarm per 15 minutes
+            bmqu::MemOutStream out(d_allocator_p);
             out << partitionDesc() << "Outstanding data has accumulated beyond"
                 << " the threshold of " << k_SPACE_USED_PERCENT_SOFT
                 << "% of partition's usage. File set status:";
@@ -3786,15 +3789,16 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
             }
             out << "\n";
 
-            // Print the top 10 queues contributing to the high watermark alarm
+            // Print the top 10 queues contributing to the high watermark
+            // alarm
             printTopContributingQueues(out,
                                        10,
                                        "high watermark alarm",
                                        needAlarmFileType,
                                        d_storages);
 
-            BMQTSK_ALARMLOG_ALARM("PARTITION_AVAILABLESPACE_SOFTLIMIT")
-                << out.str() << BMQTSK_ALARMLOG_END;
+            BMQTSK_ALARMLOG_ALARM_HEAD("PARTITION_AVAILABLESPACE_SOFTLIMIT")
+                << out.str();
         }
     }
 }
@@ -5298,9 +5302,6 @@ FileStore::FileStore(const DataStoreConfig&  config,
     dispatcher->registerClient(this,
                                mqbi::DispatcherClientType::e_QUEUE,
                                processorId);
-
-    d_alarmSoftLimiter.initialize(1, 15 * bdlt::TimeUnitRatio::k_NS_PER_M);
-    // Throttling of one maximum alarm per 15 minutes
 }
 
 FileStore::~FileStore()

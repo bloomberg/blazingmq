@@ -179,11 +179,6 @@ class QueueHandle : public mqbi::QueueHandle {
     /// delivering a message to the client for efficiency.
     bool d_isClientClusterMember;
 
-    /// Throttler for failed ACK messages.
-    bdlmt::Throttle d_throttledFailedAckMessages;
-
-    bdlmt::Throttle d_throttledDroppedPutMessages;
-
     /// Mechanism to serialize execution of the substream deconfigure callbacks
     /// and the caller callback invoked when all the substreams are
     /// deconfigured.

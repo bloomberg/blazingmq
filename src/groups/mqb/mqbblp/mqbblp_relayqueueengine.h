@@ -221,9 +221,6 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// For example, upon queue converting to local.
     bmqu::SharedResource<RelayQueueEngine> d_self;
 
-    /// Throttler for REJECTs.
-    bdlmt::Throttle d_throttledRejectedMessages;
-
     /// Reusable apps delivery context
     QueueEngineUtil_AppsDeliveryContext d_appsDeliveryContext;
 

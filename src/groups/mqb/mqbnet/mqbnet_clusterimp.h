@@ -236,10 +236,6 @@ class ClusterImp : public Cluster {
     // Registered observers of a change of
     // state of a node in the cluster.
 
-    bdlmt::Throttle d_failedWritesThrottler;
-    // Throttling for failed writes on any
-    // peer node in the cluster.
-
     bslmt::Mutex d_mutex;
     // Mutex for thread-safety of this
     // component.

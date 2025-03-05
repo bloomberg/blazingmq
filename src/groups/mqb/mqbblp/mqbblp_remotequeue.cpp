@@ -46,6 +46,7 @@
 #include <bmqu_weakmemfn.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <ball_severity.h>
 #include <bdlb_print.h>
 #include <bdlf_bind.h>
@@ -378,11 +379,10 @@ void RemoteQueue::pushMessage(
             result = storage->put(&attributes, msgGUID, appData, options);
 
             if (result != mqbi::StorageResult::e_SUCCESS) {
-                if (d_throttledFailedPushMessages.requestPermission()) {
-                    BALL_LOG_WARN << "[THROTTLED] " << d_state_p->uri()
-                                  << " failed to store broadcast PUSH ["
-                                  << msgGUID << "], result = " << result;
-                }
+                BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+                    << "[THROTTLED] " << d_state_p->uri()
+                    << " failed to store broadcast PUSH [" << msgGUID
+                    << "], result = " << result;
                 return;  // RETURN
             }
         }
@@ -477,20 +477,6 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     // A RemoteQueue must have an upstream id
-
-    d_throttledFailedPutMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    d_throttledFailedPushMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    d_throttledFailedAckMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    d_throttledFailedConfirmMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // 1 log per 5s interval
 
     // Description, to identify a 'remote' queue, prefix its URI with an '@'.
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
@@ -709,12 +695,11 @@ void RemoteQueue::onHandleReleased(
         for (Confirms::iterator it = d_pendingConfirms.begin();
              it != d_pendingConfirms.end();) {
             if (it->d_handle == handle.get()) {
-                if (d_throttledFailedConfirmMessages.requestPermission()) {
-                    BALL_LOG_WARN << "[THROTTLED] Dropping CONFIRM because "
-                                  << "downstream [" << handle << "] is gone. "
-                                  << "[queue: '" << d_state_p->description()
-                                  << "', GUID: '" << it->d_guid << "']";
-                }
+                BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+                    << "[THROTTLED] Dropping CONFIRM because "
+                    << "downstream [" << handle << "] is gone. " << "[queue: '"
+                    << d_state_p->description() << "', GUID: '" << it->d_guid
+                    << "']";
                 it = d_pendingConfirms.erase(it);
                 ++numProcessed;
             }
@@ -898,13 +883,11 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
         // been caught in the SDK) or client is posting a message after closing
         // or reconfiguring the queue (which may not be caught in the SDK).
 
-        if (d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_WARN
-                << "[THROTTLED] #CLIENT_IMPROPER_BEHAVIOR "
-                << "Failed PUT message for queue [" << d_state_p->uri()
-                << "] from client [" << source->client()->description()
-                << "]. Queue not opened in WRITE mode by the client.";
-        }
+        BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] #CLIENT_IMPROPER_BEHAVIOR "
+            << "Failed PUT message for queue [" << d_state_p->uri()
+            << "] from client [" << source->client()->description()
+            << "]. Queue not opened in WRITE mode by the client.";
 
         // Note that a NACK is not sent in this case.  This is a case of client
         // violating the contract, by attempting to post a message after
@@ -938,13 +921,12 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
         isInvalid = true;
 
-        if (d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_INFO << "[THROTTLED] Remote queue " << d_state_p->uri()
-                          << " (id: " << d_state_p->id()
-                          << ") discarding a duplicate PUT from client ["
-                          << source->client()->description() << "] for guid "
-                          << putHeader.messageGUID();
-        }
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Remote queue " << d_state_p->uri()
+            << " (id: " << d_state_p->id()
+            << ") discarding a duplicate PUT from client ["
+            << source->client()->description() << "] for guid "
+            << putHeader.messageGUID();
     }
 
     if (isInvalid) {
@@ -1208,12 +1190,12 @@ void RemoteQueue::onAckMessageDispatched(const mqbi::DispatcherAckEvent& event)
                                               ? ball::Severity::DEBUG
                                               : ball::Severity::INFO);
 
-        if (d_throttledFailedAckMessages.requestPermission()) {
-            BALL_LOG_STREAM(severity)
-                << "[THROTTLED] Received ACK message [" << ackResult
-                << ", queue: " << d_state_p->description()
-                << "] for unknown guid: " << ackMessage.messageGUID();
-        }
+        BALL_LOGTHROTTLE_STREAM(severity,
+                                1,
+                                5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] Received ACK message [" << ackResult
+            << ", queue: " << d_state_p->description()
+            << "] for unknown guid: " << ackMessage.messageGUID();
         return;  // RETURN
     }
 
@@ -1370,14 +1352,12 @@ void RemoteQueue::expirePendingMessagesDispatched()
     }
 
     if (numExpired) {
-        if (d_throttledFailedPutMessages.requestPermission()) {
-            BALL_LOG_WARN << "[THROTTLED] " << d_state_p->uri() << ": expired "
-                          << bmqu::PrintUtil::prettyNumber(numExpired)
-                          << " pending PUT messages ("
-                          << bmqu::PrintUtil::prettyNumber(numMessages -
-                                                           numExpired)
-                          << " remaining messages).";
-        }
+        BALL_LOGTHROTTLE_WARN(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "[THROTTLED] " << d_state_p->uri() << ": expired "
+            << bmqu::PrintUtil::prettyNumber(numExpired)
+            << " pending PUT messages ("
+            << bmqu::PrintUtil::prettyNumber(numMessages - numExpired)
+            << " remaining messages).";
     }
 
     // reschedule

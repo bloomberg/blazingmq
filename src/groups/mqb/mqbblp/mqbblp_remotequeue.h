@@ -200,18 +200,6 @@ class RemoteQueue {
     /// Used to parse options in a message received from upstream.
     bmqp::OptionsView d_optionsView;
 
-    /// ThrottledAction parameters for failed puts
-    bdlmt::Throttle d_throttledFailedPutMessages;
-
-    /// ThrottledAction parameters for failed pushes
-    bdlmt::Throttle d_throttledFailedPushMessages;
-
-    /// ThrottledAction parameters for failed acks
-    bdlmt::Throttle d_throttledFailedAckMessages;
-
-    /// ThrottledAction parameters for failed confirms
-    bdlmt::Throttle d_throttledFailedConfirmMessages;
-
     /// Configured timeout in ns upon which retransmission attempts stop. Must
     /// be Less or equal to the deduplication timeout.
     bsls::Types::Int64 d_pendingPutsTimeoutNs;
