@@ -23,6 +23,7 @@ namespace m_bmqstoragetool {
 FileManagerMock::FileManagerMock()
 : d_journalFileIt()
 , d_dataFileIt()
+, d_cslFileIt_p()
 {
     EXPECT_CALL(*this, dataFileIterator())
         .WillRepeatedly(testing::Return(&d_dataFileIt));
@@ -33,6 +34,17 @@ FileManagerMock::FileManagerMock(const JournalFile& journalFile)
                   journalFile.fileHeader(),
                   false)
 , d_dataFileIt()
+, d_cslFileIt_p()
+{
+    EXPECT_CALL(*this, dataFileIterator())
+        .WillRepeatedly(testing::Return(&d_dataFileIt));
+}
+
+FileManagerMock::FileManagerMock(
+    mqbc::IncoreClusterStateLedgerIterator* cslFileIterator_p)
+: d_journalFileIt()
+, d_dataFileIt()
+, d_cslFileIt_p(cslFileIterator_p)
 {
     EXPECT_CALL(*this, dataFileIterator())
         .WillRepeatedly(testing::Return(&d_dataFileIt));
@@ -41,6 +53,11 @@ FileManagerMock::FileManagerMock(const JournalFile& journalFile)
 mqbs::JournalFileIterator* FileManagerMock::journalFileIterator()
 {
     return &d_journalFileIt;
+}
+
+mqbc::IncoreClusterStateLedgerIterator* FileManagerMock::cslFileIterator()
+{
+    return d_cslFileIt_p;
 }
 
 }  // close package namespace

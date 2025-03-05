@@ -48,6 +48,9 @@ class FileManagerMock : public FileManager {
     /// Data file iterator.
     mqbs::DataFileIterator d_dataFileIt;
 
+    /// CSL file iterator.
+    mqbc::IncoreClusterStateLedgerIterator* d_cslFileIt_p;
+
   public:
     // CREATORS
 
@@ -57,17 +60,22 @@ class FileManagerMock : public FileManager {
     /// Construct using the specified `journalFile`.
     explicit FileManagerMock(const JournalFile& journalFile);
 
+    /// Construct using the specified `cslFileIterator`.
+    explicit FileManagerMock(
+        mqbc::IncoreClusterStateLedgerIterator* cslFileIterator);
+
     // MANIPULATORS
 
     /// Return pointer to modifiable journal file iterator.
     mqbs::JournalFileIterator* journalFileIterator() BSLS_KEYWORD_OVERRIDE;
 
-    MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
-};
+    /// Return pointer to modifiable CSL file iterator.
+    mqbc::IncoreClusterStateLedgerIterator*
+    cslFileIterator() BSLS_KEYWORD_OVERRIDE;
 
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
+    MOCK_METHOD0(dataFileIterator, mqbs::DataFileIterator*());
+    MOCK_CONST_METHOD1(fillQueueMapFromCslFile, void(QueueMap*));
+};
 
 }  // close package namespace
 

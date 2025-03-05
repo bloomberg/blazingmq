@@ -489,14 +489,15 @@ static void test6_humanReadableFooterTest()
         bmqtst::TestHelperUtil::allocator());
 
     {
-        Parameters::ProcessRecordTypes recordTypes(false);
+        Parameters::ProcessRecordTypes recordTypes;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
         BMQTST_ASSERT(resultStream.isEmpty());
     }
 
     {
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -509,7 +510,8 @@ static void test6_humanReadableFooterTest()
     {
         resultStream.reset();
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-        Parameters::ProcessRecordTypes recordTypes(true);
+        Parameters::ProcessRecordTypes recordTypes;
+        recordTypes.d_message   = true;
         recordTypes.d_queueOp   = true;
         recordTypes.d_journalOp = true;
         printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -1310,7 +1312,7 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1331,7 +1333,8 @@ static void test14_jsonPrettyFooterTest()
                 Parameters::PrintMode::e_JSON_PRETTY,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -1362,7 +1365,8 @@ static void test14_jsonPrettyFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);
@@ -2187,7 +2191,7 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(false);
+            Parameters::ProcessRecordTypes recordTypes;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2208,7 +2212,8 @@ static void test22_jsonLineFooterTest()
                 Parameters::PrintMode::e_JSON_LINE,
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(0u, 0ul, 0ul, recordTypes);
@@ -2239,7 +2244,8 @@ static void test22_jsonLineFooterTest()
                 resultStream,
                 bmqtst::TestHelperUtil::allocator());
 
-            Parameters::ProcessRecordTypes recordTypes(true);
+            Parameters::ProcessRecordTypes recordTypes;
+            recordTypes.d_message   = true;
             recordTypes.d_queueOp   = true;
             recordTypes.d_journalOp = true;
             printer->printFooter(11u, 22ul, 33ul, recordTypes);
