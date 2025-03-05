@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,6 @@
 #include <m_bmqstoragetool_cslfileprocessor.h>
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_parameters.h>
-
-// MQB
-#include <mqbs_filestoreprotocolprinter.h>
-#include <mqbs_filestoreprotocolutil.h>
-#include <mqbs_filesystemutil.h>
-#include <mqbs_offsetptr.h>
-
-// BMQ
-#include <bmqu_alignedprinter.h>
-#include <bmqu_memoutstream.h>
-#include <bmqu_outstreamformatsaver.h>
-#include <bmqu_stringutil.h>
-
-// BDE
-#include <bdls_filesystemutil.h>
-#include <bsl_iostream.h>
-#include <bsls_assert.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
@@ -81,8 +64,6 @@ void CslFileProcessor::process()
     // Iterate through all cluster state ledger file records
     while (true) {
         iter->loadClusterMessage(&clusterMessage);
-
-        // TODO: remove outer `if` statement?
 
         if (iter->header().recordType() ==
             mqbc::ClusterStateRecordType::e_SNAPSHOT) {

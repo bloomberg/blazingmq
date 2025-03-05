@@ -143,7 +143,6 @@ bool CommandLineArguments::validate(bsl::string*      error_p,
     if (validMode) {
         if (!d_cslFile.empty() &&
             (d_journalPath.empty() && d_journalFile.empty())) {
-            // Validate CSL mode args
             validateCslModeArgs(ss, allocator);
         }
         else {
@@ -256,12 +255,12 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
 
     if (d_cslRecordType.size() > 0) {
         stream << "--csl-record-type is not supported when either journal "
-                  "path or journal file are passed.\n";
+                  "path or journal file is passed.\n";
     }
 
     // Validate journal file and path
     if (d_journalPath.empty() && d_journalFile.empty()) {
-        stream << "Neither journal path nor journal file are specified\n";
+        stream << "Neither journal path nor journal file is specified\n";
     }
     else if (!d_journalPath.empty()) {
         if (d_journalFile.empty() && d_dataFile.empty()) {
@@ -651,18 +650,25 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
 
     // Set search range type and values if present
-    // TODO: check each value separately
     if (arguments.d_timestampLt || arguments.d_timestampGt) {
-        d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
-            arguments.d_timestampLt);
-        d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
-            arguments.d_timestampGt);
+        if (arguments.d_timestampLt > 0) {
+            d_range.d_timestampLt = static_cast<bsls::Types::Uint64>(
+                arguments.d_timestampLt);
+        }
+        if (arguments.d_timestampGt > 0) {
+            d_range.d_timestampGt = static_cast<bsls::Types::Uint64>(
+                arguments.d_timestampGt);
+        }
     }
     else if (arguments.d_offsetLt || arguments.d_offsetGt) {
-        d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
-            arguments.d_offsetLt);
-        d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
-            arguments.d_offsetGt);
+        if (arguments.d_offsetLt > 0) {
+            d_range.d_offsetLt = static_cast<bsls::Types::Uint64>(
+                arguments.d_offsetLt);
+        }
+        if (arguments.d_offsetGt > 0) {
+            d_range.d_offsetGt = static_cast<bsls::Types::Uint64>(
+                arguments.d_offsetGt);
+        }
     }
     else if (!arguments.d_seqNumLt.empty() || !arguments.d_seqNumGt.empty()) {
         bmqu::MemOutStream errorDescr(allocator);

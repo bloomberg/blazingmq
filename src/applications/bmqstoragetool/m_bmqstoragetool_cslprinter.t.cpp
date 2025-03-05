@@ -30,8 +30,6 @@
 // CONVENIENCE
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
-// using namespace bsl;
-// using namespace mqbs;
 
 // ============================================================================
 //                                    TESTS

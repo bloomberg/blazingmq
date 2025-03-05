@@ -35,10 +35,6 @@
 // BDE
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
-// #include <bsl_ostream.h>
-// #include <bsl_vector.h>
-// #include <bsl_string.h>
-// #include <bslma_managedptr.h>
 #include <bdlt_epochutil.h>
 
 namespace BloombergLP {
@@ -60,7 +56,7 @@ struct CslRecordCount {
     bsls::Types::Uint64 d_updateCount;
     /// Counter of commit records.
     bsls::Types::Uint64 d_commitCount;
-    // Counter of ack records.
+    /// Counter of ack records.
     bsls::Types::Uint64 d_ackCount;
 
     // CREATORS
@@ -174,16 +170,6 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     *d_printer_mp << epochValue;
 
     if (!recStr.empty()) {
-        // // Print record.
-        // // Since `record` uses `bslim::Printer` to print its objects
-        // hierarchy,
-        // // it is not easy (and error prone) to do the same for json printer
-        // // without changing nested `record` objects.
-        // // So, we will use the output of `print` method and store it in json
-        // as escaped string. bmqu::MemOutStream ss(d_allocator_p);
-        // rec.print(ss, 4, 2);
-        // *d_printer_mp << bsl::quoted(ss.str());
-
         // Print record string.
         *d_printer_mp << recStr;
     }
@@ -196,7 +182,6 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordsSummary(
     const CslRecordCount&     recordCount,
     const CslUpdateChoiceMap& updateChoiceMap)
 {
-    // closeBraceIfOpen();
     d_fields.clear();
     d_fields.push_back("SnapshotRecords");
     d_fields.push_back("UpdateRecords");

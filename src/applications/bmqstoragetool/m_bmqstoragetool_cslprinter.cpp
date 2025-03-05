@@ -16,7 +16,6 @@
 #include <m_bmqstoragetool_cslprinter.h>
 
 // bmqstoragetool
-#include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 
 // BMQ
@@ -39,8 +38,10 @@ bsl::string recordToJsonString(const RECORD_TYPE* record,
                                bool               removeTrailingQuotes = true)
 {
     bmqu::MemOutStream recStr(allocator);
+    // Print record in one line string
     record->print(recStr, -1, -1);
 
+    // Escape the string
     bmqu::MemOutStream escapedStr(allocator);
     escapedStr << bsl::quoted(recStr.str());
 
@@ -54,6 +55,7 @@ bsl::string recordToJsonString(const RECORD_TYPE* record,
     return resultStr;
 }
 
+// Helper to print queue info in json format
 void printQueueInfo(bsl::ostream&     ostream,
                     const QueueMap&   queueMap,
                     unsigned int      queuesLimit,
@@ -66,7 +68,7 @@ void printQueueInfo(bsl::ostream&     ostream,
         bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
             queueInfos.cend();
         if (queueInfos.size() > queuesLimit) {
-            ostream << "  \"First" << queuesLimit << "Queues\": [";
+            ostream << "    \"First" << queuesLimit << "Queues\": [";
             itEnd = queueInfos.cbegin() + queuesLimit;
         }
         else {
@@ -90,6 +92,10 @@ void printQueueInfo(bsl::ostream&     ostream,
 }
 
 }  // close unnamed namespace
+
+// =============================
+// class HumanReadableCslPrinter
+// =============================
 
 class HumanReadableCslPrinter : public CslPrinter {
   private:
@@ -284,12 +290,20 @@ class HumanReadableCslPrinter : public CslPrinter {
     }
 };
 
+// ====================
+// class JsonCslPrinter
+// ====================
+
 class JsonCslPrinter : public CslPrinter {
   protected:
+    // PROTECTED DATA
+
     bsl::ostream&     d_ostream;
     bslma::Allocator* d_allocator_p;
     mutable bool      d_braceOpen;
     mutable bool      d_firstRow;
+
+    // PROTECTED METHODS
 
     void openBraceIfNotOpen(const std::string& fieldName) const
     {
@@ -319,6 +333,7 @@ class JsonCslPrinter : public CslPrinter {
 
   public:
     // CREATORS
+
     JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
     : d_ostream(os)
     , d_allocator_p(allocator)
@@ -388,12 +403,17 @@ class JsonCslPrinter : public CslPrinter {
     }
 };
 
+// ==========================
+// class JsonPrettyCslPrinter
+// ==========================
+
 class JsonPrettyCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
     JsonPrettyCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
     : JsonCslPrinter(os, allocator)
     {
+        // NOTHING
     }
 
     ~JsonPrettyCslPrinter() BSLS_KEYWORD_OVERRIDE {}
@@ -454,12 +474,17 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
     }
 };
 
+// ========================
+// class JsonLineCslPrinter
+// ========================
+
 class JsonLineCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
     JsonLineCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
     : JsonCslPrinter(os, allocator)
     {
+        // NOTHING
     }
 
     ~JsonLineCslPrinter() BSLS_KEYWORD_OVERRIDE {}

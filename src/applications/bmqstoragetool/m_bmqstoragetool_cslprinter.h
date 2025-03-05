@@ -16,10 +16,10 @@
 #ifndef INCLUDED_M_BMQSTORAGETOOL_CSLPRINTER_H
 #define INCLUDED_M_BMQSTORAGETOOL_CSLPRINTER_H
 
-//@PURPOSE: Provide Printer class for printing storage files.
+//@PURPOSE: Provide interface class for printing CSL data.
 //
 //@CLASSES:
-//  Printer: provides methods to print storage files.
+//  CslPrinter: provides methods to print CSL data.
 //
 //@DESCRIPTION: Interface class to print storage files.
 
@@ -29,12 +29,6 @@
 // BMQ
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbsi_ledger.h>
-// #include <bmqt_messageguid.h>
-
-// BDE
-// #include <bsl_list.h>
-// #include <bsl_map.h>
-// #include <bslma_managedptr.h>
 
 namespace BloombergLP {
 

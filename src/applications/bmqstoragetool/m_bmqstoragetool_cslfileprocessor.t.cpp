@@ -1,4 +1,4 @@
-// Copyright 2023 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,9 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
 #include "m_bmqstoragetool_parameters.h"
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
 #include <m_bmqstoragetool_cslprinter.h>
 #include <m_bmqstoragetool_filemanagermock.h>
@@ -28,31 +28,14 @@
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbmock_logidgenerator.h>
 #include <mqbsi_ledger.h>
-#include <mqbsi_log.h>
-#include <mqbsl_ledger.h>
-#include <mqbsl_memorymappedondisklog.h>
 #include <mqbu_storagekey.h>
 
 // BMQ
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocol.h>
-#include <bmqp_protocolutil.h>
-#include <bmqu_alignedprinter.h>
-#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bdlf_bind.h>
-#include <bdlf_placeholder.h>
-#include <bsl_memory.h>
-#include <bsl_string.h>
-#include <bsl_utility.h>  // bsl::pair, bsl::make_pair
-#include <bsl_vector.h>
-#include <bslma_allocator.h>
-#include <bslma_managedptr.h>
-#include <bsls_assert.h>
-#include <bsls_types.h>
 
 // TEST DRIVER
 #include <bmqsys_time.h>

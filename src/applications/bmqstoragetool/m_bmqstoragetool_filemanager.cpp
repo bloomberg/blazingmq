@@ -299,7 +299,7 @@ FileManagerImpl::CslFileHandler::iterator()
     return d_iter_p.get();
 }
 
-inline const bsl::string& FileManagerImpl::CslFileHandler::path() const
+const bsl::string& FileManagerImpl::CslFileHandler::path() const
 {
     return d_path;
 }

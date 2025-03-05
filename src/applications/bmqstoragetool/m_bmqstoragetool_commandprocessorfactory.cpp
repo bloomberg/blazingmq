@@ -16,7 +16,6 @@
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_cslfileprocessor.h>
-#include <m_bmqstoragetool_cslprinter.h>
 #include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 

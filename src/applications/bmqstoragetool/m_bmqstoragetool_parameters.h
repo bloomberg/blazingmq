@@ -137,20 +137,21 @@ class CommandLineArguments {
   private:
     // PRIVATE MANIPULATORS
 
+    /// Validate journal mode arguments. Write validation error into the
+    /// specified `stream`.
     void validateJournalModeArgs(bsl::ostream&     stream,
                                  bslma::Allocator* allocator = 0);
-    // Validate journal mode arguments. Write validation error into the
-    // specified `stream`.
 
     // PRIVATE ACCESSORS
+
+    /// Validate CSL mode arguments. Write validation error into the specified
+    /// `stream`.
     void validateCslModeArgs(bsl::ostream&     stream,
                              bslma::Allocator* allocator = 0);
-    // Validate CSL mode arguments. Write validation error into the specified
-    // `stream`.
+    /// Validate range args. Return true if at least one range argument passed,
+    /// false otherwise.
     bool validateRangeArgs(bsl::ostream&     error,
                            bslma::Allocator* allocator) const;
-    // Validate range args. Return true if at least one range argument passed,
-    // false otherwise.
 
   public:
     // CLASS METHODS
@@ -176,9 +177,9 @@ class CommandLineArguments {
                                 bsl::ostream&      stream);
 };
 
-// ================
+// =================
 // struct Parameters
-// ================
+// =================
 
 struct Parameters {
     // PUBLIC TYPES
@@ -228,14 +229,15 @@ struct Parameters {
     // VST representing CSL record types to process
     struct ProcessCslRecordTypes {
         // PUBLIC DATA
+
+        /// Flag to process CSL records of type snapshot
         bool d_snapshot;
-        // Flag to process CSL records of type snapshot
+        /// Flag to process CSL records of type d_update
         bool d_update;
-        // Flag to process CSL records of type d_update
+        /// Flag to process CSL records of type commit
         bool d_commit;
-        // Flag to process CSL records of type commit
+        /// Flag to process CSL records of type ack
         bool d_ack;
-        // Flag to process CSL records of type ack
 
         // CREATORS
         explicit ProcessCslRecordTypes();
@@ -244,25 +246,26 @@ struct Parameters {
     };
 
     // PUBLIC DATA
+
+    /// Flag to process CSL file instead of Journal one
     bool d_cslMode;
-    // Flag to process CSL file instead of Journal one
+    /// Record types to process
     ProcessRecordTypes d_processRecordTypes;
-    // Record types to process
+    /// CSL record types to process
     ProcessCslRecordTypes d_processCslRecordTypes;
-    // CSL record types to process
+    /// Queue map containing uri to key and key to info mappings
     QueueMap d_queueMap;
-    // Queue map containing uri to key and key to info mappings
     /// Print mode
     PrintMode d_printMode;
     /// Range parameters for filtering
     Range d_range;
-    // Range parameters for filtering
+    /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
-    // Filter messages by message guids
+    /// Filter messages by message sequence number
     bsl::vector<CompositeSequenceNumber> d_seqNum;
-    // Filter messages by message sequence number
+    /// Filter messages by message offsets
     bsl::vector<bsls::Types::Int64> d_offset;
-    // Filter messages by message offsets
+    /// Filter messages by queue keys
     bsl::vector<bsl::string> d_queueKey;
     /// Filter messages by queue names
     bsl::vector<bsl::string> d_queueName;

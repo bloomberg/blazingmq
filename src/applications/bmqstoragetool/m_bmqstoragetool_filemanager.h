@@ -23,7 +23,8 @@
 //  m_bmqstoragetool::FileManager                 : an interface class
 //  m_bmqstoragetool::FileManagerImpl             : an implementation class
 //  m_bmqstoragetool::FileManagerImpl::FileHandler: a RAII journal/data file
-//  wrapper class m_bmqstoragetool::FileManagerImpl::CslFileHandler: a RAII CSL
+//  wrapper class 
+//  m_bmqstoragetool::FileManagerImpl::CslFileHandler: a RAII CSL
 //  file wrapper class
 //
 //@DESCRIPTION:

@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -90,7 +90,6 @@ class CslSearchShortResult : public CslSearchResult {
 
     /// Pointer to 'Printer' instance.
     const bsl::shared_ptr<CslPrinter> d_printer;
-
     /// Record types to process
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
@@ -295,7 +294,6 @@ class CslSummaryResult : public CslSearchResult {
 
     /// Pointer to 'Printer' instance.
     const bsl::shared_ptr<CslPrinter> d_printer;
-
     /// CSL Record types to process.
     const Parameters::ProcessCslRecordTypes& d_processCslRecordTypes;
     /// Record counters
@@ -306,7 +304,6 @@ class CslSummaryResult : public CslSearchResult {
     const QueueMap& d_queueMap;
     /// Limit number of queues to display
     unsigned int d_cslSummaryQueuesLimit;
-
     /// Pointer to allocator that is used inside the class.
     bslma::Allocator* d_allocator_p;
 
