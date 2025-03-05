@@ -445,7 +445,7 @@ class Routers {
 
         bool add(const Subscription* subscription);
 
-        bool evaluate(const bsl::shared_ptr<bdlbb::Blob>& data);
+        bool evaluate();
 
         unsigned int sId() const;
     };
@@ -670,8 +670,7 @@ class Routers {
         /// subscription to the end of round-robind selection list if it has
         /// been selected `d_consumerPriorityCount` times , and return
         /// `true`.
-        Result iterateGroups(const Visitor&               visitor,
-                             const mqbi::StorageIterator* currentMessage);
+        Result iterateGroups(const Visitor& visitor);
 
         /// Iterate all highest priority `Subscription`s within the
         /// specified `group` and call the specified `visitor` for each
@@ -776,8 +775,7 @@ class Routers {
         /// which has `canDeliver` consumer and which `Expression` matches
         /// the specified `message`.  Otherwise, return `0`.
         const Subscription*
-        selectSubscription(const Consumers::SharedItem& itConsumer,
-                           const mqbi::StorageIterator* message) const;
+        selectSubscription(const Consumers::SharedItem& itConsumer) const;
 
         /// Make `SubscriptionId` reference previously generated groups,
         void apply();
