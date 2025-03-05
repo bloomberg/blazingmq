@@ -364,9 +364,9 @@ bdld::Datum SimpleEvaluator::Not::evaluate(EvaluationContext& context) const
     return bdld::Datum::createBoolean(!value.theBoolean());
 }
 
-// --------------------------
+// -----------------------------
 // class SimpleEvaluator::Exists
-// --------------------------
+// -----------------------------
 
 SimpleEvaluator::Exists::Exists(const bsl::string& name)
 : d_name(name)
