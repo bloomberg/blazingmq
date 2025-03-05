@@ -172,7 +172,7 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback,
 
     if (supportShutdownV2) {
         d_queueHelper.requestToStopPushing();
-
+        // 'checkUnconfirmedV2' serves as synchronization
         bsls::TimeInterval whenToStop(
             bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
         whenToStop.addMilliseconds(d_clusterData.clusterConfig()
