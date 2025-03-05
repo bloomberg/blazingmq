@@ -952,6 +952,17 @@ bsls::Types::Int64 Queue::countUnconfirmed(unsigned int subId)
 
 void Queue::stopPushing()
 {
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(this));
+
+    if (isAtMostOnce()) {
+        // Attempt to deliver all data in the storage.  Otherwise, broadcast
+        // can get dropped.
+
+        flush();
+    }
     queueEngine()->resetState(true);  // isShuttingDown
 }
 

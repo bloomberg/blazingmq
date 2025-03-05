@@ -923,6 +923,12 @@ void RootQueueEngine::configureHandle(
 
     const AppStateSp& affectedApp = iter->second;
 
+    if (d_queueState_p->isAtMostOnce()) {
+        // Attempt to deliver all data in the storage.  Otherwise, broadcast
+        // data can get dropped if the configure response removes consumers.
+        deliverMessages(affectedApp.get());
+    }
+
     // prepare the App for rebuilding consumers
     affectedApp->undoRouting();
 

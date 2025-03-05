@@ -538,11 +538,10 @@ void Application::stop()
 
 bool Application::initiateShutdown()
 {
-    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
-
     // Send a StopRequest to all connected cluster nodes and brokers
-    Sessions brokers(d_allocator_p);
+    Sessions nodes(d_allocator_p);
     Sessions clients(d_allocator_p);
+    Sessions proxies(d_allocator_p);
 
     for (mqbnet::TransportManagerIterator sessIt(d_transportManager_mp.get());
          sessIt;
@@ -560,17 +559,19 @@ bool Application::initiateShutdown()
                 ? negoMsg.clientIdentity()
                 : negoMsg.brokerResponse().brokerIdentity();
 
-        bool isBroker = false;
+        bool isClusterNode = false;
+        bool isProxy       = false;
         if (mqbnet::ClusterUtil::isClientOrProxy(negoMsg)) {
             clients.push_back(sessionSp);
+
             if (!negoMsg.clientIdentity().clusterName().empty()) {
-                isBroker = true;
+                isProxy = true;
             }
         }
         else {
-            isBroker = true;
+            isClusterNode = true;
         }
-        if (isBroker) {
+        if (isClusterNode || isProxy) {
             // Node or Proxy
             // Expect all proxies and nodes support this feature.
             if (!bmqp::ProtocolUtil::hasFeature(
@@ -589,13 +590,76 @@ bool Application::initiateShutdown()
                 // Abandon the attempt to shutdown V2
                 return false;  // RETURN
             }
-            brokers.push_back(sessionSp);
+
+            if (isClusterNode) {
+                nodes.push_back(sessionSp);
+            }
+            else {
+                proxies.push_back(sessionSp);
+            }
         }
     }
 
-    bslmt::Latch latch(clients.size() + 1);
+    bslmt::Latch latchDownstreams(clients.size() + 1);
     // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
 
+    sendStopRequests(&latchDownstreams, proxies, 2);
+
+    bsls::TimeInterval shutdownTimeout;
+
+    shutdownTimeout.setTotalMilliseconds(k_STOP_REQUEST_TIMEOUT_MS);
+
+    BALL_LOG_INFO << "Shutting down " << clients.size()
+                  << " clients; timeout is " << shutdownTimeout << " ms";
+
+    for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
+         ++cit) {
+        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
+                                                      &latchDownstreams),
+                                 shutdownTimeout,
+                                 true);
+    }
+
+    // Need to wait for peers to update this node status to guarantee no new
+    // clusters.
+    latchDownstreams.wait();
+
+    // Synchronize on ALL queues to drain all PUTs received before StopResponse
+    // but enqueued in a Queue dispatcher thread (different from the Cluster
+    // dispatcher thread which has processed StopResponse)
+
+    {
+        bslmt::Latch latch(1);
+        d_dispatcher_mp->execute(mqbi::Dispatcher::ProcessorFunctor(),
+                                 mqbi::DispatcherClientType::e_QUEUE,
+                                 bdlf::BindUtil::bind(&bslmt::Latch::arrive,
+                                                      &latch));
+        latch.wait();
+    }
+    {
+        bslmt::Latch latch(1);
+
+        d_dispatcher_mp->execute(mqbi::Dispatcher::ProcessorFunctor(),
+                                 mqbi::DispatcherClientType::e_CLUSTER,
+                                 bdlf::BindUtil::bind(&bslmt::Latch::arrive,
+                                                      &latch));
+        latch.wait();
+    }
+
+    bslmt::Latch latchUpstreams(1);
+    // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
+
+    sendStopRequests(&latchUpstreams, nodes, 2);
+
+    latchUpstreams.wait();
+
+    return true;
+}
+
+void Application::sendStopRequests(bslmt::Latch*   latch,
+                                   const Sessions& brokers,
+                                   int             version)
+{
     mqbblp::ClusterCatalog::StopRequestManagerType::RequestContextSp
         contextSp =
             d_clusterCatalog_mp->stopRequestManger().createRequestContext();
@@ -606,7 +670,7 @@ bool Application::initiateShutdown()
                                              .choice()
                                              .makeStopRequest();
 
-    request.version() = 2;
+    request.version() = version;
 
     bsls::TimeInterval shutdownTimeout;
 
@@ -615,30 +679,13 @@ bool Application::initiateShutdown()
     contextSp->setDestinationNodes(brokers);
 
     contextSp->setResponseCb(
-        bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+        bdlf::BindUtil::bind(&bslmt::Latch::arrive, latch));
 
     BALL_LOG_INFO << "Sending StopRequest V2 to " << brokers.size()
                   << " brokers; timeout is " << shutdownTimeout << " ms";
 
     d_clusterCatalog_mp->stopRequestManger().sendRequest(contextSp,
                                                          shutdownTimeout);
-
-    BALL_LOG_INFO << "Shutting down " << clients.size()
-                  << " clients; timeout is " << shutdownTimeout << " ms";
-
-    for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
-         ++cit) {
-        (*cit)->initiateShutdown(bdlf::BindUtil::bind(&bslmt::Latch::arrive,
-                                                      &latch),
-                                 shutdownTimeout,
-                                 true);
-    }
-
-    // Need to wait for peers to update this node status to guarantee no new
-    // clusters.
-    latch.wait();
-
-    return true;
 }
 
 mqbi::Cluster*
