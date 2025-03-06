@@ -2594,6 +2594,12 @@ class DTTestSpan : public bmqpi::DTSpan {
     {
         return d_operation;
     }
+
+    int finish() const BSLS_KEYWORD_OVERRIDE
+    {
+        // NOT IMPLEMENTED
+        return 0;
+    }
 };
 
 class DTTestTracer : public bmqpi::DTTracer {
