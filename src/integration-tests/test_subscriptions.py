@@ -463,7 +463,7 @@ class Consumer:
         return res
 
 
-def test_second_configure(cluster: Cluster):
+def test_second_configure(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: a simple scenario where a crash might occur.
     - Create 1 producer / 1 consumer.
@@ -482,7 +482,7 @@ def test_second_configure(cluster: Cluster):
     producer = proxy.create_client("producer")
     consumer = proxy.create_client("consumer")
 
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer.open(uri, flags=["write,ack"], succeed=True)
     consumer.open(uri, flags=["read"], succeed=True)
 
@@ -495,7 +495,7 @@ def test_second_configure(cluster: Cluster):
     consumer.configure(uri, block=True)
 
 
-def test_open(cluster: Cluster):
+def test_open(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: open queue with the specified subscription.
     - Create 1 producer / 1 consumer.
@@ -507,7 +507,7 @@ def test_open(cluster: Cluster):
     - Subscription expression must be passed with 'open' correctly.
     - Only the messages expected by subscription must be received.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri, ["x <= 1"])
 
@@ -518,7 +518,7 @@ def test_open(cluster: Cluster):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
-def test_non_blocking(cluster: Cluster):
+def test_non_blocking(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: messages that must not be received by the given consumer do not
     block it to receive the following messages.
@@ -543,7 +543,7 @@ def test_non_blocking(cluster: Cluster):
     - Consumer C2 must receive the skipped message M1.
     - Consumer C2 must not receive messages M2, M3 that were confirmed.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, ["x >= 1"])
 
@@ -561,7 +561,7 @@ def test_non_blocking(cluster: Cluster):
     consumer2.expect_messages(["x: 0"], confirm=True)
 
 
-def test_configure_subscription(cluster: Cluster):
+def test_configure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: configure queue with the specified subscription.
     - Create 1 producer / 1 consumer.
@@ -574,7 +574,7 @@ def test_configure_subscription(cluster: Cluster):
     - Subscription expression must be passed with 'configure' correctly.
     - Only the messages expected by subscription must be received.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri)
 
@@ -587,7 +587,7 @@ def test_configure_subscription(cluster: Cluster):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
-def test_reconfigure_subscription(cluster: Cluster):
+def test_reconfigure_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: reconfigure queue with the specified subscription.
     - Create 1 producer / 1 consumer.
@@ -615,7 +615,7 @@ def test_reconfigure_subscription(cluster: Cluster):
     - Valid substreams: the order of messages is the same as it was during
     the 'post' for each subscription.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri, ["x >= 4"])
 
@@ -637,7 +637,7 @@ def test_reconfigure_subscription(cluster: Cluster):
     consumer.expect_messages(["x: 0", "x: 1"], confirm=True)
 
 
-def test_non_overlapping(cluster: Cluster):
+def test_non_overlapping(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: several non-overlapping subscriptions to the same queue.
     - Create 1 producer / 3 consumers.
@@ -651,7 +651,7 @@ def test_non_overlapping(cluster: Cluster):
     - Routing of messages works correctly for multiple consumers with
     subscriptions.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, ["x > 0"])
     consumer2 = Consumer(cluster, uri, ["x < 0"])
@@ -669,7 +669,7 @@ def test_non_overlapping(cluster: Cluster):
     consumer3.expect_messages(expected3, confirm=True)
 
 
-def test_priorities(cluster: Cluster):
+def test_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: several subscriptions to the same queue with different priorities.
     - Create 1 producer / 2 consumers: C1, C2.
@@ -684,7 +684,7 @@ def test_priorities(cluster: Cluster):
     - Routing of messages works correctly for multiple consumers with
     subscriptions.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri)
     consumer2 = Consumer(cluster, uri)
@@ -707,7 +707,7 @@ def test_priorities(cluster: Cluster):
     consumer2.expect_messages(expected, confirm=True)
 
 
-def test_fanout(cluster: Cluster):
+def test_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: subscriptions work in fanout mode.
     - Create 1 producer / 3 consumers.
@@ -720,8 +720,9 @@ def test_fanout(cluster: Cluster):
     - Fanout works for subscriptions: every message delivered for each
     consumer.
     """
-    producer_uri = tc.URI_FANOUT
-    app_uris = [tc.URI_FANOUT_FOO, tc.URI_FANOUT_BAR, tc.URI_FANOUT_BAZ]
+    du = domain_urls
+    producer_uri = du.uri_fanout
+    app_uris = [du.uri_fanout_foo, du.uri_fanout_bar, du.uri_fanout_baz]
 
     producer = Producer(cluster, producer_uri)
     consumers = [
@@ -773,7 +774,7 @@ def test_broadcast(cluster: Cluster):
     consumer_gteq_100.expect_messages(expected_gteq_100, confirm=False)
 
 
-def test_round_robin(cluster: Cluster):
+def test_round_robin(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: round-robin routing of messages with subscriptions.
     - Create 1 producer / K consumers.
@@ -786,7 +787,7 @@ def test_round_robin(cluster: Cluster):
     - Round-robin works for subscriptions: messages are evenly routed
     between consumers.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     num_consumers = 10
     messages_per_consumer = 15
 
@@ -821,7 +822,7 @@ def test_round_robin(cluster: Cluster):
         consumer.expect_messages(expected, confirm=True)
 
 
-def test_redelivery(cluster: Cluster):
+def test_redelivery(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: message redelivery when the consumer exits without confirmation.
     - Create 1 producer / 1 consumer: C1.
@@ -835,7 +836,7 @@ def test_redelivery(cluster: Cluster):
     Concerns:
     - Unconfirmed messages must be redelivered correctly.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer = Consumer(
         cluster,
@@ -857,7 +858,7 @@ def test_redelivery(cluster: Cluster):
     consumer.expect_messages(expected, confirm=True)
 
 
-def test_max_unconfirmed(cluster: Cluster):
+def test_max_unconfirmed(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: routing of messages between several subscriptions with the same
     expression and priority when max_unconfirmed reached.
@@ -923,7 +924,7 @@ def test_max_unconfirmed(cluster: Cluster):
     - Extra messages are delivered correctly when one of the consumers is
     ready to receive again.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer1 = Consumer(
         cluster,
@@ -965,7 +966,9 @@ def test_max_unconfirmed(cluster: Cluster):
     consumer2.expect_empty()
 
 
-def test_max_unconfirmed_low_priority_spillover(cluster: Cluster):
+def test_max_unconfirmed_low_priority_spillover(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
     """
     Test: routing of messages between several subscriptions with the same
     expression but with different priorities when max_unconfirmed reached.
@@ -995,7 +998,7 @@ def test_max_unconfirmed_low_priority_spillover(cluster: Cluster):
     max_unconfirmed reached.
     - Reconfiguration does not break this behavior.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer1 = Consumer(
         cluster,
@@ -1031,7 +1034,7 @@ def test_max_unconfirmed_low_priority_spillover(cluster: Cluster):
     consumer2.expect_empty()
 
 
-def test_many_subscriptions(cluster: Cluster):
+def test_many_subscriptions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: open multiple subscriptions at once.
     - Create 1 producer / 1 consumer.
@@ -1042,7 +1045,7 @@ def test_many_subscriptions(cluster: Cluster):
     Concerns:
     - All messages must be received in correct order.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     num_subscriptions = 256
 
     subscriptions = [f"x == {i}" for i in range(num_subscriptions)]
@@ -1059,7 +1062,7 @@ def test_many_subscriptions(cluster: Cluster):
     consumer.expect_messages(expected, confirm=True)
 
 
-def test_complex_expressions(cluster: Cluster):
+def test_complex_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: complex subscription expressions with several properties.
     - Create 1 producer / 1 consumer.
@@ -1072,7 +1075,7 @@ def test_complex_expressions(cluster: Cluster):
     - Complex expressions work.
     - All expected messages must be received in correct order.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer = Consumer(
@@ -1089,7 +1092,7 @@ def test_complex_expressions(cluster: Cluster):
     consumer.expect_messages(expected, confirm=True)
 
 
-def test_incorrect_expressions(cluster: Cluster):
+def test_incorrect_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: incorrect expressions.
     - Create 1 producer / 1 consumer.
@@ -1122,7 +1125,7 @@ def test_incorrect_expressions(cluster: Cluster):
         "true && (>>)",
     ]
 
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri, ["x < 0"])
@@ -1144,7 +1147,7 @@ def test_incorrect_expressions(cluster: Cluster):
         consumer.configure(["x < 0"])
 
 
-def test_non_bool_expressions(cluster: Cluster):
+def test_non_bool_expressions(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions that are not evaluated as booleans.
     - Create 1 producer / 1 consumer.
@@ -1164,7 +1167,7 @@ def test_non_bool_expressions(cluster: Cluster):
     """
     expressions = ["x", "x + 33"]
 
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri, ["x >= 0"])
@@ -1179,7 +1182,7 @@ def test_non_bool_expressions(cluster: Cluster):
         consumer.expect_messages(expected, confirm=True)
 
 
-def test_numeric_limits(cluster: Cluster):
+def test_numeric_limits(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: pass huge values in subscription expressions.
     - Create 1 producer / 1 consumer.
@@ -1203,7 +1206,7 @@ def test_numeric_limits(cluster: Cluster):
     - Seemingly adequate range of integer values in expressions is still
     supported.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     # fmt: off
     # These lines might be auto formatted differently
@@ -1254,7 +1257,7 @@ def test_numeric_limits(cluster: Cluster):
             consumer.expect_messages(expected, confirm=True)
 
 
-def test_empty_subscription(cluster: Cluster):
+def test_empty_subscription(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: empty subscription works for backward compatibility.
     - Create 1 producer / 1 consumer.
@@ -1274,7 +1277,7 @@ def test_empty_subscription(cluster: Cluster):
     - Consumer with empty subscription must receive all messages.
     - Reconfiguration does not break this behaviour.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri, EMPTY_SUBSCRIPTION)
@@ -1294,7 +1297,7 @@ def test_empty_subscription(cluster: Cluster):
     consumer.expect_messages(expected, confirm=True)
 
 
-def test_empty_expression(cluster: Cluster):
+def test_empty_expression(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: subscription with specific empty string "" expression rejected.
     - Create 1 producer / 1 consumer.
@@ -1318,7 +1321,7 @@ def test_empty_expression(cluster: Cluster):
     - If valid expressions passed together with empty "" expression the
     entire configure is rejected, so these valid subscriptions do not work.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     expected = producer.post_diff(num=10, offset=0)
@@ -1351,7 +1354,7 @@ def test_empty_expression(cluster: Cluster):
     consumer.expect_messages(expected, confirm=True)
 
 
-def test_non_existent_property(cluster: Cluster):
+def test_non_existent_property(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions are evaluated even if some properties are missing.
     - Create 1 producer / 2 consumers: C1, C2.
@@ -1370,7 +1373,7 @@ def test_non_existent_property(cluster: Cluster):
     - Expressions are evaluated from left to right, and it is possible to
     return result early if logical expression allows it.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, ["x >= 0 || (y >= 0)"])
@@ -1383,7 +1386,7 @@ def test_non_existent_property(cluster: Cluster):
     consumer2.expect_messages(expected2, confirm=True)
 
 
-def test_date_time(cluster: Cluster):
+def test_date_time(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: expressions with date/time passed as string work.
     - Create 1 producer / 1 consumers.
@@ -1403,7 +1406,7 @@ def test_date_time(cluster: Cluster):
     - String properties and expressions work.
     - Dates in ISO string format are compared in obvious and expected way.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
     producer = Producer(cluster, uri)
     consumer = Consumer(cluster, uri)
 
@@ -1446,7 +1449,7 @@ def test_date_time(cluster: Cluster):
             consumer.expect_messages(remaining, confirm=True)
 
 
-def test_consumer_multiple_priorities(cluster: Cluster):
+def test_consumer_multiple_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: messages are routed correctly with overlapping subscriptions with
     different priorities.
@@ -1466,7 +1469,7 @@ def test_consumer_multiple_priorities(cluster: Cluster):
     - Low priority consumer will receive all suitable messages according to
     subscription if there are no conflicting consumers with higher priority.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, [("x >= 1000", 5)])
@@ -1485,7 +1488,7 @@ def test_consumer_multiple_priorities(cluster: Cluster):
     consumer2.expect_messages(expected, confirm=True)
 
 
-def test_no_capacity_all_optimization(cluster: Cluster):
+def test_no_capacity_all_optimization(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: delivery optimization works during routing when all subscriptions
     have no capacity.
@@ -1503,7 +1506,7 @@ def test_no_capacity_all_optimization(cluster: Cluster):
     Concerns:
     - Delivery optimization works when NO_CAPACITY_ALL condition observed.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, ["x > 0"], max_unconfirmed_messages=1)
@@ -1589,7 +1592,7 @@ def test_no_capacity_all_optimization(cluster: Cluster):
     assert not optimization_monitor.has_new_message()
 
 
-def test_no_capacity_all_fanout(cluster: Cluster):
+def test_no_capacity_all_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: delivery optimization encountered with one app does not affect
     other apps.
@@ -1606,9 +1609,10 @@ def test_no_capacity_all_fanout(cluster: Cluster):
     - Delivery optimization condition encountered with one app does not
     affect the other app.
     """
-    producer_uri = tc.URI_FANOUT
-    uri_foo = tc.URI_FANOUT_FOO
-    uri_bar = tc.URI_FANOUT_BAR
+    du = domain_urls
+    producer_uri = du.uri_fanout
+    uri_foo = du.uri_fanout_foo
+    uri_bar = du.uri_fanout_bar
 
     producer = Producer(cluster, producer_uri)
     consumer_foo = Consumer(cluster, uri_foo, ["x > 0"], max_unconfirmed_messages=128)
@@ -1674,7 +1678,7 @@ def test_no_capacity_all_fanout(cluster: Cluster):
     assert optimization_monitor.has_new_message("baz")
 
 
-def test_primary_node_crash(multi_node: Cluster):
+def test_primary_node_crash(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: configured subscriptions work after primary node crash.
     - Create 1 producer / N consumers.
@@ -1694,7 +1698,7 @@ def test_primary_node_crash(multi_node: Cluster):
     - Already configured subscriptions work after primary node crash and
     change.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(multi_node, uri)
     consumer1 = Consumer(multi_node, uri, ["x < 0"])
@@ -1735,7 +1739,9 @@ def test_primary_node_crash(multi_node: Cluster):
     consumer3.expect_messages(expected3, confirm=True)
 
 
-def test_redelivery_on_primary_node_crash(multi_node: Cluster):
+def test_redelivery_on_primary_node_crash(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
     """
     Test: configured subscriptions work after primary node crash.
     - Create 1 producer / 3 consumers: C_high, C_low1, C_low2.
@@ -1763,7 +1769,7 @@ def test_redelivery_on_primary_node_crash(multi_node: Cluster):
     - Already configured subscriptions work after primary node crash and
     change.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(multi_node, uri)
     consumer_high = Consumer(multi_node, uri, [("x <= 0 || x > 0", 2)])
@@ -1800,7 +1806,9 @@ def test_redelivery_on_primary_node_crash(multi_node: Cluster):
     consumer_low2.expect_messages(expected2, confirm=True)
 
 
-def test_reconfigure_on_primary_node_crash(multi_node: Cluster):
+def test_reconfigure_on_primary_node_crash(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
     """
     Test: configured subscriptions work after primary node crash.
     - Create 1 producer / 3 consumers: C_high, C_low1, C_low2.
@@ -1829,7 +1837,7 @@ def test_reconfigure_on_primary_node_crash(multi_node: Cluster):
     Concerns:
     - Configure works after primary node crash and change.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(multi_node, uri)
     consumer_high = Consumer(multi_node, uri, [("x <= 0 || x > 0", 2)])
@@ -1879,7 +1887,7 @@ def test_reconfigure_on_primary_node_crash(multi_node: Cluster):
         low_interval=5000000,
     )
 )
-def test_poison(cluster: Cluster):
+def test_poison(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: poison messages detection works for subscriptions.
     - Configure max delivery attempts = 1 and adjust message throttling
@@ -1906,7 +1914,7 @@ def test_poison(cluster: Cluster):
     - Delay condition works for the entire queue, not just for concrete
     subscriptions.
     """
-    uri = tc.URI_PRIORITY
+    uri = domain_urls.uri_priority
 
     producer = Producer(cluster, uri)
 

@@ -25,16 +25,18 @@ from blazingmq.dev.it.fixtures import (
     order,
 )  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.testconstants import DomainUrls
 from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
 
 
-def test_fanout_priorities(cluster: Cluster):
+def test_fanout_priorities(cluster: Cluster, domain_urls: DomainUrls):
     # create foo, bar, and baz clients on every node.
 
     # two of each with priorities 1 and 2
 
+    uri_fanout = domain_urls.uri_fanout
     producers = []
     apps = ["foo", "bar", "baz"]
     proxies = cluster.proxy_cycle()
@@ -49,17 +51,29 @@ def test_fanout_priorities(cluster: Cluster):
     for node in nodes:
         client = node.create_client("consumer2")
         [queues] = client.open_fanout_queues(
-            1, flags=["read"], consumer_priority=2, block=True, appids=apps
+            1,
+            flags=["read"],
+            consumer_priority=2,
+            block=True,
+            appids=apps,
+            uri_fanout=uri_fanout,
         )
         highPriorityQueues += queues
 
         client = node.create_client("consumer1")
         [queues] = client.open_fanout_queues(
-            1, flags=["read"], consumer_priority=1, block=True, appids=apps
+            1,
+            flags=["read"],
+            consumer_priority=1,
+            block=True,
+            appids=apps,
+            uri_fanout=uri_fanout,
         )
         lowPriorityQueues += queues
 
-        [producer] = client.open_fanout_queues(1, flags=["write", "ack"], block=True)
+        [producer] = client.open_fanout_queues(
+            1, flags=["write", "ack"], block=True, uri_fanout=uri_fanout
+        )
         producers.append(producer)
 
     # Deliver to high priorities

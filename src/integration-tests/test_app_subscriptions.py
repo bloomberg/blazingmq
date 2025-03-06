@@ -78,7 +78,10 @@ class TestAppSubscriptions:
             {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x==2"}},
         ]
     )
-    def test_app_subscription_fanout(self, cluster: Cluster):
+    def test_app_subscription_fanout(
+        self, cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
+        du = domain_urls
         proxies = cluster.proxy_cycle()
 
         """
@@ -95,22 +98,18 @@ class TestAppSubscriptions:
 
         producer = proxy.create_client("producer")
         assert (
-            producer.open(tc.URI_FANOUT_SC, flags=["write", "ack"], block=True)
+            producer.open(du.uri_fanout, flags=["write", "ack"], block=True)
             == Client.e_SUCCESS
         )
 
-        self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
+        self.consumer = self._start_client(proxy, du.uri_fanout_foo, "consumerFoo")
 
-        self.consumer_bar = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
-        )
-        self.consumer_baz = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
-        )
+        self.consumer_bar = self._start_client(proxy, du.uri_fanout_bar, "consumerBar")
+        self.consumer_baz = self._start_client(proxy, du.uri_fanout_baz, "consumerBaz")
 
         assert (
             producer.post(
-                tc.URI_FANOUT_SC,
+                du.uri_fanout,
                 payload=["123"],
                 block=True,
                 wait_ack=True,
@@ -121,9 +120,9 @@ class TestAppSubscriptions:
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 1)
+        self._verify(du.domain_fanout, 1)
         self._verify_fanout(
-            tc.DOMAIN_FANOUT_SC, [self.consumer_bar, self.consumer_baz], ["foo"], 1
+            du.domain_fanout, [self.consumer_bar, self.consumer_baz], ["foo"], 1
         )
 
         assert self.consumer.stop_session(block=True) == Client.e_SUCCESS
@@ -136,26 +135,22 @@ class TestAppSubscriptions:
 
         cluster.restart_nodes()
 
-        self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
+        self.consumer = self._start_client(proxy, du.uri_fanout_foo, "consumerFoo")
 
-        self.consumer_bar = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
-        )
-        self.consumer_baz = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
-        )
+        self.consumer_bar = self._start_client(proxy, du.uri_fanout_bar, "consumerBar")
+        self.consumer_baz = self._start_client(proxy, du.uri_fanout_baz, "consumerBaz")
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 1)
+        self._verify(du.domain_fanout, 1)
         self._verify_fanout(
-            tc.DOMAIN_FANOUT_SC, [self.consumer_bar, self.consumer_baz], ["foo"], 1
+            du.domain_fanout, [self.consumer_bar, self.consumer_baz], ["foo"], 1
         )
 
-        self.consumer_bar.confirm(tc.URI_FANOUT_SC_BAR, "*", succeed=True)
-        self.consumer_baz.confirm(tc.URI_FANOUT_SC_BAZ, "*", succeed=True)
+        self.consumer_bar.confirm(du.uri_fanout_bar, "*", succeed=True)
+        self.consumer_baz.confirm(du.uri_fanout_baz, "*", succeed=True)
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 0)
+        self._verify(du.domain_fanout, 0)
 
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
@@ -163,13 +158,16 @@ class TestAppSubscriptions:
     @tweak.domain.subscriptions(
         [{"appId": "", "expression": {"version": "E_VERSION_1", "text": "x==1"}}]
     )
-    def test_app_subscription_priority(self, cluster: Cluster):
+    def test_app_subscription_priority(
+        self, cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         """
         Configure the priority queue to evaluate application subscription
         negatively.
         Make sure the queue does not get the message.
         Make sure the same is the case after restarts.
         """
+        du = domain_urls
 
         proxies = cluster.proxy_cycle()
 
@@ -180,15 +178,15 @@ class TestAppSubscriptions:
 
         producer = proxy.create_client("producer")
         assert (
-            producer.open(tc.URI_PRIORITY_SC, flags=["write", "ack"], block=True)
+            producer.open(du.uri_priority, flags=["write", "ack"], block=True)
             == Client.e_SUCCESS
         )
 
-        self.consumer = self._start_client(proxy, tc.URI_PRIORITY_SC, "consumer")
+        self.consumer = self._start_client(proxy, du.uri_priority, "consumer")
 
         assert (
             producer.post(
-                tc.URI_PRIORITY_SC,
+                du.uri_priority,
                 payload=["123"],
                 block=True,
                 wait_ack=True,
@@ -199,7 +197,7 @@ class TestAppSubscriptions:
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_PRIORITY_SC, 0)
+        self._verify(du.domain_priority, 0)
 
         assert self.consumer.stop_session(block=True) == Client.e_SUCCESS
 
@@ -207,11 +205,11 @@ class TestAppSubscriptions:
 
         cluster.restart_nodes()
 
-        self.consumer = self._start_client(proxy, tc.URI_PRIORITY_SC, "consumer")
+        self.consumer = self._start_client(proxy, du.uri_priority, "consumer")
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_PRIORITY_SC, 0)
+        self._verify(du.domain_priority, 0)
 
     @tweak.domain.subscriptions(
         [
@@ -219,13 +217,16 @@ class TestAppSubscriptions:
             {"appId": "bar", "expression": {"version": "E_VERSION_1", "text": "x > 2"}},
         ]
     )
-    def test_app_subscription_with_consumer_subscription(self, cluster: Cluster):
+    def test_app_subscription_with_consumer_subscription(
+        self, cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         """
         Out of the 3 apps, configure two to evaluate application subscriptions.
         Configure consumsers with consumer subscriptions.
         Make sure outcome of message delivery is logical AND of both
         application and consumer subscriptions.
         """
+        du = domain_urls
 
         proxies = cluster.proxy_cycle()
 
@@ -236,30 +237,28 @@ class TestAppSubscriptions:
 
         producer = proxy.create_client("producer")
         assert (
-            producer.open(tc.URI_FANOUT_SC, flags=["write", "ack"], block=True)
+            producer.open(du.uri_fanout, flags=["write", "ack"], block=True)
             == Client.e_SUCCESS
         )
 
         self.consumer = self._start_client(
             proxy,
-            tc.URI_FANOUT_SC_FOO,
+            du.uri_fanout_foo,
             "consumerFoo",
             subscriptions=[{"correlationId": 1, "expression": "x == 2"}],
         )
 
         self.consumer_bar = self._start_client(
             proxy,
-            tc.URI_FANOUT_SC_BAR,
+            du.uri_fanout_bar,
             "consumerBar",
             subscriptions=[{"correlationId": 1, "expression": "x > 3"}],
         )
-        self.consumer_baz = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
-        )
+        self.consumer_baz = self._start_client(proxy, du.uri_fanout_baz, "consumerBaz")
 
         assert (
             producer.post(
-                tc.URI_FANOUT_SC,
+                du.uri_fanout,
                 payload=["123"],
                 block=True,
                 wait_ack=True,
@@ -270,14 +269,14 @@ class TestAppSubscriptions:
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 1)
+        self._verify(du.domain_fanout, 1)
 
         self._verify_delivery(self.consumer_baz, 1)
         assert len(self.consumer_bar.list(block=True)) == 0
 
         assert (
             producer.post(
-                tc.URI_FANOUT_SC,
+                du.uri_fanout,
                 payload=["123"],
                 block=True,
                 wait_ack=True,
@@ -286,7 +285,7 @@ class TestAppSubscriptions:
             == Client.e_SUCCESS
         )
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 2)
+        self._verify(du.domain_fanout, 2)
         self._verify_delivery(self.consumer_bar, 1)
         self._verify_delivery(self.consumer_baz, 2)
 
@@ -302,31 +301,29 @@ class TestAppSubscriptions:
 
         self.consumer = self._start_client(
             proxy,
-            tc.URI_FANOUT_SC_FOO,
+            du.uri_fanout_foo,
             "consumerFoo",
             subscriptions=[{"correlationId": 1, "expression": "x == 2"}],
         )
 
         self.consumer_bar = self._start_client(
             proxy,
-            tc.URI_FANOUT_SC_BAR,
+            du.uri_fanout_bar,
             "consumerBar",
             subscriptions=[{"correlationId": 1, "expression": "x > 2"}],
         )
-        self.consumer_baz = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
-        )
+        self.consumer_baz = self._start_client(proxy, du.uri_fanout_baz, "consumerBaz")
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 2)
+        self._verify(du.domain_fanout, 2)
         self._verify_delivery(self.consumer_bar, 2)
         self._verify_delivery(self.consumer_baz, 2)
 
-        self.consumer_bar.confirm(tc.URI_FANOUT_SC_BAR, "*", succeed=True)
-        self.consumer_baz.confirm(tc.URI_FANOUT_SC_BAZ, "*", succeed=True)
+        self.consumer_bar.confirm(du.uri_fanout_bar, "*", succeed=True)
+        self.consumer_baz.confirm(du.uri_fanout_baz, "*", succeed=True)
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 0)
+        self._verify(du.domain_fanout, 0)
 
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
@@ -380,12 +377,15 @@ class TestAppSubscriptions:
             {"appId": "baz", "expression": {"version": "E_VERSION_1", "text": "x==3"}},
         ]
     )
-    def test_app_subscription_fanout_all_negative(self, cluster: Cluster):
+    def test_app_subscription_fanout_all_negative(
+        self, cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         """
         Configure all fanout Apps to evaluate application subscriptions
         negatively.
         Make sure none receives a message.
         """
+        du = domain_urls
         proxies = cluster.proxy_cycle()
 
         # 1: Setup producers and consumers
@@ -395,22 +395,18 @@ class TestAppSubscriptions:
 
         producer = proxy.create_client("producer")
         assert (
-            producer.open(tc.URI_FANOUT_SC, flags=["write", "ack"], block=True)
+            producer.open(du.uri_fanout, flags=["write", "ack"], block=True)
             == Client.e_SUCCESS
         )
 
-        self.consumer = self._start_client(proxy, tc.URI_FANOUT_SC_FOO, "consumerFoo")
+        self.consumer = self._start_client(proxy, du.uri_fanout_foo, "consumerFoo")
 
-        self.consumer_bar = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAR, "consumerBar"
-        )
-        self.consumer_baz = self._start_client(
-            proxy, tc.URI_FANOUT_SC_BAZ, "consumerBaz"
-        )
+        self.consumer_bar = self._start_client(proxy, du.uri_fanout_bar, "consumerBar")
+        self.consumer_baz = self._start_client(proxy, du.uri_fanout_baz, "consumerBaz")
 
         assert (
             producer.post(
-                tc.URI_FANOUT_SC,
+                du.uri_fanout,
                 payload=["123"],
                 block=True,
                 wait_ack=True,
@@ -421,8 +417,8 @@ class TestAppSubscriptions:
 
         self.leader = cluster.last_known_leader
 
-        self._verify(tc.DOMAIN_FANOUT_SC, 0)
-        self._verify_fanout(tc.DOMAIN_FANOUT_SC, [], ["foo", "bar", "baz"], 0)
+        self._verify(du.domain_fanout, 0)
+        self._verify_fanout(du.domain_fanout, [], ["foo", "bar", "baz"], 0)
 
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
@@ -436,7 +432,7 @@ class TestAppSubscriptions:
             }
         ]
     )
-    def test_invalid_configuration(self, cluster: Cluster):
+    def test_invalid_configuration(self, cluster: Cluster, domain_urls: tc.DomainUrls):
         """
         Configure priority domain with invalid application subscription.
         Make sure a queue fails to open.
@@ -446,6 +442,7 @@ class TestAppSubscriptions:
         Make sure the reconfigure command fails.
         Make sure a queue opens successfully.
         """
+        du = domain_urls
 
         proxies = cluster.proxy_cycle()
 
@@ -457,42 +454,40 @@ class TestAppSubscriptions:
         consumer = proxy.create_client("consumer")
 
         consumer.open(
-            tc.URI_PRIORITY_SC,
+            du.uri_priority,
             flags=["read"],
             consumer_priority=1,
             succeed=False,
         )
 
-        cluster.config.domains[
-            tc.DOMAIN_PRIORITY_SC
-        ].definition.parameters.subscriptions[0]["expression"]["text"] = "x==1"
+        cluster.config.domains[du.domain_priority].definition.parameters.subscriptions[
+            0
+        ]["expression"]["text"] = "x==1"
 
-        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=True)
+        cluster.reconfigure_domain(du.domain_priority, succeed=True)
 
         consumer.open(
-            tc.URI_PRIORITY_SC,
+            du.uri_priority,
             flags=["read"],
             consumer_priority=1,
             succeed=True,
         )
 
         consumer.close(
-            tc.URI_PRIORITY_SC,
+            du.uri_priority,
             succeed=True,
         )
 
-        cluster.config.domains[
-            tc.DOMAIN_PRIORITY_SC
-        ].definition.parameters.subscriptions[0]["expression"][
-            "text"
-        ] = "invalid expression"
+        cluster.config.domains[du.domain_priority].definition.parameters.subscriptions[
+            0
+        ]["expression"]["text"] = "invalid expression"
 
-        cluster.reconfigure_domain(tc.DOMAIN_PRIORITY_SC, succeed=None)
+        cluster.reconfigure_domain(du.domain_priority, succeed=None)
         assert cluster.last_known_leader.capture("Error processing command")
 
         # The validation fails and the domain is going to keep the old config
         consumer.open(
-            tc.URI_PRIORITY_SC,
+            du.uri_priority,
             flags=["read"],
             consumer_priority=1,
             succeed=True,
