@@ -735,7 +735,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid << "\"\n"
                            << "  ]\n"
                            << "}\n";
@@ -769,7 +769,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {\"LogicError\" : \"guid " << guid
                            << " not found\"}\n"
                            << "  ]\n"
@@ -806,7 +806,7 @@ static void test9_jsonPrettyGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid1 << "\",\n"
                            << "    {\"LogicError\" : \"guid " << guid2
                            << " not found\"}\n"
@@ -972,7 +972,7 @@ static void test10_jsonPrettyMessageTest()
         // Prepare expected output
         expectedStream
             << "{\n"
-            << "  \"MessagesFound\": [\n"
+            << "  \"Records\": [\n"
             << "    {\n"
             << "      \"RecordType\": \"MESSAGE\",\n"
             << "      \"Index\": \"1\",\n"
@@ -1066,7 +1066,7 @@ static void test11_jsonPrettyRecordsTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"QueueOpRecordsFound\": [\n"
+                << "  \"Records\": [\n"
                 << "    {\n"
                 << "      \"RecordType\": \"QUEUE_OP\",\n"
                 << "      \"Index\": \"12345\",\n"
@@ -1119,7 +1119,7 @@ static void test11_jsonPrettyRecordsTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"JournalOpRecordsFound\": [\n"
+                << "  \"Records\": [\n"
                 << "    {\n"
                 << "      \"RecordType\": \"JOURNAL_OP\",\n"
                 << "      \"Index\": \"12345\",\n"
@@ -1637,7 +1637,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid << "\"\n"
                            << "  ]\n"
                            << "}\n";
@@ -1671,7 +1671,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {\"LogicError\" : \"guid " << guid
                            << " not found\"}\n"
                            << "  ]\n"
@@ -1708,7 +1708,7 @@ static void test17_jsonLineGuidTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"GuidsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    \"" << guid1 << "\",\n"
                            << "    {\"LogicError\" : \"guid " << guid2
                            << " not found\"}\n"
@@ -1874,7 +1874,7 @@ static void test18_jsonLineMessageTest()
         // Prepare expected output
         expectedStream
             << "{\n"
-            << "  \"MessagesFound\": [\n"
+            << "  \"Records\": [\n"
             << "    {" << "\"RecordType\": \"MESSAGE\", "
             << "\"Index\": \"1\", " << "\"Offset\": \"44\", "
             << "\"PrimaryLeaseId\": \"100\", " << "\"SequenceNumber\": \"1\", "
@@ -1950,7 +1950,7 @@ static void test19_jsonLineRecordsTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"QueueOpRecordsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {" << "\"RecordType\": \"QUEUE_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
@@ -2000,7 +2000,7 @@ static void test19_jsonLineRecordsTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"JournalOpRecordsFound\": [\n"
+                           << "  \"Records\": [\n"
                            << "    {" << "\"RecordType\": \"JOURNAL_OP\", "
                            << "\"Index\": \"12345\", "
                            << "\"Offset\": \"56789\", "
