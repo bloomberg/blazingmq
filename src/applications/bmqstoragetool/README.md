@@ -25,6 +25,7 @@ Usage:   bmqstoragetool [-r|record-type <record type>]*
                         [--data-file <data file>]
                         [--csl-file <csl file>]
                         [--csl-from-begin]
+                        [--print-mode <print mode>]
                         [--guid <guid>]*
                         [--seqnum <seqnum>]*
                         [--offset <offset>]*
@@ -62,6 +63,8 @@ Where:
           path to a .bmq_csl file
        --csl-from-begin
           force to iterate CSL file from the beginning. By default: iterate from the latest snapshot
+       --print-mode           <print mode>
+          can be one of the following {<human>|json-prety|json-line} (default: human)
        --guid                 <guid>
           message guid
        --seqnum               <seqnum>
@@ -301,3 +304,20 @@ bmqstoragetool --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=
 bmqstoragetool --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
 ```
 NOTE: CSL file is required
+
+Output search results in machine readable (JSON) format for all above scenarios
+===============================================================================
+
+Output in JSON pretty format 
+----------------------------
+Example:
+```bash
+bmqstoragetool --print-mode=json-pretty
+```
+
+Output in JSON line format 
+--------------------------
+Example:
+```bash
+bmqstoragetool --print-mode=json-line
+```
