@@ -96,13 +96,12 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
                                              bslma::Allocator* allocator)
 : d_storage_p(storage)
 , d_virtualStorages(allocator)
-, d_availableOrdinals(allocator)
 , d_dataStream(allocator)
 , d_totalBytes(0)
 , d_numMessages(0)
 , d_defaultAppMessage(bmqp::RdaInfo())
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
-, d_isProxy(true)
+, d_isProxy(false)
 , d_queue_p(0)
 , d_allocator_p(allocator)
 {
@@ -165,7 +164,7 @@ VirtualStorageCatalog::put(const bmqt::MessageGUID&  msgGUID,
 
     if (!insertResult.second) {
         // Duplicate GUID
-        if (!d_isProxy) {
+        if (d_isProxy) {
             // A proxy can receive subsequent PUSH messages for the same GUID
             // but different apps
             BSLS_ASSERT_SAFE(refCount <= d_ordinals.size());
@@ -359,7 +358,7 @@ bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
 
     itData = d_dataStream.begin();
 
-    if (!d_isProxy) {
+    if (d_isProxy) {
         return 0;
     }
 
@@ -497,19 +496,9 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
     Ordinal appOrdinal;
 
-    if (d_availableOrdinals.empty() || d_isProxy) {
-        // Replicas or Primary
-        // Grow ordinals
-        appOrdinal = d_ordinals.size();
-        d_ordinals.resize(appOrdinal + 1);
-    }
-    else {
-        // Proxy. Recycle ordinal.
-        AvailableOrdinals::const_iterator first = d_availableOrdinals.cbegin();
-        appOrdinal                              = *first;
-        // There is no conflict because everything 'appOrdinal' was removed.
-        d_availableOrdinals.erase(first);
-    }
+    // Grow ordinals
+    appOrdinal = d_ordinals.size();
+    d_ordinals.resize(appOrdinal + 1);
 
     BSLS_ASSERT_SAFE(appOrdinal <= d_virtualStorages.size());
 
@@ -562,11 +551,9 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
     VirtualStorageSp replacing;
     unsigned int     replacingOrdinal = removingOrdinal;
 
-    if (d_isProxy) {
-        replacing        = d_ordinals.back();
-        replacingOrdinal = replacing->ordinal();
-        BSLS_ASSERT_SAFE(replacingOrdinal + 1 == d_ordinals.size());
-    }
+    replacing        = d_ordinals.back();
+    replacingOrdinal = replacing->ordinal();
+    BSLS_ASSERT_SAFE(replacingOrdinal + 1 == d_ordinals.size());
 
     BALL_LOG_INFO << "Removing VirtualStorage with appId '"
                   << removing->appId() << "' & appKey '" << removing->appKey()
@@ -600,28 +587,21 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
                                                     removingOrdinal);
     }
 
-    if (d_isProxy) {
-        if (removingOrdinal != replacingOrdinal) {
-            // Replacement
+    if (removingOrdinal != replacingOrdinal) {
+        // Replacement
 
-            d_ordinals[removingOrdinal] = replacing;
-            replacing->replaceOrdinal(removingOrdinal);
+        d_ordinals[removingOrdinal] = replacing;
+        replacing->replaceOrdinal(removingOrdinal);
 
-            if (d_queue_p) {
-                BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
-                d_queue_p->queueEngine()->registerStorage(
-                    replacing->appId(),
-                    replacing->appKey(),
-                    replacing->ordinal());
-            }
+        if (d_queue_p) {
+            BSLS_ASSERT_SAFE(d_queue_p->queueEngine());
+            d_queue_p->queueEngine()->registerStorage(replacing->appId(),
+                                                      replacing->appKey(),
+                                                      replacing->ordinal());
         }
+    }
 
-        d_ordinals.resize(d_ordinals.size() - 1);
-    }
-    else {
-        d_availableOrdinals.insert(removingOrdinal);
-        d_ordinals[removingOrdinal].reset();
-    }
+    d_ordinals.resize(d_ordinals.size() - 1);
 
     d_virtualStorages.erase(it);
 

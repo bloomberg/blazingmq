@@ -85,7 +85,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
     d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
 
     if (isProxy()) {
-        d_virtualStorageCatalog.setDiscontinuousOrdinals();
+        d_virtualStorageCatalog.confgiureAsProxy();
     }
 }
 
@@ -267,7 +267,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        attributes->arrivalTimepoint());
     }
 
-    // This overrides  mqbi::DataStreamMessage::d_numApps with 'refCount'
+    // This can override (increase) 'mqbi::DataStreamMessage::d_numApps' with
+    // 'd_virtualStorageCatalog.numVirtualStorages()'.
     // Proxy can detect duplicates by inspecting returned 'DataStreamMessage'.
     d_virtualStorageCatalog.put(msgGUID,
                                 msgSize,
