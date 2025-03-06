@@ -50,6 +50,9 @@ def wait_until(command, timeout, interval=1, quiet=False):
         if command():
             return True
         time.sleep(interval)
+    if command():
+        return True
+
     if not quiet:
         logging.getLogger("test").warning(
             f"TIMEOUT: command did not succeed within {timeout}s"
