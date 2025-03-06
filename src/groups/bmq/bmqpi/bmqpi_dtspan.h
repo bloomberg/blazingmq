@@ -49,12 +49,20 @@ class DTSpan {
     // PUBLIC CREATORS
 
     /// Destructor
+    /// Upon destruction, `finish()` will be called to mark the end of a span.
     virtual ~DTSpan();
 
     // PUBLIC ACCESSORS
 
     /// Returns the name of the operation that this `DTSpan` represents.
     virtual bsl::string_view operation() const = 0;
+
+    /// Mark the end of the `DTSpan`. Only the timing of the first call for a
+    /// given `DTSpan` will be recorded, and implementations are free to ignore
+    /// all further calls.  A finished Span can not be re-started. If finish()
+    /// is not directly called, it will be called from the destructor.
+    /// Return 0 on success, or a non-zero error code on error.
+    virtual int finish() const = 0;
 
     // =============
     // class Baggage
