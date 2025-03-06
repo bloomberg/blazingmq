@@ -411,7 +411,7 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
         bool                    successLt = false;
         if (!d_seqNumLt.empty()) {
             seqNumLt.fromString(&successLt, errorDescr, d_seqNumLt);
-            if (successLt) {
+            if (!successLt) {
                 error << "--seqnum-lt: " << errorDescr.str() << "\n";
                 errorDescr.reset();
             }
@@ -420,7 +420,7 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
         bool successGt = false;
         if (!d_seqNumGt.empty()) {
             seqNumGt.fromString(&successGt, errorDescr, d_seqNumGt);
-            if (successGt) {
+            if (!successGt) {
                 error << "--seqnum-gt: " << errorDescr.str() << "\n";
             }
         }
