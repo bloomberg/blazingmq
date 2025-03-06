@@ -210,9 +210,6 @@ struct Tester {
                 d_mockDomain.capacityMeter(),
                 d_allocator_p),
             d_allocator_p);
-
-        d_replicatedStorage_mp->setQueue(&d_mockQueue);
-        BSLS_ASSERT_OPT(d_replicatedStorage_mp->queue() == &d_mockQueue);
     }
 
     ~Tester()
@@ -411,8 +408,8 @@ BMQTST_TEST(breathingTest)
     BMQTST_ASSERT_EQ(storage.numBytes(k_NULL_KEY), k_INT64_ZERO);
     BMQTST_ASSERT_EQ(storage.isEmpty(), true);
     BMQTST_ASSERT_EQ(storage.partitionId(), k_PROXY_PARTITION_ID);
-    BMQTST_ASSERT_NE(storage.queue(), static_cast<mqbi::Queue*>(0));
-    // Queue has been set via call to 'setQueue'
+    BMQTST_ASSERT_EQ(storage.queue(), static_cast<mqbi::Queue*>(0));
+    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' does not expose queue
 
     BMQTST_ASSERT_PASS(storage.flushStorage());
     // Does nothing, at the time of this writing

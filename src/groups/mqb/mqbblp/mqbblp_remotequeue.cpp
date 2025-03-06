@@ -109,6 +109,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // TTL is not applicable at proxy
 
     // Create the associated storage.
+    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' indicates the case of Proxy.
     bsl::shared_ptr<mqbi::Storage> storageSp;
     storageSp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
                        d_state_p->uri(),
@@ -158,6 +159,11 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
+
+    // Make the storage be aware of the queue to notify Apps about ordinal
+    // change upon 'VirtualStorageCatalog::addVirtualStorage' /
+    // 'VirtualStorageCatalog::removeVirtualStorage'.
+    storageSp->setQueue(d_state_p->queue());
 
     d_state_p->stats()
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
