@@ -27,6 +27,7 @@
 // MQB
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocol.h>
+#include <mqbs_filestoreprotocolutil.h>
 #include <mqbs_journalfileiterator.h>
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbs_qlistfileiterator.h>
@@ -42,6 +43,8 @@
 // BMQ
 #include <bmqp_messageproperties.h>
 #include <bmqp_optionsview.h>
+#include <bmqu_alignedprinter.h>
+#include <bmqu_memoutstream.h>
 
 namespace BloombergLP {
 namespace mqbs {
@@ -90,12 +93,107 @@ namespace FileStoreProtocolPrinter {
 
 // FREE FUNCTIONS
 
+/// Print the header of the mapped file by the specified `mfd` to the
+/// specified `stream`.
+template <typename PRINTER_TYPE>
+void printFileHeader(bsl::ostream&                     stream,
+                     const mqbs::MappedFileDescriptor& mfd,
+                     bslma::Allocator*                 allocator = 0)
+{
+    bsl::vector<const char*> fields(allocator);
+    fields.reserve(5);
+    fields.push_back("Protocol Version");
+    fields.push_back("Bitness");
+    fields.push_back("FileType");
+    fields.push_back("HeaderWords");
+    fields.push_back("PartitionId");
+
+    const mqbs::FileHeader& fh = mqbs::FileStoreProtocolUtil::bmqHeader(mfd);
+
+    PRINTER_TYPE printer(stream, &fields);
+    printer << static_cast<unsigned int>(fh.protocolVersion()) << fh.bitness()
+            << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
+            << fh.partitionId();
+}
+
 /// Print the specified `header` while using the specified `journalFd` and the
 /// specified `allocator` to the specified `stream`.
-void printHeader(bsl::ostream&                     stream,
-                 const mqbs::JournalFileHeader&    header,
-                 const mqbs::MappedFileDescriptor& journalFd,
-                 bslma::Allocator*                 allocator = 0);
+template <typename PRINTER_TYPE>
+void printJournalFileHeader(bsl::ostream&                     stream,
+                            const mqbs::JournalFileHeader&    header,
+                            const mqbs::MappedFileDescriptor& journalFd,
+                            bslma::Allocator*                 allocator = 0)
+{
+    bsl::vector<const char*> fields(allocator);
+    fields.reserve(10);
+    fields.push_back("HeaderWords");
+    fields.push_back("RecordWords");
+    fields.push_back("First SyncPointRecord offset words");
+    fields.push_back("First SyncPointRecord type");
+    fields.push_back("First SyncPointRecord primaryNodeId");
+    fields.push_back("First SyncPointRecord primaryLeaseId");
+    fields.push_back("First SyncPointRecord sequenceNumber");
+    fields.push_back("First SyncPointRecord dataFileOffset");
+    fields.push_back("First SyncPointRecord timestamp");
+    fields.push_back("First SyncPointRecord epoch");
+
+    bsls::Types::Uint64 offsetW = header.firstSyncPointOffsetWords();
+
+    PRINTER_TYPE printer(stream, &fields);
+    printer << static_cast<unsigned int>(header.headerWords())
+            << static_cast<unsigned int>(header.recordWords()) << offsetW;
+
+    if (0 == offsetW) {
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+        printer << " ** NA ** ";
+    }
+    else {
+        mqbs::OffsetPtr<const mqbs::JournalOpRecord> spRec(
+            journalFd.block(),
+            offsetW * bmqp::Protocol::k_WORD_SIZE);
+
+        BSLS_ASSERT_OPT(mqbs::JournalOpType::e_SYNCPOINT == spRec->type());
+
+        printer << spRec->syncPointType() << spRec->primaryNodeId()
+                << spRec->primaryLeaseId() << spRec->sequenceNum()
+                << spRec->dataFileOffsetDwords();
+
+        bsls::Types::Uint64 epochValue = spRec->header().timestamp();
+        bdlt::Datetime      datetime;
+        int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+        if (0 != rc) {
+            printer << 0;
+        }
+        else {
+            printer << datetime;
+        }
+        printer << epochValue;
+    }
+}
+
+/// Print the specified `header` while using the specified `journalFd` and the
+/// specified `allocator` to the specified `stream`.
+template <typename PRINTER_TYPE>
+void printDataFileHeader(bsl::ostream&               stream,
+                         const mqbs::DataFileHeader& header,
+                         bslma::Allocator*           allocator = 0)
+{
+    bsl::vector<const char*> fields(allocator);
+    fields.reserve(2);
+    fields.push_back("HeaderWords");
+    fields.push_back("FileId (FileKey)");
+
+    bmqu::MemOutStream os;
+    os << header.fileKey();
+
+    PRINTER_TYPE printer(stream, &fields);
+    printer << static_cast<unsigned int>(header.headerWords()) << os.str();
+}
 
 /// Print the data from the data file currently pointed by the specified
 /// `it`.

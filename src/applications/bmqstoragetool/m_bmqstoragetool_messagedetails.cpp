@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqstoragetool
 #include <m_bmqstoragetool_messagedetails.h>
-#include <m_bmqstoragetool_recordprinter.h>
 
 // BDE
 #include <bslma_allocator.h>
+
+// MQB
+#include <mqbs_filestoreprotocolprinter.h>
 
 // BMQ
 #include <bmqu_memoutstream.h>
@@ -26,21 +27,74 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+// ====================
+// class AppKeyMatcher
+// ====================
+
+class AppKeyMatcher {
+    const mqbu::StorageKey* d_appKey;
+
+  public:
+    AppKeyMatcher(const mqbu::StorageKey& appKey)
+    : d_appKey(&appKey)
+    {
+    }
+
+    bool operator()(const bmqp_ctrlmsg::AppIdInfo& appIdInfo)
+    {
+        const mqbu::StorageKey key = mqbu::StorageKey(
+            mqbu::StorageKey::BinaryRepresentation(),
+            appIdInfo.appKey().begin());
+        return (key == *d_appKey);
+    }
+};
+
+}  // close unnamed namespace
+
+bool findQueueAppIdByAppKey(
+    bsl::string_view*                                        appId,
+    const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
+    const mqbu::StorageKey&                                  appKey)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(appId);
+
+    if (appKey.isNull())
+        return false;  // RETURN
+
+    bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>::const_iterator it =
+        bsl::find_if(appIds.cbegin(), appIds.cend(), AppKeyMatcher(appKey));
+
+    if (it != appIds.end()) {
+        *appId = it->appId();
+        return true;  // RETURN
+    }
+    return false;
+}
+
 // =====================
 // class MessageDetails
 // =====================
 
 // CREATORS
-MessageDetails::MessageDetails(const mqbs::MessageRecord& record,
-                               bsls::Types::Uint64        recordIndex,
-                               bsls::Types::Uint64        recordOffset,
-                               bslma::Allocator*          allocator)
+MessageDetails::MessageDetails(
+    const mqbs::MessageRecord&                    record,
+    bsls::Types::Uint64                           recordIndex,
+    bsls::Types::Uint64                           recordOffset,
+    const bsl::optional<bmqp_ctrlmsg::QueueInfo>& queueInfo,
+    bslma::Allocator*                             allocator)
 : d_messageRecord(
       RecordDetails<mqbs::MessageRecord>(record, recordIndex, recordOffset))
 , d_confirmRecords(allocator)
+, d_deleteRecord()
+, d_queueInfo(queueInfo)
 , d_allocator_p(allocator)
 {
-    // NOTHING
+    if (d_queueInfo.has_value()) {
+        d_messageRecord.d_queueUri = d_queueInfo->uri();
+    }
 }
 
 void MessageDetails::addConfirmRecord(const mqbs::ConfirmRecord& record,
@@ -49,71 +103,44 @@ void MessageDetails::addConfirmRecord(const mqbs::ConfirmRecord& record,
 {
     d_confirmRecords.push_back(
         RecordDetails<mqbs::ConfirmRecord>(record, recordIndex, recordOffset));
+    if (d_queueInfo.has_value()) {
+        RecordDetails<mqbs::ConfirmRecord>& details =
+            *d_confirmRecords.rbegin();
+        details.d_queueUri = d_queueInfo->uri();
+        if (!findQueueAppIdByAppKey(&details.d_appId,
+                                    d_queueInfo->appIds(),
+                                    record.appKey())) {
+            details.d_appId = "** NULL **";
+        }
+    }
 }
 
 void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
                                      bsls::Types::Uint64         recordIndex,
                                      bsls::Types::Uint64         recordOffset)
 {
-    d_deleteRecord = RecordDetails<mqbs::DeletionRecord>(record,
-                                                         recordIndex,
-                                                         recordOffset);
+    d_deleteRecord.emplace(RecordDetails<mqbs::DeletionRecord>(record,
+                                                               recordIndex,
+                                                               recordOffset));
+    if (d_queueInfo.has_value())
+        d_deleteRecord->d_queueUri = d_queueInfo->uri();
 }
 
-void MessageDetails::print(bsl::ostream& os, const QueueMap& queueMap) const
+const RecordDetails<mqbs::MessageRecord>& MessageDetails::messageRecord() const
 {
-    // Check if queueInfo is present for queue key
-    bmqp_ctrlmsg::QueueInfo queueInfo(d_allocator_p);
-    const bool              queueInfoPresent = queueMap.findInfoByKey(
-        &queueInfo,
-        d_messageRecord.d_record.queueKey());
-    bmqp_ctrlmsg::QueueInfo* queueInfo_p = queueInfoPresent ? &queueInfo : 0;
-
-    // Print message record
-    bmqu::MemOutStream ss(d_allocator_p);
-    ss << "MESSAGE Record, index: " << d_messageRecord.d_recordIndex
-       << ", offset: " << d_messageRecord.d_recordOffset;
-    bsl::string delimiter(ss.length(), '=', d_allocator_p);
-    os << delimiter << '\n' << ss.str() << '\n';
-
-    RecordPrinter::printRecord(os,
-                               d_messageRecord.d_record,
-                               queueInfo_p,
-                               d_allocator_p);
-
-    // Print confirmations records
-    if (!d_confirmRecords.empty()) {
-        bsl::vector<RecordDetails<mqbs::ConfirmRecord> >::const_iterator it =
-            d_confirmRecords.begin();
-        for (; it != d_confirmRecords.end(); ++it) {
-            os << "CONFIRM Record, index: " << it->d_recordIndex
-               << ", offset: " << it->d_recordOffset << '\n';
-            RecordPrinter::printRecord(os,
-                                       it->d_record,
-                                       queueInfo_p,
-                                       d_allocator_p);
-        }
-    }
-
-    // Print deletion record
-    if (d_deleteRecord.d_isValid) {
-        os << "DELETE Record, index: " << d_deleteRecord.d_recordIndex
-           << ", offset: " << d_deleteRecord.d_recordOffset << '\n';
-        RecordPrinter::printRecord(os,
-                                   d_deleteRecord.d_record,
-                                   queueInfo_p,
-                                   d_allocator_p);
-    }
+    return d_messageRecord;
 }
 
-unsigned int MessageDetails::dataRecordOffset() const
+const bsl::vector<RecordDetails<mqbs::ConfirmRecord> >&
+MessageDetails::confirmRecords() const
 {
-    return d_messageRecord.d_record.messageOffsetDwords();
+    return d_confirmRecords;
 }
 
-bsls::Types::Uint64 MessageDetails::messageRecordIndex() const
+const bsl::optional<RecordDetails<mqbs::DeletionRecord> >&
+MessageDetails::deleteRecord() const
 {
-    return d_messageRecord.d_recordIndex;
+    return d_deleteRecord;
 }
 
 }  // close package namespace

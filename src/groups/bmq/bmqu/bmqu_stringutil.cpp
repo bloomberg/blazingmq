@@ -32,24 +32,24 @@ namespace {
 /// Rearrange characters in place within the contiguous sequence indicated
 /// by the specified `[begin, end)` such that all repeated runs of any
 /// characters belonging to the set indicated by the specified
-/// `[whitelistBegin, whitelistEnd)` are reduced to one appearance of the
-/// character. Return a pointer to the new end of the sequence.  Note that
+/// `[allowlistBegin, allowlistEnd)` are reduced to one appearance of the
+/// character.  Return a pointer to the new end of the sequence.  Note that
 /// this function is similar to `bsl::remove_if` with a special predicate.
 char* removeIfPrecededBySame(char*       begin,
                              char*       end,
-                             const char* whitelistBegin,
-                             const char* whitelistEnd)
+                             const char* allowlistBegin,
+                             const char* allowlistEnd)
 {
-    bsl::bitset<UCHAR_MAX + 1> whitelist;
-    for (const char* iter = whitelistBegin; iter != whitelistEnd; ++iter) {
-        whitelist[static_cast<unsigned char>(*iter)] = true;
+    bsl::bitset<UCHAR_MAX + 1> allowlist;
+    for (const char* iter = allowlistBegin; iter != allowlistEnd; ++iter) {
+        allowlist[static_cast<unsigned char>(*iter)] = true;
     }
 
     char* result = begin;
     for (; begin != end; ++begin) {
-        // If this is *not* a repeated item from the whitelist, then copy it
+        // If this is *not* a repeated item from the allowlist, then copy it
         // into its final place.
-        if (!whitelist[static_cast<unsigned char>(*begin)] ||
+        if (!allowlist[static_cast<unsigned char>(*begin)] ||
             *begin != *(begin - 1)) {
             *result++ = *begin;
         }

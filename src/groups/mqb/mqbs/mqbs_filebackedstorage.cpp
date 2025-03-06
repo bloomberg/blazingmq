@@ -70,9 +70,8 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
     // to be purged, otherwise only the virtual storage associated with the
     // specified 'appKey'.
 
-    d_virtualStorageCatalog.removeAll(appKey);
-
     if (appKey.isNull()) {
+        d_virtualStorageCatalog.removeAll();
         // Remove all records from the physical storage as well.
 
         for (RecordHandleMapConstIter it = d_handles.begin();
@@ -94,6 +93,9 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey)
         d_queueStats_sp
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
                 d_handles.historySize());
+    }
+    else {
+        d_virtualStorageCatalog.removeAll(appKey);
     }
 }
 
@@ -341,14 +343,22 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     // if we keep `irc` (like we keep 'DataStoreRecordHandle').
 
     if (d_autoConfirms.empty()) {
-        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
+        d_virtualStorageCatalog.put(
+            msgGUID,
+            msgSize,
+            d_virtualStorageCatalog.numVirtualStorages(),
+            out);
     }
     else {
         mqbi::DataStreamMessage* dataStreamMessage = 0;
         if (out == 0) {
             out = &dataStreamMessage;
         }
-        d_virtualStorageCatalog.put(msgGUID, msgSize, out);
+        d_virtualStorageCatalog.put(
+            msgGUID,
+            msgSize,
+            d_virtualStorageCatalog.numVirtualStorages(),
+            out);
 
         // Move auto confirms to the data record
         for (AutoConfirms::const_iterator it = d_autoConfirms.begin();
@@ -470,7 +480,7 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid)
 
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << "PartitionId [" << partitionId() << "] failed to write "
+                << "Partition [" << partitionId() << "] failed to write "
                 << "DELETION record for GUID: " << guid << ", for queue '"
                 << d_queueUri << "', queueKey '" << d_queueKey
                 << "' while attempting to purge the message, rc: " << rc
@@ -574,19 +584,83 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 mqbi::StorageResult::Enum
 FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 {
-    bsl::string appId;
+    mqbi::StorageResult::Enum rc;
+
     if (!appKey.isNull()) {
-        if (!d_virtualStorageCatalog.hasVirtualStorage(appKey, &appId)) {
-            return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
+        rc = d_virtualStorageCatalog.purge(
+            appKey,
+            bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
+                                 this,
+                                 false,
+                                 bdlf::PlaceHolders::_1,
+                                 bdlf::PlaceHolders::_2));
+        if (d_handles.empty()) {
+            d_isEmpty.storeRelaxed(1);
+        }
+    }
+    else {
+        rc = writeQueuePurgeRecord();
+        if (mqbi::StorageResult::e_SUCCESS == rc) {
+            purgeCommon(mqbu::StorageKey::k_NULL_KEY);
+
+            d_isEmpty.storeRelaxed(1);
+
+            return mqbi::StorageResult::e_SUCCESS;  // RETURN
         }
     }
 
+    d_queueStats_sp
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_handles.historySize());
+
+    return rc;
+}
+
+bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
+                                             bool                    asPrimary)
+{
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+
+    VirtualStorageCatalog::PurgeCallback cb;
+
+    if (asPrimary) {
+        cb = bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
+                                  this,
+                                  true,
+                                  bdlf::PlaceHolders::_1,
+                                  bdlf::PlaceHolders::_2);
+    }
+
+    mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.removeVirtualStorage(appKey, cb);
+
+    if (d_handles.empty()) {
+        d_isEmpty.storeRelaxed(1);
+    }
+
+    return mqbi::StorageResult::e_SUCCESS == rc;
+}
+
+mqbi::StorageResult::Enum FileBackedStorage::writeQueuePurgeRecord()
+{
+    return writePurgeRecordImpl(false,
+                                mqbu::StorageKey::k_NULL_KEY,
+                                DataStoreRecordHandle());
+}
+
+mqbi::StorageResult::Enum
+FileBackedStorage::writePurgeRecordImpl(bool                        alsoDelete,
+                                        const mqbu::StorageKey&     appKey,
+                                        const DataStoreRecordHandle start)
+{
+    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
     DataStoreRecordHandle handle;
-    int                   rc = d_store_p->writeQueuePurgeRecord(
-        &handle,
-        d_queueKey,
-        appKey,
-        bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+    int                   rc = d_store_p->writeQueuePurgeRecord(&handle,
+                                              d_queueKey,
+                                              appKey,
+                                              timestamp,
+                                              start);
 
     if (0 != rc) {
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
@@ -594,30 +668,43 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
 
     d_queueOpRecordHandles.push_back(handle);
 
-    if (appKey.isNull()) {
-        purgeCommon(appKey);  // or 'mqbu::StorageKey::k_NULL_KEY'
-        flushStorage();
-        d_isEmpty.storeRelaxed(1);
+    if (alsoDelete) {
+        // Write QueueDeletionRecord to data store for removed appIds.
+        //
+        // TODO_CSL Do not write this record when we logically delete the
+        // QLIST file
 
-        return mqbi::StorageResult::e_SUCCESS;  // RETURN
+        rc = d_store_p->writeQueueDeletionRecord(&handle,
+                                                 d_queueKey,
+                                                 appKey,
+                                                 timestamp);
+        if (0 != rc) {
+            return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
+        }
+
+        d_queueOpRecordHandles.push_back(handle);
     }
-
-    // A specific appKey is being purged.
-
-    d_virtualStorageCatalog.removeAll(appKey);
-    // This will call back 'releaseRef'
 
     flushStorage();
 
-    if (d_handles.empty()) {
-        d_isEmpty.storeRelaxed(1);
-    }
-
-    d_queueStats_sp
-        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-            d_handles.historySize());
-
     return mqbi::StorageResult::e_SUCCESS;
+}
+
+mqbi::StorageResult::Enum FileBackedStorage::writeAppPurgeRecord(
+    bool                                             alsoDelete,
+    const mqbu::StorageKey&                          appKey,
+    const VirtualStorageCatalog::DataStreamIterator& first)
+{
+    // double lookup
+    RecordHandleMap::iterator itRecord = d_handles.find(first->first);
+    BSLS_ASSERT_SAFE(itRecord != d_handles.end());
+
+    DataStoreRecordHandle     start;  // !isValid()
+    const RecordHandlesArray& handles = itRecord->second.d_array;
+    BSLS_ASSERT(!handles.empty());
+    start = handles[0];
+
+    return writePurgeRecordImpl(alsoDelete, appKey, start);
 }
 
 void FileBackedStorage::flushStorage()
@@ -774,7 +861,7 @@ void FileBackedStorage::processMessageRecord(
         irc.first->second.d_refCount = refCount;
 
         if (d_autoConfirms.empty()) {
-            d_virtualStorageCatalog.put(guid, msgLen);
+            d_virtualStorageCatalog.put(guid, msgLen, refCount);
         }
         else {
             if (!d_currentlyAutoConfirming.isUnset()) {
@@ -782,6 +869,8 @@ void FileBackedStorage::processMessageRecord(
                     mqbi::DataStreamMessage* dataStreamMessage = 0;
                     d_virtualStorageCatalog.put(guid,
                                                 msgLen,
+                                                refCount +
+                                                    d_autoConfirms.size(),
                                                 &dataStreamMessage);
 
                     // Move auto confirms to the data record
@@ -959,10 +1048,11 @@ void FileBackedStorage::addQueueOpRecordHandle(
 {
     BSLS_ASSERT_SAFE(handle.isValid());
 
+    // The first Record must be 'e_CREATION'
 #ifdef BSLS_ASSERT_SAFE_IS_ACTIVE
-    if (!d_queueOpRecordHandles.empty()) {
+    if (d_queueOpRecordHandles.empty()) {
         QueueOpRecord rec;
-        d_store_p->loadQueueOpRecordRaw(&rec, d_queueOpRecordHandles[0]);
+        d_store_p->loadQueueOpRecordRaw(&rec, handle);
         BSLS_ASSERT_SAFE(QueueOpType::e_CREATION == rec.type());
     }
 #endif
@@ -1024,6 +1114,11 @@ void FileBackedStorage::setPrimary()
     d_queueStats_sp
         ->onEvent<mqbstat::QueueStatsDomain::EventType::e_CHANGE_ROLE>(
             mqbstat::QueueStatsDomain::Role::e_PRIMARY);
+}
+
+void FileBackedStorage::calibrate()
+{
+    d_virtualStorageCatalog.calibrate();
 }
 
 void FileBackedStorage::clearSelection()

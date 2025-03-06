@@ -385,7 +385,12 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                         if request.instance is not None and hasattr(
                             request.instance, "setup_cluster"
                         ):
-                            request.instance.setup_cluster(cluster)
+                            if "domain_urls" in request.fixturenames:
+                                request.instance.setup_cluster(
+                                    cluster, request.getfixturevalue("domain_urls")
+                                )
+                            else:
+                                request.instance.setup_cluster(cluster)
 
                 except Exception as initial_exception:
                     logger.warning(
@@ -453,22 +458,21 @@ def break_before_test(request, cluster):
 
 class Mode(IntEnum):
     LEGACY = 0
-    CSL = 1
-    FSM = 2
+    FSM = 1
 
     def tweak(self, cluster: mqbcfg.ClusterDefinition):
-        cluster.cluster_attributes.is_cslmode_enabled = self >= Mode.CSL
+        # CSL and FSM settings must be either both enabled or both disabled
+        cluster.cluster_attributes.is_cslmode_enabled = self == Mode.FSM
         cluster.cluster_attributes.is_fsmworkflow = self == Mode.FSM
 
     @property
     def suffix(self) -> str:
-        return ["", "_csl", "_fsm"][self]
+        return ["", "_fsm"][self]
 
     @property
     def marks(self):
         return [
             [pytest.mark.legacy_mode],
-            [pytest.mark.csl_mode],
             [pytest.mark.fsm_mode],
         ][self]
 

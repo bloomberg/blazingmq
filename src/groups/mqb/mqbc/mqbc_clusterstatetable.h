@@ -17,22 +17,18 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATETABLE
 #define INCLUDED_MQBC_CLUSTERSTATETABLE
 
-//@PURPOSE: Provide a state table for the Cluster FSM.
-//
-//@CLASSES:
-//  mqbc::ClusterStateTableState:   Enum for state in the cluster state table.
-//  mqbc::ClusterStateTableEvent:   Enum for event in the cluster state table.
-//  mqbc::ClusterStateTableActions: Actions in the cluster state table.
-//  mqbc::ClusterStateTable:        State table for the Cluster FSM.
-//
-//@DESCRIPTION: 'mqbc::ClusterStateTable' is a state table for the Cluster FSM.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterStateTable' object is not thread safe.
+/// @file mqbc_clusterstatetable.h
+///
+/// @brief Provide a state table for the Cluster FSM.
+///
+/// @bbref{mqbc::ClusterStateTable} is a state table for the Cluster FSM.
+///
+/// Thread Safety                              {#mqbc_clusterstatetable_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterStateTable} object is not thread safe.
 
 // MQB
-
 #include <mqbu_statetable.h>
 
 // BDE
@@ -51,9 +47,9 @@ namespace mqbc {
 /// This struct defines the type of state in the cluster state table.
 struct ClusterStateTableState {
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different type of state
 
+    /// Enumeration used to distinguish among different type of state.
+    enum Enum {
         e_UNKNOWN          = 0,
         e_FOL_HEALING      = 1,
         e_LDR_HEALING_STG1 = 2,
@@ -78,7 +74,7 @@ struct ClusterStateTableState {
     /// negative, format the entire output on one line, suppressing all but
     /// the initial indentation (as governed by `level`).  See `toAscii` for
     /// what constitutes the string representation of a
-    /// `ClusterStateTableState::Enum` value.
+    /// @bbref{ClusterStateTableState::Enum} value.
     static bsl::ostream& print(bsl::ostream&                stream,
                                ClusterStateTableState::Enum value,
                                int                          level = 0,
@@ -116,9 +112,9 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 /// This struct defines the type of event in the cluster state table.
 struct ClusterStateTableEvent {
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different type of event
 
+    /// Enumeration used to distinguish among different type of event.
+    enum Enum {
         e_SLCT_LDR               = 0,
         e_SLCT_FOL               = 1,
         e_FOL_LSN_RQST           = 2,
@@ -157,7 +153,7 @@ struct ClusterStateTableEvent {
     /// negative, format the entire output on one line, suppressing all but
     /// the initial indentation (as governed by `level`).  See `toAscii` for
     /// what constitutes the string representation of a
-    /// `ClusterStateTableEvent::Enum` value.
+    /// @bbref{ClusterStateTableEvent::Enum} value.
     static bsl::ostream& print(bsl::ostream&                stream,
                                ClusterStateTableEvent::Enum value,
                                int                          level = 0,
@@ -559,7 +555,6 @@ class ClusterStateTable
                 FOL_LSN_RQST,
                 sendFailureFollowerLSNResponse,
                 LDR_HEALED);
-        CST_CFG(LDR_HEALED, FOL_LSN_RSPN, applyCSLSelf, LDR_HEALED);
         CST_CFG(LDR_HEALED,
                 REGISTRATION_RQST,
                 sendRegistrationResponse_applyCSLSelf,

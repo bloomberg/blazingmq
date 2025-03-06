@@ -3675,13 +3675,13 @@ void StorageManager::initializeQueueKeyInfoMap(
             BSLS_ASSERT_SAFE(cit->second);
             const ClusterStateQueueInfo& csQinfo = *(cit->second);
 
-            mqbs::DataStoreConfigQueueInfo qinfo;
+            mqbs::DataStoreConfigQueueInfo qinfo(true);
             qinfo.setCanonicalQueueUri(csQinfo.uri().asString());
             qinfo.setPartitionId(csQinfo.partitionId());
             for (AppInfosCIter appIdCit = csQinfo.appInfos().cbegin();
                  appIdCit != csQinfo.appInfos().cend();
                  ++appIdCit) {
-                qinfo.addAppInfo(appIdCit);
+                qinfo.addAppInfo(appIdCit->first, appIdCit->second);
             }
 
             d_queueKeyInfoMapVec.at(csQinfo.partitionId())
@@ -4177,11 +4177,11 @@ void StorageManager::processReplicaDataRequest(
 }
 
 int StorageManager::makeStorage(bsl::ostream& errorDescription,
-                                bslma::ManagedPtr<mqbi::Storage>* out,
-                                const bmqt::Uri&                  uri,
-                                const mqbu::StorageKey&           queueKey,
-                                int                               partitionId,
-                                const bsls::Types::Int64          messageTtl,
+                                bsl::shared_ptr<mqbi::Storage>* out,
+                                const bmqt::Uri&                uri,
+                                const mqbu::StorageKey&         queueKey,
+                                int                             partitionId,
+                                const bsls::Types::Int64        messageTtl,
                                 int maxDeliveryAttempts,
                                 const mqbconfm::StorageDefinition& storageDef)
 {

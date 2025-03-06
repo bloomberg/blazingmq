@@ -382,7 +382,6 @@ class Proto:
                         "BMQ*:INFO:green",
                         "MQB*:INFO:green",
                         "SIM*:INFO:gray",
-                        "DMC*:INFO:yellow",
                         "BAEA.PERFORMANCEMONITOR:INFO:white",
                     ],
                     syslog=mqbcfg.SyslogConfig(
@@ -440,7 +439,7 @@ class Proto:
                 ),
                 network_interfaces=mqbcfg.NetworkInterfaces(
                     heartbeats=mqbcfg.Heartbeat(
-                        client=0,
+                        client=10,
                         downstream_broker=10,
                         upstream_broker=10,
                         cluster_peer=10,

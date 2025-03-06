@@ -511,12 +511,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Write a QUEUE_OP record to the journal with the specified
     /// `queueKey`, optional `appKey`, `timestamp`, `opValue` and `subValue`
-    /// to the journal.  Return zero on success, non-zero value otherwise.
+    /// to the journal.  If the specified `startPrimaryLeaseId` and
+    /// `startSequenceNum` are set, they specify the beginning of the range for
+    /// which this QUEUE_OP applies; otherwise, the range includes all records.
+    /// Return zero on success, non-zero value otherwise.
     int writeQueueOpRecord(DataStoreRecordHandle*  handle,
                            const mqbu::StorageKey& queueKey,
                            const mqbu::StorageKey& appKey,
                            QueueOpType::Enum       queueOpFlag,
-                           bsls::Types::Uint64     timestamp);
+                           bsls::Types::Uint64     timestamp,
+                           unsigned int            startPrimaryLeaseId,
+                           bsls::Types::Uint64     startSequenceNum);
 
     /// Rollover over the specified `record` from `oldFileSet` to the
     /// `newFileSet`, and if it is a message record, update the counter of
@@ -777,11 +782,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                  bsls::Types::Uint64     timestamp,
                                  bool isNewQueue) BSLS_KEYWORD_OVERRIDE;
 
-    int
-    writeQueuePurgeRecord(DataStoreRecordHandle*  handle,
-                          const mqbu::StorageKey& queueKey,
-                          const mqbu::StorageKey& appKey,
-                          bsls::Types::Uint64 timestamp) BSLS_KEYWORD_OVERRIDE;
+    int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
+                              const mqbu::StorageKey&      queueKey,
+                              const mqbu::StorageKey&      appKey,
+                              bsls::Types::Uint64          timestamp,
+                              const DataStoreRecordHandle& start)
+        BSLS_KEYWORD_OVERRIDE;
 
     int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
                                  const mqbu::StorageKey& queueKey,
@@ -1242,7 +1248,7 @@ inline const DataStoreConfig& FileStore::config() const
 
 inline unsigned int FileStore::clusterSize() const
 {
-    return d_cluster_p->nodes().size();
+    return static_cast<unsigned int>(d_cluster_p->nodes().size());
 }
 
 inline bsls::Types::Uint64 FileStore::numRecords() const

@@ -1,7 +1,7 @@
 # bmqstoragetool
 # --------------
 
-if(NOT BMQ_TARGET_BMQSTORAGETOOL_NEEDED)
+if(${CMAKE_SYSTEM_NAME} MATCHES "SunOS" OR NOT BMQ_TARGET_BMQSTORAGETOOL_NEEDED)
   return()
 endif()
 

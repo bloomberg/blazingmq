@@ -15,7 +15,6 @@
                 "BMQ*:INFO:green",
                 "MQB*:INFO:green",
                 "SIM*:INFO:gray",
-                "DMC*:INFO:yellow",
                 "BAEA.PERFORMANCEMONITOR:INFO:white"
             ],
             "syslog": {
@@ -74,7 +73,7 @@
         },
         "networkInterfaces": {
             "heartbeats": {
-                "client": 0,
+                "client": 10,
                 "downstreamBroker": 10,
                 "upstreamBroker": 10,
                 "clusterPeer": 10

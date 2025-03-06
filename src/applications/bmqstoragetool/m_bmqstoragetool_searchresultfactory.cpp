@@ -14,7 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_parameters.h"
+#include <m_bmqstoragetool_parameters.h>
+#include <m_bmqstoragetool_printer.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -27,24 +28,14 @@ namespace m_bmqstoragetool {
 bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     const Parameters*                     params,
     const bslma::ManagedPtr<FileManager>& fileManager,
-    bsl::ostream&                         ostream,
+    const bsl::shared_ptr<Printer>&       printer,
+    bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
     bslma::Allocator*                     allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT(params);
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
-
-    // Create payload dumper
-    bslma::ManagedPtr<PayloadDumper> payloadDumper;
-    if (params->d_dumpPayload) {
-        payloadDumper.load(new (*alloc)
-                               PayloadDumper(ostream,
-                                             fileManager->dataFileIterator(),
-                                             params->d_dumpLimit,
-                                             alloc),
-                           alloc);
-    }
 
     // Set up processing flags
     const bool details = params->d_details;
@@ -62,9 +53,20 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
 
     // Create searchResult implementation
     bsl::shared_ptr<SearchResult> searchResult;
-    if (details) {
+    if (params->d_summary) {
+        searchResult.reset(
+            new (*alloc) SummaryProcessor(printer,
+                                          fileManager->journalFileIterator(),
+                                          fileManager->dataFileIterator(),
+                                          params->d_processRecordTypes,
+                                          params->d_queueMap,
+                                          params->d_minRecordsPerQueue,
+                                          alloc),
+            alloc);
+    }
+    else if (details) {
         searchResult.reset(new (*alloc)
-                               SearchDetailResult(ostream,
+                               SearchDetailResult(printer,
                                                   params->d_processRecordTypes,
                                                   params->d_queueMap,
                                                   payloadDumper,
@@ -76,7 +78,7 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     }
     else {
         searchResult.reset(new (*alloc)
-                               SearchShortResult(ostream,
+                               SearchShortResult(printer,
                                                  params->d_processRecordTypes,
                                                  payloadDumper,
                                                  printImmediately,
@@ -86,67 +88,53 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
                            alloc);
     }
 
-    // Create Decorator for specific search
-    if (!params->d_guid.empty()) {
-        // Search GUIDs
-        searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
-                                                            params->d_guid,
-                                                            ostream,
-                                                            details,
-                                                            alloc),
-                           alloc);
-    }
-    else if (!params->d_seqNum.empty()) {
-        // Search offsets
-        searchResult.reset(new (*alloc)
-                               SearchSequenceNumberDecorator(searchResult,
-                                                             params->d_seqNum,
-                                                             ostream,
-                                                             details,
-                                                             alloc),
-                           alloc);
-    }
-    else if (!params->d_offset.empty()) {
-        // Search composite sequence numbers
-        searchResult.reset(new (*alloc) SearchOffsetDecorator(searchResult,
-                                                              params->d_offset,
-                                                              ostream,
-                                                              details,
-                                                              alloc),
-                           alloc);
-    }
-    else if (params->d_summary) {
-        // Summary
-        searchResult.reset(
-            new (*alloc) SummaryProcessor(ostream,
-                                          fileManager->journalFileIterator(),
-                                          fileManager->dataFileIterator(),
-                                          params->d_processRecordTypes,
-                                          params->d_queueMap,
-                                          params->d_minRecordsPerQueue,
-                                          alloc),
-            alloc);
-    }
-    else if (params->d_outstanding || params->d_confirmed) {
-        // Search outstanding or confirmed
-        searchResult.reset(
-            new (*alloc)
-                SearchOutstandingDecorator(searchResult, ostream, alloc),
-            alloc);
-    }
-    else if (params->d_partiallyConfirmed) {
-        // Search partially confirmed
-        searchResult.reset(new (*alloc)
-                               SearchPartiallyConfirmedDecorator(searchResult,
-                                                                 ostream,
-                                                                 alloc),
-                           alloc);
-    }
-    else {
-        // Drefault: search all
-        searchResult.reset(new (*alloc)
-                               SearchAllDecorator(searchResult, alloc),
-                           alloc);
+    if (!params->d_summary) {
+        // Create Decorator for specific search
+        if (!params->d_guid.empty()) {
+            // Search GUIDs
+            searchResult.reset(new (*alloc) SearchGuidDecorator(searchResult,
+                                                                params->d_guid,
+                                                                details,
+                                                                alloc),
+                               alloc);
+        }
+        else if (!params->d_seqNum.empty()) {
+            // Search offsets
+            searchResult.reset(
+                new (*alloc) SearchSequenceNumberDecorator(searchResult,
+                                                           params->d_seqNum,
+                                                           details,
+                                                           alloc),
+                alloc);
+        }
+        else if (!params->d_offset.empty()) {
+            // Search composite sequence numbers
+            searchResult.reset(new (*alloc)
+                                   SearchOffsetDecorator(searchResult,
+                                                         params->d_offset,
+                                                         details,
+                                                         alloc),
+                               alloc);
+        }
+        else if (params->d_outstanding || params->d_confirmed) {
+            // Search outstanding or confirmed
+            searchResult.reset(
+                new (*alloc) SearchOutstandingDecorator(searchResult, alloc),
+                alloc);
+        }
+        else if (params->d_partiallyConfirmed) {
+            // Search partially confirmed
+            searchResult.reset(
+                new (*alloc)
+                    SearchPartiallyConfirmedDecorator(searchResult, alloc),
+                alloc);
+        }
+        else {
+            // Drefault: search all
+            searchResult.reset(new (*alloc)
+                                   SearchAllDecorator(searchResult, alloc),
+                               alloc);
+        }
     }
 
     // Add TimestampDecorator if 'timestampLt' is given.
@@ -177,6 +165,64 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
     BSLS_ASSERT(searchResult);
 
     return searchResult;
+}
+
+bsl::shared_ptr<CslSearchResult> SearchResultFactory::createCslSearchResult(
+    const Parameters*                  params,
+    const bsl::shared_ptr<CslPrinter>& printer,
+    bslma::Allocator*                  allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(params);
+
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    // Create CslSearchResult implementation
+    bsl::shared_ptr<CslSearchResult> cslSearchResult;
+    if (params->d_details) {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchDetailResult(printer,
+                                               params->d_processCslRecordTypes,
+                                               alloc),
+            alloc);
+    }
+    else if (params->d_summary) {
+        cslSearchResult.reset(
+            new (*alloc) CslSummaryResult(printer,
+                                          params->d_processCslRecordTypes,
+                                          params->d_queueMap,
+                                          params->d_cslSummaryQueuesLimit,
+                                          alloc),
+            alloc);
+    }
+    else {
+        cslSearchResult.reset(
+            new (*alloc) CslSearchShortResult(printer,
+                                              params->d_processCslRecordTypes,
+                                              alloc),
+            alloc);
+    }
+
+    if (!params->d_seqNum.empty()) {
+        // Search composite sequence numbers
+        cslSearchResult.reset(
+            new (*alloc) CslSearchSequenceNumberDecorator(cslSearchResult,
+                                                          params->d_seqNum,
+                                                          alloc),
+            alloc);
+    }
+    else if (!params->d_offset.empty()) {
+        // Search offsets
+        cslSearchResult.reset(new (*alloc)
+                                  CslSearchOffsetDecorator(cslSearchResult,
+                                                           params->d_offset,
+                                                           alloc),
+                              alloc);
+    }
+
+    BSLS_ASSERT(cslSearchResult);
+
+    return cslSearchResult;
 }
 
 }  // close package namespace

@@ -1,0 +1,9 @@
+/**
+@dir mqbcfg
+
+@brief The `MQBCFG` (BlazingMQ Broker Config) package provide broker
+configuration schema and message component.
+
+This package provides the schema of the configuration used by the broker, as
+well as the generated corresponding messages component.
+*/

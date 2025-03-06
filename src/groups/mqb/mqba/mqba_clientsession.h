@@ -329,6 +329,12 @@ class ClientSession : public mqbnet::Session,
     /// @bbref{bmqp::MessageGUIDGenerator} and doesn't provide correlation ids.
     const bool d_isClientGeneratingGUIDs;
 
+    /// The flag indicating that the client support extended message
+    /// properties (k_MESSAGE_PROPERTIES_EX).  This flag is evaluated once and
+    /// cached in this variable to speed up the PUSH processing path.
+    /// Note: remove when support for legacy message properties is dropped.
+    const bool d_supportsMessagePropertiesEX;
+
     /// Short identifier for this session.
     bsl::string d_description;
 

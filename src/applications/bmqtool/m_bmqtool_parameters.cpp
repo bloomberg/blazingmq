@@ -408,7 +408,7 @@ bool Parameters::from(bsl::ostream&                stream,
     return true;
 }
 
-void Parameters::dump(bsl::ostream& stream)
+void Parameters::dump(bsl::ostream& stream) const
 {
     print(stream, 0, -1);
 }

@@ -13,17 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbc_clusterutil.t.cpp                                     -*-C++-*-
+// mqbc_clusterutil.t.cpp                                             -*-C++-*-
 
 // MQB
 #include <mqbc_clusterutil.h>
 #include <mqbi_cluster.h>
+#include <mqbi_queueengine.h>
 #include <mqbmock_cluster.h>
+
+// BMQ
+#include <bmqp_protocolutil.h>
 
 // BDE
 #include <bdlb_print.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_string.h>
+#include <bsl_utility.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -213,7 +218,9 @@ static void test1_validateState()
     reference.domainStates().emplace(domainMissingQueue,
                                      missingQueueDomainStateRefSp);
 
-    // 5. Generate a correct queue
+    // 5. Generate two correct queues.  One of them has null appIds in the
+    // original state and default appId in the reference state; they should be
+    // treated as equivalent.
     bsl::string domainCorrectQueue = "domain.correct.queue";
     bsl::string queueCorrectQueue  = "bmq://" + domainCorrectQueue + "/qqq";
     bsl::string keyCorrectQueue    = "correct.queue";
@@ -224,14 +231,40 @@ static void test1_validateState()
                                  correctQueueKey,
                                  5,
                                  mqbc::ClusterState::AppInfos());
+
+    bsl::string queueCorrectQueue2 = "bmq://" + domainCorrectQueue + "/qqq2";
+    bsl::string keyCorrectQueue2   = "correct.queue2";
+    mqbu::StorageKey correctQueueKey2(mqbu::StorageKey::BinaryRepresentation(),
+                                      keyCorrectQueue2.data());
+    mqbc::ClusterState::QueueInfoSp correctQueueInfoSp2NullApp =
+        tester.createQueueInfoSp(queueCorrectQueue2,
+                                 correctQueueKey2,
+                                 6,
+                                 mqbc::ClusterState::AppInfos());
+    mqbc::ClusterState::AppInfos defaultAppInfos;
+    defaultAppInfos.insert(bsl::make_pair(
+        bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, tester.allocator()),
+        mqbi::QueueEngine::k_DEFAULT_APP_KEY));
+    mqbc::ClusterState::QueueInfoSp correctQueueInfoSp2DefaultApp =
+        tester.createQueueInfoSp(queueCorrectQueue2,
+                                 correctQueueKey2,
+                                 6,
+                                 defaultAppInfos);
+
     mqbc::ClusterState::DomainStateSp correctQueueDomainStateSp =
         tester.createDomainState();
     mqbc::ClusterState::DomainStateSp correctQueueDomainStateRefSp =
         tester.createDomainState();
     correctQueueDomainStateSp->queuesInfo().emplace(queueCorrectQueue,
                                                     correctQueueInfoSp);
+    correctQueueDomainStateSp->queuesInfo().emplace(
+        queueCorrectQueue,
+        correctQueueInfoSp2NullApp);
     correctQueueDomainStateRefSp->queuesInfo().emplace(queueCorrectQueue,
                                                        correctQueueInfoSp);
+    correctQueueDomainStateRefSp->queuesInfo().emplace(
+        queueCorrectQueue,
+        correctQueueInfoSp2DefaultApp);
     original.domainStates().emplace(domainCorrectQueue,
                                     correctQueueDomainStateSp);
     reference.domainStates().emplace(domainCorrectQueue,

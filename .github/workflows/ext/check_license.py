@@ -24,16 +24,17 @@ import argparse
 import glob
 from pathlib import Path
 import re
+from typing import List
 
 
-def load_license_template(path: str) -> list[re.Pattern]:
+def load_license_template(path: str) -> List[re.Pattern]:
     with open(path, "r") as f:
         lines = f.readlines()
 
     return [re.compile(line) for line in lines]
 
 
-def check_license(fpath: str, expressions: list[re.Pattern]) -> bool:
+def check_license(fpath: str, expressions: List[re.Pattern]) -> bool:
     with open(fpath, "r") as f:
         ln = f.readline()
         if ln.startswith("#!"):  # skip possible shebang at the beginning of the file

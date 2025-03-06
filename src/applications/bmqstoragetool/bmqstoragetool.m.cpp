@@ -38,16 +38,19 @@ static bool parseArgs(CommandLineArguments& arguments,
 {
     bool showHelp = false;
 
-    bsl::vector<bsl::string> defaultRecordType(allocator);
-    defaultRecordType.push_back(CommandLineArguments::k_MESSAGE_TYPE);
-
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
          "record type",
-         "record type to search {message|queue-op|journal-op}",
+         "record type to search {<message>|queue-op|journal-op}",
          balcl::TypeInfo(&arguments.d_recordType,
                          CommandLineArguments::isValidRecordType),
-         balcl::OccurrenceInfo(defaultRecordType)},
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"csl-record-type",
+         "csl record type",
+         "CSL record type to search {<snapshot>|update|commit|ack}",
+         balcl::TypeInfo(&arguments.d_cslRecordType,
+                         CommandLineArguments::isValidCslRecordType),
+         balcl::OccurrenceInfo::e_OPTIONAL},
         {"journal-path",
          "journal path",
          "'*'-ended file path pattern, where the tool will try to find "
@@ -72,6 +75,18 @@ static bool parseArgs(CommandLineArguments& arguments,
          balcl::TypeInfo(&arguments.d_cslFile,
                          CommandLineArguments::isValidFileName),
          balcl::OccurrenceInfo::e_OPTIONAL},
+        {"csl-from-begin",
+         "start from begin",
+         "force to iterate CSL file from the beginning. By default: iterate "
+         "from the latest snapshot",
+         balcl::TypeInfo(&arguments.d_cslFromBegin),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"print-mode",
+         "print mode",
+         "can be one of the following {human|json-prety|json-line}",
+         balcl::TypeInfo(&arguments.d_printMode,
+                         CommandLineArguments::isValidPrintMode),
+         balcl::OccurrenceInfo("human")},
         {"guid",
          "guid",
          "message guid",
@@ -169,6 +184,11 @@ static bool parseArgs(CommandLineArguments& arguments,
          "min number of records per queue for detailed info to be displayed",
          balcl::TypeInfo(&arguments.d_minRecordsPerQueue),
          balcl::OccurrenceInfo(0LL)},
+        {"summary-queues-limit",
+         "queues limit",
+         "limit of queues to display in CSL file summary",
+         balcl::TypeInfo(&arguments.d_cslSummaryQueuesLimit),
+         balcl::OccurrenceInfo(50)},
         {"h|help",
          "help",
          "print usage)",
@@ -221,10 +241,11 @@ int main(int argc, const char* argv[])
         fileManager.load(new (*allocator)
                              FileManagerImpl(arguments.d_journalFile,
                                              arguments.d_dataFile,
+                                             arguments.d_cslFile,
+                                             arguments.d_cslFromBegin,
                                              allocator));
         if (!arguments.d_cslFile.empty()) {
-            parameters.d_queueMap =
-                FileManagerImpl::buildQueueMap(arguments.d_cslFile, allocator);
+            fileManager->fillQueueMapFromCslFile(&parameters.d_queueMap);
             parameters.validateQueueNames();
         }
     }

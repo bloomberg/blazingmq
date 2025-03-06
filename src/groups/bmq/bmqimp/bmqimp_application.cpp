@@ -74,6 +74,8 @@ namespace {
 const double             k_RECONNECT_INTERVAL_MS = 500;
 const int                k_RECONNECT_COUNT = bsl::numeric_limits<int>::max();
 const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK = 512 * 1024;
+const int                k_DEFAULT_MAX_MISSED_HEARTBEATS = 10;
+const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
 
 /// Create the StatContextConfiguration to use, from the specified
 /// `options`, and using the specified `allocator` for memory allocations.
@@ -144,6 +146,8 @@ void Application::onChannelDown(const bsl::string&   peerUri,
 {
     // executed by the *IO* thread
 
+    stopHeartbeat();
+
     BALL_LOG_INFO << "Session with '" << peerUri << "' is now DOWN"
                   << " [status: " << status << "]";
 
@@ -159,10 +163,12 @@ void Application::onChannelWatermark(const bsl::string&                peerUri,
     d_brokerSession.handleChannelWatermark(type);
 }
 
-void Application::readCb(const bmqio::Status&                   status,
-                         int*                                   numNeeded,
-                         bdlbb::Blob*                           blob,
-                         const bsl::shared_ptr<bmqio::Channel>& channel)
+void Application::readCb(
+    const bmqio::Status&                           status,
+    int*                                           numNeeded,
+    bdlbb::Blob*                                   blob,
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor)
 {
     // executed by the *IO* thread
 
@@ -201,10 +207,15 @@ void Application::readCb(const bmqio::Status&                   status,
         return;  // RETURN
     }
 
-    BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
-                   << bmqu::BlobStartHexDumper(&readBlob);
+    // Create a raw event with a cloned blob
+    bmqp::Event event(&readBlob, &d_allocator, true);
 
-    d_brokerSession.processPacket(readBlob);
+    if (monitor->checkData(channel.get(), event)) {
+        BALL_LOG_TRACE << channel->peerUri() << ": ReadCallback got a blob\n"
+                       << bmqu::BlobStartHexDumper(&readBlob);
+
+        d_brokerSession.processPacket(event);
+    }
 }
 
 void Application::channelStateCallback(
@@ -238,6 +249,9 @@ void Application::channelStateCallback(
 
         d_brokerSession.setChannel(channel);
 
+        bsl::shared_ptr<bmqp::HeartbeatMonitor> monitor = createMonitor(
+            channel);
+
         // Initiate read flow
         bmqio::Status st;
         channel->read(
@@ -248,7 +262,8 @@ void Application::channelStateCallback(
                                  bdlf::PlaceHolders::_1,  // status
                                  bdlf::PlaceHolders::_2,  // numNeeded
                                  bdlf::PlaceHolders::_3,  // blob
-                                 channel));
+                                 channel,
+                                 monitor));
         if (!st) {
             BALL_LOG_ERROR << "Could not read from channel:"
                            << " [peer: " << channel->peerUri()
@@ -260,6 +275,8 @@ void Application::channelStateCallback(
         // Cancel the timeout event (if the handle is invalid, this will just
         // do nothing)
         d_scheduler.cancelEvent(&d_startTimeoutHandle);
+
+        startHeartbeat(channel, monitor);
     } break;  // BREAK
     case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         BALL_LOG_DEBUG << "Failed an attempt to establish a session with '"
@@ -599,6 +616,7 @@ Application::Application(
 , d_statSnaphotTimerHandle()
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
+, d_heartbeatSchedulerHandle()
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession
@@ -721,6 +739,8 @@ void Application::stop()
     BALL_LOG_INFO << "::: STOP (SYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
+    stopHeartbeat();
+
     // Stop the brokerSession
     d_brokerSession.stop();
 }
@@ -730,8 +750,78 @@ void Application::stopAsync()
     BALL_LOG_INFO << "::: STOP (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
+    stopHeartbeat();
+
     // Stop the brokerSession
     d_brokerSession.stopAsync();
+}
+
+bsl::shared_ptr<bmqp::HeartbeatMonitor>
+Application::createMonitor(const bsl::shared_ptr<bmqio::Channel>& channel)
+{
+    int maxMissedHeartbeats = k_DEFAULT_MAX_MISSED_HEARTBEATS;
+
+    channel->properties().load(
+        &maxMissedHeartbeats,
+        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS);
+
+    bsl::shared_ptr<bmqp::HeartbeatMonitor> monitor(
+        new (d_allocator) bmqp::HeartbeatMonitor(maxMissedHeartbeats),
+        &d_allocator);
+
+    return monitor;
+}
+
+void Application::startHeartbeat(
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor)
+{
+    BSLS_ASSERT_SAFE(monitor);
+
+    if (!monitor->isHearbeatEnabled()) {
+        return;  // RETURN
+    }
+
+    int heartbeatIntervalMs = k_DEFAULT_HEARTBEAT_INTERVAL_MS;
+
+    channel->properties().load(
+        &heartbeatIntervalMs,
+        NegotiatedChannelFactory::k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS);
+
+    bsls::TimeInterval interval;
+    interval.addMilliseconds(heartbeatIntervalMs);
+
+    d_scheduler.scheduleRecurringEvent(
+        &d_heartbeatSchedulerHandle,
+        interval,
+        bdlf::BindUtil::bind(&Application::onHeartbeatSchedulerEvent,
+                             this,
+                             channel,
+                             monitor));
+}
+void Application::stopHeartbeat()
+{
+    d_scheduler.cancelEventAndWait(&d_heartbeatSchedulerHandle);
+}
+
+void Application::onHeartbeatSchedulerEvent(
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bsl::shared_ptr<bmqp::HeartbeatMonitor>& monitor)
+{
+    // executed by the *SCHEDULER* thread
+
+    BSLS_ASSERT_SAFE(monitor);
+    BSLS_ASSERT_SAFE(monitor->maxMissedHeartbeats());
+
+    if (!monitor->checkHeartbeat(channel.get())) {
+        BALL_LOG_WARN << "#TCP_DEAD_CHANNEL "
+                      << "Closing unresponsive channel after "
+                      << monitor->maxMissedHeartbeats()
+                      << " missed heartbeats [channel: '" << channel->peerUri()
+                      << "']";
+
+        channel->close();
+    }
 }
 
 }  // close package namespace

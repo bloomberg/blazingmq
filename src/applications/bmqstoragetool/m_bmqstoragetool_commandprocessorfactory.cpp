@@ -15,6 +15,8 @@
 
 // bmqstoragetool
 #include <m_bmqstoragetool_commandprocessorfactory.h>
+#include <m_bmqstoragetool_cslfileprocessor.h>
+#include <m_bmqstoragetool_journalfileprocessor.h>
 #include <m_bmqstoragetool_searchresultfactory.h>
 
 namespace BloombergLP {
@@ -36,21 +38,58 @@ CommandProcessorFactory::createCommandProcessor(
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
-    // Create searchResult for given 'params'.
-    bsl::shared_ptr<SearchResult> searchResult =
-        SearchResultFactory::createSearchResult(params,
-                                                fileManager,
-                                                ostream,
-                                                alloc);
-    // Create commandProcessor.
-    bslma::ManagedPtr<CommandProcessor> commandProcessor(
-        new (*alloc) JournalFileProcessor(params,
+    if (params->d_cslMode) {
+        // Create CSL printer
+        bsl::shared_ptr<CslPrinter> printer =
+            createCslPrinter(params->d_printMode, ostream, allocator);
+
+        // Create CslSearchResult for given 'params'.
+        bsl::shared_ptr<CslSearchResult> cslSearchResult =
+            SearchResultFactory::createCslSearchResult(params, printer, alloc);
+
+        // Create CslFileProcessor
+        return bslma::ManagedPtr<CommandProcessor>(
+            new (*alloc) CslFileProcessor(params,
                                           fileManager,
-                                          searchResult,
+                                          cslSearchResult,
                                           ostream,
                                           alloc),
-        alloc);
-    return commandProcessor;
+            alloc);  // RETURN
+    }
+    else {
+        // Create printer
+        bsl::shared_ptr<Printer> printer = createPrinter(params->d_printMode,
+                                                         ostream,
+                                                         allocator);
+
+        // Create payload dumper
+        bslma::ManagedPtr<PayloadDumper> payloadDumper;
+        if (params->d_dumpPayload) {
+            payloadDumper.load(
+                new (*alloc) PayloadDumper(ostream,
+                                           fileManager->dataFileIterator(),
+                                           params->d_dumpLimit,
+                                           alloc),
+                alloc);
+        }
+
+        // Create searchResult for given 'params'.
+        bsl::shared_ptr<SearchResult> searchResult =
+            SearchResultFactory::createSearchResult(params,
+                                                    fileManager,
+                                                    printer,
+                                                    payloadDumper,
+                                                    alloc);
+        // Create commandProcessor.
+        bslma::ManagedPtr<CommandProcessor> commandProcessor(
+            new (*alloc) JournalFileProcessor(params,
+                                              fileManager,
+                                              searchResult,
+                                              ostream,
+                                              alloc),
+            alloc);
+        return commandProcessor;
+    }
 }
 
 }  // close package namespace

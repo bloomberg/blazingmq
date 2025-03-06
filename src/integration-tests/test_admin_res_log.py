@@ -68,10 +68,11 @@ def test_adminsession_res_log_stat(multi_node: Cluster):
     admin.stop()
 
 
-def test_adminsession_res_log_purge(multi_node: Cluster):
+def test_adminsession_res_log_purge(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: PURGE command: response message only generate on the node itself
     """
+    du = domain_urls
 
     admin = AdminClient()
 
@@ -85,11 +86,11 @@ def test_adminsession_res_log_purge(multi_node: Cluster):
     proxies = multi_node.proxy_cycle()
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     # connect and send request to primary
     admin.connect(leader.config.host, int(leader.config.port))
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} PURGE")
 
     assert "Purged" in res
 
@@ -101,7 +102,7 @@ def test_adminsession_res_log_purge(multi_node: Cluster):
 
     # connect and send request to member1
     admin.connect(member1.config.host, int(member1.config.port))
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} PURGE")
 
     assert "Purged" in res
 
@@ -112,10 +113,13 @@ def test_adminsession_res_log_purge(multi_node: Cluster):
     admin.stop()
 
 
-def test_adminsession_res_log_reconfigure(multi_node: Cluster):
+def test_adminsession_res_log_reconfigure(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
     """
     Test: RECONFIGURE command: response message only generate on the node itself
     """
+    domain_fanout = domain_urls.domain_fanout
 
     admin = AdminClient()
 
@@ -129,7 +133,7 @@ def test_adminsession_res_log_reconfigure(multi_node: Cluster):
 
     # connect and send request to primary
     admin.connect(leader.config.host, int(leader.config.port))
-    res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_FANOUT}")
+    res = admin.send_admin(f"DOMAINS RECONFIGURE {domain_fanout}")
 
     success_count = res.split().count("SUCCESS")
     # TODO Do `assert success_count == num_nodes` when admin command routing is re-enabled
@@ -143,7 +147,7 @@ def test_adminsession_res_log_reconfigure(multi_node: Cluster):
 
     # connect and send request to member1
     admin.connect(member1.config.host, int(member1.config.port))
-    res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_FANOUT}")
+    res = admin.send_admin(f"DOMAINS RECONFIGURE {domain_fanout}")
 
     success_count = res.split().count("SUCCESS")
     # TODO Do `assert success_count == num_nodes` when admin command routing is re-enabled
