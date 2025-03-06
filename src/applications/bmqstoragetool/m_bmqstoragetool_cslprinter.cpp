@@ -312,7 +312,7 @@ class JsonCslPrinter : public CslPrinter {
             d_braceOpen = true;
         }
         else {
-            d_ostream << "\n";
+            d_ostream << ",\n";
         }
     }
 
@@ -324,7 +324,7 @@ class JsonCslPrinter : public CslPrinter {
             d_firstRow  = false;
         }
         if (!d_firstRow) {
-            d_ostream << "\n";
+            d_ostream << ",\n";
         }
         else {
             d_firstRow = false;
