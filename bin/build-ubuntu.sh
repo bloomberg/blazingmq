@@ -83,18 +83,21 @@ mkdir -p "${DIR_INSTALL}"
 if [ ! -d "${DIR_THIRDPARTY}/bde-tools" ]; then
     git clone --depth 1 https://github.com/bloomberg/bde-tools "${DIR_THIRDPARTY}/bde-tools"
     pushd "${DIR_THIRDPARTY}/bde-tools"
-    git reset --hard 964f78d36577ef1643b9074412608df4850e5b33 # 4.17.0.0
+    git fetch --tags --force --depth 1
+    git reset --hard 4.18.0.0
     popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/bde" ]; then
     git clone --depth 1 https://github.com/bloomberg/bde.git "${DIR_THIRDPARTY}/bde"
     pushd "${DIR_THIRDPARTY}/bde"
-    git reset --hard ec094b4454738c311482fc54c3bde1d21c9f6893 # 4.18.0.0
+    git fetch --tags --force --depth 1
+    git reset --hard 4.18.0.0
     popd
 fi
 if [ ! -d "${DIR_THIRDPARTY}/ntf-core" ]; then
     git clone --depth 1 https://github.com/bloomberg/ntf-core.git "${DIR_THIRDPARTY}/ntf-core"
     pushd "${DIR_THIRDPARTY}/ntf-core"
+    git fetch --tags --force --depth 1
     git reset --hard 2.5.4
     popd
 fi

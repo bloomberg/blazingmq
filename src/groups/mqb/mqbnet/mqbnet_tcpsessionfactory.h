@@ -469,7 +469,7 @@ class TCPSessionFactory {
     TimestampMap d_timestampMap;
     // Map of HiRes timestamp of the session beginning per channel.
 
-    // TODO: review NTC symbols exposed here
+    /// Certificates storage
     bmqio::CertificateStore d_certificateStore;
 
     /// The encryption server used to authenticate incoming connections
@@ -605,8 +605,6 @@ class TCPSessionFactory {
     /// - The names of each network interface is unique
     /// - The ports of each network interface is unqiue
     int validateNetworkInterfaces() const;
-
-    void lookupChannel() const;
 
   private:
     // NOT IMPLEMENTED

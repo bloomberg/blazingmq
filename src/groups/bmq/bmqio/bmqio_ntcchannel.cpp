@@ -18,13 +18,9 @@
 
 #include <bmqscm_version.h>
 
-#include <bmqio_ntcchannelfactory.h>
 #include <bmqu_blob.h>
 
 // NTF
-#include <ntca_upgradeoptions.h>
-#include <ntci_encryptionserver.h>
-#include <ntci_upgradecallback.h>
 #include <ntsf_system.h>
 
 // BDE
@@ -43,7 +39,6 @@
 #include <bslmf_allocatorargt.h>
 #include <bslmt_lockguard.h>
 #include <bsls_assert.h>
-#include <bsls_platform.h>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -527,8 +522,6 @@ bool NtcReadQueue::empty() const
 // ----------------
 // class NtcChannel
 // ----------------
-
-// PRIVATE ACCESSORS
 
 // PRIVATE MANIPULATORS
 void NtcChannel::processConnect(
@@ -1383,7 +1376,8 @@ void NtcChannel::processUpgrade(
 {
     BSLS_ASSERT(cb);
 
-    BALL_LOG_DEBUG << "Received upgrade event: " << upgradeEvent;
+    BALL_LOG_DEBUG << d_peerUri
+                   << ": received upgrade event: " << upgradeEvent;
 
     cb(upgradable, upgradeEvent);
 }
@@ -1397,7 +1391,7 @@ int NtcChannel::upgrade(
     BSLS_ASSERT(encryptionServer);
     BSLS_ASSERT(d_streamSocket_sp);
 
-    BALL_LOG_INFO << "Upgrading connection";
+    BALL_LOG_INFO << d_peerUri << ": upgrading server connection";
 
     ntsa::Error error = d_streamSocket_sp->upgrade(
         encryptionServer,
@@ -1430,7 +1424,7 @@ int NtcChannel::upgrade(
     BSLS_ASSERT(encryptionClient);
     BSLS_ASSERT(d_streamSocket_sp);
 
-    BALL_LOG_INFO << "Upgrading connection";
+    BALL_LOG_INFO << d_peerUri << ": upgrading client connection";
 
     ntsa::Error error = d_streamSocket_sp->upgrade(
         encryptionClient,

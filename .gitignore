@@ -8,6 +8,7 @@ compile_commands.json
 CMakeUserPresets.json
 /thirdparty/
 /include/
+/install/
 /lib/
 **/.idea
 
@@ -26,6 +27,7 @@ settings.json
 .pytest_cache/
 .cache/
 .venv/
+venv/
 
 # fuzz-test output folder
 **/boofuzz-results
@@ -34,6 +36,4 @@ settings.json
 src/applications/bmqbrkr/etc/etc
 
 # 'sim_cpp11_features.pl' backups
-*.bak
-/venv
- 
+*.bak 

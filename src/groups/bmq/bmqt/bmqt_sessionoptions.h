@@ -153,17 +153,12 @@ class HostHealthMonitor;
 
 namespace bmqt {
 
-// todo move to bmqio/ntc
 // ======================
 // struct ProtocolVersion
 // ======================
 
 struct ProtocolVersion {
-    enum Value {
-        // Q?: do not mention deprecated TLS versions at all?
-        e_TLS1_2,
-        e_TLS1_3
-    };
+    enum Value { e_TLS1_3 };
 
     // CLASS METHODS
     static bsl::ostream& print(bsl::ostream&          stream,
@@ -243,8 +238,8 @@ class SessionOptions {
 
     bsl::string d_certificateAuthority;
 
+    /// Supported TLS versions
     bsl::unordered_set<ProtocolVersion::Value> d_protocolVersions;
-    // Supported TLS versions.
 
     bsl::shared_ptr<bmqpi::HostHealthMonitor> d_hostHealthMonitor_sp;
 

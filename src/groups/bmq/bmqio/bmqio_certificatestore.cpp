@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_certificatestore.cpp
+// bmqio_certificatestore.cpp                                         -*-C++-*-
 
 #include <bsls_ident.h>
 BSLS_IDENT_RCSID(bmqio_certificatestore_h, "$Id$ $CSID$")
@@ -34,7 +34,7 @@ BSLS_IDENT_RCSID(bmqio_certificatestore_h, "$Id$ $CSID$")
 
 namespace {
 
-const char LOG_CATEGORY[] = "MQBNET.CERTIFICATESTORE";
+const char LOG_CATEGORY[] = "BMQIO.CERTIFICATESTORE";
 
 }  // close unnamed namespace
 

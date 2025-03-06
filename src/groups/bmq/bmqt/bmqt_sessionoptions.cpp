@@ -54,7 +54,6 @@ const char* ProtocolVersion::toAscii(ProtocolVersion::Value value)
 {
     // Use openssl compatible string representation
     switch (value) {
-    case e_TLS1_2: return "TLSv1.2";
     case e_TLS1_3: return "TLSv1.3";
     default: return "(* UNKNOWN *)";
     }
@@ -71,7 +70,6 @@ bool ProtocolVersion::fromAscii(ProtocolVersion::Value*  out,
         return true;                                                          \
     }
 
-    CHECKVALUE(TLS1_2);
     CHECKVALUE(TLS1_3);
 
     // Invalid string
@@ -139,8 +137,6 @@ SessionOptions&
 SessionOptions::setTlsDetails(const bslstl::StringRef& certificateAuthority,
                               const bslstl::StringRef& versions)
 {
-    // todo check file permissions?
-    // todo permissions cross platform?
     d_certificateAuthority = certificateAuthority;
     d_protocolVersions.clear();
 
@@ -153,8 +149,6 @@ SessionOptions::setTlsDetails(const bslstl::StringRef& certificateAuthority,
             d_protocolVersions.insert(version);
         }
         else {
-            // todo why do we use assertions everywhere here instead of
-            // exceptions?
             BSLS_ASSERT_SAFE(false && "Unrecognized protocol version");
         }
     }

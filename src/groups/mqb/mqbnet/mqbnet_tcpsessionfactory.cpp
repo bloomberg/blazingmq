@@ -84,6 +84,7 @@
 #include <bsls_types.h>
 
 // NTC
+#include <ntcf_system.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
 

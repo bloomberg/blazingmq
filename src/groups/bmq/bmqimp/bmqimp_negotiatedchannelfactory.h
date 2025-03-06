@@ -50,15 +50,6 @@
 
 namespace BloombergLP {
 
-namespace ntca {
-class UpgradeEvent;
-}
-
-namespace ntci {
-class Upgradable;
-class EncryptionClient;
-}
-
 namespace bmqimp {
 
 // ====================================
@@ -70,10 +61,6 @@ class NegotiatedChannelFactoryConfig {
   public:
     // TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
-    // #review: docs
-    typedef bsl::function<void(const bsl::shared_ptr<bmqio::Channel>& channel,
-                               const bsl::function<void(void)>&       cb)>
-        TlsUpgradeCallback;
 
   private:
     // PRIVATE DATA
@@ -94,7 +81,6 @@ class NegotiatedChannelFactoryConfig {
     // CREATORS
 
     /// @brief Create a configuration for building a NegotiatedChannelFactory.
-    /// If certificateAuthority is empty, a TLS session will not be created.
     ///
     /// @pre base != NULL
     /// @pre bufferFactory != NULL

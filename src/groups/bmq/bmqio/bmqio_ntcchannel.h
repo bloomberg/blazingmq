@@ -35,8 +35,7 @@
 
 // NTC
 #include <ntca_upgradeoptions.h>
-#include <ntcf_system.h>
-#include <ntci_streamsocket.h>
+#include <ntci_interface.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -53,9 +52,6 @@
 #include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
-#include <ntci_encryptionserver.h>
-#include <ntci_upgradecallback.h>
-#include <string_view>
 
 namespace BloombergLP {
 namespace bmqio {
@@ -223,8 +219,6 @@ class NtcChannel : public bmqio::Channel,
     NtcChannel& operator=(const NtcChannel&) BSLS_KEYWORD_DELETED;
 
   private:
-    // PRIVATE ACCESSORS
-
     // PRIVATE MANIPULATORS
 
     /// Process the connection by the specified `connector` according to
@@ -548,9 +542,10 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     /// Optionally specified a `basicAllocator` used to supply memory. If
     /// `basicAllocator` is 0, the currently installed default allocator is
     /// used.
-    NtcListener(const bsl::shared_ptr<ntci::Interface>&      interface,
-                const bmqio::ChannelFactory::ResultCallback& resultCallback,
-                bslma::Allocator* basicAllocator = 0);
+    explicit NtcListener(
+        const bsl::shared_ptr<ntci::Interface>&      interface,
+        const bmqio::ChannelFactory::ResultCallback& resultCallback,
+        bslma::Allocator*                            basicAllocator = 0);
 
     /// Destroy this object.
     ~NtcListener() BSLS_KEYWORD_OVERRIDE;

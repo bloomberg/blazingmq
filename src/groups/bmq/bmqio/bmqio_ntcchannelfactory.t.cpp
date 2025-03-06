@@ -16,45 +16,34 @@
 // bmqio_ntcchannelfactory.t.cpp                                      -*-C++-*-
 #include <bmqio_ntcchannelfactory.h>
 
-#include <bmqio_listenoptions.h>
-#include <bmqu_blob.h>
-
+// NTC
 #include <ntca_upgradeevent.h>
 #include <ntca_upgradeoptions.h>
 #include <ntcf_system.h>
-#include <ntci_encryptiondriver.h>
-#include <ntci_encryptionserver.h>
 #include <ntci_interface.h>
 #include <ntci_upgradable.h>
-#include <ntci_upgradecallback.h>
 #include <ntsa_distinguishedname.h>
-#include <ntsf_system.h>
 
+// BDE
 #include <ball_filteringobserver.h>
 #include <ball_loggermanager.h>
 #include <ball_testobserver.h>
 #include <balst_stacktraceprintutil.h>
 #include <bdlb_nullablevalue.h>
-#include <bdlb_pairutil.h>
 #include <bdlb_stringrefutil.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
-#include <bsl_algorithm.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
-#include <bsl_string.h>
-#include <bsl_vector.h>
-#include <bsla_annotations.h>
 #include <bsla_maybeunused.h>
 #include <bslma_allocator.h>
-#include <bslmf_allocatorargt.h>
 #include <bslmt_threadutil.h>
 #include <bsls_annotation.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
-#include <bslstl_sharedptr.h>
 
+// BMQ
 #include <bmqtst_testhelper.h>
 #include <bmqu_blob.h>
 
@@ -614,10 +603,6 @@ class Tester {
     /// Initialize the client encryption settings and configure the
     /// channel factory to use it for upgrading connections.
     void setEncryptionClient();
-
-    typedef bsl::pair<bsl::shared_ptr<ntci::EncryptionServer>,
-                      bsl::shared_ptr<ntci::EncryptionClient> >
-        Pair;
 };
 
 // ------------
@@ -749,17 +734,15 @@ void Tester::setEncryptionAuthority()
     bsl::shared_ptr<ntci::EncryptionCertificate> authorityCertificate;
     bsl::shared_ptr<ntci::EncryptionKey>         authorityPrivateKey;
 
-    ntsa::Error error;
-
     // Generate the certificate and private key of a trusted authority.
 
     ntsa::DistinguishedName authorityIdentity(d_allocator_p);
     authorityIdentity["CN"] = "Authority";
     authorityIdentity["O"]  = "Bloomberg LP";
 
-    error = d_interface->generateKey(&authorityPrivateKey,
-                                     ntca::EncryptionKeyOptions(),
-                                     d_allocator_p);
+    ntsa::Error error = d_interface->generateKey(&authorityPrivateKey,
+                                                 ntca::EncryptionKeyOptions(),
+                                                 d_allocator_p);
     BMQTST_ASSERT(!error);
 
     ntca::EncryptionCertificateOptions authorityCertificateOptions;
@@ -794,8 +777,6 @@ void Tester::setEncryptionServer()
     bsl::shared_ptr<ntci::EncryptionCertificate> serverCertificate;
     bsl::shared_ptr<ntci::EncryptionKey>         serverPrivateKey;
 
-    ntsa::Error error;
-
     // Generate the certificate and private key of the server, signed
     // by the trusted authority.
 
@@ -803,9 +784,9 @@ void Tester::setEncryptionServer()
     serverIdentity["CN"] = "Server";
     serverIdentity["O"]  = "Bloomberg LP";
 
-    error = d_interface->generateKey(&serverPrivateKey,
-                                     ntca::EncryptionKeyOptions(),
-                                     d_allocator_p);
+    ntsa::Error error = d_interface->generateKey(&serverPrivateKey,
+                                                 ntca::EncryptionKeyOptions(),
+                                                 d_allocator_p);
     BMQTST_ASSERT(!error);
 
     error = d_interface->generateCertificate(
@@ -1399,7 +1380,7 @@ static void test8_tlsClientFailsOnPlaintextServer()
         BMQTST_ASSERT_EQ(0, t.object().start());
     }
 
-    t.listen(L_, "listenHandle0", "127.0.0.1:5000", StatusCategory::e_SUCCESS);
+    t.listen(L_, "listenHandle0", "127.0.0.1:5001", StatusCategory::e_SUCCESS);
     t.connect(L_,
               "connectHandle0",
               "listenHandle0",
@@ -1444,7 +1425,7 @@ static void test7_upgradeChannelTest()
     t.object().onUpgrade(upgradeCounter.makeOnUpgradeCb());
 
     // Create a TLS channel
-    t.listen(L_, "listenHandle", "127.0.0.1:5000", StatusCategory::e_SUCCESS);
+    t.listen(L_, "listenHandle", "127.0.0.1:5001", StatusCategory::e_SUCCESS);
     t.connect(L_, "connectHandle", "listenHandle", StatusCategory::e_SUCCESS);
     t.connect(L_, "connectHandle2", "listenHandle", StatusCategory::e_SUCCESS);
 
@@ -1664,7 +1645,7 @@ static void test1_breathingTest()
     t.init(L_);
 
     // Listen and connect work
-    t.listen(L_, "listenHandle", "127.0.0.1:5000");
+    t.listen(L_, "listenHandle", "127.0.0.1:5001");
     t.connect(L_, "connectHandle", "listenHandle");
 
     t.checkResultCallback(L_, "listenHandle", "listenChannel");
