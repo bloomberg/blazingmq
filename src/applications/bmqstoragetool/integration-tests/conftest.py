@@ -97,6 +97,15 @@ def expected_summary_result() -> bytes:
 
 
 @pytest.fixture
+def expected_summary_result_with_queue_info() -> bytes:
+    summary_result_with_queue_info_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result_with_queue_info.txt"
+    )
+    return _load_expected_result_file(summary_result_with_queue_info_file)
+
+
+@pytest.fixture
 def expected_queueop_result() -> bytes:
     queueop_result_file = (
         paths.required_paths.repository
@@ -112,3 +121,12 @@ def expected_journalop_result() -> bytes:
         / "src/applications/bmqstoragetool/integration-tests/fixtures/journalop_result.txt"
     )
     return _load_expected_result_file(journalop_result_file)
+
+
+@pytest.fixture
+def expected_queueop_journalop_summary_result() -> bytes:
+    summary_queueop_journalop_result = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_queueop_journalop_result.txt"
+    )
+    return _load_expected_result_file(summary_queueop_journalop_result)

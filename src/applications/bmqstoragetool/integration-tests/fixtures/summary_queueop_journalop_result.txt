@@ -1,10 +1,12 @@
 
-Total number of messages: 2
-Number of partially confirmed messages: 0
-Number of confirmed messages: 1
-Number of outstanding messages: 1
-Outstanding ratio: 50% (1/2)
-Total number of records: 4
+Total number of queueOp records: 1
+    Number of 'purge' operations     : 0
+    Number of 'creation' operations  : 1
+    Number of 'deletion' operations  : 0
+    Number of 'addition' operations  : 0
+
+Number of journalOp records: 8
+Total number of records: 9
 
 Details of journal file:
     BlazingMQ File Header  :     Protocol Version  : 1
@@ -37,16 +39,5 @@ Details of journal file:
     SyncPoint DataFileOffset (DWORDS)  : 11
     SyncPoint QlistFileOffset (WORDS)  : 32
 
-
-
-Details of data file: 
-    BlazingMQ File Header  :     Protocol Version  : 1
-    Bitness           : 64
-    FileType          : DATA
-    HeaderWords       : 8
-    PartitionId       : 0
-
-    Data File Header       :     HeaderWords       : 2
-    FileId (FileKey)  : 0000000000
 
 

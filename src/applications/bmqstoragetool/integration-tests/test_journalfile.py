@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,6 +15,7 @@
 
 import subprocess
 import re
+import pytest
 
 
 def test_short_result(storagetool, journal_file, expected_short_result):
@@ -139,6 +140,30 @@ def test_summary_result(storagetool, journal_path, csl_file, expected_summary_re
     assert res.stdout == expected_summary_result
 
 
+@pytest.mark.skip(reason="issue with string_view")
+def test_summary_result_with_queue_info(
+    storagetool, journal_path, csl_file, expected_summary_result
+):
+    """
+    This test checks that storage tool can process journal file and output messages summary result with queue info.
+    """
+    res = subprocess.run(
+        [
+            storagetool,
+            "--journal-path",
+            journal_path,
+            "--csl-file",
+            csl_file,
+            "--summary",
+            "--min-records-per-queue",
+            "1",
+        ],
+        capture_output=True,
+    )
+    assert res.returncode == 0
+    assert res.stdout == expected_summary_result
+
+
 def test_confirmed_outstanding_result(storagetool, journal_file):
     """
     This test:
@@ -184,3 +209,24 @@ def test_journalop_result(storagetool, journal_file, expected_journalop_result):
     )
     assert res.returncode == 0
     assert res.stdout == expected_journalop_result
+
+
+def test_queueop_journalop_summary_result(
+    storagetool, journal_file, expected_queueop_journalop_summary_result
+):
+    """
+    This test checks that storage tool can process journal file and output queueOp and journalOp records summary result.
+    """
+    res = subprocess.run(
+        [
+            storagetool,
+            "--journal-file",
+            journal_file,
+            "-r=queue-op",
+            "-r=journal-op",
+            "--summary",
+        ],
+        capture_output=True,
+    )
+    assert res.returncode == 0
+    assert res.stdout == expected_queueop_journalop_summary_result

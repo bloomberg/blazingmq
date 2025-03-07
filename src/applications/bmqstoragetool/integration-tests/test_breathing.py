@@ -1,4 +1,4 @@
-# Copyright 2024 Bloomberg Finance L.P.
+# Copyright 2025 Bloomberg Finance L.P.
 # SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ def test_breathing(storagetool):
     res = subprocess.run([storagetool], capture_output=True)
     assert res.returncode == 255
     assert (
-        re.search(b"Neither journal path nor journal file are specified", res.stderr)
+        re.search(b"Neither journal path nor journal file is specified", res.stderr)
         is not None
     )
 

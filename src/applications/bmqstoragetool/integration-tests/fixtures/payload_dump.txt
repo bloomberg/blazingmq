@@ -26,4 +26,5 @@ Payload:
 First 11 bytes of payload:
      0:   68656C6C 6F20776F 726C64                |hello world     |
 
-2 message GUID(s) found.
+2 message record(s) found.
+

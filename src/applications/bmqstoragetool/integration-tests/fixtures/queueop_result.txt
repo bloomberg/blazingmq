@@ -1,2 +1,16 @@
-[ header = [ type = QUEUE_OP flags = 0 primaryLeaseId = 1 sequenceNumber = 2 timestamp = 1730210466 ] flags = 0 queueKey = 26DACDC974 appKey = 0000000000 type = CREATION queueUriRecordOffsetWords = 9 ]
+==============================
+
+    RecordType      : QUEUE_OP
+    Index           : 1
+    Offset          : 104
+    PrimaryLeaseId  : 1
+    SequenceNumber  : 2
+    Timestamp       : 29OCT2024_14:01:06.000000
+    Epoch           : 1730210466
+    QueueKey        : 26DACDC974
+    AppKey          : ** NULL **
+    QueueOpType     : CREATION
+    QLIST OffsetWords: 9
+
 1 queueOp record(s) found.
+

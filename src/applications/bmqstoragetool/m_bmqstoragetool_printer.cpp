@@ -472,10 +472,12 @@ class HumanReadablePrinter : public Printer {
         d_ostream << "Total number of records: " << totalRecordsCount << "\n";
 
         // Print information per Queue:
-        d_ostream << "Number of records per Queue:\n";
-        printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
-                                                queueDetailsMap,
-                                                d_allocator_p);
+        if (!queueDetailsMap.empty()) {
+            d_ostream << "Number of records per Queue:\n";
+            printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
+                                                    queueDetailsMap,
+                                                    d_allocator_p);    
+        }            
     }
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
@@ -493,12 +495,14 @@ class HumanReadablePrinter : public Printer {
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
         BSLS_KEYWORD_OVERRIDE
     {
-        d_ostream << "\nDetails of data file: \n";
-        m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
-                                            bmqu::AlignedPrinter>(
-            d_ostream,
-            dataFile_p,
-            d_allocator_p);
+        if (dataFile_p->isValid()) {
+            d_ostream << "\nDetails of data file: \n";
+            m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
+                                                bmqu::AlignedPrinter>(
+                d_ostream,
+                dataFile_p,
+                d_allocator_p);    
+        }
     }
 
     void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
@@ -794,12 +798,16 @@ class JsonPrettyPrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"DataFileDetails\":\n";
-        m_bmqstoragetool::printDataFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
-                                                  dataFile_p,
-                                                  d_allocator_p);
+        if (dataFile_p->isValid()) {
+            d_ostream << "  \"DataFileDetails\":\n";
+            m_bmqstoragetool::printDataFileMeta<
+                bmqu::JsonPrinter<true, true, 2, 4>,
+                bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
+                                                      dataFile_p,
+                                                      d_allocator_p);    
+        } else {
+            d_ostream << "  \"DataFileDetails\": {}";
+        }
     }
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
@@ -878,12 +886,17 @@ class JsonLinePrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"DataFileDetails\": \n";
-        m_bmqstoragetool::printDataFileMeta<
-            bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
-                                                   dataFile_p,
-                                                   d_allocator_p);
+
+        if (dataFile_p->isValid()) {
+            d_ostream << "  \"DataFileDetails\": \n";
+            m_bmqstoragetool::printDataFileMeta<
+                bmqu::JsonPrinter<true, true, 2, 4>,
+                bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
+                                                       dataFile_p,
+                                                       d_allocator_p);            
+        } else {
+            d_ostream << "  \"DataFileDetails\": {}";
+        }
     }
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
