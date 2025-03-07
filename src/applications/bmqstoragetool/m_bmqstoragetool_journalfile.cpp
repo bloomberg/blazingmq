@@ -80,6 +80,57 @@ JournalFile::~JournalFile()
     // NOTHING
 }
 
+JournalFile::RecordBufferType
+JournalFile::makeQueueOpRecord(unsigned int        primaryLeaseId,
+                               bsls::Types::Uint64 sequenceNumber)
+{
+    // QueueOpRec
+    OffsetPtr<QueueOpRecord> rec(d_block, d_currPos);
+    new (rec.get()) QueueOpRecord();
+    rec->header()
+        .setPrimaryLeaseId(primaryLeaseId)
+        .setSequenceNumber(sequenceNumber)
+        .setTimestamp(sequenceNumber * d_timestampIncrement);
+    rec->setFlags(3)
+        .setQueueKey(mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                      "abcde"))
+        .setAppKey(mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    "appid"))
+        .setType(QueueOpType::e_PURGE)
+        .setMagic(RecordHeader::k_MAGIC);
+
+    RecordBufferType buf;
+    bsl::memcpy(buf.buffer(),
+                rec.get(),
+                FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    return buf;
+}
+
+JournalFile::RecordBufferType
+JournalFile::makeJournalOpRecord(unsigned int        primaryLeaseId,
+                                 bsls::Types::Uint64 sequenceNumber)
+{
+    OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
+    new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
+                                    SyncPointType::e_REGULAR,
+                                    1234567,  // seqNum
+                                    25,       // leaderTerm
+                                    121,      // leaderNodeId
+                                    8800,     // dataFilePosition
+                                    100,      // qlistFilePosition
+                                    RecordHeader::k_MAGIC);
+
+    rec->header()
+        .setPrimaryLeaseId(primaryLeaseId)
+        .setSequenceNumber(sequenceNumber)
+        .setTimestamp(sequenceNumber * d_timestampIncrement);
+    RecordBufferType buf;
+    bsl::memcpy(buf.buffer(),
+                rec.get(),
+                FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    return buf;
+}
+
 void JournalFile::addAllTypesRecords(RecordsListType* records)
 {
     // PRECONDITIONS
@@ -166,49 +217,12 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
             records->push_back(bsl::make_pair(RecordType::e_DELETION, buf));
         }
         else if (3 == remainder) {
-            // QueueOpRec
-            OffsetPtr<QueueOpRecord> rec(d_block, d_currPos);
-            new (rec.get()) QueueOpRecord();
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i * d_timestampIncrement);
-            rec->setFlags(3)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setType(QueueOpType::e_PURGE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_QUEUE_OP, buf));
+            records->push_back(bsl::make_pair(RecordType::e_QUEUE_OP,
+                                              makeQueueOpRecord(100, i)));
         }
         else {
-            OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
-            new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
-                                            SyncPointType::e_REGULAR,
-                                            1234567,  // seqNum
-                                            25,       // leaderTerm
-                                            121,      // leaderNodeId
-                                            8800,     // dataFilePosition
-                                            100,      // qlistFilePosition
-                                            RecordHeader::k_MAGIC);
-
-            rec->header()
-                .setPrimaryLeaseId(100)
-                .setSequenceNumber(i)
-                .setTimestamp(i * d_timestampIncrement);
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP, buf));
+            records->push_back(bsl::make_pair(RecordType::e_JOURNAL_OP,
+                                              makeJournalOpRecord(100, i)));
         }
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -335,7 +349,6 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
         unsigned int remainder = i % 3;
 
         if (1 == remainder) {
-            // bmqt::MessageGUID g;
             mqbu::MessageGUIDUtil::generateGUID(&lastMessageGUID);
             OffsetPtr<MessageRecord> rec(d_block, d_currPos);
             new (rec.get()) MessageRecord();
@@ -698,27 +711,9 @@ void JournalFile::addMultipleTypesRecordsWithMultipleLeaseId(
         }
         else {
             // QueueOpRec
-            OffsetPtr<QueueOpRecord> rec(d_block, d_currPos);
-            new (rec.get()) QueueOpRecord();
-            rec->header()
-                .setPrimaryLeaseId(leaseId)
-                .setSequenceNumber(seqNumber++)
-                .setTimestamp(i * d_timestampIncrement);
-            rec->setFlags(3)
-                .setQueueKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "abcde"))
-                .setAppKey(
-                    mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                                     "appid"))
-                .setType(QueueOpType::e_PURGE)
-                .setMagic(RecordHeader::k_MAGIC);
-
-            RecordBufferType buf;
-            bsl::memcpy(buf.buffer(),
-                        rec.get(),
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            records->push_back(bsl::make_pair(RecordType::e_QUEUE_OP, buf));
+            records->push_back(
+                bsl::make_pair(RecordType::e_QUEUE_OP,
+                               makeQueueOpRecord(leaseId, seqNumber++)));
         }
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;

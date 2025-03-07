@@ -216,6 +216,21 @@ class TestDemo:                                                              #4
 14. Another test method.  This one runs only once, using a local cluster
     (obviously it fails).
 
+**NOTE**: If it is needed to test method for different domain consistencies
+   (`eventual`, `strong` or both), optional argument `domain_urls` should 
+   be passed. It should be used instead of direct using `DOMAIN_*` and `URI_*`
+   constants (except DOMAIN_BROADCAST/URI_BROADCAST):
+
+```python
+    def test_post_message_priority(self, cluster, 
+                                   domain_urls: tc.DomainUrls):
+        du = domain_urls
+        self.producer.open(
+            du.uri_priority, flags=['write', 'ack'], succeed=True)
+        self.producer.post(
+            du.uri_priority, payload=[payload], succeed=True, wait_ack=True)
+
+```
 ### Tweaking the configuration
 
 Test code can add its own tweaks to the stock configurations, by applying the

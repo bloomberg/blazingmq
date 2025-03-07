@@ -1063,7 +1063,7 @@ inline bool ClusterState::isSelfActivePrimary(int partitionId) const
 
 inline int ClusterState::partitionsCount() const
 {
-    return d_partitionsInfo.size();
+    return static_cast<int>(d_partitionsInfo.size());
 }
 
 inline bool ClusterState::isSelfPrimary() const
