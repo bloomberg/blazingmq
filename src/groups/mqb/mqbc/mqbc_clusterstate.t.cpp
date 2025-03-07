@@ -77,6 +77,9 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
+    // For 'bdlpcre::RegEx'
+    bmqt::UriParser::initialize(bmqtst::TestHelperUtil::allocator());
+
     switch (_testCase) {
     case 0:
     case 1: test1_partitionIdExtractor(); break;
@@ -85,6 +88,8 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
+
+    bmqt::UriParser::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
