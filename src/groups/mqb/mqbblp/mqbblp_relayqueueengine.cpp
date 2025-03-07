@@ -246,9 +246,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         d_queueState_p->queue()));
     BSLS_ASSERT_SAFE(context);
 
-    // Attempt to deliver all data in the storage.  Otherwise, broadcast
-    // can get dropped if the incoming configure response removes consumers.
-
+    // Force re-delivery
     deliverMessages();
 
     // RelayQueueEngine now assumes that configureQueue request cannot fail.
