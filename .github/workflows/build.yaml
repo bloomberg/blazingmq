@@ -156,7 +156,9 @@ jobs:
           pytest src/python
 
   integration_tests_ubuntu:
-    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
+    env:
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+    name: IT [$RUN_UID]
     strategy:
       matrix:
         mode: ["legacy_mode", "fsm_mode"]
@@ -203,7 +205,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}_${{ matrix.consistency }}]
+          name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}_${{ matrix.consistency }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
 
@@ -211,7 +213,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: core_dumps_${{ matrix.mode }}_${{ matrix.cluster }}
+          name: core_dumps_${{ matrix.mode }}_${{ matrix.cluster }}_${{ matrix.consistency }}
           path: /cores
           retention-days: 5
 
@@ -219,7 +221,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr_${{ matrix.cluster }}_${{ matrix.mode }}.tsk
+          name: bmqbrkr_${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}.tsk
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
 
