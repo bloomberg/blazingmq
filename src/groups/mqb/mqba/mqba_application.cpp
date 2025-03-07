@@ -538,7 +538,7 @@ void Application::stop()
 
 bool Application::initiateShutdown()
 {
-    // Send a StopRequest to all connected cluster nodes and brokers
+    // Send StopRequest to all connected proxies and nodes (not clients)
     Sessions nodes(d_allocator_p);
     Sessions clients(d_allocator_p);
     Sessions proxies(d_allocator_p);
@@ -603,7 +603,10 @@ bool Application::initiateShutdown()
     bslmt::Latch latchDownstreams(clients.size() + 1);
     // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
 
-    sendStopRequests(&latchDownstreams, proxies, 2);
+    // The first round of StopRequests blocks incoming PUTs.
+    sendStopRequests(&latchDownstreams,
+                     proxies,
+                     bmqp::Protocol::eStopRequestVersion::e_V2);
 
     bsls::TimeInterval shutdownTimeout;
 
@@ -638,7 +641,6 @@ bool Application::initiateShutdown()
     }
     {
         bslmt::Latch latch(1);
-
         d_dispatcher_mp->execute(mqbi::Dispatcher::ProcessorFunctor(),
                                  mqbi::DispatcherClientType::e_CLUSTER,
                                  bdlf::BindUtil::bind(&bslmt::Latch::arrive,
@@ -649,7 +651,10 @@ bool Application::initiateShutdown()
     bslmt::Latch latchUpstreams(1);
     // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
 
-    sendStopRequests(&latchUpstreams, nodes, 2);
+    // The last round of StopRequests blocks incoming PUSHes.
+    sendStopRequests(&latchUpstreams,
+                     nodes,
+                     bmqp::Protocol::eStopRequestVersion::e_V2);
 
     latchUpstreams.wait();
 

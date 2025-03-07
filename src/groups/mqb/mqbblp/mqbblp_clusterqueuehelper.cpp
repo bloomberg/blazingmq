@@ -5251,7 +5251,8 @@ void ClusterQueueHelper::processNodeStoppingNotification(
             const bmqp_ctrlmsg::StopRequest& stopRequest =
                 request->choice().clusterMessage().choice().stopRequest();
 
-            if (stopRequest.version() == 1) {
+            if (stopRequest.version() ==
+                bmqp::Protocol::eStopRequestVersion::e_V1) {
                 supportShutdownV2 = false;
             }
         }
@@ -5259,14 +5260,19 @@ void ClusterQueueHelper::processNodeStoppingNotification(
         // In any case, do minimal (V2) work unless explicitly requested
 
         if (supportShutdownV2) {
-            // StopRequest processing:
-            // Upstream deconfigures all handles open by Downstream.
-            // Downstream makes all open queues buffer PUTs by calling
-            // 'onOpenUpstream' with '0' as 'genCount'.
-            // Upstream has open handles.
-            // Downstream has queues in 'ns->primaryPartitions()' or
-            // 'd_clusterData_p->electorInfo().leaderNode() == clusterNode'.
-            //
+            // StopRequest processing.
+            // This node can be an Upstream or a Downstream (or both, when we
+            // support multiple Primaries) for (some) queues.
+            // As an Upstream, this node can have open handles (opened by the
+            // shutting down node being a Downstream) and needs to de-configure
+            // them.
+            // As a Downstream, this node can have open queues belonging to
+            // 'ns->primaryPartitions()' or (as a Proxy) just have the shutting
+            // down node as the active node
+            // ('d_clusterData_p->electorInfo().leaderNode() == clusterNode').
+            // This node needs to make all such open queues buffer PUTs by
+            // calling 'onOpenUpstream' with '0' as 'genCount'.
+
             // 1) from Replica ('ns') to Primary, by Cluster.
             //    The Upstream (Primary) deconfigures all open handles.
             //
@@ -5285,8 +5291,9 @@ void ClusterQueueHelper::processNodeStoppingNotification(
 
             // The buffering of PUTs must happen before deconfiguring,
             // otherwise Primary can receive broadcast PUTs without consumers.
-            // For this reason, shutting down broker sends StopRequest cluster
-            // nodes only after StopeResponses from all Proxies (if any).
+            // For this reason, shutting down broker sends StopRequest to
+            // cluster nodes only after all StopResponses from all Proxies (if
+            // any).
 
             if (ns) {
                 // As an Upstream, deconfigure queues of the (shutting down)
