@@ -141,8 +141,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
   public:
     // TYPES
-
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
     /// Pool of shared pointers to AtomicStates
     typedef bdlcc::SharedObjectPool<
@@ -290,7 +290,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // used to report partition level
     // metrics.
 
-    mutable BlobSpPool* d_blobSpPool_p;
+    mutable BlobSpPoolSp d_blobSpPool_sp;
     // Pool of shared pointers to blobs to
     // use.
 
@@ -697,7 +697,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               mqbi::Dispatcher*       dispatcher,
               mqbnet::Cluster*        cluster,
               mqbstat::ClusterStats*  clusterStats,
-              BlobSpPool*             blobSpPool,
+              BlobSpPoolSp            blobSpPool,
               StateSpPool*            statePool,
               bdlmt::FixedThreadPool* miscWorkThreadPool,
               bool                    isCSLModeEnabled,

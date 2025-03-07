@@ -867,6 +867,11 @@ struct TestHelper {
         const mqbcfg::PartitionConfig& partitionCfg =
             d_cluster_mp->_clusterDefinition().partitionConfig();
 
+        bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool_sp =
+            bmqp::BlobPoolUtil::createBlobPool(
+                &d_cluster_mp->_clusterData()->bufferFactory(),
+                bmqtst::TestHelperUtil::allocator());
+
         mqbs::DataStoreConfig dsCfg;
         dsCfg.setScheduler(&d_cluster_mp->_scheduler())
             .setBufferFactory(&d_cluster_mp->_clusterData()->bufferFactory())
@@ -894,7 +899,7 @@ struct TestHelper {
                            d_cluster_mp->dispatcher(),
                            &d_cluster_mp->netCluster(),
                            &d_cluster_mp->_clusterData()->stats(),
-                           &d_cluster_mp->_clusterData()->blobSpPool(),
+                           blobSpPool_sp,
                            &d_cluster_mp->_clusterData()->stateSpPool(),
                            &threadPool,
                            d_cluster_mp->isCSLModeEnabled(),
