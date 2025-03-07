@@ -53,11 +53,12 @@ class CslFileProcessor : public CommandProcessor {
 
     /// Constructor using the specified `params`, 'fileManager',
     /// 'searchResult_p', 'ostream' and 'allocator'.
-    CslFileProcessor(const Parameters*                       params,
-                     bslma::ManagedPtr<FileManager>&         fileManager,
-                     const bsl::shared_ptr<CslSearchResult>& searchResult_p,
-                     bsl::ostream&                           ostream,
-                     bslma::Allocator*                       allocator);
+    explicit CslFileProcessor(
+        const Parameters*                       params,
+        bslma::ManagedPtr<FileManager>&         fileManager,
+        const bsl::shared_ptr<CslSearchResult>& searchResult_p,
+        bsl::ostream&                           ostream,
+        bslma::Allocator*                       allocator);
 
     // MANIPULATORS
 

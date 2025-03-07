@@ -61,12 +61,10 @@ void printQueueInfo(bsl::ostream&     ostream,
                     unsigned int      queuesLimit,
                     bslma::Allocator* allocator)
 {
-    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queueInfos =
-        queueMap.queueInfos();
+    const QueueInfos& queueInfos = queueMap.queueInfos();
     if (!queueInfos.empty()) {
         ostream << ",\n";
-        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator itEnd =
-            queueInfos.cend();
+        QueueInfos::const_iterator itEnd = queueInfos.cend();
         if (queueInfos.size() > queuesLimit) {
             ostream << "    \"First" << queuesLimit << "Queues\": [";
             itEnd = queueInfos.cbegin() + queuesLimit;
@@ -74,8 +72,7 @@ void printQueueInfo(bsl::ostream&     ostream,
         else {
             ostream << "    \"Queues\": [";
         }
-        bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
-            queueInfos.cbegin();
+        QueueInfos::const_iterator it = queueInfos.cbegin();
         for (; it != itEnd; ++it) {
             if (it != queueInfos.cbegin()) {
                 ostream << ",";
@@ -152,8 +149,6 @@ class HumanReadableCslPrinter : public CslPrinter {
         CslRecordPrinter<bmqu::AlignedPrinter> printer(d_ostream,
                                                        d_allocator_p);
         printer.printRecordDetails(recordStream.str(), header, recordId);
-
-        // d_ostream << '\n';
     }
 
     void
@@ -162,8 +157,9 @@ class HumanReadableCslPrinter : public CslPrinter {
         if (!offsets.empty()) {
             d_ostream << "\nThe following " << offsets.size()
                       << " offset(s) not found:\n";
-            OffsetsVec::const_iterator it = offsets.cbegin();
-            for (; it != offsets.cend(); ++it) {
+            for (OffsetsVec::const_iterator it = offsets.cbegin();
+                 it != offsets.cend();
+                 ++it) {
                 d_ostream << *it << '\n';
             }
         }
@@ -561,6 +557,9 @@ bsl::shared_ptr<CslPrinter> createCslPrinter(Parameters::PrintMode mode,
     else if (mode == Parameters::e_JSON_LINE) {
         printer.load(new (*allocator) JsonLineCslPrinter(stream, allocator),
                      allocator);
+    }
+    else {
+        BSLS_ASSERT(false && "Unknown printer mode");
     }
     return printer;
 }

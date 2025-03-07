@@ -188,8 +188,9 @@ class CslSearchResultDecorator : public CslSearchResult {
     // CREATORS
 
     /// Constructor using the specified `component` and `allocator`.
-    CslSearchResultDecorator(const bsl::shared_ptr<CslSearchResult>& component,
-                             bslma::Allocator* allocator);
+    explicit CslSearchResultDecorator(
+        const bsl::shared_ptr<CslSearchResult>& component,
+        bslma::Allocator*                       allocator);
 
     // MANIPULATORS
 

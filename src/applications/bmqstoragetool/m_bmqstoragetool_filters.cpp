@@ -167,23 +167,24 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
         using namespace bmqp_ctrlmsg;
         bool queueKeyMatch = false;
 
-        if (recordHeader.recordType() ==
-            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+        mqbc::ClusterStateRecordType::Enum recordType =
+            recordHeader.recordType();
+        if (recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
             const LeaderAdvisory& leaderAdvisory =
                 record.choice().leaderAdvisory();
             queueKeyMatch = isQueueKeyMatch(leaderAdvisory.queues(),
                                             d_queueKeys);
         }
-        else if (recordHeader.recordType() ==
-                 mqbc::ClusterStateRecordType::e_UPDATE) {
-            if (record.choice().selectionId() ==
+        else if (recordType == mqbc::ClusterStateRecordType::e_UPDATE) {
+            int selectionId = record.choice().selectionId();
+            if (selectionId ==
                 ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
                 const QueueAssignmentAdvisory& queueAdvisory =
                     record.choice().queueAssignmentAdvisory();
                 queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
                                                 d_queueKeys);
             }
-            else if (record.choice().selectionId() ==
+            else if (selectionId ==
                      ClusterMessageChoice::
                          SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY) {
                 const QueueUnassignedAdvisory& queueAdvisory =
@@ -191,7 +192,7 @@ bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
                 queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
                                                 d_queueKeys);
             }
-            else if (record.choice().selectionId() ==
+            else if (selectionId ==
                      ClusterMessageChoice::
                          SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY) {
                 const QueueUnAssignmentAdvisory& queueAdvisory =

@@ -65,8 +65,9 @@ void CslFileProcessor::process()
     while (true) {
         iter->loadClusterMessage(&clusterMessage);
 
-        if (iter->header().recordType() ==
-            mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+        mqbc::ClusterStateRecordType::Enum rt = iter->header().recordType();
+
+        if (rt == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
             if (d_parameters->d_processCslRecordTypes.d_snapshot) {
                 // Apply filters
                 if (filters.apply(iter->header(),
@@ -79,8 +80,7 @@ void CslFileProcessor::process()
                 }
             }
         }
-        else if (iter->header().recordType() ==
-                 mqbc::ClusterStateRecordType::e_UPDATE) {
+        else if (rt == mqbc::ClusterStateRecordType::e_UPDATE) {
             if (d_parameters->d_processCslRecordTypes.d_update) {
                 // Apply filters
                 if (filters.apply(iter->header(),
@@ -93,8 +93,7 @@ void CslFileProcessor::process()
                 }
             }
         }
-        else if (iter->header().recordType() ==
-                 mqbc::ClusterStateRecordType::e_COMMIT) {
+        else if (rt == mqbc::ClusterStateRecordType::e_COMMIT) {
             if (d_parameters->d_processCslRecordTypes.d_commit) {
                 // Apply filters
                 if (filters.apply(iter->header(),
@@ -107,8 +106,7 @@ void CslFileProcessor::process()
                 }
             }
         }
-        else if (iter->header().recordType() ==
-                 mqbc::ClusterStateRecordType::e_ACK) {
+        else if (rt == mqbc::ClusterStateRecordType::e_ACK) {
             if (d_parameters->d_processCslRecordTypes.d_ack) {
                 // Apply filters
                 if (filters.apply(iter->header(),
