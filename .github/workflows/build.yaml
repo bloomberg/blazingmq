@@ -217,7 +217,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr
+          name: bmqbrkr_${{ matrix.cluster }}_${{ matrix.mode }}.tsk
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
 
