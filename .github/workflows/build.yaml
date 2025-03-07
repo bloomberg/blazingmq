@@ -218,10 +218,11 @@ jobs:
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
-        # if: failure()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr_${{ env.RUN_UID }}.tsk
+          name: bmqbrkr.tsk
+          overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
 
