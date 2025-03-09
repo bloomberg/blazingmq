@@ -187,10 +187,10 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// `confirmationCookie` to propagate the result to the requester.
     void onOpenQueueResponse(
         const bmqp_ctrlmsg::Status&              status,
-        mqbi::QueueHandle*                                queuehandle,
+        mqbi::QueueHandle*                       queuehandle,
         const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
         const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
-        const mqbi::Domain::OpenQueueCallback&            callback);
+        const mqbi::Domain::OpenQueueCallback&   callback);
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateObserver)

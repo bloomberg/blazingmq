@@ -236,10 +236,10 @@ class QueueHandle : public mqbi::QueueHandle {
 
     /// Called by the `Queue` to deliver the specified `message` with the
     /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
-    /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
+    /// `msgGroupId` for the specified `subscriptions` streams of the queue.
     /// The behavior is undefined unless the queueHandle can send a message at
     /// this time for all of the `subQueueInfos` streams (see
-    /// 'canDeliver(unsigned int subQueueId)' for more information).
+    /// 'canDeliver(unsigned int subscription)' for more information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
@@ -247,7 +247,7 @@ class QueueHandle : public mqbi::QueueHandle {
                        const bmqt::MessageGUID&                  msgGUID,
                        const mqbi::StorageMessageAttributes&     attributes,
                        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-                       const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                       const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                        bool                                      isOutOfOrder);
 
     void makeSubStream(const bsl::string& appId,

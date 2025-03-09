@@ -273,7 +273,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
         mqbnet::ClusterNode*                       netNode,
         const bsl::string&                         clusterName,
         const bmqp_ctrlmsg::ClientIdentity&        identity,
-        const bsl::shared_ptr<mwcst::StatContext>& statContext,
+        const bsl::shared_ptr<bmqst::StatContext>& statContext,
         bslma::Allocator*                          allocator);
 
     /// Destructor.
@@ -384,7 +384,7 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     int peerInstanceId() const;
 
     /// Return the associated stat context.
-    const bsl::shared_ptr<mwcst::StatContext>& statContext() const;
+    const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
 
     /// Return a reference to the non-modifiable list of partitions for
     /// which this cluster node is the primary.
@@ -712,7 +712,7 @@ inline int ClusterNodeSession::peerInstanceId() const
     return d_peerInstanceId;
 }
 
-inline const bsl::shared_ptr<mwcst::StatContext>&
+inline const bsl::shared_ptr<bmqst::StatContext>&
 ClusterNodeSession::statContext() const
 {
     return d_queueHandleRequesterContext_sp->statContext();
