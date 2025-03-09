@@ -703,10 +703,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
 
     const bool hasLostTheClient = (!isBrokerShutdown && !isProxy());
 
-    //    if (d_operationState == e_SHUTTING_DOWN_V2) {
-    //        // Leave over queues and handles
-    //    }
-    //    else {
     // Set up the 'd_operationState' to indicate that the channel is dying and
     // we should not use it anymore trying to send any messages and should also
     // stop enqueuing 'callbacks' to the client dispatcher thread ...
@@ -716,7 +712,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
                                                 hasLostTheClient);
     BALL_LOG_INFO << description() << ": Dropped " << numHandlesDropped
                   << " queue handles.";
-    //    }
+
     // Set up the 'd_operationState' to indicate that the channel is dying and
     // we should not use it anymore trying to send any messages and should also
     // stop enqueuing 'callbacks' to the client dispatcher thread ...
@@ -3129,8 +3125,6 @@ void ClientSession::processClusterMessage(
         const bmqp_ctrlmsg::StopRequest& request =
             message.choice().clusterMessage().choice().stopRequest();
 
-        BSLS_ASSERT_SAFE(request.version() == 2);
-
         // Deconfigure all queues.  Do NOT wait for unconfirmed
 
         BALL_LOG_INFO << description() << ": processing StopRequest.";
@@ -3166,7 +3160,7 @@ void ClientSession::processClusterMessage(
     }
     else {
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                       << ": unknown Cluster in StopResponse: " << message;
+                       << ": unknown Cluster message: " << message;
     }
 }
 

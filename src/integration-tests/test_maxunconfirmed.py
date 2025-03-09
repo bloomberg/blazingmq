@@ -26,18 +26,19 @@ pytestmark = order(4)
 
 
 class TestMaxunconfirmed:
-    def setup_cluster(self, multi_node):
+    def setup_cluster(self, multi_node, domain_urls: tc.DomainUrls):
+        uri_priority = domain_urls.uri_priority
         proxies = multi_node.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         self.proxy = next(proxies)
 
         self.producer = self.proxy.create_client("producer")
-        self.producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+        self.producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
         self.consumer = self.proxy.create_client("consumer")
         self.consumer.open(
-            tc.URI_PRIORITY, flags=["read"], max_unconfirmed_messages=1, succeed=True
+            uri_priority, flags=["read"], max_unconfirmed_messages=1, succeed=True
         )
 
     # POST 'n' messages
@@ -49,20 +50,22 @@ class TestMaxunconfirmed:
         return all(res == Client.e_SUCCESS for res in results)
 
     @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
-    def test_maxunconfirmed(self, multi_node: Cluster):
+    def test_maxunconfirmed(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        uri_priority = domain_urls.uri_priority
+
         # Post 100 messages
-        assert self.post_n_msgs(tc.URI_PRIORITY, 100)
+        assert self.post_n_msgs(uri_priority, 100)
 
         # Consumer gets just 1
         self.consumer.wait_push_event()
-        assert len(self.consumer.list(tc.URI_PRIORITY, block=True)) == 1
+        assert len(self.consumer.list(uri_priority, block=True)) == 1
 
         # Confirm 1 message
-        self.consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)
+        self.consumer.confirm(uri_priority, "*", succeed=True)
 
         # Consumer gets just 1
         self.consumer.wait_push_event()
-        assert len(self.consumer.list(tc.URI_PRIORITY, block=True)) == 1
+        assert len(self.consumer.list(uri_priority, block=True)) == 1
 
         # Shutdown the primary
         leader = multi_node.last_known_leader
@@ -80,15 +83,15 @@ class TestMaxunconfirmed:
         assert leader == multi_node.wait_leader()
 
         # Confirm 1 message
-        self.consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)
+        self.consumer.confirm(uri_priority, "*", succeed=True)
 
         # Consumer gets just 1
         self.consumer.wait_push_event()
-        assert len(self.consumer.list(tc.URI_PRIORITY, block=True)) == 1
+        assert len(self.consumer.list(uri_priority, block=True)) == 1
 
         # Confirm 1 message
-        self.consumer.confirm(tc.URI_PRIORITY, "*", succeed=True)
+        self.consumer.confirm(uri_priority, "*", succeed=True)
 
         # Consumer gets just 1
         self.consumer.wait_push_event()
-        assert len(self.consumer.list(tc.URI_PRIORITY, block=True)) == 1
+        assert len(self.consumer.list(uri_priority, block=True)) == 1

@@ -463,7 +463,7 @@ class Client(BMQProcess):
         self._logger.info(f"TIMEOUT: timed out after {timeout}s while {action}")
         return False
 
-    def open_priority_queues(self, count, start=0, **kw):
+    def open_priority_queues(self, count, start=0, uri_priority=URI_PRIORITY, **kw):
         """
         Open *distinct* priority queues with the options specified in 'kw'.
         While each queue uses a different URI, calling this method multiple
@@ -477,7 +477,7 @@ class Client(BMQProcess):
         """
         return ListContextManager(
             [
-                Queue(self, f"{URI_PRIORITY}{i}", **kw)
+                Queue(self, f"{uri_priority}{i}", **kw)
                 for i in range(start, start + count)
             ]
         )
@@ -501,7 +501,9 @@ class Client(BMQProcess):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, **kw):
+    def open_fanout_queues(
+        self, count, start=0, appids=None, uri_fanout=URI_FANOUT, **kw
+    ):
         """
         Open *distinct* fanout queues with the options specified in 'kw'.
         While each queue uses a different URI, calling this method multiple
@@ -519,11 +521,11 @@ class Client(BMQProcess):
         block.
         """
         return ListContextManager(
-            [Queue(self, f"{URI_FANOUT}{i}", **kw) for i in range(start, start + count)]
+            [Queue(self, f"{uri_fanout}{i}", **kw) for i in range(start, start + count)]
             if appids is None
             else [
                 ListContextManager(
-                    [Queue(self, f"{URI_FANOUT}{i}?id={id}", **kw) for id in appids]
+                    [Queue(self, f"{uri_fanout}{i}?id={id}", **kw) for id in appids]
                 )
                 for i in range(start, start + count)
             ]

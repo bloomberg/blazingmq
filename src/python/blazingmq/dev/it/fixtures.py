@@ -37,7 +37,8 @@ import shutil
 import tempfile
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Iterator
+from typing import Callable, List, Optional, Tuple
+from collections.abc import Generator, Iterator
 import psutil
 
 import pytest
@@ -384,7 +385,12 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                         if request.instance is not None and hasattr(
                             request.instance, "setup_cluster"
                         ):
-                            request.instance.setup_cluster(cluster)
+                            if "domain_urls" in request.fixturenames:
+                                request.instance.setup_cluster(
+                                    cluster, request.getfixturevalue("domain_urls")
+                                )
+                            else:
+                                request.instance.setup_cluster(cluster)
 
                 except Exception as initial_exception:
                     logger.warning(

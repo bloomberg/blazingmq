@@ -246,9 +246,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         d_queueState_p->queue()));
     BSLS_ASSERT_SAFE(context);
 
-    // Attempt to deliver all data in the storage.  Otherwise, broadcast
-    // can get dropped if the incoming configure response removes consumers.
-
+    // Force re-delivery
     deliverMessages();
 
     // RelayQueueEngine now assumes that configureQueue request cannot fail.
@@ -1497,7 +1495,20 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
         d_queueState_p->queue()));
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
+        d_storageIter_mp->removeAllElements();
+
         d_storageIter_mp->advance();
+    }
+    else {
+        PushStreamIterator del(storage(),
+                               &d_pushStream,
+                               d_pushStream.d_stream.find(msgGUID));
+
+        if (!del.atEnd()) {
+            del.removeAllElements();
+
+            del.advance();
+        }
     }
 }
 

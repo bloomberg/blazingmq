@@ -342,14 +342,14 @@ class TestPutsRetransmission:
 
         return True
 
-    def setup_cluster_fanout(self, cluster):
-        self.uri = tc.URI_FANOUT_SC
-        self.domain = tc.DOMAIN_FANOUT_SC
+    def setup_cluster_fanout(self, cluster, du: tc.DomainUrls):
+        self.uri = du.uri_fanout
+        self.domain = du.domain_fanout
         # uri and client Id pairs
         self.uris = [
-            (tc.URI_FANOUT_SC_FOO, "foo"),
-            (tc.URI_FANOUT_SC_BAR, "bar"),
-            (tc.URI_FANOUT_SC_BAZ, "baz"),
+            (du.uri_fanout_foo, "foo"),
+            (du.uri_fanout_bar, "bar"),
+            (du.uri_fanout_baz, "baz"),
         ]
 
         self.set_proxy(cluster)
@@ -475,8 +475,10 @@ class TestPutsRetransmission:
         self.leader = cluster.last_known_leader
         self.active_node = cluster.process(self.replica_proxy.get_active_node())
 
-    def test_shutdown_primary_convert_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_shutdown_primary_convert_replica(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # make the 'active_node' new primary
         for node in multi_node.nodes(exclude=self.active_node):
@@ -493,8 +495,10 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=False)
 
-    def test_shutdown_primary_keep_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_shutdown_primary_keep_replica(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
@@ -515,8 +519,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_shutdown_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_shutdown_replica(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # Start graceful shutdown
         self.active_node.exit_gracefully()
@@ -533,8 +537,10 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_kill_primary_convert_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_kill_primary_convert_replica(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # make the 'active_node' new primary
         nodes = multi_node.nodes(exclude=self.active_node)
@@ -550,8 +556,10 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_kill_primary_keep_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_kill_primary_keep_replica(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
@@ -565,8 +573,8 @@ class TestPutsRetransmission:
 
         self.inspect_results(allow_duplicates=True)
 
-    def test_kill_replica(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_kill_replica(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         # Start graceful shutdown
         self.active_node.force_stop()
@@ -577,28 +585,30 @@ class TestPutsRetransmission:
 
     @tweak.broker.app_config.network_interfaces.tcp_interface.low_watermark(512)
     @tweak.broker.app_config.network_interfaces.tcp_interface.high_watermark(1024)
-    def test_watermarks(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_watermarks(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        uri_priority = domain_urls.uri_priority
+
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         producer1 = self.replica_proxy.create_client("producer1")
-        producer1.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
+        producer1.open(uri_priority, flags=["write", "ack"], succeed=True)
 
         consumer1 = self.replica_proxy.create_client("consumer1")
-        consumer1.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+        consumer1.open(uri_priority, flags=["read"], succeed=True)
 
-        producer1.post(tc.URI_PRIORITY, payload=["msg"], succeed=True, wait_ack=True)
+        producer1.post(uri_priority, payload=["msg"], succeed=True, wait_ack=True)
         consumer1.wait_push_event()
         assert wait_until(
-            lambda: len(consumer1.list(tc.URI_PRIORITY, block=True)) == 1, 10
+            lambda: len(consumer1.list(uri_priority, block=True)) == 1, 10
         )
-        msgs = consumer1.list(tc.URI_PRIORITY, block=True)
+        msgs = consumer1.list(uri_priority, block=True)
         assert msgs[0].payload == "msg"
 
         assert wait_until(self.has_consumed_all, 120)
         self.inspect_results(allow_duplicates=False)
 
-    def test_kill_proxy(self, multi_node: Cluster):
-        self.setup_cluster_fanout(multi_node)
+    def test_kill_proxy(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        self.setup_cluster_fanout(multi_node, domain_urls)
 
         self.replica_proxy.force_stop()
 

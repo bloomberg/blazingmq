@@ -28,18 +28,14 @@ pytestmark = order(4)
 
 timeout = 60
 
-[q1, q2, q3, q4, q5, q6, q7, q8, q9] = [
-    f"bmq://{tc.DOMAIN_PRIORITY}/q{i}" for i in range(9)
-]
-
 # -------------------------------------------------------------------------------
 
 
-def check_num_assigned_queues(expected, *brokers):
+def check_num_assigned_queues(expected, *brokers, du: tc.DomainUrls):
     for broker in brokers:
         broker.queue_helper()
         m = broker.capture(
-            f"{tc.DOMAIN_PRIORITY}.*numAssignedQueues=(\\d+)",
+            f"{du.domain_priority}.*numAssignedQueues=(\\d+)",
             timeout,
         )
         assert m is not None, f"broker={broker.name}"
@@ -48,7 +44,12 @@ def check_num_assigned_queues(expected, *brokers):
 
 @tweak.domain.max_queues(5)
 class TestMaxQueues:
-    def test_max_queue(self, cluster: Cluster):
+    def test_max_queue(self, cluster: Cluster, domain_urls: tc.DomainUrls):
+        du = domain_urls
+        [q1, q2, q3, q4, q5, q6, q7, q8, q9] = [
+            f"bmq://{du.domain_priority}/q{i}" for i in range(9)
+        ]
+
         # ==================
         # beginning of setup
         leader = cluster.last_known_leader
@@ -66,16 +67,16 @@ class TestMaxQueues:
         # hit high watermark
         leader_client.open(q4, flags=["read"], succeed=True)
         assert leader.alarms("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK.*current: 4, limit: 5")
-        check_num_assigned_queues(4, leader)
+        check_num_assigned_queues(4, leader, du=du)
 
         # hit maximum
         assert leader_client.open(q5, flags=["read"], block=True) == Client.e_SUCCESS
-        check_num_assigned_queues(5, leader)
+        check_num_assigned_queues(5, leader, du=du)
 
         # cannot open new queues anymore now
         assert leader_client.open(q6, flags=["read"], block=True) == Client.e_REFUSED
         assert leader.panics("DOMAIN_QUEUE_LIMIT_FULL.*limit: 5")
-        check_num_assigned_queues(5, leader)
+        check_num_assigned_queues(5, leader, du=du)
 
         # but opening existing queues is OK
         replica_client = replica_proxy.create_client("SC")
@@ -86,12 +87,12 @@ class TestMaxQueues:
             if cluster.is_single_node
             else cluster.process(replica_proxy.get_active_node())
         )
-        check_num_assigned_queues(5, leader, active_replica)
+        check_num_assigned_queues(5, leader, active_replica, du=du)
 
         # check that opening an existing queue doesn't mess up things
         # still cannot open new queues anymore
         assert leader_client.open(q6, flags=["read"], block=True) == Client.e_REFUSED
-        check_num_assigned_queues(5, leader, active_replica)
+        check_num_assigned_queues(5, leader, active_replica, du=du)
 
         # ---------------------------------------------------------------------
         # check that removing queues make space for new queues
@@ -104,17 +105,17 @@ class TestMaxQueues:
 
         # GC; now we can open a new queue
         leader.force_gc_queues(succeed=True)
-        check_num_assigned_queues(3, leader, active_replica)
+        check_num_assigned_queues(3, leader, active_replica, du=du)
 
         assert replica_client.open(q6, flags=["read"], block=True) == Client.e_SUCCESS
         assert leader.alarms("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK.*current: 4, limit: 5")
-        check_num_assigned_queues(4, leader, active_replica)
+        check_num_assigned_queues(4, leader, active_replica, du=du)
 
         assert leader_client.open(q7, flags=["read"], block=True) == Client.e_SUCCESS
 
         assert replica_client.open(q8, flags=["read"], block=True) == Client.e_REFUSED
         assert leader.panics("DOMAIN_QUEUE_LIMIT_FULL.*limit: 5")
-        check_num_assigned_queues(5, leader, active_replica)
+        check_num_assigned_queues(5, leader, active_replica, du=du)
 
         # ---------------------------------------------------------------------
         # force a change of leadership
@@ -145,7 +146,12 @@ class TestMaxQueues:
     # open queues before there is a leader (restore, in flight contexts)
 
     @start_cluster(False)
-    def test_max_queue_restore(self, multi_node: Cluster):
+    def test_max_queue_restore(self, multi_node: Cluster, domain_urls: tc.DomainUrls):
+        du = domain_urls
+        [q1, q2, q3, q4, q5, q6, q7, q8, q9] = [
+            f"bmq://{du.domain_priority}/q{i}" for i in range(9)
+        ]
+
         cluster = multi_node
 
         cluster.start_node("west1")
@@ -187,4 +193,4 @@ class TestMaxQueues:
 
         assert leader.panics("DOMAIN_QUEUE_LIMIT_FULL.*limit: 5")
 
-        check_num_assigned_queues(5, leader, oa, ra)
+        check_num_assigned_queues(5, leader, oa, ra, du=du)

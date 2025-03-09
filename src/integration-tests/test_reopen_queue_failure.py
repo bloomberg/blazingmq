@@ -30,7 +30,8 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 pytestmark = order(6)
 
 
-def test_reopen_queue_failure(cluster: Cluster):
+def test_reopen_queue_failure(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
     proxies = cluster.proxy_cycle()
 
     # We want proxy connected to a replica
@@ -39,7 +40,7 @@ def test_reopen_queue_failure(cluster: Cluster):
     proxy = next(proxies)
     consumer = proxy.create_client("consumer")
 
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.open(du.uri_priority, flags=["read"], succeed=True)
 
     # Set the quorum of all non-leader nodes to 99 to prevent them from
     # becoming a new leader
@@ -62,7 +63,7 @@ def test_reopen_queue_failure(cluster: Cluster):
     # Remove routing config on the next leader (to cause reopen
     # queue failure)
     cluster.work_dir.joinpath(
-        next_leader.name, "etc", "domains", f"{tc.DOMAIN_PRIORITY}.json"
+        next_leader.name, "etc", "domains", f"{du.domain_priority}.json"
     ).unlink()
     next_leader.command("DOMAINS RESOLVER CACHE_CLEAR ALL")
 
