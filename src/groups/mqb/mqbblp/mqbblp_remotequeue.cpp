@@ -661,7 +661,8 @@ void RemoteQueue::getHandle(
         }
     }
 
-    d_queueEngine_mp->getHandle(clientContext,
+    d_queueEngine_mp->getHandle(context,
+                                clientContext,
                                 handleParameters,
                                 upstreamSubQueueId,
                                 callback);
@@ -1030,8 +1031,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
     // the time the message is actually sent upstream, i.e. in
     // cluster/clusterProxy) for the most exact accuracy, but doing it here is
     // good enough.
-    d_state_p->stats().onEvent(mqbstat::QueueStatsDomain::EventType::e_PUT,
-                               appData->length());
+    d_state_p->stats()->onEvent<mqbstat::QueueStatsDomain::EventType::e_PUT>(
+        appData->length());
 
     mqbi::InlineResult::Enum rc = mqbi::InlineResult::e_UNAVAILABLE;
 
@@ -1068,9 +1069,8 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
 
             ackMessage.setMessageGUID(putHeader.messageGUID());
 
-            d_state_p->stats().onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_NACK,
-                1);
+            d_state_p->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
 
             // CorrelationId & QueueId are left unset as those fields
             // will be filled downstream.

@@ -318,8 +318,6 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
 
     BSLS_ASSERT_SAFE(leaseId >= oldLeaseId);
 
-    pinfo.setPrimaryNodeSession(ns);
-
     mqbnet::ClusterNode* node           = 0;
     mqbnet::ClusterNode* oldPrimaryNode = oldPrimary
                                               ? oldPrimary->clusterNode()
@@ -346,9 +344,11 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
         }
     }
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << " closing the gate " << partitionId;
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: closing the gate " << partitionId;
     d_gatePrimary[partitionId].close();
+
+    pinfo.setPrimaryNodeSession(ns);
 
     pinfo.setPrimaryLeaseId(leaseId);
 
@@ -360,9 +360,10 @@ ClusterState& ClusterState::setPartitionPrimary(int          partitionId,
     }
     pinfo.setPrimaryStatus(primaryStatus);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting primary of Partition [" << partitionId << "] to "
-                  << "[" << (node ? node->nodeDescription() : "** NULL **")
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: Setting primary of Partition [" << partitionId
+                  << "] to ["
+                  << (node ? node->nodeDescription() : "** NULL **")
                   << "], leaseId: [" << leaseId << "], primaryStatus: ["
                   << primaryStatus << "], oldPrimary: ["
                   << (oldPrimaryNode ? oldPrimaryNode->nodeDescription()
@@ -395,8 +396,8 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
 
     ClusterStatePartitionInfo& pinfo = d_partitionsInfo[partitionId];
     if (0 == pinfo.primaryNodeSession()) {
-        BALL_LOG_ERROR << "Cluster [" << d_cluster_p->name() << "]: "
-                       << "Failed to set the primary status of Partition ["
+        BALL_LOG_ERROR << "Cluster [" << d_cluster_p->name()
+                       << "]: Failed to set the primary status of Partition ["
                        << partitionId << "] to [" << value
                        << "], reason: primary node is ** NULL **.";
 
@@ -413,9 +414,10 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     bmqp_ctrlmsg::PrimaryStatus::Value oldStatus = pinfo.primaryStatus();
     pinfo.setPrimaryStatus(value);
 
-    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                  << "Setting status of primary [" << node->nodeDescription()
-                  << "] of Partition [" << partitionId << "] to [" << value
+    BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                  << "]: Setting status of primary ["
+                  << node->nodeDescription() << "] of Partition ["
+                  << partitionId << "] to [" << value
                   << "], oldPrimaryStatus: [" << oldStatus << "], leaseId: ["
                   << pinfo.primaryLeaseId() << "].";
 
@@ -440,13 +442,13 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     // May need to open the gate later/close earlier by a separate call.
 
     if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == value) {
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                      << " opening the gate " << partitionId;
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: opening the gate " << partitionId;
         d_gatePrimary[partitionId].open();
     }
     else {
-        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name() << "]: "
-                      << " closing the gate " << partitionId;
+        BALL_LOG_INFO << "Cluster [" << d_cluster_p->name()
+                      << "]: closing the gate " << partitionId;
         d_gatePrimary[partitionId].close();
     }
 

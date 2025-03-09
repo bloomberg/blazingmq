@@ -226,7 +226,7 @@ void QueueSessionManager::onQueueOpenCb(
     const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
     const GetHandleCallback&                 responseCallback,
     const bmqp_ctrlmsg::ControlMessage&      request,
-    const bmqu::AtomicValidatorSp&                   validator)
+    const bmqu::AtomicValidatorSp&           validator)
 {
     // executed by *ANY* thread
 

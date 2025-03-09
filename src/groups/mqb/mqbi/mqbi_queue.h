@@ -62,7 +62,7 @@
 #include <bmqt_resultcode.h>
 
 #include <bmqc_orderedhashset.h>
-#include <mwcst_statcontext.h>
+#include <bmqst_statcontext.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -222,7 +222,7 @@ class QueueHandleRequesterContext {
     // Unique ID associated with the requester
     // of a queue handle.
 
-    bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
+    bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
     InlineClient* d_inlineClient_p;
 
@@ -259,7 +259,7 @@ class QueueHandleRequesterContext {
     /// return a reference offering modifiable access to this object.
     QueueHandleRequesterContext& setRequesterId(RequesterId value);
     QueueHandleRequesterContext&
-    setStatContext(const bsl::shared_ptr<mwcst::StatContext>& value);
+    setStatContext(const bsl::shared_ptr<bmqst::StatContext>& value);
 
     QueueHandleRequesterContext& setInlineClient(InlineClient* inlineClient);
 
@@ -272,7 +272,7 @@ class QueueHandleRequesterContext {
     /// Return the corresponding data member's value.
     RequesterId requesterId() const;
 
-    const bsl::shared_ptr<mwcst::StatContext>& statContext() const;
+    const bsl::shared_ptr<bmqst::StatContext>& statContext() const;
 
     InlineClient* inlineClient() const;
 
@@ -1327,7 +1327,7 @@ QueueHandleRequesterContext::setRequesterId(RequesterId value)
 
 inline QueueHandleRequesterContext&
 QueueHandleRequesterContext::setStatContext(
-    const bsl::shared_ptr<mwcst::StatContext>& value)
+    const bsl::shared_ptr<bmqst::StatContext>& value)
 {
     d_statContext_sp = value;
     return *this;
@@ -1372,7 +1372,7 @@ QueueHandleRequesterContext::requesterId() const
     return d_requesterId;
 }
 
-inline const bsl::shared_ptr<mwcst::StatContext>&
+inline const bsl::shared_ptr<bmqst::StatContext>&
 QueueHandleRequesterContext::statContext() const
 {
     return d_statContext_sp;

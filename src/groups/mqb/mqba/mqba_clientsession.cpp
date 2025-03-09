@@ -345,7 +345,7 @@ struct BuildAckOverflowFunctor {
 // -------------------------
 
 ClientSessionState::ClientSessionState(
-    const bsl::shared_ptr<mwcst::StatContext>& clientStatContext,
+    const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
     BlobSpPool*                                blobSpPool,
     bdlbb::BlobBufferFactory*                  bufferFactory,
     bmqp::EncodingType::Enum                   encodingType,
@@ -639,13 +639,12 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
         flush();
     }
 
+    mqbstat::QueueStatsClient* queueStats = 0;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(queueState == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
         // Invalid/unknown queue
-        invalidQueueStats()->onEvent(
-            mqbstat::QueueStatsClient::EventType::e_ACK,
-            1);
+        queueStats = invalidQueueStats();
     }
     else {
         // Known queue (or subStream of the queue)
@@ -660,16 +659,14 @@ void ClientSession::sendAck(bmqt::AckResult::Enum    status,
             // Invalid/unknown subStream
             // Producer has closed the queue before receiving ACKs
 
-            invalidQueueStats()->onEvent(
-                mqbstat::QueueStatsClient::EventType::e_ACK,
-                1);
+            queueStats = invalidQueueStats();
         }
         else {
-            subQueueCiter->value().onEvent(
-                mqbstat::QueueStatsClient::EventType::e_ACK,
-                1);
+            queueStats = subQueueCiter->value().d_stats.get();
         }
     }
+
+    queueStats->onEvent(mqbstat::QueueStatsClient::EventType::e_ACK, 1);
 }
 
 void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
@@ -2621,7 +2618,7 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
 
 // CREATORS
 ClientSession::ClientSession(
-    const bsl::shared_ptr<bmqio::Channel>&  channel,
+    const bsl::shared_ptr<bmqio::Channel>&     channel,
     const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
     const bsl::string&                         sessionDescription,
     mqbi::Dispatcher*                          dispatcher,

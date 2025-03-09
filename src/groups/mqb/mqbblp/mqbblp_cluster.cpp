@@ -415,19 +415,9 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
 
             // If queue exists, report self generated NACK
 
-            it->second.d_handle_p->queue()->stats()->onEvent(
-                mqbstat::QueueStatsDomain::EventType::e_NACK,
-                1);
-        }
-        else if (!isSelfGenerated) {
-            BMQU_THROTTLEDACTION_THROTTLE(
-                d_throttledFailedAckMessages,
-                BALL_LOG_WARN
-                    << description()
-                    << ": ACK message for queue with unknown queueId ["
-                    << queueId << ", guid: " << messageGUID << ", for node: "
-                    << nodeSession->clusterNode()->nodeDescription(););
-            return;  // RETURN
+            it->second.d_handle_p->queue()
+                ->stats()
+                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_NACK>(1);
         }
 
         // Throttle error log if this is a 'failed Ack': note that we log at
@@ -1451,8 +1441,8 @@ mqbi::InlineResult::Enum Cluster::sendPutInline(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    const bsl::shared_ptr<mwcu::AtomicState>&                  state,
-    BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 genCount)
+    const bsl::shared_ptr<bmqu::AtomicState>&                  state,
+    bsls::Types::Uint64                                        genCount)
 {
     // executed by *ANY* thread
 
@@ -2186,7 +2176,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
 
     for (; nodeIter != endIter; ++nodeIter) {
         // Create stat context for each cluster node
-        mwcst::StatContextConfiguration config((*nodeIter)->hostName());
+        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
 
         StatContextMp statContextMp =
             d_clusterData.clusterNodesStatContext()->addSubcontext(config);
@@ -2926,9 +2916,9 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbi::DispatcherPutEvent& realEvent = *event.asPutEvent();
-        BSLS_ASSERT_SAFE(!realEvent->isRelay());
+        BSLS_ASSERT_SAFE(!realEvent.isRelay());
 
-            onPutEvent(realEvent);
+        onPutEvent(realEvent);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_ACK: {
         const mqbi::DispatcherAckEvent& realEvent = *event.asAckEvent();
@@ -2942,8 +2932,8 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CONFIRM: {
         const mqbi::DispatcherConfirmEvent& realEvent =
             *event.asConfirmEvent();
-        BSLS_ASSERT_SAFE(!realEvent->isRelay());
-            onConfirmEvent(realEvent);
+        BSLS_ASSERT_SAFE(!realEvent.isRelay());
+        onConfirmEvent(realEvent);
     } break;
     case mqbi::DispatcherEventType::e_REJECT: {
         const mqbi::DispatcherRejectEvent& realEvent = *event.asRejectEvent();

@@ -1260,7 +1260,7 @@ mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
-    const bsl::shared_ptr<mwcu::AtomicState>&                  state,
+    const bsl::shared_ptr<bmqu::AtomicState>&                  state,
     bsls::Types::Uint64                                        genCount)
 {
     // This event is invoked as a result of RemoteQueue asking cluster proxy to

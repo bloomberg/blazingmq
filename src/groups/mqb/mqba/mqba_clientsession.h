@@ -171,7 +171,7 @@ struct ClientSessionState {
 
     /// Stat context dedicated to this domain, to use as the parent stat
     /// context for any queue in this domain.
-    const bsl::shared_ptr<mwcst::StatContext> d_statContext_sp;
+    const bsl::shared_ptr<bmqst::StatContext> d_statContext_sp;
 
     /// Blob buffer factory to use.
     ///

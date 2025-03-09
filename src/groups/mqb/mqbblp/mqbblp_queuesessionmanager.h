@@ -240,7 +240,7 @@ class QueueSessionManager {
                   const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
                   const GetHandleCallback&                 responseCallback,
                   const bmqp_ctrlmsg::ControlMessage&      request,
-        const bmqu::AtomicValidatorSp&                   validator);
+                  const bmqu::AtomicValidatorSp&           validator);
 
     /// Callback invoked in response to an open queue request (in the
     /// specified `controlMessage`).  If the specified `status` is SUCCESS,

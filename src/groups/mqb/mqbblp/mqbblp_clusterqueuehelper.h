@@ -663,7 +663,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void onGetQueueHandle(
         const bmqp_ctrlmsg::Status&              status,
         mqbi::QueueHandle*                       queueHandle,
-        const OpenQueueContextSp&                        context,
+        const OpenQueueContextSp&                context,
         const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
         const mqbi::OpenQueueConfirmationCookie& confirmationCookie);
 

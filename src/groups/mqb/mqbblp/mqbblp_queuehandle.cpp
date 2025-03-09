@@ -502,7 +502,7 @@ void QueueHandle::deliverMessageImpl(
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
-    const bmqp::Protocol::SubQueueInfosArray& subscriptions)
+    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
     bool                                      isOutOfOrder)
 {
     // executed by the *QUEUE_DISPATCHER* thread
@@ -532,8 +532,8 @@ void QueueHandle::deliverMessageImpl(
                 attributes.messagePropertiesInfo()))
             .setSubQueueInfos(subscriptions)
             .setMsgGroupId(msgGroupId)
-        .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
-        .setOutOfOrderPush(isOutOfOrder);
+            .setCompressionAlgorithmType(attributes.compressionAlgorithmType())
+            .setOutOfOrderPush(isOutOfOrder);
 
         if (message) {
             event->setBlob(message);
@@ -1264,7 +1264,9 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
                           << ", upstream queueId: " << ackMessage.queueId()
                           << ", downstream queueId: " << id()
                           << ", guid: " << ackMessage.messageGUID()
-                          << ", status: " << status << "]";
+                          << ", status: " << ackMessage.status()
+                          << ", correlationId: " << ackMessage.correlationId()
+                          << "]";
         }
         return;  // RETURN
     }
@@ -1276,8 +1278,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     // was requested or queue failed to post the message or both.  Also note
     // that we need to reset the queueId in ack message to the one which is
     // known downstream.
-
-    d_domainStats_p->onEvent(mqbstat::QueueStatsDomain::EventType::e_ACK, 1);
+    d_domainStats_p->onEvent<mqbstat::QueueStatsDomain::EventType::e_ACK>(1);
 
     mqbi::InlineClient* inlineClient = d_clientContext_sp->inlineClient();
 
@@ -1309,8 +1310,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
         // full, every post will nack, which could be a lot.
         if (d_throttledFailedAckMessages.requestPermission()) {
             BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                          << "' NACK "
-                          << "[status: " << status
+                          << "' NACK [status: " << status
                           << ", GUID: " << ackMessage.messageGUID()
                           << ", node '" << d_clientContext_sp->description()
                           << "']";
@@ -1319,8 +1319,7 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
 
     // Always print at trace level
     BALL_LOG_TRACE << "Queue '" << d_queue_sp->description()
-                   << "' sending ACK "
-                   << "[status: " << status
+                   << "' sending ACK [status: " << status
                    << ", GUID: " << ackMessage.messageGUID() << ", node '"
                    << d_clientContext_sp->description() << "']";
 

@@ -178,7 +178,7 @@ void Cluster::_initializeNodeSessions()
     NodesListIter endIter  = clusterMembership.netCluster()->nodes().end();
     for (; nodeIter != endIter; ++nodeIter) {
         // Create stat context for each cluster node
-        mwcst::StatContextConfiguration config((*nodeIter)->hostName());
+        bmqst::StatContextConfiguration config((*nodeIter)->hostName());
 
         StatContextSp statContextSp(
             d_clusterData_mp->clusterNodesStatContext()->addSubcontext(config),
@@ -249,7 +249,8 @@ Cluster::Cluster(bslma::Allocator*        allocator,
 , d_isLeader(isLeader)
 , d_isRestoringState(false)
 , d_processor()
-, d_resources(&d_scheduler, &d_bufferFactory, &d_blobSpPool)
+, d_putFunctor()
+, d_resources(&d_scheduler, bufferFactory, &d_blobSpPool)
 {
     // PRECONDITIONS
     if (isClusterMember) {
@@ -491,7 +492,7 @@ Cluster::sendPutInline(int                                       partitionId,
                        const bmqp::PutHeader&                    putHeader,
                        const bsl::shared_ptr<bdlbb::Blob>&       appData,
                        const bsl::shared_ptr<bdlbb::Blob>&       options,
-                       const bsl::shared_ptr<mwcu::AtomicState>& state,
+                       const bsl::shared_ptr<bmqu::AtomicState>& state,
                        bsls::Types::Uint64                       genCount)
 {
     return d_putFunctor(partitionId,

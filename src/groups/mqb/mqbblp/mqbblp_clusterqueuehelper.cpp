@@ -947,7 +947,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
         context->d_callback(failure,                                          \
                             0,                                                \
                             bmqp_ctrlmsg::OpenQueueResponse(),                \
-                           mqbi::OpenQueueConfirmationCookie());              \
+                            mqbi::OpenQueueConfirmationCookie());             \
     } while (0)
 
     if (bmqp::QueueUtil::isEmpty(context->d_handleParameters)) {
@@ -1206,7 +1206,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
         context->d_callback(requestContext->response().choice().status(),
                             0,
                             bmqp_ctrlmsg::OpenQueueResponse(),
-                               mqbi::OpenQueueConfirmationCookie());
+                            mqbi::OpenQueueConfirmationCookie());
 
         return;  // RETURN
     }
@@ -1934,6 +1934,7 @@ bool ClusterQueueHelper::createQueue(
             bmqp::QueueUtil::extractSubQueueId(parameters);
 
         queue->getHandle(
+            confirmationCookie,
             context->d_clientContext,
             context->d_handleParameters,
             upstreamSubQueueId,
@@ -1959,7 +1960,7 @@ bool ClusterQueueHelper::createQueue(
                      0,
                      context,
                      openQueueResponse,
-                     mqbi::Cluster::OpenQueueConfirmationCookie());
+                     mqbi::OpenQueueConfirmationCookie());
 
     if (isPrimary) {
         // No further cleanup required.
@@ -2327,8 +2328,7 @@ void ClusterQueueHelper::onHandleConfiguredDispatched(
         BALL_LOG_WARN << d_cluster_p->description()
                       << ": Received configureStream response from ["
                       << requester->description()
-                      << "] for a queue with unknown Id "
-                      << "(" << qId << ").";
+                      << "] for a queue with unknown Id (" << qId << ").";
     }
     else {
         it->second.d_subQueueInfosMap.addSubscriptions(streamParameters);
@@ -2446,7 +2446,7 @@ void ClusterQueueHelper::onGetDomainDispatched(
 void ClusterQueueHelper::onGetQueueHandle(
     const bmqp_ctrlmsg::Status&              status,
     mqbi::QueueHandle*                       queueHandle,
-    const OpenQueueContextSp&                        context,
+    const OpenQueueContextSp&                context,
     const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
     const mqbi::OpenQueueConfirmationCookie& confirmationCookie)
 {
@@ -2545,8 +2545,9 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     }
 
     BSLS_ASSERT_SAFE(queueHandle);
+    BSLS_ASSERT_SAFE(confirmationCookie);  // in case of success, the cookie
+                                           // must be a valid shared_ptr
     BSLS_ASSERT_SAFE(confirmationCookie->d_handle);
-    // in case of success, the cookie must be a valid shared_ptr
 
     // Update the cookie to point to a null queue handle, which indicates that
     // 'requester' has successfully received and processed the open-queue
@@ -3416,7 +3417,7 @@ void ClusterQueueHelper::processRejectedQueueAssignment(
         (*cIt)->d_callback(status,
                            0,
                            bmqp_ctrlmsg::OpenQueueResponse(),
-                            mqbi::OpenQueueConfirmationCookie());
+                               mqbi::OpenQueueConfirmationCookie());
     }
     d_queues.erase(rejected->uri());
 }

@@ -152,7 +152,7 @@ class Cluster : public mqbi::Cluster {
         const bmqp::PutHeader&                    putHeader,
         const bsl::shared_ptr<bdlbb::Blob>&       appData,
         const bsl::shared_ptr<bdlbb::Blob>&       options,
-        const bsl::shared_ptr<mwcu::AtomicState>& state,
+        const bsl::shared_ptr<bmqu::AtomicState>& state,
         bsls::Types::Uint64                       genCount)>
         PutFunctor;
 
@@ -229,6 +229,8 @@ class Cluster : public mqbi::Cluster {
     // Dispatcher client data
 
     EventProcessor d_processor;
+
+    PutFunctor d_putFunctor;
 
     mqbi::ClusterResources d_resources;
 
@@ -427,7 +429,7 @@ class Cluster : public mqbi::Cluster {
                   const bmqp::PutHeader&                    putHeader,
                   const bsl::shared_ptr<bdlbb::Blob>&       appData,
                   const bsl::shared_ptr<bdlbb::Blob>&       options,
-                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
                   bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
