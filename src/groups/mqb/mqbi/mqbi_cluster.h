@@ -375,7 +375,7 @@ class Cluster : public DispatcherClient {
                   const bmqp::PutHeader&                    putHeader,
                   const bsl::shared_ptr<bdlbb::Blob>&       appData,
                   const bsl::shared_ptr<bdlbb::Blob>&       options,
-                  const bsl::shared_ptr<mwcu::AtomicState>& state,
+                  const bsl::shared_ptr<bmqu::AtomicState>& state,
                   bsls::Types::Uint64                       genCount) = 0;
 
     /// Purge and force GC queues in this cluster on a given domain.
