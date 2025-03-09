@@ -157,7 +157,7 @@ class TestBench {
                  const bmqp::PutHeader&                    putHeader,
                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
                  const bsl::shared_ptr<bdlbb::Blob>&       options,
-                 const bsl::shared_ptr<mwcu::AtomicState>& state,
+                 const bsl::shared_ptr<bmqu::AtomicState>& state,
                  bsls::Types::Uint64                       genCount);
 
     /// Ack all recorded PUTs
@@ -242,7 +242,7 @@ mqbi::InlineResult::Enum TestBench::putProcessor(
     const bmqp::PutHeader&              putHeader,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bsl::shared_ptr<bdlbb::Blob>& options,
-    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<mwcu::AtomicState>& state,
+    BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqu::AtomicState>& state,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 genCount)
 {
     d_puts.push(PutEvent(putHeader, appData, options));

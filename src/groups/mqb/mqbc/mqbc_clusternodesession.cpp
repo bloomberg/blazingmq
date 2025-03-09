@@ -37,7 +37,7 @@ ClusterNodeSession::ClusterNodeSession(
     mqbnet::ClusterNode*                       netNode,
     const bsl::string&                         clusterName,
     const bmqp_ctrlmsg::ClientIdentity&        identity,
-    const bsl::shared_ptr<mwcst::StatContext>& statContext,
+    const bsl::shared_ptr<bmqst::StatContext>& statContext,
     bslma::Allocator*                          allocator)
 : d_cluster_p(cluster)
 , d_clusterNode_p(netNode)
