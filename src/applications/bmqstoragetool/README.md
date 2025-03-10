@@ -212,3 +212,14 @@ Example:
 bmqstoragetool --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
 ```
 NOTE: CSL file is required
+
+Display number of records per type (e.g. Message, Confirm, Delete, etc.) per queue.
+The number of Confirm records are displayed per AppId if there are more than 1 AppId.
+The information is displayed for the queues with a total number of records greater or
+equal to the value of `--min-records-per-queue` param.
+By default this feature is disabled.
+-------------------------------------------------------------------------------------
+Example:
+```bash
+bmqstoragetool --journal-file=<path> --min-records-per-queue=<limit>
+```
