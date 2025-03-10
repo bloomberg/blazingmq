@@ -189,8 +189,8 @@ jobs:
           # Allow core dumps, and limit the total memory allocated for them
           ulimit -c unlimited
           cat /etc/systemd/coredump.conf
-          echo "[CoreDump]\nStorage=external\nMaxUse=2000M" >> /etc/systemd/coredump.conf
-          systemctl daemon-reload
+          sudo echo "[CoreDump]\nStorage=external\nMaxUse=2000M" >> /etc/systemd/coredump.conf
+          sudo systemctl daemon-reload
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
