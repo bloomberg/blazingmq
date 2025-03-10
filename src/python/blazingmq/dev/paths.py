@@ -154,33 +154,16 @@ class Paths:
 
         return self._broker
 
-    # def _get_broker_path(self):
-    #     broker_paths = [value for key, value in os.environ.items() if key.startswith("BLAZINGMQ_BROKER_")]
-    #     broker_paths.append(self.broker)
-    #     return random.choice(broker_paths)
-
-    def get_broker_with_version(self, version: Optional[int]) -> Path:
-        if version is None:
-            # Alternative approach: return random broker
-            #
-            # if version is not specified, get a random broker from the provided options
-            # In case only one default binary is speficied, it will be selected.
-            # return self._get_broker_path()
-
-            # Default Approach: return default broker
-            return self.broker
-
-        path_str = os.environ.get(f"BLAZINGMQ_BROKER_{version}")
+    def get_broker_path(self, name: str) -> Path:
+        path_str = os.environ.get(f"BLAZINGMQ_BROKER_{name}")
 
         if not path_str:
-            raise FileNotFoundError(path_str)
+            return self.broker
 
         brokerPath = Path(path_str)
 
         if not brokerPath.exists():
-            logger.warning("path %s does not exist", brokerPath)
-            if self.must_exist:
-                raise FileNotFoundError(brokerPath)
+            return self.broker
 
         return brokerPath
 

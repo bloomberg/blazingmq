@@ -266,7 +266,8 @@ class Configurator:
         self.deploy_domains(broker, site)
 
     def deploy_programs(self, broker: Broker, site: Site) -> None:
-        site.install(str(paths.get_broker_with_version(broker.version)), "bin")
+        broker_path = str(paths.get_broker_path(broker.name))
+        site.install(broker_path, "bin")
         site.install(str(paths.tool), "bin")
         site.install(str(paths.plugins), ".")
 
