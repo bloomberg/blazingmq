@@ -173,7 +173,7 @@ static void test3_activeNodeOutsideDC()
     // Populate cluster nodes
     // - 1 node in "east" data center
     // - 1 node in "west" data center
-    mqbnet::Cluster::NodesList nodes;
+    mqbnet::Cluster::NodesList nodes(bmqtst::TestHelperUtil::allocator());
     mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
 
     clusterNodeConfig.dataCenter() = "east";
