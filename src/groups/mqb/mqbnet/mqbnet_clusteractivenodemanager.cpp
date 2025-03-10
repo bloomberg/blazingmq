@@ -163,7 +163,7 @@ bool ClusterActiveNodeManager::findNewActiveNode()
          ++it) {
         mqbnet::ClusterNode* node = it->first;
         if (it->second.d_status == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
-            ((d_ignoreDataCenter || node->dataCenter() == d_dataCenter) ||
+            (d_ignoreDataCenter || node->dataCenter() == d_dataCenter ||
              d_dataCenter == "UNSPECIFIED")) {
             candidates.push_back(node);
         }
