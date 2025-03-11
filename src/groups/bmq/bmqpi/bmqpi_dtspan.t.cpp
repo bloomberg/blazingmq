@@ -29,6 +29,7 @@ using namespace BloombergLP;
 /// A test implementation of the `bmqpi::DTSpan` protocol.
 struct DTSpanTestImp : public bsls::ProtocolTestImp<bmqpi::DTSpan> {
     bsl::string_view operation() const BSLS_KEYWORD_OVERRIDE;
+    int              finish() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // Define one of DTSpanTestImp methods out-of-line, to instruct the compiler to
@@ -37,6 +38,11 @@ bsl::string_view DTSpanTestImp::operation() const
 {
     return markDone();
 }
+
+int DTSpanTestImp::finish() const
+{
+    return markDone();
+};
 
 // ============================================================================
 //                                    TESTS
