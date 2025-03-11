@@ -16,6 +16,7 @@
 import subprocess
 import re
 import pytest
+import json
 
 
 def test_short_result(storagetool, journal_file, expected_short_result):
@@ -43,6 +44,23 @@ def test_short_result(storagetool, journal_file, expected_short_result):
     assert res.returncode == 0
     assert re.search(b"40000000000215B2967EEDFA1085BA02", res.stdout) is not None
     assert re.search(b"400000000002B471F5B3AC11AA7D7DAB", res.stdout) is None
+
+
+def test_short_json(storagetool, journal_file):
+    """
+    This test:
+     - checks that storage tool can process journal file and output messages short result in JSON (pretty and line) format.
+    """
+    for mode in ["pretty", "line"]:
+        res = subprocess.run(
+            [storagetool, "--journal-file", journal_file, f"--print-mode=json-{mode}"],
+            capture_output=True,
+        )
+        assert res.returncode == 0
+        json_res = json.loads(res.stdout)
+        assert json_res["TotalMessages"] == 2
+        assert "40000000000215B2967EEDFA1085BA02" in json_res["Records"]
+        assert "400000000002B471F5B3AC11AA7D7DAB" in json_res["Records"]
 
 
 def test_detail_result(storagetool, journal_file, csl_file, expected_detail_result):
@@ -76,6 +94,30 @@ def test_detail_result(storagetool, journal_file, csl_file, expected_detail_resu
         )
         is not None
     )
+
+
+def test_detail_json(storagetool, journal_file, csl_file):
+    """
+    This test:
+     - checks that storage tool can process journal file and output result in JSON (pretty and line) format.
+    """
+    for mode in ["pretty", "line"]:
+        res = subprocess.run(
+            [
+                storagetool,
+                "--journal-file",
+                journal_file,
+                "--csl-file",
+                csl_file,
+                "--details",
+                f"--print-mode=json-{mode}",
+            ],
+            capture_output=True,
+        )
+        assert res.returncode == 0
+        json_res = json.loads(res.stdout)
+        assert json_res["TotalMessages"] == 2
+        assert len(json_res["Records"]) == 4
 
 
 def test_payload_dump(
@@ -164,6 +206,42 @@ def test_summary_result_with_queue_info(
     assert res.stdout == expected_summary_result
 
 
+def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
+    """
+    This test checks that storage tool can process journal file and output summary result in JSON (pretty and line) format.
+    """
+    for mode in ["pretty", "line"]:
+
+        res = subprocess.run(
+            [
+                storagetool,
+                "--journal-path",
+                journal_path,
+                "--csl-file",
+                csl_file,
+                "--summary",
+                "--min-records-per-queue",
+                "1",
+                f"--print-mode=json-{mode}",
+            ],
+            capture_output=True,
+        )
+
+        assert res.returncode == 0
+
+        json_res = json.loads(res.stdout)
+        assert json_res["TotalMessagesNumber"] == 2
+        assert json_res["PartiallyConfirmedMessagesNumber"] == 0
+        assert json_res["ConfirmedMessagesNumber"] == 1
+        assert json_res["OutstandingMessagesNumber"] == 1
+        assert json_res["OutstandingRatio"] == 50
+        assert json_res["TotalRecordsNumber"] == 4
+        assert len(json_res["PerQueueRecordsNumber"]) == 1
+        assert json_res["PerQueueRecordsNumber"][0]["Queue Key"] == "26DACDC974"
+        assert "JournalFileDetails" in json_res
+        assert "DataFileDetails" in json_res
+
+
 def test_confirmed_outstanding_result(storagetool, journal_file):
     """
     This test:
@@ -211,6 +289,29 @@ def test_journalop_result(storagetool, journal_file, expected_journalop_result):
     assert res.stdout == expected_journalop_result
 
 
+def test_queueop_journalop_json(storagetool, journal_file):
+    """
+    This test checks that storage tool can process journal file and output queueOp and journalOp records in JSON (pretty and line) format.
+    """
+    for mode in ["pretty", "line"]:
+        res = subprocess.run(
+            [
+                storagetool,
+                "--journal-file",
+                journal_file,
+                "-r=queue-op",
+                "-r=journal-op",
+                f"--print-mode=json-{mode}",
+            ],
+            capture_output=True,
+        )
+        assert res.returncode == 0
+        json_res = json.loads(res.stdout)
+        assert json_res["QueueOpRecords"] == 1
+        assert json_res["JournalOpRecords"] == 8
+        assert len(json_res["Records"]) == 9
+
+
 def test_queueop_journalop_summary_result(
     storagetool, journal_file, expected_queueop_journalop_summary_result
 ):
@@ -230,3 +331,30 @@ def test_queueop_journalop_summary_result(
     )
     assert res.returncode == 0
     assert res.stdout == expected_queueop_journalop_summary_result
+
+
+def test_queueop_journalop_summary_result(storagetool, journal_file):
+    """
+    This test checks that storage tool can process journal file and output queueOp and journalOp records summary result in JSON (pretty and line) format.
+    """
+    for mode in ["pretty", "line"]:
+        res = subprocess.run(
+            [
+                storagetool,
+                "--journal-file",
+                journal_file,
+                "-r=queue-op",
+                "-r=journal-op",
+                "--summary",
+                f"--print-mode=json-{mode}",
+            ],
+            capture_output=True,
+        )
+        assert res.returncode == 0
+        json_res = json.loads(res.stdout)
+        assert json_res["TotalQueueOperationsNumber"] == "1"
+        assert json_res["CreationOperationsNumber"] == "1"
+        assert json_res["JournalOperationsNumber"] == 8
+        assert json_res["TotalRecordsNumber"] == 9
+        assert "JournalFileDetails" in json_res
+        assert "DataFileDetails" in json_res

@@ -476,8 +476,8 @@ class HumanReadablePrinter : public Printer {
             d_ostream << "Number of records per Queue:\n";
             printQueueDetails<bmqu::AlignedPrinter>(d_ostream,
                                                     queueDetailsMap,
-                                                    d_allocator_p);    
-        }            
+                                                    d_allocator_p);
+        }
     }
 
     void printJournalFileMeta(const mqbs::JournalFileIterator* journalFile_p)
@@ -501,7 +501,7 @@ class HumanReadablePrinter : public Printer {
                                                 bmqu::AlignedPrinter>(
                 d_ostream,
                 dataFile_p,
-                d_allocator_p);    
+                d_allocator_p);
         }
     }
 
@@ -636,14 +636,12 @@ class JsonPrinter : public Printer {
 
     void printOutstandingRatio(
         int                    ratio,
-        bsl::size_t            outstandingMessagesCount,
+        BSLS_ANNOTATION_UNUSED bsl::size_t outstandingMessagesCount,
         BSLS_ANNOTATION_UNUSED bsl::size_t totalMessagesCount) const
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"OutstandingRatio\": " << ratio
-                  << ",\n  \"OutstandingMessages\": "
-                  << outstandingMessagesCount;
+        d_ostream << "  \"OutstandingRatio\": " << ratio;
     }
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
@@ -804,8 +802,9 @@ class JsonPrettyPrinter : public JsonPrinter {
                 bmqu::JsonPrinter<true, true, 2, 4>,
                 bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                       dataFile_p,
-                                                      d_allocator_p);    
-        } else {
+                                                      d_allocator_p);
+        }
+        else {
             d_ostream << "  \"DataFileDetails\": {}";
         }
     }
@@ -815,11 +814,11 @@ class JsonPrettyPrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"totalRecordsNumber\": " << totalRecordsCount
+        d_ostream << "  \"TotalRecordsNumber\": " << totalRecordsCount
                   << ",\n";
 
         // Print information per Queue:
-        d_ostream << "  \"perQueueRecordsNumber\": [\n";
+        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
         printQueueDetails<bmqu::JsonPrinter<true, true, 4, 6> >(
             d_ostream,
             queueDetailsMap,
@@ -893,8 +892,9 @@ class JsonLinePrinter : public JsonPrinter {
                 bmqu::JsonPrinter<true, true, 2, 4>,
                 bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
                                                        dataFile_p,
-                                                       d_allocator_p);            
-        } else {
+                                                       d_allocator_p);
+        }
+        else {
             d_ostream << "  \"DataFileDetails\": {}";
         }
     }
@@ -904,11 +904,11 @@ class JsonLinePrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"totalRecordsNumber\": " << totalRecordsCount
+        d_ostream << "  \"TotalRecordsNumber\": " << totalRecordsCount
                   << ",\n";
 
         // Print information per Queue:
-        d_ostream << "  \"perQueueRecordsNumber\": [\n";
+        d_ostream << "  \"PerQueueRecordsNumber\": [\n";
         printQueueDetails<bmqu::JsonPrinter<false, true, 4, 6> >(
             d_ostream,
             queueDetailsMap,

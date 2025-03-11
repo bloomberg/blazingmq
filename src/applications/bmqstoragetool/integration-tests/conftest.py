@@ -70,12 +70,30 @@ def expected_short_result() -> bytes:
 
 
 @pytest.fixture
+def expected_csl_short_result() -> bytes:
+    short_res_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/short_csl_result.txt"
+    )
+    return _load_expected_result_file(short_res_file)
+
+
+@pytest.fixture
 def expected_detail_result() -> bytes:
-    detailt_res_file = (
+    details_res_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_result.txt"
     )
-    return _load_expected_result_file(detailt_res_file)
+    return _load_expected_result_file(details_res_file)
+
+
+@pytest.fixture
+def expected_csl_detail_result() -> bytes:
+    details_res_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/detail_csl_result.txt"
+    )
+    return _load_expected_result_file(details_res_file)
 
 
 @pytest.fixture
@@ -92,6 +110,15 @@ def expected_summary_result() -> bytes:
     summary_result_file = (
         paths.required_paths.repository
         / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_result.txt"
+    )
+    return _load_expected_result_file(summary_result_file)
+
+
+@pytest.fixture
+def expected_csl_summary_result() -> bytes:
+    summary_result_file = (
+        paths.required_paths.repository
+        / "src/applications/bmqstoragetool/integration-tests/fixtures/summary_csl_result.txt"
     )
     return _load_expected_result_file(summary_result_file)
 

@@ -1413,8 +1413,7 @@ static void test15_jsonPrettyOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": 35,\n"
-                       << "  \"OutstandingMessages\": 7\n"
+                       << "  \"OutstandingRatio\": 35\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1542,8 +1541,8 @@ static void test16_jsonPrettySummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"totalRecordsNumber\": 123,\n"
-                << "  \"perQueueRecordsNumber\": [\n"
+                << "  \"TotalRecordsNumber\": 123,\n"
+                << "  \"PerQueueRecordsNumber\": [\n"
                 << "    {\n"
                 << "      \"Queue Key\": \"5175657565\",\n"
                 << "      \"Queue URI\": \"QueueUri1\",\n"
@@ -2292,8 +2291,7 @@ static void test23_jsonLineOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": 35,\n"
-                       << "  \"OutstandingMessages\": 7\n"
+                       << "  \"OutstandingRatio\": 35\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2421,8 +2419,8 @@ static void test24_jsonLineSummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"totalRecordsNumber\": 123,\n"
-                << "  \"perQueueRecordsNumber\": [\n"
+                << "  \"TotalRecordsNumber\": 123,\n"
+                << "  \"PerQueueRecordsNumber\": [\n"
                 << "    {" << "\"Queue Key\": \"5175657565\", "
                 << "\"Queue URI\": \"QueueUri1\", "
                 << "\"Total Records\": \"12345\", "
