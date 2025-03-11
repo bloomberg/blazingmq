@@ -215,11 +215,8 @@ class SchemaLearner {
 
     /// If the specified `input` indicates recycling, reset previously learned
     /// schema accumulated in the specified `context` and associated with the
-    /// id in `input`.  Return the previously learned schema if it is valid,
-    /// learn and return new schema otherwise.
-    SchemaPtr learn(Context&                     context,
-                    const MessagePropertiesInfo& input,
-                    const bdlbb::Blob&           blob);
+    /// id in `input`.  Return the address of the corresponding schema holder.
+    SchemaPtr* observe(Context& context, const MessagePropertiesInfo& input);
 
     /// Return `MessagePropertiesLogic` with a unique id associated with the
     /// specified `context` and the id in the specified `input`.  If there
