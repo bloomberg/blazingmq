@@ -314,12 +314,7 @@ void QueueManager::observePushEvent(Event*                          queueEvent,
 
     queueEvent->insertQueue(info.d_subscriptionId, queue);
 
-    bmqp::MessageProperties::SchemaPtr schema = schemaLearner().learn(
-        schemaLearner().createContext(queueId),
-        bmqp::MessagePropertiesInfo(info.d_header),
-        bdlbb::Blob());
-
-    queueEvent->addContext(correlationId, subscriptionHandleId, schema);
+    queueEvent->addContext(correlationId, subscriptionHandleId, info.d_schema);
 }
 
 int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
@@ -367,6 +362,33 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             return rc * 10 + rc_OPTIONS_LOAD_ERROR;  // RETURN
         }
+
+        const bmqp::PushHeader&           header  = msgIterator.header();
+        int                               queueId = header.queueId();
+        const bmqp::MessagePropertiesInfo input(header);
+
+        bmqp::MessageProperties::SchemaPtr* schemaHolder =
+            schemaLearner().observe(d_schemaLearner.createContext(queueId),
+                                    input);
+
+        bmqp::MessageProperties::SchemaPtr schema;
+
+        if (schemaHolder) {
+            schema = *schemaHolder;
+            if (!schema) {
+                // Learn new Schema by reading all MessageProperties.
+                bdlbb::Blob appData(d_allocator_p);
+                if (msgIterator.loadApplicationData(&appData)) {
+                    bmqp::MessageProperties mps(d_allocator_p);
+
+                    if (mps.streamIn(appData, input.isExtended()) == 0) {
+                        // Learn new schema.
+                        *schemaHolder = schema = mps.makeSchema(d_allocator_p);
+                    }
+                }
+            }
+        }
+
         eventInfos->resize(eventInfos->size() + 1);
         if ((optionsView.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
              optionsView.end()) ||
@@ -388,10 +410,11 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
                 *hasMessageWithMultipleSubQueueIds = true;
             }
             else {
-                eventInfos->back().d_ids.push_back(bmqp::EventUtilQueueInfo(
-                    subQueueInfos[0].id(),
-                    msgIterator.header(),
-                    msgIterator.applicationDataSize()));
+                eventInfos->back().d_ids.push_back(
+                    bmqp::EventUtilQueueInfo(subQueueInfos[0].id(),
+                                             msgIterator.header(),
+                                             msgIterator.applicationDataSize(),
+                                             schema));
             }
 
             // Update message count
@@ -401,7 +424,8 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
             eventInfos->back().d_ids.push_back(bmqp::EventUtilQueueInfo(
                 bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
                 msgIterator.header(),
-                msgIterator.applicationDataSize()));
+                msgIterator.applicationDataSize(),
+                schema));
 
             // Update message count
             ++(*messageCount);

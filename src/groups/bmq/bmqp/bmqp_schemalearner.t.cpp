@@ -209,7 +209,7 @@ static void test3_observingTest()
 
     bmqp::MessagePropertiesInfo recycledInput(true, 1, true);
 
-    theLearner.learn(server, recycledInput, bdlbb::Blob());
+    theLearner.observe(server, recycledInput);
 
     BMQTST_ASSERT_EQ(0, theLearner.read(server, &out2, input, blob));
 
