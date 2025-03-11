@@ -135,9 +135,9 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
 
 }  // close unnamed namespace
 
-// -------------------------
+// -------------------------------------------------
 // class bmqimp::Application::ChannelFactoryPipeline
-// -------------------------
+// -------------------------------------------------
 
 Application::ChannelFactoryPipeline::ChannelFactoryPipeline(
     const bmqt::SessionOptions& sessionOptions,
@@ -353,9 +353,9 @@ void Application::channelStateCallback(
         d_brokerSession.setChannel(channel);
 
         // Initiate read flow
-        bmqio::Status st;
+        bmqio::Status readStatus;
         channel->read(
-            &st,
+            &readStatus,
             bmqp::Protocol::k_PACKET_MIN_SIZE,
             bdlf::BindUtil::bind(&Application::readCb,
                                  this,
@@ -364,11 +364,10 @@ void Application::channelStateCallback(
                                  bdlf::PlaceHolders::_3,  // blob
                                  channel));
 
-        if (!st) {
-            BALL_LOG_ERROR << "Could not read from channel:"
-                           << " [peer: " << channel->peerUri()
-                           << ", status: " << st
-                           << "]";  // #review st -> status? bug here before
+        if (!readStatus) {
+            BALL_LOG_ERROR << "Could not read from channel: "
+                           << "[peer: " << channel->peerUri()
+                           << ", status: " << readStatus << "]";
             channel->close();
             return;  // RETURN
         }
@@ -376,7 +375,6 @@ void Application::channelStateCallback(
         // Cancel the timeout event (if the handle is invalid, this will just
         // do nothing)
         d_scheduler.cancelEvent(&d_startTimeoutHandle);
-
     } break;  // BREAK
     case bmqio::ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED: {
         BALL_LOG_DEBUG << "Failed an attempt to establish a session with '"
@@ -440,21 +438,10 @@ bmqt::GenericResult::Enum Application::startChannel()
     BSLS_ASSERT_SAFE(d_brokerSession.state() ==
                      bmqimp::BrokerSession::State::e_STARTING);
 
-    int rc = d_channelFactoryPipeline.start();
-    if (rc != 0) {
-        BALL_LOG_ERROR << "Failed to start channelFactoryPipeline [rc: " << rc
-                       << "]";
-        return bmqt::GenericResult::e_UNKNOWN;  // RETURN
-    }
-
-    bdlb::ScopeExitAny pipelineScopeGuard(
-        bdlf::BindUtil::bind(&ChannelFactoryPipeline::stop,
-                             &d_channelFactoryPipeline));
-
-    // Connect to the broker.
+    // 1. Prepare and validate connection parameters
     bmqio::TCPEndpoint endpoint(d_sessionOptions.brokerUri());
     if (!endpoint) {
-        BALL_LOG_ERROR << "Invalid brokerURI '" << d_sessionOptions.brokerUri()
+        BALL_LOG_ERROR << "Invalid brokerUri '" << d_sessionOptions.brokerUri()
                        << "'";
         return bmqt::GenericResult::e_INVALID_ARGUMENT;  // RETURN
     }
@@ -466,13 +453,26 @@ bmqt::GenericResult::Enum Application::startChannel()
     bsls::TimeInterval attemptInterval;
     attemptInterval.setTotalMilliseconds(k_RECONNECT_INTERVAL_MS);
 
-    bmqio::Status         status;
     bmqio::ConnectOptions options;
     options.setEndpoint(out.str())
         .setNumAttempts(k_RECONNECT_COUNT)
         .setAttemptInterval(attemptInterval)
         .setAutoReconnect(true);
 
+    // 2. Start channelFactoryPipeline
+    const int rc = d_channelFactoryPipeline.start();
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to start channelFactoryPipeline [rc: " << rc
+                       << "]";
+        return bmqt::GenericResult::e_UNKNOWN;  // RETURN
+    }
+
+    bdlb::ScopeExitAny pipelineScopeGuard(
+        bdlf::BindUtil::bind(&ChannelFactoryPipeline::stop,
+                             &d_channelFactoryPipeline));
+
+    // 3. Connect to the broker
+    bmqio::Status status;
     d_channelFactoryPipeline.connect(
         &status,
         &d_connectHandle_mp,
@@ -685,7 +685,6 @@ Application::Application(
 , d_statSnaphotTimerHandle()
 , d_nextStatDump(-1)
 , d_lastAllocatorSnapshot(0)
-, d_encryptionClient_sp()
 {
     // NOTE:
     //   o The persistent session pool must live longer than the brokerSession

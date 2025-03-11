@@ -18,13 +18,8 @@
 
 #include <bmqscm_version.h>
 
-// BMQ
-#include <bmqio_certificatestore.h>
-
 // NTF
 #include <ntcf_system.h>
-#include <ntci_upgradecallback.h>
-#include <ntsf_system.h>
 
 // BDE
 #include <ball_log.h>
@@ -114,7 +109,7 @@ void NtcChannelFactory::processListenerResult(
                 // Check if we need to upgrade the connection to TLS
                 if (d_encryptionServer_sp) {
                     bmqio::Status upgradeStatus;
-                    int           rc = alias->upgrade(
+                    const int     rc = alias->upgrade(
                         &upgradeStatus,
                         d_encryptionServer_sp,
                         d_upgradeOptions,
@@ -182,7 +177,7 @@ void NtcChannelFactory::processChannelResult(
             // Check if we need to upgrade the connection to TLS
             if (d_encryptionClient_sp) {
                 bmqio::Status upgradeStatus;
-                int           rc = alias->upgrade(
+                const int     rc = alias->upgrade(
                     &upgradeStatus,
                     d_encryptionClient_sp,
                     d_upgradeOptions,

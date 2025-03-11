@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// bmqio_certificatestore.h
+// bmqio_certificatestore.h                                           -*-C++-*-
 #ifndef INCLUDED_BMQIO_CERTIFICATESTORE
 #define INCLUDED_BMQIO_CERTIFICATESTORE
 
@@ -47,10 +47,6 @@ namespace ntci {
 class EncryptionCertificate;
 class EncryptionKey;
 class Interface;
-}
-
-namespace ntsa {
-class Error;
 }
 
 namespace bmqio {

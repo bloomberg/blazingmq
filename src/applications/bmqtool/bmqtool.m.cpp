@@ -170,7 +170,7 @@ static bool parseArgs(Parameters* parameters, int argc, const char* argv[])
          balcl::OccurrenceInfo(params.broker())},
         {"tls-authority",
          "tlsAuthority",
-         "Path to the certificate authority for TLS mode."
+         "Path to the certificate authority FILE for TLS mode."
          "The empty string value means that TLS is disabled, "
          "non-empty string value means that TLS is enabled",
          balcl::TypeInfo(&params.tlsAuthority()),
