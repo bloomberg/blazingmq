@@ -376,8 +376,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
     // Create subcontexts for each AppId to store per-AppId metrics, such as
     // `e_CONFIRM_TIME_MAX` or `e_QUEUE_TIME_MAX`, so the metrics can be
     // inspected separately for each application.
-    if (!domain->cluster()->isRemote() &&
-        domain->config().mode().isFanoutValue() &&
+    if (domain->config().mode().isFanoutValue() &&
         domain->config().mode().fanout().publishAppIdMetrics()) {
         const bsl::vector<bsl::string>& appIDs =
             domain->config().mode().fanout().appIDs();
