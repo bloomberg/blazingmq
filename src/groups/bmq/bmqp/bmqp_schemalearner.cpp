@@ -138,16 +138,14 @@ SchemaLearner::Context SchemaLearner::createContext(int foreignId)
     return context->second;
 }
 
-SchemaLearner::SchemaPtr
-SchemaLearner::learn(Context&                     context,
-                     const MessagePropertiesInfo& input,
-                     const bdlbb::Blob&           blob)
+SchemaLearner::SchemaPtr*
+SchemaLearner::observe(Context& context, const MessagePropertiesInfo& input)
 {
     const SchemaIdType inputId = input.schemaId();
 
     if (!isPresentAndValid(inputId)) {
         // Nothing to do
-        return SchemaPtr();  // RETURN
+        return 0;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(context);
@@ -171,19 +169,7 @@ SchemaLearner::learn(Context&                     context,
         // Must destroy previously learned Schema
     }
 
-    const SchemaPtr& result = contextHandle->d_schema_sp;
-
-    if (!result) {
-        // Learn new Schema by reading all MessageProperties.
-        MessageProperties mps(d_allocator_p);
-        int               rc = mps.streamIn(blob, input, result);
-
-        if (rc == 0) {
-            // Learn new schema.
-            contextHandle->d_schema_sp = mps.makeSchema(d_allocator_p);
-        }
-    }
-    return result;
+    return &contextHandle->d_schema_sp;
 }
 
 MessagePropertiesInfo
