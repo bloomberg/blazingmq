@@ -10,7 +10,6 @@
 
 set -e
 
-
 repo_dir=$(realpath "$0")
 repo_dir=${repo_dir%/src/*}
 

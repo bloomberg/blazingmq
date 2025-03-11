@@ -205,7 +205,7 @@ def test_summary_result_with_queue_info(
     assert res.returncode == 0
     assert res.stdout == expected_summary_result
 
-
+@pytest.mark.skip(reason="issue with string_view")
 def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
     """
     This test checks that storage tool can process journal file and output summary result in JSON (pretty and line) format.

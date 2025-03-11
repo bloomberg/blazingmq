@@ -38,7 +38,6 @@ Details of journal file:
     SyncPoint QlistFileOffset (WORDS)  : 32
 
 
-
 Details of data file: 
     BlazingMQ File Header  :     Protocol Version  : 1
     Bitness           : 64

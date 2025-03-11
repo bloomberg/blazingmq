@@ -489,7 +489,6 @@ class HumanReadablePrinter : public Printer {
             d_ostream,
             journalFile_p,
             d_allocator_p);
-        printDelimeter<bmqu::AlignedPrinter>(d_ostream);
     }
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const

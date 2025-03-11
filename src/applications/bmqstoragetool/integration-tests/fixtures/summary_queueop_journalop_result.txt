@@ -40,4 +40,3 @@ Details of journal file:
     SyncPoint QlistFileOffset (WORDS)  : 32
 
 
-
