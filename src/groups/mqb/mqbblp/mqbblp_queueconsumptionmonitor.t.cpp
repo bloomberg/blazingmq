@@ -424,7 +424,6 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
 {
     bmqtst::ScopedLogObserver logObserver(ball::Severity::INFO,
                                           bmqtst::TestHelperUtil::allocator());
-    size_t                    expectedLogRecords = 0U;
 
     const bsls::Types::Int64 k_MAX_IDLE_TIME = 10;
 
@@ -439,6 +438,8 @@ BMQTST_TEST_F(Test, putAliveIdleSendAliveTwoSubstreams)
     bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
     d_storage.addVirtualStorage(errorDescription, id1, key1);
     d_storage.addVirtualStorage(errorDescription, id2, key2);
+
+    size_t expectedLogRecords = logObserver.records().size();
 
     d_monitor.registerSubStream(id1);
     d_monitor.registerSubStream(id2);

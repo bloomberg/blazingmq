@@ -62,6 +62,7 @@ class ClusterCatalog;
 }
 namespace mqbnet {
 class TransportManager;
+class Session;
 }
 namespace mqbplug {
 class PluginManager;
@@ -108,6 +109,7 @@ class Application {
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
         BlobSpPool;
+    typedef bsl::vector<bsl::shared_ptr<mqbnet::Session> > Sessions;
 
     // Data members
 
@@ -173,6 +175,10 @@ class Application {
     /// send v2 shutdown requests to all nodes, shutdown clients and proxies,
     /// and return `true`.
     bool initiateShutdown();
+
+    void sendStopRequests(bslmt::Latch*   latch,
+                          const Sessions& brokers,
+                          int             version);
 
   private:
     // NOT IMPLEMENTED

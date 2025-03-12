@@ -923,6 +923,12 @@ void RootQueueEngine::configureHandle(
 
     const AppStateSp& affectedApp = iter->second;
 
+    if (d_queueState_p->isAtMostOnce()) {
+        // Attempt to deliver all data in the storage.  Otherwise, broadcast
+        // data can get dropped if the configure response removes consumers.
+        deliverMessages(affectedApp.get());
+    }
+
     // prepare the App for rebuilding consumers
     affectedApp->undoRouting();
 
@@ -1918,8 +1924,7 @@ void RootQueueEngine::afterAppIdUnregistered(
     for (mqbi::Storage::AppInfos::const_iterator cit = removedAppIds.cbegin();
          cit != removedAppIds.cend();
          ++cit) {
-        const bsl::string&      appId  = cit->first;
-        const mqbu::StorageKey& appKey = cit->second;
+        const bsl::string& appId = cit->first;
 
         Apps::iterator iter = d_apps.find(appId);
         BSLS_ASSERT_SAFE(iter != d_apps.end());
@@ -1929,19 +1934,8 @@ void RootQueueEngine::afterAppIdUnregistered(
         // we still keep the app but invalidate the authorization
         iter->second->unauthorize();
 
-        // Do a best effort to confirm the messages and remove the storage.  If
-        // either fails, just log the condition.
-
-        const mqbi::StorageResult::Enum rc =
-            d_queueState_p->storage()->removeAll(appKey);
-        if (rc != mqbi::StorageResult::e_SUCCESS) {
-            BALL_LOG_WARN << "#QUEUE_APPID_UNREGISTER_FAILURE "
-                          << "Failed to unregister appId '" << appId
-                          << "', appKey '" << appKey << "' of queue '"
-                          << d_queueState_p->queue()->description()
-                          << "' [reason: " << mqbi::StorageResult::toAscii(rc)
-                          << "]";
-        }
+        // There is no need to purge the storage.  'removeVirtualStorage' will
+        // do that.
 
         d_consumptionMonitor.unregisterSubStream(appId);
     }
@@ -1966,17 +1960,31 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->dispatcher()->inDispatcherThread(
         d_queueState_p->queue()));
 
-    BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
-                  << " (id: " << d_queueState_p->id()
-                  << ") now has storage: [App Id: " << appId
-                  << ", key: " << appKey << ", ordinal: " << appOrdinal << "]";
-
     Apps::iterator iter = d_apps.find(appId);
     BSLS_ASSERT_SAFE(iter != d_apps.end());
 
-    iter->second->authorize(appKey, appOrdinal);
+    AppState& app = *iter->second;
 
-    d_consumptionMonitor.registerSubStream(appId);
+    if (app.isAuthorized()) {
+        BSLS_ASSERT_SAFE(appKey == app.appKey());
+
+        BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
+                      << " (id: " << d_queueState_p->id()
+                      << ") changing [App Id: " << appId << ", key: " << appKey
+                      << ", ordinal: " << app.ordinal()
+                      << "] to [ordinal: " << appOrdinal << "]";
+    }
+    else {
+        BALL_LOG_INFO << "Local queue: " << d_queueState_p->uri()
+                      << " (id: " << d_queueState_p->id()
+                      << ") now has storage: [App Id: " << appId
+                      << ", key: " << appKey << ", ordinal: " << appOrdinal
+                      << "]";
+
+        d_consumptionMonitor.registerSubStream(appId);
+    }
+
+    iter->second->authorize(appKey, appOrdinal);
 }
 
 void RootQueueEngine::unregisterStorage(

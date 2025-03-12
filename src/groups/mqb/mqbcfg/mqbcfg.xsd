@@ -452,6 +452,7 @@
         maxDataFileSize......: maximum size of partitions' data file
         maxJournalFileSize...: maximum size of partitions' journal file
         maxQlistFileSize.....: maximum size of partitions' qlist file
+        maxCSLFileSize.......: maximum size of partitions' CSL file
         preallocate..........: flag to indicate whether files should be
                                preallocated on disk
         maxArchivedFileSets..: maximum number of archived file sets per
@@ -471,6 +472,7 @@
       <element name='maxDataFileSize'     type='unsignedLong'/>
       <element name='maxJournalFileSize'  type='unsignedLong'/>
       <element name='maxQlistFileSize'    type='unsignedLong'/>
+      <element name='maxCSLFileSize'      type='unsignedLong' default='67108864'/>
       <element name='preallocate'         type='boolean' default='false'/>
       <element name='maxArchivedFileSets' type='int'/>
       <element name='prefaultPages'       type='boolean' default='false'/>

@@ -95,7 +95,7 @@ namespace FileStoreProtocolPrinter {
 
 /// Print the header of the mapped file by the specified `mfd` to the
 /// specified `stream`.
-template <typename PRINTER_TYPE = bmqu::AlignedPrinter>
+template <typename PRINTER_TYPE>
 void printFileHeader(bsl::ostream&                     stream,
                      const mqbs::MappedFileDescriptor& mfd,
                      bslma::Allocator*                 allocator = 0)
@@ -118,7 +118,7 @@ void printFileHeader(bsl::ostream&                     stream,
 
 /// Print the specified `header` while using the specified `journalFd` and the
 /// specified `allocator` to the specified `stream`.
-template <typename PRINTER_TYPE = bmqu::AlignedPrinter>
+template <typename PRINTER_TYPE>
 void printJournalFileHeader(bsl::ostream&                     stream,
                             const mqbs::JournalFileHeader&    header,
                             const mqbs::MappedFileDescriptor& journalFd,
@@ -178,7 +178,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
 
 /// Print the specified `header` while using the specified `journalFd` and the
 /// specified `allocator` to the specified `stream`.
-template <typename PRINTER_TYPE = bmqu::AlignedPrinter>
+template <typename PRINTER_TYPE>
 void printDataFileHeader(bsl::ostream&               stream,
                          const mqbs::DataFileHeader& header,
                          bslma::Allocator*           allocator = 0)

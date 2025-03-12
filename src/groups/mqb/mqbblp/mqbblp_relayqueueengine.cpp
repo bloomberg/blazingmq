@@ -246,9 +246,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         d_queueState_p->queue()));
     BSLS_ASSERT_SAFE(context);
 
-    // Attempt to deliver all data in the storage.  Otherwise, broadcast
-    // can get dropped if the incoming configure response removes consumers.
-
+    // Force re-delivery
     deliverMessages();
 
     // RelayQueueEngine now assumes that configureQueue request cannot fail.
@@ -474,12 +472,10 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             // The handle has a valid consumer priority, meaning that a
             // downstream client is attempting to release the consumer portion
             // of the handle without having first configured it to have null
-            // streamParameters (i.e. invalid consumerPriority).  This is not
-            // the expected flow since we expect an incoming configureQueue
-            // with null streamParameters to precede a 'releaseHandle' that
-            // releases the consumer portion of the handle.
-            BALL_LOG_ERROR
-                << "#QUEUE_IMPROPER_BEHAVIOR "
+            // streamParameters (i.e. invalid consumerPriority).
+            // This is expected in shutdown V2 where we minimize the
+            // number of requests.
+            BALL_LOG_INFO
                 << "For queue [" << d_queueState_p->uri() << "],  received a "
                 << "'releaseHandle' releasing the consumer portion of handle "
                 << "[id: " << handle->id()
@@ -1107,7 +1103,11 @@ mqbi::QueueHandle* RelayQueueEngine::getHandle(
     BSLS_ASSERT_SAFE(app);
 
     if (!app->isAuthorized()) {
-        app->authorize();
+        if (app->authorize()) {
+            BALL_LOG_INFO << "Queue '" << d_queueState_p->uri()
+                          << "' authorized App '" << downstreamInfo.appId()
+                          << "' with ordinal " << app->ordinal() << ".";
+        }
     }
 
     queueHandle->registerSubStream(
@@ -1501,7 +1501,20 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
         d_queueState_p->queue()));
 
     if (!d_storageIter_mp->atEnd() && (d_storageIter_mp->guid() == msgGUID)) {
+        d_storageIter_mp->removeAllElements();
+
         d_storageIter_mp->advance();
+    }
+    else {
+        PushStreamIterator del(storage(),
+                               &d_pushStream,
+                               d_pushStream.d_stream.find(msgGUID));
+
+        if (!del.atEnd()) {
+            del.removeAllElements();
+
+            del.advance();
+        }
     }
 }
 
@@ -1888,10 +1901,10 @@ bool RelayQueueEngine::checkForDuplicate(const App_State*         app,
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         d_realStorageIter_mp->reset(msgGUID);
         if (!d_realStorageIter_mp->atEnd()) {
-            mqbi::AppMessage& appState = d_realStorageIter_mp->appMessageState(
-                app->ordinal());
+            const mqbi::AppMessage& appView =
+                d_realStorageIter_mp->appMessageView(app->ordinal());
 
-            if (appState.isPushing()) {
+            if (appView.isPushing()) {
                 BMQ_LOGTHROTTLE_INFO()
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id() << ", App '"
@@ -1931,16 +1944,13 @@ void RelayQueueEngine::storePush(
                 result != mqbi::StorageResult::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            if (result != mqbi::StorageResult::e_GUID_NOT_UNIQUE ||
-                isOutOfOrder) {
-                BMQ_LOGTHROTTLE_INFO()
-                    << d_queueState_p->uri() << " failed to store GUID ["
-                    << msgGUID << "], result = " << result;
-            }
-            // A redelivery PUSH for one App in the presence of another App
-            // can result in 'e_GUID_NOT_UNIQUE'.
+            BMQ_LOGTHROTTLE_INFO()
+                << d_queueState_p->uri() << " failed to store GUID ["
+                << msgGUID << "], result = " << result;
         }
         else {
+            BSLS_ASSERT_SAFE(dataStreamMessage);
+
             // Reusing previously cached ordinals.
             for (bmqp::Protocol::SubQueueInfosArray::const_iterator cit =
                      subscriptions.begin();

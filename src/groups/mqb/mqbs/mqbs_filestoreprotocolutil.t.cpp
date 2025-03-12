@@ -517,7 +517,7 @@ static void test4_loadAppInfos()
 //   loadAppInfos()
 // ------------------------------------------------------------------------
 {
-    typedef bsl::unordered_map<bsl::string, mqbu::StorageKey> AppInfos;
+    typedef mqbi::Storage::AppInfos AppInfos;
 
     {
         // No appIds.
@@ -665,9 +665,9 @@ static void test4_loadAppInfos()
                         appHash,
                         mqbs::FileStoreProtocol::k_HASH_LENGTH);
 
-            expectedAppInfos.emplace(
+            expectedAppInfos.insert(bsl::make_pair(
                 bsl::string(appId, bmqtst::TestHelperUtil::allocator()),
-                appKey);
+                appKey));
             offset += mqbs::FileStoreProtocol::k_HASH_LENGTH;
         }
         // Test.
@@ -679,7 +679,12 @@ static void test4_loadAppInfos()
                                                   numAppIds);
 
         BMQTST_ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
-        BMQTST_ASSERT_EQ(appIdKeyPairs, expectedAppInfos);
+
+        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
+             cit != appIdKeyPairs.end();
+             ++cit) {
+            BMQTST_ASSERT_EQ(expectedAppInfos.count(cit->first), 1);
+        }
 
         bmqtst::TestHelperUtil::allocator()->deallocate(p);
     }

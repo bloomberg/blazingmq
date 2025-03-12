@@ -84,7 +84,7 @@ struct QueueState {
         ,
         e_CLOSED = 8  // The queue is fully closed
         ,
-        e_PENDING = 9  // The queue is fully closed
+        e_PENDING = 9  // The queue is pending, channel is down
         ,
         e_OPENING_OPN_EXPIRED = 10  // The queue open request has timed out
         ,

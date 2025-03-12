@@ -108,6 +108,16 @@ class JournalFile {
 
     // MANIPULATORS
 
+    /// Generate a record of QueueOp type with the specified `primaryLeaseId`
+    /// and the specified `sequenceNumber`. Push it to the specified `records`.
+    RecordBufferType makeQueueOpRecord(unsigned int        primaryLeaseId,
+                                       bsls::Types::Uint64 sequenceNumber);
+
+    /// Generate a record of JournalOp type with the specified `primaryLeaseId`
+    /// and the specified `sequenceNumber`. Push it to the specified `records`.
+    RecordBufferType makeJournalOpRecord(unsigned int        primaryLeaseId,
+                                         bsls::Types::Uint64 sequenceNumber);
+
     /// Generate sequence of all types of records. Store list of created
     /// records in the specified `records`.
     void addAllTypesRecords(RecordsListType* records);

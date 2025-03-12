@@ -73,7 +73,7 @@
         },
         "networkInterfaces": {
             "heartbeats": {
-                "client": 0,
+                "client": 10,
                 "downstreamBroker": 10,
                 "upstreamBroker": 10,
                 "clusterPeer": 10

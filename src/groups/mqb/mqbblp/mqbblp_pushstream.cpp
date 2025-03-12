@@ -138,6 +138,19 @@ void PushStreamIterator::removeCurrentElement()
     }
 }
 
+void PushStreamIterator::removeAllElements()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!atEnd());
+
+    d_currentElement = d_iterator->second.front();
+    d_currentOrdinal = 0;
+
+    while (d_currentElement) {
+        removeCurrentElement();
+    }
+}
+
 // MANIPULATORS
 bool PushStreamIterator::advance()
 {
@@ -254,11 +267,12 @@ VirtualPushStreamIterator::VirtualPushStreamIterator(
 {
     d_itApp = owner->d_apps.find(upstreamSubQueueId);
 
-    BSLS_ASSERT_SAFE(d_itApp != owner->d_apps.end());
+    if (d_itApp != owner->d_apps.end()) {
+        d_currentElement = d_itApp->second.d_elements.front();
 
-    d_currentElement = d_itApp->second.d_elements.front();
-
-    BSLS_ASSERT_SAFE(d_currentElement->app().d_app == d_itApp->second.d_app);
+        BSLS_ASSERT_SAFE(d_currentElement->app().d_app ==
+                         d_itApp->second.d_app);
+    }
 }
 
 VirtualPushStreamIterator::~VirtualPushStreamIterator()

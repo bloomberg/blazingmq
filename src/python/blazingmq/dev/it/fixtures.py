@@ -37,7 +37,8 @@ import shutil
 import tempfile
 from enum import IntEnum
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Iterator
+from typing import Callable, List, Optional, Tuple
+from collections.abc import Generator, Iterator
 import psutil
 
 import pytest
@@ -330,6 +331,23 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                 for cat in broker_category_levels
             ]
 
+            # We want to be able to spawn a multi-node cluster in the GitHub Actions CI.
+            # We create a local directory with a storage for each node in a cluster,
+            # and we only have 14GB of storage on a GitHub Runner, that is why we need
+            # to reduce storage file sizes for integration tests.
+            configurator.proto.cluster.partition_config.max_data_file_size = (
+                67108864  # 64MiB
+            )
+            configurator.proto.cluster.partition_config.max_journal_file_size = (
+                16777216  # 16MiB
+            )
+            configurator.proto.cluster.partition_config.max_cslfile_size = (
+                16777216  # 16MiB
+            )
+            configurator.proto.cluster.partition_config.max_qlist_file_size = (
+                2097152  # 2MiB
+            )
+
             def apply_tweaks(stage: int):
                 for request_location in "cls", "function", "instance":
                     if request_context := getattr(request, request_location, None):
@@ -364,7 +382,7 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
             ) as cluster:
                 failures = (
                     0 + request.session.testsfailed
-                )  # it doesn’t work without the ’0 +’, why?
+                )  # it doesn't work without the `0 +`, why?
 
                 try:
                     with internal_use(cluster):
@@ -384,7 +402,12 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                         if request.instance is not None and hasattr(
                             request.instance, "setup_cluster"
                         ):
-                            request.instance.setup_cluster(cluster)
+                            if "domain_urls" in request.fixturenames:
+                                request.instance.setup_cluster(
+                                    cluster, request.getfixturevalue("domain_urls")
+                                )
+                            else:
+                                request.instance.setup_cluster(cluster)
 
                 except Exception as initial_exception:
                     logger.warning(

@@ -9,6 +9,7 @@ bmqp_crc32c
 bmqp_ctrlmsg_messages
 bmqp_event
 bmqp_eventutil
+bmqp_heartbeatmonitor
 bmqp_messageproperties
 bmqp_messageguidgenerator
 bmqp_optionsview

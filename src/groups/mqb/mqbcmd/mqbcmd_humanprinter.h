@@ -17,18 +17,14 @@
 #ifndef INCLUDED_MQBCMD_HUMANPRINTER
 #define INCLUDED_MQBCMD_HUMANPRINTER
 
-//@PURPOSE: Provide a namespace of utilities to human-friendly print results.
-//
-//@CLASSES:
-//  HumanPrinter: Utilities to print results in a human-friendly way.
-//
-//@DESCRIPTION:
-// This component provides a namespace, 'mqbcmd::HumanPrinter', containing
-// utilities to print results in a human-friendly way.
-//
+/// @file mqbcmd_humanprinter
+///
+/// @brief Provide a namespace of utilities to human-friendly print results.
+///
+/// This component provides a namespace, @bbref{mqbcmd::HumanPrinter},
+/// containing utilities to print results in a human-friendly way.
 
 // MQB
-
 #include <mqbcmd_messages.h>
 
 // BDE

@@ -17,20 +17,16 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATELEDGERPROTOCOL
 #define INCLUDED_MQBC_CLUSTERSTATELEDGERPROTOCOL
 
-//@PURPOSE: Provide definitions for BlazingMQ cluster state ledger protocol
-//          structures.
-//
-//@CLASSES:
-//  mqbc::ClusterStateLedgerProtocol
-//  mqbc::ClusterStateFileHeader
-//  mqbc::ClusterStateRecordHeader
-//
-//@DESCRIPTION: 'mqbc::ClusterStateLedgerProtocol' provides definitions for a
-// set of structures defining the binary layout of the protocol messages used
-// by BlazingMQ cluster state ledger to persist messages on disk.
+/// @file mqbc_clusterstateledgerprotocol.h
+///
+/// @brief Provide definitions for BlazingMQ cluster state ledger protocol
+/// structures.
+///
+/// @bbref{mqbc::ClusterStateLedgerProtocol} provides definitions for a set of
+/// structures defining the binary layout of the protocol messages used by
+/// BlazingMQ cluster state ledger to persist messages on disk.
 
 // MQB
-
 #include <mqbu_storagekey.h>
 
 // BMQ
@@ -50,8 +46,9 @@ namespace mqbc {
 /// Namespace for protocol generic values and routines
 struct ClusterStateLedgerProtocol {
     // CONSTANTS
+
+    /// Version of the protocol.
     static const int k_VERSION = 1;
-    // Version of the protocol
 };
 
 // =============================
@@ -59,22 +56,23 @@ struct ClusterStateLedgerProtocol {
 // =============================
 
 /// This struct represents the header for a file in a cluster state ledger.
+///
+/// ClusterStateFileHeader structure datagram [8 bytes]:
+///
+/// ```
+/// +---------------+---------------+---------------+---------------+
+/// |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+/// +---------------+---------------+---------------+---------------+
+/// |PV |HeaderWords|                  FileKey                      |
+/// +---------------+---------------+---------------+---------------+
+/// |            FileKey            |           Reserved            |
+/// +---------------+---------------+---------------+---------------+
+///
+/// Protocol Version (PV).: Protocol Version (up to 4 concurrent versions)
+/// HeaderWords...........: Total size (in words) of this header
+/// FileKey...............: First 5 bytes of hashed file name
+/// ```
 struct ClusterStateFileHeader {
-    // ClusterStateFileHeader structure datagram [8 bytes]:
-    //..
-    //   +---------------+---------------+---------------+---------------+
-    //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
-    //   +---------------+---------------+---------------+---------------+
-    //   |PV |HeaderWords|                  FileKey                      |
-    //   +---------------+---------------+---------------+---------------+
-    //   |            FileKey            |           Reserved            |
-    //   +---------------+---------------+---------------+---------------+
-    //
-    //  Protocol Version (PV).: Protocol Version (up to 4 concurrent versions)
-    //  HeaderWords...........: Total size (in words) of this header
-    //  FileKey...............: First 5 bytes of hashed file name
-    //..
-
   private:
     // PRIVATE CONSTANTS
     static const int k_PROTOCOL_VERSION_NUM_BITS = 2;
@@ -88,20 +86,21 @@ struct ClusterStateFileHeader {
 
   private:
     // DATA
+
+    /// Protocol version and the total size (in words) of this header.
     unsigned char d_protocolVersionAndHeaderWords;
-    // Protocol version and number of total size (in words) of
-    // this header.
 
+    /// File key, i.e., first 5 bytes of the hashed file name.
     char d_fileKey[mqbu::StorageKey::e_KEY_LENGTH_BINARY];
-    // File key, i.e. first 5 bytes of the hashed file name.
 
+    /// Reserved.
     unsigned char d_reserved[2];
-    // Reserved.
 
   public:
     // CONSTANTS
+
+    /// Total size (in words) of this header.
     static const unsigned int k_HEADER_NUM_WORDS;
-    // Total size (in words) of this header.
 
   public:
     // PUBLIC CLASS DATA
@@ -115,7 +114,7 @@ struct ClusterStateFileHeader {
     // CREATORS
 
     /// Create this object with `headerWords` set to appropriate value
-    /// derived from sizeof() operator and the protocol version set to the
+    /// derived from `sizeof()` operator and the protocol version set to the
     /// current one.  All other fields are set to zero.
     explicit ClusterStateFileHeader();
 
@@ -163,14 +162,14 @@ struct ClusterStateRecordType {
 
     // PUBLIC CONSTANTS
 
-    /// NOTE: This value must always be equal to the lowest type in the
-    /// enum because it is being used as a lower bound to verify that a
-    /// ClusterStateRecord's `type` field is a supported type.
+    /// @note This value must always be equal to the lowest type in the enum
+    ///       because it is being used as a lower bound to verify that a
+    ///       `ClusterStateRecord`'s `type` field is a supported type.
     static const int k_LOWEST_SUPPORTED_TYPE = e_SNAPSHOT;
 
-    /// NOTE: This value must always be equal to the highest type in the
-    /// enum because it is being used as an upper bound to verify a
-    /// ClusterStateRecord's `type` field is a supported type.
+    /// @note This value must always be equal to the highest type in the enum
+    ///       because it is being used as an upper bound to verify a
+    ///       `ClusterStateRecord`'s `type` field is a supported type.
     static const int k_HIGHEST_SUPPORTED_TYPE = e_ACK;
 
     // CLASS METHODS
@@ -186,7 +185,7 @@ struct ClusterStateRecordType {
     /// negative, format the entire output on one line, suppressing all but
     /// the initial indentation (as governed by `level`).  See `toAscii` for
     /// what constitutes the string representation of a
-    /// `ClusterStateRecordType::Enum` value.
+    /// @bbref{ClusterStateRecordType::Enum} value.
     static bsl::ostream& print(bsl::ostream&                stream,
                                ClusterStateRecordType::Enum value,
                                int                          level = 0,
@@ -225,50 +224,51 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 
 /// This struct represents the header for each `ClusterStateRecord` present
 /// in the cluster state ledger.
+///
+/// ClusterStateRecordHeader structure datagram [24 bytes]:
+///
+/// ```
+/// +---------------+---------------+---------------+---------------+
+/// |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+/// +---------------+---------------+---------------+---------------+
+/// +---------------+---------------+---------------+---------------+
+/// |   HW  |  RT   |                   Reserved                    |
+/// +---------------+---------------+---------------+---------------+
+/// |                       LeaderAdvisoryWords                     |
+/// +---------------+---------------+---------------+---------------+
+/// |                    Elector Term Upper Bits                    |
+/// +---------------+---------------+---------------+---------------+
+/// |                    Elector Term Lower Bits                    |
+/// +---------------+---------------+---------------+---------------+
+/// |                  Sequence Number Upper Bits                   |
+/// +---------------+---------------+---------------+---------------+
+/// |                  Sequence Number Lower Bits                   |
+/// +---------------+---------------+---------------+---------------+
+/// |                     Timestamp Upper Bits                      |
+/// +---------------+---------------+---------------+---------------+
+/// |                     Timestamp Lower Bits                      |
+/// +---------------+---------------+---------------+---------------+
+///
+/// Header Words (HW)..........: Total size (in words) of this header.
+/// Record Type (RT)...........: Type of the record. Currently available
+///                              types are Snapshot Record, Update Record,
+///                              and Commit Record.
+/// LeaderAdvisoryWords........: Total size (in words) of the leader
+///                              advisory representing the cluster state
+///                              updates.
+/// Elector Term Upper Bits....: Upper 32 bits of the leader elector term.
+/// Elector Term Lower Bits....: Lower 32 bits of the leader elector term.
+/// Sequence Number Upper Bits.: Upper 32 bits of the sequence number.
+/// Sequence Number Lower Bits.: Lower 32 bits of the sequence number.
+/// Timestamp Upper Bits.......: Upper 32 bits of the timestamp.
+/// Timestamp Lower Bits.......: Lower 32 bits of the timestamp.
+/// ```
+///
+/// @note A BER-encoded leader advisory message, followd by a CRC32-C computed
+///       over the header and payload, will follow this header.  The total size
+///       of the leader advisory message and CRC32-C is `LeaderAdvisoryWords`.
+///
 struct ClusterStateRecordHeader {
-    // ClusterStateRecordHeader structure datagram [24 bytes]:
-    //..
-    //   +---------------+---------------+---------------+---------------+
-    //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
-    //   +---------------+---------------+---------------+---------------+
-    //   +---------------+---------------+---------------+---------------+
-    //   |   HW  |  RT   |                   Reserved                    |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                       LeaderAdvisoryWords                     |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                    Elector Term Upper Bits                    |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                    Elector Term Lower Bits                    |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                  Sequence Number Upper Bits                   |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                  Sequence Number Lower Bits                   |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                     Timestamp Upper Bits                      |
-    //   +---------------+---------------+---------------+---------------+
-    //   |                     Timestamp Lower Bits                      |
-    //   +---------------+---------------+---------------+---------------+
-    //
-    //  Header Words (HW)..........: Total size (in words) of this header.
-    //  Record Type (RT)...........: Type of the record. Currently available
-    //                               types are Snapshot Record, Update Record,
-    //                               and Commit Record.
-    //  LeaderAdvisoryWords........: Total size (in words) of the leader
-    //                               advisory representing the cluster state
-    //                               updates.
-    //  Elector Term Upper Bits....: Upper 32 bits of the leader elector term.
-    //  Elector Term Lower Bits....: Lower 32 bits of the leader elector term.
-    //  Sequence Number Upper Bits.: Upper 32 bits of the sequence number.
-    //  Sequence Number Lower Bits.: Lower 32 bits of the sequence number.
-    //  Timestamp Upper Bits.......: Upper 32 bits of the timestamp.
-    //  Timestamp Lower Bits.......: Lower 32 bits of the timestamp.
-    //
-    // NOTE: A BER-encoded leader advisory message, followd by a CRC32-C
-    //       computed over the header and payload, will follow this header.
-    //       The total size of the leader advisory message and CRC32-C is
-    //       `LeaderAdvisoryWords`.
-    //..
-
   private:
     // PRIVATE CONSTANTS
     static const int k_HEADER_WORDS_NUM_BITS = 4;
@@ -282,39 +282,41 @@ struct ClusterStateRecordHeader {
 
   private:
     // DATA
+
+    /// Total size (in words) of this header and record type (Update, Snapshot,
+    /// Commit).
     unsigned char d_headerWordsAndRecordType;
-    // Total size (in words) of this header and record
-    // type (Update, Snapshot, Commit).
 
+    /// Reserved.
     unsigned char d_reserved[3];
-    // Reserved.
 
+    /// Total size (in words) of the leader advisory representing the cluster
+    /// state updates.
     bdlb::BigEndianUint32 d_leaderAdvisoryWords;
-    // Total size (in words) of the leader advisory
-    // representing the cluster state updates.
 
+    /// Upper 32 bits of the leader elector term.
     bdlb::BigEndianUint32 d_electorTermUpperBits;
-    // Upper 32 bits of the leader elector term.
 
+    /// Lower 32 bits of the leader elector term.
     bdlb::BigEndianUint32 d_electorTermLowerBits;
-    // Lower 32 bits of the leader elector term.
 
+    /// Upper 32 bits of the sequence number.
     bdlb::BigEndianUint32 d_seqNumUpperBits;
-    // Upper 32 bits of the sequence number.
 
+    /// Lower 32 bits of the sequence number.
     bdlb::BigEndianUint32 d_seqNumLowerBits;
-    // Lower 32 bits of the sequence number.
 
+    /// Upper 32 bits of the timestamp.
     bdlb::BigEndianUint32 d_timestampUpperBits;
-    // Upper 32 bits of the timestamp.
 
+    /// Lower 32 bits of the timestamp.
     bdlb::BigEndianUint32 d_timestampLowerBits;
-    // Lower 32 bits of the timestamp.
 
   public:
     // CONSTANTS
+
+    /// Total size (in words) of this header.
     static const unsigned int k_HEADER_NUM_WORDS;
-    // Total size (in words) of this header.
 
   public:
     // PUBLIC CLASS DATA

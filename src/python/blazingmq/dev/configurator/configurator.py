@@ -294,7 +294,7 @@ class Configurator:
                 if v is not None
             }
 
-        config = SerializerConfig(pretty_print=True)
+        config = SerializerConfig(indent=" " * 4)
         config.ignore_default_attributes = True
         serializer = JsonSerializer(
             context=XmlContext(), config=config, dict_factory=json_filter

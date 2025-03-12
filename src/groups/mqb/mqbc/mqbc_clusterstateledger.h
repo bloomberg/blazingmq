@@ -17,35 +17,33 @@
 #ifndef INCLUDED_MQBC_CLUSTERSTATELEDGER
 #define INCLUDED_MQBC_CLUSTERSTATELEDGER
 
-//@PURPOSE: Provide an interface to maintain replicated log of cluster's state.
-//
-//@CLASSES:
-//  mqbc::ClusterStateLedgerCommitStatus: Enum for status of a commit operation
-//  mqbc::ClusterStateLedgerConsistency:  Consistency criteria for a commit
-//  mqbc::ClusterStateLedger:             Replicated log of cluster's state
-//
-//@DESCRIPTION: The 'mqbc::ClusterStateLedger' base protocol is the interface
-// for a mechanism to maintain a replicated log of cluster's state.  Each node
-// in the cluster keeps an instance of a concrete implementation of this
-// interface.  The ledger is written to only upon notification from the leader
-// node, and the leader broadcasts advisories which followers apply to their
-// ledger and its in-memory representation.  Leader will apply update to self's
-// ledger, broadcast it asynchronously to cluster nodes, and also advertise the
-// update to cluster state's observers when appropriate consistency level has
-// been achieved.  'mqbc::ClusterStateLedgerConsistency' provides a namespaced
-// enum for consistency criteria of a 'mqbc::ClusterStateLedger'
-// implementation.  Leader will apply an update to cluster state in self's
-// ledger, broadcast it asynchronously, and notify via a callback when the
-// specified consistency level has been achieved.
-//
-/// Thread Safety
-///-------------
-// The 'mqbc::ClusterStateLedger' object is not thread safe and should always
-// be manipulated from the associated cluster's dispatcher thread, unless
-// explicitly documented in a method's contract.
+/// @file mqbc_clusterstateledger.h
+///
+/// @brief Provide an interface to maintain replicated log of cluster's state.
+///
+/// The @bbref{mqbc::ClusterStateLedger} base protocol is the interface for a
+/// mechanism to maintain a replicated log of cluster's state.  Each node in
+/// the cluster keeps an instance of a concrete implementation of this
+/// interface.  The ledger is written to only upon notification from the leader
+/// node, and the leader broadcasts advisories which followers apply to their
+/// ledger and its in-memory representation.  Leader will apply update to
+/// self's ledger, broadcast it asynchronously to cluster nodes, and also
+/// advertise the update to cluster state's observers when appropriate
+/// consistency level has been achieved.
+/// @bbref{mqbc::ClusterStateLedgerConsistency} provides a namespaced enum for
+/// consistency criteria of a @bbref{mqbc::ClusterStateLedger} implementation.
+/// Leader will apply an update to cluster state in self's ledger, broadcast it
+/// asynchronously, and notify via a callback when the specified consistency
+/// level has been achieved.
+///
+/// Thread Safety                             {#mqbc_clusterstateledger_thread}
+/// =============
+///
+/// The @bbref{mqbc::ClusterStateLedger} object is not thread safe and should
+/// always be manipulated from the associated cluster's dispatcher thread,
+/// unless explicitly documented in a method's contract.
 
 // MQB
-
 #include <mqbc_clusterstateledgeriterator.h>
 #include <mqbc_electorinfo.h>
 #include <mqbcfg_messages.h>
@@ -78,31 +76,30 @@ class ClusterState;
 /// This struct defines the type of status of a commit operation.
 struct ClusterStateLedgerCommitStatus {
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different type of commit
-        // status.
 
-        e_SUCCESS = 0  // Operation was success
-        ,
-        e_CANCELED = -1  // Operation was canceled (leader pre-emption, etc.)
-        ,
-        e_TIMEOUT = -2  // Operation timeout
+    /// Enumeration used to distinguish among different type of commit status.
+    enum Enum {
+        /// Operation was success.
+        e_SUCCESS = 0,
+        /// Operation was canceled (leader pre-emption, etc.).
+        e_CANCELED = -1,
+        /// Operation timeout.
+        e_TIMEOUT = -2
     };
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value is incremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `ClusterStateLedgerCommitStatus::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// is incremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{ClusterStateLedgerCommitStatus::Enum} value.
     static bsl::ostream& print(bsl::ostream&                        stream,
                                ClusterStateLedgerCommitStatus::Enum value,
                                int                                  level = 0,
@@ -138,34 +135,33 @@ bsl::ostream& operator<<(bsl::ostream&                        stream,
 // ====================================
 
 /// This struct defines the type of consistency criteria for the persisted
-/// cluster state of a `mqbc::ClusterStateLedger` implementation.
+/// cluster state of a @bbref{mqbc::ClusterStateLedger} implementation.
+///
+/// @note *STRONG* consistency level will not be supported initially.
 struct ClusterStateLedgerConsistency {
-    // NOTE: 'STRONG' consistency level will not be supported initially.
-
     // TYPES
-    enum Enum {
-        // Enumeration used to distinguish among different consistency
-        // criteria.
 
-        e_EVENTUAL  // Leader does not wait for acks from any followers
-        ,
-        e_STRONG  // Leader waits for acks from majority of the followers
+    // Enumeration used to distinguish among different consistency criteria.
+    enum Enum {
+        /// Leader does not wait for acks from any followers.
+        e_EVENTUAL,
+        /// Leader waits for acks from majority of the followers.
+        e_STRONG
     };
 
     // CLASS METHODS
 
-    /// Write the string representation of the specified enumeration `value`
-    /// to the specified output `stream`, and return a reference to
-    /// `stream`.  Optionally specify an initial indentation `level`, whose
-    /// absolute value is incremented recursively for nested objects.  If
-    /// `level` is specified, optionally specify `spacesPerLevel`, whose
-    /// absolute value indicates the number of spaces per indentation level
-    /// for this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative, format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  See `toAscii` for
-    /// what constitutes the string representation of a
-    /// `ClusterStateLedgerConsistency::Enum` value.
+    /// Write the string representation of the specified enumeration `value` to
+    /// the specified output `stream`, and return a reference to `stream`.
+    /// Optionally specify an initial indentation `level`, whose absolute value
+    /// is incremented recursively for nested objects.  If `level` is
+    /// specified, optionally specify `spacesPerLevel`, whose absolute value
+    /// indicates the number of spaces per indentation level for this and all
+    /// of its nested objects.  If `level` is negative, suppress indentation of
+    /// the first line.  If `spacesPerLevel` is negative, format the entire
+    /// output on one line, suppressing all but the initial indentation (as
+    /// governed by `level`).  See `toAscii` for what constitutes the string
+    /// representation of a @bbref{ClusterStateLedgerConsistency::Enum} value.
     static bsl::ostream& print(bsl::ostream&                       stream,
                                ClusterStateLedgerConsistency::Enum value,
                                int                                 level = 0,
@@ -200,11 +196,24 @@ bsl::ostream& operator<<(bsl::ostream&                       stream,
 // class ClusterStateLedger
 // ========================
 
-/// Provide a base protocol to maintain a replicated log of cluster's state.
-/// A concrete implementation can be configured with the desired consistency
+/// Provide a base protocol to maintain a replicated log of cluster's state.  A
+/// concrete implementation can be configured with the desired consistency
 /// level.  A leader node will apply update to self's ledger, broadcast it
 /// asynchronously, and advertise when the configured consistency level has
 /// been achieved.
+///
+/// @todo Declare these methods once the parameter object types have been
+/// defined in @bbref{mqbc::ClusterState}:
+/// ```
+/// virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
+/// virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
+/// virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
+/// virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
+/// ```
+///
+/// @todo Apply the specified message to self and replicate if self is leader.
+///
+/// @todo Notify via 'commitCb' when consistency level has been achieved.
 class ClusterStateLedger : public ElectorInfoObserver {
   public:
     // TYPES
@@ -228,7 +237,8 @@ class ClusterStateLedger : public ElectorInfoObserver {
     ///   - Commit operation has been canceled (Maybe leader lost quorum or
     ///     was preempted) (ClusterStateLedgerCommitStatus=CANCELED).
     ///
-    /// TODO Review this
+    /// @todo Review this.
+    ///
     /// Callback will be invoked at follower node when finished:
     ///   - Follower succesfully applied the message
     ///     (ClusterStateLedgerCommitStatus=SUCCESS).
@@ -260,18 +270,10 @@ class ClusterStateLedger : public ElectorInfoObserver {
     ///         dispatcher thread.
     virtual int close() = 0;
 
-    // TODO: Declare these methods once the parameter object types have been
-    //       defined in 'mqbc::ClusterState'.
-    // virtual int apply(const ClusterStateQueueInfo& queueInfo) = 0;
-    // virtual int apply(const UriToQueueInfoMap& queuesInfo) = 0;
-    // virtual int apply(const ClusterStatePartitionInfo& partitionInfo) = 0;
-    // virtual int apply(const PartitionsInfo& partitionsInfo) = 0;
-    // Apply the specified message to self and replicate if self is leader.
-    // Notify via 'commitCb' when consistency level has been achieved.
-
+    /// @{
     /// Apply the specified `advisory` to self and replicate to followers.
-    /// Notify via `commitCb` when consistency level has been achieved.
-    /// Note that *only* a leader node may invoke this routine.
+    /// Notify via `commitCb` when consistency level has been achieved.  Note
+    /// that *only* a leader node may invoke this routine.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
@@ -283,6 +285,7 @@ class ClusterStateLedger : public ElectorInfoObserver {
     apply(const bmqp_ctrlmsg::QueueUnassignedAdvisory& advisory)         = 0;
     virtual int apply(const bmqp_ctrlmsg::QueueUpdateAdvisory& advisory) = 0;
     virtual int apply(const bmqp_ctrlmsg::LeaderAdvisory& advisory)      = 0;
+    /// @}
 
     /// Apply the advisory contained in the specified `clusterMessage` to
     /// self and replicate to followers.  Notify via `commitCb` when

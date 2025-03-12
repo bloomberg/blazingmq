@@ -98,8 +98,12 @@ class ReplicatedStorage : public mqbi::Storage {
     /// replica nodes, and the record will not be replicated to peer nodes.
     virtual void purge(const mqbu::StorageKey& appKey) = 0;
 
-    // Notify the storage of node role set to primary
+    /// Notify the storage of node role set to primary
     virtual void setPrimary() = 0;
+
+    /// Calculate offsets of all Apps (after recovery) in the data stream.
+    /// An App offset is the number of messages older than the App.
+    virtual void calibrate() = 0;
 
     // ACCESSORS
 
