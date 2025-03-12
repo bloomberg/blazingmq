@@ -252,8 +252,12 @@ class VirtualStorageCatalog {
 
     /// Return the number of messages in the datastream which are older than
     /// the specified `vs`.  Load into the specified `it` the iterator pointing
-    /// either to the first newer message or to the end of the datastream.
-    bsls::Types::Int64 seek(DataStreamIterator* it, const VirtualStorage* vs);
+    /// either to the first newer message or to the end of the datastream.  If
+    /// the optionally specified `bytes` is not `0`, load the sum of relevant
+    /// messages.
+    bsls::Types::Int64 seek(DataStreamIterator*   it,
+                            const VirtualStorage* vs,
+                            bsls::Types::Int64*   bytes = 0);
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified 'appId' and 'appKey'.  Return zero upon success and a

@@ -311,7 +311,13 @@ VirtualStorageCatalog::gc(const bmqt::MessageGUID& msgGUID)
     for (VirtualStoragesIter it = d_virtualStorages.begin();
          it != d_virtualStorages.end();
          ++it) {
-        it->value()->onGC(data->second);
+        const mqbi::DataStreamMessage& dataStreamMessage = data->second;
+
+        const mqbi::AppMessage& appMessage =
+            appMessageView(dataStreamMessage, it->value()->ordinal());
+        if (!appMessage.isPending()) {
+            it->value()->onGC(dataStreamMessage.d_size);
+        }
     }
 
     d_totalBytes -= data->second.d_size;
@@ -350,7 +356,8 @@ void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
 }
 
 bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
-                                               const VirtualStorage* vs)
+                                               const VirtualStorage* vs,
+                                               bsls::Types::Int64*   bytes)
 {
     BSLS_ASSERT_SAFE(vs);
 
@@ -371,6 +378,11 @@ bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
             break;  // BREAK
         }
         // else 'dataStreamMessage' is older than this VirtualStorage
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(bytes)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            *bytes += data.d_size;
+        }
     }
 
     return result;
@@ -643,7 +655,11 @@ void VirtualStorageCatalog::calibrate()
          it != d_virtualStorages.end();
          ++it) {
         DataStreamIterator itData;
-        it->value()->setNumRemoved(seek(&itData, it->value().get()));
+        bsls::Types::Int64 bytes       = 0;
+        bsls::Types::Int64 numMessages = seek(&itData,
+                                              it->value().get(),
+                                              &bytes);
+        it->value()->setNumRemoved(numMessages, bytes);
     }
 }
 
