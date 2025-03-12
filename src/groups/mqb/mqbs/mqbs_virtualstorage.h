@@ -172,16 +172,17 @@ class VirtualStorage {
     bool remove(mqbi::DataStreamMessage* dataStreamMessage,
                 unsigned int             replacingOrdinal);
 
-    /// Observe removal of this App from the specified 'dataStreamMessage' by
-    /// GC and update bytes and messages counts if needed.
-    void onGC(const mqbi::DataStreamMessage& dataStreamMessage);
+    /// Update bytes by the specified 'size' and messages counts by `1` for
+    /// this App as the result of garbage-collecting the message.
+    void onGC(int size);
 
     /// Reset bytes and messages counts as in the case of purging all Apps.
     void resetStats();
 
     void replaceOrdinal(unsigned int replacingOrdinal);
 
-    void setNumRemoved(bsls::Types::Int64 numRemoved);
+    void setNumRemoved(bsls::Types::Int64 numRemoved,
+                       bsls::Types::Int64 bytes);
 };
 
 // =====================
