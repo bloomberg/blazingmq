@@ -313,6 +313,7 @@ manipulation, as a tiny subset of the C programming language.
   - Integer, string and boolean literals
   - Arithmetic, relational and boolean operators
   - Parentheses
+  - Built-in functions
 - Spaces, tabs and line feeds are ignored
 - The language has three types: integer, string, and boolean
 - The final result of an expression must be a boolean
@@ -434,6 +435,13 @@ manipulation, as a tiny subset of the C programming language.
 - When two operators have the same precedence, they are evaluated from left to
   right, except for `!` which is evaluated right to left. For example, in
   `a-b-c` is evaluated as `(a-b)-c`. `!!ok` is evaluated as `!(!ok)`.
+
+### Built-in functions
+{:.no_toc}
+
+Supported functions:
+  - `exists(identifier)` returns `true` if the value is defined for the given 
+  `identifier` and returns `false` otherwise.
 
 For a formal specification, see [Flex
 rules](https://github.com/bloomberg/blazingmq/blob/main/src/groups/bmq/bmqeval/bmqeval_simpleevaluatorscanner.l)
