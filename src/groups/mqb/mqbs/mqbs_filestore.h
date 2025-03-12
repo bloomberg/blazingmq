@@ -375,10 +375,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     StoragesMap d_storages;
     // Map [QueueKey->ReplicatedStorage*]
 
-    bdlmt::Throttle d_alarmSoftLimiter;
-    // Throttler for alarming on soft
-    // limits of partition files
-
     bool d_isCSLModeEnabled;
     // Whether CSL mode is enabled
 

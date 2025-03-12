@@ -550,14 +550,6 @@ QueueHandle::QueueHandle(
     BSLS_ASSERT_SAFE(d_queue_sp);
     BSLS_ASSERT_SAFE(d_clientContext_sp->client());
 
-    d_throttledFailedAckMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    d_throttledDroppedPutMessages.initialize(
-        1,
-        5 * bdlt::TimeUnitRatio::k_NS_PER_S);
-    // One maximum log per 5 seconds
-
     setHandleParameters(handleParameters);
 }
 
@@ -859,10 +851,9 @@ void QueueHandle::deliverMessage(
             // any sort of statistics increment or so; but at some point, if
             // needed we way have to change this method to return a tri-value
             // (delivered, non-delivered, skipped).
-            if (d_throttledDroppedPutMessages.requestPermission()) {
-                BALL_LOG_INFO << "Queue '" << d_queue_sp->description()
-                              << "' skipping duplicate PUSH " << msgGUID;
-            }
+            BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+                << "Queue '" << d_queue_sp->description()
+                << "' skipping duplicate PUSH " << msgGUID;
             continue;  // CONTINUE
         }
 
@@ -1172,17 +1163,15 @@ void QueueHandle::onAckMessage(const bmqp::AckMessage& ackMessage)
     //       check for it here.
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_clientContext_sp)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        if (d_throttledFailedAckMessages.requestPermission()) {
-            BALL_LOG_INFO << "#CLIENT_ACK_FAILURE: Received an ACK from "
-                          << "upstream for unavailable client "
-                          << "[queue: " << d_queue_sp->description()
-                          << ", upstream queueId: " << ackMessage.queueId()
-                          << ", downstream queueId: " << id()
-                          << ", guid: " << ackMessage.messageGUID()
-                          << ", status: " << ackMessage.status()
-                          << ", correlationId: " << ackMessage.correlationId()
-                          << "]";
-        }
+        BALL_LOGTHROTTLE_INFO(1, 5 * bdlt::TimeUnitRatio::k_NS_PER_S)
+            << "#CLIENT_ACK_FAILURE: Received an ACK from "
+            << "upstream for unavailable client "
+            << "[queue: " << d_queue_sp->description()
+            << ", upstream queueId: " << ackMessage.queueId()
+            << ", downstream queueId: " << id()
+            << ", guid: " << ackMessage.messageGUID()
+            << ", status: " << ackMessage.status()
+            << ", correlationId: " << ackMessage.correlationId() << "]";
         return;  // RETURN
     }
 

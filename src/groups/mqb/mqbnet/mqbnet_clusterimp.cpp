@@ -22,6 +22,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <ball_logthrottle.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlt_timeunitratio.h>
@@ -190,7 +191,6 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
 , d_nodes(allocator)
 , d_nodesList(allocator)
 , d_nodeStateObservers(allocator)
-, d_failedWritesThrottler()
 , d_mutex()
 , d_isReadEnabled(false)
 {
@@ -204,11 +204,6 @@ ClusterImp::ClusterImp(const bsl::string&                      name,
             d_selfNode = d_nodesList.back();
         }
     }
-
-    // 1 log per 1 second interval
-    d_failedWritesThrottler.initialize(
-        1,
-        bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
 }
 
 ClusterImp::~ClusterImp()
@@ -261,13 +256,14 @@ int ClusterImp::writeAll(const bsl::shared_ptr<bdlbb::Blob>& blob,
                     bmqt::GenericResult::e_NOT_CONNECTED != rc)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-                if (d_failedWritesThrottler.requestPermission()) {
-                    BALL_LOG_ERROR << "#CLUSTER_SEND_FAILURE "
-                                   << "Failed to write blob of length ["
-                                   << blob->length() << "] bytes, to node "
-                                   << it->nodeDescription() << ", rc: " << rc
-                                   << ".";
-                }
+                // 1 log per 1 second interval
+                BALL_LOGTHROTTLE_ERROR(
+                    1,
+                    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
+                    << "#CLUSTER_SEND_FAILURE "
+                    << "Failed to write blob of length [" << blob->length()
+                    << "] bytes, to node " << it->nodeDescription()
+                    << ", rc: " << rc << ".";
             }
         }
     }
