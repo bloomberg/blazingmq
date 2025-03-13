@@ -226,6 +226,7 @@ jobs:
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
+          compression-level: 9
 
   fuzz_tests_ubuntu:
     name: Fuzz test [${{ matrix.request }}]
