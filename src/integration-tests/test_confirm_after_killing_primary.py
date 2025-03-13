@@ -29,7 +29,8 @@ from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.util import wait_until
 
 
-def test_confirm_after_killing_primary(cluster: Cluster):
+def test_confirm_after_killing_primary(cluster: Cluster, domain_urls: tc.DomainUrls):
+    uri_priority = domain_urls.uri_priority
     proxies = cluster.proxy_cycle()
 
     # we want proxy connected to a replica
@@ -39,14 +40,14 @@ def test_confirm_after_killing_primary(cluster: Cluster):
     consumer = proxy.create_client("consumer")
     producer = proxy.create_client("producer")
 
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
+    consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
+    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
     consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 1, 2)
-    msgs = consumer.list(tc.URI_PRIORITY, block=True)
+    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 1, 2)
+    msgs = consumer.list(uri_priority, block=True)
     assert msgs[0].payload == "msg1"
 
     # make the quorum for replica to be 1 so it becomes new primary
@@ -73,17 +74,17 @@ def test_confirm_after_killing_primary(cluster: Cluster):
     # otherwise CONFIRM/PUT can get rejected if happen in between the
     # conversion
     assert replica.outputs_substr(
-        f"Rebuilt internal state of queue engine for queue [{tc.URI_PRIORITY}]",
+        f"Rebuilt internal state of queue engine for queue [{uri_priority}]",
         timeout=5,
     )
 
     # confirm
-    assert consumer.confirm(tc.URI_PRIORITY, "*", block=True) == Client.e_SUCCESS
+    assert consumer.confirm(uri_priority, "*", block=True) == Client.e_SUCCESS
     # post
-    producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 
     # verify that replica did not crash
     consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 1, 2)
-    msgs = consumer.list(tc.URI_PRIORITY, block=True)
+    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 1, 2)
+    msgs = consumer.list(uri_priority, block=True)
     assert msgs[0].payload == "msg2"

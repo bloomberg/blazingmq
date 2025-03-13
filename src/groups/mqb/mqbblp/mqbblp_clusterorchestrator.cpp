@@ -871,7 +871,8 @@ void ClusterOrchestrator::processStopRequest(
                   << ", new status: " << bmqp_ctrlmsg::NodeStatus::E_STOPPING;
 
     // TODO(shutdown-v2): TEMPORARY, remove when all switch to StopRequest V2.
-    if (stopRequest.version() == 1 && stopRequest.clusterName() != name) {
+    if (stopRequest.version() == bmqp::Protocol::eStopRequestVersion::e_V1 &&
+        stopRequest.clusterName() != name) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << ": invalid cluster name in the StopRequest from "

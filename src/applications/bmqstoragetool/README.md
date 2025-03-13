@@ -100,48 +100,48 @@ Output summary for journal file
 ----------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --summary
+./bmqstoragetool.tsk --journal-file=<path> --summary
 ```
 
 Search and otput all message GUIDs in journal file
 --------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path>
+./bmqstoragetool.tsk --journal-file=<path>
 ```
 
 Search and otput all queueOp/journalOp records or all records in journal file
 --------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --record-type=queue-op
-bmqstoragetool --journal-file=<path> --record-type=journal-op
-bmqstoragetool --journal-file=<path> --record-type=journal-op --record-type=queue-op --record-type=message
+./bmqstoragetool.tsk --journal-file=<path> --record-type=queue-op
+./bmqstoragetool.tsk --journal-file=<path> --record-type=journal-op
+./bmqstoragetool.tsk --journal-file=<path> --record-type=journal-op --record-type=queue-op --record-type=message
 ```
 
 Search and otput all messages details in journal file
 -----------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --details
+./bmqstoragetool.tsk --journal-file=<path> --details
 ```
 
 Search and otput all outstanding/confirmed/partially-confirmed message GUIDs in journal file
 --------------------------------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --outstanding
-bmqstoragetool --journal-file=<path> --confirmed 
-bmqstoragetool --journal-file=<path> --partially-confirmed 
+./bmqstoragetool.tsk --journal-file=<path> --outstanding
+./bmqstoragetool.tsk --journal-file=<path> --confirmed 
+./bmqstoragetool.tsk --journal-file=<path> --partially-confirmed 
 ```
 
 Search all message GUIDs with payload dump in journal file
 ----------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<journal-path> --data-file=<data-path> --dump-payload
-bmqstoragetool --journal-path=<path.*> --dump-payload
-bmqstoragetool --journal-path=<path.*> --dump-payload --dump-limit=64
+./bmqstoragetool.tsk --journal-file=<journal-path> --data-file=<data-path> --dump-payload
+./bmqstoragetool.tsk --journal-path=<path.*> --dump-payload
+./bmqstoragetool.tsk --journal-path=<path.*> --dump-payload --dump-limit=64
 ```
 
 Applying search filters to above scenarios
@@ -151,7 +151,7 @@ Filter messages with corresponding GUIDs
 ----------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
+./bmqstoragetool.tsk --journal-file=<path> --guid=<guid_1> --guid=<guid_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -159,7 +159,7 @@ Filter messages with corresponding composite sequence numbers (defined in form <
 ---------------------------------------------------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnum=<leaseId-sequenceNumber_N>
+./bmqstoragetool.tsk --journal-file=<path> --seqnum=<leaseId-sequenceNumber_1> --seqnum=<leaseId-sequenceNumber_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -167,7 +167,7 @@ Filter messages with corresponding record offsets
 -------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
+./bmqstoragetool.tsk --journal-file=<path> --offset=<offset_1> --offset=<offset_N>
 ```
 NOTE: no other filters are allowed with this one
 
@@ -175,40 +175,51 @@ Filter messages within time range
 ---------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp>
-bmqstoragetool --journal-file=<path> --timestamp-gt=<stamp>
-bmqstoragetool --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
+./bmqstoragetool.tsk --journal-file=<path> --timestamp-lt=<stamp>
+./bmqstoragetool.tsk --journal-file=<path> --timestamp-gt=<stamp>
+./bmqstoragetool.tsk --journal-file=<path> --timestamp-lt=<stamp1> --timestamp-gt=<stamp2>
 ```
 
 Filter messages within composite sequence numbers (primaryLeaseId, sequenceNumber) range
 ----------------------------------------------------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId-sequenceNumber>
-bmqstoragetool --journal-file=<path> --seqnum-gt=<leaseId-sequenceNumber>
-bmqstoragetool --journal-file=<path> --seqnum-lt=<leaseId1-sequenceNumber1> --seqnum-gt=<leaseId2-sequenceNumber2>
+./bmqstoragetool.tsk --journal-file=<path> --seqnum-lt=<leaseId-sequenceNumber>
+./bmqstoragetool.tsk --journal-file=<path> --seqnum-gt=<leaseId-sequenceNumber>
+./bmqstoragetool.tsk --journal-file=<path> --seqnum-lt=<leaseId1-sequenceNumber1> --seqnum-gt=<leaseId2-sequenceNumber2>
 ```
 
 Filter messages within record offsets range
 -------------------------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --offset-lt=<offset>
-bmqstoragetool --journal-file=<path> --offset-gt=<offset>
-bmqstoragetool --journal-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
+./bmqstoragetool.tsk --journal-file=<path> --offset-lt=<offset>
+./bmqstoragetool.tsk --journal-file=<path> --offset-gt=<offset>
+./bmqstoragetool.tsk --journal-file=<path> --offset-lt=<offset1> --offset-gt=<offset2>
 ```
 
 Filter messages by queue key
 ----------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<path> --queue-key=<key_1> --queue-key=<key_N>
+./bmqstoragetool.tsk --journal-file=<path> --queue-key=<key_1> --queue-key=<key_N>
 ```
 
 Filter messages by queue Uri
 ----------------------------
 Example:
 ```bash
-bmqstoragetool --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
+./bmqstoragetool.tsk --journal-file=<journal_path> --csl-file=<csl_path> --queue-name=<queue_uri_1> --queue-name=<queue_uri_N>
 ```
 NOTE: CSL file is required
+
+Display number of records per type (e.g. Message, Confirm, Delete, etc.) per queue.
+The number of Confirm records are displayed per AppId if there are more than 1 AppId.
+The information is displayed for the queues with a total number of records greater or
+equal to the value of `--min-records-per-queue` param.
+By default this feature is disabled.
+-------------------------------------------------------------------------------------
+Example:
+```bash
+./bmqstoragetool.tsk --journal-file=<path> --min-records-per-queue=<limit>
+```

@@ -163,7 +163,7 @@ bool ClusterActiveNodeManager::findNewActiveNode()
          ++it) {
         mqbnet::ClusterNode* node = it->first;
         if (it->second.d_status == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE &&
-            ((node->dataCenter() == d_dataCenter) ||
+            (d_ignoreDataCenter || node->dataCenter() == d_dataCenter ||
              d_dataCenter == "UNSPECIFIED")) {
             candidates.push_back(node);
         }
@@ -242,14 +242,19 @@ ClusterActiveNodeManager::ClusterActiveNodeManager(
 : d_description(description)
 , d_dataCenter(dataCenter)
 , d_activeNodeIt(d_nodes.end())
+, d_ignoreDataCenter(false)
 , d_useExtendedSelection(false)
 {
+    bool clusterHasNodeInLocalDC = false;
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
          it != nodes.end();
          ++it) {
         mqbnet::ClusterNode* node = *it;
         d_nodes[node].d_status    = bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE;
+        clusterHasNodeInLocalDC   = clusterHasNodeInLocalDC ||
+                                  d_dataCenter == node->dataCenter();
     }
+    d_ignoreDataCenter = !clusterHasNodeInLocalDC;
 }
 
 ClusterActiveNodeManager::~ClusterActiveNodeManager()

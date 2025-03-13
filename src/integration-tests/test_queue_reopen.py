@@ -26,11 +26,12 @@ from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
 from blazingmq.dev.it.process.client import Client
 
 
-def test_reopen_empty_queue(multi_node: Cluster):
+def test_reopen_empty_queue(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     If queue has no handles by the time cluster state restores, it should
     still be notified in order to update its state.
     """
+    uri_priority = domain_urls.uri_priority
     proxies = multi_node.proxy_cycle()
     # pick proxy in datacenter opposite to the primary's
     next(proxies)
@@ -38,7 +39,7 @@ def test_reopen_empty_queue(multi_node: Cluster):
 
     # Start a producer and open a queue
     producer = replica_proxy.create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     # If queue open has succeeded, then active_node is known
     active_node = multi_node.process(replica_proxy.get_active_node())
@@ -55,28 +56,29 @@ def test_reopen_empty_queue(multi_node: Cluster):
 
     # Start a producer and open a queue
     producer = replica_proxy.create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
 
     # Post should result in successful Ack
     assert (
-        producer.post(tc.URI_PRIORITY, ["1"], wait_ack=True, succeed=True)
+        producer.post(uri_priority, ["1"], wait_ack=True, succeed=True)
         == Client.e_SUCCESS
     )
 
 
-def test_reopen_substream(multi_node: Cluster):
+def test_reopen_substream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Ticket 169527537.  Make a primary's client reopen the same appId with a
     different subId.
     """
+    du = domain_urls
 
     leader = multi_node.last_known_leader
     consumer1 = leader.create_client("consumer1")
-    consumer1.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)
 
     consumer2 = leader.create_client("consumer2")
-    consumer2.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
-    consumer2.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    consumer2.open(du.uri_fanout_foo, flags=["read"], succeed=True)
+    consumer2.open(du.uri_fanout_bar, flags=["read"], succeed=True)
 
-    consumer2.close(tc.URI_FANOUT_FOO, succeed=True)
-    consumer2.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer2.close(du.uri_fanout_foo, succeed=True)
+    consumer2.open(du.uri_fanout_foo, flags=["read"], succeed=True)

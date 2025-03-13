@@ -76,14 +76,16 @@ def multi_cluster(request):
 
 
 class TestGracefulShutdown:
-    def post_kill_confirm(self, node, peer):
+    def post_kill_confirm(self, node, peer, domain_urls: tc.DomainUrls):
+        du = domain_urls
+
         test_logger.info("posting...")
 
         # post 3 PUTs
         for i in range(1, 4):
-            self.producer.post(tc.URI_FANOUT, payload=[f"msg{i}"], succeed=True)
+            self.producer.post(du.uri_fanout, payload=[f"msg{i}"], succeed=True)
 
-        uris = [tc.URI_FANOUT_FOO, tc.URI_FANOUT_BAR, tc.URI_FANOUT_BAZ]
+        uris = [du.uri_fanout_foo, du.uri_fanout_bar, du.uri_fanout_baz]
         # start consumer
         consumer = self.replica_proxy.create_client("consumer")
 
@@ -97,10 +99,10 @@ class TestGracefulShutdown:
             assert wait_until(lambda: len(consumer.list(uri, block=True)) == 3, 2)
 
         # wait for previous PUTs to replicate
-        def num_broker_messages():
+        def num_broker_messages(du):
             num_messages = 0
             peer.drain()
-            peer.list_messages(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, 0, 3)
+            peer.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 3)
 
             capture = peer.capture(r"Printing (-?\d+) message\(s\)", timeout=2)
             assert capture
@@ -108,11 +110,11 @@ class TestGracefulShutdown:
             num_messages = int(capture[1])
             return num_messages
 
-        assert wait_until(lambda: num_broker_messages() == 3, 3)
+        assert wait_until(lambda: num_broker_messages(du) == 3, 3)
 
         # Ticket 168471730.   Downstream should update its opened subIds upon
         # closing and not attempt to deconfigure it upon StopRequest
-        self.producer.close(tc.URI_FANOUT, block=True)
+        self.producer.close(du.uri_fanout, block=True)
 
         # start graceful shutdown
         peer.drain()
@@ -124,7 +126,7 @@ class TestGracefulShutdown:
             assert consumer.confirm(uri, guids[0], block=True) == Client.e_SUCCESS
             assert consumer.confirm(uri, guids[1], block=True) == Client.e_SUCCESS
 
-        assert wait_until(lambda: num_broker_messages() == 1, 10)
+        assert wait_until(lambda: num_broker_messages(du) == 1, 10)
 
         consumer.drain()
 
@@ -132,43 +134,43 @@ class TestGracefulShutdown:
         # available.  Switching the primary depends on the presence of
         # unconfirmed messages (1)
         self.producer.open(
-            tc.URI_PRIORITY, flags=["write,ack"], block=False, async_=True
+            du.uri_priority, flags=["write,ack"], block=False, async_=True
         )
 
-        consumer.open(tc.URI_PRIORITY, flags=["read"], block=False, async_=True)
+        consumer.open(du.uri_priority, flags=["read"], block=False, async_=True)
 
         for uri in uris:
             assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS
 
-        assert wait_until(lambda: num_broker_messages() == 0, 5)
+        assert wait_until(lambda: num_broker_messages(du) == 0, 5)
 
         # now check if that queue is open and functional
         assert consumer.capture(
-            f'<--.*openQueue.*uri = {re.escape(tc.URI_PRIORITY)}.*result = "SUCCESS ',
+            f'<--.*openQueue.*uri = {re.escape(du.uri_priority)}.*result = "SUCCESS ',
             timeout=15,
         )
         assert self.producer.capture(
-            f'<--.*openQueue.*uri = {re.escape(tc.URI_PRIORITY)}.*result = "SUCCESS ',
+            f'<--.*openQueue.*uri = {re.escape(du.uri_priority)}.*result = "SUCCESS ',
             timeout=15,
         )
 
-        self.producer.post(tc.URI_PRIORITY, payload=["check"], succeed=True)
+        self.producer.post(du.uri_priority, payload=["check"], succeed=True)
         consumer.wait_push_event()
 
-        msgs = consumer.list(tc.URI_PRIORITY, block=True)
+        msgs = consumer.list(du.uri_priority, block=True)
         assert len(msgs) == 1
         assert msgs[0].payload == "check"
 
-        assert consumer.confirm(tc.URI_PRIORITY, "*", block=True) == Client.e_SUCCESS
+        assert consumer.confirm(du.uri_priority, "*", block=True) == Client.e_SUCCESS
 
         node.wait()
         # assert node.return_code == 0
 
-    def kill_wait_unconfirmed(self, peer):
+    def kill_wait_unconfirmed(self, peer, domain_urls: tc.DomainUrls):
         test_logger.info("posting...")
 
-        uriWrite = tc.URI_FANOUT
-        uriRead = tc.URI_FANOUT_FOO
+        uriWrite = domain_urls.uri_fanout
+        uriRead = domain_urls.uri_fanout_foo
 
         # post 2 PUTs
         self.producer.post(uriWrite, payload=["msg1"], succeed=True)
@@ -214,50 +216,56 @@ class TestGracefulShutdown:
 
         peer.wait()
 
-    def setup_cluster(self, cluster):
+    def setup_cluster(self, cluster, domain_urls: tc.DomainUrls):
         self.cluster = cluster
         proxies = cluster.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
         self.replica_proxy = next(proxies)
         self.producer = self.replica_proxy.create_client("producer")
-        self.producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+        self.producer.open(domain_urls.uri_fanout, flags=["write,ack"], succeed=True)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_primary(self, multi_node: Cluster):
+    def test_shutting_down_primary(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         cluster = multi_node
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(leader, active_node)
+        self.post_kill_confirm(leader, active_node, domain_urls)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
-    def test_shutting_down_replica(self, multi_node: Cluster):
+    def test_shutting_down_replica(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         cluster = multi_node
         leader = cluster.last_known_leader
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(active_node, leader)
+        self.post_kill_confirm(active_node, leader, domain_urls)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_proxy(
-        self, multi_node  # pylint: disable=unused-argument
+        self, multi_node, domain_urls: tc.DomainUrls  # pylint: disable=unused-argument
     ):
         proxy = self.replica_proxy
-        self.kill_wait_unconfirmed(proxy)
+        self.kill_wait_unconfirmed(proxy, domain_urls)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
     def test_wait_unconfirmed_replica(
-        self, multi_node  # pylint: disable=unused-argument
+        self, multi_node, domain_urls: tc.DomainUrls  # pylint: disable=unused-argument
     ):
         cluster = multi_node
         replica = cluster.process(self.replica_proxy.get_active_node())
-        self.kill_wait_unconfirmed(replica)
+        self.kill_wait_unconfirmed(replica, domain_urls)
 
     @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
-    def test_give_up_unconfirmed(self, multi_node):  # pylint: disable=unused-argument
-        uriWrite = tc.URI_FANOUT
-        uriRead = tc.URI_FANOUT_FOO
+    def test_give_up_unconfirmed(
+        self, multi_node, domain_urls: tc.DomainUrls
+    ):  # pylint: disable=unused-argument
+        uriWrite = domain_urls.uri_fanout
+        uriRead = domain_urls.uri_fanout_foo
 
         leader = multi_node.last_known_leader
 
@@ -292,11 +300,13 @@ class TestGracefulShutdown:
         consumer.wait_push_event()
 
     @tweak.cluster.queue_operations.shutdown_timeout_ms(1000)
-    def test_multiple_stop_requests(self, multi_cluster: Cluster):
+    def test_multiple_stop_requests(
+        self, multi_cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         cluster = multi_cluster
 
-        uriWrite = tc.URI_FANOUT
-        uriRead = tc.URI_FANOUT_FOO
+        uriWrite = domain_urls.uri_fanout
+        uriRead = domain_urls.uri_fanout_foo
 
         # post 2 PUTs
         self.producer.post(uriWrite, payload=["msg1"], succeed=True)
@@ -325,7 +335,9 @@ class TestGracefulShutdown:
 
     @tweak.cluster.queue_operations.stop_timeout_ms(999999)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5)
-    def test_active_node_shutdown_timeout(self, multi_cluster: Cluster):
+    def test_active_node_shutdown_timeout(
+        self, multi_cluster: Cluster, domain_urls: tc.DomainUrls
+    ):
         """
         Test upstream timeout waiting for StopResponse
         We have: Consumer -> Proxy -> active_node -> upstream_node.
@@ -336,8 +348,8 @@ class TestGracefulShutdown:
 
         cluster = multi_cluster
 
-        uriWrite = tc.URI_FANOUT
-        uriRead = tc.URI_FANOUT_FOO
+        uriWrite = domain_urls.uri_fanout
+        uriRead = domain_urls.uri_fanout_foo
 
         active_node = cluster.process(self.replica_proxy.get_active_node())
         assert active_node in cluster.virtual_nodes()

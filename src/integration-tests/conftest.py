@@ -19,6 +19,10 @@ import pytest
 
 import blazingmq.dev.it.logging
 import blazingmq.util.logging as bul
+from blazingmq.dev.it.testconstants import (
+    eventual_consistency_param,
+    strong_consistency_param,
+)
 from blazingmq.dev.pytest import PYTEST_LOG_SPEC_VAR
 
 
@@ -114,6 +118,15 @@ def pytest_addoption(parser):
         help=help_,
     )
 
+    help_ = "run with domain consistency: <eventual>, strong or both"
+    parser.addoption(
+        "--domain-consistency",
+        action="store",
+        default="eventual",
+        help=help_,
+        choices=("eventual", "strong", "both"),
+    )
+
 
 def pytest_configure(config):
     logging.setLoggerClass(blazingmq.dev.it.logging.BMQLogger)
@@ -151,3 +164,17 @@ def pytest_collection_modifyitems(config, items):
         item.add_marker(
             pytest.mark.skip(reason=f"order = {order}, running {active_wave} only")
         )
+
+
+def pytest_generate_tests(metafunc):
+    # If the test function has a "domain_urls" argument, parametrize it
+    # using "--domain-consistency" cmd line option value.
+    if "domain_urls" in metafunc.fixturenames:
+        val = metafunc.config.getoption("domain_consistency")
+        if val == "eventual":
+            params = [eventual_consistency_param()]
+        elif val == "strong":
+            params = [strong_consistency_param()]
+        else:  # both
+            params = [eventual_consistency_param(), strong_consistency_param()]
+        metafunc.parametrize("domain_urls", params)

@@ -39,7 +39,8 @@ class TestClusterNodeShutdown:
     to another cluster node in the presence of all types of queues.
     """
 
-    def setup_cluster(self, cluster: Cluster):
+    def setup_cluster(self, cluster: Cluster, domain_urls: tc.DomainUrls):
+        du = domain_urls
         proxies = cluster.proxy_cycle()
 
         # 1: Proxy in same datacenter as leader/primary
@@ -47,13 +48,11 @@ class TestClusterNodeShutdown:
 
         self.producer1 = self.proxy1.create_client("producer1")
         assert (
-            self.producer1.open(
-                tc.URI_PRIORITY_SC, flags=["write", "ack"], succeed=True
-            )
+            self.producer1.open(du.uri_priority, flags=["write", "ack"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.producer1.open(tc.URI_FANOUT_SC, flags=["write", "ack"], succeed=True)
+            self.producer1.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
@@ -63,15 +62,15 @@ class TestClusterNodeShutdown:
 
         self.consumer1 = self.proxy1.create_client("consumer1")
         assert (
-            self.consumer1.open(tc.URI_PRIORITY_SC, flags=["read"], succeed=True)
+            self.consumer1.open(du.uri_priority, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.consumer1.open(tc.URI_FANOUT_SC_FOO, flags=["read"], succeed=True)
+            self.consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.consumer1.open(tc.URI_FANOUT_SC_BAR, flags=["read"], succeed=True)
+            self.consumer1.open(du.uri_fanout_bar, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
@@ -84,13 +83,11 @@ class TestClusterNodeShutdown:
 
         self.producer2 = self.proxy2.create_client("producer2")
         assert (
-            self.producer2.open(
-                tc.URI_PRIORITY_SC, flags=["write", "ack"], succeed=True
-            )
+            self.producer2.open(du.uri_priority, flags=["write", "ack"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.producer2.open(tc.URI_FANOUT_SC, flags=["write", "ack"], succeed=True)
+            self.producer2.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
@@ -100,15 +97,15 @@ class TestClusterNodeShutdown:
 
         self.consumer2 = self.proxy2.create_client("consumer2")
         assert (
-            self.consumer2.open(tc.URI_PRIORITY_SC, flags=["read"], succeed=True)
+            self.consumer2.open(du.uri_priority, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.consumer2.open(tc.URI_FANOUT_SC_FOO, flags=["read"], succeed=True)
+            self.consumer2.open(du.uri_fanout_foo, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
-            self.consumer2.open(tc.URI_FANOUT_SC_BAR, flags=["read"], succeed=True)
+            self.consumer2.open(du.uri_fanout_bar, flags=["read"], succeed=True)
             == Client.e_SUCCESS
         )
         assert (
@@ -116,20 +113,24 @@ class TestClusterNodeShutdown:
             == Client.e_SUCCESS
         )
 
-    def test_primary_shutdown_with_proxy(self, multi_node: Cluster):
+    def test_primary_shutdown_with_proxy(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         cluster = multi_node
         primary = cluster.last_known_leader
 
-        self._post_kill_recover_post(cluster, primary)
+        self._post_kill_recover_post(cluster, primary, domain_urls)
 
-    def test_replica_shutdown_with_proxy(self, multi_node: Cluster):
+    def test_replica_shutdown_with_proxy(
+        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+    ):
         cluster = multi_node
         replica = cluster.process(self.proxy2.get_active_node())
 
-        self._post_kill_recover_post(cluster, replica)
+        self._post_kill_recover_post(cluster, replica, domain_urls)
 
-    def _post_kill_recover_post(self, cluster, active_node):
-        self._verify_all_queues_operational()  # Prior to kill
+    def _post_kill_recover_post(self, cluster, active_node, domain_urls: tc.DomainUrls):
+        self._verify_all_queues_operational(domain_urls)  # Prior to kill
 
         recovery = Semaphore(0)
 
@@ -149,11 +150,12 @@ class TestClusterNodeShutdown:
         assert recovery.acquire(timeout=120)  # pylint: disable=consider-using-with
         sleep(5)
 
-        self._verify_all_queues_operational()  # After recovery
+        self._verify_all_queues_operational(domain_urls)  # After recovery
 
-    def _verify_all_queues_operational(self):
-        self._verify(tc.URI_PRIORITY_SC, tc.URI_PRIORITY_SC, None, True)
-        self._verify(tc.URI_FANOUT_SC, tc.URI_FANOUT_SC_FOO, tc.URI_FANOUT_SC_BAR, True)
+    def _verify_all_queues_operational(self, domain_urls: tc.DomainUrls):
+        du = domain_urls
+        self._verify(du.uri_priority, du.uri_priority, None, True)
+        self._verify(du.uri_fanout, du.uri_fanout_foo, du.uri_fanout_bar, True)
         self._verify(tc.URI_BROADCAST, tc.URI_BROADCAST, None, False)
 
     def _verify(self, uri_post, uri_group1, uri_group2, priority):

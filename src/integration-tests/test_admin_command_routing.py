@@ -33,7 +33,7 @@ import json
 import multiprocessing.pool
 
 
-def test_primary_rerouting(multi_node: Cluster) -> None:
+def test_primary_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: commands intended only for primary node are automatically routed to
           primary node and response it sent back when executed from non-primary
@@ -53,6 +53,8 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     # TODO Skip admin command routing tests until admin command routing is re-enabled
     return
 
+    du = domain_urls
+
     admin = AdminClient()
 
     # find the first node which is not a known leader
@@ -71,17 +73,17 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    producer.open(tc.URI_FANOUT, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
     # Try DOMAINS DOMAIN <domain> PURGE
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} PURGE")
 
     # response should say "Purged XX messages..."
     assert "Purged" in res
 
     # Try DOMAINS DOMAIN <name> QUEUE <queue_name> PURGE <appId>
     res = admin.send_admin(
-        f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}"
+        f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE {tc.TEST_APPIDS[0]}"
     )
     assert "Purged" in res
 
@@ -114,7 +116,7 @@ def test_primary_rerouting(multi_node: Cluster) -> None:
     admin.stop()
 
 
-def test_cluster_rerouting(multi_node: Cluster) -> None:
+def test_cluster_rerouting(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: commands intended for cluster are routed to all nodes in the cluster
           regardless of the node the command is initially sent to
@@ -135,6 +137,8 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     # TODO Skip admin command routing tests until admin command routing is re-enabled
     return
 
+    du = domain_urls
+
     admin = AdminClient()
 
     node = multi_node.nodes()[0]
@@ -147,10 +151,10 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
 
     # Try DOMAINS RECONFIGURE <domain>
-    res = admin.send_admin(f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}")
+    res = admin.send_admin(f"DOMAINS RECONFIGURE {du.domain_priority}")
 
     # Expect num_nodes "SUCCESS" responses
     success_count = res.split().count("SUCCESS")
@@ -187,7 +191,7 @@ def test_cluster_rerouting(multi_node: Cluster) -> None:
     admin.stop()
 
 
-def test_multi_response_encoding(multi_node: Cluster):
+def test_multi_response_encoding(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: JSON encoding options work with multiple responses (when routing to
           multiple nodes)
@@ -206,6 +210,8 @@ def test_multi_response_encoding(multi_node: Cluster):
     # TODO Skip admin command routing tests until admin command routing is re-enabled
     return
 
+    du = domain_urls
+
     def is_compact(json_str: str) -> bool:
         return "    " not in json_str
 
@@ -220,17 +226,17 @@ def test_multi_response_encoding(multi_node: Cluster):
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    producer.open(tc.URI_PRIORITY, flags=["write,ack"], succeed=True)
+    producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
 
     # Stage 2: Test Compact Encoding
     cmds = [
         json.dumps(
             {
-                "domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}},
+                "domains": {"reconfigure": {"domain": du.domain_priority}},
                 "encoding": "JSON_COMPACT",
             }
         ),
-        f"ENCODING JSON_COMPACT DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}",
+        f"ENCODING JSON_COMPACT DOMAINS RECONFIGURE {du.domain_priority}",
     ]
     for cmd in cmds:
         res = admin.send_admin(cmd)
@@ -245,11 +251,11 @@ def test_multi_response_encoding(multi_node: Cluster):
     cmds = [
         json.dumps(
             {
-                "domains": {"reconfigure": {"domain": tc.DOMAIN_PRIORITY}},
+                "domains": {"reconfigure": {"domain": du.domain_priority}},
                 "encoding": "JSON_PRETTY",
             }
         ),
-        f"ENCODING JSON_PRETTY DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}",
+        f"ENCODING JSON_PRETTY DOMAINS RECONFIGURE {du.domain_priority}",
     ]
     for cmd in cmds:
         res = admin.send_admin(cmd)
@@ -263,7 +269,7 @@ def test_multi_response_encoding(multi_node: Cluster):
     admin.stop()
 
 
-def test_concurrently_routed_commands(multi_node: Cluster):
+def test_concurrently_routed_commands(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: Ensure issuing all-cluster commands to each node in parallel does
           not cause the system to fail.
@@ -288,7 +294,7 @@ def test_concurrently_routed_commands(multi_node: Cluster):
         return response
 
     pool = multiprocessing.pool.ThreadPool(len(multi_node.nodes()))
-    cmd = f"DOMAINS RECONFIGURE {tc.DOMAIN_PRIORITY}"
+    cmd = f"DOMAINS RECONFIGURE {domain_urls.domain_priority}"
     result_list = pool.starmap(exec_command, ((client, cmd) for client in clients))
 
     # Ensure we got 4 responses back each with 4 successes
