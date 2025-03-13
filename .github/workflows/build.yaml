@@ -162,6 +162,7 @@ jobs:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["single", "multi"]
         consistency: ["eventual", "strong"]
+      max-parallel: 1
       fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
