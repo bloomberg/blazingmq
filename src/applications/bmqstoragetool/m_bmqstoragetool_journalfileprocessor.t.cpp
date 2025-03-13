@@ -1436,6 +1436,20 @@ static void test14_summaryTest()
 
     // Run search
     searchProcessor->process();
+
+    // Prepare expected output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    expectedStream << "5 message(s) found.\n";
+    bsl::vector<bsl::string> fields(bmqtst::TestHelperUtil::allocator());
+    fields.push_back("Number of partially confirmed messages");
+    fields.push_back("Number of confirmed messages");
+    fields.push_back("Number of outstanding messages");
+    bmqu::AlignedPrinter printer(expectedStream, fields);
+    printer << 3 << 2 << 2;
+    expectedStream << "Outstanding ratio: 40% (2/5)\n";
+
+    bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT(res.starts_with(expectedStream.str()));
 }
 
 static void test15_timestampSearchTest()
@@ -2402,6 +2416,29 @@ static void test24_summaryWithQueueDetailsTest()
 
     // Run search
     searchProcessor->process();
+
+    // Prepare expected output
+    bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
+    expectedStream << "5 message(s) found.\n";
+    bsl::vector<bsl::string> fields(bmqtst::TestHelperUtil::allocator());
+    fields.push_back("Number of partially confirmed messages");
+    fields.push_back("Number of confirmed messages");
+    fields.push_back("Number of outstanding messages");
+    bmqu::AlignedPrinter printer(expectedStream, fields);
+    printer << 3 << 2 << 2;
+    expectedStream << "Outstanding ratio: 40% (2/5)\n";
+
+    expectedStream << "Total number of records: 15\n"
+                      "Number of records per Queue:\n"
+                      "    Queue Key             : 6162636465\n"
+                      "    Total Records         : 15\n"
+                      "    Num Queue Op Records  : 0\n"
+                      "    Num Message Records   : 5\n"
+                      "    Num Confirm Records   : 5\n"
+                      "    Num Delete Records    : 5";
+
+    bsl::string res(resultStream.str(), bmqtst::TestHelperUtil::allocator());
+    ASSERT(res.starts_with(expectedStream.str()));
 }
 
 // ============================================================================
