@@ -162,7 +162,7 @@ jobs:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["single", "multi"]
         consistency: ["eventual", "strong"]
-      max-parallel: 1
+      # max-parallel: 1
       fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
@@ -204,7 +204,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
@@ -212,7 +212,7 @@ jobs:
 
       - name: Upload broker core dump as artifacts
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: core_dumps_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/cores
@@ -220,7 +220,7 @@ jobs:
 
       - name: Upload broker executable as artifacts to debug the core
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: bmqbrkr.tsk
           overwrite: true # broker binary is the same across all matrix runs
