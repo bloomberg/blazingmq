@@ -7297,8 +7297,8 @@ void FileStore::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_UNDEFINED:
     case mqbi::DispatcherEventType::e_PUT:
