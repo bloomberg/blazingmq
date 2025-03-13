@@ -181,9 +181,9 @@ jobs:
 
       - name: Setup Core Dumps config
         run: |
-          sudo mkdir /cores
-          sudo chmod 777 /cores
-          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+          sudo mkdir ${{ github.workspace }}/src/integration-tests/cores
+          sudo chmod 777 ${{ github.workspace }}/src/integration-tests/cores
+          echo "${{ github.workspace }}/src/integration-tests/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
       - name: Run Integration Tests
         run: |
@@ -215,7 +215,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: core_dumps_${{ env.RUN_UID }}
-          path: /cores
+          path: ${{ github.workspace }}/src/integration-tests/cores
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
