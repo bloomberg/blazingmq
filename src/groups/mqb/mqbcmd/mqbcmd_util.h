@@ -17,18 +17,14 @@
 #ifndef INCLUDED_MQBCMD_UTIL
 #define INCLUDED_MQBCMD_UTIL
 
-//@PURPOSE: Provide a namespace of command utilities.
-//
-//@CLASSES:
-//  Util: namespace of command utilities
-//
-//@DESCRIPTION:
-// This component provides a namespace, 'mqbcmd::Util', containing utility
-// functions for commands.
-//
+/// @file mqbcmd_util.h
+///
+/// @brief Provide a namespace of command utilities.
+///
+/// This component provides a namespace, @bbref{mqbcmd::Util}, containing
+/// utility functions for commands.
 
 // MQB
-
 #include <mqbcmd_messages.h>
 
 // BDE

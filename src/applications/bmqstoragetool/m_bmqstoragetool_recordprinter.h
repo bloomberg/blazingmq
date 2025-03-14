@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2014-2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,6 +25,9 @@
 // versions of
 // mqbs::FileStoreProtocolPrinter::printRecord() methods.
 
+// BMQ
+#include <m_bmqstoragetool_messagedetails.h>
+
 // BDE
 #include <bslma_allocator.h>
 
@@ -40,47 +43,234 @@ namespace m_bmqstoragetool {
 
 namespace RecordPrinter {
 
-// FREE FUNCTIONS
+typedef bsl::vector<bsl::pair<bsls::Types::Uint64, mqbu::StorageKey> >
+    AppsData;
+// Vector of pairs of record counts and AppKey's
 
-/// Print the specified message record `rec` and QueueInfo pointed by the
-/// specified `queueInfo_p` to the specified `stream`, using the specified
-/// `allocator` for memory allocation.
-void printRecord(bsl::ostream&                  stream,
-                 const mqbs::MessageRecord&     rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                 bslma::Allocator*              allocator);
+// ==========================
+// class RecordDetailsPrinter
+// ==========================
 
-/// Print the specified confirm record `rec` and QueueInfo pointed by the
-/// specified `queueInfo_p` to the specified `stream`, using the specified
-/// `allocator` for memory allocation.
-void printRecord(bsl::ostream&                  stream,
-                 const mqbs::ConfirmRecord&     rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                 bslma::Allocator*              allocator);
+template <typename PRINTER_TYPE>
+class RecordDetailsPrinter {
+  private:
+    bsl::ostream&                   d_ostream;
+    bsl::vector<const char*>        d_fields;
+    bslma::ManagedPtr<PRINTER_TYPE> d_printer_mp;
+    bslma::Allocator*               d_allocator_p;
 
-/// Print the specified delete record `rec` and QueueInfo pointed by the
-/// specified `queueInfo_p` to the specified `stream`, using the specified
-/// `allocator` for memory allocation.
-void printRecord(bsl::ostream&                  stream,
-                 const mqbs::DeletionRecord&    rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                 bslma::Allocator*              allocator);
+    // PRIVATE METHODS
 
-/// Print the specified queueOp record `rec` and QueueInfo pointed by the
-/// specified `queueInfo_p` to the specified `stream`, using the specified
-/// `allocator` for memory allocation.
-void printRecord(bsl::ostream&                  stream,
-                 const mqbs::QueueOpRecord&     rec,
-                 const bmqp_ctrlmsg::QueueInfo* queueInfo_p,
-                 bslma::Allocator*              allocator);
+    /// Print the specified message record `rec`.
+    void printRecord(const RecordDetails<mqbs::MessageRecord>& rec);
+    /// Print the specified confirm record `rec`.
+    void printRecord(const RecordDetails<mqbs::ConfirmRecord>& rec);
+    /// Print the specified delete record `rec`.
+    void printRecord(const RecordDetails<mqbs::DeletionRecord>& rec);
+    /// Print the specified queue operation record `rec`.
+    void printRecord(const RecordDetails<mqbs::QueueOpRecord>& rec);
+    /// Print the specified journal operation record `rec`.
+    void printRecord(const RecordDetails<mqbs::JournalOpRecord>& rec);
 
-/// Find AppId in the specified `appIds` by the specified `appKey` and store
-/// the result in the specified `appId`. Return `true` on success and `false
-/// otherwise.
-bool findQueueAppIdByAppKey(
-    bsl::string*                                             appId,
-    const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
-    const mqbu::StorageKey&                                  appKey);
+    template <typename RECORD_TYPE>
+    void printAppInfo(const RecordDetails<RECORD_TYPE>& rec);
+
+    template <typename RECORD_TYPE>
+    void printQueueInfo(const RecordDetails<RECORD_TYPE>& rec);
+
+  public:
+    // CREATORS
+    RecordDetailsPrinter(bsl::ostream& stream, bslma::Allocator* allocator);
+
+    // PUBLIC METHODS
+
+    /// Print this object.
+    template <typename RECORD_TYPE>
+    void printRecordDetails(const RecordDetails<RECORD_TYPE>& rec);
+};
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// --------------------
+// RecordDetailsPrinter
+// --------------------
+
+template <typename PRINTER_TYPE>
+RecordDetailsPrinter<PRINTER_TYPE>::RecordDetailsPrinter(
+    std::ostream&     stream,
+    bslma::Allocator* allocator)
+: d_ostream(stream)
+, d_fields(allocator)
+, d_printer_mp()
+, d_allocator_p(allocator)
+{
+    // NOTHING
+}
+
+template <typename PRINTER_TYPE>
+template <typename RECORD_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printAppInfo(
+    const RecordDetails<RECORD_TYPE>& rec)
+{
+    d_fields.push_back("AppKey");
+    bmqu::MemOutStream appKeyStr(d_allocator_p);
+    if (rec.d_record.appKey().isNull()) {
+        appKeyStr << "** NULL **";
+    }
+    else {
+        appKeyStr << rec.d_record.appKey();
+    }
+    *d_printer_mp << appKeyStr.str();
+
+    if (!rec.d_appId.empty()) {
+        d_fields.push_back("AppId");
+        *d_printer_mp << rec.d_appId;
+    }
+}
+
+template <typename PRINTER_TYPE>
+template <typename RECORD_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printQueueInfo(
+    const RecordDetails<RECORD_TYPE>& rec)
+{
+    d_fields.push_back("QueueKey");
+    bmqu::MemOutStream queueKeyStr(d_allocator_p);
+    queueKeyStr << rec.d_record.queueKey();
+    *d_printer_mp << queueKeyStr.str();
+    if (!rec.d_queueUri.empty()) {
+        d_fields.push_back("QueueUri");
+        *d_printer_mp << rec.d_queueUri;
+    }
+}
+
+template <typename PRINTER_TYPE>
+void printDelimeter(bsl::ostream& ostream)
+{
+    ostream << ",\n";
+}
+
+template <>
+inline void printDelimeter<bmqu::AlignedPrinter>(bsl::ostream& ostream)
+{
+    ostream << "\n";
+}
+
+template <typename PRINTER_TYPE>
+template <typename RECORD_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
+    const RecordDetails<RECORD_TYPE>& details)
+{
+    d_fields.clear();
+    d_fields.reserve(14);  // max number of fields
+    d_fields.push_back("RecordType");
+    d_fields.push_back("Index");
+    d_fields.push_back("Offset");
+    d_fields.push_back("PrimaryLeaseId");
+    d_fields.push_back("SequenceNumber");
+    d_fields.push_back("Timestamp");
+    d_fields.push_back("Epoch");
+
+    // It's ok to pass a vector by pointer and push elements after that as
+    // we've reserved it's capacity in advance. Hense, no reallocations will
+    // happen and the pointer won't get invalidated.
+    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
+                      d_allocator_p);
+
+    *d_printer_mp << details.d_record.header().type() << details.d_recordIndex
+                  << details.d_recordOffset
+                  << details.d_record.header().primaryLeaseId()
+                  << details.d_record.header().sequenceNumber();
+
+    bsls::Types::Uint64 epochValue = details.d_record.header().timestamp();
+    bdlt::Datetime      datetime;
+    const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
+    if (0 != rc) {
+        *d_printer_mp << 0;
+    }
+    else {
+        *d_printer_mp << datetime;
+    }
+    *d_printer_mp << epochValue;
+
+    printRecord(details);
+    d_printer_mp.reset();
+}
+
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
+    const RecordDetails<mqbs::MessageRecord>& rec)
+{
+    printQueueInfo(rec);
+
+    d_fields.push_back("FileKey");
+    d_fields.push_back("RefCount");
+    d_fields.push_back("MsgOffsetDwords");
+    d_fields.push_back("GUID");
+    d_fields.push_back("Crc32c");
+
+    bmqu::MemOutStream fileKeyStr(d_allocator_p);
+    fileKeyStr << rec.d_record.fileKey();
+
+    *d_printer_mp << fileKeyStr.str() << rec.d_record.refCount()
+                  << rec.d_record.messageOffsetDwords()
+                  << rec.d_record.messageGUID() << rec.d_record.crc32c();
+}
+
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
+    const RecordDetails<mqbs::ConfirmRecord>& rec)
+{
+    printQueueInfo(rec);
+    printAppInfo(rec);
+    d_fields.push_back("GUID");
+    *d_printer_mp << rec.d_record.messageGUID();
+}
+
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
+    const RecordDetails<mqbs::DeletionRecord>& rec)
+{
+    printQueueInfo(rec);
+    d_fields.push_back("DeletionFlag");
+    d_fields.push_back("GUID");
+    *d_printer_mp << rec.d_record.deletionRecordFlag()
+                  << rec.d_record.messageGUID();
+}
+
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
+    const RecordDetails<mqbs::QueueOpRecord>& rec)
+{
+    printQueueInfo(rec);
+    printAppInfo(rec);
+    d_fields.push_back("QueueOpType");
+    *d_printer_mp << rec.d_record.type();
+
+    if (mqbs::QueueOpType::e_CREATION == rec.d_record.type() ||
+        mqbs::QueueOpType::e_ADDITION == rec.d_record.type()) {
+        d_fields.push_back("QLIST OffsetWords");
+        *d_printer_mp << rec.d_record.queueUriRecordOffsetWords();
+    }
+}
+
+template <typename PRINTER_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
+    const RecordDetails<mqbs::JournalOpRecord>& rec)
+{
+    d_fields.push_back("JournalOpType");
+    d_fields.push_back("SyncPointType");
+    d_fields.push_back("SyncPtPrimaryLeaseId");
+    d_fields.push_back("SyncPtSequenceNumber");
+    d_fields.push_back("PrimaryNodeId");
+    d_fields.push_back("DataFileOffsetDwords");
+
+    *d_printer_mp << rec.d_record.type() << rec.d_record.syncPointType()
+                  << rec.d_record.primaryNodeId() << rec.d_record.sequenceNum()
+                  << rec.d_record.primaryLeaseId()
+                  << rec.d_record.dataFileOffsetDwords();
+}
 
 }  // close namespace RecordPrinter
 

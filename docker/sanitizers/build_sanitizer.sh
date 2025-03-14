@@ -5,7 +5,7 @@
 #   - Clang
 #   - LLVM libc++ standard library
 #   - A CMake toolchain file specific for instrumented build
-# It is currently used to build instrumented BlazingMQ binaries for CI for all
+# It is used to build instrumented BlazingMQ binaries for all
 # Clang sanitizers (i.e. Address/Leak, Memory, Thread, UndefinedBehavior).
 #
 # It performs the following:
@@ -18,11 +18,10 @@
 # 6) Build sanitizer-instrumented BlazingMQ unit tests.
 # 7) Generate scripts to run unit tests:
 #      ./cmake.bld/Linux/run-unittests.sh
-#    This script is used as-is by CI to run unit tests under sanitizer.
 
 set -eux
 
-# :: Required arguments :::::::::::::::::::::::::::::::::::::::::::::::::::::::
+# Check required arguments
 if [ -z "${1}" ]; then
     echo 'Error: Missing sanitizer name.' >&2
     echo '  (Usage: build_sanitizer.sh <sanitizer-name>)' >&2
@@ -31,19 +30,11 @@ fi
 
 SANITIZER_NAME="${1}"
 
-# Github's 'ubuntu-22.04' image contains a lot of preinstalled tools,
-# see https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2204-Readme.md.
-# Uninstall uneeded tools which cause of versions clash.
-sudo apt-get purge \
-    llvm-14 \
-    clang-14 \
-    gcc-9 \
-    gcc-10 \
-    gcc-11 \
-    gcc-12
-
 # Install prerequisites
-sudo apt-get update && sudo apt-get install -qy \
+# Set up CA certificates first before installing other dependencies
+apt-get update && \
+apt-get install -y ca-certificates && \
+apt-get install -qy --no-install-recommends \
     lsb-release \
     wget \
     software-properties-common \
@@ -54,31 +45,33 @@ sudo apt-get update && sudo apt-get install -qy \
     ninja-build \
     bison \
     libfl-dev \
-    pkg-config
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains cmake version 3.22.1
+# Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
         | gpg --dearmor - \
-        | sudo tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-sudo apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-sudo apt-get install -qy cmake
+        | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
+apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
+apt-get install -qy cmake
 
 # Install LLVM
 wget https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh 
-LLVM_VERSION=17
-sudo ./llvm.sh ${LLVM_VERSION} all
+LLVM_VERSION=18
+LLVM_TAG="llvmorg-18.1.8"
+./llvm.sh ${LLVM_VERSION} all
 
 # Create version-agnostic pointers to required LLVM binaries.
-sudo ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-sudo ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
-sudo ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
+ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
+ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++ 
+ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
 PARALLELISM=8
 
 DIR_ROOT="${PWD}"
-DIR_SCRIPTS="${DIR_ROOT}/.github/workflows/sanitizers"
+DIR_SCRIPTS="${DIR_ROOT}/docker/sanitizers"
 DIR_EXTERNAL="${DIR_ROOT}/deps"
 DIR_SRCS_EXT="${DIR_EXTERNAL}/srcs"
 DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
@@ -111,23 +104,27 @@ github_url() { echo "https://github.com/$1.git"; }
 # Download external dependencies
 mkdir -p "${DIR_SRCS_EXT}"
 
-# Download LLVM
-LLVM_TAG="llvmorg-17.0.6"
+# Download LLVM sources
 curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
     | tar -xzC "${DIR_SRCS_EXT}"
 mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
 
-# Download google-benchmark
-GOOGLE_BENCHMARK_TAG="v1.8.4"
+# Download google-benchmark sources
+GOOGLE_BENCHMARK_TAG="v1.9.1"
 checkoutGitRepo "$(github_url google/benchmark)" "${GOOGLE_BENCHMARK_TAG}" "google-benchmark"
 
-# Download googletest
-GOOGLETEST_TAG="v1.14.0"
+# Download googletest sources
+GOOGLETEST_TAG="v1.15.2"
 checkoutGitRepo "$(github_url google/googletest)" "${GOOGLETEST_TAG}" "googletest"
 
 # Download zlib
 ZLIB_TAG="v1.3.1"
 checkoutGitRepo "$(github_url madler/zlib)" "${ZLIB_TAG}" "zlib"
+
+# Download bde-tools, bde and ntf-core sources
+cd "${DIR_EXTERNAL}"
+"${DIR_ROOT}"/docker/build_deps.sh "--only-download"
+cd -
 
 # Build libc++ with required instrumentation
 #
@@ -235,6 +232,11 @@ cmake -B "${DIR_SRCS_EXT}/zlib/cmake.bld" -S "${DIR_SRCS_EXT}/zlib" \
 # Make and install zlib.
 cmake --build "${DIR_SRCS_EXT}/zlib/cmake.bld" -j${PARALLELISM}
 cmake --install "${DIR_SRCS_EXT}/zlib/cmake.bld"
+
+# Remove un-needed folders
+rm -rf "${DIR_BUILD_EXT}"
+rm -rf "${DIR_SRCS_EXT}/bde"
+rm -rf "${DIR_SRCS_EXT}/ntf-core"
 
 # Build BlazingMQ
 PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig:/opt/bb/share/pkgconfig:$(pkg-config --variable pc_path pkg-config)" \

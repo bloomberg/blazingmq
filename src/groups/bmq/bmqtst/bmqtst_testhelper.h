@@ -791,7 +791,12 @@ static inline void
 _assert(bool result, const char* expression, const char* file, int line)
 {
     if (!result) {
-        printf("Error %s(%d): %s    (failed)\n", file, line, expression);
+        bsl::fprintf(stdout,
+                     "Error %s(%d): %s    (failed)\n",
+                     file,
+                     line,
+                     expression);
+        bsl::fflush(stdout);
         if (bmqtst::TestHelperUtil::testStatus() >= 0 &&
             bmqtst::TestHelperUtil::testStatus() <= 100) {
             ++bmqtst::TestHelperUtil::testStatus();
@@ -806,10 +811,17 @@ BSLS_ANNOTATION_NORETURN
 static inline void
 _assertViolationHandler(const bsls::AssertViolation& violation)
 {
-    printf("Error %s(%d): %s    (failed)\n",
-           violation.fileName(),
-           violation.lineNumber(),
-           violation.comment());
+    // Since we're handling a contract failure (as opposed to a test
+    // assertion), we want the program to die immediately. For this reason, we
+    // use stderr instead of stdout.
+    bsl::fprintf(stderr,
+                 "Error %s(%d): %s    (failed)\n",
+                 violation.fileName(),
+                 violation.lineNumber(),
+                 violation.comment());
+
+    // Ensure the error message is printed before terminating
+    bsl::fflush(stderr);
 
     bsls::AssertTest::failTestDriver(violation);
 }

@@ -64,7 +64,7 @@ def post_n_msgs(
     for _ in range(task.num):
         res = producer.post(task.uri, payload=["msg"], wait_ack=True)
         assert Client.e_SUCCESS == res
-    producer.close(task.uri)
+    producer.close(task.uri, succeed=True)
 
     if posted is not None:
         if task.uri in posted:
@@ -165,7 +165,7 @@ def test_breathing(single_node: Cluster) -> None:
     admin.stop()
 
 
-def test_queue_stats(single_node: Cluster) -> None:
+def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: queue metrics via admin command.
     Preconditions:
@@ -194,11 +194,12 @@ def test_queue_stats(single_node: Cluster) -> None:
     - The broker is able to report queue metrics for fanout queue.
     - Safeguarding mechanism prevents from getting stats too often.
     """
+    domain_fanout = domain_urls.domain_fanout
 
     domains = {domain.name: domain for domain in single_node.configurator.domains}
-    domains[
-        tc.DOMAIN_FANOUT
-    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
+    domains[domain_fanout].definition.parameters.mode.fanout.publish_app_id_metrics = (
+        True
+    )
     single_node.deploy_domains()
 
     # Preconditions
@@ -211,11 +212,11 @@ def test_queue_stats(single_node: Cluster) -> None:
     proxy = next(proxies)
     producer: Client = proxy.create_client("producer")
 
-    task = PostRecord(tc.DOMAIN_FANOUT, "test_stats", num=32)
+    task = PostRecord(domain_fanout, "test_stats", num=32)
     post_n_msgs(producer, task)
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
 
     expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
 
@@ -233,7 +234,7 @@ def test_queue_stats(single_node: Cluster) -> None:
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
 
     expect_same_structure(
         queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM, "after-confirm"
@@ -246,7 +247,7 @@ def test_queue_stats(single_node: Cluster) -> None:
     assert f"Purged 21 message(s)" in res
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
-    queue_stats = stats["domainQueues"]["domains"][tc.DOMAIN_FANOUT][task.uri]
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
 
     expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE, "after-purge")
 
@@ -353,7 +354,7 @@ def test_admin_encoding(single_node: Cluster) -> None:
     admin.stop()
 
 
-def test_purge_breathing(single_node: Cluster) -> None:
+def test_purge_breathing(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: basic purge queue/purge domain commands usage.
     Preconditions:
@@ -386,6 +387,7 @@ def test_purge_breathing(single_node: Cluster) -> None:
     """
 
     cluster: Cluster = single_node
+    du = domain_urls
 
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
@@ -397,7 +399,7 @@ def test_purge_breathing(single_node: Cluster) -> None:
 
     # Stage 1: purge PRIORITY queue
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_PRIORITY, "test_queue", num=i)
+        task = PostRecord(du.domain_priority, "test_queue", num=i)
         post_n_msgs(producer, task)
 
         res = admin.send_admin(
@@ -412,21 +414,21 @@ def test_purge_breathing(single_node: Cluster) -> None:
 
     # Stage 2: purge PRIORITY domain
     for i in range(1, 6):
-        q1_task = PostRecord(tc.DOMAIN_PRIORITY, "queue1", num=i)
-        q2_task = PostRecord(tc.DOMAIN_PRIORITY, "queue2", num=i)
+        q1_task = PostRecord(du.domain_priority, "queue1", num=i)
+        q2_task = PostRecord(du.domain_priority, "queue2", num=i)
 
         post_n_msgs(producer, q1_task)
         post_n_msgs(producer, q2_task)
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+        res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
         assert f"Purged {q1_task.num + q2_task.num} message(s)" in res
 
-        res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+        res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
         assert f"Purged 0 message(s)" in res
 
     # Stage 3: purge FANOUT queues and domain
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_FANOUT, tc.TEST_QUEUE, num=i)
+        task = PostRecord(du.domain_fanout, tc.TEST_QUEUE, num=i)
         post_n_msgs(producer, task)
 
         res = admin.send_admin(
@@ -455,7 +457,7 @@ def test_purge_breathing(single_node: Cluster) -> None:
     admin.stop()
 
 
-def test_purge_inactive(single_node: Cluster) -> None:
+def test_purge_inactive(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: queue purge and domain purge also work for inactive queues.
 
@@ -484,6 +486,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
     - Purge queue with app_id specified works for inactive queues.
     """
     cluster: Cluster = single_node
+    du = domain_urls
 
     # Stage 1: data preparation
     posted: Dict[str, PostRecord] = {}
@@ -494,18 +497,18 @@ def test_purge_inactive(single_node: Cluster) -> None:
     producer: Client = proxy.create_client("producer")
     # Post messages to the first PRIORITY domain
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"inactive{i}", num=i)
+        task = PostRecord(du.domain_priority, f"inactive{i}", num=i)
         post_n_msgs(producer, task, posted)
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"active{i}", num=i)
+        task = PostRecord(du.domain_priority, f"active{i}", num=i)
         post_n_msgs(producer, task, posted)
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_inactive{i}", num=i)
+        task = PostRecord(du.domain_priority, f"skip_inactive{i}", num=i)
         post_n_msgs(producer, task, posted)
 
     # Post messages to the second FANOUT domain
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_inactive{i}", num=i)
+        task = PostRecord(du.domain_fanout, f"irrelevant_inactive{i}", num=i)
         post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
@@ -519,15 +522,15 @@ def test_purge_inactive(single_node: Cluster) -> None:
     for i in range(1, 6):
         # These queues existed before the cluster was restarted, and here we make
         # them active again by actively posting new messages.
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"active{i}", num=i)
+        task = PostRecord(du.domain_priority, f"active{i}", num=i)
         post_n_msgs(producer, task, posted)
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_PRIORITY, f"skip_active{i}", num=i)
+        task = PostRecord(du.domain_priority, f"skip_active{i}", num=i)
         post_n_msgs(producer, task, posted)
 
     # Post messages to the second FANOUT domain
     for i in range(1, 6):
-        task = PostRecord(tc.DOMAIN_FANOUT, f"irrelevant_active{i}", num=i)
+        task = PostRecord(du.domain_fanout, f"irrelevant_active{i}", num=i)
         post_n_msgs(producer, task, posted_fanout)
     producer.stop()
 
@@ -541,7 +544,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
     # Note that active queues num is less than the total number of queues.
     expected_active_num = len([uri for uri in posted if "inactive" not in uri])
     assert expected_active_num < len(posted)
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} INFOS")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} INFOS")
     assert f"ActiveQueues ..: {expected_active_num}" in res
 
     # Finally, start purging queues one by one.
@@ -562,7 +565,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
     # The only queues with messages in the first PRIORITY domain are named with "skip" word.
     # Now we purge them all with purge domain command.
     remaining_num = sum(record.num for record in posted.values())
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
     assert f"Purged {remaining_num} message(s)" in res
 
     for record in posted.values():
@@ -578,7 +581,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for PRIORITY could not purge more messages.
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_PRIORITY} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_priority} PURGE")
     assert f"Purged 0 message(s)" in res
 
     # Stage 3: FANOUT purge
@@ -587,7 +590,7 @@ def test_purge_inactive(single_node: Cluster) -> None:
     # Note that active queues num is less than the total number of queues.
     expected_active_num = len([uri for uri in posted_fanout if "inactive" not in uri])
     assert expected_active_num < len(posted_fanout)
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} INFOS")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} INFOS")
     assert f"ActiveQueues ..: {expected_active_num}" in res
 
     for record in posted_fanout.values():
@@ -605,14 +608,16 @@ def test_purge_inactive(single_node: Cluster) -> None:
         assert f"Purged 0 message(s)" in res
 
     # Also check that purge domain for FANOUT could not purge more messages.
-    res = admin.send_admin(f"DOMAINS DOMAIN {tc.DOMAIN_FANOUT} PURGE")
+    res = admin.send_admin(f"DOMAINS DOMAIN {du.domain_fanout} PURGE")
     assert f"Purged 0 message(s)" in res
 
     # Stop the admin session
     admin.stop()
 
 
-def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
+def test_commands_on_non_existing_domain(
+    single_node: Cluster, domain_urls: tc.DomainUrls
+) -> None:
     """
     Test: domain admin commands work even if domain was not loaded from the disk yet.
     This test works with an assumption that the cluster was just started before the test,
@@ -626,6 +631,7 @@ def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
     - DOMAINS DOMAIN ... command works if domain exists on disk.
     - DOMAINS RECONFIGURE ... command works if domain exists on disk.
     """
+    du = domain_urls
     cluster: Cluster = single_node
 
     # Start the admin client
@@ -635,10 +641,10 @@ def test_commands_on_non_existing_domain(single_node: Cluster) -> None:
     # Stage 1: send commands to domains existing on disk but not yet loaded to the broker
     # Note that we use different domains for each test case, because we want to check each
     # command with clear state for a domain.
-    res = admin.send_admin(f"domains domain {tc.DOMAIN_PRIORITY} infos")
+    res = admin.send_admin(f"domains domain {du.domain_priority} infos")
     assert "ActiveQueues ..: 0" in res
 
-    res = admin.send_admin(f"domains reconfigure {tc.DOMAIN_FANOUT}")
+    res = admin.send_admin(f"domains reconfigure {du.domain_fanout}")
     assert "SUCCESS" in res
 
     # Stage 2: send commands to domains not existing on disk

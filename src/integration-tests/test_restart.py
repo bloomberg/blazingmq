@@ -35,7 +35,7 @@ from blazingmq.dev.it.util import attempt, wait_until
 pytestmark = order(2)
 
 
-def ensureMessageAtStorageLayer(cluster: Cluster):
+def ensureMessageAtStorageLayer(cluster: Cluster, du: tc.DomainUrls):
     time.sleep(2)
     # Before restarting the cluster, ensure that all nodes in the cluster
     # have received the message at the storage layer.  This is necessary
@@ -48,7 +48,7 @@ def ensureMessageAtStorageLayer(cluster: Cluster):
     time.sleep(2)
     for node in cluster.nodes():
         assert node.outputs_regex(
-            r"\w{10}\s+0\s+1\s+\d+\s+B\s+" + re.escape(tc.URI_PRIORITY),
+            r"\w{10}\s+0\s+1\s+\d+\s+B\s+" + re.escape(du.uri_priority),
             timeout=20,
         )
         # Above regex is to match line:
@@ -58,14 +58,16 @@ def ensureMessageAtStorageLayer(cluster: Cluster):
         # it will be assigned to partitionId 0.
 
 
-def test_basic(cluster: Cluster):
+def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
+    uri_priority = domain_urls.uri_priority
+
     # Start a producer and post a message.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
-    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
+    producer.open(uri_priority, flags=["write", "ack"], succeed=True)
+    producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
-    ensureMessageAtStorageLayer(cluster)
+    ensureMessageAtStorageLayer(cluster, domain_urls)
 
     cluster.restart_nodes()
     # For a standard cluster, states have already been restored as part of
@@ -73,19 +75,21 @@ def test_basic(cluster: Cluster):
     if cluster.is_single_node:
         producer.wait_state_restored()
 
-    producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
 
     consumer = next(proxies).create_client("consumer")
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.open(uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
+    assert wait_until(lambda: len(consumer.list(uri_priority, block=True)) == 2, 2)
 
 
-def test_wrong_domain(cluster: Cluster):
+def test_wrong_domain(cluster: Cluster, domain_urls: tc.DomainUrls):
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
 
-    assert Client.e_SUCCESS is producer.open(tc.URI_FANOUT, flags=["write"], block=True)
+    assert Client.e_SUCCESS is producer.open(
+        domain_urls.uri_fanout, flags=["write"], block=True
+    )
     assert Client.e_SUCCESS is not producer.open(
         "bmq://domain.does.not.exist/qqq",
         flags=["write"],
@@ -94,11 +98,14 @@ def test_wrong_domain(cluster: Cluster):
     )
 
 
-def test_migrate_domain_to_another_cluster(cluster: Cluster):
+def test_migrate_domain_to_another_cluster(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    uri_fanout = domain_urls.uri_fanout
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
 
-    assert Client.e_SUCCESS == producer.open(tc.URI_FANOUT, flags=["write"], block=True)
+    assert Client.e_SUCCESS == producer.open(uri_fanout, flags=["write"], block=True)
 
     # Before changing domain config of each node in the cluster, ensure that
     # all nodes in the cluster have observed the previous open-queue event.
@@ -112,7 +119,7 @@ def test_migrate_domain_to_another_cluster(cluster: Cluster):
 
         for node in cluster.nodes():
             assert node.outputs_regex(
-                r"\w{10}\s+0\s+0\s+\d+\s+B\s+" + re.escape(tc.URI_FANOUT),
+                r"\w{10}\s+0\s+0\s+\d+\s+B\s+" + re.escape(uri_fanout),
                 timeout=1,
             )
             # Above regex is to match line:
@@ -125,33 +132,35 @@ def test_migrate_domain_to_another_cluster(cluster: Cluster):
     cluster.deploy_domains()
     cluster.restart_nodes()
 
-    assert Client.e_SUCCESS != producer.open(tc.URI_FANOUT, flags=["write"], block=True)
+    assert Client.e_SUCCESS != producer.open(uri_fanout, flags=["write"], block=True)
 
 
 @tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
 @tweak.cluster.cluster_attributes.is_fsmworkflow(False)
-def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
+def test_restart_from_non_FSM_to_FSM(cluster: Cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
+
     # Start a producer. Then, post a message on a priority queue and a fanout queue.
     proxies = cluster.proxy_cycle()
     producer = next(proxies).create_client("producer")
-    producer.open(tc.URI_PRIORITY, flags=["write", "ack"], succeed=True)
-    producer.post(tc.URI_PRIORITY, payload=["msg1"], wait_ack=True, succeed=True)
-    producer.open(tc.URI_FANOUT, flags=["write", "ack"], succeed=True)
-    producer.post(tc.URI_FANOUT, payload=["fanout_msg1"], wait_ack=True, succeed=True)
+    producer.open(du.uri_priority, flags=["write", "ack"], succeed=True)
+    producer.post(du.uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
+    producer.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
+    producer.post(du.uri_fanout, payload=["fanout_msg1"], wait_ack=True, succeed=True)
 
-    ensureMessageAtStorageLayer(cluster)
+    ensureMessageAtStorageLayer(cluster, du)
 
     # Consumer for fanout queue
     consumer_foo = next(proxies).create_client("consumer_foo")
-    consumer_foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     consumer_foo.wait_push_event()
     assert wait_until(
-        lambda: len(consumer_foo.list(tc.URI_FANOUT_FOO, block=True)) == 1, 2
+        lambda: len(consumer_foo.list(du.uri_fanout_foo, block=True)) == 1, 2
     )
 
     # Save one confirm to the storage
-    consumer_foo.confirm(tc.URI_FANOUT_FOO, "+1", succeed=True)
-    consumer_foo.close(tc.URI_FANOUT_FOO, succeed=True)
+    consumer_foo.confirm(du.uri_fanout_foo, "+1", succeed=True)
+    consumer_foo.close(du.uri_fanout_foo, succeed=True)
 
     cluster.stop_nodes()
 
@@ -169,26 +178,26 @@ def test_restart_from_non_FSM_to_FSM(cluster: Cluster):
     if cluster.is_single_node:
         producer.wait_state_restored()
 
-    producer.post(tc.URI_PRIORITY, payload=["msg2"], wait_ack=True, succeed=True)
-    producer.post(tc.URI_FANOUT, payload=["fanout_msg2"], wait_ack=True, succeed=True)
+    producer.post(du.uri_priority, payload=["msg2"], wait_ack=True, succeed=True)
+    producer.post(du.uri_fanout, payload=["fanout_msg2"], wait_ack=True, succeed=True)
 
     # Consumer for priority queue
     consumer = next(proxies).create_client("consumer")
-    consumer.open(tc.URI_PRIORITY, flags=["read"], succeed=True)
+    consumer.open(du.uri_priority, flags=["read"], succeed=True)
     consumer.wait_push_event()
-    assert wait_until(lambda: len(consumer.list(tc.URI_PRIORITY, block=True)) == 2, 2)
+    assert wait_until(lambda: len(consumer.list(du.uri_priority, block=True)) == 2, 2)
 
     # Consumers for fanout queue
     consumer_bar = next(proxies).create_client("consumer_bar")
-    consumer_bar.open(tc.URI_FANOUT_BAR, flags=["read"], succeed=True)
+    consumer_bar.open(du.uri_fanout_bar, flags=["read"], succeed=True)
     consumer_bar.wait_push_event()
     assert wait_until(
-        lambda: len(consumer_bar.list(tc.URI_FANOUT_BAR, block=True)) == 2, 2
+        lambda: len(consumer_bar.list(du.uri_fanout_bar, block=True)) == 2, 2
     )
 
     # make sure the previously saved confirm is not lost
-    consumer_foo.open(tc.URI_FANOUT_FOO, flags=["read"], succeed=True)
+    consumer_foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
     consumer_foo.wait_push_event()
     assert wait_until(
-        lambda: len(consumer_foo.list(tc.URI_FANOUT_FOO, block=True)) == 1, 2
+        lambda: len(consumer_foo.list(du.uri_fanout_foo, block=True)) == 1, 2
     )

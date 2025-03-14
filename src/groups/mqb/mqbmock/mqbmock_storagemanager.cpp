@@ -172,7 +172,7 @@ void StorageManager::processReplicaDataRequest(
 
 int StorageManager::makeStorage(
     BSLS_ANNOTATION_UNUSED bsl::ostream& errorDescription,
-    BSLS_ANNOTATION_UNUSED bslma::ManagedPtr<mqbi::Storage>* out,
+    BSLS_ANNOTATION_UNUSED bsl::shared_ptr<mqbi::Storage>* out,
     BSLS_ANNOTATION_UNUSED const bmqt::Uri& uri,
     BSLS_ANNOTATION_UNUSED const mqbu::StorageKey& queueKey,
     BSLS_ANNOTATION_UNUSED int                     partitionId,

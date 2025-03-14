@@ -17,15 +17,13 @@
 #ifndef INCLUDED_MQBCMD_JSONPRINTER
 #define INCLUDED_MQBCMD_JSONPRINTER
 
-//@PURPOSE: Provide a namespace of utilities to print results in json.
-//
-//@CLASSES:
-//  JsonPrinter: Utilities to print results in json.
-//
-//@DESCRIPTION:
-// This component provides a namespace, 'mqbcmd::JsonPrinter', containing
-// utilities to print results in json.
-//
+/// @file mqbcmd_jsonprinter.h
+///
+/// @brief Provide a namespace of utilities to print results in JSON.
+///
+///
+/// This component provides a namespace, @bbref{mqbcmd::JsonPrinter},
+/// containing utilities to print results in JSON.
 
 // MQB
 #include <mqbcmd_messages.h>
@@ -40,14 +38,14 @@ namespace mqbcmd {
 // struct JsonPrinter
 // ==================
 
-/// This `struct` provides a namespace of utilities to print results in json.
+/// This `struct` provides a namespace of utilities to print results in JSON.
 struct JsonPrinter {
     /// Print the specified `result` to the specified `os` at the
     /// (absolute value of) the optionally specified indentation `level` and
     /// return a reference to `stream`.  If `level` is specified, optionally
     /// specify `spacesPerLevel`, the number of spaces per indentation level
     /// for this and all of its nested objects.  If the optionally specified
-    /// 'pretty' flag is true, print json in a human-friendly format, if it is
+    /// 'pretty' flag is true, print JSON in a human-friendly format, if it is
     /// false, print the json in a compact format.
     static bsl::ostream& print(bsl::ostream& os,
                                const Result& result,
@@ -60,7 +58,7 @@ struct JsonPrinter {
     /// return a reference to `stream`.  If `level` is specified, optionally
     /// specify `spacesPerLevel`, the number of spaces per indentation level
     /// for this and all of its nested objects.  If the optionally specified
-    /// 'pretty' flag is true, print json in a human-friendly format, if it is
+    /// 'pretty' flag is true, print JSON in a human-friendly format, if it is
     /// false, print the json in a compact format.
     static bsl::ostream& printResponses(bsl::ostream&            os,
                                         const RouteResponseList& responseList,

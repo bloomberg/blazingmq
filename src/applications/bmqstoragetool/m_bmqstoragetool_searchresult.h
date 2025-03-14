@@ -51,11 +51,12 @@
 // a logic of search and output results.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
+#include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_filters.h>
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_payloaddumper.h>
+#include <m_bmqstoragetool_printer.h>
 
 // MQB
 #include <mqbs_filestoreprotocolprinter.h>
@@ -119,6 +120,7 @@ class SearchResult {
     virtual bool processJournalOpRecord(const mqbs::JournalOpRecord& record,
                                         bsls::Types::Uint64 recordIndex,
                                         bsls::Types::Uint64 recordOffset) = 0;
+
     /// Output result of a search.
     virtual void outputResult() = 0;
     /// Output result of a search filtered by the specified GUIDs filter.
@@ -128,6 +130,11 @@ class SearchResult {
     /// are output and search could be stopped. Return `true` to indicate that
     /// there is incomplete data.
     virtual bool hasCache() const { return false; }
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    virtual const bsl::shared_ptr<Printer>& printer() const = 0;
 };
 
 // =======================
@@ -152,8 +159,8 @@ class SearchShortResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Pointer to 'Printer' instance.
     Parameters::ProcessRecordTypes d_processRecordTypes;
     // Record types to process
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
@@ -190,7 +197,7 @@ class SearchShortResult : public SearchResult {
     /// Constructor using the specified `ostream`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `printOnDelete` and `allocator`.
     explicit SearchShortResult(
-        bsl::ostream&                         ostream,
+        const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
         bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
         bool                                  printImmediately = true,
@@ -245,6 +252,9 @@ class SearchShortResult : public SearchResult {
     /// are output and search could be stopped. Return 'true' to indicate that
     /// there is incomplete data.
     bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ========================
@@ -264,12 +274,12 @@ class SearchDetailResult : public SearchResult {
 
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     Parameters::ProcessRecordTypes d_processRecordTypes;
     // Record types to process
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Pointer to 'Printer' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
     // Pointer to 'PayloadDumper' instance.
     const bool d_printImmediately;
@@ -316,7 +326,7 @@ class SearchDetailResult : public SearchResult {
     /// Constructor using the specified `ostream`, `queueMap`, `payloadDumper`,
     /// `printImmediately`, `eraseDeleted`, `cleanUnprinted` and `allocator`.
     SearchDetailResult(
-        bsl::ostream&                         ostream,
+        const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
         const QueueMap&                       queueMap,
         bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
@@ -368,6 +378,9 @@ class SearchDetailResult : public SearchResult {
     /// are output and search could be stopped. Return 'true' to indicate that
     /// there is incomplete data.
     bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ===========================
@@ -433,6 +446,9 @@ class SearchResultDecorator : public SearchResult {
     /// are output and search could be stopped. Return 'true' to indicate that
     /// there is incomplete data.
     bool hasCache() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ====================================
@@ -611,8 +627,6 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bsls::Types::Uint64 d_foundMessagesCount;
     // Counter of found messages.
     bsls::Types::Uint64 d_deletedMessagesCount;
@@ -625,7 +639,6 @@ class SearchOutstandingDecorator : public SearchResultDecorator {
 
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchOutstandingDecorator(const bsl::shared_ptr<SearchResult>& component,
-                               bsl::ostream&                        ostream,
                                bslma::Allocator*                    allocator);
 
     // MANIPULATORS
@@ -655,8 +668,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
 
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bsls::Types::Uint64 d_foundMessagesCount;
     // Counter of found messages.
     bsls::Types::Uint64 d_deletedMessagesCount;
@@ -677,7 +688,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
     /// Constructor using the specified `component`, `ostream` and `allocator`.
     SearchPartiallyConfirmedDecorator(
         const bsl::shared_ptr<SearchResult>& component,
-        bsl::ostream&                        ostream,
         bslma::Allocator*                    allocator);
 
     // MANIPULATORS
@@ -712,8 +722,6 @@ class SearchPartiallyConfirmedDecorator : public SearchResultDecorator {
 class SearchGuidDecorator : public SearchResultDecorator {
   private:
     // PRIVATE DATA
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
     GuidsMap d_guidsMap;
@@ -728,7 +736,6 @@ class SearchGuidDecorator : public SearchResultDecorator {
     /// `withDetails` and `allocator`.
     SearchGuidDecorator(const bsl::shared_ptr<SearchResult>& component,
                         const bsl::vector<bsl::string>&      guids,
-                        bsl::ostream&                        ostream,
                         bool                                 withDetails,
                         bslma::Allocator*                    allocator);
 
@@ -760,9 +767,7 @@ class SearchOffsetDecorator : public SearchResultDecorator {
     // PRIVATE DATA
     /// List of offsets to search for.
     bsl::vector<bsls::Types::Int64> d_offsets;
-    /// Reference to output stream.
-    bsl::ostream& d_ostream;
-    // If 'true', output detailed result, output short one otherwise.
+    /// If 'true', output detailed result, output short one otherwise.
     bool d_withDetails;
 
   public:
@@ -772,7 +777,6 @@ class SearchOffsetDecorator : public SearchResultDecorator {
     /// `withDetails` and `allocator`.
     SearchOffsetDecorator(const bsl::shared_ptr<SearchResult>&   component,
                           const bsl::vector<bsls::Types::Int64>& offsets,
-                          bsl::ostream&                          ostream,
                           bool                                   withDetails,
                           bslma::Allocator*                      allocator);
 
@@ -817,8 +821,6 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     // PRIVATE DATA
     bsl::vector<CompositeSequenceNumber> d_seqNums;
     // List of composite sequence numbers to search for.
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
     bool d_withDetails;
     // If 'true', output detailed result, output short one otherwise.
 
@@ -830,7 +832,6 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
     SearchSequenceNumberDecorator(
         const bsl::shared_ptr<SearchResult>&        component,
         const bsl::vector<CompositeSequenceNumber>& seqNums,
-        bsl::ostream&                               ostream,
         bool                                        withDetails,
         bslma::Allocator*                           allocator);
 
@@ -871,16 +872,16 @@ class SearchSequenceNumberDecorator : public SearchResultDecorator {
 /// This class provides logic to process summary of journal file.
 class SummaryProcessor : public SearchResult {
   private:
-    // PTIVATE TYPES
+    // PRIVATE TYPES
+
     typedef bsl::unordered_set<bmqt::MessageGUID> GuidsSet;
     // Set of message guids.
-    typedef bsl::map<mqbs::QueueOpType::Enum, bsls::Types::Uint64>
-        QueueOpCountsMap;
-    // Queue op counts map.
+    typedef bsl::vector<bsls::Types::Uint64> QueueOpCountsVec;
+    // Queue op counts vector.
 
     // PRIVATE DATA
-    bsl::ostream& d_ostream;
-    // Reference to output stream.
+    const bsl::shared_ptr<Printer> d_printer;
+    // Reference to print manager.
     mqbs::JournalFileIterator* d_journalFile_p;
     // Pointer to journal file iterator.
     mqbs::DataFileIterator* d_dataFile_p;
@@ -895,16 +896,30 @@ class SummaryProcessor : public SearchResult {
     // Counter of journalOp records.
     bsls::Types::Uint64 d_queueOpRecordsCount;
     // Counter of queueOp records.
-    QueueOpCountsMap d_queueOpCountsMap;
-    // Queue op counts map.
+    QueueOpCountsVec d_queueOpCountsVec;
+    // Queue op counts vec.
     GuidsSet d_notConfirmedGuids;
     // Set of message guids. Messages stored here have neither confirmation
     // messages no delete message associated with them.
     GuidsSet d_partiallyConfirmedGuids;
     // Set of message guids. Messages stored here have at leas one confirmation
     // message and no delete message associated with them.
+    bsls::Types::Uint64 d_totalRecordsCount;
+    // The total number of records.
+    QueueDetailsMap d_queueDetailsMap;
+    // Map containing 'QueueDetails' per queue
+    const QueueMap& d_queueMap;
+    // Reference to 'QueueMap' instance.
+    bsl::optional<bsls::Types::Uint64> d_minRecordsPerQueue;
+    // Minimum number of records for the queue to be displayed its detailed
+    // info
     bslma::Allocator* d_allocator_p;
     // Pointer to allocator that is used inside the class.
+
+    // PRIVATE MANIPULATORS
+
+    /// Prepare collected QueueDetails for further printing
+    void finalizeQueueDetails();
 
   public:
     // CREATORS
@@ -912,10 +927,12 @@ class SummaryProcessor : public SearchResult {
     /// Constructor using the specified `component`, `journalFile_p`,
     /// `dataFile_p` and `allocator`.
     explicit SummaryProcessor(
-        bsl::ostream&                         ostream,
+        const bsl::shared_ptr<Printer>&       printer,
         mqbs::JournalFileIterator*            journalFile_p,
         mqbs::DataFileIterator*               dataFile_p,
         const Parameters::ProcessRecordTypes& processRecordTypes,
+        const QueueMap&                       queueMap,
+        bsl::optional<bsls::Types::Uint64>    minRecordsPerQueue,
         bslma::Allocator*                     allocator);
 
     // MANIPULATORS
@@ -954,6 +971,11 @@ class SummaryProcessor : public SearchResult {
     void outputResult() BSLS_KEYWORD_OVERRIDE;
     /// Output result of a search filtered by the specified GUIDs filter.
     void outputResult(const GuidsList& guidFilter) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return a reference to the non-modifiable printer
+    const bsl::shared_ptr<Printer>& printer() const BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

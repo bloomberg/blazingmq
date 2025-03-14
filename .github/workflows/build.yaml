@@ -156,14 +156,17 @@ jobs:
           pytest src/python
 
   integration_tests_ubuntu:
-    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}]
+    name: IT [${{ matrix.cluster }}/${{ matrix.mode }}/${{ matrix.consistency }}]
     strategy:
       matrix:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["single", "multi"]
+        consistency: ["eventual", "strong"]
       fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
+    env:
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - uses: actions/checkout@v4
 
@@ -175,8 +178,16 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
+      - name: Setup Core Dumps config
+        run: |
+          sudo mkdir /cores
+          sudo chmod 777 /cores
+          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+
       - name: Run Integration Tests
         run: |
+          # Allow core dumps
+          ulimit -c unlimited
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
@@ -184,6 +195,7 @@ jobs:
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --bmq-log-level=INFO                \
+            --domain-consistency="${{ matrix.consistency }}" \
             --junitxml=integration-tests.xml    \
             --tb long                           \
             --reruns=3                          \
@@ -193,8 +205,25 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: failure_logs_${{ matrix.mode }}_${{ matrix.cluster }}
+          name: failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
+          retention-days: 5
+
+      - name: Upload broker core dump as artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: core_dumps_${{ env.RUN_UID }}
+          path: /cores
+          retention-days: 5
+
+      - name: Upload broker executable as artifacts to debug the core
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bmqbrkr.tsk
+          overwrite: true # broker binary is the same across all matrix runs
+          path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
 
   fuzz_tests_ubuntu:

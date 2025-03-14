@@ -17,16 +17,12 @@
 #ifndef INCLUDED_MQBCMD_COMMANDLIST
 #define INCLUDED_MQBCMD_COMMANDLIST
 
-//@PURPOSE: Provide a list of all commands the broker can respond to.
-//
-//@CLASSES:
-//  CommandList: Utility namespace to get list of all broker commands
-//
-//@DESCRIPTION:
-// This component provides a namespace, 'mqbcmd::CommandList', containing
-// all of the broker commands and their description.
-
-// MQB
+/// @file mqbcmd_commandlist.h
+///
+/// @brief Provide a list of all commands the broker can respond to.
+///
+/// This component provides a namespace, @bbref{mqbcmd::CommandList},
+/// containing all of the broker commands and their description.
 
 namespace BloombergLP {
 namespace mqbcmd {

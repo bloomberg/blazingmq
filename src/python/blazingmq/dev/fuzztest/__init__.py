@@ -253,7 +253,7 @@ def make_put_message() -> BoofuzzSequence:
         math=lambda x: x // NumBytes.WORD,
     )
 
-    guid = b"\x00\x00\x00\x00\x05\x78\x8D\xAE\xD4\xB8\xCA\x12\xAE\xF3\x2D\xCE"
+    guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
 
     message_components = [
         boofuzz.BitField(name="options_size", width=3 * NumBits.BYTE),
@@ -302,7 +302,7 @@ def make_confirm_message() -> BoofuzzSequence:
     Constructs boofuzz structures representing ConfirmMessage.
     """
 
-    guid = b"\x00\x00\x00\x00\x05\x78\x8D\xAE\xD4\xB8\xCA\x12\xAE\xF3\x2D\xCE"
+    guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
 
     message_components = [
         boofuzz.BitField(

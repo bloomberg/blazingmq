@@ -26,7 +26,7 @@ import random
 import string
 import time
 
-from typing import List, Generic, TypeVar
+from typing import List, Optional, TypeVar
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -50,6 +50,9 @@ def wait_until(command, timeout, interval=1, quiet=False):
         if command():
             return True
         time.sleep(interval)
+    if command():
+        return True
+
     if not quiet:
         logging.getLogger("test").warning(
             f"TIMEOUT: command did not succeed within {timeout}s"
@@ -145,7 +148,7 @@ class Queue:
     def list(self, *args, **kwargs):
         return self.client.list(self.uri, *args, **kwargs)
 
-    def confirm(self, *args, **kwargs) -> int | None:
+    def confirm(self, *args, **kwargs) -> Optional[int]:
         return self.client.confirm(self.uri, *args, **kwargs)
 
     def configure(self, *args, **kwargs):
@@ -160,7 +163,7 @@ class Queue:
 _T = TypeVar("_T")
 
 
-class ListContextManager(list[_T]):
+class ListContextManager(List[_T]):
     def __enter__(self):
         return self
 

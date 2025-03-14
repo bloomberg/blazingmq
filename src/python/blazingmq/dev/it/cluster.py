@@ -35,6 +35,8 @@ from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
 
 logger = logging.getLogger(__name__)
 
+CORE_PATTERN_PATH = "/proc/sys/kernel/core_pattern"
+
 
 def _match_broker(broker, **kw):
     datacenter = kw.get("datacenter", None)
@@ -205,29 +207,7 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.last_known_leader = None
         bad_exit = False
-        cores_dir = None
-
-        if self.copy_cores is not None:
-            try:
-                with open("/proc/sys/kernel/core_pattern") as core_pattern_file:
-                    pattern = core_pattern_file.readline().strip()
-                    if "%p" in pattern:
-                        cores_dir = Path(pattern).parent
-                        if not cores_dir.is_absolute():
-                            self._logger.warning(
-                                "core pattern '%s' is not an absolute path, cores will not be saved",
-                                pattern,
-                            )
-                            cores_dir = None
-                    else:
-                        self._logger.warning(
-                            "core pattern '%s' does not contain process id, cores will not be saved",
-                            pattern,
-                        )
-            except FileExistsError:
-                self._logger.warning(
-                    "/proc/sys/kernel/core_pattern does not exist, cores will not be saved"
-                )
+        cores_dir = None if self.copy_cores is None else self._find_cores_dir()
 
         for process in processes:
             process.wait()
@@ -551,7 +531,7 @@ class Cluster(contextlib.AbstractContextManager):
         return self.last_known_leader
 
     def open_priority_queues(
-        self, count, start=0, port=None, **kw
+        self, count, start=0, port=None, uri_priority=tc.URI_PRIORITY, **kw
     ) -> ListContextManager[Queue]:
         """Open *distinct* priority queues with the options specified in 'kw'.
 
@@ -570,7 +550,7 @@ class Cluster(contextlib.AbstractContextManager):
             [
                 Queue(
                     next(proxies).create_client(port=port),
-                    f"{tc.URI_PRIORITY}{i}",
+                    f"{uri_priority}{i}",
                     **kw,
                 )
                 for i in range(start, start + count)
@@ -598,7 +578,9 @@ class Cluster(contextlib.AbstractContextManager):
             ]
         )
 
-    def open_fanout_queues(self, count, start=0, appids=None, **kw):
+    def open_fanout_queues(
+        self, count, start=0, appids=None, uri_fanout=tc.URI_FANOUT, **kw
+    ):
         """Open *distinct* fanout queues with the options specified in 'kw'.
 
         While each queue uses a different URI, calling this method multiple
@@ -619,7 +601,7 @@ class Cluster(contextlib.AbstractContextManager):
         proxies = self.proxy_cycle()
         return ListContextManager(
             [
-                Queue(next(proxies).create_client(), f"{tc.URI_FANOUT}{i}", **kw)
+                Queue(next(proxies).create_client(), f"{uri_fanout}{i}", **kw)
                 for i in range(start, start + count)
             ]
             if appids is None
@@ -628,7 +610,7 @@ class Cluster(contextlib.AbstractContextManager):
                     [
                         Queue(
                             next(proxies).create_client(),
-                            f"{tc.URI_FANOUT}{i}?id={id}",
+                            f"{uri_fanout}{i}?id={id}",
                             **kw,
                         )
                         for id in appids
@@ -684,6 +666,31 @@ class Cluster(contextlib.AbstractContextManager):
 
     ###########################################################################
     # Internals
+
+    def _find_cores_dir(self) -> Optional[Path]:
+        try:
+            with open(CORE_PATTERN_PATH) as core_pattern_file:
+                pattern = core_pattern_file.readline().strip()
+                if "%p" in pattern:
+                    cores_dir = Path(pattern).parent
+                    if cores_dir.is_absolute():
+                        return cores_dir
+
+                    self._logger.warning(
+                        "core pattern '%s' is not an absolute path, cores will not be saved",
+                        pattern,
+                    )
+                else:
+                    self._logger.warning(
+                        "core pattern '%s' does not contain process id, cores will not be saved",
+                        pattern,
+                    )
+        except FileNotFoundError:
+            self._logger.warning(
+                "%s does not exist, cores will not be saved", CORE_PATTERN_PATH
+            )
+
+        return None
 
     def _start_broker(self, broker: cfg.Broker, array, cluster_name):
         if broker.name in self._processes:

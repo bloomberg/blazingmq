@@ -109,8 +109,8 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     // TTL is not applicable at proxy
 
     // Create the associated storage.
-    bslma::ManagedPtr<mqbi::Storage> storageMp;
-    storageMp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
+    bsl::shared_ptr<mqbi::Storage> storageSp;
+    storageSp.load(new (*d_allocator_p) mqbs::InMemoryStorage(
                        d_state_p->uri(),
                        d_state_p->key(),
                        mqbs::DataStore::k_INVALID_PARTITION_ID,
@@ -125,8 +125,8 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
     limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
     limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
 
-    storageMp->setConsistency(domainCfg.consistency());
-    int rc = storageMp->configure(errorDescription,
+    storageSp->setConsistency(domainCfg.consistency());
+    int rc = storageSp->configure(errorDescription,
                                   config,
                                   limits,
                                   domainCfg.messageTtl(),
@@ -135,18 +135,18 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
         return 10 * rc + rc_STORAGE_CFG_FAILURE;  // RETURN
     }
 
-    storageMp->capacityMeter()->disable();
+    storageSp->capacityMeter()->disable();
     // In a remote queue, we don't care about monitoring, so disable it for
     // efficiency performance.
 
-    if (!d_state_p->isStorageCompatible(storageMp)) {
+    if (!d_state_p->isStorageCompatible(storageSp)) {
         errorDescription << "Incompatible storage type for ProxyRemoteQueue "
                          << "[uri: " << d_state_p->uri()
                          << ", id: " << d_state_p->id() << "]";
         return rc_INCOMPATIBLE_STORAGE;  // RETURN
     }
 
-    d_state_p->setStorage(storageMp);
+    d_state_p->setStorage(storageSp);
 
     // Create the queueEngine.
     d_queueEngine_mp.load(
@@ -195,12 +195,12 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         // Only create a storage if this is the initial configure; reconfigure
         // (which happens during conversion to local/remote) should reuse the
         // previously created storage.
-        bslma::ManagedPtr<mqbi::Storage>      storageMp;
+        bsl::shared_ptr<mqbi::Storage>        storageSp;
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    errorDesc(&localAllocator);
         rc = d_state_p->storageManager()->makeStorage(
             errorDesc,
-            &storageMp,
+            &storageSp,
             d_state_p->uri(),
             d_state_p->key(),
             d_state_p->partitionId(),
@@ -223,10 +223,10 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
         }
 
         if (d_state_p->isAtMostOnce()) {
-            storageMp->capacityMeter()->disable();
+            storageSp->capacityMeter()->disable();
         }
 
-        if (!d_state_p->isStorageCompatible(storageMp)) {
+        if (!d_state_p->isStorageCompatible(storageSp)) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
                 << d_state_p->domain()->cluster()->name() << ": Partition ["
                 << d_state_p->partitionId()
@@ -236,7 +236,7 @@ int RemoteQueue::configureAsClusterMember(bsl::ostream& errorDescription,
             return 10 * rc + rc_QUEUE_CONFIGURE_FAILURE;  // RETURN
         }
 
-        d_state_p->setStorage(storageMp);
+        d_state_p->setStorage(storageSp);
 
         // Create the queueEngine.
         d_queueEngine_mp.load(
@@ -383,6 +383,7 @@ void RemoteQueue::pushMessage(
                                   << " failed to store broadcast PUSH ["
                                   << msgGUID << "], result = " << result;
                 }
+                return;  // RETURN
             }
         }
         else {
@@ -739,7 +740,7 @@ void RemoteQueue::onHandleReleased(
                         d_state_p->storage()->hasVirtualStorage(appId,
                                                                 &appKey);
                     BSLS_ASSERT_SAFE(hasVirtualStorage);
-                    d_state_p->storage()->removeVirtualStorage(appKey);
+                    d_state_p->storage()->removeVirtualStorage(appKey, false);
 
                     (void)
                         hasVirtualStorage;  // Compiler happiness in opt build
@@ -749,7 +750,8 @@ void RemoteQueue::onHandleReleased(
                          d_state_p->handleParameters().flags())) {
                 // Lost last reader in non-fanout mode
                 d_state_p->storage()->removeVirtualStorage(
-                    mqbi::QueueEngine::k_DEFAULT_APP_KEY);
+                    mqbi::QueueEngine::k_DEFAULT_APP_KEY,
+                    false);
                 d_state_p->storage()->removeAll(mqbu::StorageKey::k_NULL_KEY);
             }
         }

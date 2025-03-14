@@ -142,6 +142,7 @@ struct PushStream {
                                  Elements,
                                  bslh::Hash<bmqt::MessageGUIDHashAlgo> >
                                                   Stream;
+
     typedef Stream::iterator                      iterator;
     typedef bsl::unordered_map<unsigned int, App> Apps;
 
@@ -306,6 +307,11 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// pair) from the current PUSH GUID.
     /// The behavior is undefined unless `atEnd` returns `false`.
     void removeCurrentElement();
+
+    /// Remove all elements (`mqbi::AppMessage`, `upstreamSubQueueId` pairs)
+    /// from the current PUSH GUID.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    void removeAllElements();
 
     /// Return the number of elements (`mqbi::AppMessage`, `upstreamSubQueueId`
     /// pairs) for the current PUSH GUID.

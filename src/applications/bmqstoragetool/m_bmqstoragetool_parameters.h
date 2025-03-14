@@ -57,9 +57,14 @@ struct CommandLineArguments {
     // PUBLIC DATA
 
     /// Record types constants
+    static const char* k_ALL_TYPE;
     static const char* k_MESSAGE_TYPE;
     static const char* k_QUEUEOP_TYPE;
     static const char* k_JOURNALOP_TYPE;
+    /// Print modes constants
+    static const char* k_HUMAN_MODE;
+    static const char* k_JSON_PRETTY_MODE;
+    static const char* k_JSON_LINE_MODE;
     /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
     /// Filter messages by minimum timestamp
@@ -82,6 +87,8 @@ struct CommandLineArguments {
     bsl::string d_dataFile;
     /// Path to read CSL files from
     bsl::string d_cslFile;
+    /// Print mode
+    bsl::string d_printMode;
     /// Filter messages by message guids
     bsl::vector<bsl::string> d_guid;
     /// Filter messages by record composite sequence numbers
@@ -106,6 +113,8 @@ struct CommandLineArguments {
     bool d_confirmed;
     /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
+    /// Min number of records per queue for detailed info to be displayed
+    bsls::Types::Int64 d_minRecordsPerQueue;
 
     // CREATORS
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
@@ -120,6 +129,11 @@ struct CommandLineArguments {
     /// invalid.
     static bool isValidRecordType(const bsl::string* recordType,
                                   bsl::ostream&      stream);
+    /// Return true if the specified `printMode` is valid, false otherwise.
+    /// Error message is written into the specified `stream` if `printMode` is
+    /// invalid.
+    static bool isValidPrintMode(const bsl::string* printMode,
+                                 bsl::ostream&      stream);
     /// Return true if the specified `fileName` is valid (file exists), false
     /// otherwise. Error message is written into the specified `stream` if
     /// `fileName` is invalid.
@@ -129,6 +143,9 @@ struct CommandLineArguments {
 
 struct Parameters {
     // PUBLIC TYPES
+
+    /// Enum with available printing modes
+    enum PrintMode { e_HUMAN, e_JSON_PRETTY, e_JSON_LINE };
 
     /// VST representing search range parameters
     struct Range {
@@ -165,6 +182,8 @@ struct Parameters {
 
         // CREATORS
         explicit ProcessRecordTypes(bool enableDefault = true);
+
+        bool operator==(ProcessRecordTypes const& other) const;
     };
 
     // PUBLIC DATA
@@ -173,6 +192,8 @@ struct Parameters {
     ProcessRecordTypes d_processRecordTypes;
     /// Queue map containing uri to key and key to info mappings
     QueueMap d_queueMap;
+    /// Print mode
+    PrintMode d_printMode;
     /// Range parameters for filtering
     Range d_range;
     /// Filter messages by message guids
@@ -199,10 +220,10 @@ struct Parameters {
     bool d_confirmed;
     /// Show only messages, confirmed by some of the appId's
     bool d_partiallyConfirmed;
+    /// Min number of records per queue for detailed info to be displayed
+    bsl::optional<bsls::Types::Uint64> d_minRecordsPerQueue;
 
     // CREATORS
-    /// Default constructor
-    explicit Parameters(bslma::Allocator* allocator = 0);
     /// Constructor from the specified 'aruments'
     explicit Parameters(const CommandLineArguments& aruments,
                         bslma::Allocator*           allocator = 0);

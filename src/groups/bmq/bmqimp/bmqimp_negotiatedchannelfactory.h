@@ -112,6 +112,10 @@ class NegotiatedChannelFactory : public bmqio::ChannelFactory {
     /// Temporary safety switch to control configure request.
     static const char* k_CHANNEL_PROPERTY_CONFIGURE_STREAM;
 
+    static const char* k_CHANNEL_PROPERTY_HEARTBEAT_INTERVAL_MS;
+
+    static const char* k_CHANNEL_PROPERTY_MAX_MISSED_HEARTBEATS;
+
   private:
     // PRIVATE DATA
     Config d_config;

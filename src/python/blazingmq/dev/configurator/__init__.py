@@ -227,6 +227,19 @@ class AbstractCluster:
 
         return domain
 
+    def remove_domain(self, name: str) -> None:
+        """
+        Remove a domain from the Cluster's map and all the domain's maps.
+
+        The domain must exist in `Cluster.domains`. It can be missing from the
+        broker's domain maps.
+        """
+
+        del self.domains[name]
+
+        for node in self.nodes.values():
+            node.domains.pop(name, None)
+
 
 class Cluster(AbstractCluster):
     def domain(self, parameters: mqbconf.Domain) -> "Domain":
@@ -382,7 +395,6 @@ class Proto:
                         "BMQ*:INFO:green",
                         "MQB*:INFO:green",
                         "SIM*:INFO:gray",
-                        "DMC*:INFO:yellow",
                         "BAEA.PERFORMANCEMONITOR:INFO:white",
                     ],
                     syslog=mqbcfg.SyslogConfig(
@@ -440,7 +452,7 @@ class Proto:
                 ),
                 network_interfaces=mqbcfg.NetworkInterfaces(
                     heartbeats=mqbcfg.Heartbeat(
-                        client=0,
+                        client=10,
                         downstream_broker=10,
                         upstream_broker=10,
                         cluster_peer=10,

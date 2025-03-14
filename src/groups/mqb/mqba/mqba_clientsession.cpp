@@ -716,10 +716,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
 
     const bool hasLostTheClient = (!isBrokerShutdown && !isProxy());
 
-    //    if (d_operationState == e_SHUTTING_DOWN_V2) {
-    //        // Leave over queues and handles
-    //    }
-    //    else {
     // Set up the 'd_operationState' to indicate that the channel is dying and
     // we should not use it anymore trying to send any messages and should also
     // stop enqueuing 'callbacks' to the client dispatcher thread ...
@@ -729,7 +725,7 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
                                                 hasLostTheClient);
     BALL_LOG_INFO << description() << ": Dropped " << numHandlesDropped
                   << " queue handles.";
-    //    }
+
     // Set up the 'd_operationState' to indicate that the channel is dying and
     // we should not use it anymore trying to send any messages and should also
     // stop enqueuing 'callbacks' to the client dispatcher thread ...
@@ -2045,10 +2041,7 @@ void ClientSession::onPushEvent(const mqbi::DispatcherPushEvent& event)
 
     // Append the message to the builder
     if (pushProperties.isExtended()) {
-        if (!bmqp::ProtocolUtil::hasFeature(
-                bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
-                bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
-                d_clientIdentity_p->features())) {
+        if (!d_supportsMessagePropertiesEX) {
             // Re-encode 'payload'
             // Convert MessageProperties into the old style
             // 1. Copy MPHs (if needed)
@@ -2661,6 +2654,10 @@ ClientSession::ClientSession(
 , d_negotiationMessage(negotiationMessage, allocator)
 , d_clientIdentity_p(extractClientIdentity(d_negotiationMessage))
 , d_isClientGeneratingGUIDs(isClientGeneratingGUIDs(*d_clientIdentity_p))
+, d_supportsMessagePropertiesEX(bmqp::ProtocolUtil::hasFeature(
+      bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
+      bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
+      d_clientIdentity_p->features()))
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
 , d_state(clientStatContext,
@@ -3157,8 +3154,6 @@ void ClientSession::processClusterMessage(
         const bmqp_ctrlmsg::StopRequest& request =
             message.choice().clusterMessage().choice().stopRequest();
 
-        BSLS_ASSERT_SAFE(request.version() == 2);
-
         // Deconfigure all queues.  Do NOT wait for unconfirmed
 
         BALL_LOG_INFO << description() << ": processing StopRequest.";
@@ -3194,7 +3189,7 @@ void ClientSession::processClusterMessage(
     }
     else {
         BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
-                       << ": unknown Cluster in StopResponse: " << message;
+                       << ": unknown Cluster message: " << message;
     }
 }
 
