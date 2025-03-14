@@ -106,6 +106,10 @@ class VirtualStorageCatalog {
         const DataStreamIterator& first)>
         PurgeCallback;
 
+    typedef bsl::function<mqbi::StorageResult::Enum(
+        const mqbu::StorageKey& appKey)>
+        RemoveCallback;
+
   private:
     // DATA
     /// Physical storage underlying all virtual storages known to this object
@@ -275,7 +279,8 @@ class VirtualStorageCatalog {
     /// `cb` does not return `e_SUCCESS`.
     mqbi::StorageResult::Enum
     removeVirtualStorage(const mqbu::StorageKey& appKey,
-                         const PurgeCallback&    cb = PurgeCallback());
+                         const PurgeCallback&    onPurge = PurgeCallback(),
+                         const RemoveCallback&   remover = RemoveCallback());
 
     /// Return the Virtual Storage instance corresponding to the specified
     /// 'appKey'.

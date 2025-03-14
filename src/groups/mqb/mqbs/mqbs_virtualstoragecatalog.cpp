@@ -353,6 +353,7 @@ void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey)
     if (seek(&itData, vs) < total) {
         purgeImpl(vs, itData, numVirtualStorages());
     }
+    // else, there is nothing to purge; either no messages or all are too old
 }
 
 bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
@@ -413,6 +414,7 @@ VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
 
         purgeImpl(vs, itData, numVirtualStorages());
     }
+    // else, there is nothing to purge; either no messages or all are too old
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -544,7 +546,8 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
-                                            const PurgeCallback&    cb)
+                                            const PurgeCallback&    onPurge,
+                                            const RemoveCallback&   onRemove)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
@@ -579,12 +582,23 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
     DataStreamIterator itData;
     bsls::Types::Int64 total = d_dataStream.size();
 
-    if (seek(&itData, removing) < total) {
-        if (cb) {
-            mqbi::StorageResult::Enum rc = cb(appKey, itData);
-            if (mqbi::StorageResult::e_SUCCESS != rc) {
-                return rc;
-            }
+    bsls::Types::Int64 numMessages = seek(&itData, removing);
+
+    BSLS_ASSERT_SAFE(numMessages <= total);
+
+    if (numMessages < total && onPurge) {
+        mqbi::StorageResult::Enum rc = onPurge(appKey, itData);
+        if (mqbi::StorageResult::e_SUCCESS != rc) {
+            return rc;  // RETURN
+        }
+    }
+    // else, there is nothing to purge; either no messages, or all are too old
+
+    // Need to write DELETION record in any case
+    if (onRemove) {
+        mqbi::StorageResult::Enum rc = onRemove(appKey);
+        if (mqbi::StorageResult::e_SUCCESS != rc) {
+            return rc;  // RETURN
         }
     }
 

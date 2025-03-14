@@ -758,6 +758,8 @@ def test_old_data_new_app(cluster: Cluster):
     new_app_1 = "new_app_1"
     _set_app_ids(cluster, default_app_ids + [new_app_1])
 
+    leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
+
     # ---------------------------------------------------------------------
     # Post
     producer.post(tc.URI_FANOUT_SC, ["m2"], succeed=True, wait_ack=True)
@@ -767,6 +769,8 @@ def test_old_data_new_app(cluster: Cluster):
     new_app_2 = "new_app_2"
     _set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2])
 
+    leader.capture(f"Registered appId '{new_app_2}'", timeout=5)
+
     # ---------------------------------------------------------------------
     # Post
     producer.post(tc.URI_FANOUT_SC, ["m3"], succeed=True, wait_ack=True)
@@ -775,6 +779,8 @@ def test_old_data_new_app(cluster: Cluster):
     # +new_app_3
     new_app_3 = "new_app_3"
     _set_app_ids(cluster, default_app_ids + [new_app_1] + [new_app_2] + [new_app_3])
+
+    leader.capture(f"Registered appId '{new_app_3}'", timeout=5)
 
     # ---------------------------------------------------------------------
     # Post
@@ -788,6 +794,8 @@ def test_old_data_new_app(cluster: Cluster):
     # Post extra strong consistency message after removing new_app_2 but before
     # cluster.stop_nodes to serve as a synchronization.
     producer.post(tc.URI_FANOUT_SC, ["m5"], succeed=True, wait_ack=True)
+
+    leader.capture(f"Uregistered appId '{new_app_1}'", timeout=5)
 
     consumers = {}
 
@@ -969,3 +977,45 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
     assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+
+
+def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """Trigger old message GC in the presence of new App.  Need to allocate
+    Apps states first.
+    """
+    du = domain_urls
+    leader = cluster.last_known_leader
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+
+    producer = proxy.create_client("producer")
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    app_id = default_app_ids[0]
+    consumer = proxy.create_client(app_id)
+    consumer_uri = f"{du.uri_fanout}?id={app_id}"
+    consumer.open(consumer_uri, flags=["read"], succeed=True)
+
+    # ---------------------------------------------------------------------
+    # +new_app_1
+    new_app_1 = "new_app_1"
+    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+
+    leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
+
+    # ---------------------------------------------------------------------
+    # -new_app_1
+    set_app_ids(cluster, default_app_ids, du)
+
+    leader.capture(f"Unregistered appId '{new_app_1}'", timeout=5)
+
+    # ---------------------------------------------------------------------
+    # +new_app_1
+    new_app_1 = "new_app_1"
+    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+
+    leader.capture(f"Registered appId '{new_app_1}'", timeout=5)
+
+    cluster.stop_nodes()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
