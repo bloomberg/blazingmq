@@ -83,6 +83,7 @@ bool isValidSequenceNumber(bsl::ostream& error, const bsl::string& seqNumStr)
 // class CommandLineArguments
 // ==========================
 
+const char* CommandLineArguments::k_ALL_TYPE          = "all";
 const char* CommandLineArguments::k_MESSAGE_TYPE      = "message";
 const char* CommandLineArguments::k_QUEUEOP_TYPE      = "queue-op";
 const char* CommandLineArguments::k_JOURNALOP_TYPE    = "journal-op";
@@ -460,8 +461,8 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
 bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
                                              bsl::ostream&      stream)
 {
-    if (*recordType != k_MESSAGE_TYPE && *recordType != k_QUEUEOP_TYPE &&
-        *recordType != k_JOURNALOP_TYPE) {
+    if (*recordType != k_ALL_TYPE && *recordType != k_MESSAGE_TYPE &&
+        *recordType != k_QUEUEOP_TYPE && *recordType != k_JOURNALOP_TYPE) {
         stream << "--record-type invalid: " << *recordType << bsl::endl;
 
         return false;  // RETURN
@@ -633,7 +634,13 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                      arguments.d_recordType.begin();
                  cit != arguments.d_recordType.end();
                  ++cit) {
-                if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {
+                if (*cit == CommandLineArguments::k_ALL_TYPE) {
+                    d_processRecordTypes.d_message   = true;
+                    d_processRecordTypes.d_queueOp   = true;
+                    d_processRecordTypes.d_journalOp = true;
+                    break;  // BREAK
+                }
+                else if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {
                     d_processRecordTypes.d_message = true;
                 }
                 else if (*cit == CommandLineArguments::k_QUEUEOP_TYPE) {
