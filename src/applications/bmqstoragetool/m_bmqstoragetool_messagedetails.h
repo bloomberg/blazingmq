@@ -45,7 +45,7 @@ namespace m_bmqstoragetool {
 /// the result in the specified `appId`. Return `true` on success and `false
 /// otherwise.
 bool findQueueAppIdByAppKey(
-    bsl::string_view*                                        appId,
+    bsl::string*                                             appId,
     const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
     const mqbu::StorageKey&                                  appKey);
 
@@ -59,7 +59,7 @@ struct QueueDetails {
 
     struct AppDetails {
         bsls::Types::Uint64 d_recordsNumber;
-        bsl::string_view    d_appId;
+        bsl::string         d_appId;
 
         bool operator==(const AppDetails& other) const
         {
@@ -84,7 +84,7 @@ struct QueueDetails {
     // Queue operation records counts, related to the queue
     AppDetailsMap d_appDetailsMap;
     // Map containing all records counts, related to the queue per App
-    bsl::string_view d_queueUri;
+    bsl::string   d_queueUri;
 
     // CREATORS
 
@@ -95,6 +95,7 @@ struct QueueDetails {
     , d_deleteRecordsNumber(0)
     , d_queueOpRecordsNumber(0)
     , d_appDetailsMap(allocator)
+    , d_queueUri(allocator)    
     {
         // NOTHING
     }
@@ -131,9 +132,9 @@ struct RecordDetails {
     // Index of the record from journal file.
     bsls::Types::Uint64 d_recordOffset;
     // Offset of the record from journal file.
-    bsl::string_view d_queueUri;
+    bsl::string d_queueUri;
     // URI of the queue.
-    bsl::string_view d_appId;
+    bsl::string d_appId;
     // ID of the application.
 
     // CREATORS
@@ -142,10 +143,13 @@ struct RecordDetails {
     /// `recordOffset`.
     RecordDetails(RECORD_TYPE         record,
                   bsls::Types::Uint64 recordIndex,
-                  bsls::Types::Uint64 recordOffset)
+                  bsls::Types::Uint64 recordOffset,
+                   bslma::Allocator*   allocator)
     : d_record(record)
     , d_recordIndex(recordIndex)
     , d_recordOffset(recordOffset)
+    , d_queueUri(allocator)
+    , d_appId(allocator)
     {
         // NOTHING
     }

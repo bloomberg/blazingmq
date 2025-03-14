@@ -7,13 +7,15 @@ Outstanding ratio: 50% (1/2)
 Total number of records: 4
 
 Details of journal file:
-    BlazingMQ File Header  :     Protocol Version  : 1
+    BlazingMQ File Header  : 
+    Protocol Version  : 1
     Bitness           : 64
     FileType          : JOURNAL
     HeaderWords       : 8
     PartitionId       : 0
 
-    Journal File Header    :     HeaderWords                           : 3
+    Journal File Header    : 
+    HeaderWords                           : 3
     RecordWords                           : 15
     First SyncPointRecord offset words    : 0
     First SyncPointRecord type            :  ** NA ** 
@@ -24,7 +26,8 @@ Details of journal file:
     First SyncPointRecord timestamp       :  ** NA ** 
     First SyncPointRecord epoch           :  ** NA ** 
 
-    Journal SyncPoint      :     Last Valid Record Offset           : 764
+    Journal SyncPoint      : 
+    Last Valid Record Offset           : 764
     Record Type                        : JOURNAL_OP
     Record Timestamp                   : 29OCT2024_14:03:31.000000
     Record Epoch                       : 1730210611
@@ -39,13 +42,15 @@ Details of journal file:
 
 
 Details of data file: 
-    BlazingMQ File Header  :     Protocol Version  : 1
+    BlazingMQ File Header  : 
+    Protocol Version  : 1
     Bitness           : 64
     FileType          : DATA
     HeaderWords       : 8
     PartitionId       : 0
 
-    Data File Header       :     HeaderWords       : 2
+    Data File Header       : 
+    HeaderWords       : 2
     FileId (FileKey)  : 0000000000
 
 

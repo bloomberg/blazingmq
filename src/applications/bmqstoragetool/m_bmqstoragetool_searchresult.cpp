@@ -389,8 +389,8 @@ bool SearchShortResult::processQueueOpRecord(const mqbs::QueueOpRecord& record,
 {
     RecordDetails<mqbs::QueueOpRecord> details(record,
                                                recordIndex,
-                                               recordOffset);
-
+                                               recordOffset,
+                                               allocator());
     printer()->printQueueOpRecord(details);
     d_printedQueueOpCount++;
     return false;
@@ -403,7 +403,8 @@ bool SearchShortResult::processJournalOpRecord(
 {
     RecordDetails<mqbs::JournalOpRecord> details(record,
                                                  recordIndex,
-                                                 recordOffset);
+                                                 recordOffset,
+                                                 allocator());
     printer()->printJournalOpRecord(details);
     d_printedJournalOpCount++;
     return false;
@@ -553,8 +554,8 @@ bool SearchDetailResult::processQueueOpRecord(
 
     RecordDetails<mqbs::QueueOpRecord> details(record,
                                                recordIndex,
-                                               recordOffset);
-
+                                               recordOffset,
+                                               d_allocator_p);
     if (queueInfo.has_value()) {
         details.d_queueUri = queueInfo->uri();
         if (!findQueueAppIdByAppKey(&details.d_appId,
@@ -578,8 +579,8 @@ bool SearchDetailResult::processJournalOpRecord(
 {
     RecordDetails<mqbs::JournalOpRecord> details(record,
                                                  recordIndex,
-                                                 recordOffset);
-
+                                                 recordOffset,
+                                                 d_allocator_p);
     d_printer->printJournalOpRecord(details);
 
     d_printedJournalOpCount++;
@@ -1317,7 +1318,9 @@ void SummaryProcessor::outputResult()
 
     // Print meta data of opened files
     printer()->printJournalFileMeta(d_journalFile_p);
-    printer()->printDataFileMeta(d_dataFile_p);
+    if (d_dataFile_p && d_dataFile_p->isValid()) {
+        printer()->printDataFileMeta(d_dataFile_p);
+    }
 }
 
 void SummaryProcessor::outputResult(

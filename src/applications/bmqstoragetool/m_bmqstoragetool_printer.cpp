@@ -75,9 +75,7 @@ void printDataFileMeta(bsl::ostream&                 ostream,
                        const mqbs::DataFileIterator* dataFile_p,
                        bslma::Allocator*             allocator)
 {
-    if (!dataFile_p || !dataFile_p->isValid()) {
-        return;  // RETURN
-    }
+    BSLS_ASSERT_SAFE(dataFile_p && dataFile_p->isValid());
 
     const bsl::vector<const char*> fields = {"BlazingMQ File Header",
                                              "Data File Header"};
@@ -85,6 +83,7 @@ void printDataFileMeta(bsl::ostream&                 ostream,
     PRINTER_TYPE1 printer(ostream, &fields);
     {
         bmqu::MemOutStream s(allocator);
+        s << '\n';
         mqbs::FileStoreProtocolPrinter::printFileHeader<PRINTER_TYPE2>(
             s,
             *dataFile_p->mappedFileDescriptor());
@@ -92,6 +91,7 @@ void printDataFileMeta(bsl::ostream&                 ostream,
     }
     {
         bmqu::MemOutStream s(allocator);
+        s << '\n';
         mqbs::FileStoreProtocolPrinter::printDataFileHeader<PRINTER_TYPE2>(
             s,
             dataFile_p->header());
@@ -105,9 +105,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                           const mqbs::JournalFileIterator* journalFile_p,
                           bslma::Allocator*                allocator)
 {
-    if (!journalFile_p || !journalFile_p->isValid()) {
-        return;  // RETURN
-    }
+    BSLS_ASSERT_SAFE(journalFile_p && journalFile_p->isValid());
 
     const bsl::vector<const char*> fields = {"BlazingMQ File Header",
                                              "Journal File Header",
@@ -116,6 +114,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
     PRINTER_TYPE1 printer(ostream, &fields);
     {
         bmqu::MemOutStream s(allocator);
+        s << '\n';
         mqbs::FileStoreProtocolPrinter::printFileHeader<PRINTER_TYPE2>(
             s,
             *journalFile_p->mappedFileDescriptor());
@@ -123,6 +122,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
     }
     {
         bmqu::MemOutStream s(allocator);
+        s << '\n';
         mqbs::FileStoreProtocolPrinter::printJournalFileHeader<PRINTER_TYPE2>(
             s,
             journalFile_p->header(),
@@ -133,6 +133,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
 
     {
         bmqu::MemOutStream s(allocator);
+        s << '\n';
         {
             // Print journal-specific fields
             bsl::vector<const char*> fieldsSyncPoint(allocator);
@@ -494,14 +495,12 @@ class HumanReadablePrinter : public Printer {
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
         BSLS_KEYWORD_OVERRIDE
     {
-        if (dataFile_p->isValid()) {
-            d_ostream << "\nDetails of data file: \n";
-            m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
-                                                bmqu::AlignedPrinter>(
-                d_ostream,
-                dataFile_p,
-                d_allocator_p);
-        }
+        d_ostream << "\nDetails of data file: \n";
+        m_bmqstoragetool::printDataFileMeta<bmqu::AlignedPrinter,
+                                            bmqu::AlignedPrinter>(
+            d_ostream,
+            dataFile_p,
+            d_allocator_p);
     }
 
     void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
@@ -795,17 +794,12 @@ class JsonPrettyPrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        if (dataFile_p->isValid()) {
-            d_ostream << "  \"DataFileDetails\":\n";
-            m_bmqstoragetool::printDataFileMeta<
-                bmqu::JsonPrinter<true, true, 2, 4>,
-                bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
-                                                      dataFile_p,
-                                                      d_allocator_p);
-        }
-        else {
-            d_ostream << "  \"DataFileDetails\": {}";
-        }
+        d_ostream << "  \"DataFileDetails\":\n";
+        m_bmqstoragetool::printDataFileMeta<
+            bmqu::JsonPrinter<true, true, 2, 4>,
+            bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
+                                                  dataFile_p,
+                                                  d_allocator_p);
     }
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,
@@ -875,7 +869,7 @@ class JsonLinePrinter : public JsonPrinter {
         d_ostream << "  \"JournalFileDetails\":\n";
         m_bmqstoragetool::printJournalFileMeta<
             bmqu::JsonPrinter<true, true, 2, 4>,
-            bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
+            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
                                                    journalFile_p,
                                                    d_allocator_p);
     }
@@ -885,17 +879,12 @@ class JsonLinePrinter : public JsonPrinter {
     {
         closeBraceIfOpen();
 
-        if (dataFile_p->isValid()) {
-            d_ostream << "  \"DataFileDetails\": \n";
-            m_bmqstoragetool::printDataFileMeta<
-                bmqu::JsonPrinter<true, true, 2, 4>,
-                bmqu::JsonPrinter<false, true, 0, 0> >(d_ostream,
-                                                       dataFile_p,
-                                                       d_allocator_p);
-        }
-        else {
-            d_ostream << "  \"DataFileDetails\": {}";
-        }
+        d_ostream << "  \"DataFileDetails\": \n";
+        m_bmqstoragetool::printDataFileMeta<
+            bmqu::JsonPrinter<true, true, 2, 4>,
+            bmqu::JsonPrinter<false, true, 6, 0> >(d_ostream,
+                                                   dataFile_p,
+                                                   d_allocator_p);
     }
 
     void printRecordSummary(bsls::Types::Uint64    totalRecordsCount,

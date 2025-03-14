@@ -182,9 +182,8 @@ def test_summary_result(storagetool, journal_path, csl_file, expected_summary_re
     assert res.stdout == expected_summary_result
 
 
-@pytest.mark.skip(reason="issue with string_view")
 def test_summary_result_with_queue_info(
-    storagetool, journal_path, csl_file, expected_summary_result
+    storagetool, journal_path, csl_file, expected_summary_result_with_queue_info
 ):
     """
     This test checks that storage tool can process journal file and output messages summary result with queue info.
@@ -203,9 +202,9 @@ def test_summary_result_with_queue_info(
         capture_output=True,
     )
     assert res.returncode == 0
-    assert res.stdout == expected_summary_result
+    assert res.stdout == expected_summary_result_with_queue_info
 
-@pytest.mark.skip(reason="issue with string_view")
+
 def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
     """
     This test checks that storage tool can process journal file and output summary result in JSON (pretty and line) format.
@@ -333,7 +332,7 @@ def test_queueop_journalop_summary_result(
     assert res.stdout == expected_queueop_journalop_summary_result
 
 
-def test_queueop_journalop_summary_result(storagetool, journal_file):
+def test_queueop_journalop_summary_json(storagetool, journal_file):
     """
     This test checks that storage tool can process journal file and output queueOp and journalOp records summary result in JSON (pretty and line) format.
     """
@@ -357,4 +356,4 @@ def test_queueop_journalop_summary_result(storagetool, journal_file):
         assert json_res["JournalOperationsNumber"] == 8
         assert json_res["TotalRecordsNumber"] == 9
         assert "JournalFileDetails" in json_res
-        assert "DataFileDetails" in json_res
+        assert "DataFileDetails" not in json_res

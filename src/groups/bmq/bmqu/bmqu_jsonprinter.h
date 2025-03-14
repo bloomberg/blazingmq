@@ -73,7 +73,7 @@ bool addQuotes(const T&)
 template <>
 inline bool addQuotes<bslstl::StringRef>(const bslstl::StringRef& value)
 {
-    bsl::size_t pos = value.find_first_not_of(' ');
+    bsl::size_t pos = value.find_first_not_of(" \n");    
     return (pos == bsl::string::npos || value[pos] != '{');
 }
 
