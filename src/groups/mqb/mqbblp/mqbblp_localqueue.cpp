@@ -452,6 +452,8 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
     bool         haveReceipt = true;
     unsigned int refCount    = d_queueEngine_mp->messageReferenceCount();
 
+    BALL_LOG_ERROR << " PUT "<< putHeader.messageGUID();
+
     if (res == mqbi::StorageResult::e_SUCCESS) {
         if (refCount) {
             // Note that arrival timepoint is used only at the primary node,
@@ -611,6 +613,8 @@ void LocalQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
     int rc = d_queueEngine_mp->onConfirmMessage(source,
                                                 msgGUID,
                                                 upstreamSubQueueId);
+
+    BALL_LOG_ERROR << " CONFIRM " << upstreamSubQueueId << " " << msgGUID;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc == 1)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

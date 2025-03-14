@@ -92,8 +92,10 @@ namespace mqbs {
 //
 
 // CREATORS
-VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
-                                             bslma::Allocator* allocator)
+VirtualStorageCatalog::VirtualStorageCatalog(
+    mqbi::Storage*                                    storage,
+    const bsl::shared_ptr<mqbstat::QueueStatsDomain>& queueStats_sp,
+    bslma::Allocator*                                 allocator)
 : d_storage_p(storage)
 , d_virtualStorages(allocator)
 , d_dataStream(allocator)
@@ -103,10 +105,12 @@ VirtualStorageCatalog::VirtualStorageCatalog(mqbi::Storage*    storage,
 , d_defaultNonApplicableAppMessage(bmqp::RdaInfo())
 , d_isProxy(false)
 , d_queue_p(0)
+, d_queueStats_sp(queueStats_sp)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
+    BSLS_ASSERT_SAFE(queueStats_sp);
     BSLS_ASSERT_SAFE(allocator);
 
     d_defaultNonApplicableAppMessage.setRemovedState();
@@ -277,8 +281,8 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
     const mqbi::StorageResult::Enum rc = it->value()->confirm(&data->second);
-    if (queue() && mqbi::StorageResult::e_SUCCESS == rc) {
-        queue()->stats()->onEvent(
+    if (mqbi::StorageResult::e_SUCCESS == rc) {
+        d_queueStats_sp->onEvent(
             mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE,
             data->second.d_size,
             it->key1());
@@ -478,12 +482,9 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         }
     }
 
-    if (queue()) {
-        queue()->stats()->onEvent(
-            mqbstat::QueueStatsDomain::EventType::e_PURGE,
-            0,
-            vs->appId());
-    }
+    d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
+                             0,
+                             vs->appId());
 
     return mqbi::StorageResult::e_SUCCESS;
 }

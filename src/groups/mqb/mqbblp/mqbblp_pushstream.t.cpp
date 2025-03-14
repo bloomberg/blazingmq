@@ -16,6 +16,9 @@
 // mqbblp_pushstream.t.cpp                                            -*-C++-*-
 #include <mqbblp_pushstream.h>
 
+// MQB
+#include <mqbmock_domain.h>
+
 // BMQ
 #include <bmqp_messageguidgenerator.h>
 
@@ -122,12 +125,14 @@ static void test2_iterations()
         "dummy",
         bmqtst::TestHelperUtil::allocator());
     bmqt::Uri        dummyUri("dummy", bmqtst::TestHelperUtil::allocator());
-    mqbconfm::Domain dummyDomain(bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  dummyDomain(0, bmqtst::TestHelperUtil::allocator());
+    mqbconfm::Domain dummyDomainConfig(bmqtst::TestHelperUtil::allocator());
 
     mqbs::InMemoryStorage dummyStorage(dummyUri,
                                        mqbu::StorageKey::k_NULL_KEY,
+                                       &dummyDomain,
                                        mqbs::DataStore::k_INVALID_PARTITION_ID,
-                                       dummyDomain,
+                                       dummyDomainConfig,
                                        &dummyCapacityMeter,
                                        bmqtst::TestHelperUtil::allocator());
 
