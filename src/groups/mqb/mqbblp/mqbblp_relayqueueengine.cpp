@@ -1922,8 +1922,7 @@ void RelayQueueEngine::storePush(
     const bmqt::MessageGUID&                  msgGUID,
     const bsl::shared_ptr<bdlbb::Blob>&       appData,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
-
-    bool isOutOfOrder)
+    bool                                      isOutOfOrder)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {
         // Save the message along with the subIds in the storage.  Note that
