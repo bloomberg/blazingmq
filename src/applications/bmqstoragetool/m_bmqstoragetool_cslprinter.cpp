@@ -364,7 +364,8 @@ class JsonCslPrinter : public CslPrinter {
             if (it != offsets.cbegin()) {
                 d_ostream << ",";
             }
-            d_ostream << "\n    " << *it;
+            d_ostream << "\n    "
+                      << "\"" << *it << "\"";
         }
         d_ostream << "\n  ]";
     }
@@ -380,9 +381,9 @@ class JsonCslPrinter : public CslPrinter {
                 d_ostream << ',';
             }
 
-            d_ostream << "\n    {\"leaseId\": " << it->leaseId()
-                      << ", \"sequenceNumber\": " << it->sequenceNumber()
-                      << "}";
+            d_ostream << "\n    {\"leaseId\": "
+                      << "\"" << it->leaseId() << "\", \"sequenceNumber\": "
+                      << "\"" << it->sequenceNumber() << "\"}";
         }
         d_ostream << "\n  ]";
     }
@@ -393,13 +394,14 @@ class JsonCslPrinter : public CslPrinter {
                     processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"SnapshotRecords\": " << recordCount.d_snapshotCount
-                  << ",\n";
-        d_ostream << "  \"UpdateRecords\": " << recordCount.d_updateCount
-                  << ",\n";
-        d_ostream << "  \"CommitRecords\": " << recordCount.d_commitCount
-                  << ",\n";
-        d_ostream << "  \"AckRecords\": " << recordCount.d_ackCount;
+        d_ostream << "  \"SnapshotRecords\": "
+                  << "\"" << recordCount.d_snapshotCount << "\",\n";
+        d_ostream << "  \"UpdateRecords\": "
+                  << "\"" << recordCount.d_updateCount << "\",\n";
+        d_ostream << "  \"CommitRecords\": "
+                  << "\"" << recordCount.d_commitCount << "\",\n";
+        d_ostream << "  \"AckRecords\": "
+                  << "\"" << recordCount.d_ackCount << "\"";
     }
 };
 

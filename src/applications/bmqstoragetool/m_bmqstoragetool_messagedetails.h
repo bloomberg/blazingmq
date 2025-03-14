@@ -84,7 +84,7 @@ struct QueueDetails {
     // Queue operation records counts, related to the queue
     AppDetailsMap d_appDetailsMap;
     // Map containing all records counts, related to the queue per App
-    bsl::string   d_queueUri;
+    bsl::string d_queueUri;
 
     // CREATORS
 
@@ -95,7 +95,7 @@ struct QueueDetails {
     , d_deleteRecordsNumber(0)
     , d_queueOpRecordsNumber(0)
     , d_appDetailsMap(allocator)
-    , d_queueUri(allocator)    
+    , d_queueUri(allocator)
     {
         // NOTHING
     }
@@ -144,7 +144,7 @@ struct RecordDetails {
     RecordDetails(RECORD_TYPE         record,
                   bsls::Types::Uint64 recordIndex,
                   bsls::Types::Uint64 recordOffset,
-                   bslma::Allocator*   allocator)
+                  bslma::Allocator*   allocator)
     : d_record(record)
     , d_recordIndex(recordIndex)
     , d_recordOffset(recordOffset)

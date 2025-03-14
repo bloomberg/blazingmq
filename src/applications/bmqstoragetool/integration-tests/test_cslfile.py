@@ -48,8 +48,8 @@ def test_short_json(storagetool, csl_file):
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
-        assert json_res["SnapshotRecords"] == 1
-        assert json_res["CommitRecords"] == 1
+        assert json_res["SnapshotRecords"] == "1"
+        assert json_res["CommitRecords"] == "1"
         assert len(json_res["Records"]) == 2
 
 
@@ -83,8 +83,8 @@ def test_detail_json(storagetool, csl_file):
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
-        assert json_res["SnapshotRecords"] == 1
-        assert json_res["CommitRecords"] == 1
+        assert json_res["SnapshotRecords"] == "1"
+        assert json_res["CommitRecords"] == "1"
         assert len(json_res["Records"]) == 2
 
 
