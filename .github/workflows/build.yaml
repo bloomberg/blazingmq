@@ -204,7 +204,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
@@ -212,15 +212,19 @@ jobs:
 
       - name: Upload broker core dump as artifacts
         if: failure()
-        uses: actions/upload-artifact@v3
-        with:
-          name: core_dumps_${{ env.RUN_UID }}
-          path: ${{ github.workspace }}/src/integration-tests/cores
-          retention-days: 5
+        run: |
+          ls ${{ github.workspace }}/src/integration-tests/cores
+          ls ${{ github.workspace }}/src/integration-tests/failure-logs
+
+        # uses: actions/upload-artifact@v4
+        # with:
+        #   name: core_dumps_${{ env.RUN_UID }}
+        #   path: ${{ github.workspace }}/src/integration-tests/cores
+        #   retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bmqbrkr.tsk
           overwrite: true # broker binary is the same across all matrix runs
