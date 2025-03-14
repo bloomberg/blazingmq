@@ -620,15 +620,18 @@ class JsonPrinter : public Printer {
     {
         if (processRecordTypes.d_message) {
             closeBraceIfOpen();
-            d_ostream << "  \"TotalMessages\": " << foundMessagesCount;
+            d_ostream << "  \"TotalMessages\": \"" << foundMessagesCount
+                      << "\"";
         }
         if (processRecordTypes.d_queueOp) {
             closeBraceIfOpen();
-            d_ostream << "  \"QueueOpRecords\": " << foundQueueOpCount;
+            d_ostream << "  \"QueueOpRecords\": \"" << foundQueueOpCount
+                      << "\"";
         }
         if (processRecordTypes.d_journalOp) {
             closeBraceIfOpen();
-            d_ostream << "  \"JournalOpRecords\": " << foundJournalOpCount;
+            d_ostream << "  \"JournalOpRecords\": \"" << foundJournalOpCount
+                      << "\"";
         }
     }
 
@@ -639,7 +642,7 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"OutstandingRatio\": " << ratio;
+        d_ostream << "  \"OutstandingRatio\": \"" << ratio << "\"";
     }
 
     void printMessageSummary(bsl::size_t totalMessagesCount,
@@ -649,12 +652,12 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalMessagesNumber\": " << totalMessagesCount
-                  << ",\n  \"PartiallyConfirmedMessagesNumber\": "
+        d_ostream << "  \"TotalMessagesNumber\": \"" << totalMessagesCount
+                  << "\",\n  \"PartiallyConfirmedMessagesNumber\": \""
                   << partiallyConfirmedCount
-                  << ",\n  \"ConfirmedMessagesNumber\": " << confirmedCount
-                  << ",\n  \"OutstandingMessagesNumber\": "
-                  << outstandingCount;
+                  << "\",\n  \"ConfirmedMessagesNumber\": \"" << confirmedCount
+                  << "\",\n  \"OutstandingMessagesNumber\": \""
+                  << outstandingCount << "\"";
     }
 
     void printQueueOpSummary(bsls::Types::Uint64     queueOpRecordsCount,
@@ -684,8 +687,8 @@ class JsonPrinter : public Printer {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"JournalOperationsNumber\": "
-                  << journalOpRecordsCount;
+        d_ostream << "  \"JournalOperationsNumber\": \""
+                  << journalOpRecordsCount << "\"";
     }
 
     void printGuidsNotFound(const GuidsList& guids) const BSLS_KEYWORD_OVERRIDE
@@ -728,9 +731,9 @@ class JsonPrinter : public Printer {
                 d_ostream << ',';
             }
 
-            d_ostream << "\n    {\"leaseId\": " << it->leaseId()
-                      << ", \"sequenceNumber\": " << it->sequenceNumber()
-                      << "}";
+            d_ostream << "\n    {\"leaseId\": \"" << it->leaseId()
+                      << "\", \"sequenceNumber\": \"" << it->sequenceNumber()
+                      << "\"}";
         }
         d_ostream << "\n  ]";
     }
@@ -807,8 +810,8 @@ class JsonPrettyPrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": " << totalRecordsCount
-                  << ",\n";
+        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
+                  << "\",\n";
 
         // Print information per Queue:
         d_ostream << "  \"PerQueueRecordsNumber\": [\n";
@@ -892,8 +895,8 @@ class JsonLinePrinter : public JsonPrinter {
         BSLS_KEYWORD_OVERRIDE
     {
         closeBraceIfOpen();
-        d_ostream << "  \"TotalRecordsNumber\": " << totalRecordsCount
-                  << ",\n";
+        d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
+                  << "\",\n";
 
         // Print information per Queue:
         d_ostream << "  \"PerQueueRecordsNumber\": [\n";

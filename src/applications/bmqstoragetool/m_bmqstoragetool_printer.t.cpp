@@ -299,9 +299,11 @@ static void test3_humanReadableRecordsTest()
 
         const QueueOpRecord& queueOpRecord =
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(queueOpRecord,
-                                                          12345,
-                                                          56789);
+        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
+            queueOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create printer
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -339,9 +341,11 @@ static void test3_humanReadableRecordsTest()
 
         const JournalOpRecord& journalOpRecord =
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(journalOpRecord,
-                                                              12345,
-                                                              56789);
+        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
+            journalOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         // Create printer
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -1047,9 +1051,11 @@ static void test11_jsonPrettyRecordsTest()
 
         const QueueOpRecord& queueOpRecord =
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(queueOpRecord,
-                                                          12345,
-                                                          56789);
+        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
+            queueOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -1101,9 +1107,11 @@ static void test11_jsonPrettyRecordsTest()
 
         const JournalOpRecord& journalOpRecord =
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(journalOpRecord,
-                                                              12345,
-                                                              56789);
+        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
+            journalOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -1274,8 +1282,9 @@ static void test13_jsonPrettyCompositesTest()
                 if (i > 1) {
                     expectedStream << ",";
                 }
-                expectedStream << "\n    {\"leaseId\": " << i
-                               << ", \"sequenceNumber\": " << (2lu * i) << "}";
+                expectedStream << "\n    {\"leaseId\": \"" << i
+                               << "\", \"sequenceNumber\": \"" << (2lu * i)
+                               << "\"}";
             }
             expectedStream << "\n  ]\n}\n";
             printer->printCompositesNotFound(vec);
@@ -1341,9 +1350,9 @@ static void test14_jsonPrettyFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": 0,\n"
-                           << "  \"QueueOpRecords\": 0,\n"
-                           << "  \"JournalOpRecords\": 0\n"
+                           << "  \"TotalMessages\": \"0\",\n"
+                           << "  \"QueueOpRecords\": \"0\",\n"
+                           << "  \"JournalOpRecords\": \"0\"\n"
                            << "}\n";
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1373,9 +1382,9 @@ static void test14_jsonPrettyFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": 11,\n"
-                           << "  \"QueueOpRecords\": 22,\n"
-                           << "  \"JournalOpRecords\": 33\n"
+                           << "  \"TotalMessages\": \"11\",\n"
+                           << "  \"QueueOpRecords\": \"22\",\n"
+                           << "  \"JournalOpRecords\": \"33\"\n"
                            << "}\n";
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1413,7 +1422,7 @@ static void test15_jsonPrettyOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": 35\n"
+                       << "  \"OutstandingRatio\": \"35\"\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1451,10 +1460,10 @@ static void test16_jsonPrettySummaryTest()
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"TotalMessagesNumber\": 0,\n"
-                       << "  \"PartiallyConfirmedMessagesNumber\": 1,\n"
-                       << "  \"ConfirmedMessagesNumber\": 2,\n"
-                       << "  \"OutstandingMessagesNumber\": 3\n"
+                       << "  \"TotalMessagesNumber\": \"0\",\n"
+                       << "  \"PartiallyConfirmedMessagesNumber\": \"1\",\n"
+                       << "  \"ConfirmedMessagesNumber\": \"2\",\n"
+                       << "  \"OutstandingMessagesNumber\": \"3\"\n"
                        << "}\n";
         {
             // Create printer
@@ -1518,7 +1527,7 @@ static void test16_jsonPrettySummaryTest()
                 bmqtst::TestHelperUtil::allocator());
 
             // Prepare expected output
-            expectedStream << "{\n  \"JournalOperationsNumber\": 123\n}\n";
+            expectedStream << "{\n  \"JournalOperationsNumber\": \"123\"\n}\n";
             printer->printJournalOpSummary(123u);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1541,7 +1550,7 @@ static void test16_jsonPrettySummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"TotalRecordsNumber\": 123,\n"
+                << "  \"TotalRecordsNumber\": \"123\",\n"
                 << "  \"PerQueueRecordsNumber\": [\n"
                 << "    {\n"
                 << "      \"Queue Key\": \"5175657565\",\n"
@@ -1931,9 +1940,11 @@ static void test19_jsonLineRecordsTest()
 
         const QueueOpRecord& queueOpRecord =
             *reinterpret_cast<const QueueOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(queueOpRecord,
-                                                          12345,
-                                                          56789);
+        RecordDetails<mqbs::QueueOpRecord> queueOpDetails(
+            queueOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -1982,9 +1993,11 @@ static void test19_jsonLineRecordsTest()
 
         const JournalOpRecord& journalOpRecord =
             *reinterpret_cast<const JournalOpRecord*>(buf.buffer());
-        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(journalOpRecord,
-                                                              12345,
-                                                              56789);
+        RecordDetails<mqbs::JournalOpRecord> journalOpDetails(
+            journalOpRecord,
+            12345,
+            56789,
+            bmqtst::TestHelperUtil::allocator());
 
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -2152,8 +2165,9 @@ static void test21_jsonLineCompositesTest()
                 if (i > 1) {
                     expectedStream << ",";
                 }
-                expectedStream << "\n    {\"leaseId\": " << i
-                               << ", \"sequenceNumber\": " << (2lu * i) << "}";
+                expectedStream << "\n    {\"leaseId\": \"" << i
+                               << "\", \"sequenceNumber\": \"" << (2lu * i)
+                               << "\"}";
             }
             expectedStream << "\n  ]\n}\n";
             printer->printCompositesNotFound(vec);
@@ -2219,9 +2233,9 @@ static void test22_jsonLineFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": 0,\n"
-                           << "  \"QueueOpRecords\": 0,\n"
-                           << "  \"JournalOpRecords\": 0\n"
+                           << "  \"TotalMessages\": \"0\",\n"
+                           << "  \"QueueOpRecords\": \"0\",\n"
+                           << "  \"JournalOpRecords\": \"0\"\n"
                            << "}\n";
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2251,9 +2265,9 @@ static void test22_jsonLineFooterTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalMessages\": 11,\n"
-                           << "  \"QueueOpRecords\": 22,\n"
-                           << "  \"JournalOpRecords\": 33\n"
+                           << "  \"TotalMessages\": \"11\",\n"
+                           << "  \"QueueOpRecords\": \"22\",\n"
+                           << "  \"JournalOpRecords\": \"33\"\n"
                            << "}\n";
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2291,7 +2305,7 @@ static void test23_jsonLineOutstandingTest()
 
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"OutstandingRatio\": 35\n"
+                       << "  \"OutstandingRatio\": \"35\"\n"
                        << "}\n";
     }
     bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2329,10 +2343,10 @@ static void test24_jsonLineSummaryTest()
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"TotalMessagesNumber\": 0,\n"
-                       << "  \"PartiallyConfirmedMessagesNumber\": 1,\n"
-                       << "  \"ConfirmedMessagesNumber\": 2,\n"
-                       << "  \"OutstandingMessagesNumber\": 3\n"
+                       << "  \"TotalMessagesNumber\": \"0\",\n"
+                       << "  \"PartiallyConfirmedMessagesNumber\": \"1\",\n"
+                       << "  \"ConfirmedMessagesNumber\": \"2\",\n"
+                       << "  \"OutstandingMessagesNumber\": \"3\"\n"
                        << "}\n";
         {
             // Create printer
@@ -2396,7 +2410,7 @@ static void test24_jsonLineSummaryTest()
                 bmqtst::TestHelperUtil::allocator());
 
             // Prepare expected output
-            expectedStream << "{\n  \"JournalOperationsNumber\": 123\n}\n";
+            expectedStream << "{\n  \"JournalOperationsNumber\": \"123\"\n}\n";
             printer->printJournalOpSummary(123u);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2419,7 +2433,7 @@ static void test24_jsonLineSummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"TotalRecordsNumber\": 123,\n"
+                << "  \"TotalRecordsNumber\": \"123\",\n"
                 << "  \"PerQueueRecordsNumber\": [\n"
                 << "    {" << "\"Queue Key\": \"5175657565\", "
                 << "\"Queue URI\": \"QueueUri1\", "

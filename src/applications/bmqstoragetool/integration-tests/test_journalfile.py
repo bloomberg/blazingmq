@@ -58,7 +58,7 @@ def test_short_json(storagetool, journal_file):
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessages"] == 2
+        assert json_res["TotalMessages"] == "2"
         assert "40000000000215B2967EEDFA1085BA02" in json_res["Records"]
         assert "400000000002B471F5B3AC11AA7D7DAB" in json_res["Records"]
 
@@ -116,7 +116,7 @@ def test_detail_json(storagetool, journal_file, csl_file):
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessages"] == 2
+        assert json_res["TotalMessages"] == "2"
         assert len(json_res["Records"]) == 4
 
 
@@ -229,12 +229,12 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
         assert res.returncode == 0
 
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessagesNumber"] == 2
-        assert json_res["PartiallyConfirmedMessagesNumber"] == 0
-        assert json_res["ConfirmedMessagesNumber"] == 1
-        assert json_res["OutstandingMessagesNumber"] == 1
-        assert json_res["OutstandingRatio"] == 50
-        assert json_res["TotalRecordsNumber"] == 4
+        assert json_res["TotalMessagesNumber"] == "2"
+        assert json_res["PartiallyConfirmedMessagesNumber"] == "0"
+        assert json_res["ConfirmedMessagesNumber"] == "1"
+        assert json_res["OutstandingMessagesNumber"] == "1"
+        assert json_res["OutstandingRatio"] == "50"
+        assert json_res["TotalRecordsNumber"] == "4"
         assert len(json_res["PerQueueRecordsNumber"]) == 1
         assert json_res["PerQueueRecordsNumber"][0]["Queue Key"] == "26DACDC974"
         assert "JournalFileDetails" in json_res
@@ -306,8 +306,8 @@ def test_queueop_journalop_json(storagetool, journal_file):
         )
         assert res.returncode == 0
         json_res = json.loads(res.stdout)
-        assert json_res["QueueOpRecords"] == 1
-        assert json_res["JournalOpRecords"] == 8
+        assert json_res["QueueOpRecords"] == "1"
+        assert json_res["JournalOpRecords"] == "8"
         assert len(json_res["Records"]) == 9
 
 
@@ -353,7 +353,7 @@ def test_queueop_journalop_summary_json(storagetool, journal_file):
         json_res = json.loads(res.stdout)
         assert json_res["TotalQueueOperationsNumber"] == "1"
         assert json_res["CreationOperationsNumber"] == "1"
-        assert json_res["JournalOperationsNumber"] == 8
-        assert json_res["TotalRecordsNumber"] == 9
+        assert json_res["JournalOperationsNumber"] == "8"
+        assert json_res["TotalRecordsNumber"] == "9"
         assert "JournalFileDetails" in json_res
         assert "DataFileDetails" not in json_res
