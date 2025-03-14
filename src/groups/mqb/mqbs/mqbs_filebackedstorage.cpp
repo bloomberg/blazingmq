@@ -112,8 +112,10 @@ FileBackedStorage::FileBackedStorage(
 , d_queueKey(queueKey)
 , d_config()
 , d_queueUri(queueUri, allocator)
+, d_queueStats_sp(bsl::allocate_shared<mqbstat::QueueStatsDomain>(allocator))
 , d_virtualStorageCatalog(
       this,
+      d_queueStats_sp,
       allocatorStore ? allocatorStore->get("VirtualHandles") : d_allocator_p)
 , d_ttlSeconds(domain->config().messageTtl())
 , d_capacityMeter(
@@ -133,7 +135,6 @@ FileBackedStorage::FileBackedStorage(
 , d_hasReceipts(!domain->config().consistency().isStrongValue())
 , d_currentlyAutoConfirming()
 , d_autoConfirms(d_allocator_p)
-, d_queueStats_sp()
 {
     BSLS_ASSERT(d_store_p);
 
@@ -147,11 +148,9 @@ FileBackedStorage::FileBackedStorage(
     // and domain instance will return a zero capacity meter when queries to be
     // passed to the 'FileBackedStorage' instance.
 
+    d_queueStats_sp->initialize(queueUri, domain);
     d_virtualStorageCatalog.setDefaultRda(
         domain->config().maxDeliveryAttempts());
-
-    d_queueStats_sp.createInplace(d_allocator_p, d_allocator_p);
-    d_queueStats_sp->initialize(queueUri, domain);
 }
 
 FileBackedStorage::~FileBackedStorage()

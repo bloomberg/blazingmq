@@ -205,6 +205,7 @@ struct Tester {
             new (*d_allocator_p) mqbs::InMemoryStorage(
                 bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
                 queueKey,
+                &d_mockDomain,
                 partitionId,
                 domainCfg,
                 d_mockDomain.capacityMeter(),

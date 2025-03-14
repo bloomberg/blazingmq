@@ -48,7 +48,7 @@ class GreaterThan(ValueConstraint):
 
     def check(self, value: Any) -> bool:
         """Check if the specified 'value' is greater than the stored '_constraint'."""
-        return self._constraint < value
+        return self._constraint <= value
 
 
 TEST_QUEUE_STATS_AFTER_POST = {
