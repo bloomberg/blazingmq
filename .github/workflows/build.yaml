@@ -183,12 +183,12 @@ jobs:
         run: |
           sudo mkdir /cores
           sudo chmod 777 /cores
-          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+      #     echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
       - name: Run Integration Tests
         run: |
           # Allow core dumps
-          ulimit -c unlimited
+
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
