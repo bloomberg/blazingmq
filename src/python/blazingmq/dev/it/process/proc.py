@@ -208,6 +208,8 @@ class Process:
             universal_newlines=False,
         )
 
+        self._internal_logger.info(f"Current pid = {self._process.pid}")
+
         self._queue = queue.Queue()
 
         self._stdout_thread = threading.Thread(

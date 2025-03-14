@@ -266,7 +266,11 @@ class Configurator:
         site.install(str(paths.tool), "bin")
         site.install(str(paths.plugins), ".")
 
-        for script, cmd in ("run", "exec"), ("debug", "gdb --args"):
+        for script, cmd in (
+            ("run", "exec"),
+            ("debug", "gdb --args"),
+            ("debug-lldb", "lldb --"),
+        ):
             site.create_file(
                 str(script),
                 RUN_SCRIPT.format(cmd=cmd, host=broker.name),
