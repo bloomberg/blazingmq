@@ -7552,6 +7552,7 @@ void FileStore::loadMessageAttributesRaw(
 
     *buffer = mqbi::StorageMessageAttributes(rec->header().timestamp(),
                                              rec->refCount(),
+                                             record.d_appDataUnpaddedLen,
                                              record.d_messagePropertiesInfo,
                                              rec->compressionAlgorithmType(),
                                              record.d_hasReceipt,

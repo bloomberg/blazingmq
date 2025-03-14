@@ -237,7 +237,6 @@ class QueueHandle : public mqbi::QueueHandle {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
     deliverMessageImpl(const bsl::shared_ptr<bdlbb::Blob>&       message,
-                       const int                                 msgSize,
                        const bmqt::MessageGUID&                  msgGUID,
                        const mqbi::StorageMessageAttributes&     attributes,
                        const bmqp::Protocol::MsgGroupId&         msgGroupId,
@@ -353,7 +352,7 @@ class QueueHandle : public mqbi::QueueHandle {
     mqbi::QueueHandle*
     setIsClientClusterMember(bool value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the `Queue` to deliver the specified `message` with the
+    /// Called by the `Queue` to deliver the specified `iter` with the
     /// specified `msgSize`, `msgGUID`, `attributes`, `isOutOfOrder`, and
     /// `msgGroupId` for the specified `subQueueInfos` streams of the queue.
     /// The behavior is undefined unless the queueHandle can send a message at
@@ -362,14 +361,12 @@ class QueueHandle : public mqbi::QueueHandle {
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
-    deliverMessage(const bsl::shared_ptr<bdlbb::Blob>&       message,
-                   const bmqt::MessageGUID&                  msgGUID,
-                   const mqbi::StorageMessageAttributes&     attributes,
+    deliverMessage(const mqbi::StorageIterator&              iter,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the `Queue` to deliver the specified `message` with the
+    /// Called by the `Queue` to deliver the specified `iter` with the
     /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
     /// `subQueueInfos` streams of the queue.  This method is identical with
     /// `deliverMessage()` but it doesn't update any flow-control mechanisms
@@ -379,13 +376,10 @@ class QueueHandle : public mqbi::QueueHandle {
     /// information).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageNoTrack(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const bmqt::MessageGUID&                  msgGUID,
-        const mqbi::StorageMessageAttributes&     attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
-        BSLS_KEYWORD_OVERRIDE;
+    void deliverMessageNoTrack(const mqbi::StorageIterator&      iter,
+                               const bmqp::Protocol::MsgGroupId& msgGroupId,
+                               const bmqp::Protocol::SubQueueInfosArray&
+                                   subQueueInfos) BSLS_KEYWORD_OVERRIDE;
 
     /// Post the message with the specified PUT `header`, `appData` and
     /// `options` to the queue.

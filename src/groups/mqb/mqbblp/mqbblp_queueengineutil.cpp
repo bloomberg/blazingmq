@@ -789,24 +789,18 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
     BSLS_ASSERT_SAFE(d_currentMessage);
 
     if (!d_consumers.empty()) {
-        const mqbi::StorageMessageAttributes& attributes =
-            d_currentMessage->attributes();
         for (Consumers::const_iterator it = d_consumers.begin();
              it != d_consumers.end();
              ++it) {
             BSLS_ASSERT_SAFE(!it->second.empty());
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-                it->first->deliverMessageNoTrack(d_currentMessage->appData(),
-                                                 d_currentMessage->guid(),
-                                                 attributes,
+                it->first->deliverMessageNoTrack(*d_currentMessage,
                                                  "",  // msgGroupId,
                                                  it->second);
             }
             else {
-                it->first->deliverMessage(d_currentMessage->appData(),
-                                          d_currentMessage->guid(),
-                                          attributes,
+                it->first->deliverMessage(*d_currentMessage,
                                           "",  // msgGroupId,
                                           it->second,
                                           false);
@@ -1056,9 +1050,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
         1,
         bmqp::SubQueueInfo(visitor.d_downstreamSubscriptionId,
                            message->appMessageView(ordinal()).d_rdaInfo));
-    visitor.d_handle->deliverMessage(message->appData(),
-                                     message->guid(),
-                                     message->attributes(),
+    visitor.d_handle->deliverMessage(*message,
                                      "",  // msgGroupId
                                      subQueueInfos,
                                      isOutOfOrder);
@@ -1088,9 +1080,7 @@ bool QueueEngineUtil_AppState::visitBroadcast(
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
-        message->appData(),
-        message->guid(),
-        message->attributes(),
+        *message,
         "",  // msgGroupId
         bmqp::Protocol::SubQueueInfosArray(
             1,

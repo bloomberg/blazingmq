@@ -2123,9 +2123,7 @@ static void test11_initiateShutdown()
     const bsls::TimeInterval semaphoreTimeout = bsls::TimeInterval(
         0,
         100000000);  // 100 ms
-    bslmt::TimedSemaphore semaphore;
-    bmqt::MessageGUID     guid = bmqp::MessageGUIDGenerator::testGUID();
-    mqbi::StorageMessageAttributes messageAttributes;
+    bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int             subscriptionId =
         bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
@@ -2135,7 +2133,82 @@ static void test11_initiateShutdown()
         1,
         bmqp::SubQueueInfo(subscriptionId),
         bmqtst::TestHelperUtil::allocator());
-    bsl::shared_ptr<bdlbb::Blob> blob;
+
+    struct MockStorageIterator : public mqbi::StorageIterator {
+        // PUBLIC DATA
+        bmqt::MessageGUID d_guid;
+
+        mqbi::AppMessage d_appMessage;
+
+        bsl::shared_ptr<bdlbb::Blob> d_appData;
+
+        bsl::shared_ptr<bdlbb::Blob> d_options;
+
+        mqbi::StorageMessageAttributes d_messageAttributes;
+
+        // CREATORS
+        MockStorageIterator(bslma::Allocator* allocator = 0)
+        : d_guid(bmqp::MessageGUIDGenerator::testGUID())
+        , d_appMessage(bmqp::RdaInfo())
+        , d_appData()
+        , d_options()
+        , d_messageAttributes()
+        {
+        }
+
+        bool advance() BSLS_KEYWORD_OVERRIDE
+        {
+            d_guid = bmqp::MessageGUIDGenerator::testGUID();
+            return true;
+        }
+
+        void reset(const bmqt::MessageGUID& where = bmqt::MessageGUID())
+            BSLS_KEYWORD_OVERRIDE
+        {
+            d_guid = where;
+        }
+
+        const bmqt::MessageGUID& guid() const BSLS_KEYWORD_OVERRIDE
+        {
+            return d_guid;
+        }
+
+        const mqbi::AppMessage&
+        appMessageView(unsigned int appOrdinal) const BSLS_KEYWORD_OVERRIDE
+        {
+            return d_appMessage;
+        }
+
+        mqbi::AppMessage&
+        appMessageState(unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE
+        {
+            return d_appMessage;
+        }
+
+        const bsl::shared_ptr<bdlbb::Blob>&
+        appData() const BSLS_KEYWORD_OVERRIDE
+        {
+            return d_appData;
+        }
+
+        const bsl::shared_ptr<bdlbb::Blob>&
+        options() const BSLS_KEYWORD_OVERRIDE
+        {
+            return d_options;
+        }
+
+        const mqbi::StorageMessageAttributes&
+        attributes() const BSLS_KEYWORD_OVERRIDE
+        {
+            return d_messageAttributes;
+        }
+
+        bool atEnd() const BSLS_KEYWORD_OVERRIDE { return false; }
+
+        bool hasReceipt() const BSLS_KEYWORD_OVERRIDE { return true; }
+    };
+
+    MockStorageIterator iter(bmqtst::TestHelperUtil::allocator());
 
     PV("Shutdown without unconfirmed messages");
     {
@@ -2187,9 +2260,7 @@ static void test11_initiateShutdown()
         tb.assertOpenQueueResponse();
 
         // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(blob,
-                                                  guid,
-                                                  messageAttributes,
+        tb.d_domain.d_queueHandle->deliverMessage(iter,
                                                   msgGroupId,
                                                   subQueueInfos,
                                                   false);
@@ -2244,9 +2315,7 @@ static void test11_initiateShutdown()
         tb.assertOpenQueueResponse();
 
         // Emulate sending PUSH.
-        tb.d_domain.d_queueHandle->deliverMessage(blob,
-                                                  guid,
-                                                  messageAttributes,
+        tb.d_domain.d_queueHandle->deliverMessage(iter,
                                                   msgGroupId,
                                                   subQueueInfos,
                                                   false);
@@ -2272,7 +2341,7 @@ static void test11_initiateShutdown()
         BMQTST_ASSERT_NE(rc, 0);
         BMQTST_ASSERT_EQ(callbackCounter, 0);
 
-        tb.d_domain.d_queueHandle->confirmMessage(guid, subQueueId);
+        tb.d_domain.d_queueHandle->confirmMessage(iter.guid(), subQueueId);
 
         // Verify there are no unconfirmed messages in the handle
         BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
@@ -2312,14 +2381,12 @@ static void test11_initiateShutdown()
 
         // Emulate sending PUSHs.
         for (int i = 0; i < NUM_MESSAGES; ++i) {
-            guid = bmqp::MessageGUIDGenerator::testGUID();
-            tb.d_domain.d_queueHandle->deliverMessage(blob,
-                                                      guid,
-                                                      messageAttributes,
+            iter.advance();
+            tb.d_domain.d_queueHandle->deliverMessage(iter,
                                                       msgGroupId,
                                                       subQueueInfos,
                                                       false);
-            guids.push_back(guid);
+            guids.push_back(iter.guid());
         }
         // Verify there are unconfirmed messages in the handle
         BMQTST_ASSERT_EQ(NUM_MESSAGES,
