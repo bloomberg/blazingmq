@@ -21,6 +21,8 @@
 #include <mqbi_domain.h>
 #include <mqbstat_domainstats.h>
 
+// BMQ
+#include <bmqp_protocolutil.h>
 #include <bmqu_printutil.h>
 
 // BDE
@@ -32,6 +34,44 @@ namespace mqbc {
 // ---------------------------
 // class ClusterStateQueueInfo
 // ---------------------------
+
+bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
+{
+    if (appInfos.empty()) {
+        return true;  // RETURN
+    }
+
+    if (appInfos.size() == 1 &&
+        appInfos.count(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) == 1) {
+        return true;  // RETURN
+    }
+
+    return false;
+}
+
+bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
+{
+    if (containsDefaultAppIdOnly(d_appInfos) &&
+        containsDefaultAppIdOnly(appInfos)) {
+        return true;  // RETURN
+    }
+
+    // This ignores the order
+
+    if (d_appInfos.size() != appInfos.size()) {
+        return false;  // RETURN
+    }
+
+    for (AppInfos::const_iterator cit = d_appInfos.cbegin();
+         cit != d_appInfos.cend();
+         ++cit) {
+        if (appInfos.count(cit->first) != 1) {
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
 
 bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
                                            int           level,
@@ -51,6 +91,67 @@ bsl::ostream& ClusterStateQueueInfo::print(bsl::ostream& stream,
     printer.end();
 
     return stream;
+}
+
+bsl::ostream&
+ClusterStateQueueInfo::State::print(bsl::ostream&                      stream,
+                                    ClusterStateQueueInfo::State::Enum value,
+                                    int                                level,
+                                    int spacesPerLevel)
+{
+    if (stream.bad()) {
+        return stream;  // RETURN
+    }
+
+    bdlb::Print::indent(stream, level, spacesPerLevel);
+    stream << ClusterStateQueueInfo::State::toAscii(value);
+
+    if (spacesPerLevel >= 0) {
+        stream << '\n';
+    }
+
+    return stream;
+}
+
+const char*
+ClusterStateQueueInfo::State::toAscii(ClusterStateQueueInfo::State::Enum value)
+{
+#define CASE(X)                                                               \
+    case k_##X: return #X;
+
+    switch (value) {
+        CASE(NONE)
+        CASE(ASSIGNING)
+        CASE(ASSIGNED)
+        CASE(UNASSIGNING)
+    default: return "(* NONE *)";
+    }
+
+#undef CASE
+}
+
+bool ClusterStateQueueInfo::State::fromAscii(
+    ClusterStateQueueInfo::State::Enum* out,
+    const bslstl::StringRef&            str)
+{
+#define CHECKVALUE(M)                                                         \
+    if (bdlb::String::areEqualCaseless(                                       \
+            toAscii(ClusterStateQueueInfo::State::k_##M),                     \
+            str.data(),                                                       \
+            static_cast<int>(str.length()))) {                                \
+        *out = ClusterStateQueueInfo::State::k_##M;                           \
+        return true;                                                          \
+    }
+
+    CHECKVALUE(NONE)
+    CHECKVALUE(ASSIGNING)
+    CHECKVALUE(ASSIGNED)
+    CHECKVALUE(UNASSIGNING)
+
+    // Invalid string
+    return false;
+
+#undef CHECKVALUE
 }
 
 // --------------------------
@@ -352,10 +453,18 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
         queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
     }
     else {
-        if (queueIt->second->state() == ClusterStateQueueInfo::k_ASSIGNED) {
+        if (queueIt->second->state() ==
+            ClusterStateQueueInfo::State::k_ASSIGNED) {
             // See 'ClusterStateManager::processQueueAssignmentAdvisory' which
             // insists on re-assigning
             isNewAssignment = false;
+
+            if (queueIt->second->key() == key &&
+                queueIt->second->partitionId() == partitionId &&
+                queueIt->second->hasTheSameAppIds(appIdInfos)) {
+                // If queue info is unchanged, can simply return
+                return false;  // RETURN
+            }
 
             updatePartitionQueueMapped(queueIt->second->partitionId(), -1);
         }
@@ -364,7 +473,7 @@ bool ClusterState::assignQueue(const bmqt::Uri&        uri,
     }
 
     // Set the queue as assigned
-    queueIt->second->setState(ClusterStateQueueInfo::k_ASSIGNED);
+    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
 
     updatePartitionQueueMapped(partitionId, 1);
 
@@ -588,14 +697,20 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 int ClusterState::PartitionIdExtractor::extract(
     const bsl::string& queueName) const
 {
-    bsl::vector<bslstl::StringRef> result(d_allocator_p);
+    bsl::vector<bsl::pair<size_t, size_t> > result(d_allocator_p);
     const int                      rc = d_regex.match(&result,
                                  queueName.data(),
                                  queueName.length());
     if (rc != 0) {
         return -1;  // RETURN
     }
-    const int partitionId = bsl::stoi(result[1]);
+
+    // 0 index is for the whole pattern
+    // 1 index is (offset, length) of `partitionId`
+    const bsl::pair<size_t, size_t>& match = result.at(1);
+
+    const int partitionId = bsl::stoi(
+        queueName.substr(match.first, match.second));
     return partitionId;
 }
 
