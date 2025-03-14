@@ -85,7 +85,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
     d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
 
     if (isProxy()) {
-        d_virtualStorageCatalog.confgiureAsProxy();
+        d_virtualStorageCatalog.configureAsProxy();
     }
 }
 

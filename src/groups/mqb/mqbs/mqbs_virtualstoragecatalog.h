@@ -287,7 +287,7 @@ class VirtualStorageCatalog {
 
     /// Configure this object as Proxy to skip statistics and checking age of
     /// Apps vs age of messages.
-    void confgiureAsProxy();
+    void configureAsProxy();
 
     void setQueue(mqbi::Queue* queue);
 
@@ -366,7 +366,7 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
     }
 }
 
-inline void VirtualStorageCatalog::confgiureAsProxy()
+inline void VirtualStorageCatalog::configureAsProxy()
 {
     d_isProxy = true;
 }
