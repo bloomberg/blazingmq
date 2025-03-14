@@ -697,14 +697,20 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 int ClusterState::PartitionIdExtractor::extract(
     const bsl::string& queueName) const
 {
-    bsl::vector<bslstl::StringRef> result(d_allocator_p);
+    bsl::vector<bsl::pair<size_t, size_t> > result(d_allocator_p);
     const int                      rc = d_regex.match(&result,
                                  queueName.data(),
                                  queueName.length());
     if (rc != 0) {
         return -1;  // RETURN
     }
-    const int partitionId = bsl::stoi(result[1]);
+
+    // 0 index is for the whole pattern
+    // 1 index is (offset, length) of `partitionId`
+    const bsl::pair<size_t, size_t>& match = result.at(1);
+
+    const int partitionId = bsl::stoi(
+        queueName.substr(match.first, match.second));
     return partitionId;
 }
 
