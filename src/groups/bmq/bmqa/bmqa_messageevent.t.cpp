@@ -190,7 +190,7 @@ static void test2_ackMesageIteratorTest()
     for (bsl::vector<AckData>::const_iterator i = messages.begin();
          i != messages.end();
          ++i) {
-        eventImpl->addCorrelationId(bmqt::CorrelationId(i->d_corrId));
+        eventImpl->addContext(bmqt::CorrelationId(i->d_corrId));
     }
 
     bmqa::MessageEvent              event;
@@ -266,7 +266,7 @@ static void test3_putMessageIteratorTest()
     // 'bmqa::MessageEventBuilder::packMessage' so that the message iterator
     // can access the correlationId for each message.
     for (size_t i = 0; i < k_NUM_MSGS; ++i) {
-        eventImpl->addCorrelationId(bmqt::CorrelationId(i));
+        eventImpl->addContext(bmqt::CorrelationId(i));
     }
 
     bmqa::MessageEvent              event;
