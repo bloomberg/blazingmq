@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // bmqstoragetool
-#include "m_bmqstoragetool_compositesequencenumber.h"
-#include "m_bmqstoragetool_parameters.h"
+#include <m_bmqstoragetool_compositesequencenumber.h>
+#include <m_bmqstoragetool_parameters.h>
 #include <m_bmqstoragetool_recordprinter.h>
 #include <m_bmqstoragetool_searchresult.h>
 
@@ -888,8 +888,8 @@ bool SearchGuidDecorator::processDeletionRecord(
     SearchResultDecorator::processDeletionRecord(record,
                                                  recordIndex,
                                                  recordOffset);
-    // return true (stop search) when details needed and search is done (map is
-    // empty).
+    // return true (stop search) when details needed and search is done
+    // (map is empty).
     return (d_withDetails && d_guidsMap.empty());
 }
 
@@ -932,7 +932,8 @@ bool SearchOffsetDecorator::processMessageRecord(
         d_offsets.erase(it);
     }
 
-    // return true (stop search) if no detail is needed and d_offsets is empty.
+    // return true (stop search) if no detail is needed and d_offsets is
+    // empty.
     return (!d_withDetails && d_offsets.empty());
 }
 
@@ -1028,7 +1029,8 @@ bool SearchSequenceNumberDecorator::processMessageRecord(
         d_seqNums.erase(it);
     }
 
-    // return true (stop search) if no detail is needed and d_seqNums is empty.
+    // return true (stop search) if no detail is needed and d_seqNums is
+    // empty.
     return (!d_withDetails && d_seqNums.empty());
 }
 

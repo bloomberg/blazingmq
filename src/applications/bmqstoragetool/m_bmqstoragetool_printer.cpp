@@ -546,7 +546,7 @@ class JsonPrinter : public Printer {
     bsl::ostream&     d_ostream;
     bslma::Allocator* d_allocator_p;
     mutable bool      d_braceOpen;
-    mutable bool      d_firstRaw;
+    mutable bool      d_firstRow;
 
     void openBraceIfNotOpen(const std::string& fieldName) const
     {
@@ -564,12 +564,13 @@ class JsonPrinter : public Printer {
         if (d_braceOpen) {
             d_ostream << "\n  ]";
             d_braceOpen = false;
+            d_firstRow  = false;
         }
-        if (!d_firstRaw) {
+        if (!d_firstRow) {
             RecordPrinter::printDelimeter<void>(d_ostream);
         }
         else {
-            d_firstRaw = false;
+            d_firstRow = false;
         }
     }
 
@@ -579,7 +580,7 @@ class JsonPrinter : public Printer {
     : d_ostream(os)
     , d_allocator_p(allocator)
     , d_braceOpen(false)
-    , d_firstRaw(true)
+    , d_firstRow(true)
     {
         d_ostream << "{\n";
     }
@@ -597,14 +598,14 @@ class JsonPrinter : public Printer {
 
     void printGuid(const bmqt::MessageGUID& guid) const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("GuidsFound");
+        openBraceIfNotOpen("Records");
         d_ostream << bsl::setw(4) << ' ' << "\"" << guid << "\"";
     }
 
     void printGuidNotFound(const bmqt::MessageGUID& guid) const
         BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("GuidsFound");
+        openBraceIfNotOpen("Records");
         d_ostream << bsl::setw(4) << ' ' << "{\"LogicError\" : \"guid " << guid
                   << " not found\"}";
     }
@@ -750,7 +751,7 @@ class JsonPrettyPrinter : public JsonPrinter {
     void
     printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("MessagesFound");
+        openBraceIfNotOpen("Records");
         printMessageDetails<bmqu::JsonPrinter<true, true, 4, 6> >(
             d_ostream,
             details,
@@ -760,7 +761,7 @@ class JsonPrettyPrinter : public JsonPrinter {
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("QueueOpRecordsFound");
+        openBraceIfNotOpen("Records");
         RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
             d_ostream,
             d_allocator_p);
@@ -770,7 +771,7 @@ class JsonPrettyPrinter : public JsonPrinter {
     void printJournalOpRecord(const RecordDetails<mqbs::JournalOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("JournalOpRecordsFound");
+        openBraceIfNotOpen("Records");
         RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
             d_ostream,
             d_allocator_p);
@@ -787,7 +788,6 @@ class JsonPrettyPrinter : public JsonPrinter {
             bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                   journalFile_p,
                                                   d_allocator_p);
-        printDelimeter<void>(d_ostream);
     }
 
     void printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const
@@ -835,7 +835,7 @@ class JsonLinePrinter : public JsonPrinter {
     void
     printMessage(const MessageDetails& details) const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("MessagesFound");
+        openBraceIfNotOpen("Records");
         printMessageDetails<bmqu::JsonPrinter<false, true, 4, 6> >(
             d_ostream,
             details,
@@ -845,7 +845,7 @@ class JsonLinePrinter : public JsonPrinter {
     void printQueueOpRecord(const RecordDetails<mqbs::QueueOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("QueueOpRecordsFound");
+        openBraceIfNotOpen("Records");
         RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
             d_ostream,
             d_allocator_p);
@@ -855,7 +855,7 @@ class JsonLinePrinter : public JsonPrinter {
     void printJournalOpRecord(const RecordDetails<mqbs::JournalOpRecord>& rec)
         const BSLS_KEYWORD_OVERRIDE
     {
-        openBraceIfNotOpen("JournalOpRecordsFound");
+        openBraceIfNotOpen("Records");
         RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
             d_ostream,
             d_allocator_p);
