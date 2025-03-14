@@ -26,6 +26,7 @@
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
+#include <mqbmock_domain.h>
 #include <mqbmock_queue.h>
 #include <mqbmock_queuehandle.h>
 #include <mqbs_inmemorystorage.h>
@@ -54,6 +55,7 @@ struct TestStorage {
     mqbconfm::Domain                         d_domainCfg;
     mqbu::CapacityMeter                      d_capacityMeter;
     mqbu::StorageKey                         d_storageKey;
+    mqbmock::Domain                          d_domain;
     mqbs::InMemoryStorage                    d_storage;
     bslma::ManagedPtr<mqbi::StorageIterator> d_iterator;
     bdlbb::PooledBlobBufferFactory           d_bufferFactory;
@@ -67,8 +69,10 @@ struct TestStorage {
     , d_domainCfg(allocator)
     , d_capacityMeter("cm", allocator)
     , d_storageKey(d_subQueueId)
+    , d_domain(0, allocator)  // Use domain only to hold mqbstat::StatContext
     , d_storage(bmqt::Uri("uri", allocator),
                 d_storageKey,
+                &d_domain,
                 1,
                 d_domainCfg,
                 &d_capacityMeter,

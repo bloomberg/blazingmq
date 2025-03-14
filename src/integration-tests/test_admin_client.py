@@ -20,17 +20,20 @@ commands.
 
 import dataclasses
 import json
+import time
 from typing import Dict, Optional, Union
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (  # pylint: disable=unused-import
     Cluster,
+    cluster,
     order,
     single_node,
     tweak,
 )
 from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
+from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
 
 pytestmark = order(1)
@@ -62,7 +65,7 @@ def post_n_msgs(
     """
     producer.open(task.uri, flags=["write,ack"], succeed=True)
     for _ in range(task.num):
-        res = producer.post(task.uri, payload=["msg"], wait_ack=True)
+        res = producer.post(task.uri, payload=["msg" * 256], wait_ack=True)
         assert Client.e_SUCCESS == res
     producer.close(task.uri, succeed=True)
 
@@ -112,16 +115,16 @@ def expect_same_structure(
             expect_same_structure(entry[key], expected[key], path + "." + key)
     elif isinstance(expected, list):
         assert isinstance(entry, list)
-        assert len(expected) == len(entry)
+        assert len(expected) == len(entry), path
         for obj2, expected2 in zip(entry, expected):
-            expect_same_structure(obj2, expected2, path + "." + key)
+            expect_same_structure(obj2, expected2, path)
     elif isinstance(expected, str):
         assert isinstance(entry, str)
-        assert expected == entry
+        assert expected == entry, path
     else:
         assert isinstance(entry, int)
         if isinstance(expected, dt.ValueConstraint):
-            assert expected.check(entry)
+            assert expected.check(entry), path
         else:
             assert isinstance(expected, int)
             assert entry == expected, (path, "expected:", expected, "actual:", entry)
@@ -165,6 +168,68 @@ def test_breathing(single_node: Cluster) -> None:
     admin.stop()
 
 
+def test_slow_consumer(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
+    """ """
+
+    cluster: Cluster = single_node
+    du = domain_urls
+
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+    producer: Client = proxy.create_client("producer")
+    consumer: Client = proxy.create_client("consumer")
+
+    # Start the admin client
+    admin = AdminClient()
+    admin.connect(*cluster.admin_endpoint)
+
+    task = PostRecord(du.domain_priority, "test_queue", num=700)
+    post_n_msgs(producer, task)
+
+    consumer.open(task.uri, flags=["read"], maxUnconfirmedMessages=24, succeed=True)
+    consumer.confirm(f"{task.uri}", "+2", succeed=True)
+
+    producer2: Client = proxy.create_client("producer2")
+    consumer2: Client = proxy.create_client("consumer2")
+
+    producer.open(task.uri, flags=["write,ack"], succeed=True)
+
+    # Stage 1: purge PRIORITY queue
+    # for i in range(1, 50000):
+    #     task2 = PostRecord(du.domain_priority, f"purge_{i}", num=100)
+    #     producer2.open(task2.uri, flags=["write,ack"], succeed=True)
+    #
+    #     if i % 100 == 0:
+    #         for _ in range(task.num):
+    #             res = producer.post(task.uri, payload=["msg"], wait_ack=True)
+    #             assert Client.e_SUCCESS == res
+    #         consumer.confirm(f"{task.uri}", "*", succeed=True)
+
+    for i in range(1, 50000):
+        task2 = PostRecord(du.domain_priority, f"purge_{i}", num=700)
+        post_n_msgs(producer2, task2)
+
+        if i % 30 == 0:
+           consumer.confirm(f"{task.uri}", "+1", succeed=True)
+
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task2.domain} QUEUE {task2.queue_name} PURGE *"
+        )
+        assert f"Purged {task2.num} message(s)" in res
+
+        res = admin.send_admin(
+            f"DOMAINS DOMAIN {task2.domain} QUEUE {task2.queue_name} PURGE *"
+        )
+        assert f"Purged 0 message(s)" in res
+
+    # Stop the admin session
+
+    producer.close(task.uri, succeed=True)
+    consumer.close(task.uri, succeed=True)
+
+    admin.stop()
+
+
 def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     """
     Test: queue metrics via admin command.
@@ -197,9 +262,9 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     domain_fanout = domain_urls.domain_fanout
 
     domains = {domain.name: domain for domain in single_node.configurator.domains}
-    domains[domain_fanout].definition.parameters.mode.fanout.publish_app_id_metrics = (
-        True
-    )
+    domains[
+        domain_fanout
+    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
     single_node.deploy_domains()
 
     # Preconditions
@@ -232,6 +297,143 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
+
+    expect_same_structure(
+        queue_stats, dt.TEST_QUEUE_STATS_AFTER_CONFIRM, "after-confirm"
+    )
+
+    # Stage 3: check stats after purging an appId
+    res = admin.send_admin(
+        f"DOMAINS DOMAIN {task.domain} QUEUE {task.queue_name} PURGE baz"
+    )
+    assert f"Purged 21 message(s)" in res
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_PURGE, "after-purge")
+
+    consumer_foo.close(f"{task.uri}?id=foo")
+    consumer_bar.close(f"{task.uri}?id=bar")
+    consumer_baz.close(f"{task.uri}?id=baz")
+
+    # Stage 4: check too-often stats safeguard
+    for i in range(5):
+        admin.send_admin("encoding json_pretty stat show")
+    res = admin.send_admin("encoding json_pretty stat show")
+    obj = json.loads(res)
+
+    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
+
+    admin.stop()
+
+
+def _change_leader(cluster: Cluster) -> Broker:
+    assert cluster.last_known_leader
+    assert len(cluster.nodes()) > 1
+    # We cannot change leader for 1-node cluster
+
+    leader = cluster.last_known_leader
+    next_leader = None
+    for node in cluster.nodes():
+        if node != leader:
+            node.set_quorum(99)
+            next_leader = node
+    assert leader != next_leader
+
+    # Kill the leader
+    cluster.drain()
+    leader.check_exit_code = False
+    leader.kill()
+    leader.wait()
+
+    # Make the quorum for selected node be 1 so it becomes new leader
+    next_leader.set_quorum(1)
+
+    # Wait for new leader
+    cluster.wait_leader()
+    assert cluster.last_known_leader == next_leader
+
+    return next_leader
+
+
+def test_app_id_stats(cluster: Cluster, domain_urls: tc.DomainUrls) -> None:
+    """
+    Test: queue metrics via admin command.
+    Preconditions:
+    - Establish admin session with the cluster.
+
+    Stage 1: check stats after posting messages
+    - Open a producer
+    - Post messages to a fanout queue
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 2: check stats after confirming messages
+    - Open a consumer for each appId
+    - Confirm a portion of messages for each consumer
+    - Verify stats acquired via admin command with the expected stats
+
+    Stage 3: check stats after purging an appId
+    - Purge one appId
+    - Check that message/byte stats for this appId set to 0, and
+    the queue stats in general correctly changed
+
+    Stage 4: check too-often stats safeguard
+    - Send several 'stat show' requests
+    - Verify that the admin session complains about too often stat request
+
+    Concerns:
+    - The broker is able to report queue metrics for fanout queue.
+    - Safeguarding mechanism prevents from getting stats too often.
+    """
+    domain_fanout = domain_urls.domain_fanout
+
+    domains = {domain.name: domain for domain in cluster.configurator.domains}
+    domains[
+        domain_fanout
+    ].definition.parameters.mode.fanout.publish_app_id_metrics = True
+    cluster.deploy_domains()
+
+    # Preconditions
+    admin = AdminClient()
+    admin.connect(*cluster.admin_endpoint)
+
+    # Stage 1: check stats after posting messages
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+    producer: Client = proxy.create_client("producer")
+
+    task = PostRecord(domain_fanout, "test_stats", num=32)
+    post_n_msgs(producer, task)
+
+    stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
+    queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
+
+    expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
+
+    # Stage 2: check stats after confirming messages
+    consumer_foo: Client = proxy.create_client("consumer_foo")
+    consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
+    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+
+    consumer_bar: Client = proxy.create_client("consumer_bar")
+    consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
+    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+
+    consumer_baz: Client = proxy.create_client("consumer_baz")
+    consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
+    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    admin.stop()
+
+    time.sleep(5)
+
+    next_leader = _change_leader(cluster)
+
+    admin.connect(*cluster.admin_endpoint)
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
