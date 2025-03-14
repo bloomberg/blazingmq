@@ -162,6 +162,7 @@ jobs:
         mode: ["legacy_mode", "fsm_mode"]
         cluster: ["single", "multi"]
         consistency: ["eventual", "strong"]
+      # max-parallel: 1
       fail-fast: false
     runs-on: ubuntu-latest
     needs: build_ubuntu
@@ -182,12 +183,12 @@ jobs:
         run: |
           sudo mkdir /cores
           sudo chmod 777 /cores
-          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+      #     echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
       - name: Run Integration Tests
         run: |
           # Allow core dumps
-          ulimit -c unlimited
+
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
@@ -209,13 +210,26 @@ jobs:
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
 
-      - name: Upload broker core dump as artifacts
+      - name: ls1
         if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: core_dumps_${{ env.RUN_UID }}
-          path: /cores
-          retention-days: 5
+        run: |
+          ls /cores
+
+      - name: ls2
+        if: failure()
+        run: |
+          ls ${{ github.workspace }}/src/integration-tests/failure-logs
+
+      - name: ls3
+        if: failure()
+        run: |
+          ls ${{ github.workspace }}/src/integration-tests/
+
+        # uses: actions/upload-artifact@v4
+        # with:
+        #   name: core_dumps_${{ env.RUN_UID }}
+        #   path: /cores
+        #   retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
         if: failure()
@@ -225,6 +239,7 @@ jobs:
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
+          compression-level: 9
 
   fuzz_tests_ubuntu:
     name: Fuzz test [${{ matrix.request }}]
