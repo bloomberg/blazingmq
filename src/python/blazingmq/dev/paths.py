@@ -44,6 +44,7 @@ import os
 import platform
 from pathlib import Path
 from typing import Optional
+import random
 
 import logging
 
@@ -152,6 +153,19 @@ class Paths:
                 raise FileNotFoundError(self._broker)
 
         return self._broker
+
+    def get_broker_path(self, name: str) -> Path:
+        path_str = os.environ.get(f"BLAZINGMQ_BROKER_{name}")
+
+        if not path_str:
+            return self.broker
+
+        brokerPath = Path(path_str)
+
+        if not brokerPath.exists():
+            return self.broker
+
+        return brokerPath
 
     @property
     def tool(self) -> Path:
