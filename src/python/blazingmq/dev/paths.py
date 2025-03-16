@@ -155,7 +155,7 @@ class Paths:
         return self._broker
 
     def get_broker_path(self, name: str) -> Path:
-        path_str = os.environ.get(f"BLAZINGMQ_BROKER_{name}")
+        path_str = os.environ.get(f"BLAZINGMQ_BROKER_{name.upper()}")
 
         if not path_str:
             return self.broker
