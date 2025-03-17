@@ -689,9 +689,9 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 #if defined(__has_feature)  // Clang-supported method for checking sanitizers.
 #if __has_feature(memory_sanitizer)
     regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#endif
 #elif defined(__SANITIZE_MEMORY__)  // GCC-supported macros for checking MSAN.
     regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
-#endif
 #endif
 
     const char                  pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
