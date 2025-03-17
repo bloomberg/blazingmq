@@ -192,7 +192,7 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
-            --log-file-level=info               \
+            --log-file-level=DEBUG               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --bmq-log-level=INFO                \
