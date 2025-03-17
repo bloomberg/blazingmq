@@ -917,3 +917,55 @@ def test_proxy_partial_push(cluster: Cluster):
 
     consumers["foo"].close(f"{tc.URI_FANOUT}?id=foo", block=True, succeed=True)
     consumers["baz"].close(f"{tc.URI_FANOUT}?id=baz", block=True, succeed=True)
+
+
+@tweak.domain.message_ttl(3)
+def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
+    """Trigger old message GC in the presence of new App.  Need to allocate
+    Apps states first.
+    """
+    du = domain_urls
+    leader = cluster.last_known_leader
+    proxies = cluster.proxy_cycle()
+    proxy = next(proxies)
+
+    producer = proxy.create_client("producer")
+    producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    app_id = default_app_ids[0]
+    consumer = proxy.create_client(app_id)
+    consumer_uri = f"{du.uri_fanout}?id={app_id}"
+    consumer.open(consumer_uri, flags=["read"], succeed=True)
+
+    # ---------------------------------------------------------------------
+    # Post a message.
+    producer.post(du.uri_fanout, ["m1"], succeed=True, wait_ack=True)
+
+    # confirm, to make sure App state is allocated
+    consumer.wait_push_event()
+
+    assert wait_until(
+        lambda: len(consumer.list(consumer_uri, block=True)) == 1, timeout
+    )
+    assert consumer.confirm(consumer_uri, f"+{1}", block=True) == Client.e_SUCCESS
+
+    # ---------------------------------------------------------------------
+    # +new_app_1
+    new_app_1 = "new_app_1"
+    set_app_ids(cluster, default_app_ids + [new_app_1], du)
+
+    assert consumer.close(consumer_uri, block=True) == Client.e_SUCCESS
+
+    # Observe that the message was GC'd from the queue.
+    leader.capture(
+        f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=5
+    )
+
+    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
+    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+
+    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=app_id)
+    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
+
+    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
+    assert leader.outputs_substr(f"Printing 0 message(s)", 5)
