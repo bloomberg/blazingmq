@@ -224,7 +224,7 @@ def test_verify_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # 1: Setup producers and consumers
     # Proxy in same datacenter as leader/primary
-    proxy1 = next(proxiesx)
+    proxy1 = next(proxies)
 
     producer1 = proxy1.create_client("producer1")
     assert (

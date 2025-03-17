@@ -63,7 +63,7 @@ def test_basic(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     # Start a producer and post a message.
     proxies = cluster.proxy_cycle()
-    producer = next(proxies).create_client("producer")
+    producer = next(proxiesBad).create_client("producer")
     producer.open(uri_priority, flags=["write", "ack"], succeed=True)
     producer.post(uri_priority, payload=["msg1"], wait_ack=True, succeed=True)
 
