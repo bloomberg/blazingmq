@@ -114,9 +114,6 @@ class VirtualStorageCatalog {
     /// Map of appKey to corresponding virtual storage
     VirtualStorages d_virtualStorages;
 
-    /// Available ordinal values for virtual storages.
-    AvailableOrdinals d_availableOrdinals;
-
     /// All current App storages ordered by their ordinals.
     bsl::vector<VirtualStorageSp> d_ordinals;
 
@@ -288,8 +285,9 @@ class VirtualStorageCatalog {
     /// Set the default RDA according to the specified 'maxDeliveryAttempts'.
     void setDefaultRda(int maxDeliveryAttempts);
 
-    /// Proxies do not support Ordinals Continuity.
-    void setDiscontinuousOrdinals();
+    /// Configure this object as Proxy to skip statistics and checking age of
+    /// Apps vs age of messages.
+    void configureAsProxy();
 
     void setQueue(mqbi::Queue* queue);
 
@@ -368,9 +366,9 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
     }
 }
 
-inline void VirtualStorageCatalog::setDiscontinuousOrdinals()
+inline void VirtualStorageCatalog::configureAsProxy()
 {
-    d_isProxy = false;
+    d_isProxy = true;
 }
 
 inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
@@ -411,7 +409,7 @@ inline const mqbi::AppMessage& VirtualStorageCatalog::defaultAppMessage() const
 
 inline mqbi::Queue* VirtualStorageCatalog::queue() const
 {
-    return d_queue_p;
+    return d_isProxy ? 0 : d_queue_p;
 }
 
 }  // close package namespace
