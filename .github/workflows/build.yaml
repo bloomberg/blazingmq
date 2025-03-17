@@ -202,8 +202,13 @@ jobs:
             --reruns=3                          \
             -n 4 -v
 
+  integration_tests_ubuntu_post_processing:
+    needs: integration_tests_ubuntu
+    when: on_failure
+    runs-on: ubuntu-latest
+    steps:
       - name: Upload failure-logs as artifacts
-        if: failure()
+        # if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: failure_logs_${{ env.RUN_UID }}
@@ -211,7 +216,7 @@ jobs:
           retention-days: 5
 
       - name: Upload broker core dump as artifacts
-        if: failure()
+        # if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: core_dumps_${{ env.RUN_UID }}
@@ -219,7 +224,7 @@ jobs:
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
-        if: failure()
+        # if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: bmqbrkr.tsk
