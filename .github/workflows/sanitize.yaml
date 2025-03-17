@@ -3,9 +3,6 @@ name: Sanitize
 on:
   pull_request_review:
     types: [submitted]
-  pull_request:
-    branches:
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -19,7 +16,7 @@ jobs:
         mode: ["asan", "msan", "tsan", "ubsan"]
       fail-fast: false
     runs-on: ubuntu-24.04
-    if: github.event.review.state == 'APPROVED' || true
+    if: github.event.review.state == 'APPROVED'
     steps:
       - uses: actions/checkout@v4
       - name : Purge runner
