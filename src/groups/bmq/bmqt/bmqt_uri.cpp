@@ -222,12 +222,16 @@ void UriParser::initialize(bslma::Allocator* allocator)
         bdlpcre::RegEx(bslma::Default::globalAllocator(allocator));
     // Enable JIT compilation, unless running under MemorySanitizer.
     // Low-level assembler instructions used by sljit causes sanitizer issues.
+    // See the internal ticket 177953779.
     int regexOptions = bdlpcre::RegEx::k_FLAG_JIT;
-#if defined(__has_feature)
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
 #if __has_feature(memory_sanitizer)
+    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#elif defined(__SANITIZE_MEMORY__)  // GCC-supported macros for checking MSAN.
     regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
 #endif
 #endif
+
     int rc = s_regex.object().prepare(&error,
                                       &errorOffset,
                                       k_PATTERN,

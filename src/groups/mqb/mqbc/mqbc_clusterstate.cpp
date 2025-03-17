@@ -682,14 +682,23 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 : d_allocator_p(allocator)
 , d_regex(allocator)
 {
+    // Enable JIT compilation, unless running under MemorySanitizer.
+    // Low-level assembler instructions used by sljit causes sanitizer issues.
+    // See the internal ticket 177953779.
+    int regexOptions = bdlpcre::RegEx::k_FLAG_JIT;
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
+#if __has_feature(memory_sanitizer)
+    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#elif defined(__SANITIZE_MEMORY__)  // GCC-supported macros for checking MSAN.
+    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#endif
+#endif
+
     const char                  pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
     bsl::string                 error(d_allocator_p);
     size_t                      errorOffset;
-    BSLA_MAYBE_UNUSED const int rc = d_regex.prepare(
-        &error,
-        &errorOffset,
-        pattern,
-        bdlpcre::RegEx::k_FLAG_JIT);
+    BSLA_MAYBE_UNUSED const int rc =
+        d_regex.prepare(&error, &errorOffset, pattern, regexOptions);
     BSLS_ASSERT_SAFE(rc == 0);
     BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
 }
@@ -697,7 +706,7 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 int ClusterState::PartitionIdExtractor::extract(
     const bsl::string& queueName) const
 {
-    bsl::vector<bsl::pair<size_t, size_t> > result(d_allocator_p);
+    bsl::vector<bslstl::StringRef> result(d_allocator_p);
     const int                      rc = d_regex.match(&result,
                                  queueName.data(),
                                  queueName.length());
@@ -705,12 +714,7 @@ int ClusterState::PartitionIdExtractor::extract(
         return -1;  // RETURN
     }
 
-    // 0 index is for the whole pattern
-    // 1 index is (offset, length) of `partitionId`
-    const bsl::pair<size_t, size_t>& match = result.at(1);
-
-    const int partitionId = bsl::stoi(
-        queueName.substr(match.first, match.second));
+    const int partitionId = bsl::stoi(result[1]);
     return partitionId;
 }
 
