@@ -1765,66 +1765,6 @@ void ClusterStateManager::processClusterStateEvent(
     }
 }
 
-void ClusterStateManager::processPartitionPrimaryAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isPartitionPrimaryAdvisoryValue());
-
-    const bmqp_ctrlmsg::PartitionPrimaryAdvisory& advisory =
-        message.choice().clusterMessage().choice().partitionPrimaryAdvisory();
-
-    if (d_clusterConfig.clusterAttributes().isCSLModeEnabled()) {
-        BALL_LOG_ERROR << "#CSL_MODE_MIX "
-                       << "Received legacy partitionPrimaryAdvisory: "
-                       << advisory << " from: " << source << " in CSL mode.";
-
-        return;  // RETURN
-    }
-
-    if (source != d_clusterData_p->electorInfo().leaderNode()) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": ignoring partition-primary advisory: " << advisory
-                      << " from cluster node " << source->nodeDescription()
-                      << " as this node is not the current perceived leader. "
-                      << "Current leader: "
-                      << d_clusterData_p->electorInfo().leaderNodeId();
-        return;  // RETURN
-    }
-    // 'source' is the perceived leader
-
-    const bmqp_ctrlmsg::LeaderMessageSequence& leaderMsgSeq =
-        advisory.sequenceNumber();
-
-    if (d_clusterData_p->electorInfo().leaderMessageSequence() >
-        leaderMsgSeq) {
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description()
-            << ": Got partition-primary advisory: " << advisory
-            << " from leader node " << source->nodeDescription()
-            << " with smaller leader message sequence: " << leaderMsgSeq
-            << ". Current value: "
-            << d_clusterData_p->electorInfo().leaderMessageSequence()
-            << ". Ignoring this advisory." << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    processPartitionPrimaryAdvisoryRaw(advisory.partitions(), source);
-
-    // Leader status and sequence number are updated unconditionally.
-    d_clusterData_p->electorInfo().setLeaderMessageSequence(leaderMsgSeq);
-    d_clusterData_p->electorInfo().setLeaderStatus(
-        mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
-}
-
 void ClusterStateManager::processLeaderAdvisory(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)

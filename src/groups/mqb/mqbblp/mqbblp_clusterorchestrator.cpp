@@ -1319,18 +1319,6 @@ void ClusterOrchestrator::processClusterStateEvent(
     d_stateManager_mp->processClusterStateEvent(event);
 }
 
-void ClusterOrchestrator::processPartitionPrimaryAdvisory(
-    const bmqp_ctrlmsg::ControlMessage& message,
-    mqbnet::ClusterNode*                source)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-
-    d_stateManager_mp->processPartitionPrimaryAdvisory(message, source);
-}
-
 void ClusterOrchestrator::processLeaderAdvisory(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)

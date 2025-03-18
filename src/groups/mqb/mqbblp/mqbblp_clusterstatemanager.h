@@ -511,15 +511,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
         mqbnet::ClusterNode*                source,
         bool delayed = false) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified partition primary advisory `message` from the
-    /// specified `source`.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void processPartitionPrimaryAdvisory(
-        const bmqp_ctrlmsg::ControlMessage& message,
-        mqbnet::ClusterNode*                source) BSLS_KEYWORD_OVERRIDE;
-
     /// Process the specified leader advisory `message` from the specified
     /// `source`.
     ///
