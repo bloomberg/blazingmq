@@ -226,26 +226,27 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Clear the state created by 'selectForAutoConfirming'.
     void clearSelection();
 
-    /// Write QueuePurgeRecord to the persistent data store for the App with
-    /// specified `appKey`.  The specified `first` references the first (the
-    /// oldest) message for this App.  If the specified `alsoDelete` is `true`,
-    /// follow by writing QueueDeletionRecord.
+    /// Write AppPurgeRecord to the persistent data store for the App with
+    /// specified `appKey` using the specified `timestamp`.  The specified
+    /// `first` references the first (the oldest) message for this App.
     mqbi::StorageResult::Enum writeAppPurgeRecord(
-        bool                                             alsoDelete,
+        const bsls::Types::Uint64                        timestamp,
         const mqbu::StorageKey&                          appKey,
         const VirtualStorageCatalog::DataStreamIterator& first);
 
-    /// Write QueuePurgeRecord to the persistent data store for the entire
-    /// queue.
-    mqbi::StorageResult::Enum writeQueuePurgeRecord();
+    /// Write AppDeletionRecord to the persistent data store for the App with
+    /// specified `appKey` using the specified `timestamp`.
+    mqbi::StorageResult::Enum
+    writeAppDeletionRecord(const bsls::Types::Uint64 timestamp,
+                           const mqbu::StorageKey&   appKey);
 
     /// Write QueuePurgeRecord to the persistent data store for with the
-    /// specified `appKey`.  If the `appKey` is `mqbu::StorageKey::k_NULL_KEY`,
-    /// the QueuePurgeRecord applies to the entire queue.  Otherwise, the
-    /// specified `start` references the first (the  oldest) message for the
-    /// App with the `appKey`.
+    /// specified `appKey` using the specified `timestamp`.  If the `appKey` is
+    /// `mqbu::StorageKey::k_NULL_KEY`, the QueuePurgeRecord applies to the
+    /// entire queue.  Otherwise, the specified `start` references the first
+    /// (the  oldest) message for the App with the `appKey`.
     mqbi::StorageResult::Enum
-    writePurgeRecordImpl(bool                        alsoDelete,
+    writePurgeRecordImpl(bsls::Types::Uint64         timestamp,
                          const mqbu::StorageKey&     appKey,
                          const DataStoreRecordHandle start);
 
