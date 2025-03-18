@@ -980,9 +980,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
 
 def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
-    """Trigger old message GC in the presence of new App.  Need to allocate
-    Apps states first.
-    """
+    """Test adding, removing, and adding the same App."""
     du = domain_urls
     leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()

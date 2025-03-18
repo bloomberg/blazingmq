@@ -274,13 +274,16 @@ class VirtualStorageCatalog {
 
     /// Erase all messages for the App corresponding to the specified 'appKey'
     /// and remove the corresponding Virtual Storage instance.  If the
-    /// optionally  specified `cb` is valid, invoke it before purging once
-    /// positioned to  the first (oldest) App message.  Cancel the purge if
-    /// `cb` does not return `e_SUCCESS`.
+    /// optionally  specified `onPurge` is valid and the number of relevant
+    /// records is not zero, invoke it before purging once positioned to the
+    /// first (the oldest) App message.  Cancel the purge if `onPurge` does not
+    /// return `e_SUCCESS`.  If the optionally specified `onRemove` is valid,
+    /// invoke it before purging.  Cancel the purge if `onRemove` does not
+    /// return `e_SUCCESS`.
     mqbi::StorageResult::Enum
     removeVirtualStorage(const mqbu::StorageKey& appKey,
-                         const PurgeCallback&    onPurge = PurgeCallback(),
-                         const RemoveCallback&   remover = RemoveCallback());
+                         const PurgeCallback&    onPurge  = PurgeCallback(),
+                         const RemoveCallback&   onRemove = RemoveCallback());
 
     /// Return the Virtual Storage instance corresponding to the specified
     /// 'appKey'.
