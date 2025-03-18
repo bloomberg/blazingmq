@@ -192,7 +192,7 @@ jobs:
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
             --log-level ERROR                   \
-            --log-file-level=DEBUG               \
+            --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
             --bmq-log-level=INFO                \
@@ -202,13 +202,12 @@ jobs:
             --reruns=3                          \
             -n 4 -v
 
-  integration_tests_ubuntu_post_processing:
-    needs: integration_tests_ubuntu
-    when: on_failure
-    runs-on: ubuntu-latest
-    steps:
+      - name: Echo RUN_UID
+        run: |
+          echo "${{ env.RUN_UID }}" >> ${{ github.workspace }}/src/integration-tests/failure-logs/tag.txt
+
       - name: Upload failure-logs as artifacts
-        # if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: failure_logs_${{ env.RUN_UID }}
@@ -216,7 +215,7 @@ jobs:
           retention-days: 5
 
       - name: Upload broker core dump as artifacts
-        # if: failure()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: core_dumps_${{ env.RUN_UID }}
@@ -224,13 +223,43 @@ jobs:
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
-        # if: failure()
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: bmqbrkr.tsk
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
+
+  # integration_tests_ubuntu_post_processing:
+  #   needs: integration_tests_ubuntu
+  #   when: on_failure
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Upload failure-logs as artifacts
+  #       # if: failure()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: failure_logs_${{ env.RUN_UID }}
+  #         path: ${{ github.workspace }}/src/integration-tests/failure-logs
+  #         retention-days: 5
+
+  #     - name: Upload broker core dump as artifacts
+  #       # if: failure()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: core_dumps_${{ env.RUN_UID }}
+  #         path: /cores
+  #         retention-days: 5
+
+  #     - name: Upload broker executable as artifacts to debug the core
+  #       # if: failure()
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: bmqbrkr.tsk
+  #         overwrite: true # broker binary is the same across all matrix runs
+  #         path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
+  #         retention-days: 5
 
   fuzz_tests_ubuntu:
     name: Fuzz test [${{ matrix.request }}]
