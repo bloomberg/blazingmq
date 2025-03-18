@@ -9,9 +9,6 @@ CMakeUserPresets.json
 /thirdparty/
 /include/
 /lib/
-/lib64/
-venv*
-cmake-build-debug
 **/.idea
 
 # Eclipse IDE
