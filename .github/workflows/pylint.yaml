@@ -1,0 +1,41 @@
+name: Python linter check
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  python_linter_check:
+    name: Python Linter Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.4'
+      - name: Install dependencies
+        run: |
+          pip3 install pylint pylint-json2html lint-diffs
+          ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
+          echo [pylint] > ${{ github.workspace }}/.lint-diffs
+          echo extensions=.py >> ${{ github.workspace }}/.lint-diffs
+      - name: Check the whole repo with pylint
+        run: |
+          pylint --output-format json -j 8 src > pylint.json || true
+          pylint-json2html < pylint.json > pylint.html
+      - name: Upload pylint results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pylint_result
+          path: ${{ github.workspace }}/pylint.html
+          retention-days: 5
+      - name: Check the PR with pylint
+        run: |
+          git diff -U0 origin/main | lint-diffs
