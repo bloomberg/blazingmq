@@ -3013,13 +3013,7 @@ void Cluster::processClusterControlMessage(
         d_stopRequestsManager_p->processResponse(message);
     } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processPartitionPrimaryAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
+        // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
         dispatcher()->execute(
