@@ -37,6 +37,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbc_clusterstateledger.h>
 #include <mqbc_clusterutil.h>
+#include <mqbc_electorinfo.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
@@ -82,7 +83,8 @@ namespace mqbblp {
 
 class ClusterStateManager BSLS_KEYWORD_FINAL
 : public mqbc::ClusterStateObserver,
-  public mqbi::ClusterStateManager {
+  public mqbi::ClusterStateManager,
+  public mqbc::ElectorInfoObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.CLUSTERSTATEMANAGER");
@@ -216,6 +218,18 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void processPartitionPrimaryAdvisoryRaw(
         const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
         const mqbnet::ClusterNode*                             source);
+
+    // PRIVATE MANIPULATORS
+    //   (virtual: mqbc::ElectorInfoObserver)
+
+    /// Callback invoked when the cluster's leader changes to the specified
+    /// `node` with the specified `status`.  Note that null is a valid value
+    /// for the `node`, and it implies that the cluster has transitioned to
+    /// a state of no leader, and in this case, `status` will be
+    /// `UNDEFINED`.
+    void onClusterLeader(mqbnet::ClusterNode*                node,
+                         mqbc::ElectorInfoLeaderStatus::Enum status)
+        BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE MANIPULATORS
     //   (virtual: mqbc::ClusterStateObserver)
