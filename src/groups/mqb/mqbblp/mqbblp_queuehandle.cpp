@@ -794,7 +794,6 @@ void QueueHandle::deliverMessageNoTrack(
         d_queue_sp->dispatcher()->inDispatcherThread(d_queue_sp.get()));
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handleParameters().flags()));
-
     deliverMessageImpl(iter.appData(),
                        iter.guid(),
                        iter.attributes(),

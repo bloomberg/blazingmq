@@ -424,7 +424,6 @@ void RemoteQueue::pushMessage(
     }
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos;
-    StorageKeys                        storageKeys;
 
     // Retrieve subQueueInfos from 'options'
     // Need to look up subQueueIds by subscriptionIds.
