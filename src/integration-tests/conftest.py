@@ -122,7 +122,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--domain-consistency",
         action="store",
-        default="eventual",
+        default="strong",
         help=help_,
         choices=("eventual", "strong", "both"),
     )
