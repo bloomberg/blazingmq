@@ -216,14 +216,15 @@ class TestDemo:                                                              #4
 14. Another test method.  This one runs only once, using a local cluster
     (obviously it fails).
 
-**NOTE**: If it is needed to test method for different domain consistencies
-   (`eventual`, `strong` or both), optional argument `domain_urls` should 
-   be passed. It should be used instead of direct using `DOMAIN_*` and `URI_*`
-   constants (except DOMAIN_BROADCAST/URI_BROADCAST):
+**NOTE**: To test with different domain consistencies, add one of the URL
+   fixtures to the parameters of the test method (`ec_domain_urls` for
+   eventual, `sc_domain_urls` for strong, or `domain_urls` for both). It should
+   be used instead of using `DOMAIN_*` and `URI_*` constants directly (except
+   DOMAIN_BROADCAST/URI_BROADCAST). For example, to run a test twice, for both
+   consistency modes:
 
 ```python
-    def test_post_message_priority(self, cluster, 
-                                   domain_urls: tc.DomainUrls):
+    def test_post_message_priority(self, cluster, domain_urls: tc.DomainUrls):
         du = domain_urls
         self.producer.open(
             du.uri_priority, flags=['write', 'ack'], succeed=True)
