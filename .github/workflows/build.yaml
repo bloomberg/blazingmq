@@ -178,11 +178,11 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
-      - name: Setup Core Dumps config
-        run: |
-          sudo mkdir /cores
-          sudo chmod 777 /cores
-          echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
+      # - name: Setup Core Dumps config
+      #   run: |
+      #     sudo mkdir /cores
+      #     sudo chmod 777 /cores
+      #     echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
 
       - name: Run Integration Tests
         run: |
@@ -191,7 +191,7 @@ jobs:
 
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
-            --log-level ERROR                   \
+            --log-level DEBUG                   \
             --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
