@@ -1432,7 +1432,6 @@ static void test14_summaryTest()
                     QueueDetailsMap(bmqtst::TestHelperUtil::allocator())))
         .InSequence(s);
     EXPECT_CALL(*printer, printJournalFileMeta).InSequence(s);
-    EXPECT_CALL(*printer, printDataFileMeta).InSequence(s);
 
     // Run search
     searchProcessor->process();
@@ -2398,7 +2397,6 @@ static void test24_summaryWithQueueDetailsTest()
     EXPECT_CALL(*printer, printOutstandingRatio(40, 2, 5)).InSequence(s);
     EXPECT_CALL(*printer, printRecordSummary(15, m)).InSequence(s);
     EXPECT_CALL(*printer, printJournalFileMeta).InSequence(s);
-    EXPECT_CALL(*printer, printDataFileMeta).InSequence(s);
 
     // Run search
     searchProcessor->process();

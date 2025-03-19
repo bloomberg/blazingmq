@@ -54,7 +54,7 @@ class AppKeyMatcher {
 }  // close unnamed namespace
 
 bool findQueueAppIdByAppKey(
-    bsl::string_view*                                        appId,
+    bsl::string*                                             appId,
     const bsl::vector<BloombergLP::bmqp_ctrlmsg::AppIdInfo>& appIds,
     const mqbu::StorageKey&                                  appKey)
 {
@@ -85,8 +85,10 @@ MessageDetails::MessageDetails(
     bsls::Types::Uint64                           recordOffset,
     const bsl::optional<bmqp_ctrlmsg::QueueInfo>& queueInfo,
     bslma::Allocator*                             allocator)
-: d_messageRecord(
-      RecordDetails<mqbs::MessageRecord>(record, recordIndex, recordOffset))
+: d_messageRecord(RecordDetails<mqbs::MessageRecord>(record,
+                                                     recordIndex,
+                                                     recordOffset,
+                                                     allocator))
 , d_confirmRecords(allocator)
 , d_deleteRecord()
 , d_queueInfo(queueInfo)
@@ -102,7 +104,10 @@ void MessageDetails::addConfirmRecord(const mqbs::ConfirmRecord& record,
                                       bsls::Types::Uint64        recordOffset)
 {
     d_confirmRecords.push_back(
-        RecordDetails<mqbs::ConfirmRecord>(record, recordIndex, recordOffset));
+        RecordDetails<mqbs::ConfirmRecord>(record,
+                                           recordIndex,
+                                           recordOffset,
+                                           d_allocator_p));
     if (d_queueInfo.has_value()) {
         RecordDetails<mqbs::ConfirmRecord>& details =
             *d_confirmRecords.rbegin();
@@ -121,7 +126,8 @@ void MessageDetails::addDeleteRecord(const mqbs::DeletionRecord& record,
 {
     d_deleteRecord.emplace(RecordDetails<mqbs::DeletionRecord>(record,
                                                                recordIndex,
-                                                               recordOffset));
+                                                               recordOffset,
+                                                               d_allocator_p));
     if (d_queueInfo.has_value())
         d_deleteRecord->d_queueUri = d_queueInfo->uri();
 }
