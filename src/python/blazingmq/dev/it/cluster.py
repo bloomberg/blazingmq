@@ -266,15 +266,22 @@ class Cluster(contextlib.AbstractContextManager):
 
         self.wait_status(wait_leader, wait_ready)
 
-    def stop_nodes(self):
+    def stop_nodes(self, prevent_leader_bounce=False):
         """Stop the nodes in the cluster.
+
+        If 'prevent_leader_bounce' is 'True', prevent leader bounce during
+        shutdown by setting quorum of all non-leader nodes to 100.
 
         NOTE: this method does *not* stop the proxies.
         """
 
         self._logger.info("stopping all nodes")
-        self.last_known_leader = None
+        if prevent_leader_bounce:
+            for node in self.nodes():
+                if node is not self.last_known_leader:
+                    node.set_quorum(100)
 
+        self.last_known_leader = None
         for node in self.nodes():
             with internal_use(node):
                 node.stop()
