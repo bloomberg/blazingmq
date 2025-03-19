@@ -3443,13 +3443,13 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
             int rc = fs->issueSyncPoint();
             if (0 != rc) {
                 BALL_LOG_ERROR
-                    << clusterData->identity().description() << "Partition ["
+                    << clusterData->identity().description() << " Partition ["
                     << partitionId
                     << "]: failed to force-issue SyncPt, rc: " << rc;
             }
             else {
                 BALL_LOG_INFO
-                    << clusterData->identity().description() << "Partition ["
+                    << clusterData->identity().description() << " Partition ["
                     << partitionId
                     << "]: force-issued SyncPt: " << fs->syncPoints().back()
                     << ".";
