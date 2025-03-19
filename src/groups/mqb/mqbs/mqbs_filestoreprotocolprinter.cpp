@@ -438,7 +438,7 @@ void printRecord(bsl::ostream& stream, const mqbs::JournalOpRecord& rec)
     }
 
     printer << epochValue << rec.type() << rec.syncPointType()
-            << rec.primaryNodeId() << rec.sequenceNum() << rec.primaryLeaseId()
+            << rec.primaryLeaseId() << rec.sequenceNum() << rec.primaryNodeId()
             << rec.dataFileOffsetDwords();
 
     stream << "\n";
