@@ -27,6 +27,7 @@
 #include <m_bmqstoragetool_parameters.h>
 
 // MQB
+#include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbu_storagekey.h>
 
@@ -58,7 +59,7 @@ class Filters {
 
     // ACCESSORS
 
-    /// Apply filters at the record with the specified `recordHeader`,
+    /// Apply filters at the journal record with the specified `recordHeader`,
     /// `recordOffset` and `queueKey`. Return true if all filters are matched,
     /// false otherwise. If the specified `highBoundReached_p` pointer is
     /// present, pointed value is set to true if higher bound value is reached,
@@ -67,6 +68,16 @@ class Filters {
                bsls::Types::Uint64       recordOffset,
                const mqbu::StorageKey&   queueKey,
                bool*                     highBoundReached_p = 0) const;
+
+    /// Apply filters at the CSL record with the specified `recordHeader`,
+    /// `record` and `recordOffset`. Return true if all filters are matched,
+    /// false otherwise. If the specified `highBoundReached_p` pointer is
+    /// present, pointed value is set to true if higher bound value is reached,
+    /// false otherwise.
+    bool apply(const mqbc::ClusterStateRecordHeader& recordHeader,
+               const bmqp_ctrlmsg::ClusterMessage&   record,
+               bsls::Types::Uint64                   recordOffset,
+               bool* highBoundReached_p = 0) const;
 };
 
 }  // close package namespace
