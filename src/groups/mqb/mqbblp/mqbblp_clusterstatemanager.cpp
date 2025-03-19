@@ -949,6 +949,25 @@ void ClusterStateManager::processPartitionPrimaryAdvisoryRaw(
 }
 
 // PRIVATE MANIPULATORS
+//   (virtual: mqbc::ElectorInfoObserver)
+void ClusterStateManager::onClusterLeader(
+    mqbnet::ClusterNode*                node,
+    mqbc::ElectorInfoLeaderStatus::Enum status)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(
+        d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    if (!node) {
+        BSLS_ASSERT_SAFE(mqbc::ElectorInfoLeaderStatus::e_UNDEFINED == status);
+
+        d_isFirstLeaderAdvisory = true;
+    }
+}
+
+// PRIVATE MANIPULATORS
 //   (virtual: mqbc::ClusterStateObserver)
 void ClusterStateManager::onPartitionPrimaryAssignment(
     int                                partitionId,

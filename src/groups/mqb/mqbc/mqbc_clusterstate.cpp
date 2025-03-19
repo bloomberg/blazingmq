@@ -682,14 +682,23 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
 : d_allocator_p(allocator)
 , d_regex(allocator)
 {
+    // Enable JIT compilation, unless running under MemorySanitizer.
+    // Low-level assembler instructions used by sljit causes sanitizer issues.
+    // See the internal ticket 177953779.
+    int regexOptions = bdlpcre::RegEx::k_FLAG_JIT;
+#if defined(__has_feature)  // Clang-supported method for checking sanitizers.
+#if __has_feature(memory_sanitizer)
+    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#endif
+#elif defined(__SANITIZE_MEMORY__)  // GCC-supported macros for checking MSAN.
+    regexOptions &= ~bdlpcre::RegEx::k_FLAG_JIT;
+#endif
+
     const char                  pattern[] = "^\\S+\\.([0-9]+)\\.\\S+\\.\\S+$";
     bsl::string                 error(d_allocator_p);
     size_t                      errorOffset;
-    BSLA_MAYBE_UNUSED const int rc = d_regex.prepare(
-        &error,
-        &errorOffset,
-        pattern,
-        bdlpcre::RegEx::k_FLAG_JIT);
+    BSLA_MAYBE_UNUSED const int rc =
+        d_regex.prepare(&error, &errorOffset, pattern, regexOptions);
     BSLS_ASSERT_SAFE(rc == 0);
     BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
 }
@@ -704,6 +713,7 @@ int ClusterState::PartitionIdExtractor::extract(
     if (rc != 0) {
         return -1;  // RETURN
     }
+
     const int partitionId = bsl::stoi(result[1]);
     return partitionId;
 }

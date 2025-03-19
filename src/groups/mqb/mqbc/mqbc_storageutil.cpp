@@ -1521,7 +1521,7 @@ void StorageUtil::recoveredQueuesCb(
                         << "encountered a duplicate AppId while processing "
                         << "recovered queue [" << uri << "], " << "queueKey ["
                         << qit->first << "]. AppId [" << *(appIdsIrc.first)
-                        << "]. AppKey [" << cit->second << "]."
+                        << "]. AppKey [" << cit->first << "]."
                         << BMQTSK_ALARMLOG_END;
                     mqbu::ExitUtil::terminate(
                         mqbu::ExitCode::e_RECOVERY_FAILURE);

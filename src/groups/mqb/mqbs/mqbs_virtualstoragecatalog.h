@@ -106,6 +106,10 @@ class VirtualStorageCatalog {
         const DataStreamIterator& first)>
         PurgeCallback;
 
+    typedef bsl::function<mqbi::StorageResult::Enum(
+        const mqbu::StorageKey& appKey)>
+        RemoveCallback;
+
   private:
     // DATA
     /// Physical storage underlying all virtual storages known to this object
@@ -113,9 +117,6 @@ class VirtualStorageCatalog {
 
     /// Map of appKey to corresponding virtual storage
     VirtualStorages d_virtualStorages;
-
-    /// Available ordinal values for virtual storages.
-    AvailableOrdinals d_availableOrdinals;
 
     /// All current App storages ordered by their ordinals.
     bsl::vector<VirtualStorageSp> d_ordinals;
@@ -255,8 +256,12 @@ class VirtualStorageCatalog {
 
     /// Return the number of messages in the datastream which are older than
     /// the specified `vs`.  Load into the specified `it` the iterator pointing
-    /// either to the first newer message or to the end of the datastream.
-    bsls::Types::Int64 seek(DataStreamIterator* it, const VirtualStorage* vs);
+    /// either to the first newer message or to the end of the datastream.  If
+    /// the optionally specified `bytes` is not `0`, load the sum of relevant
+    /// messages.
+    bsls::Types::Int64 seek(DataStreamIterator*   it,
+                            const VirtualStorage* vs,
+                            bsls::Types::Int64*   bytes = 0);
 
     /// Create, if it doesn't exist already, a virtual storage instance with
     /// the specified 'appId' and 'appKey'.  Return zero upon success and a
@@ -269,12 +274,16 @@ class VirtualStorageCatalog {
 
     /// Erase all messages for the App corresponding to the specified 'appKey'
     /// and remove the corresponding Virtual Storage instance.  If the
-    /// optionally  specified `cb` is valid, invoke it before purging once
-    /// positioned to  the first (oldest) App message.  Cancel the purge if
-    /// `cb` does not return `e_SUCCESS`.
+    /// optionally  specified `onPurge` is valid and the number of relevant
+    /// records is not zero, invoke it before purging once positioned to the
+    /// first (the oldest) App message.  Cancel the purge if `onPurge` does not
+    /// return `e_SUCCESS`.  If the optionally specified `onRemove` is valid,
+    /// invoke it before purging.  Cancel the purge if `onRemove` does not
+    /// return `e_SUCCESS`.
     mqbi::StorageResult::Enum
     removeVirtualStorage(const mqbu::StorageKey& appKey,
-                         const PurgeCallback&    cb = PurgeCallback());
+                         const PurgeCallback&    onPurge  = PurgeCallback(),
+                         const RemoveCallback&   onRemove = RemoveCallback());
 
     /// Return the Virtual Storage instance corresponding to the specified
     /// 'appKey'.
@@ -288,8 +297,9 @@ class VirtualStorageCatalog {
     /// Set the default RDA according to the specified 'maxDeliveryAttempts'.
     void setDefaultRda(int maxDeliveryAttempts);
 
-    /// Proxies do not support Ordinals Continuity.
-    void setDiscontinuousOrdinals();
+    /// Configure this object as Proxy to skip statistics and checking age of
+    /// Apps vs age of messages.
+    void configureAsProxy();
 
     void setQueue(mqbi::Queue* queue);
 
@@ -368,9 +378,9 @@ inline void VirtualStorageCatalog::setDefaultRda(int maxDeliveryAttempts)
     }
 }
 
-inline void VirtualStorageCatalog::setDiscontinuousOrdinals()
+inline void VirtualStorageCatalog::configureAsProxy()
 {
-    d_isProxy = false;
+    d_isProxy = true;
 }
 
 inline void VirtualStorageCatalog::setQueue(mqbi::Queue* queue)
@@ -411,7 +421,7 @@ inline const mqbi::AppMessage& VirtualStorageCatalog::defaultAppMessage() const
 
 inline mqbi::Queue* VirtualStorageCatalog::queue() const
 {
-    return d_queue_p;
+    return d_isProxy ? 0 : d_queue_p;
 }
 
 }  // close package namespace
