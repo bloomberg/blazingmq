@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_ubuntu
     env:
-        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}_${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -202,10 +202,6 @@ jobs:
             --reruns=3                          \
             -n 4 -v
 
-      - name: Echo RUN_UID
-        run: |
-          echo "${{ env.RUN_UID }}" >> ${{ github.workspace }}/src/integration-tests/failure-logs/tag.txt
-
       - name: Upload failure-logs as artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -223,10 +219,10 @@ jobs:
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr.tsk
+          name: bmqbrkr_${{ github.run_id }}
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
