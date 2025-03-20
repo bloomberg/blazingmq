@@ -207,18 +207,18 @@ jobs:
             -n 4 -v
 
       - name: Upload failure-logs as artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: failure_logs_${{ env.RUN_UID }}
+          name: ${{ github.run_id }}_failure_logs
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
 
       - name: Upload broker executable as artifacts to debug the core
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr_${{ github.run_id }}
+          name: ${{ github.run_id }}_bmqbrkr
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
