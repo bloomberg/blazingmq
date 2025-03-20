@@ -219,7 +219,7 @@ class Cluster(contextlib.AbstractContextManager):
                     for core in cores_dir.iterdir():
                         if core.is_file and str(process.pid) in str(core):
                             core_found = True
-                            logger.info("copying core %s to %s", core, self.copy_cores)
+                            self._logger.info("copying core %s to %s", core, self.copy_cores)
                             shutil.copy(core, self.copy_cores)
                             break
                     if not core_found:
