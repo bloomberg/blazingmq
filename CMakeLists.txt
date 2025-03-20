@@ -39,6 +39,8 @@ if( "${CMAKE_CXX_COMPILER_ID}" MATCHES "(Apple)?Clang" )
           "-Wno-conversion"
           "-Wno-undef"                  # BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
           "-Wno-float-equal"            # operator== in generated classes
+          "-Wno-documentation-unknown-command"
+                                        # Don't warn about @bbref{}
   )
 
 
