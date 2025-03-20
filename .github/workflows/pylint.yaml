@@ -36,6 +36,7 @@ jobs:
           name: pylint_result
           path: ${{ github.workspace }}/pylint.html
           retention-days: 5
+          compression-level: 0
       - name: Check the PR with pylint
         run: |
           git diff -U0 origin/main | lint-diffs
