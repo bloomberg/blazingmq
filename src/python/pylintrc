@@ -1,5 +1,24 @@
 [MAIN]
 
+disable=attribute-defined-outside-init,
+        disallowed-name,
+        duplicate-code,
+        fixme,
+        invalid-name,
+        line-too-long,
+        missing-class-docstring,
+        missing-function-docstring,
+        missing-module-docstring,
+        redefined-outer-name,
+        too-few-public-methods,
+        too-many-arguments,
+        too-many-branches,
+        too-many-instance-attributes,
+        too-many-lines,
+        too-many-locals,
+        too-many-public-methods,
+        too-many-statements
+
 # Analyse import fallback blocks. This can be used to support both Python 2 and
 # 3 compatible code, which means that the block might have code that exists
 # only in one or another interpreter, leading to false positives when analysed.
