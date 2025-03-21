@@ -26,6 +26,10 @@ jobs:
           ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
           echo [pylint] > ${{ github.workspace }}/.lint-diffs
           echo extensions=.py >> ${{ github.workspace }}/.lint-diffs
+          echo [clang-tidy] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
+          echo [rubocop] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
       - name: Check the whole repo with pylint
         run: |
           pylint -j 8 src || true
