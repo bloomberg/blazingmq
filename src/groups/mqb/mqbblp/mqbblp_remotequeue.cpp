@@ -362,11 +362,6 @@ void RemoteQueue::pushMessage(
     bool                                 isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
-
-    mqbi::StorageMessageAttributes attributes(0ULL,  // Timestamp; unused
-                                              1,     // RefCount
-                                              messagePropertiesInfo,
-                                              compressionAlgorithmType);
     mqbi::StorageResult::Enum      result  = mqbi::StorageResult::e_SUCCESS;
     mqbi::Storage*                 storage = d_state_p->storage();
     int                            msgSize = 0;
@@ -380,6 +375,13 @@ void RemoteQueue::pushMessage(
     else {
         if (d_state_p->isAtMostOnce()) {
             BSLS_ASSERT_SAFE(appData);
+            msgSize = appData->length();
+            mqbi::StorageMessageAttributes attributes(
+                0ULL,  // Timestamp; unused
+                1,     // RefCount
+                static_cast<unsigned int>(msgSize),
+                messagePropertiesInfo,
+                compressionAlgorithmType);
 
             result = storage->put(&attributes, msgGUID, appData, options);
 
@@ -428,7 +430,6 @@ void RemoteQueue::pushMessage(
     }
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos;
-    StorageKeys                        storageKeys;
 
     // Retrieve subQueueInfos from 'options'
     // Need to look up subQueueIds by subscriptionIds.
@@ -448,6 +449,12 @@ void RemoteQueue::pushMessage(
     BSLS_ASSERT_SAFE(d_state_p->hasMultipleSubStreams() ||
                      subQueueInfos.size() == 1);
 
+    mqbi::StorageMessageAttributes attributes(
+        0ULL,  // Timestamp; unused
+        1,     // RefCount
+        static_cast<unsigned int>(msgSize),
+        messagePropertiesInfo,
+        compressionAlgorithmType);
     d_queueEngine_mp->push(&attributes,
                            msgGUID,
                            appData,

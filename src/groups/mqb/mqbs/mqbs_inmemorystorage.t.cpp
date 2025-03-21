@@ -286,12 +286,6 @@ struct Tester {
 
             const int data = i + dataOffset;
 
-            mqbi::StorageMessageAttributes attributes(
-                static_cast<bsls::Types::Uint64>(data),
-                refCount,
-                bmqp::MessagePropertiesInfo::makeNoSchema(),
-                bmqt::CompressionAlgorithmType::e_NONE);
-
             const bsl::shared_ptr<bdlbb::Blob> appDataPtr(
                 new (*bmqtst::TestHelperUtil::allocator())
                     bdlbb::Blob(&d_bufferFactory,
@@ -301,6 +295,13 @@ struct Tester {
             bdlbb::BlobUtil::append(&(*appDataPtr),
                                     reinterpret_cast<const char*>(&data),
                                     static_cast<int>(sizeof(int)));
+
+            mqbi::StorageMessageAttributes attributes(
+                static_cast<bsls::Types::Uint64>(data),
+                refCount,
+                static_cast<unsigned int>(appDataPtr->length()),
+                bmqp::MessagePropertiesInfo::makeNoSchema(),
+                bmqt::CompressionAlgorithmType::e_NONE);
 
             mqbi::StorageResult::Enum rc = d_replicatedStorage_mp->put(
                 &attributes,

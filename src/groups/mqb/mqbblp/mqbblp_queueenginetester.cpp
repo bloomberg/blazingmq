@@ -946,13 +946,16 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
         BSLS_ASSERT_SAFE(d_messageCount < k_MAX_MESSAGES);
 
         mqbu::MessageGUIDUtil::generateGUID(&msgGUID);
-        msgAttributes.setRefCount(d_queueEngine_mp->messageReferenceCount());
-        msgAttributes.setArrivalTimestamp(d_messageCount);
 
         appData.createInplace(d_allocator_p, &d_bufferFactory, d_allocator_p);
         bdlbb::BlobUtil::append(appData.get(),
                                 msgs[i].data(),
                                 msgs[i].length());
+
+        msgAttributes.setRefCount(d_queueEngine_mp->messageReferenceCount());
+        msgAttributes.setArrivalTimestamp(d_messageCount);
+        msgAttributes.setAppDataLen(
+            static_cast<unsigned int>(appData->length()));
 
         // Consider this non-Proxy.  Imitate replication or Primary PUT
         // ('d_mockCluster_mp->_setIsClusterMember(true)')

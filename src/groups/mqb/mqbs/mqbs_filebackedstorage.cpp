@@ -294,7 +294,11 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        const bsl::shared_ptr<bdlbb::Blob>& options,
                        mqbi::DataStreamMessage**           out)
 {
-    const int msgSize = appData->length();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(appData);
+    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+
+    const int msgSize = attributes->appDataLen();
 
     // Store the specified message in the 'physical' as well as *all*
     // virtual storages.
