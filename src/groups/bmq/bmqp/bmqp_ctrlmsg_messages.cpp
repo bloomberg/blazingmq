@@ -1,4 +1,4 @@
-// Copyright 2014-2023 Bloomberg Finance L.P.
+// Copyright 2025 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,9 +30,11 @@
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
+#include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_utility.h>
 
 namespace BloombergLP {
 namespace bmqp_ctrlmsg {
@@ -389,7 +391,7 @@ AppIdInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("appId", this->appId());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "appKey = [ ";
@@ -398,6 +400,135 @@ AppIdInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
                                        this->appKey().end());
         stream << " ]" << (multilineFlag ? "\n" : "");
     }
+    printer.end();
+    return stream;
+}
+
+// -------------------------
+// class AuthenticateRequest
+// -------------------------
+
+// CONSTANTS
+
+const char AuthenticateRequest::CLASS_NAME[] = "AuthenticateRequest";
+
+const bdlat_AttributeInfo AuthenticateRequest::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_MECHANISM,
+     "mechanism",
+     sizeof("mechanism") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_DATA,
+     "data",
+     sizeof("data") - 1,
+     "",
+     bdlat_FormattingMode::e_HEX}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticateRequest::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticateRequest::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthenticateRequest::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_MECHANISM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MECHANISM];
+    case ATTRIBUTE_ID_DATA: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DATA];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticateRequest::AuthenticateRequest(bslma::Allocator* basicAllocator)
+: d_mechanism(basicAllocator)
+, d_data(basicAllocator)
+{
+}
+
+AuthenticateRequest::AuthenticateRequest(const AuthenticateRequest& original,
+                                         bslma::Allocator* basicAllocator)
+: d_mechanism(original.d_mechanism, basicAllocator)
+, d_data(original.d_data, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateRequest::AuthenticateRequest(AuthenticateRequest&& original)
+    noexcept : d_mechanism(bsl::move(original.d_mechanism)),
+               d_data(bsl::move(original.d_data))
+{
+}
+
+AuthenticateRequest::AuthenticateRequest(AuthenticateRequest&& original,
+                                         bslma::Allocator*     basicAllocator)
+: d_mechanism(bsl::move(original.d_mechanism), basicAllocator)
+, d_data(bsl::move(original.d_data), basicAllocator)
+{
+}
+#endif
+
+AuthenticateRequest::~AuthenticateRequest()
+{
+}
+
+// MANIPULATORS
+
+AuthenticateRequest&
+AuthenticateRequest::operator=(const AuthenticateRequest& rhs)
+{
+    if (this != &rhs) {
+        d_mechanism = rhs.d_mechanism;
+        d_data      = rhs.d_data;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateRequest& AuthenticateRequest::operator=(AuthenticateRequest&& rhs)
+{
+    if (this != &rhs) {
+        d_mechanism = bsl::move(rhs.d_mechanism);
+        d_data      = bsl::move(rhs.d_data);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticateRequest::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_mechanism);
+    bdlat_ValueTypeFunctions::reset(&d_data);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticateRequest::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("mechanism", this->mechanism());
+    printer.printAttribute("data", this->data());
     printer.end();
     return stream;
 }
@@ -561,36 +692,7 @@ const bdlat_AttributeInfo* CloseQueueResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-CloseQueueResponse::CloseQueueResponse()
-{
-}
-
-CloseQueueResponse::CloseQueueResponse(const CloseQueueResponse& original)
-{
-    (void)original;
-}
-
-CloseQueueResponse::~CloseQueueResponse()
-{
-}
-
 // MANIPULATORS
-
-CloseQueueResponse&
-CloseQueueResponse::operator=(const CloseQueueResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CloseQueueResponse& CloseQueueResponse::operator=(CloseQueueResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void CloseQueueResponse::reset()
 {
@@ -598,12 +700,8 @@ void CloseQueueResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& CloseQueueResponse::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& CloseQueueResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -634,36 +732,7 @@ const bdlat_AttributeInfo* ClusterSyncRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ClusterSyncRequest::ClusterSyncRequest()
-{
-}
-
-ClusterSyncRequest::ClusterSyncRequest(const ClusterSyncRequest& original)
-{
-    (void)original;
-}
-
-ClusterSyncRequest::~ClusterSyncRequest()
-{
-}
-
 // MANIPULATORS
-
-ClusterSyncRequest&
-ClusterSyncRequest::operator=(const ClusterSyncRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncRequest& ClusterSyncRequest::operator=(ClusterSyncRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ClusterSyncRequest::reset()
 {
@@ -671,12 +740,8 @@ void ClusterSyncRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& ClusterSyncRequest::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& ClusterSyncRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -707,36 +772,7 @@ const bdlat_AttributeInfo* ClusterSyncResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ClusterSyncResponse::ClusterSyncResponse()
-{
-}
-
-ClusterSyncResponse::ClusterSyncResponse(const ClusterSyncResponse& original)
-{
-    (void)original;
-}
-
-ClusterSyncResponse::~ClusterSyncResponse()
-{
-}
-
 // MANIPULATORS
-
-ClusterSyncResponse&
-ClusterSyncResponse::operator=(const ClusterSyncResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterSyncResponse& ClusterSyncResponse::operator=(ClusterSyncResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ClusterSyncResponse::reset()
 {
@@ -744,12 +780,8 @@ void ClusterSyncResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& ClusterSyncResponse::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& ClusterSyncResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -836,46 +868,7 @@ ConsumerInfo::ConsumerInfo()
 {
 }
 
-ConsumerInfo::ConsumerInfo(const ConsumerInfo& original)
-: d_maxUnconfirmedMessages(original.d_maxUnconfirmedMessages)
-, d_maxUnconfirmedBytes(original.d_maxUnconfirmedBytes)
-, d_consumerPriority(original.d_consumerPriority)
-, d_consumerPriorityCount(original.d_consumerPriorityCount)
-{
-}
-
-ConsumerInfo::~ConsumerInfo()
-{
-}
-
 // MANIPULATORS
-
-ConsumerInfo& ConsumerInfo::operator=(const ConsumerInfo& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = rhs.d_maxUnconfirmedMessages;
-        d_maxUnconfirmedBytes    = rhs.d_maxUnconfirmedBytes;
-        d_consumerPriority       = rhs.d_consumerPriority;
-        d_consumerPriorityCount  = rhs.d_consumerPriorityCount;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConsumerInfo& ConsumerInfo::operator=(ConsumerInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_maxUnconfirmedMessages = bsl::move(rhs.d_maxUnconfirmedMessages);
-        d_maxUnconfirmedBytes    = bsl::move(rhs.d_maxUnconfirmedBytes);
-        d_consumerPriority       = bsl::move(rhs.d_consumerPriority);
-        d_consumerPriorityCount  = bsl::move(rhs.d_consumerPriorityCount);
-    }
-
-    return *this;
-}
-#endif
 
 void ConsumerInfo::reset()
 {
@@ -929,35 +922,7 @@ const bdlat_AttributeInfo* Disconnect::lookupAttributeInfo(int id)
 
 // CREATORS
 
-Disconnect::Disconnect()
-{
-}
-
-Disconnect::Disconnect(const Disconnect& original)
-{
-    (void)original;
-}
-
-Disconnect::~Disconnect()
-{
-}
-
 // MANIPULATORS
-
-Disconnect& Disconnect::operator=(const Disconnect& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Disconnect& Disconnect::operator=(Disconnect&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void Disconnect::reset()
 {
@@ -965,11 +930,8 @@ void Disconnect::reset()
 
 // ACCESSORS
 
-bsl::ostream&
-Disconnect::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+bsl::ostream& Disconnect::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1000,36 +962,7 @@ const bdlat_AttributeInfo* DisconnectResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-DisconnectResponse::DisconnectResponse()
-{
-}
-
-DisconnectResponse::DisconnectResponse(const DisconnectResponse& original)
-{
-    (void)original;
-}
-
-DisconnectResponse::~DisconnectResponse()
-{
-}
-
 // MANIPULATORS
-
-DisconnectResponse&
-DisconnectResponse::operator=(const DisconnectResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DisconnectResponse& DisconnectResponse::operator=(DisconnectResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void DisconnectResponse::reset()
 {
@@ -1037,12 +970,8 @@ void DisconnectResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& DisconnectResponse::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& DisconnectResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1226,35 +1155,7 @@ const bdlat_AttributeInfo* ElectionProposal::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ElectionProposal::ElectionProposal()
-{
-}
-
-ElectionProposal::ElectionProposal(const ElectionProposal& original)
-{
-    (void)original;
-}
-
-ElectionProposal::~ElectionProposal()
-{
-}
-
 // MANIPULATORS
-
-ElectionProposal& ElectionProposal::operator=(const ElectionProposal& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectionProposal& ElectionProposal::operator=(ElectionProposal&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ElectionProposal::reset()
 {
@@ -1262,12 +1163,8 @@ void ElectionProposal::reset()
 
 // ACCESSORS
 
-bsl::ostream& ElectionProposal::print(bsl::ostream& stream,
-                                      int           level,
-                                      int           spacesPerLevel) const
+bsl::ostream& ElectionProposal::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1298,35 +1195,7 @@ const bdlat_AttributeInfo* ElectionResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ElectionResponse::ElectionResponse()
-{
-}
-
-ElectionResponse::ElectionResponse(const ElectionResponse& original)
-{
-    (void)original;
-}
-
-ElectionResponse::~ElectionResponse()
-{
-}
-
 // MANIPULATORS
-
-ElectionResponse& ElectionResponse::operator=(const ElectionResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectionResponse& ElectionResponse::operator=(ElectionResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ElectionResponse::reset()
 {
@@ -1334,12 +1203,8 @@ void ElectionResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& ElectionResponse::print(bsl::ostream& stream,
-                                      int           level,
-                                      int           spacesPerLevel) const
+bsl::ostream& ElectionResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1392,37 +1257,7 @@ ElectorNodeStatus::ElectorNodeStatus()
 {
 }
 
-ElectorNodeStatus::ElectorNodeStatus(const ElectorNodeStatus& original)
-: d_isAvailable(original.d_isAvailable)
-{
-}
-
-ElectorNodeStatus::~ElectorNodeStatus()
-{
-}
-
 // MANIPULATORS
-
-ElectorNodeStatus& ElectorNodeStatus::operator=(const ElectorNodeStatus& rhs)
-{
-    if (this != &rhs) {
-        d_isAvailable = rhs.d_isAvailable;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectorNodeStatus& ElectorNodeStatus::operator=(ElectorNodeStatus&& rhs)
-{
-    if (this != &rhs) {
-        d_isAvailable = bsl::move(rhs.d_isAvailable);
-    }
-
-    return *this;
-}
-#endif
 
 void ElectorNodeStatus::reset()
 {
@@ -1537,38 +1372,7 @@ FollowerClusterStateRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-FollowerClusterStateRequest::FollowerClusterStateRequest()
-{
-}
-
-FollowerClusterStateRequest::FollowerClusterStateRequest(
-    const FollowerClusterStateRequest& original)
-{
-    (void)original;
-}
-
-FollowerClusterStateRequest::~FollowerClusterStateRequest()
-{
-}
-
 // MANIPULATORS
-
-FollowerClusterStateRequest&
-FollowerClusterStateRequest::operator=(const FollowerClusterStateRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerClusterStateRequest&
-FollowerClusterStateRequest::operator=(FollowerClusterStateRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void FollowerClusterStateRequest::reset()
 {
@@ -1576,12 +1380,9 @@ void FollowerClusterStateRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& FollowerClusterStateRequest::print(bsl::ostream& stream,
-                                                 int           level,
-                                                 int spacesPerLevel) const
+bsl::ostream&
+FollowerClusterStateRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1612,36 +1413,7 @@ const bdlat_AttributeInfo* FollowerLSNRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-FollowerLSNRequest::FollowerLSNRequest()
-{
-}
-
-FollowerLSNRequest::FollowerLSNRequest(const FollowerLSNRequest& original)
-{
-    (void)original;
-}
-
-FollowerLSNRequest::~FollowerLSNRequest()
-{
-}
-
 // MANIPULATORS
-
-FollowerLSNRequest&
-FollowerLSNRequest::operator=(const FollowerLSNRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerLSNRequest& FollowerLSNRequest::operator=(FollowerLSNRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void FollowerLSNRequest::reset()
 {
@@ -1649,12 +1421,8 @@ void FollowerLSNRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& FollowerLSNRequest::print(bsl::ostream& stream,
-                                        int           level,
-                                        int           spacesPerLevel) const
+bsl::ostream& FollowerLSNRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1817,35 +1585,7 @@ const bdlat_AttributeInfo* HeartbeatResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-HeartbeatResponse::HeartbeatResponse()
-{
-}
-
-HeartbeatResponse::HeartbeatResponse(const HeartbeatResponse& original)
-{
-    (void)original;
-}
-
-HeartbeatResponse::~HeartbeatResponse()
-{
-}
-
 // MANIPULATORS
-
-HeartbeatResponse& HeartbeatResponse::operator=(const HeartbeatResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-HeartbeatResponse& HeartbeatResponse::operator=(HeartbeatResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void HeartbeatResponse::reset()
 {
@@ -1853,12 +1593,8 @@ void HeartbeatResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& HeartbeatResponse::print(bsl::ostream& stream,
-                                       int           level,
-                                       int           spacesPerLevel) const
+bsl::ostream& HeartbeatResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1889,35 +1625,7 @@ const bdlat_AttributeInfo* LeaderHeartbeat::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderHeartbeat::LeaderHeartbeat()
-{
-}
-
-LeaderHeartbeat::LeaderHeartbeat(const LeaderHeartbeat& original)
-{
-    (void)original;
-}
-
-LeaderHeartbeat::~LeaderHeartbeat()
-{
-}
-
 // MANIPULATORS
-
-LeaderHeartbeat& LeaderHeartbeat::operator=(const LeaderHeartbeat& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderHeartbeat& LeaderHeartbeat::operator=(LeaderHeartbeat&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderHeartbeat::reset()
 {
@@ -1925,12 +1633,8 @@ void LeaderHeartbeat::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderHeartbeat::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
+bsl::ostream& LeaderHeartbeat::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -1991,43 +1695,7 @@ LeaderMessageSequence::LeaderMessageSequence()
 {
 }
 
-LeaderMessageSequence::LeaderMessageSequence(
-    const LeaderMessageSequence& original)
-: d_electorTerm(original.d_electorTerm)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-LeaderMessageSequence::~LeaderMessageSequence()
-{
-}
-
 // MANIPULATORS
-
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(const LeaderMessageSequence& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = rhs.d_electorTerm;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderMessageSequence&
-LeaderMessageSequence::operator=(LeaderMessageSequence&& rhs)
-{
-    if (this != &rhs) {
-        d_electorTerm    = bsl::move(rhs.d_electorTerm);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderMessageSequence::reset()
 {
@@ -2076,35 +1744,7 @@ const bdlat_AttributeInfo* LeaderPassive::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderPassive::LeaderPassive()
-{
-}
-
-LeaderPassive::LeaderPassive(const LeaderPassive& original)
-{
-    (void)original;
-}
-
-LeaderPassive::~LeaderPassive()
-{
-}
-
 // MANIPULATORS
-
-LeaderPassive& LeaderPassive::operator=(const LeaderPassive& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderPassive& LeaderPassive::operator=(LeaderPassive&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderPassive::reset()
 {
@@ -2112,11 +1752,8 @@ void LeaderPassive::reset()
 
 // ACCESSORS
 
-bsl::ostream&
-LeaderPassive::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+bsl::ostream& LeaderPassive::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2147,36 +1784,7 @@ const bdlat_AttributeInfo* LeaderSyncDataQuery::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderSyncDataQuery::LeaderSyncDataQuery()
-{
-}
-
-LeaderSyncDataQuery::LeaderSyncDataQuery(const LeaderSyncDataQuery& original)
-{
-    (void)original;
-}
-
-LeaderSyncDataQuery::~LeaderSyncDataQuery()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncDataQuery&
-LeaderSyncDataQuery::operator=(const LeaderSyncDataQuery& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncDataQuery& LeaderSyncDataQuery::operator=(LeaderSyncDataQuery&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderSyncDataQuery::reset()
 {
@@ -2184,12 +1792,8 @@ void LeaderSyncDataQuery::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderSyncDataQuery::print(bsl::ostream& stream,
-                                         int           level,
-                                         int           spacesPerLevel) const
+bsl::ostream& LeaderSyncDataQuery::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2220,38 +1824,7 @@ const bdlat_AttributeInfo* LeaderSyncStateQuery::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeaderSyncStateQuery::LeaderSyncStateQuery()
-{
-}
-
-LeaderSyncStateQuery::LeaderSyncStateQuery(
-    const LeaderSyncStateQuery& original)
-{
-    (void)original;
-}
-
-LeaderSyncStateQuery::~LeaderSyncStateQuery()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncStateQuery&
-LeaderSyncStateQuery::operator=(const LeaderSyncStateQuery& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncStateQuery&
-LeaderSyncStateQuery::operator=(LeaderSyncStateQuery&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeaderSyncStateQuery::reset()
 {
@@ -2259,12 +1832,8 @@ void LeaderSyncStateQuery::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeaderSyncStateQuery::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& LeaderSyncStateQuery::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2298,38 +1867,7 @@ LeadershipCessionNotification::lookupAttributeInfo(int id)
 
 // CREATORS
 
-LeadershipCessionNotification::LeadershipCessionNotification()
-{
-}
-
-LeadershipCessionNotification::LeadershipCessionNotification(
-    const LeadershipCessionNotification& original)
-{
-    (void)original;
-}
-
-LeadershipCessionNotification::~LeadershipCessionNotification()
-{
-}
-
 // MANIPULATORS
-
-LeadershipCessionNotification& LeadershipCessionNotification::operator=(
-    const LeadershipCessionNotification& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeadershipCessionNotification&
-LeadershipCessionNotification::operator=(LeadershipCessionNotification&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void LeadershipCessionNotification::reset()
 {
@@ -2337,12 +1875,9 @@ void LeadershipCessionNotification::reset()
 
 // ACCESSORS
 
-bsl::ostream& LeadershipCessionNotification::print(bsl::ostream& stream,
-                                                   int           level,
-                                                   int spacesPerLevel) const
+bsl::ostream&
+LeadershipCessionNotification::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -2487,46 +2022,7 @@ PartitionPrimaryInfo::PartitionPrimaryInfo()
 {
 }
 
-PartitionPrimaryInfo::PartitionPrimaryInfo(
-    const PartitionPrimaryInfo& original)
-: d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-, d_primaryNodeId(original.d_primaryNodeId)
-{
-}
-
-PartitionPrimaryInfo::~PartitionPrimaryInfo()
-{
-}
-
 // MANIPULATORS
-
-PartitionPrimaryInfo&
-PartitionPrimaryInfo::operator=(const PartitionPrimaryInfo& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_primaryNodeId  = rhs.d_primaryNodeId;
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionPrimaryInfo&
-PartitionPrimaryInfo::operator=(PartitionPrimaryInfo&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_primaryNodeId  = bsl::move(rhs.d_primaryNodeId);
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionPrimaryInfo::reset()
 {
@@ -2607,43 +2103,7 @@ PartitionSequenceNumber::PartitionSequenceNumber()
 {
 }
 
-PartitionSequenceNumber::PartitionSequenceNumber(
-    const PartitionSequenceNumber& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-{
-}
-
-PartitionSequenceNumber::~PartitionSequenceNumber()
-{
-}
-
 // MANIPULATORS
-
-PartitionSequenceNumber&
-PartitionSequenceNumber::operator=(const PartitionSequenceNumber& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSequenceNumber&
-PartitionSequenceNumber::operator=(PartitionSequenceNumber&& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSequenceNumber::reset()
 {
@@ -2734,46 +2194,7 @@ PartitionSyncDataQueryResponse::PartitionSyncDataQueryResponse()
 {
 }
 
-PartitionSyncDataQueryResponse::PartitionSyncDataQueryResponse(
-    const PartitionSyncDataQueryResponse& original)
-: d_endSequenceNum(original.d_endSequenceNum)
-, d_endPrimaryLeaseId(original.d_endPrimaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncDataQueryResponse::~PartitionSyncDataQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncDataQueryResponse& PartitionSyncDataQueryResponse::operator=(
-    const PartitionSyncDataQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId       = rhs.d_partitionId;
-        d_endPrimaryLeaseId = rhs.d_endPrimaryLeaseId;
-        d_endSequenceNum    = rhs.d_endSequenceNum;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncDataQueryResponse&
-PartitionSyncDataQueryResponse::operator=(PartitionSyncDataQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId       = bsl::move(rhs.d_partitionId);
-        d_endPrimaryLeaseId = bsl::move(rhs.d_endPrimaryLeaseId);
-        d_endSequenceNum    = bsl::move(rhs.d_endSequenceNum);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncDataQueryResponse::reset()
 {
@@ -2848,40 +2269,7 @@ PartitionSyncStateQuery::PartitionSyncStateQuery()
 {
 }
 
-PartitionSyncStateQuery::PartitionSyncStateQuery(
-    const PartitionSyncStateQuery& original)
-: d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncStateQuery::~PartitionSyncStateQuery()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncStateQuery&
-PartitionSyncStateQuery::operator=(const PartitionSyncStateQuery& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = rhs.d_partitionId;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncStateQuery&
-PartitionSyncStateQuery::operator=(PartitionSyncStateQuery&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId = bsl::move(rhs.d_partitionId);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncStateQuery::reset()
 {
@@ -3232,7 +2620,7 @@ bsl::ostream& QueueUnassignmentRequest::print(bsl::ostream& stream,
     printer.printAttribute("queueUri", this->queueUri());
     printer.printAttribute("partitionId", this->partitionId());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "queueKey = [ ";
@@ -3272,38 +2660,7 @@ const bdlat_AttributeInfo* RegistrationResponse::lookupAttributeInfo(int id)
 
 // CREATORS
 
-RegistrationResponse::RegistrationResponse()
-{
-}
-
-RegistrationResponse::RegistrationResponse(
-    const RegistrationResponse& original)
-{
-    (void)original;
-}
-
-RegistrationResponse::~RegistrationResponse()
-{
-}
-
 // MANIPULATORS
-
-RegistrationResponse&
-RegistrationResponse::operator=(const RegistrationResponse& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RegistrationResponse&
-RegistrationResponse::operator=(RegistrationResponse&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void RegistrationResponse::reset()
 {
@@ -3311,12 +2668,8 @@ void RegistrationResponse::reset()
 
 // ACCESSORS
 
-bsl::ostream& RegistrationResponse::print(bsl::ostream& stream,
-                                          int           level,
-                                          int           spacesPerLevel) const
+bsl::ostream& RegistrationResponse::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -3593,40 +2946,7 @@ RoutingConfiguration::RoutingConfiguration()
 {
 }
 
-RoutingConfiguration::RoutingConfiguration(
-    const RoutingConfiguration& original)
-: d_flags(original.d_flags)
-{
-}
-
-RoutingConfiguration::~RoutingConfiguration()
-{
-}
-
 // MANIPULATORS
-
-RoutingConfiguration&
-RoutingConfiguration::operator=(const RoutingConfiguration& rhs)
-{
-    if (this != &rhs) {
-        d_flags = rhs.d_flags;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RoutingConfiguration&
-RoutingConfiguration::operator=(RoutingConfiguration&& rhs)
-{
-    if (this != &rhs) {
-        d_flags = bsl::move(rhs.d_flags);
-    }
-
-    return *this;
-}
-#endif
 
 void RoutingConfiguration::reset()
 {
@@ -3759,35 +3079,7 @@ const bdlat_AttributeInfo* ScoutingRequest::lookupAttributeInfo(int id)
 
 // CREATORS
 
-ScoutingRequest::ScoutingRequest()
-{
-}
-
-ScoutingRequest::ScoutingRequest(const ScoutingRequest& original)
-{
-    (void)original;
-}
-
-ScoutingRequest::~ScoutingRequest()
-{
-}
-
 // MANIPULATORS
-
-ScoutingRequest& ScoutingRequest::operator=(const ScoutingRequest& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ScoutingRequest& ScoutingRequest::operator=(ScoutingRequest&& rhs)
-{
-    (void)rhs;
-    return *this;
-}
-#endif
 
 void ScoutingRequest::reset()
 {
@@ -3795,12 +3087,8 @@ void ScoutingRequest::reset()
 
 // ACCESSORS
 
-bsl::ostream& ScoutingRequest::print(bsl::ostream& stream,
-                                     int           level,
-                                     int           spacesPerLevel) const
+bsl::ostream& ScoutingRequest::print(bsl::ostream& stream, int, int) const
 {
-    (void)level;
-    (void)spacesPerLevel;
     return stream;
 }
 
@@ -3853,37 +3141,7 @@ ScoutingResponse::ScoutingResponse()
 {
 }
 
-ScoutingResponse::ScoutingResponse(const ScoutingResponse& original)
-: d_willVote(original.d_willVote)
-{
-}
-
-ScoutingResponse::~ScoutingResponse()
-{
-}
-
 // MANIPULATORS
-
-ScoutingResponse& ScoutingResponse::operator=(const ScoutingResponse& rhs)
-{
-    if (this != &rhs) {
-        d_willVote = rhs.d_willVote;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ScoutingResponse& ScoutingResponse::operator=(ScoutingResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_willVote = bsl::move(rhs.d_willVote);
-    }
-
-    return *this;
-}
-#endif
 
 void ScoutingResponse::reset()
 {
@@ -4540,46 +3798,7 @@ SyncPoint::SyncPoint()
 {
 }
 
-SyncPoint::SyncPoint(const SyncPoint& original)
-: d_sequenceNum(original.d_sequenceNum)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-, d_dataFileOffsetDwords(original.d_dataFileOffsetDwords)
-, d_qlistFileOffsetWords(original.d_qlistFileOffsetWords)
-{
-}
-
-SyncPoint::~SyncPoint()
-{
-}
-
 // MANIPULATORS
-
-SyncPoint& SyncPoint::operator=(const SyncPoint& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId       = rhs.d_primaryLeaseId;
-        d_sequenceNum          = rhs.d_sequenceNum;
-        d_dataFileOffsetDwords = rhs.d_dataFileOffsetDwords;
-        d_qlistFileOffsetWords = rhs.d_qlistFileOffsetWords;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SyncPoint& SyncPoint::operator=(SyncPoint&& rhs)
-{
-    if (this != &rhs) {
-        d_primaryLeaseId       = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNum          = bsl::move(rhs.d_sequenceNum);
-        d_dataFileOffsetDwords = bsl::move(rhs.d_dataFileOffsetDwords);
-        d_qlistFileOffsetWords = bsl::move(rhs.d_qlistFileOffsetWords);
-    }
-
-    return *this;
-}
-#endif
 
 void SyncPoint::reset()
 {
@@ -4970,43 +4189,7 @@ DumpMessages::DumpMessages()
 {
 }
 
-DumpMessages::DumpMessages(const DumpMessages& original)
-: d_dumpActionValue(original.d_dumpActionValue)
-, d_msgTypeToDump(original.d_msgTypeToDump)
-, d_dumpActionType(original.d_dumpActionType)
-{
-}
-
-DumpMessages::~DumpMessages()
-{
-}
-
 // MANIPULATORS
-
-DumpMessages& DumpMessages::operator=(const DumpMessages& rhs)
-{
-    if (this != &rhs) {
-        d_msgTypeToDump   = rhs.d_msgTypeToDump;
-        d_dumpActionType  = rhs.d_dumpActionType;
-        d_dumpActionValue = rhs.d_dumpActionValue;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-DumpMessages& DumpMessages::operator=(DumpMessages&& rhs)
-{
-    if (this != &rhs) {
-        d_msgTypeToDump   = bsl::move(rhs.d_msgTypeToDump);
-        d_dumpActionType  = bsl::move(rhs.d_dumpActionType);
-        d_dumpActionValue = bsl::move(rhs.d_dumpActionValue);
-    }
-
-    return *this;
-}
-#endif
 
 void DumpMessages::reset()
 {
@@ -6006,38 +5189,7 @@ FollowerLSNResponse::FollowerLSNResponse()
 {
 }
 
-FollowerLSNResponse::FollowerLSNResponse(const FollowerLSNResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-FollowerLSNResponse::~FollowerLSNResponse()
-{
-}
-
 // MANIPULATORS
-
-FollowerLSNResponse&
-FollowerLSNResponse::operator=(const FollowerLSNResponse& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-FollowerLSNResponse& FollowerLSNResponse::operator=(FollowerLSNResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void FollowerLSNResponse::reset()
 {
@@ -6106,37 +5258,7 @@ LeaderAdvisoryAck::LeaderAdvisoryAck()
 {
 }
 
-LeaderAdvisoryAck::LeaderAdvisoryAck(const LeaderAdvisoryAck& original)
-: d_sequenceNumberAcked(original.d_sequenceNumberAcked)
-{
-}
-
-LeaderAdvisoryAck::~LeaderAdvisoryAck()
-{
-}
-
 // MANIPULATORS
-
-LeaderAdvisoryAck& LeaderAdvisoryAck::operator=(const LeaderAdvisoryAck& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumberAcked = rhs.d_sequenceNumberAcked;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisoryAck& LeaderAdvisoryAck::operator=(LeaderAdvisoryAck&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumberAcked = bsl::move(rhs.d_sequenceNumberAcked);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderAdvisoryAck::reset()
 {
@@ -6214,43 +5336,7 @@ LeaderAdvisoryCommit::LeaderAdvisoryCommit()
 {
 }
 
-LeaderAdvisoryCommit::LeaderAdvisoryCommit(
-    const LeaderAdvisoryCommit& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_sequenceNumberCommitted(original.d_sequenceNumberCommitted)
-{
-}
-
-LeaderAdvisoryCommit::~LeaderAdvisoryCommit()
-{
-}
-
 // MANIPULATORS
-
-LeaderAdvisoryCommit&
-LeaderAdvisoryCommit::operator=(const LeaderAdvisoryCommit& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber          = rhs.d_sequenceNumber;
-        d_sequenceNumberCommitted = rhs.d_sequenceNumberCommitted;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisoryCommit&
-LeaderAdvisoryCommit::operator=(LeaderAdvisoryCommit&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber          = bsl::move(rhs.d_sequenceNumber);
-        d_sequenceNumberCommitted = bsl::move(rhs.d_sequenceNumberCommitted);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderAdvisoryCommit::reset()
 {
@@ -6326,40 +5412,7 @@ LeaderSyncStateQueryResponse::LeaderSyncStateQueryResponse()
 {
 }
 
-LeaderSyncStateQueryResponse::LeaderSyncStateQueryResponse(
-    const LeaderSyncStateQueryResponse& original)
-: d_leaderMessageSequence(original.d_leaderMessageSequence)
-{
-}
-
-LeaderSyncStateQueryResponse::~LeaderSyncStateQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-LeaderSyncStateQueryResponse& LeaderSyncStateQueryResponse::operator=(
-    const LeaderSyncStateQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_leaderMessageSequence = rhs.d_leaderMessageSequence;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderSyncStateQueryResponse&
-LeaderSyncStateQueryResponse::operator=(LeaderSyncStateQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_leaderMessageSequence = bsl::move(rhs.d_leaderMessageSequence);
-    }
-
-    return *this;
-}
-#endif
 
 void LeaderSyncStateQueryResponse::reset()
 {
@@ -6429,38 +5482,7 @@ NodeStatusAdvisory::NodeStatusAdvisory()
 {
 }
 
-NodeStatusAdvisory::NodeStatusAdvisory(const NodeStatusAdvisory& original)
-: d_status(original.d_status)
-{
-}
-
-NodeStatusAdvisory::~NodeStatusAdvisory()
-{
-}
-
 // MANIPULATORS
-
-NodeStatusAdvisory&
-NodeStatusAdvisory::operator=(const NodeStatusAdvisory& rhs)
-{
-    if (this != &rhs) {
-        d_status = rhs.d_status;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-NodeStatusAdvisory& NodeStatusAdvisory::operator=(NodeStatusAdvisory&& rhs)
-{
-    if (this != &rhs) {
-        d_status = bsl::move(rhs.d_status);
-    }
-
-    return *this;
-}
-#endif
 
 void NodeStatusAdvisory::reset()
 {
@@ -6673,41 +5695,7 @@ PrimaryStateRequest::PrimaryStateRequest()
 {
 }
 
-PrimaryStateRequest::PrimaryStateRequest(const PrimaryStateRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PrimaryStateRequest::~PrimaryStateRequest()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStateRequest&
-PrimaryStateRequest::operator=(const PrimaryStateRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStateRequest& PrimaryStateRequest::operator=(PrimaryStateRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStateRequest::reset()
 {
@@ -6786,43 +5774,7 @@ PrimaryStateResponse::PrimaryStateResponse()
 {
 }
 
-PrimaryStateResponse::PrimaryStateResponse(
-    const PrimaryStateResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PrimaryStateResponse::~PrimaryStateResponse()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStateResponse&
-PrimaryStateResponse::operator=(const PrimaryStateResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStateResponse&
-PrimaryStateResponse::operator=(PrimaryStateResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStateResponse::reset()
 {
@@ -6912,46 +5864,7 @@ PrimaryStatusAdvisory::PrimaryStatusAdvisory()
 {
 }
 
-PrimaryStatusAdvisory::PrimaryStatusAdvisory(
-    const PrimaryStatusAdvisory& original)
-: d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-, d_status(original.d_status)
-{
-}
-
-PrimaryStatusAdvisory::~PrimaryStatusAdvisory()
-{
-}
-
 // MANIPULATORS
-
-PrimaryStatusAdvisory&
-PrimaryStatusAdvisory::operator=(const PrimaryStatusAdvisory& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_primaryLeaseId = rhs.d_primaryLeaseId;
-        d_status         = rhs.d_status;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PrimaryStatusAdvisory&
-PrimaryStatusAdvisory::operator=(PrimaryStatusAdvisory&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
-        d_status         = bsl::move(rhs.d_status);
-    }
-
-    return *this;
-}
-#endif
 
 void PrimaryStatusAdvisory::reset()
 {
@@ -7335,7 +6248,7 @@ QueueInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.start();
     printer.printAttribute("uri", this->uri());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "key = [ ";
@@ -7529,7 +6442,7 @@ bsl::ostream& QueueInfoUpdate::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("uri", this->uri());
     {
-        bool multilineFlag = (0 <= level);
+        bool multilineFlag = (0 <= spacesPerLevel);
         bdlb::Print::indent(stream, level + 1, spacesPerLevel);
         stream << (multilineFlag ? "" : " ");
         stream << "key = [ ";
@@ -7787,38 +6700,7 @@ RegistrationRequest::RegistrationRequest()
 {
 }
 
-RegistrationRequest::RegistrationRequest(const RegistrationRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-{
-}
-
-RegistrationRequest::~RegistrationRequest()
-{
-}
-
 // MANIPULATORS
-
-RegistrationRequest&
-RegistrationRequest::operator=(const RegistrationRequest& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RegistrationRequest& RegistrationRequest::operator=(RegistrationRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void RegistrationRequest::reset()
 {
@@ -7911,47 +6793,7 @@ ReplicaDataRequest::ReplicaDataRequest()
 {
 }
 
-ReplicaDataRequest::ReplicaDataRequest(const ReplicaDataRequest& original)
-: d_beginSequenceNumber(original.d_beginSequenceNumber)
-, d_endSequenceNumber(original.d_endSequenceNumber)
-, d_partitionId(original.d_partitionId)
-, d_replicaDataType(original.d_replicaDataType)
-{
-}
-
-ReplicaDataRequest::~ReplicaDataRequest()
-{
-}
-
 // MANIPULATORS
-
-ReplicaDataRequest&
-ReplicaDataRequest::operator=(const ReplicaDataRequest& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = rhs.d_replicaDataType;
-        d_partitionId         = rhs.d_partitionId;
-        d_beginSequenceNumber = rhs.d_beginSequenceNumber;
-        d_endSequenceNumber   = rhs.d_endSequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaDataRequest& ReplicaDataRequest::operator=(ReplicaDataRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = bsl::move(rhs.d_replicaDataType);
-        d_partitionId         = bsl::move(rhs.d_partitionId);
-        d_beginSequenceNumber = bsl::move(rhs.d_beginSequenceNumber);
-        d_endSequenceNumber   = bsl::move(rhs.d_endSequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaDataRequest::reset()
 {
@@ -8050,47 +6892,7 @@ ReplicaDataResponse::ReplicaDataResponse()
 {
 }
 
-ReplicaDataResponse::ReplicaDataResponse(const ReplicaDataResponse& original)
-: d_beginSequenceNumber(original.d_beginSequenceNumber)
-, d_endSequenceNumber(original.d_endSequenceNumber)
-, d_partitionId(original.d_partitionId)
-, d_replicaDataType(original.d_replicaDataType)
-{
-}
-
-ReplicaDataResponse::~ReplicaDataResponse()
-{
-}
-
 // MANIPULATORS
-
-ReplicaDataResponse&
-ReplicaDataResponse::operator=(const ReplicaDataResponse& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = rhs.d_replicaDataType;
-        d_partitionId         = rhs.d_partitionId;
-        d_beginSequenceNumber = rhs.d_beginSequenceNumber;
-        d_endSequenceNumber   = rhs.d_endSequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaDataResponse& ReplicaDataResponse::operator=(ReplicaDataResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_replicaDataType     = bsl::move(rhs.d_replicaDataType);
-        d_partitionId         = bsl::move(rhs.d_partitionId);
-        d_beginSequenceNumber = bsl::move(rhs.d_beginSequenceNumber);
-        d_endSequenceNumber   = bsl::move(rhs.d_endSequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaDataResponse::reset()
 {
@@ -8173,41 +6975,7 @@ ReplicaStateRequest::ReplicaStateRequest()
 {
 }
 
-ReplicaStateRequest::ReplicaStateRequest(const ReplicaStateRequest& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-ReplicaStateRequest::~ReplicaStateRequest()
-{
-}
-
 // MANIPULATORS
-
-ReplicaStateRequest&
-ReplicaStateRequest::operator=(const ReplicaStateRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaStateRequest& ReplicaStateRequest::operator=(ReplicaStateRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaStateRequest::reset()
 {
@@ -8286,43 +7054,7 @@ ReplicaStateResponse::ReplicaStateResponse()
 {
 }
 
-ReplicaStateResponse::ReplicaStateResponse(
-    const ReplicaStateResponse& original)
-: d_sequenceNumber(original.d_sequenceNumber)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-ReplicaStateResponse::~ReplicaStateResponse()
-{
-}
-
 // MANIPULATORS
-
-ReplicaStateResponse&
-ReplicaStateResponse::operator=(const ReplicaStateResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = rhs.d_partitionId;
-        d_sequenceNumber = rhs.d_sequenceNumber;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ReplicaStateResponse&
-ReplicaStateResponse::operator=(ReplicaStateResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId    = bsl::move(rhs.d_partitionId);
-        d_sequenceNumber = bsl::move(rhs.d_sequenceNumber);
-    }
-
-    return *this;
-}
-#endif
 
 void ReplicaStateResponse::reset()
 {
@@ -8785,47 +7517,7 @@ StorageSyncResponse::StorageSyncResponse()
 {
 }
 
-StorageSyncResponse::StorageSyncResponse(const StorageSyncResponse& original)
-: d_beginSyncPoint(original.d_beginSyncPoint)
-, d_endSyncPoint(original.d_endSyncPoint)
-, d_partitionId(original.d_partitionId)
-, d_storageSyncResponseType(original.d_storageSyncResponseType)
-{
-}
-
-StorageSyncResponse::~StorageSyncResponse()
-{
-}
-
 // MANIPULATORS
-
-StorageSyncResponse&
-StorageSyncResponse::operator=(const StorageSyncResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_storageSyncResponseType = rhs.d_storageSyncResponseType;
-        d_beginSyncPoint          = rhs.d_beginSyncPoint;
-        d_endSyncPoint            = rhs.d_endSyncPoint;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageSyncResponse& StorageSyncResponse::operator=(StorageSyncResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_storageSyncResponseType = bsl::move(rhs.d_storageSyncResponseType);
-        d_beginSyncPoint          = bsl::move(rhs.d_beginSyncPoint);
-        d_endSyncPoint            = bsl::move(rhs.d_endSyncPoint);
-    }
-
-    return *this;
-}
-#endif
 
 void StorageSyncResponse::reset()
 {
@@ -8909,41 +7601,7 @@ SyncPointOffsetPair::SyncPointOffsetPair()
 {
 }
 
-SyncPointOffsetPair::SyncPointOffsetPair(const SyncPointOffsetPair& original)
-: d_offset(original.d_offset)
-, d_syncPoint(original.d_syncPoint)
-{
-}
-
-SyncPointOffsetPair::~SyncPointOffsetPair()
-{
-}
-
 // MANIPULATORS
-
-SyncPointOffsetPair&
-SyncPointOffsetPair::operator=(const SyncPointOffsetPair& rhs)
-{
-    if (this != &rhs) {
-        d_syncPoint = rhs.d_syncPoint;
-        d_offset    = rhs.d_offset;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SyncPointOffsetPair& SyncPointOffsetPair::operator=(SyncPointOffsetPair&& rhs)
-{
-    if (this != &rhs) {
-        d_syncPoint = bsl::move(rhs.d_syncPoint);
-        d_offset    = bsl::move(rhs.d_offset);
-    }
-
-    return *this;
-}
-#endif
 
 void SyncPointOffsetPair::reset()
 {
@@ -8961,6 +7619,138 @@ bsl::ostream& SyncPointOffsetPair::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("syncPoint", this->syncPoint());
     printer.printAttribute("offset", this->offset());
+    printer.end();
+    return stream;
+}
+
+// --------------------------
+// class AuthenticateResponse
+// --------------------------
+
+// CONSTANTS
+
+const char AuthenticateResponse::CLASS_NAME[] = "AuthenticateResponse";
+
+const bdlat_AttributeInfo AuthenticateResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_STATUS,
+     "status",
+     sizeof("status") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_LIFETIME_MS,
+     "lifetimeMs",
+     sizeof("lifetimeMs") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthenticateResponse::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthenticateResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthenticateResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_STATUS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_STATUS];
+    case ATTRIBUTE_ID_LIFETIME_MS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LIFETIME_MS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthenticateResponse::AuthenticateResponse(bslma::Allocator* basicAllocator)
+: d_lifetimeMs()
+, d_status(basicAllocator)
+{
+}
+
+AuthenticateResponse::AuthenticateResponse(
+    const AuthenticateResponse& original,
+    bslma::Allocator*           basicAllocator)
+: d_lifetimeMs(original.d_lifetimeMs)
+, d_status(original.d_status, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateResponse::AuthenticateResponse(AuthenticateResponse&& original)
+    noexcept : d_lifetimeMs(bsl::move(original.d_lifetimeMs)),
+               d_status(bsl::move(original.d_status))
+{
+}
+
+AuthenticateResponse::AuthenticateResponse(AuthenticateResponse&& original,
+                                           bslma::Allocator* basicAllocator)
+: d_lifetimeMs(bsl::move(original.d_lifetimeMs))
+, d_status(bsl::move(original.d_status), basicAllocator)
+{
+}
+#endif
+
+AuthenticateResponse::~AuthenticateResponse()
+{
+}
+
+// MANIPULATORS
+
+AuthenticateResponse&
+AuthenticateResponse::operator=(const AuthenticateResponse& rhs)
+{
+    if (this != &rhs) {
+        d_status     = rhs.d_status;
+        d_lifetimeMs = rhs.d_lifetimeMs;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateResponse&
+AuthenticateResponse::operator=(AuthenticateResponse&& rhs)
+{
+    if (this != &rhs) {
+        d_status     = bsl::move(rhs.d_status);
+        d_lifetimeMs = bsl::move(rhs.d_lifetimeMs);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthenticateResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_status);
+    bdlat_ValueTypeFunctions::reset(&d_lifetimeMs);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthenticateResponse::print(bsl::ostream& stream,
+                                          int           level,
+                                          int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("status", this->status());
+    printer.printAttribute("lifetimeMs", this->lifetimeMs());
     printer.end();
     return stream;
 }
@@ -9115,10 +7905,10 @@ BrokerResponse::~BrokerResponse()
 BrokerResponse& BrokerResponse::operator=(const BrokerResponse& rhs)
 {
     if (this != &rhs) {
-        d_result          = rhs.d_result;
-        d_protocolVersion = rhs.d_protocolVersion;
-        d_brokerVersion   = rhs.d_brokerVersion;
-        d_isDeprecatedSdk = rhs.d_isDeprecatedSdk;
+        d_result              = rhs.d_result;
+        d_protocolVersion     = rhs.d_protocolVersion;
+        d_brokerVersion       = rhs.d_brokerVersion;
+        d_isDeprecatedSdk     = rhs.d_isDeprecatedSdk;
         d_brokerIdentity      = rhs.d_brokerIdentity;
         d_heartbeatIntervalMs = rhs.d_heartbeatIntervalMs;
         d_maxMissedHeartbeats = rhs.d_maxMissedHeartbeats;
@@ -9132,10 +7922,10 @@ BrokerResponse& BrokerResponse::operator=(const BrokerResponse& rhs)
 BrokerResponse& BrokerResponse::operator=(BrokerResponse&& rhs)
 {
     if (this != &rhs) {
-        d_result          = bsl::move(rhs.d_result);
-        d_protocolVersion = bsl::move(rhs.d_protocolVersion);
-        d_brokerVersion   = bsl::move(rhs.d_brokerVersion);
-        d_isDeprecatedSdk = bsl::move(rhs.d_isDeprecatedSdk);
+        d_result              = bsl::move(rhs.d_result);
+        d_protocolVersion     = bsl::move(rhs.d_protocolVersion);
+        d_brokerVersion       = bsl::move(rhs.d_brokerVersion);
+        d_isDeprecatedSdk     = bsl::move(rhs.d_isDeprecatedSdk);
         d_brokerIdentity      = bsl::move(rhs.d_brokerIdentity);
         d_heartbeatIntervalMs = bsl::move(rhs.d_heartbeatIntervalMs);
         d_maxMissedHeartbeats = bsl::move(rhs.d_maxMissedHeartbeats);
@@ -9529,40 +8319,7 @@ ElectorMessage::ElectorMessage()
 {
 }
 
-ElectorMessage::ElectorMessage(const ElectorMessage& original)
-: d_term(original.d_term)
-, d_choice(original.d_choice)
-{
-}
-
-ElectorMessage::~ElectorMessage()
-{
-}
-
 // MANIPULATORS
-
-ElectorMessage& ElectorMessage::operator=(const ElectorMessage& rhs)
-{
-    if (this != &rhs) {
-        d_term   = rhs.d_term;
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ElectorMessage& ElectorMessage::operator=(ElectorMessage&& rhs)
-{
-    if (this != &rhs) {
-        d_term   = bsl::move(rhs.d_term);
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void ElectorMessage::reset()
 {
@@ -10574,55 +9331,7 @@ PartitionSyncDataQuery::PartitionSyncDataQuery()
 {
 }
 
-PartitionSyncDataQuery::PartitionSyncDataQuery(
-    const PartitionSyncDataQuery& original)
-: d_lastSequenceNum(original.d_lastSequenceNum)
-, d_uptoSequenceNum(original.d_uptoSequenceNum)
-, d_lastSyncPointOffsetPair(original.d_lastSyncPointOffsetPair)
-, d_lastPrimaryLeaseId(original.d_lastPrimaryLeaseId)
-, d_uptoPrimaryLeaseId(original.d_uptoPrimaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncDataQuery::~PartitionSyncDataQuery()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncDataQuery&
-PartitionSyncDataQuery::operator=(const PartitionSyncDataQuery& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_lastPrimaryLeaseId      = rhs.d_lastPrimaryLeaseId;
-        d_lastSequenceNum         = rhs.d_lastSequenceNum;
-        d_uptoPrimaryLeaseId      = rhs.d_uptoPrimaryLeaseId;
-        d_uptoSequenceNum         = rhs.d_uptoSequenceNum;
-        d_lastSyncPointOffsetPair = rhs.d_lastSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncDataQuery&
-PartitionSyncDataQuery::operator=(PartitionSyncDataQuery&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_lastPrimaryLeaseId      = bsl::move(rhs.d_lastPrimaryLeaseId);
-        d_lastSequenceNum         = bsl::move(rhs.d_lastSequenceNum);
-        d_uptoPrimaryLeaseId      = bsl::move(rhs.d_uptoPrimaryLeaseId);
-        d_uptoSequenceNum         = bsl::move(rhs.d_uptoSequenceNum);
-        d_lastSyncPointOffsetPair = bsl::move(rhs.d_lastSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncDataQuery::reset()
 {
@@ -10870,49 +9579,7 @@ PartitionSyncStateQueryResponse::PartitionSyncStateQueryResponse()
 {
 }
 
-PartitionSyncStateQueryResponse::PartitionSyncStateQueryResponse(
-    const PartitionSyncStateQueryResponse& original)
-: d_sequenceNum(original.d_sequenceNum)
-, d_lastSyncPointOffsetPair(original.d_lastSyncPointOffsetPair)
-, d_primaryLeaseId(original.d_primaryLeaseId)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-PartitionSyncStateQueryResponse::~PartitionSyncStateQueryResponse()
-{
-}
-
 // MANIPULATORS
-
-PartitionSyncStateQueryResponse& PartitionSyncStateQueryResponse::operator=(
-    const PartitionSyncStateQueryResponse& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = rhs.d_partitionId;
-        d_primaryLeaseId          = rhs.d_primaryLeaseId;
-        d_sequenceNum             = rhs.d_sequenceNum;
-        d_lastSyncPointOffsetPair = rhs.d_lastSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionSyncStateQueryResponse& PartitionSyncStateQueryResponse::operator=(
-    PartitionSyncStateQueryResponse&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId             = bsl::move(rhs.d_partitionId);
-        d_primaryLeaseId          = bsl::move(rhs.d_primaryLeaseId);
-        d_sequenceNum             = bsl::move(rhs.d_sequenceNum);
-        d_lastSyncPointOffsetPair = bsl::move(rhs.d_lastSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionSyncStateQueryResponse::reset()
 {
@@ -11605,37 +10272,7 @@ StateNotification::StateNotification()
 {
 }
 
-StateNotification::StateNotification(const StateNotification& original)
-: d_choice(original.d_choice)
-{
-}
-
-StateNotification::~StateNotification()
-{
-}
-
 // MANIPULATORS
-
-StateNotification& StateNotification::operator=(const StateNotification& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StateNotification& StateNotification::operator=(StateNotification&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void StateNotification::reset()
 {
@@ -11722,44 +10359,7 @@ StorageSyncRequest::StorageSyncRequest()
 {
 }
 
-StorageSyncRequest::StorageSyncRequest(const StorageSyncRequest& original)
-: d_beginSyncPointOffsetPair(original.d_beginSyncPointOffsetPair)
-, d_endSyncPointOffsetPair(original.d_endSyncPointOffsetPair)
-, d_partitionId(original.d_partitionId)
-{
-}
-
-StorageSyncRequest::~StorageSyncRequest()
-{
-}
-
 // MANIPULATORS
-
-StorageSyncRequest&
-StorageSyncRequest::operator=(const StorageSyncRequest& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId              = rhs.d_partitionId;
-        d_beginSyncPointOffsetPair = rhs.d_beginSyncPointOffsetPair;
-        d_endSyncPointOffsetPair   = rhs.d_endSyncPointOffsetPair;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StorageSyncRequest& StorageSyncRequest::operator=(StorageSyncRequest&& rhs)
-{
-    if (this != &rhs) {
-        d_partitionId              = bsl::move(rhs.d_partitionId);
-        d_beginSyncPointOffsetPair = bsl::move(rhs.d_beginSyncPointOffsetPair);
-        d_endSyncPointOffsetPair   = bsl::move(rhs.d_endSyncPointOffsetPair);
-    }
-
-    return *this;
-}
-#endif
 
 void StorageSyncRequest::reset()
 {
@@ -12309,6 +10909,16 @@ bsl::ostream& LeaderSyncDataQueryResponse::print(bsl::ostream& stream,
 const char NegotiationMessage::CLASS_NAME[] = "NegotiationMessage";
 
 const bdlat_SelectionInfo NegotiationMessage::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_AUTHENTICATE_REQUEST,
+     "authenticateRequest",
+     sizeof("authenticateRequest") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_AUTHENTICATE_RESPONSE,
+     "authenticateResponse",
+     sizeof("authenticateResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_CLIENT_IDENTITY,
      "clientIdentity",
      sizeof("clientIdentity") - 1,
@@ -12330,7 +10940,7 @@ const bdlat_SelectionInfo NegotiationMessage::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 NegotiationMessage::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             NegotiationMessage::SELECTION_INFO_ARRAY[i];
 
@@ -12346,6 +10956,10 @@ NegotiationMessage::lookupSelectionInfo(const char* name, int nameLength)
 const bdlat_SelectionInfo* NegotiationMessage::lookupSelectionInfo(int id)
 {
     switch (id) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_REQUEST];
+    case SELECTION_ID_AUTHENTICATE_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_RESPONSE];
     case SELECTION_ID_CLIENT_IDENTITY:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_CLIENT_IDENTITY];
     case SELECTION_ID_BROKER_RESPONSE:
@@ -12365,6 +10979,16 @@ NegotiationMessage::NegotiationMessage(const NegotiationMessage& original,
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        new (d_authenticateRequest.buffer())
+            AuthenticateRequest(original.d_authenticateRequest.object(),
+                                d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        new (d_authenticateResponse.buffer())
+            AuthenticateResponse(original.d_authenticateResponse.object(),
+                                 d_allocator_p);
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         new (d_clientIdentity.buffer())
             ClientIdentity(original.d_clientIdentity.object(), d_allocator_p);
@@ -12389,6 +11013,16 @@ NegotiationMessage::NegotiationMessage(NegotiationMessage&& original) noexcept
   d_allocator_p(original.d_allocator_p)
 {
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        new (d_authenticateRequest.buffer()) AuthenticateRequest(
+            bsl::move(original.d_authenticateRequest.object()),
+            d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        new (d_authenticateResponse.buffer()) AuthenticateResponse(
+            bsl::move(original.d_authenticateResponse.object()),
+            d_allocator_p);
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         new (d_clientIdentity.buffer())
             ClientIdentity(bsl::move(original.d_clientIdentity.object()),
@@ -12414,6 +11048,16 @@ NegotiationMessage::NegotiationMessage(NegotiationMessage&& original,
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        new (d_authenticateRequest.buffer()) AuthenticateRequest(
+            bsl::move(original.d_authenticateRequest.object()),
+            d_allocator_p);
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        new (d_authenticateResponse.buffer()) AuthenticateResponse(
+            bsl::move(original.d_authenticateResponse.object()),
+            d_allocator_p);
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         new (d_clientIdentity.buffer())
             ClientIdentity(bsl::move(original.d_clientIdentity.object()),
@@ -12441,6 +11085,12 @@ NegotiationMessage::operator=(const NegotiationMessage& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
+        case SELECTION_ID_AUTHENTICATE_REQUEST: {
+            makeAuthenticateRequest(rhs.d_authenticateRequest.object());
+        } break;
+        case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+            makeAuthenticateResponse(rhs.d_authenticateResponse.object());
+        } break;
         case SELECTION_ID_CLIENT_IDENTITY: {
             makeClientIdentity(rhs.d_clientIdentity.object());
         } break;
@@ -12466,6 +11116,14 @@ NegotiationMessage& NegotiationMessage::operator=(NegotiationMessage&& rhs)
 {
     if (this != &rhs) {
         switch (rhs.d_selectionId) {
+        case SELECTION_ID_AUTHENTICATE_REQUEST: {
+            makeAuthenticateRequest(
+                bsl::move(rhs.d_authenticateRequest.object()));
+        } break;
+        case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+            makeAuthenticateResponse(
+                bsl::move(rhs.d_authenticateResponse.object()));
+        } break;
         case SELECTION_ID_CLIENT_IDENTITY: {
             makeClientIdentity(bsl::move(rhs.d_clientIdentity.object()));
         } break;
@@ -12489,6 +11147,12 @@ NegotiationMessage& NegotiationMessage::operator=(NegotiationMessage&& rhs)
 void NegotiationMessage::reset()
 {
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        d_authenticateRequest.object().~AuthenticateRequest();
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        d_authenticateResponse.object().~AuthenticateResponse();
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         d_clientIdentity.object().~ClientIdentity();
     } break;
@@ -12507,6 +11171,12 @@ void NegotiationMessage::reset()
 int NegotiationMessage::makeSelection(int selectionId)
 {
     switch (selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        makeAuthenticateRequest();
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        makeAuthenticateResponse();
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         makeClientIdentity();
     } break;
@@ -12534,6 +11204,106 @@ int NegotiationMessage::makeSelection(const char* name, int nameLength)
 
     return makeSelection(selectionInfo->d_id);
 }
+
+AuthenticateRequest& NegotiationMessage::makeAuthenticateRequest()
+{
+    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticateRequest.object());
+    }
+    else {
+        reset();
+        new (d_authenticateRequest.buffer())
+            AuthenticateRequest(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+    }
+
+    return d_authenticateRequest.object();
+}
+
+AuthenticateRequest&
+NegotiationMessage::makeAuthenticateRequest(const AuthenticateRequest& value)
+{
+    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
+        d_authenticateRequest.object() = value;
+    }
+    else {
+        reset();
+        new (d_authenticateRequest.buffer())
+            AuthenticateRequest(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+    }
+
+    return d_authenticateRequest.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateRequest&
+NegotiationMessage::makeAuthenticateRequest(AuthenticateRequest&& value)
+{
+    if (SELECTION_ID_AUTHENTICATE_REQUEST == d_selectionId) {
+        d_authenticateRequest.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_authenticateRequest.buffer())
+            AuthenticateRequest(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_REQUEST;
+    }
+
+    return d_authenticateRequest.object();
+}
+#endif
+
+AuthenticateResponse& NegotiationMessage::makeAuthenticateResponse()
+{
+    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_authenticateResponse.object());
+    }
+    else {
+        reset();
+        new (d_authenticateResponse.buffer())
+            AuthenticateResponse(d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+    }
+
+    return d_authenticateResponse.object();
+}
+
+AuthenticateResponse&
+NegotiationMessage::makeAuthenticateResponse(const AuthenticateResponse& value)
+{
+    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
+        d_authenticateResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_authenticateResponse.buffer())
+            AuthenticateResponse(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+    }
+
+    return d_authenticateResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthenticateResponse&
+NegotiationMessage::makeAuthenticateResponse(AuthenticateResponse&& value)
+{
+    if (SELECTION_ID_AUTHENTICATE_RESPONSE == d_selectionId) {
+        d_authenticateResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_authenticateResponse.buffer())
+            AuthenticateResponse(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_AUTHENTICATE_RESPONSE;
+    }
+
+    return d_authenticateResponse.object();
+}
+#endif
 
 ClientIdentity& NegotiationMessage::makeClientIdentity()
 {
@@ -12688,6 +11458,14 @@ bsl::ostream& NegotiationMessage::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST: {
+        printer.printAttribute("authenticateRequest",
+                               d_authenticateRequest.object());
+    } break;
+    case SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        printer.printAttribute("authenticateResponse",
+                               d_authenticateResponse.object());
+    } break;
     case SELECTION_ID_CLIENT_IDENTITY: {
         printer.printAttribute("clientIdentity", d_clientIdentity.object());
     } break;
@@ -12707,6 +11485,12 @@ bsl::ostream& NegotiationMessage::print(bsl::ostream& stream,
 const char* NegotiationMessage::selectionName() const
 {
     switch (d_selectionId) {
+    case SELECTION_ID_AUTHENTICATE_REQUEST:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_REQUEST]
+            .name();
+    case SELECTION_ID_AUTHENTICATE_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_AUTHENTICATE_RESPONSE]
+            .name();
     case SELECTION_ID_CLIENT_IDENTITY:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CLIENT_IDENTITY].name();
     case SELECTION_ID_BROKER_RESPONSE:
@@ -12953,37 +11737,7 @@ PartitionMessage::PartitionMessage()
 {
 }
 
-PartitionMessage::PartitionMessage(const PartitionMessage& original)
-: d_choice(original.d_choice)
-{
-}
-
-PartitionMessage::~PartitionMessage()
-{
-}
-
 // MANIPULATORS
-
-PartitionMessage& PartitionMessage::operator=(const PartitionMessage& rhs)
-{
-    if (this != &rhs) {
-        d_choice = rhs.d_choice;
-    }
-
-    return *this;
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionMessage& PartitionMessage::operator=(PartitionMessage&& rhs)
-{
-    if (this != &rhs) {
-        d_choice = bsl::move(rhs.d_choice);
-    }
-
-    return *this;
-}
-#endif
 
 void PartitionMessage::reset()
 {
