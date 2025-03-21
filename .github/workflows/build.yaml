@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
     branches:
       - main
@@ -166,7 +166,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: build_ubuntu
     env:
-        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
+        RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}_${{ github.run_id }}
     steps:
       - uses: actions/checkout@v4
 
@@ -178,8 +178,12 @@ jobs:
             /opt/bb/include
           key: cache-${{ github.sha }}
 
-      - name: Setup Core Dumps config
+      - name: Setup core_pattern
         run: |
+          # Default Ubuntu core_pattern: '|/usr/lib/systemd/systemd-coredump %P %u %g %s %t 9223372036854775808 %h'
+          # To enable core dumps copying to the failure_logs folder (implemented in src/python/blazingmq/dev/it/cluster.py)
+          # the core_pattern must be an absolute path and must contain %p (i.e. process id)
+
           sudo mkdir /cores
           sudo chmod 777 /cores
           echo "/cores/%e.%p.%s.%t" | sudo tee /proc/sys/kernel/core_pattern
@@ -188,13 +192,14 @@ jobs:
         run: |
           # Allow core dumps
           ulimit -c unlimited
+
           pip install -r ${{ github.workspace }}/src/python/requirements.txt
           ${{ github.workspace }}/src/integration-tests/run-tests "${{ matrix.mode }} and ${{ matrix.cluster }}" \
-            --log-level ERROR                   \
-            --log-file-level=info               \
+            --log-level DEBUG                   \
+            --log-file-level=debug               \
             --bmq-tolerate-dirty-shutdown       \
             --bmq-log-dir=failure-logs          \
-            --bmq-log-level=INFO                \
+            --bmq-log-level=DEBUG                \
             --domain-consistency="${{ matrix.consistency }}" \
             --junitxml=integration-tests.xml    \
             --tb long                           \
@@ -202,26 +207,18 @@ jobs:
             -n 4 -v
 
       - name: Upload failure-logs as artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: failure_logs_${{ env.RUN_UID }}
+          name: ${{ github.run_id }}_failure_logs
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
           retention-days: 5
 
-      - name: Upload broker core dump as artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: core_dumps_${{ env.RUN_UID }}
-          path: /cores
-          retention-days: 5
-
       - name: Upload broker executable as artifacts to debug the core
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: bmqbrkr.tsk
+          name: ${{ github.run_id }}_bmqbrkr
           overwrite: true # broker binary is the same across all matrix runs
           path: ${{ github.workspace }}/build/blazingmq/src/applications/bmqbrkr/bmqbrkr.tsk
           retention-days: 5
