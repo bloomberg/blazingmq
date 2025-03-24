@@ -472,7 +472,7 @@
       <element name='maxDataFileSize'     type='unsignedLong'/>
       <element name='maxJournalFileSize'  type='unsignedLong'/>
       <element name='maxQlistFileSize'    type='unsignedLong'/>
-      <element name='maxCSLFileSize'      type='unsignedLong' default='67108864'/>
+      <element name='maxCSLFileSize'      type='unsignedLong'/>
       <element name='preallocate'         type='boolean' default='false'/>
       <element name='maxArchivedFileSets' type='int'/>
       <element name='prefaultPages'       type='boolean' default='false'/>
