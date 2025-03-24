@@ -2956,6 +2956,7 @@ static void test19_fileSizesHardLimits()
             clusterDef.partitionConfig().maxJournalFileSize() =
                 journalFileSize;
             clusterDef.partitionConfig().maxQlistFileSize() = qlistFileSize;
+            clusterDef.partitionConfig().maxCSLFileSize()   = qlistFileSize;
 
             mqbc::StorageManager storageManager(
                 clusterDef,
