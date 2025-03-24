@@ -277,9 +277,7 @@ void QueueHandle::onAckMessage(
 }
 
 void QueueHandle::deliverMessage(
-    const bsl::shared_ptr<bdlbb::Blob>& message,
-    const bmqt::MessageGUID&            msgGUID,
-    BSLS_ANNOTATION_UNUSED const mqbi::StorageMessageAttributes& attributes,
+    const mqbi::StorageIterator& message,
     BSLS_ANNOTATION_UNUSED const bmqp::Protocol::MsgGroupId& msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray&                subscriptions,
     BSLS_ANNOTATION_UNUSED bool                              isOutOfOrder)
@@ -303,26 +301,20 @@ void QueueHandle::deliverMessage(
         GUIDMap& guids = mapIter->second.d_unconfirmedMessages;
 
         bsl::pair<GUIDMap::iterator, bool> insertRC = guids.insert(
-            bsl::make_pair(msgGUID, bsl::make_pair(message, sId)));
+            bsl::make_pair(message.guid(),
+                           bsl::make_pair(message.appData(), sId)));
         BSLS_ASSERT_OPT(insertRC.second);
         (void)insertRC;  // Compiler happiness
     }
 }
 
 void QueueHandle::deliverMessageNoTrack(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
-    const bmqt::MessageGUID&                  msgGUID,
-    const mqbi::StorageMessageAttributes&     attributes,
+    const mqbi::StorageIterator&              message,
     const bmqp::Protocol::MsgGroupId&         msgGroupId,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions)
 {
     // Delegate, from a simplified mock perspective.
-    deliverMessage(message,
-                   msgGUID,
-                   attributes,
-                   msgGroupId,
-                   subscriptions,
-                   false);
+    deliverMessage(message, msgGroupId, subscriptions, false);
 }
 
 void QueueHandle::configure(

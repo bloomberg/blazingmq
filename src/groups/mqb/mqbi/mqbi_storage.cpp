@@ -140,6 +140,7 @@ StorageMessageAttributes::print(bsl::ostream&                   stream,
     printer.printAttribute("arrivalTimestamp", value.arrivalTimestamp());
     printer.printAttribute("arrivalTimepoint", value.arrivalTimepoint());
     printer.printAttribute("refCount", value.refCount());
+    printer.printAttribute("appDataLen", value.appDataLen());
     printer.printAttribute("hasMessageProperties",
                            value.messagePropertiesInfo().isPresent());
     printer.printAttribute("crc32c", value.crc32c());

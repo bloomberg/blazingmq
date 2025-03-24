@@ -224,12 +224,6 @@ class StorageIterator : public mqbi::StorageIterator {
     StorageIterator& operator=(const StorageIterator&);  // = delete
 
   private:
-    // PRIVATE MANIPULATORS
-
-    /// Clear previous state, if any.  This is required so that new state
-    /// can be loaded in `appData`, `options` or `attributes` routines.
-    void clear();
-
     // PRIVATE ACCESSORS
 
     /// Load the internal state of this iterator instance with the
@@ -254,6 +248,13 @@ class StorageIterator : public mqbi::StorageIterator {
     ~StorageIterator() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
+
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    void clearCache() BSLS_KEYWORD_OVERRIDE;
+
     bool advance() BSLS_KEYWORD_OVERRIDE;
 
     /// If the specified 'where' is unset, reset the iterator to point to the

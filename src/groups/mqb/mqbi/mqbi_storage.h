@@ -168,6 +168,9 @@ class StorageMessageAttributes {
 
     unsigned int d_refCount;
 
+    /// Unpadded
+    unsigned int d_appDataLen;
+
     bmqp::MessagePropertiesInfo d_messagePropertiesInfo;
 
     bool d_hasReceipt;
@@ -207,6 +210,7 @@ class StorageMessageAttributes {
 
     StorageMessageAttributes(
         bsls::Types::Uint64                  arrivalTimestamp,
+        unsigned int                         appDataLen,
         unsigned int                         refCount,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
@@ -219,6 +223,7 @@ class StorageMessageAttributes {
     StorageMessageAttributes& setArrivalTimestamp(bsls::Types::Uint64 value);
     StorageMessageAttributes& setArrivalTimepoint(bsls::Types::Int64 value);
     StorageMessageAttributes& setRefCount(unsigned int value);
+    StorageMessageAttributes& setAppDataLen(unsigned int value);
     StorageMessageAttributes& setCrc32c(unsigned int value);
     StorageMessageAttributes&
     setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value);
@@ -235,6 +240,7 @@ class StorageMessageAttributes {
     bsls::Types::Uint64                arrivalTimestamp() const;
     bsls::Types::Int64                 arrivalTimepoint() const;
     unsigned int                       refCount() const;
+    unsigned int                       appDataLen() const;
     const bmqp::MessagePropertiesInfo& messagePropertiesInfo() const;
     bool                               hasReceipt() const;
     mqbi::QueueHandle*                 queueHandle() const;
@@ -334,6 +340,12 @@ class StorageIterator {
     virtual ~StorageIterator();
 
     // MANIPULATORS
+
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    virtual void clearCache() = 0;
 
     /// Advance the iterator to the next item. The behavior is undefined
     /// unless `atEnd` returns `false`.  Return `true` if the iterator then
@@ -769,6 +781,7 @@ inline StorageMessageAttributes::StorageMessageAttributes()
 : d_arrivalTimestamp(0)
 , d_arrivalTimepoint(0)
 , d_refCount(0)
+, d_appDataLen(0)
 , d_messagePropertiesInfo()
 , d_hasReceipt(true)
 , d_queueHandle(0)
@@ -780,6 +793,7 @@ inline StorageMessageAttributes::StorageMessageAttributes()
 inline StorageMessageAttributes::StorageMessageAttributes(
     bsls::Types::Uint64                  arrivalTimestamp,
     unsigned int                         refCount,
+    unsigned int                         appDataLen,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
     bool                                 hasReceipt,
@@ -789,6 +803,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(
 : d_arrivalTimestamp(arrivalTimestamp)
 , d_arrivalTimepoint(arrivalTimepoint)
 , d_refCount(refCount)
+, d_appDataLen(appDataLen)
 , d_messagePropertiesInfo(messagePropertiesInfo)
 , d_hasReceipt(hasReceipt)
 , d_queueHandle(queueHandle)
@@ -817,6 +832,13 @@ inline StorageMessageAttributes&
 StorageMessageAttributes::setRefCount(unsigned int value)
 {
     d_refCount = value;
+    return *this;
+}
+
+inline StorageMessageAttributes&
+StorageMessageAttributes::setAppDataLen(unsigned int value)
+{
+    d_appDataLen = value;
     return *this;
 }
 
@@ -855,6 +877,7 @@ inline void StorageMessageAttributes::reset()
     d_arrivalTimestamp         = 0;
     d_arrivalTimepoint         = 0;
     d_refCount                 = 0;
+    d_appDataLen               = 0;
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_queueHandle              = 0;
     d_hasReceipt               = true;
@@ -876,6 +899,11 @@ inline bsls::Types::Int64 StorageMessageAttributes::arrivalTimepoint() const
 inline unsigned int StorageMessageAttributes::refCount() const
 {
     return d_refCount;
+}
+
+inline unsigned int StorageMessageAttributes::appDataLen() const
+{
+    return d_appDataLen;
 }
 
 inline const bmqp::MessagePropertiesInfo&
@@ -918,6 +946,7 @@ inline bool operator==(const StorageMessageAttributes& lhs,
     return lhs.arrivalTimestamp() == rhs.arrivalTimestamp() &&
            lhs.arrivalTimepoint() == rhs.arrivalTimepoint() &&
            lhs.refCount() == rhs.refCount() &&
+           lhs.appDataLen() == rhs.appDataLen() &&
            lhs.messagePropertiesInfo() == rhs.messagePropertiesInfo() &&
            lhs.crc32c() == rhs.crc32c() &&
            lhs.compressionAlgorithmType() == rhs.compressionAlgorithmType();

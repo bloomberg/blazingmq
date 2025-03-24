@@ -789,24 +789,18 @@ void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
     BSLS_ASSERT_SAFE(d_currentMessage);
 
     if (!d_consumers.empty()) {
-        const mqbi::StorageMessageAttributes& attributes =
-            d_currentMessage->attributes();
         for (Consumers::const_iterator it = d_consumers.begin();
              it != d_consumers.end();
              ++it) {
             BSLS_ASSERT_SAFE(!it->second.empty());
 
             if (QueueEngineUtil::isBroadcastMode(d_queue_p)) {
-                it->first->deliverMessageNoTrack(d_currentMessage->appData(),
-                                                 d_currentMessage->guid(),
-                                                 attributes,
+                it->first->deliverMessageNoTrack(*d_currentMessage,
                                                  "",  // msgGroupId,
                                                  it->second);
             }
             else {
-                it->first->deliverMessage(d_currentMessage->appData(),
-                                          d_currentMessage->guid(),
-                                          attributes,
+                it->first->deliverMessage(*d_currentMessage,
                                           "",  // msgGroupId,
                                           it->second,
                                           false);
@@ -915,6 +909,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
     }
 
     size_t numMessages = processDeliveryLists(delay, reader);
+    // `reader` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    reader->clearCache();
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_redeliveryList.size())) {
         // We only attempt to deliver new messages if we successfully
@@ -973,6 +972,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
 
         start->advance();
     }
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    start->clearCache();
     return numMessages;
 }
 
@@ -1056,9 +1060,7 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
         1,
         bmqp::SubQueueInfo(visitor.d_downstreamSubscriptionId,
                            message->appMessageView(ordinal()).d_rdaInfo));
-    visitor.d_handle->deliverMessage(message->appData(),
-                                     message->guid(),
-                                     message->attributes(),
+    visitor.d_handle->deliverMessage(*message,
                                      "",  // msgGroupId
                                      subQueueInfos,
                                      isOutOfOrder);
@@ -1088,9 +1090,7 @@ bool QueueEngineUtil_AppState::visitBroadcast(
     BSLS_ASSERT_SAFE(handle);
     // TBD: groupId: send 'options' as well...
     handle->deliverMessageNoTrack(
-        message->appData(),
-        message->guid(),
-        message->attributes(),
+        *message,
         "",  // msgGroupId
         bmqp::Protocol::SubQueueInfosArray(
             1,

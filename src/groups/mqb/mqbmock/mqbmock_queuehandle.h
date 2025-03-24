@@ -312,39 +312,31 @@ class QueueHandle : public mqbi::QueueHandle {
     void
     onAckMessage(const bmqp::AckMessage& ackMessage) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
-    /// `subscriptions` of the queue.  The behavior is undefined unless the
-    /// queueHandle can send a message at this time for each of the
-    /// corresponding subStreams(see `canDeliver(unsigned int subQueueId)`
-    /// for more information).
+    /// Called by the `Queue` to deliver a message under the specified `iter`
+    /// with the specified `msgGroupId` for the specified `subscriptions` of
+    /// the queue.  The behavior is undefined unless the queueHandle can send
+    /// a message at this time for each of the corresponding subStreams (see
+    /// `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
-    deliverMessage(const bsl::shared_ptr<bdlbb::Blob>&       message,
-                   const bmqt::MessageGUID&                  msgGUID,
-                   const mqbi::StorageMessageAttributes&     attributes,
+    deliverMessage(const mqbi::StorageIterator&              message,
                    const bmqp::Protocol::MsgGroupId&         msgGroupId,
                    const bmqp::Protocol::SubQueueInfosArray& subscriptions,
                    bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
-    /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgGUID`, `attributes` and `msgGroupId` for the specified
-    /// `subscriptions` the queue.  This method is identical with
-    /// `deliverMessage()` but it doesn't update any flow-control mechanisms
-    /// implemented by this handler.  The behavior is undefined unless the
-    /// queueHandle can send a message at this time for each of the
-    /// `subQueueInfos` (see `canDeliver(unsigned int subQueueId)` for more
-    /// information).
+    /// Called by the `Queue` to deliver a message under the specified `iter`
+    /// with the specified `msgGroupId` for the specified `subscriptions` of
+    /// the queue.  This method is identical with `deliverMessage()` but it
+    /// doesn't update any flow-control mechanisms implemented by this handler.
+    /// The behavior is undefined unless the queueHandle can send a message at
+    /// this time (see `canDeliver(unsigned int subQueueId)` for more details).
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void deliverMessageNoTrack(
-        const bsl::shared_ptr<bdlbb::Blob>&       message,
-        const bmqt::MessageGUID&                  msgGUID,
-        const mqbi::StorageMessageAttributes&     attributes,
-        const bmqp::Protocol::MsgGroupId&         msgGroupId,
-        const bmqp::Protocol::SubQueueInfosArray& subscriptions)
-        BSLS_KEYWORD_OVERRIDE;
+    void deliverMessageNoTrack(const mqbi::StorageIterator&      message,
+                               const bmqp::Protocol::MsgGroupId& msgGroupId,
+                               const bmqp::Protocol::SubQueueInfosArray&
+                                   subscriptions) BSLS_KEYWORD_OVERRIDE;
 
     /// Used by the client to configure a given queue handle with the
     /// specified `streamParameters`.  Invoke the specified `configuredCb`

@@ -181,10 +181,8 @@ unsigned int VirtualStorage::ordinal() const
 // ----------------------------
 
 // PRIVATE MANIPULATORS
-void StorageIterator::clear()
+void StorageIterator::clearCache()
 {
-    // Clear previous state, if any.  This is required so that new state can be
-    // loaded in 'appData', 'options' or 'attributes' routines.
     d_appData_sp.reset();
     d_options_sp.reset();
     d_attributes.reset();
@@ -235,14 +233,14 @@ bool StorageIterator::advance()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!atEnd());
 
-    clear();
+    clearCache();
     ++d_iterator;
     return !atEnd();
 }
 
 void StorageIterator::reset(const bmqt::MessageGUID& where)
 {
-    clear();
+    clearCache();
 
     d_iterator = d_owner_p->begin(where);
 }

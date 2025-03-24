@@ -812,12 +812,7 @@ struct TestHelper {
         if (0 == recNum % 2) {
             mpsInfo = bmqp::MessagePropertiesInfo::makeInvalidSchema();
         }
-        rec.d_msgAttributes = mqbi::StorageMessageAttributes(
-            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
-            recNum % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
-            mpsInfo,
-            bmqt::CompressionAlgorithmType::e_NONE,
-            bsl::numeric_limits<unsigned int>::max() / recNum);
+
         // crc value
         mqbu::MessageGUIDUtil::generateGUID(&rec.d_guid);
         rec.d_appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
@@ -829,6 +824,17 @@ struct TestHelper {
         bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
                                 payloadStr.c_str(),
                                 payloadStr.length());
+
+        const unsigned int appDataLen = static_cast<unsigned int>(
+            rec.d_appData_sp->length());
+
+        rec.d_msgAttributes = mqbi::StorageMessageAttributes(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            recNum % mqbs::FileStoreProtocol::k_MAX_MSG_REF_COUNT_HARD,
+            appDataLen,
+            mpsInfo,
+            bmqt::CompressionAlgorithmType::e_NONE,
+            bsl::numeric_limits<unsigned int>::max() / recNum);
 
         const int rc = fs->writeMessageRecord(&rec.d_msgAttributes,
                                               &handle,
