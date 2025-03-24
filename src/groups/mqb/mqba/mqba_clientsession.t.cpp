@@ -2156,12 +2156,25 @@ static void test11_initiateShutdown()
         {
         }
 
+        // MANIPULATORS
+        /// Clear any cached data associated with this iterator, if any.
+        /// The cache might be initialized within `appData`, `options` or
+        /// `attributes` routines.
+        /// TODO: refactor iterators to remove cached data.
+        void clearCache() BSLS_KEYWORD_OVERRIDE
+        {
+            d_appData.reset();
+            d_options.reset();
+            d_messageAttributes.reset();
+        }
+
         bool advance() BSLS_KEYWORD_OVERRIDE
         {
             d_guid = bmqp::MessageGUIDGenerator::testGUID();
             return true;
         }
 
+        // ACCESSORS
         void reset(const bmqt::MessageGUID& where = bmqt::MessageGUID())
             BSLS_KEYWORD_OVERRIDE
         {

@@ -341,6 +341,12 @@ class StorageIterator {
 
     // MANIPULATORS
 
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    virtual void clearCache() = 0;
+
     /// Advance the iterator to the next item. The behavior is undefined
     /// unless `atEnd` returns `false`.  Return `true` if the iterator then
     /// points to a valid item, or `false` if it now is at the end of the

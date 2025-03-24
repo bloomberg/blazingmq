@@ -909,6 +909,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
     }
 
     size_t numMessages = processDeliveryLists(delay, reader);
+    // `reader` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    reader->clearCache();
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(d_redeliveryList.size())) {
         // We only attempt to deliver new messages if we successfully
@@ -967,6 +972,11 @@ QueueEngineUtil_AppState::deliverMessages(bsls::TimeInterval*          delay,
 
         start->advance();
     }
+    // `start` might keep a shared pointer to a memory mapped file area, and
+    // this prevents file set from closing possibly for a very long time.
+    // Make sure to invalidate any cached data within this iterator after use.
+    // TODO: refactor iterators to remove cached data.
+    start->clearCache();
     return numMessages;
 }
 
