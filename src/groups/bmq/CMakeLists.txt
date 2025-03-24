@@ -56,6 +56,13 @@ set(BMQ_PRIVATE_PACKAGES
 )
 target_bmq_style_uor( bmq PRIVATE_PACKAGES ${BMQ_PRIVATE_PACKAGES} )
 
+# Extras package containing the private headers
+bbs_read_metadata(GROUP bmq)
+target_sources(bmqbrkr_plugins PUBLIC FILE_SET HEADERS
+  FILES "${bmq_INCLUDE_FILES}"
+  BASE_DIRS "${bmq_INCLUDE_DIRS}"
+)
+
 if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
   # Search homebrewed keg-only versions of Bison and Flex on macOS.
   execute_process(
