@@ -871,6 +871,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void contextHolder(const bsl::shared_ptr<StopContext>& contextSp,
                        const VoidFunctor&                  action);
 
+    /// Send an error response to the specified `destination`.  The specified
+    /// `request` contains original request.  The specified `category`, `code
+    /// ` and `message` are the details of the response.
     void sendErrorResponse(mqbnet::ClusterNode*                destination,
                            const bmqp_ctrlmsg::ControlMessage& request,
                            bmqp_ctrlmsg::StatusCategory::Value category,
