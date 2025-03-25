@@ -105,6 +105,7 @@ void Cluster::_initializeClusterDefinition(
     partitionCfg.maxDataFileSize()     = 5 * k_GiB;
     partitionCfg.maxJournalFileSize()  = 256 * k_MiB;
     partitionCfg.maxQlistFileSize()    = 16 * k_KiB;
+    partitionCfg.maxCSLFileSize()      = 16 * k_KiB;
     partitionCfg.preallocate()         = false;
     partitionCfg.maxArchivedFileSets() = 0;
     partitionCfg.prefaultPages()       = true;
