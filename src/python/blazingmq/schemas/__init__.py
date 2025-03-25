@@ -35,13 +35,13 @@ from blazingmq.schemas.mqbconf import (
     QueueModeBroadcast,
     QueueModeFanout,
     QueueModePriority,
+    Request,
     Request1,
+    Response,
     Response1,
     Storage,
     StorageDefinition,
     Subscription,
-    Request,
-    Response,
 )
 
 __all__ = [

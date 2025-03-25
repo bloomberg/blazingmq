@@ -5533,6 +5533,8 @@ class PartitionConfig {
     // CONSTANTS
     static const char CLASS_NAME[];
 
+    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
+
     static const bool DEFAULT_INITIALIZER_PREALLOCATE;
 
     static const bool DEFAULT_INITIALIZER_PREFAULT_PAGES;
