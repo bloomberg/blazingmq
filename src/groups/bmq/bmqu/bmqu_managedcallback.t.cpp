@@ -71,6 +71,21 @@ struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
+    IncrementCallback(IncrementCallback& other)
+    : d_calls(other.d_calls)
+    {
+        // NOTHING
+    }
+
+    IncrementCallback&
+    operator=(const IncrementCallback& other) BSLS_KEYWORD_DELETED;
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    IncrementCallback&
+    operator=(IncrementCallback&& other) BSLS_KEYWORD_DELETED;
+#endif
+
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
 };
 
@@ -125,6 +140,16 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
+    ComplexCallback(ComplexCallback& other) BSLS_KEYWORD_DELETED;
+
+    ComplexCallback&
+    operator=(const ComplexCallback& other) BSLS_KEYWORD_DELETED;
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    ComplexCallback& operator=(ComplexCallback&& other) BSLS_KEYWORD_DELETED;
+#endif
+
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
 };
 
@@ -144,6 +169,15 @@ struct BigCallback : public bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
+    BigCallback(BigCallback& other) BSLS_KEYWORD_DELETED;
+
+    BigCallback& operator=(const BigCallback& other) BSLS_KEYWORD_DELETED;
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    BigCallback& operator=(BigCallback&& other) BSLS_KEYWORD_DELETED;
+#endif
+
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
 };
 
@@ -160,6 +194,17 @@ struct DestructorChecker : public bmqu::ManagedCallback::CallbackFunctor {
     {
         d_wasDestructorCalled = true;
     }
+
+    DestructorChecker(DestructorChecker& other) BSLS_KEYWORD_DELETED;
+
+    DestructorChecker&
+    operator=(const DestructorChecker& other) BSLS_KEYWORD_DELETED;
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    DestructorChecker&
+    operator=(DestructorChecker&& other) BSLS_KEYWORD_DELETED;
+#endif
 
     void operator()() const BSLS_KEYWORD_OVERRIDE
     {

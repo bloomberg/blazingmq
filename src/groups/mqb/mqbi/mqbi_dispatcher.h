@@ -1053,10 +1053,12 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     bmqu::ManagedCallback& callback();
     bmqu::ManagedCallback& finalizeCallback();
 
+    DispatcherEvent& setCallback(const Dispatcher::VoidFunctor& value);
     DispatcherEvent&
     setCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value);
     DispatcherEvent&
     setFinalizeCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value);
+    DispatcherEvent& setFinalizeCallback(const Dispatcher::VoidFunctor& value);
 
     DispatcherEvent& setType(DispatcherEventType::Enum value);
     DispatcherEvent& setSource(DispatcherClient* value);
@@ -1069,7 +1071,6 @@ class DispatcherEvent : public DispatcherDispatcherEvent,
     DispatcherEvent& setRejectMessage(const bmqp::RejectMessage& value);
     DispatcherEvent&
     setControlMessage(const bmqp_ctrlmsg::ControlMessage& value);
-    DispatcherEvent& setFinalizeCallback(const Dispatcher::VoidFunctor& value);
     DispatcherEvent& setGuid(const bmqt::MessageGUID& value);
     DispatcherEvent& setIsRelay(bool value);
     DispatcherEvent& setPartitionId(int value);
@@ -1475,9 +1476,23 @@ DispatcherEvent::setOptions(const bsl::shared_ptr<bdlbb::Blob>& value)
 }
 
 inline DispatcherEvent&
+DispatcherEvent::setCallback(const Dispatcher::VoidFunctor& value)
+{
+    d_callback.set(value);
+    return *this;
+}
+
+inline DispatcherEvent&
 DispatcherEvent::setCallback(bslmf::MovableRef<Dispatcher::VoidFunctor> value)
 {
     d_callback.set(value);
+    return *this;
+}
+
+inline DispatcherEvent&
+DispatcherEvent::setFinalizeCallback(const Dispatcher::VoidFunctor& value)
+{
+    d_finalizeCallback.set(value);
     return *this;
 }
 
