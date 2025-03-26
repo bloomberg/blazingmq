@@ -19,21 +19,24 @@
 #include <bmqscm_version.h>
 
 // BDE
+#include <bdlbb_pooledblobbufferfactory.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
 namespace bmqp {
 
 namespace {
+const int k_BLOBBUFFER_SIZE           = 4 * 1024;
 const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
 
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
-void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
-                void*                     arena,
-                bslma::Allocator*         allocator)
+void createBlob(
+    const bsl::shared_ptr<bdlbb::BlobBufferFactory>& bufferFactory_sp,
+    void*                                            arena,
+    bslma::Allocator*                                allocator)
 {
-    new (arena) bdlbb::Blob(bufferFactory, allocator);
+    new (arena) bdlbb::Blob(bufferFactory_sp.get(), allocator);
 }
 
 }  // close unnamed namespace
@@ -41,6 +44,26 @@ void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
 // ------------------
 // class BlobPoolUtil
 // ------------------
+
+BlobPoolUtil::BlobSpPoolSp
+BlobPoolUtil::createBlobPool(bslma::Allocator* allocator)
+{
+    bslma::Allocator* alloc = bslma::Default::allocator(allocator);
+
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> bufferFactory_sp =
+        bsl::allocate_shared<bdlbb::PooledBlobBufferFactory>(
+            alloc,
+            k_BLOBBUFFER_SIZE,
+            bsls::BlockGrowth::BSLS_CONSTANT);
+
+    return bsl::allocate_shared<BlobSpPool>(
+        alloc,
+        bdlf::BindUtil::bind(&createBlob,
+                             bufferFactory_sp,
+                             bdlf::PlaceHolders::_1,   // arena
+                             bdlf::PlaceHolders::_2),  // allocator
+        k_BLOB_POOL_GROWTH_STRATEGY);
+}
 
 BlobPoolUtil::BlobSpPoolSp
 BlobPoolUtil::createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
@@ -51,10 +74,14 @@ BlobPoolUtil::createBlobPool(bdlbb::BlobBufferFactory* blobBufferFactory_p,
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
+    bsl::shared_ptr<bdlbb::BlobBufferFactory> bufferFactory_sp(
+        blobBufferFactory_p,
+        bslstl::SharedPtrNilDeleter());
+
     return bsl::allocate_shared<BlobSpPool>(
         alloc,
         bdlf::BindUtil::bind(&createBlob,
-                             blobBufferFactory_p,
+                             bufferFactory_sp,
                              bdlf::PlaceHolders::_1,   // arena
                              bdlf::PlaceHolders::_2),  // allocator
         k_BLOB_POOL_GROWTH_STRATEGY);
