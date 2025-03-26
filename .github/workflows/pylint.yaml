@@ -1,0 +1,38 @@
+name: Python linter check
+
+on:
+  pull_request:
+    types:
+      - "opened"
+      - "reopened"
+      - "synchronize"
+      - "labeled"
+      - "unlabeled"
+
+jobs:
+  python_linter_check:
+    name: Python Linter Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.4'
+      - name: Install dependencies
+        run: |
+          pip3 install pylint lint-diffs
+          ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
+          echo [pylint] > ${{ github.workspace }}/.lint-diffs
+          echo extensions=.py >> ${{ github.workspace }}/.lint-diffs
+          echo [clang-tidy] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
+          echo [rubocop] >> ${{ github.workspace }}/.lint-diffs
+          echo extensions= >> ${{ github.workspace }}/.lint-diffs
+      - name: Check the whole repo with pylint
+        run: |
+          pylint -j 8 src || true
+      - name: Check the PR with pylint
+        run: |
+          git diff -U0 origin/main | lint-diffs

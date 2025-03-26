@@ -85,7 +85,7 @@ InMemoryStorage::InMemoryStorage(const bmqt::Uri&        uri,
     d_virtualStorageCatalog.setDefaultRda(config.maxDeliveryAttempts());
 
     if (isProxy()) {
-        d_virtualStorageCatalog.setDiscontinuousOrdinals();
+        d_virtualStorageCatalog.configureAsProxy();
     }
 }
 
@@ -173,7 +173,11 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                      const bsl::shared_ptr<bdlbb::Blob>& options,
                      mqbi::DataStreamMessage**           out)
 {
-    const int msgSize = appData->length();
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(appData);
+    BSLS_ASSERT_SAFE(appData->length() == attributes->appDataLen());
+
+    const int    msgSize  = attributes->appDataLen();
     unsigned int refCount = attributes->refCount();
     // Proxies are unaware of the number of apps unlike Replicas.
     // The latter can check for duplicates.
@@ -267,7 +271,8 @@ InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
                        attributes->arrivalTimepoint());
     }
 
-    // This overrides  mqbi::DataStreamMessage::d_numApps with 'refCount'
+    // This can override (increase) 'mqbi::DataStreamMessage::d_numApps' with
+    // 'd_virtualStorageCatalog.numVirtualStorages()'.
     // Proxy can detect duplicates by inspecting returned 'DataStreamMessage'.
     d_virtualStorageCatalog.put(msgGUID,
                                 msgSize,

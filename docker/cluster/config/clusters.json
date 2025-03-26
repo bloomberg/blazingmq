@@ -56,6 +56,7 @@
                 "maxDataFileSize": 268435456,
                 "maxJournalFileSize": 67108864,
                 "maxQlistFileSize": 8388608,
+                "maxCSLFileSize": 8388608,
                 "numPartitions": 1,
                 "preallocate": false,
                 "prefaultPages": false,

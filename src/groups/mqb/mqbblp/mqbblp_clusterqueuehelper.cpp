@@ -4796,17 +4796,12 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
     // received from a peer in the cluster.
 
     if (d_cluster_p->isStopping()) {
-        bmqp_ctrlmsg::ControlMessage response;
-        bmqp_ctrlmsg::Status&        status = response.choice().makeStatus();
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                          mqbi::ClusterErrorCode::e_STOPPING,
+                          k_SELF_NODE_IS_STOPPING);
 
-        response.rId()    = request.rId();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()     = mqbi::ClusterErrorCode::e_STOPPING;
-        status.message()  = k_SELF_NODE_IS_STOPPING;
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
         return;  // RETURN
     }
 
@@ -4823,19 +4818,13 @@ void ClusterQueueHelper::processPeerOpenQueueRequest(
             << requester->description() << "': " << request
             << BMQTSK_ALARMLOG_END;
 
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
+        sendErrorResponse(
+            requester->clusterNode(),
+            request,
+            bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+            0,
+            "At least one of [read|write|admin]Count must be > 0");
 
-        response.rId() = request.rId();
-        response.choice().makeStatus();
-        response.choice().status().category() =
-            bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        response.choice().status().message() =
-            "At least one of [read|write|admin]Count must be > 0";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
         return;  // RETURN
     }
 
@@ -4860,6 +4849,16 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
+
+    if (d_cluster_p->isStopping()) {
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                          mqbi::ClusterErrorCode::e_STOPPING,
+                          k_SELF_NODE_IS_STOPPING);
+
+        return;  // RETURN
+    }
 
     bmqp_ctrlmsg::ConfigureStream  adaptor;
     bmqp_ctrlmsg::ConfigureStream& req = adaptor;
@@ -4894,20 +4893,11 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
                       << "(" << req.qId() << ").";
 
         // Send error response.
-
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        status.code()     = -1;
-        status.message()  = "Unknown queueId";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                          -1,
+                          "Unknown queueId");
 
         return;  // RETURN
     }
@@ -4922,18 +4912,12 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
                       << "received.";
 
         // Send error response
-        bmqp_ctrlmsg::ControlMessage response;
 
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()     = -1;
-        status.message()  = "Unexpected configureQueue request";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                          -1,
+                          "Unexpected configureQueue request");
 
         return;  // RETURN
     }
@@ -4952,19 +4936,11 @@ void ClusterQueueHelper::processPeerConfigureStreamRequest(
                       << req.streamParameters().appId() << ").";
 
         // Send error response.
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        status.code()     = -1;
-        status.message()  = "Unknown queueId";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                          -1,
+                          "Unknown queueId");
 
         return;  // RETURN
     }
@@ -5010,19 +4986,11 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
                       << "' for a queue with unknown id (" << queueId << ")";
 
         // Send error response
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        status.code()     = -1;
-        status.message()  = "Unknown queueId";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                          -1,
+                          "Unknown queueId");
 
         return;  // RETURN
     }
@@ -5037,19 +5005,11 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
                       << "received.";
 
         // Send error response
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()     = -1;
-        status.message()  = "Duplicate closeQueue request";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                          -1,
+                          "Duplicate closeQueue request");
 
         return;  // RETURN
     }
@@ -5069,19 +5029,11 @@ void ClusterQueueHelper::processPeerCloseQueueRequest(
                       << ").";
 
         // Send error response.
-        bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-        bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
-
-        response.rId()               = request.rId();
-        bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
-
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        status.code()     = -1;
-        status.message()  = "Unknown subQueueId";
-
-        d_clusterData_p->messageTransmitter().sendMessage(
-            response,
-            requester->clusterNode());
+        sendErrorResponse(requester->clusterNode(),
+                          request,
+                          bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                          -1,
+                          "Unknown subQueueId");
 
         return;  // RETURN
     }
@@ -5181,6 +5133,26 @@ void ClusterQueueHelper::contextHolder(
         action();
     }
     (void)contextSp;
+}
+
+void ClusterQueueHelper::sendErrorResponse(
+    mqbnet::ClusterNode*                destination,
+    const bmqp_ctrlmsg::ControlMessage& request,
+    bmqp_ctrlmsg::StatusCategory::Value category,
+    int                                 code,
+    const char*                         message)
+{
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
+
+    response.rId()               = request.rId();
+    bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
+
+    status.category() = category;
+    status.code()     = code;
+    status.message()  = message;
+
+    d_clusterData_p->messageTransmitter().sendMessage(response, destination);
 }
 
 void ClusterQueueHelper::processNodeStoppingNotification(

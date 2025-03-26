@@ -275,12 +275,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
     PushStreamIterator& operator=(const PushStreamIterator&);  // = delete
 
   protected:
-    // PRIVATE MANIPULATORS
-
-    /// Clear previous state, if any.  This is required so that new state
-    /// can be loaded in `appData`, `options` or `attributes` routines.
-    void clear();
-
     // PRIVATE ACCESSORS
 
     /// Load the internal state of this iterator instance with the
@@ -324,6 +318,12 @@ class PushStreamIterator : public mqbi::StorageIterator {
     virtual PushStream::Element* element(unsigned int appOrdinal) const;
 
     // MANIPULATORS
+    /// Clear any cached data associated with this iterator, if any.
+    /// The cache might be initialized within `appData`, `options` or
+    /// `attributes` routines.
+    /// TODO: refactor iterators to remove cached data.
+    void clearCache() BSLS_KEYWORD_OVERRIDE;
+
     bool advance() BSLS_KEYWORD_OVERRIDE;
 
     /// If the specified `atEnd` is `true`, reset the iterator to point to the

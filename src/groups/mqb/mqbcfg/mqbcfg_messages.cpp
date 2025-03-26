@@ -3285,9 +3285,6 @@ LogController::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 
 const char PartitionConfig::CLASS_NAME[] = "PartitionConfig";
 
-const bsls::Types::Uint64
-    PartitionConfig::DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE = 67108864;
-
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREALLOCATE = false;
 
 const bool PartitionConfig::DEFAULT_INITIALIZER_PREFAULT_PAGES = false;
@@ -3411,7 +3408,7 @@ PartitionConfig::PartitionConfig(bslma::Allocator* basicAllocator)
 : d_maxDataFileSize()
 , d_maxJournalFileSize()
 , d_maxQlistFileSize()
-, d_maxCSLFileSize(DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE)
+, d_maxCSLFileSize()
 , d_location(basicAllocator)
 , d_archiveLocation(basicAllocator)
 , d_syncConfig()
@@ -3533,7 +3530,7 @@ void PartitionConfig::reset()
     bdlat_ValueTypeFunctions::reset(&d_maxDataFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxJournalFileSize);
     bdlat_ValueTypeFunctions::reset(&d_maxQlistFileSize);
-    d_maxCSLFileSize = DEFAULT_INITIALIZER_MAX_C_S_L_FILE_SIZE;
+    bdlat_ValueTypeFunctions::reset(&d_maxCSLFileSize);
     d_preallocate = DEFAULT_INITIALIZER_PREALLOCATE;
     bdlat_ValueTypeFunctions::reset(&d_maxArchivedFileSets);
     d_prefaultPages   = DEFAULT_INITIALIZER_PREFAULT_PAGES;

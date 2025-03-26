@@ -210,9 +210,6 @@ struct Tester {
                 d_mockDomain.capacityMeter(),
                 d_allocator_p),
             d_allocator_p);
-
-        d_replicatedStorage_mp->setQueue(&d_mockQueue);
-        BSLS_ASSERT_OPT(d_replicatedStorage_mp->queue() == &d_mockQueue);
     }
 
     ~Tester()
@@ -289,12 +286,6 @@ struct Tester {
 
             const int data = i + dataOffset;
 
-            mqbi::StorageMessageAttributes attributes(
-                static_cast<bsls::Types::Uint64>(data),
-                refCount,
-                bmqp::MessagePropertiesInfo::makeNoSchema(),
-                bmqt::CompressionAlgorithmType::e_NONE);
-
             const bsl::shared_ptr<bdlbb::Blob> appDataPtr(
                 new (*bmqtst::TestHelperUtil::allocator())
                     bdlbb::Blob(&d_bufferFactory,
@@ -304,6 +295,13 @@ struct Tester {
             bdlbb::BlobUtil::append(&(*appDataPtr),
                                     reinterpret_cast<const char*>(&data),
                                     static_cast<int>(sizeof(int)));
+
+            mqbi::StorageMessageAttributes attributes(
+                static_cast<bsls::Types::Uint64>(data),
+                refCount,
+                static_cast<unsigned int>(appDataPtr->length()),
+                bmqp::MessagePropertiesInfo::makeNoSchema(),
+                bmqt::CompressionAlgorithmType::e_NONE);
 
             mqbi::StorageResult::Enum rc = d_replicatedStorage_mp->put(
                 &attributes,
@@ -411,8 +409,8 @@ BMQTST_TEST(breathingTest)
     BMQTST_ASSERT_EQ(storage.numBytes(k_NULL_KEY), k_INT64_ZERO);
     BMQTST_ASSERT_EQ(storage.isEmpty(), true);
     BMQTST_ASSERT_EQ(storage.partitionId(), k_PROXY_PARTITION_ID);
-    BMQTST_ASSERT_NE(storage.queue(), static_cast<mqbi::Queue*>(0));
-    // Queue has been set via call to 'setQueue'
+    BMQTST_ASSERT_EQ(storage.queue(), static_cast<mqbi::Queue*>(0));
+    // 'mqbs::DataStore::k_INVALID_PARTITION_ID' does not expose queue
 
     BMQTST_ASSERT_PASS(storage.flushStorage());
     // Does nothing, at the time of this writing

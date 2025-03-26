@@ -189,6 +189,7 @@ struct Tester {
             appDataPtr->setLength(i * 10);
 
             mqbi::StorageMessageAttributes attributes;
+            attributes.setAppDataLen(appDataPtr->length());
             d_storage_mp->put(&attributes, guid, appDataPtr, appDataPtr);
         }
 

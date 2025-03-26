@@ -274,8 +274,8 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
     d_fields.push_back("DataFileOffsetDwords");
 
     *d_printer_mp << rec.d_record.type() << rec.d_record.syncPointType()
-                  << rec.d_record.primaryNodeId() << rec.d_record.sequenceNum()
                   << rec.d_record.primaryLeaseId()
+                  << rec.d_record.sequenceNum() << rec.d_record.primaryNodeId()
                   << rec.d_record.dataFileOffsetDwords();
 }
 
