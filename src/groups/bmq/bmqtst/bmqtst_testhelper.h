@@ -728,16 +728,24 @@
         Test##NAME ::run);                                                    \
     void Test##NAME ::body()
 
-/*Define benchmarking macros*/
-#ifdef BSLS_PLATFORM_OS_LINUX
+/* Define benchmarking macros */
+/// Some Benchmark code uses C++11 features.
+#if defined(BSLS_PLATFORM_OS_LINUX) && (__cplusplus >= 201103L)
+#define BMQTST_BENCHMARK_ENABLED
+#endif
+
+#ifdef BMQTST_BENCHMARK_ENABLED
+
 #define BMQTST_BENCHMARK_WITH_ARGS(BM_NAME, ARGS)                             \
     BENCHMARK(BM_NAME##_GoogleBenchmark)->ARGS;
 #define BMQTST_BENCHMARK(BM_NAME) BENCHMARK(BM_NAME##_GoogleBenchmark);
-#else  // !BSLS_PLATFORM_OS_LINUX
+
+#else  // !BMQTST_BENCHMARK_ENABLED
+
 #define BMQTST_BENCHMARK(BM_NAME) BM_NAME();
 #define BMQTST_BENCHMARK_WITH_ARGS(BM_NAME, ARGS) BM_NAME();
 
-#endif  // BSLS_PLATFORM_OS_LINUX
+#endif  // BMQTST_BENCHMARK_ENABLED
 
 namespace BloombergLP {
 namespace bmqtst {
