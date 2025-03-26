@@ -491,7 +491,7 @@ void Cluster::sendAck(bmqt::AckResult::Enum     status,
             d_throttledDroppedAckMessages,
             BALL_LOG_ERROR << description() << ": dropping ACK message "
                            << "[status: " << status << ", source: '" << source
-                           << "'" << ", correlationId: " << correlationId
+                           << "', correlationId: " << correlationId
                            << ", GUID: " << messageGUID
                            << ", queueId: " << queueId << "] to node "
                            << nodeSession->clusterNode()->nodeDescription()
@@ -3060,13 +3060,7 @@ void Cluster::processClusterControlMessage(
         d_stopRequestsManager_p->processResponse(message);
     } break;
     case MsgChoice::SELECTION_ID_PARTITION_PRIMARY_ADVISORY: {
-        dispatcher()->execute(
-            bdlf::BindUtil::bind(
-                &ClusterOrchestrator::processPartitionPrimaryAdvisory,
-                &d_clusterOrchestrator,
-                message,
-                source),
-            this);
+        // NO-OP
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_LEADER_ADVISORY: {
         dispatcher()->execute(
