@@ -193,11 +193,11 @@ int normalizeConfig(mqbconfm::Domain* defn,
 // ------------
 
 void Domain::onOpenQueueResponse(
-    const bmqp_ctrlmsg::Status&                       status,
-    mqbi::QueueHandle*                                queuehandle,
-    const bmqp_ctrlmsg::OpenQueueResponse&            openQueueResponse,
-    const mqbi::Cluster::OpenQueueConfirmationCookie& confirmationCookie,
-    const mqbi::Domain::OpenQueueCallback&            callback)
+    const bmqp_ctrlmsg::Status&              status,
+    mqbi::QueueHandle*                       queuehandle,
+    const bmqp_ctrlmsg::OpenQueueResponse&   openQueueResponse,
+    const mqbi::OpenQueueConfirmationCookie& confirmationCookie,
+    const mqbi::Domain::OpenQueueCallback&   callback)
 {
     // executed by *ANY* thread
 
@@ -448,11 +448,12 @@ void Domain::openQueue(
                 status.message()  = k_NODE_IS_STOPPING;
             }
 
-            callback(status,
-                     static_cast<mqbi::QueueHandle*>(0),
-                     bmqp_ctrlmsg::OpenQueueResponse(),
-                     mqbi::Cluster::OpenQueueConfirmationCookie());
-            return;  // RETURN
+        mqbi::OpenQueueConfirmationCookie temp;
+        callback(status,
+                 static_cast<mqbi::QueueHandle*>(0),
+                 bmqp_ctrlmsg::OpenQueueResponse(),
+                 temp);
+        return;  // RETURN
         }
 
         ++d_pendingRequests;
