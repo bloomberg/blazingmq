@@ -19,6 +19,7 @@
 // MQB
 #include <mqbcmd_messages.h>
 #include <mqbi_queueengine.h>
+#include <mqbmock_domain.h>
 #include <mqbs_inmemorystorage.h>
 #include <mqbu_capacitymeter.h>
 #include <mqbu_messageguidutil.h>
@@ -122,6 +123,7 @@ struct Tester {
     bdlbb::PooledBlobBufferFactory           d_bufferFactory;
     bsl::vector<bmqt::MessageGUID>           d_guids;
     mqbu::CapacityMeter                      d_capacityMeter;
+    mqbmock::Domain                          d_domain;
     bslma::ManagedPtr<mqbs::InMemoryStorage> d_storage_mp;
 
   public:
@@ -130,6 +132,7 @@ struct Tester {
     : d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_guids(bmqtst::TestHelperUtil::allocator())
     , d_capacityMeter("test", bmqtst::TestHelperUtil::allocator())
+    , d_domain(0, bmqtst::TestHelperUtil::allocator())
     {
         d_capacityMeter.setLimits(k_INT64_MAX, k_INT64_MAX);
 
@@ -142,6 +145,7 @@ struct Tester {
             new (*bmqtst::TestHelperUtil::allocator()) mqbs::InMemoryStorage(
                 bmqt::Uri(uri, bmqtst::TestHelperUtil::allocator()),
                 k_QUEUE_KEY,
+                &d_domain,
                 0,
                 domainCfg,
                 &d_capacityMeter,
