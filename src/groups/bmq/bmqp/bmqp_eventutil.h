@@ -33,6 +33,7 @@
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_protocol.h>
 #include <bmqp_queueid.h>
+#include <bmqp_schemalearner.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -60,14 +61,17 @@ class Event;
 /// `bmqp::QueueId(d_queueId, bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID)`.
 /// Otherwise, the key is `d_subscriptionId`
 struct EventUtilQueueInfo {
-    unsigned int d_subscriptionId;
+    const unsigned int d_subscriptionId;
 
     const bmqp::PushHeader d_header;
     const int              d_applicationDataSize;
 
+    const bmqp::MessageProperties::SchemaPtr d_schema;
+
     EventUtilQueueInfo(unsigned int            subscriptionId,
                        const bmqp::PushHeader& header,
-                       int                     applicationDataSize);
+                       int                     applicationDataSize,
+                       const bmqp::MessageProperties::SchemaPtr schema);
 };
 // =========================
 // struct EventUtilEventInfo
@@ -81,7 +85,7 @@ struct EventUtilEventInfo {
     typedef bsl::vector<EventUtilQueueInfo> Ids;
 
     // PUBLIC DATA
-    bdlbb::Blob d_blob;
+    const bdlbb::Blob d_blob;
 
     Ids d_ids;
 
@@ -146,12 +150,15 @@ struct EventUtil {
 // struct EventUtilQueueInfo
 // --------------------------
 
-inline EventUtilQueueInfo::EventUtilQueueInfo(unsigned int subscriptionId,
-                                              const bmqp::PushHeader& header,
-                                              int appDataSize)
+inline EventUtilQueueInfo::EventUtilQueueInfo(
+    unsigned int                             subscriptionId,
+    const bmqp::PushHeader&                  header,
+    int                                      appDataSize,
+    const bmqp::MessageProperties::SchemaPtr schema)
 : d_subscriptionId(subscriptionId)
 , d_header(header)
 , d_applicationDataSize(appDataSize)
+, d_schema(schema)
 {
     // NOTHING
 }
