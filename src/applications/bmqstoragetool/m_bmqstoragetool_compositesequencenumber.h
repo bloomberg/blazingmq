@@ -57,8 +57,8 @@ class CompositeSequenceNumber {
 
     /// Create CompositeSequenceNumber from the specified `leaseId` and
     /// `sequenceNumber`
-    explicit CompositeSequenceNumber(const bsls::Types::Uint64 leaseId,
-                                     const bsls::Types::Uint64 sequenceNumber);
+    explicit CompositeSequenceNumber(bsls::Types::Uint64 leaseId,
+                                     bsls::Types::Uint64 sequenceNumber);
 
     // MANIPULATORS
 

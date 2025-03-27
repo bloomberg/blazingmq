@@ -34,18 +34,18 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
-// ==========================
+// ======================
 // class CslFileProcessor
-// ==========================
+// ======================
 
 class CslFileProcessor : public CommandProcessor {
   private:
     // PRIVATE DATA
 
     const Parameters*                    d_parameters;
-    const bslma::ManagedPtr<FileManager> d_fileManager;
+    const bslma::ManagedPtr<FileManager> d_fileManager_mp;
     bsl::ostream&                        d_ostream;
-    bsl::shared_ptr<CslSearchResult>     d_searchResult_p;
+    bsl::shared_ptr<CslSearchResult>     d_searchResult_sp;
     bslma::Allocator*                    d_allocator_p;
 
   public:
@@ -55,10 +55,10 @@ class CslFileProcessor : public CommandProcessor {
     /// 'searchResult_p', 'ostream' and 'allocator'.
     explicit CslFileProcessor(
         const Parameters*                       params,
-        bslma::ManagedPtr<FileManager>&         fileManager,
-        const bsl::shared_ptr<CslSearchResult>& searchResult_p,
+        bslma::ManagedPtr<FileManager>&         fileManager_mp,
+        const bsl::shared_ptr<CslSearchResult>& searchResult_sp,
         bsl::ostream&                           ostream,
-        bslma::Allocator*                       allocator);
+        bslma::Allocator*                       allocator = 0);
 
     // MANIPULATORS
 

@@ -2,16 +2,20 @@ BMQStorageTool
 ==============
 
 BMQStorageTool is a command-line tool for analyzing of BlazingMQ Broker storage
-files. It allows to search records in:
-- `journal` file (.bmq_journal) with the set of different filters and output found results in 
-    the short or detail form;
-- `cluster state ledger` (CSL) file (*.bmq_csl) with the set of different filters and output 
-    found results in the short or detail form;  
-    NOTE: For this mode, `journal` file (.bmq_journal) **must not** be passed.
+files.  Using a set of different filters, it allows to search records in:
+- `journal` file (*.bmq_journal).
+- `cluster state ledger` (CSL) file (*.bmq_csl).
+
+The output results can be returned in either short or detailed form.
 
 As an input, either a `journal` file (*.bmq_journal) or `cluster state ledger` 
-(CSL) file (*.bmq_csl) is **always** required. To dump payload, `data` file (*.bmq_data) 
-is required. To filter by queue Uri, cluster state ledger (CSL) file (*.bmq_csl) is required.
+(CSL) file (*.bmq_csl) is **always** required.
+
+In case of `journal` file search:
+ - to dump payload, `data` file (*.bmq_data) is required.
+ - to filter by queue Uri, cluster state ledger (CSL) file (*.bmq_csl) is required.
+ 
+ In case of `cluster state ledger` (CSL) file search, only CSL file (*.bmq_csl) must be passed.
 
 The tool can be found under your `CMAKE` build directory after making 
 the project. From the command-line, there are a few options you can use when
@@ -206,8 +210,11 @@ Example:
 ```
 NOTE: no other filters are allowed with this one. Not suitable for CSL file search.
 
-Filter messages with corresponding composite sequence numbers (defined in form `primaryLeaseId-sequenceNumber` for journal file or `electorTerm-sequenceNumber` for CSL file)
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Filter messages with corresponding composite sequence numbers
+-------------------------------------------------------------
+
+Composite sequence numbers are defined in form `primaryLeaseId-sequenceNumber` for journal file or `electorTerm-sequenceNumber` for CSL file.
+
 Example:
 ```bash
 ./bmqstoragetool.tsk --journal-file=<path> --seqnum=<leaseId1-sequenceNumber_1> --seqnum=<leaseId_N-sequenceNumber_N>

@@ -34,8 +34,8 @@ CompositeSequenceNumber::CompositeSequenceNumber()
 }
 
 CompositeSequenceNumber::CompositeSequenceNumber(
-    const bsls::Types::Uint64 leaseId,
-    const bsls::Types::Uint64 sequenceNumber)
+    bsls::Types::Uint64 leaseId,
+    bsls::Types::Uint64 sequenceNumber)
 : d_compositeSequenceNumber(leaseId, sequenceNumber)
 {
     BSLS_ASSERT(sequenceNumber > 0);

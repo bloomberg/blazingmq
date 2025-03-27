@@ -33,9 +33,9 @@ CslFileProcessor::CslFileProcessor(
     bsl::ostream&                           ostream,
     bslma::Allocator*                       allocator)
 : d_parameters(params)
-, d_fileManager(fileManager)
+, d_fileManager_mp(fileManager)
 , d_ostream(ostream)
-, d_searchResult_p(searchResult_p)
+, d_searchResult_sp(searchResult_p)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -57,7 +57,7 @@ void CslFileProcessor::process()
     // depending on `csl-from-begin` command line option (by default: from last
     // snapshot).
     mqbc::IncoreClusterStateLedgerIterator* iter =
-        d_fileManager->cslFileIterator();
+        d_fileManager_mp->cslFileIterator();
     BSLS_ASSERT(iter->isValid());
     ClusterMessage clusterMessage;
 
@@ -67,71 +67,48 @@ void CslFileProcessor::process()
 
         mqbc::ClusterStateRecordType::Enum rt = iter->header().recordType();
 
-        if (rt == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
-            if (d_parameters->d_processCslRecordTypes.d_snapshot) {
-                // Apply filters
-                if (filters.apply(iter->header(),
-                                  clusterMessage,
-                                  iter->currRecordId().offset(),
-                                  &stopSearch)) {
-                    d_searchResult_p->processRecord(iter->header(),
-                                                    clusterMessage,
-                                                    iter->currRecordId());
-                }
-            }
+        bool checkRecord = false;
+        switch (rt) {
+        case mqbc::ClusterStateRecordType::e_SNAPSHOT: {
+            checkRecord = d_parameters->d_processCslRecordTypes.d_snapshot;
+            break;  // BREAK
         }
-        else if (rt == mqbc::ClusterStateRecordType::e_UPDATE) {
-            if (d_parameters->d_processCslRecordTypes.d_update) {
-                // Apply filters
-                if (filters.apply(iter->header(),
-                                  clusterMessage,
-                                  iter->currRecordId().offset(),
-                                  &stopSearch)) {
-                    d_searchResult_p->processRecord(iter->header(),
-                                                    clusterMessage,
-                                                    iter->currRecordId());
-                }
-            }
+        case mqbc::ClusterStateRecordType::e_UPDATE: {
+            checkRecord = d_parameters->d_processCslRecordTypes.d_update;
+            break;  // BREAK
         }
-        else if (rt == mqbc::ClusterStateRecordType::e_COMMIT) {
-            if (d_parameters->d_processCslRecordTypes.d_commit) {
-                // Apply filters
-                if (filters.apply(iter->header(),
-                                  clusterMessage,
-                                  iter->currRecordId().offset(),
-                                  &stopSearch)) {
-                    d_searchResult_p->processRecord(iter->header(),
-                                                    clusterMessage,
-                                                    iter->currRecordId());
-                }
-            }
+        case mqbc::ClusterStateRecordType::e_COMMIT: {
+            checkRecord = d_parameters->d_processCslRecordTypes.d_commit;
+            break;  // BREAK
         }
-        else if (rt == mqbc::ClusterStateRecordType::e_ACK) {
-            if (d_parameters->d_processCslRecordTypes.d_ack) {
-                // Apply filters
-                if (filters.apply(iter->header(),
-                                  clusterMessage,
-                                  iter->currRecordId().offset(),
-                                  &stopSearch)) {
-                    d_searchResult_p->processRecord(iter->header(),
-                                                    clusterMessage,
-                                                    iter->currRecordId());
-                }
-            }
+        case mqbc::ClusterStateRecordType::e_ACK: {
+            checkRecord = d_parameters->d_processCslRecordTypes.d_ack;
+            break;  // BREAK
         }
-        else {
-            BSLS_ASSERT(false && "Unknown record type");
+        default: BSLS_ASSERT(false && "Unknown record type");
+        }
+
+        if (checkRecord) {
+            // Apply filters
+            if (filters.apply(iter->header(),
+                              clusterMessage,
+                              iter->currRecordId().offset(),
+                              &stopSearch)) {
+                d_searchResult_sp->processRecord(iter->header(),
+                                                 clusterMessage,
+                                                 iter->currRecordId());
+            }
         }
 
         // Move to the next record
         const int rc = iter->next();
         if (stopSearch || rc == 1) {
             // stopSearch is set or end iterator reached
-            d_searchResult_p->outputResult();
+            d_searchResult_sp->outputResult();
             return;  // RETURN
         }
         if (rc < 0) {
-            d_searchResult_p->outputResult();
+            d_searchResult_sp->outputResult();
             d_ostream
                 << "CSL file is either corrupted or incomplete at offset="
                 << iter->currRecordId().offset()

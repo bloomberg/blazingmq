@@ -52,10 +52,13 @@ typedef bsl::unordered_map<int, bsls::Types::Uint64> CslUpdateChoiceMap;
 struct CslRecordCount {
     /// Counter of snapshot records.
     bsls::Types::Uint64 d_snapshotCount;
+
     /// Counter of update records.
     bsls::Types::Uint64 d_updateCount;
+
     /// Counter of commit records.
     bsls::Types::Uint64 d_commitCount;
+
     /// Counter of ack records.
     bsls::Types::Uint64 d_ackCount;
 
@@ -94,7 +97,7 @@ class CslRecordPrinter {
 
   public:
     // CREATORS
-    CslRecordPrinter(bsl::ostream& stream, bslma::Allocator* allocator);
+    explicit CslRecordPrinter(bsl::ostream& stream, bslma::Allocator* allocator = 0);
 
     // PUBLIC METHODS
 
@@ -129,13 +132,12 @@ CslRecordPrinter<PRINTER_TYPE>::CslRecordPrinter(std::ostream&     stream,
 
 template <typename PRINTER_TYPE>
 void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
-    // const bmqp_ctrlmsg::ClusterMessage&   rec,
     const bsl::string&                    recStr,
     const mqbc::ClusterStateRecordHeader& header,
     const mqbsi::LedgerRecordId&          recId)
 {
     d_fields.clear();
-    d_fields.reserve(9);  // max number of fields
+    d_fields.reserve(10);  // max number of fields
     d_fields.push_back("RecordType");
     d_fields.push_back("Offset");
     d_fields.push_back("LogId");

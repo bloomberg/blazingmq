@@ -90,6 +90,14 @@ void printQueueInfo(bsl::ostream&     ostream,
 
 }  // close unnamed namespace
 
+// ================
+// class CslPrinter
+// ================
+CslPrinter::~CslPrinter()
+{
+    // NOTHING
+}
+
 // =============================
 // class HumanReadableCslPrinter
 // =============================
@@ -103,7 +111,8 @@ class HumanReadableCslPrinter : public CslPrinter {
 
   public:
     // CREATORS
-    HumanReadableCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    explicit HumanReadableCslPrinter(bsl::ostream&     os,
+                                     bslma::Allocator* allocator = 0)
     : d_ostream(os)
     , d_allocator_p(allocator)
     {
@@ -330,7 +339,7 @@ class JsonCslPrinter : public CslPrinter {
   public:
     // CREATORS
 
-    JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator)
+    explicit JsonCslPrinter(bsl::ostream& os, bslma::Allocator* allocator = 0)
     : d_ostream(os)
     , d_allocator_p(allocator)
     , d_braceOpen(false)
