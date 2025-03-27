@@ -58,12 +58,12 @@ void increment(size_t* calls)
 }
 
 struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
-    size_t& d_calls;
+    size_t* d_calls_p;
 
-    explicit IncrementCallback(size_t& calls)
-    : d_calls(calls)
+    explicit IncrementCallback(size_t* calls)
+    : d_calls_p(calls)
     {
-        // NOTHING
+        BSLS_ASSERT_SAFE(calls);
     }
 
     ~IncrementCallback() BSLS_KEYWORD_OVERRIDE
@@ -71,22 +71,7 @@ struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
-    IncrementCallback(IncrementCallback& other)
-    : d_calls(other.d_calls)
-    {
-        // NOTHING
-    }
-
-    IncrementCallback&
-    operator=(const IncrementCallback& other) BSLS_KEYWORD_DELETED;
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    IncrementCallback&
-    operator=(IncrementCallback&& other) BSLS_KEYWORD_DELETED;
-#endif
-
-    void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
+    void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
 
 void complexFunction(size_t*                calls,
@@ -103,7 +88,7 @@ void complexFunction(size_t*                calls,
 }
 
 struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
-    size_t&             d_calls;
+    size_t*             d_calls_p;
     bsls::Types::Uint64 d_arg1;
     bsls::Types::Uint64 d_arg2;
     bsls::Types::Uint64 d_arg3;
@@ -113,7 +98,7 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
     bsls::Types::Uint64 d_arg7;
     bsls::Types::Uint64 d_arg8;
 
-    explicit ComplexCallback(size_t&             calls,
+    explicit ComplexCallback(size_t*             calls,
                              bsls::Types::Uint64 arg1,
                              bsls::Types::Uint64 arg2,
                              bsls::Types::Uint64 arg3,
@@ -122,7 +107,7 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
                              bsls::Types::Uint64 arg6,
                              bsls::Types::Uint64 arg7,
                              bsls::Types::Uint64 arg8)
-    : d_calls(calls)
+    : d_calls_p(calls)
     , d_arg1(arg1)
     , d_arg2(arg2)
     , d_arg3(arg3)
@@ -132,7 +117,7 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
     , d_arg7(arg7)
     , d_arg8(arg8)
     {
-        // NOTHING
+        BSLS_ASSERT_SAFE(calls);
     }
 
     ~ComplexCallback() BSLS_KEYWORD_OVERRIDE
@@ -140,28 +125,18 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
-    ComplexCallback(ComplexCallback& other) BSLS_KEYWORD_DELETED;
-
-    ComplexCallback&
-    operator=(const ComplexCallback& other) BSLS_KEYWORD_DELETED;
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    ComplexCallback& operator=(ComplexCallback&& other) BSLS_KEYWORD_DELETED;
-#endif
-
-    void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
+    void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
 
 struct BigCallback : public bmqu::ManagedCallback::CallbackFunctor {
-    size_t& d_calls;
+    size_t* d_calls_p;
     char    d_data[4096];
 
-    explicit BigCallback(size_t& calls)
-    : d_calls(calls)
+    explicit BigCallback(size_t* calls)
+    : d_calls_p(calls)
     , d_data()
     {
-        // NOTHING
+        BSLS_ASSERT_SAFE(calls);
     }
 
     ~BigCallback() BSLS_KEYWORD_OVERRIDE
@@ -169,42 +144,24 @@ struct BigCallback : public bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 
-    BigCallback(BigCallback& other) BSLS_KEYWORD_DELETED;
-
-    BigCallback& operator=(const BigCallback& other) BSLS_KEYWORD_DELETED;
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    BigCallback& operator=(BigCallback&& other) BSLS_KEYWORD_DELETED;
-#endif
-
-    void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
+    void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
 
 struct DestructorChecker : public bmqu::ManagedCallback::CallbackFunctor {
-    bool& d_wasDestructorCalled;
+    bool* d_wasDestructorCalled_p;
 
-    explicit DestructorChecker(bool& wasDestructorCalled)
-    : d_wasDestructorCalled(wasDestructorCalled)
+    explicit DestructorChecker(bool* wasDestructorCalled)
+    : d_wasDestructorCalled_p(wasDestructorCalled)
     {
-        wasDestructorCalled = false;
+        BSLS_ASSERT_SAFE(wasDestructorCalled);
+
+        *d_wasDestructorCalled_p = false;
     }
 
     ~DestructorChecker() BSLS_KEYWORD_OVERRIDE
     {
-        d_wasDestructorCalled = true;
+        *d_wasDestructorCalled_p = true;
     }
-
-    DestructorChecker(DestructorChecker& other) BSLS_KEYWORD_DELETED;
-
-    DestructorChecker&
-    operator=(const DestructorChecker& other) BSLS_KEYWORD_DELETED;
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    DestructorChecker&
-    operator=(DestructorChecker&& other) BSLS_KEYWORD_DELETED;
-#endif
 
     void operator()() const BSLS_KEYWORD_OVERRIDE
     {
@@ -303,7 +260,7 @@ static void test1_ManagedCallback()
 
     // 1. Basic create, call, reset
     size_t calls1 = 0;
-    callback.createInplace<IncrementCallback>(calls1);
+    callback.createInplace<IncrementCallback>(&calls1);
     BMQTST_ASSERT(!callback.empty());
 
     callback();
@@ -314,7 +271,7 @@ static void test1_ManagedCallback()
 
     // 2. Reuse callback and make multiple calls
     size_t calls2 = 0;
-    callback.createInplace<IncrementCallback>(calls2);
+    callback.createInplace<IncrementCallback>(&calls2);
     BMQTST_ASSERT(!callback.empty());
 
     for (size_t i = 1; i <= 5; ++i) {
@@ -341,7 +298,7 @@ static void test1_ManagedCallback()
 
     // 4. Big functor object support
     size_t calls4 = 0;
-    callback.createInplace<BigCallback>(calls4);
+    callback.createInplace<BigCallback>(&calls4);
     BMQTST_ASSERT(!callback.empty());
 
     callback();
@@ -352,7 +309,7 @@ static void test1_ManagedCallback()
 
     // 5. Multiple arguments support
     size_t calls5 = 0;
-    callback.createInplace<ComplexCallback>(calls5,
+    callback.createInplace<ComplexCallback>(&calls5,
                                             args[0],
                                             args[1],
                                             args[2],
@@ -373,13 +330,13 @@ static void test1_ManagedCallback()
     size_t calls6 = 0;
     for (size_t i = 1; i <= 100000; i++) {
         if (i % 3 == 0) {
-            callback.createInplace<IncrementCallback>(calls6);
+            callback.createInplace<IncrementCallback>(&calls6);
         }
         else if (i % 3 == 1) {
-            callback.createInplace<BigCallback>(calls6);
+            callback.createInplace<BigCallback>(&calls6);
         }
         else {
-            callback.createInplace<ComplexCallback>(calls6,
+            callback.createInplace<ComplexCallback>(&calls6,
                                                     args[0],
                                                     args[1],
                                                     args[2],
@@ -403,7 +360,7 @@ static void test1_ManagedCallback()
     {
         bmqu::ManagedCallback scopedCallback(
             bmqtst::TestHelperUtil::allocator());
-        scopedCallback.createInplace<DestructorChecker>(wasDestructorCalled);
+        scopedCallback.createInplace<DestructorChecker>(&wasDestructorCalled);
         BMQTST_ASSERT(!scopedCallback.empty());
 
         // `scopedCallback` is destructed on exiting the scope
@@ -423,7 +380,7 @@ static void testN1_ManagedCallbackPerformance()
     // Warmup
     for (size_t i = 0; i < k_ITERS_NUM; i++) {
         bmqu::ManagedCallback callback(bmqtst::TestHelperUtil::allocator());
-        callback.createInplace<IncrementCallback>(calls);
+        callback.createInplace<IncrementCallback>(&calls);
         callback.reset();
     }
 
@@ -446,7 +403,7 @@ static void testN1_ManagedCallbackPerformance()
     }
     {
         bmqu::ManagedCallback callback(bmqtst::TestHelperUtil::allocator());
-        callback.createInplace<IncrementCallback>(calls);
+        callback.createInplace<IncrementCallback>(&calls);
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
@@ -460,7 +417,7 @@ static void testN1_ManagedCallbackPerformance()
     }
     {
         ManagedCallbackBuffer callback;
-        new (callback.place<IncrementCallback>()) IncrementCallback(calls);
+        new (callback.place<IncrementCallback>()) IncrementCallback(&calls);
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
@@ -501,7 +458,7 @@ static void testN1_ManagedCallbackPerformance()
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
             cbs[i] = new bmqu::ManagedCallback(
                 bmqtst::TestHelperUtil::allocator());
-            cbs[i]->createInplace<IncrementCallback>(calls);
+            cbs[i]->createInplace<IncrementCallback>(&calls);
         }
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -522,7 +479,7 @@ static void testN1_ManagedCallbackPerformance()
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
             cbs[i] = new ManagedCallbackBuffer();
-            new (cbs[i]->place<IncrementCallback>()) IncrementCallback(calls);
+            new (cbs[i]->place<IncrementCallback>()) IncrementCallback(&calls);
         }
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -560,7 +517,7 @@ static void testN1_ManagedCallbackPerformance()
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
-            callback.createInplace<IncrementCallback>(calls);
+            callback.createInplace<IncrementCallback>(&calls);
             callback();
             callback.reset();
         }
@@ -575,7 +532,8 @@ static void testN1_ManagedCallbackPerformance()
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
-            new (callback.place<IncrementCallback>()) IncrementCallback(calls);
+            new (callback.place<IncrementCallback>())
+                IncrementCallback(&calls);
             callback();
             callback.reset();
         }
@@ -618,7 +576,7 @@ static void testN1_ManagedCallbackPerformance()
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
-            callback.createInplace<ComplexCallback>(calls,
+            callback.createInplace<ComplexCallback>(&calls,
                                                     args[0],
                                                     args[1],
                                                     args[2],
@@ -641,7 +599,7 @@ static void testN1_ManagedCallbackPerformance()
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
-            new (callback.place<ComplexCallback>()) ComplexCallback(calls,
+            new (callback.place<ComplexCallback>()) ComplexCallback(&calls,
                                                                     args[0],
                                                                     args[1],
                                                                     args[2],

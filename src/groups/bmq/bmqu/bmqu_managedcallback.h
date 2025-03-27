@@ -35,12 +35,13 @@
 // callback type.
 //..
 //  struct ExampleCallback : public bmqu::ManagedCallback::CallbackFunctor {
-//      size_t& d_calls;
+//      size_t* d_calls_p;
 //
-//      explicit ExampleCallback(size_t& calls)
-//      : d_calls(calls)
+//      explicit ExampleCallback(size_t* calls)
+//      : d_calls_p(calls)
 //      {
-//          // NOTHING
+//          // PRECONDITIONS
+//          BSLS_ASSERT_SAFE(calls);
 //      }
 //
 //      ~ExampleCallback() BSLS_KEYWORD_OVERRIDE
@@ -48,7 +49,7 @@
 //          // NOTHING
 //      }
 //
-//      void operator()() const BSLS_KEYWORD_OVERRIDE { ++d_calls; }
+//      void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 // };
 //..
 //
@@ -58,7 +59,7 @@
 //  size_t                counter = 0;
 //
 //  // A buffer will be reallocated here once to store the callback:
-//  callback.createInplace<ExampleCallback>(counter);
+//  callback.createInplace<ExampleCallback>(&counter);
 //  for (int i = 0; i < 5; ++i) {
 //      callback();
 //  }
@@ -69,11 +70,19 @@
 //      // There will be no buffer reallocations on these calls, because we
 //      // reuse the same `bmqu::ManagedCallback` object, and it has sufficient
 //      // buffer capacity to store `ExampleCallback`:
-//      callback.createInplace<ExampleCallback>(counter);
+//      callback.createInplace<ExampleCallback>(&counter);
 //      callback();
 //      callback.reset();
 //  }
 //..
+//
+// NOTE: the need to support cpp03 for Solaris makes it impossible to call
+//       `createInplace` with classes that expect non-const references in
+//       constructor arguments.  This is due to cpp03 compatibility code
+//       passing arguments as (const &) when perfect forwarding with `&&`
+//       is not available.
+//       Consider passing output arguments with equivalent code using pointers
+//       to mutable variables instead.
 //
 
 // BDE
