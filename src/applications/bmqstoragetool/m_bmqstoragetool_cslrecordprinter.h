@@ -97,7 +97,8 @@ class CslRecordPrinter {
 
   public:
     // CREATORS
-    explicit CslRecordPrinter(bsl::ostream& stream, bslma::Allocator* allocator = 0);
+    explicit CslRecordPrinter(bsl::ostream&     stream,
+                              bslma::Allocator* allocator = 0);
 
     // PUBLIC METHODS
 
