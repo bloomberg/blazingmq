@@ -244,11 +244,12 @@ inline char* ManagedCallback::place()
     static_assert(
         bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
 #else
-    BSLS_ASSERT_SAFE(
-        bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
+    typedef bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE> IsBase;
+    BSLS_ASSERT_SAFE(IsBase::value);
 #endif
 
-    d_callbackBuffer.resize(sizeof(CALLBACK_TYPE));
+    d_callbackBuffer.resize(
+        bsls::AlignmentUtil::roundUpToMaximalAlignment(sizeof(CALLBACK_TYPE)));
     d_empty = false;
     return d_callbackBuffer.data();
 }
