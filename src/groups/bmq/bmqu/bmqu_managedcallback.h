@@ -89,12 +89,13 @@
 #include <bsl_functional.h>
 #include <bsl_utility.h>  // bsl::forward
 #include <bsl_vector.h>
+#include <bslmf_isaccessiblebaseof.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
 // Include version that can be compiled with C++03
-// Generated on Thu Feb 20 15:21:39 2025
+// Generated on Thu Mar 27 15:28:14 2025
 // Command line: sim_cpp11_features.pl bmqu_managedcallback.h
 #define COMPILING_BMQU_MANAGEDCALLBACK_H
 #include <bmqu_managedcallback_cpp03.h>
@@ -237,12 +238,16 @@ inline char* ManagedCallback::place()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_empty);
-    /// The compilation will fail here on the outer `static_cast` if we
-    /// don't provide a type that is inherited from the base
-    /// `CallbackFunctor` type.
-    /// TODO: replace by static_assert on C++ standard update
-    BSLS_ASSERT_SAFE(0 == static_cast<CALLBACK_TYPE*>(
-                              reinterpret_cast<CallbackFunctor*>(0)));
+
+    /// Ensure that CALLBACK_TYPE inherits from CallbackFunctor interface.
+#if __cplusplus >= 201103L
+    static_assert(
+        bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
+#else
+    BSLS_ASSERT_SAFE(
+        bslmf::IsAccessibleBaseOf<CallbackFunctor, CALLBACK_TYPE>::value);
+#endif
+
     d_callbackBuffer.resize(sizeof(CALLBACK_TYPE));
     d_empty = false;
     return d_callbackBuffer.data();
