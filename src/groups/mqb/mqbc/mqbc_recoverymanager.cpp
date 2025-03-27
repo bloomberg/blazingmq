@@ -122,6 +122,7 @@ RecoveryManager::RecoveryManager(
     const mqbs::DataStoreConfig&     dataStoreConfig,
     bslma::Allocator*                allocator)
 : d_allocator_p(allocator)
+, d_qListAware(clusterConfig.clusterAttributes().doesFSMwriteQLIST())
 , d_blobSpPool_p(&clusterData.blobSpPool())
 , d_clusterConfig(clusterConfig)
 , d_dataStoreConfig(dataStoreConfig)
@@ -890,7 +891,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
                                          partitionId,
                                          d_dataStoreConfig,
                                          partitionDesc.str(),
-                                         false,  // needQList
+                                         d_qListAware,  // needQList
                                          d_allocator_p);
     if (rc != 0) {
         return rc;  // RETURN
@@ -913,14 +914,19 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
 
-    BALL_LOG_INFO << d_clusterData.identity().description() << " Partition ["
-                  << partitionId
-                  << "]: " << "Created recovery data file store set: "
-                  << recoveryCtx.d_recoveryFileSet
-                  << ", journal file position: "
-                  << recoveryCtx.d_journalFilePosition
-                  << ", data file position: "
-                  << recoveryCtx.d_dataFilePosition;
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << d_clusterData.identity().description() << " Partition ["
+            << partitionId << "]: " << "Created recovery data file store set: "
+            << recoveryCtx.d_recoveryFileSet
+            << ", journal file position: " << recoveryCtx.d_journalFilePosition
+            << ", data file position: " << recoveryCtx.d_dataFilePosition;
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM << ", qlist file position: "
+                                   << fileSetSp->d_qlistFilePosition;
+        }
+    }
 
     return 0;
 }
