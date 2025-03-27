@@ -42,7 +42,7 @@ namespace mqbplug {
 /// authentication, ...)
 struct PluginType {
     // TYPES
-    enum Enum { e_STATS_CONSUMER };
+    enum Enum { e_STATS_CONSUMER = 0, e_AUTHENTICATOR = 1 };
 
     // CLASS METHODS
 
