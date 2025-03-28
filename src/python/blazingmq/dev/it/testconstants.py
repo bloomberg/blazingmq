@@ -58,6 +58,7 @@ URI_FANOUT_SC_2_FOO = f"bmq://{DOMAIN_FANOUT_SC}/{TEST_QUEUE_2}?id=foo"
 URI_FANOUT_SC_2_BAR = f"bmq://{DOMAIN_FANOUT_SC}/{TEST_QUEUE_2}?id=bar"
 URI_FANOUT_SC_2_BAZ = f"bmq://{DOMAIN_FANOUT_SC}/{TEST_QUEUE_2}?id=baz"
 
+
 class DomainUrls(NamedTuple):
     domain_priority: str
     domain_fanout: str

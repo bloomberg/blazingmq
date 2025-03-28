@@ -166,7 +166,7 @@ def test_migrate_domain_to_another_cluster(
     params=[
         pytest.param(
             functools.partial(single_node_cluster_config, mode=Mode.LEGACY),
-            id=f"single_node_switch_fsm",
+            id="single_node_switch_fsm",
             marks=[
                 pytest.mark.integrationtest,
                 pytest.mark.quick_integrationtest,
