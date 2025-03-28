@@ -1211,7 +1211,7 @@ class TweakFactory:
 
             class MaxCslfileSize(metaclass=TweakMetaclass):
 
-                def __call__(self, value: typing.Union[int, NoneType]) -> Callable: ...
+                def __call__(self, value: int) -> Callable: ...
 
             max_cslfile_size = MaxCslfileSize()
 

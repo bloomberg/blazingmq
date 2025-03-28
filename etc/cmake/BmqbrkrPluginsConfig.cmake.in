@@ -1,0 +1,17 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+if(NOT TARGET blazingmq::bmqbrkr_plugins)
+    if(NOT WIN32)
+        find_dependency(Threads)
+    endif()
+
+    foreach(dep @bmqbrkr_plugins_deps@)
+        find_dependency(${dep})
+    endforeach()
+
+    include(${CMAKE_CURRENT_LIST_DIR}/BmqbrkrPluginsTargets.cmake)
+endif()
+
+check_required_components(BmqbrkrPlugins)
