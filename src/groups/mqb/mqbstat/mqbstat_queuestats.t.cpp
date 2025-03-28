@@ -596,7 +596,7 @@ static void test5_appIdMetrics()
                                  isLeader,
                                  isCSL,
                                  isFSM,
-                                 false, // doesFSMWriteQLIST
+                                 false,  // doesFSMWriteQLIST
                                  clusterNodeDefs);
     mqbmock::Domain  mockDomain(&mockCluster,
                                bmqtst::TestHelperUtil::allocator());
