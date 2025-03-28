@@ -245,8 +245,8 @@ cmake -B "${DIR_BUILD_BMQ}" -S "${DIR_SRC_BMQ}" -G Ninja \
     -DBDE_BUILD_TARGET_CPP17=ON \
     -DCMAKE_PREFIX_PATH="${DIR_SRCS_EXT}/bde-tools/BdeBuildSystem" \
     -DBDE_BUILD_TARGET_SAFE=1 "${CMAKE_OPTIONS[@]}"
-cmake --build "${DIR_BUILD_BMQ}" -j${PARALLELISM} \
-      --target all.t -v --clean-first
+cmake --build "${DIR_BUILD_BMQ}" --parallel ${PARALLELISM} \
+      --target all.t --clean-first
 
 # Create testing script
 envcfgquery() {
