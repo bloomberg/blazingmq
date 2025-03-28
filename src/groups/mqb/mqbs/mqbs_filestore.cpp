@@ -948,7 +948,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
     bmqu::MemOutStream errorDesc;
     recoveryFileSet.setJournalFileSize(d_config.maxJournalFileSize())
         .setDataFileSize(d_config.maxDataFileSize());
-    recoveryFileSet.setQlistFileSize(d_qListAware ? d_config.maxQlistFileSize() : 0);
+    recoveryFileSet.setQlistFileSize(d_qListAware ? d_config.maxQlistFileSize()
+                                                  : 0);
     rc = FileStoreUtil::openFileSetWriteMode(
         errorDesc,
         recoveryFileSet,
@@ -970,7 +971,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
 
     fileSetSp->d_journalFilePosition = journalFileOffset;
     fileSetSp->d_dataFilePosition    = dataFileOffset;
-    fileSetSp->d_qlistFilePosition = d_qListAware ? qlistFileOffset : 0;
+    fileSetSp->d_qlistFilePosition   = d_qListAware ? qlistFileOffset : 0;
 
     // Check if we need to write a sync point in 1-node cluster.  It is
     // important to set the file positions (done above) before this.
@@ -1002,8 +1003,10 @@ int FileStore::openInRecoveryMode(bsl::ostream&          errorDescription,
         syncPoint.sequenceNum()          = ++d_sequenceNum;
         syncPoint.dataFileOffsetDwords() = fileSetSp->d_dataFilePosition /
                                            bmqp::Protocol::k_DWORD_SIZE;
-        syncPoint.qlistFileOffsetWords() = d_qListAware ? fileSetSp->d_qlistFilePosition /
-                                               bmqp::Protocol::k_WORD_SIZE : 0;
+        syncPoint.qlistFileOffsetWords() =
+            d_qListAware
+                ? fileSetSp->d_qlistFilePosition / bmqp::Protocol::k_WORD_SIZE
+                : 0;
 
         rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
                                     true,
@@ -1705,7 +1708,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             syncPoint.primaryLeaseId()                  = rec.primaryLeaseId();
             syncPoint.sequenceNum()                     = rec.sequenceNum();
             syncPoint.dataFileOffsetDwords() = rec.dataFileOffsetDwords();
-            syncPoint.qlistFileOffsetWords() = d_qListAware ? rec.qlistFileOffsetWords() : 0;
+            syncPoint.qlistFileOffsetWords() = d_qListAware
+                                                   ? rec.qlistFileOffsetWords()
+                                                   : 0;
             spoPair.offset() = jit->recordOffset();
 
             d_syncPoints.push_front(spoPair);
@@ -2045,7 +2050,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                             BMQTSK_ALARMLOG_ALARM("RECOVERY")
                                 << partitionDesc() << "Encountered a QueueOp ["
                                 << queueOpType << "] record for queueKey ["
-                                << queueKey << "], offset: " << jit->recordOffset()
+                                << queueKey
+                                << "], offset: " << jit->recordOffset()
                                 << ", index: " << jit->recordIndex()
                                 << ", with QueueUri mismatch. Expected URI ["
                                 << qinfo.canonicalQueueUri()
@@ -2056,19 +2062,20 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     }
                     else {
                         // Update 'qinfo'.  If queue was in fanout mode *and* a
-                        // QueueOp.ADDITION record was encountered earlier in the
-                        // backward iteration during 2nd pass, 'qinfo' will already
-                        // contain the uri field.
+                        // QueueOp.ADDITION record was encountered earlier in
+                        // the backward iteration during 2nd pass, 'qinfo' will
+                        // already contain the uri field.
 
                         if (!qinfo.canonicalQueueUri().empty() &&
                             qinfo.canonicalQueueUri() != uri) {
-                            // Must have seen a QueueOp.ADDITION record earlier but
-                            // uri *must* match.
+                            // Must have seen a QueueOp.ADDITION record earlier
+                            // but uri *must* match.
 
                             BMQTSK_ALARMLOG_ALARM("RECOVERY")
                                 << partitionDesc() << "Encountered a QueueOp ["
                                 << queueOpType << "] record for queueKey ["
-                                << queueKey << "], offset: " << jit->recordOffset()
+                                << queueKey
+                                << "], offset: " << jit->recordOffset()
                                 << ", index: " << jit->recordIndex()
                                 << ", with QueueUri mismatch. Expected URI ["
                                 << qinfo.canonicalQueueUri()
@@ -2108,27 +2115,38 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
                             if (d_isFSMWorkflow) {
-                                DataStoreConfigQueueInfo::AppInfos::const_iterator qinfoAppCit = qinfo.appIdKeyPairs().find(cit->second);
-                                if (qinfoAppCit == qinfo.appIdKeyPairs().cend() || qinfoAppCit->second != cit->first) {
+                                DataStoreConfigQueueInfo::AppInfos::
+                                    const_iterator qinfoAppCit =
+                                        qinfo.appIdKeyPairs().find(
+                                            cit->second);
+                                if (qinfoAppCit ==
+                                        qinfo.appIdKeyPairs().cend() ||
+                                    qinfoAppCit->second != cit->first) {
                                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
-                                        << partitionDesc() << "Encountered a QueueOp ["
-                                        << queueOpType << "] record for queueKey ["
-                                        << queueKey << "], offset: " << jit->recordOffset()
+                                        << partitionDesc()
+                                        << "Encountered a QueueOp ["
+                                        << queueOpType
+                                        << "] record for queueKey ["
+                                        << queueKey
+                                        << "], offset: " << jit->recordOffset()
                                         << ", index: " << jit->recordIndex()
-                                        << ", with appId/appKey mismatch. Expected appId/appKey ["
-                                        << qinfoAppCit->second << ", " << qinfoAppCit->first
-                                        << "], recovered appId/appKey [" << cit->first << ", " << cit->second << "]."
-                                        << BMQTSK_ALARMLOG_END;
+                                        << ", with appId/appKey mismatch. "
+                                           "Expected appId/appKey ["
+                                        << qinfoAppCit->second << ", "
+                                        << qinfoAppCit->first
+                                        << "], recovered appId/appKey ["
+                                        << cit->first << ", " << cit->second
+                                        << "]." << BMQTSK_ALARMLOG_END;
                                     return rc_APP_ID_KEY_MISMATCH;  // RETURN
                                 }
                             }
                             else {
-                                // This appKey is not deleted.  Add it to the list
-                                // of 'alive' appId/appKey pairs for this queue.
-                                // Note that we don't check for appId/appKey
-                                // uniqueness here.  That check is done in
-                                // StorageMgr because we have recovered all
-                                // appId/appKey pairs by that time.
+                                // This appKey is not deleted.  Add it to the
+                                // list of 'alive' appId/appKey pairs for this
+                                // queue. Note that we don't check for
+                                // appId/appKey uniqueness here.  That check is
+                                // done in StorageMgr because we have recovered
+                                // all appId/appKey pairs by that time.
 
                                 qinfo.addAppInfo(cit->first, cit->second);
                             }
@@ -3161,8 +3179,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
     syncPt.sequenceNum()          = ++d_sequenceNum;
     syncPt.dataFileOffsetDwords() = activeFileSet->d_dataFilePosition /
                                     bmqp::Protocol::k_DWORD_SIZE;
-    syncPt.qlistFileOffsetWords() = d_qListAware ? activeFileSet->d_qlistFilePosition /
-                                        bmqp::Protocol::k_WORD_SIZE : 0;
+    syncPt.qlistFileOffsetWords() = d_qListAware
+                                        ? activeFileSet->d_qlistFilePosition /
+                                              bmqp::Protocol::k_WORD_SIZE
+                                        : 0;
 
     rc = issueSyncPointInternal(SyncPointType::e_ROLLOVER, true, &syncPt);
     if (0 != rc) {
@@ -3893,7 +3913,9 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum type,
                           2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
     }
 
-    BALL_LOG_ERROR << "Henshin! d_primaryLeaseId: " << d_primaryLeaseId << ", d_sequenceNum: " << d_sequenceNum << ", syncPt " << *spptr;
+    BALL_LOG_ERROR << "Henshin! d_primaryLeaseId: " << d_primaryLeaseId
+                   << ", d_sequenceNum: " << d_sequenceNum << ", syncPt "
+                   << *spptr;
 
     // Write to self.
     int rc = writeSyncPointRecord(*spptr, type);
@@ -4736,7 +4758,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
             syncPoint.primaryLeaseId()       = jOpRec->primaryLeaseId();
             syncPoint.sequenceNum()          = jOpRec->sequenceNum();
             syncPoint.dataFileOffsetDwords() = jOpRec->dataFileOffsetDwords();
-            syncPoint.qlistFileOffsetWords() = d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
+            syncPoint.qlistFileOffsetWords() =
+                d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
             spoPair.offset() = recordOffset;
 
             // Ensure that replica's DATA file is in sync with that of primary.
@@ -5939,8 +5962,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         .setTimestamp(timestamp);
     queueOpRec->setQueueKey(queueKey).setType(
         isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
-    queueOpRec->setQueueUriRecordOffsetWords(d_qListAware ? (qlistOffset /
-                                                 bmqp::Protocol::k_WORD_SIZE) : 0);
+    queueOpRec->setQueueUriRecordOffsetWords(
+        d_qListAware ? (qlistOffset / bmqp::Protocol::k_WORD_SIZE) : 0);
 
     // Note that we don't write any appKey to the QueueOpRecord in the journal,
     // because there could be multiple appKeys specified, and its not possible
@@ -6717,10 +6740,14 @@ int FileStore::issueSyncPoint()
     syncPoint.sequenceNum()          = ++d_sequenceNum;
     syncPoint.dataFileOffsetDwords() = fs->d_dataFilePosition /
                                        bmqp::Protocol::k_DWORD_SIZE;
-    syncPoint.qlistFileOffsetWords() = d_qListAware ? fs->d_qlistFilePosition /
-                                           bmqp::Protocol::k_WORD_SIZE : 0;
+    syncPoint.qlistFileOffsetWords() = d_qListAware
+                                           ? fs->d_qlistFilePosition /
+                                                 bmqp::Protocol::k_WORD_SIZE
+                                           : 0;
 
-    BALL_LOG_ERROR << "Henshin Baron! " << d_qListAware << ", " << fs->d_qlistFilePosition << ", " << syncPoint.qlistFileOffsetWords();
+    BALL_LOG_ERROR << "Henshin Baron! " << d_qListAware << ", "
+                   << fs->d_qlistFilePosition << ", "
+                   << syncPoint.qlistFileOffsetWords();
     int rc = issueSyncPointInternal(SyncPointType::e_REGULAR,
                                     true,  // ImmediateFlush
                                     &syncPoint);

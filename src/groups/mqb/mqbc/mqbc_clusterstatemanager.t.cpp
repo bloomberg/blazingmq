@@ -143,8 +143,8 @@ struct Tester {
                                  bmqtst::TestHelperUtil::allocator(),
                                  true,  // isClusterMember
                                  d_isLeader,
-                                 true,  // isCSLMode
-                                 true,  // isFSMWorkflow
+                                 true,   // isCSLMode
+                                 true,   // isFSMWorkflow
                                  false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
