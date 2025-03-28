@@ -1157,7 +1157,8 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         // Files have now been opened and basic validation has been performed.
-        rc = FileStoreProtocolUtil::hasValidFirstSyncPointRecord(*journalFd);
+        rc = FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
+            *journalFd);
         if (0 == rc) {
             *journalFilePos = journalFileSize;
             *dataFilePos    = dataFileSize;
@@ -1166,9 +1167,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
         else {
             // No valid first sync point record in this file.
-            BALL_LOG_INFO << "Partition [" << partitionId << "]"
-                          << ": No valid first sync point found in journal"
-                          << "file [" << fs.journalFile() << "], rc: " << rc;
+            BALL_LOG_INFO
+                << "Partition [" << partitionId << "]"
+                << ": No valid first rollover sync point found in journal"
+                << "file [" << fs.journalFile() << "], rc: " << rc;
 
             if ((fileSets.size() == 1) || (numSetsToCheck == 0)) {
                 // In case there is only 1 recoverable set or this is our last
