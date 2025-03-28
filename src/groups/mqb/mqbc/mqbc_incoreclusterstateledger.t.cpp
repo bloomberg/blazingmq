@@ -248,6 +248,7 @@ struct Tester {
                                  isLeader,
                                  true,   // isCSLMode
                                  false,  // isFSMWorkflow
+                                 false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
                                  d_location),
