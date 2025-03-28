@@ -78,7 +78,7 @@ class StatConsumer {
 
     // ACESSORS
 
-    /// Returns the name of the plugin.
+    /// Return the name of the plugin.
     virtual bslstl::StringRef name() const = 0;
 
     /// Return true if the stats reporting is enabled, false otherwise.

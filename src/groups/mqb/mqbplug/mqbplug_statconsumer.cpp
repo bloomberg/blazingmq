@@ -17,6 +17,7 @@
 #include <mqbplug_statconsumer.h>
 
 #include <mqbscm_version.h>
+
 namespace BloombergLP {
 namespace mqbplug {
 
