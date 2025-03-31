@@ -599,22 +599,28 @@ void RelayQueueEngine::deliverMessages()
 
                 d_storageIter_mp->removeCurrentElement();
             }
-            else if (element->app().isLastPush(d_storageIter_mp->guid())) {
+            else if (element->app().isLastPush(
+                         d_storageIter_mp->guid(),
+                         d_appsDeliveryContext.revCounter())) {
                 // This `app` has already seen this message.
+
+                BMQ_LOGTHROTTLE_INFO()
+                    << "Remote queue: " << d_queueState_p->uri()
+                    << " (id: " << d_queueState_p->id() << ", App '"
+                    << app->appId()
+                    << "') discarding a duplicate PUSH for guid "
+                    << d_storageIter_mp->guid();
+
                 d_storageIter_mp->removeCurrentElement();
             }
             else {
-                element->app().setLastPush(d_storageIter_mp->guid());
+                element->app().setLastPush(d_storageIter_mp->guid(),
+                                           d_appsDeliveryContext.revCounter());
 
-                if (d_appsDeliveryContext.processApp(*app, i)) {
+                if (d_appsDeliveryContext.processApp(*app, i, true)) {
                     // The current element has made it either to delivery or
                     // putAside and it can be removed
                     d_storageIter_mp->removeCurrentElement();
-                }
-                else {
-                    // The current element has made it to resumePoint and it
-                    // cannot be removed.
-                    element->app().setLastPush(bmqt::MessageGUID());
                 }
             }
         }
