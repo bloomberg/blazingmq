@@ -2782,23 +2782,6 @@ void ClusterQueueHelper::releaseQueueDispatched(
     BSLS_ASSERT_SAFE(
         d_cluster_p->dispatcher()->inDispatcherThread(d_cluster_p));
 
-    if (d_supportShutdownV2) {
-        BMQ_LOGTHROTTLE_INFO()
-            << d_cluster_p->description()
-            << ": Shutting down and skipping close queue [: "
-            << handleParameters.uri()
-            << "], queueId: " << handleParameters.qId()
-            << ", handle parameters: " << handleParameters;
-        if (callback) {
-            bmqp_ctrlmsg::Status status;
-            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-            status.message()  = "Shutting down.";
-            callback(status);
-        }
-
-        return;  // RETURN
-    }
-
     bmqt::Uri           uri(handleParameters.uri());
     QueueContextMapIter queueContextIt = d_queues.find(uri.canonical());
     if (queueContextIt == d_queues.end()) {
@@ -4715,6 +4698,28 @@ void ClusterQueueHelper::configureQueue(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->dispatcher()->inDispatcherThread(queue));
+
+    // Application first calls 'Cluster::initiateShutdown' (which may set
+    // 'd_supportShutdownV2'), followed by 'TransportManager::closeClients'
+    // which may result in 'QueueHandle::drop' leading to this call.
+    if (d_supportShutdownV2) {
+        // Assuming thread-safe 'description()'
+        BMQ_LOGTHROTTLE_INFO()
+            << d_cluster_p->description()
+            << ": Shutting down and skipping close queue [: "
+            << handleParameters.uri()
+            << "], queueId: " << handleParameters.qId()
+            << ", handle parameters: " << handleParameters;
+
+        if (callback) {
+            bmqp_ctrlmsg::Status status;
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+            status.message()  = "Shutting down.";
+            callback(status);
+        }
+
+        return;  // RETURN
+    }
 
     // TBD: Populate the 'bmqp_ctrlmsg::SubQueueIdInfo' of the handleParameters
     //      with subStream-specific (appId, upstreamSubQueueId) if applicable.
