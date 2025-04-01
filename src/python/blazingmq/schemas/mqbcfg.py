@@ -1275,8 +1275,8 @@ class PartitionConfig:
             "required": True,
         },
     )
-    max_cslfile_size: Optional[int] = field(
-        default=None,
+    max_cslfile_size: int = field(
+        default=67108864,
         metadata={
             "name": "maxCSLFileSize",
             "type": "Element",

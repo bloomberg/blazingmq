@@ -8,6 +8,7 @@ compile_commands.json
 CMakeUserPresets.json
 /thirdparty/
 /include/
+/install/
 /lib/
 **/.idea
 
@@ -26,6 +27,9 @@ settings.json
 .pytest_cache/
 .cache/
 .venv/
+
+# integration test logs
+*.log
 
 # fuzz-test output folder
 **/boofuzz-results

@@ -798,9 +798,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
     case mqbi::DispatcherEventType::e_CALLBACK: {
         const mqbi::DispatcherCallbackEvent* realEvent =
             event.asCallbackEvent();
-        BSLS_ASSERT_SAFE(realEvent->callback());
-        realEvent->callback()(
-            d_state_p->queue()->dispatcherClientData().processorHandle());
+        BSLS_ASSERT_SAFE(!realEvent->callback().empty());
+        realEvent->callback()();
     } break;
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbi::DispatcherPushEvent* realEvent = event.asPushEvent();

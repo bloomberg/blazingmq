@@ -1,4 +1,4 @@
-cmake_minimum_required( VERSION 3.19 )
+cmake_minimum_required( VERSION 3.23 )
 
 project( BMQ LANGUAGES C CXX )
     # o We need the above line because, per CMake 'project' command
@@ -286,6 +286,8 @@ if(DOXYGEN_FOUND)
   add_dependencies(docs internaldocs)
 endif()
 
+add_library(bmqbrkr_plugins INTERFACE)
+
 # -----------------------------------------------------------------------------
 #                                   PROJECTS
 # -----------------------------------------------------------------------------
@@ -293,3 +295,31 @@ add_subdirectory( "src/groups" )
 add_subdirectory( "src/applications" )
 add_subdirectory( "src/tutorials" )
 add_subdirectory( "src/plugins" )
+
+
+# -----------------------------------------------------------------------------
+#                                   PLUGINS
+# -----------------------------------------------------------------------------
+
+# Install all the headers for mqb + bmq 
+install(TARGETS bmqbrkr_plugins
+        EXPORT BmqbrkrPluginsTargets
+        FILE_SET HEADERS
+          COMPONENT bmqbrkr_plugins
+)
+install(EXPORT BmqbrkrPluginsTargets NAMESPACE blazingmq:: DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins" COMPONENT bmqbrkr_plugins)
+
+bbs_read_metadata(GROUP mqb SOURCE_DIR src/groups/mqb)
+bbs_read_metadata(GROUP bmq SOURCE_DIR src/groups/bmq)
+set(bmqbrkr_plugins_deps)
+list(APPEND bmqbrkr_plugins_deps ${mqb_DEPENDS} ${bmq_DEPENDS})
+list(REMOVE_DUPLICATES bmqbrkr_plugins_deps)
+list(REMOVE_ITEM bmqbrkr_plugins_deps bmq) # don't need this dependency
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/etc/cmake/BmqbrkrPluginsConfig.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/BmqbrkrPluginsConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/BmqbrkrPluginsConfig.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/BmqbrkrPlugins
+        COMPONENT bmqbrkr_plugins)
