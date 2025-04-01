@@ -2392,10 +2392,6 @@ void StorageUtil::registerQueue(const mqbi::Cluster*           cluster,
     BSLS_ASSERT_SAFE(storageDef.config().isInMemoryValue() ||
                      storageDef.config().isFileBackedValue());
 
-    BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
-                  << "]: Registering queue '" << uri << "', queueKey: '"
-                  << queueKey << "' to storage.";
-
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
     StorageSpMapIter it = storageMap->find(uri);
