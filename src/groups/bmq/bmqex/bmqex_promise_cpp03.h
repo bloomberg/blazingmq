@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Oct 17 16:05:31 2024
+// Generated on Wed Apr  2 14:55:22 2025
 // Command line: sim_cpp11_features.pl bmqex_promise.h
 
 #ifdef COMPILING_BMQEX_PROMISE_H
@@ -1009,6 +1009,3 @@ inline void bmqex::swap(Promise<R>& lhs, Promise<R>& rhs) BSLS_KEYWORD_NOEXCEPT
 #endif  // ! defined(COMPILING_BMQEX_PROMISE_H)
 
 #endif  // ! defined(INCLUDED_BMQEX_PROMISE_CPP03)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: 034094ceed9ec6bf34ec4437870a945b9af3dca32ab1d636c2d94e31681e2f94

@@ -17,7 +17,7 @@
 
 // Automatically generated file.  **DO NOT EDIT**
 
-// Generated on Thu Oct 17 16:05:19 2024
+// Generated on Wed Apr  2 15:05:31 2025
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.cpp
 
 #define INCLUDED_BMQU_OBJECTPLACEHOLDER_CPP03  // Disable inclusion
@@ -29,6 +29,3 @@
 // No C++03 Expansion
 
 #endif  // defined(COMPILING_BMQU_OBJECTPLACEHOLDER_CPP)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: 4bb706357ef3e32b44b49a314a75e3d2087e62772510513d6eb5a4da1a61d1e9
