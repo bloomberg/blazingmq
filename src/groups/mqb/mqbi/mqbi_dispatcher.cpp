@@ -168,13 +168,6 @@ bool DispatcherEventType::fromAscii(DispatcherEventType::Enum* out,
 // class Dispatcher
 // ----------------
 
-// CLASS METHODS
-Dispatcher::ProcessorFunctor
-Dispatcher::voidToProcessorFunctor(const Dispatcher::VoidFunctor& functor)
-{
-    return bdlf::BindUtil::bind(functor);
-}
-
 // CREATORS
 Dispatcher::~Dispatcher()
 {
@@ -327,7 +320,7 @@ bsl::ostream& DispatcherEvent::print(bsl::ostream& stream,
     } break;
     case DispatcherEventType::e_DISPATCHER: {
         printer.printAttribute("hasFinalizeCallback",
-                               (finalizeCallback() ? "yes" : "no"));
+                               (finalizeCallback().empty() ? "no" : "yes"));
     } break;
     case DispatcherEventType::e_CALLBACK: {
         // Nothing more to print
