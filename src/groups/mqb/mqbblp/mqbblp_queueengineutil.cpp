@@ -649,6 +649,7 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
       &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
       this,
       bdlf::PlaceHolders::_1))
+, d_revCounter(0)
 {
     BSLS_ASSERT_SAFE(queue);
 }
@@ -672,12 +673,15 @@ bool QueueEngineUtil_AppsDeliveryContext::reset(
     d_numApps  = 0;
     d_numStops = 0;
 
+    ++d_revCounter;
+
     return result;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::processApp(
     QueueEngineUtil_AppState& app,
-    unsigned int              ordinal)
+    unsigned int              ordinal,
+    bool                      putAsideReturnValue)
 {
     BSLS_ASSERT_SAFE(d_currentMessage->hasReceipt());
 
@@ -727,8 +731,11 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     if (result == Routers::e_SUCCESS) {
         // RootQueueEngine makes stat reports
+
+        return true;  // RETURN
     }
-    else if (result == Routers::e_NO_CAPACITY_ALL) {
+
+    if (result == Routers::e_NO_CAPACITY_ALL) {
         // All subscriptions of thes App are at capacity
         // Do not grow the 'd_putAsideList'
         // Instead, wait for 'onHandleUsable' event and then catch up
@@ -744,18 +751,15 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
         return false;  // RETURN
     }
-    else {
-        BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
-                         result == Routers::e_NO_CAPACITY);
 
-        // This app does not have capacity to deliver.  Still, move on and
-        // consider (evaluate) subsequent messages for the 'app'.
-        app.putAside(d_currentMessage->guid());
-    }
+    BSLS_ASSERT_SAFE(result == Routers::e_NO_SUBSCRIPTION ||
+                     result == Routers::e_NO_CAPACITY);
 
-    // Still making progress (result != Routers::e_NO_CAPACITY_ALL)
+    // This app does not have capacity to deliver.  Still, move on and
+    // consider (evaluate) subsequent messages for the 'app'.
+    app.putAside(d_currentMessage->guid());
 
-    return (result == Routers::e_SUCCESS);
+    return putAsideReturnValue;
 }
 
 bool QueueEngineUtil_AppsDeliveryContext::visit(
@@ -831,6 +835,11 @@ bsls::Types::Int64 QueueEngineUtil_AppsDeliveryContext::timeDelta()
         d_timeDelta = getMessageQueueTime(d_currentMessage->attributes());
     }
     return d_timeDelta.value();
+}
+
+int QueueEngineUtil_AppsDeliveryContext::revCounter() const
+{
+    return d_revCounter;
 }
 
 // -------------------------

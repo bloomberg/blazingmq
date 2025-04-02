@@ -603,6 +603,9 @@ struct QueueEngineUtil_AppsDeliveryContext {
     /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visitBroadcast`
     const Routers::Visitor d_broadcastVisitor;
 
+    /// Count delivery attempts (as a means to invalidate `lastPush`)
+    int d_revCounter;
+
     // Avoid reading the attributes if not necessary.  Get timeDelta on demand.
     // See comment in `QueueEngineUtil_AppsDeliveryContext::processApp`.
 
@@ -636,7 +639,14 @@ struct QueueEngineUtil_AppsDeliveryContext {
     /// and the `ordinal` is the App ordinal in the stream.
     /// In the case of `RelayQueueEngine`, the stream is `PushStream` and the
     /// `ordinal` is the offset in the received PUSH message.
-    bool processApp(QueueEngineUtil_AppState& app, unsigned int ordina);
+    /// The specified 'putAsideReturnValue' controls the return value in the
+    /// case the app had put the message aside and still had advanced to the
+    /// next message.  Primary would want to have `false` returned to avoid
+    /// updating stats.  Replica/Proxy would want to have `true` returned to
+    /// remove the PushStream element since the App is still moving forward.
+    bool processApp(QueueEngineUtil_AppState& app,
+                    unsigned int              ordina,
+                    bool                      putAsideReturnValue);
 
     /// Collect and prepare data for the subsequent `deliverMessage` call.
     bool visit(const Routers::Subscription* subscription);
@@ -650,6 +660,9 @@ struct QueueEngineUtil_AppsDeliveryContext {
 
     /// Return `true` if not all Apps are at capacity or there are no Apps.
     bool haveProgress() const;
+
+    /// Return the count of delivery attempts (to invalidate `lastPush`)
+    int revCounter() const;
 
     bsls::Types::Int64 timeDelta();
 };
