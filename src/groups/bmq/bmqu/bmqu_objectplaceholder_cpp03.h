@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Oct 17 16:05:19 2024
+// Generated on Wed Apr  2 14:55:02 2025
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.h
 
 #ifdef COMPILING_BMQU_OBJECTPLACEHOLDER_H
@@ -939,6 +939,3 @@ ObjectPlaceHolder<SIZE>::objectAddress() const BSLS_KEYWORD_NOEXCEPT
 #endif  // ! defined(COMPILING_BMQU_OBJECTPLACEHOLDER_H)
 
 #endif  // ! defined(INCLUDED_BMQU_OBJECTPLACEHOLDER_CPP03)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: efa0e98699d54a0d81108c550e5b40870cd35b454e40f32fa57800ba233d5a88

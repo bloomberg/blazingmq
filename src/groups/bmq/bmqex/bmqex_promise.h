@@ -89,12 +89,16 @@
 #include <bsls_systemclocktype.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Tue Oct 15 18:12:34 2024
+// Generated on Wed Apr  2 14:55:22 2025
 // Command line: sim_cpp11_features.pl bmqex_promise.h
-#define COMPILING_BMQEX_PROMISE_H
-#include <bmqex_promise_cpp03.h>
-#undef COMPILING_BMQEX_PROMISE_H
+
+# define COMPILING_BMQEX_PROMISE_H
+# include <bmqex_promise_cpp03.h>
+# undef COMPILING_BMQEX_PROMISE_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
