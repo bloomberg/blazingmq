@@ -53,12 +53,13 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    void negotiate(mqbnet::NegotiatorContext*               context,
-                   const bsl::shared_ptr<bmqio::Channel>&   channel,
-                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
+    int negotiate(mqbnet::NegotiatorContext*               context,
+                  const bsl::shared_ptr<bmqio::Channel>&   channel,
+                  const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE
     {
         markDone();
+        return 0;
     }
 };
 
