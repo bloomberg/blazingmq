@@ -100,7 +100,11 @@ bool filterDirect(const bmqst::TableRecords::Record& record)
     return record.type() == bmqst::StatContext::e_TOTAL_VALUE;
 }
 
-/// Helper method to calculate queue utilization (messages/bytes).
+/// Helper method to calculate queue utilization (for messages/bytes), in
+/// percents. First, it calculates the average value of messages/bytes within
+/// the publish interval (in range (oldestSnapshot, latestSnapshot)) and then
+/// calculates queue utilization as the average value divided by the limit
+/// value.
 bsls::Types::Int64
 queueUtilization(const bmqst::StatContext&                 context,
                  const bmqst::StatValue::SnapshotLocation& latestSnapshot,
@@ -116,6 +120,8 @@ queueUtilization(const bmqst::StatContext&                 context,
             oldestSnapshot);
     }
     else {
+        // If no oldest snapshot present, use current value (from the latest
+        // snapshot).
         avg = static_cast<double>(bmqst::StatUtil::value(
             context.value(bmqst::StatContext::e_DIRECT_VALUE, currentValue),
             latestSnapshot));
@@ -243,6 +249,9 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES);
     }
     case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION: {
+        // Calculate queue utilization (in precents) as the average value of
+        // the current number of messages within publish interval divided by
+        // the limit number of messages.
         return queueUtilization(
             context,
             latestSnapshot,
@@ -257,6 +266,9 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES);
     }
     case QueueStatsDomain::Stat::e_BYTES_UTILIZATION: {
+        // Calculate queue utilization (in precents) as the average value of
+        // the current number of bytes within publish interval divided by the
+        // limit number of bytes.
         return queueUtilization(
             context,
             latestSnapshot,

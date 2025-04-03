@@ -364,7 +364,7 @@ void PrometheusStatConsumer::captureQueueStats()
                      Stat::e_MESSAGES_UTILIZATION,
                      false},
                     {"queue_content_bytes_max", Stat::e_BYTES_MAX, false},
-                    {"queue_butes_utilization",
+                    {"queue_bytes_utilization",
                      Stat::e_BYTES_UTILIZATION,
                      false},
                     {"queue_queue_time_avg", Stat::e_QUEUE_TIME_AVG, false},
