@@ -486,9 +486,7 @@ void QueueStatsDomain::onEvent(EventType::Enum    type,
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
     if (d_subContextsLookup.empty()) {
-        BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
-            << "[THROTTLED] No built sub contexts for domain: "
-            << d_statContext_mp->name() << ", appId: " << appId;
+        // Not an error if the domain is not configured for Apps stats.
         return;  // RETURN
     }
 

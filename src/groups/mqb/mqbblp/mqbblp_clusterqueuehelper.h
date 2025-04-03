@@ -462,9 +462,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     StopContexts d_stopContexts;
 
-    /// When `true`, all cluster nodes support StopRequest V2 and this node
-    /// executes shutdown V2 logic.
-    bool d_supportShutdownV2;
+    /// When `true`, this node is shutting down using shutdown v2 logic.
+    /// This can only be true when all cluster nodes support StopRequest V2.
+    bsls::AtomicBool d_supportShutdownV2;
 
   private:
     // PRIVATE MANIPULATORS

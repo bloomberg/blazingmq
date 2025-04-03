@@ -1292,7 +1292,9 @@ void RootQueueEngine::afterNewMessage(
              ++iter) {
             AppStateSp& app = iter->second;
 
-            if (d_appsDeliveryContext.processApp(*app, app->ordinal())) {
+            if (d_appsDeliveryContext.processApp(*app,
+                                                 app->ordinal(),
+                                                 false)) {
                 // Consider this message as sent out
 
                 d_consumptionMonitor.onMessageSent(iter->first);
