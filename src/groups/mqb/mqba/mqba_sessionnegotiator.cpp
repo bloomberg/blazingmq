@@ -385,9 +385,12 @@ void SessionNegotiator::readCallback(const bmqio::Status&        status,
                                      .clusterName();
         context->d_connectionType = ConnectionType::e_CLUSTER_PROXY;
 
-        initiateOutboundNegotiation(context);
+        rc = initiateOutboundNegotiation(context);
+        if (rc == 0) {
+            scheduleRead(context);
+        }
         return;  // RETURN
-    }  // break;
+    }            // break;
     default: {
         errStream << "Invalid negotiation message received (unknown type): "
                   << context->d_negotiationMessage;
@@ -945,7 +948,7 @@ void SessionNegotiator::scheduleRead(const NegotiationContextSp& context)
     }
 }
 
-void SessionNegotiator::initiateOutboundNegotiation(
+int SessionNegotiator::initiateOutboundNegotiation(
     const NegotiationContextSp& context)
 {
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
@@ -970,14 +973,13 @@ void SessionNegotiator::initiateOutboundNegotiation(
         context->d_negotiationCb(-1,
                                  error,
                                  bsl::shared_ptr<mqbnet::Session>());
-        return;  // RETURN
+        return rc;  // RETURN
     }
 
-    // Now schedule a read of the response
-    scheduleRead(context);
+    return 0;
 }
 
-void SessionNegotiator::negotiate(
+int SessionNegotiator::negotiate(
     mqbnet::NegotiatorContext*               context,
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const mqbnet::Negotiator::NegotiationCb& negotiationCb)
@@ -993,10 +995,7 @@ void SessionNegotiator::negotiate(
     negotiationContext->d_clusterName         = "";
     negotiationContext->d_connectionType      = ConnectionType::e_UNKNOWN;
 
-    if (context->isIncoming()) {
-        scheduleRead(negotiationContext);
-    }
-    else {
+    if (!context->isIncoming()) {
         // If this is a 'connect' negotiation, this could either represent an
         // outgoing proxy/cluster connection, or a reversed cluster connection;
         // the context's user data will tell.  We send the identity and then
@@ -1023,7 +1022,10 @@ void SessionNegotiator::negotiate(
                     ConnectionType::e_CLUSTER_PROXY;
             }
 
-            initiateOutboundNegotiation(negotiationContext);
+            int rc = initiateOutboundNegotiation(negotiationContext);
+            if (rc != 0) {
+                return rc;  // RETURN
+            }
         }
         else {
             // This is a reverse connection, we simply send the negotiation
@@ -1048,11 +1050,14 @@ void SessionNegotiator::negotiate(
                 bsl::string error(errStream.str().data(),
                                   errStream.str().length());
                 negotiationCb(-1, error, bsl::shared_ptr<mqbnet::Session>());
-                return;  // RETURN
+                return rc;  // RETURN
             }
-            scheduleRead(negotiationContext);
         }
     }
+
+    scheduleRead(negotiationContext);
+
+    return 0;
 }
 
 }  // close package namespace
