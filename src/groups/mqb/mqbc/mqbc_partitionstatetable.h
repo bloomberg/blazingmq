@@ -336,7 +336,7 @@ class PartitionStateTableActions {
     void do_setExpectedDataChunkRange_replicaDataRequestPull(const ARGS& args);
 
     void
-    do_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args);
 
     void
@@ -515,17 +515,13 @@ class PartitionStateTable
                 updateStorage,
                 PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
-                DONE_RECEIVING_DATA_CHUNKS,
-                resetReceiveDataCtx_closeRecoveryFileSet,
-                PRIMARY_HEALING_STG2);
-        PST_CFG(PRIMARY_HEALING_STG2,
                 ERROR_RECEIVING_DATA_CHUNKS,
                 cleanupSeqnums_resetReceiveDataCtx_reapplyDetectSelfPrimary,
                 UNKNOWN);
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -850,9 +846,11 @@ void PartitionStateTableActions<ARGS>::
 
 template <typename ARGS>
 void PartitionStateTableActions<ARGS>::
-    do_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_storeSelfSeq_openStorage_replicaDataRequestPush_replicaDataRequestDrop_startSendDataChunks_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         const ARGS& args)
 {
+    do_resetReceiveDataCtx(args);
+    do_closeRecoveryFileSet(args);
     do_storeSelfSeq(args);
     do_openStorage(args);
     do_replicaDataRequestPush(args);

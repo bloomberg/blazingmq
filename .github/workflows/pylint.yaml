@@ -22,6 +22,7 @@ jobs:
           python-version: '3.12.4'
       - name: Install dependencies
         run: |
+          pip3 install -r ${{ github.workspace }}/src/python/requirements.txt
           pip3 install pylint lint-diffs
           ln -s ${{ github.workspace }}/src/python/pylintrc ${{ github.workspace }}/.pylintrc
           echo [pylint] > ${{ github.workspace }}/.lint-diffs

@@ -184,6 +184,7 @@ struct Tester {
 
         d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
         d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
+        d_partitionCfg.maxCSLFileSize()      = 1 * 1024 * 1024;
         d_partitionCfg.maxJournalFileSize()  = 1 * 1024 * 1024;
         d_partitionCfg.location()            = d_clusterLocation;
         d_partitionCfg.archiveLocation()     = d_clusterArchiveLocation;
@@ -258,9 +259,10 @@ struct Tester {
                                          d_blobSpPool_sp.get(),
                                          &d_statePool,
                                          &d_miscWorkThreadPool,
-                                         false,  // isCSLModeEnabled
-                                         false,  // isFSMWorkflow
-                                         1,      // replicationFactor
+                                         true,  // isCSLModeEnabled
+                                         true,  // isFSMWorkflow
+                                         true,  // doesFSMwriteQLIST
+                                         1,     // replicationFactor
                                          bmqtst::TestHelperUtil::allocator()),
                      bmqtst::TestHelperUtil::allocator());
     }

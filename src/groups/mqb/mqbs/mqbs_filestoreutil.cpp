@@ -1043,8 +1043,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        int                   numSetsToCheck,
                                        const mqbs::DataStoreConfig& config,
                                        bool                         readOnly,
-                                       bool                  isFSMWorkflow,
-                                       MappedFileDescriptor* qlistFd)
+                                       MappedFileDescriptor*        qlistFd)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -1115,7 +1114,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
             // can write to it.
             fs.setJournalFileSize(config.maxJournalFileSize())
                 .setDataFileSize(config.maxDataFileSize());
-            if (!isFSMWorkflow) {
+            if (qlistFd) {
                 fs.setQlistFileSize(config.maxQlistFileSize());
             }
 
@@ -1158,8 +1157,9 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
 
         // Files have now been opened and basic validation has been performed.
-        rc = FileStoreProtocolUtil::hasValidFirstSyncPointRecord(*journalFd);
-        if (isFSMWorkflow || 0 == rc) {
+        rc = FileStoreProtocolUtil::hasValidFirstRolloverSyncPointRecord(
+            *journalFd);
+        if (0 == rc) {
             *journalFilePos = journalFileSize;
             *dataFilePos    = dataFileSize;
             recoveryIndex   = i;
@@ -1167,9 +1167,10 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
         }
         else {
             // No valid first sync point record in this file.
-            BALL_LOG_INFO << "Partition [" << partitionId << "]"
-                          << ": No valid first sync point found in journal"
-                          << "file [" << fs.journalFile() << "], rc: " << rc;
+            BALL_LOG_INFO
+                << "Partition [" << partitionId << "]"
+                << ": No valid first rollover sync point found in journal"
+                << "file [" << fs.journalFile() << "], rc: " << rc;
 
             if ((fileSets.size() == 1) || (numSetsToCheck == 0)) {
                 // In case there is only 1 recoverable set or this is our last
