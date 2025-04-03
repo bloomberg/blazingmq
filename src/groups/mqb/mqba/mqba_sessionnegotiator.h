@@ -201,7 +201,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Initiate an outbound negotiation (i.e., send out some negotiation
     /// message and schedule a read of the response) using the specified
     /// `context`.
-    void initiateOutboundNegotiation(const NegotiationContextSp& context);
+    int initiateOutboundNegotiation(const NegotiationContextSp& context);
 
     /// Schedule a read for the negotiation of the session of the specified
     /// `context`.
@@ -253,9 +253,9 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// failure).  Note that if no negotiation are needed, the
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
-    void negotiate(mqbnet::NegotiatorContext*               context,
-                   const bsl::shared_ptr<bmqio::Channel>&   channel,
-                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
+    int negotiate(mqbnet::NegotiatorContext*               context,
+                  const bsl::shared_ptr<bmqio::Channel>&   channel,
+                  const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE;
 };
 

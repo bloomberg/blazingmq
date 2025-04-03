@@ -105,9 +105,9 @@ class Negotiator {
     /// `NegotiationCb` method.  Note that if no negotiation is needed, the
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
-    virtual void negotiate(NegotiatorContext*                     context,
-                           const bsl::shared_ptr<bmqio::Channel>& channel,
-                           const NegotiationCb& negotiationCb) = 0;
+    virtual int negotiate(NegotiatorContext*                     context,
+                          const bsl::shared_ptr<bmqio::Channel>& channel,
+                          const NegotiationCb& negotiationCb) = 0;
 };
 
 }  // close package namespace
