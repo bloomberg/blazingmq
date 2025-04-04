@@ -100,45 +100,6 @@ bool filterDirect(const bmqst::TableRecords::Record& record)
     return record.type() == bmqst::StatContext::e_TOTAL_VALUE;
 }
 
-/// Helper method to calculate queue utilization (for messages/bytes), in
-/// percents. First, it calculates the average value of messages/bytes within
-/// the publish interval (in range (oldestSnapshot, latestSnapshot)) and then
-/// calculates queue utilization as the average value divided by the limit
-/// value.
-bsls::Types::Int64
-queueUtilization(const bmqst::StatContext&                 context,
-                 const bmqst::StatValue::SnapshotLocation& latestSnapshot,
-                 const bmqst::StatValue::SnapshotLocation& oldestSnapshot,
-                 DomainQueueStats::Enum                    currentValue,
-                 DomainQueueStats::Enum                    limitValue)
-{
-    double avg = 0;
-    if (latestSnapshot > oldestSnapshot) {
-        avg = bmqst::StatUtil::average(
-            context.value(bmqst::StatContext::e_DIRECT_VALUE, currentValue),
-            latestSnapshot,
-            oldestSnapshot);
-    }
-    else {
-        // If no oldest snapshot present, use current value (from the latest
-        // snapshot).
-        avg = static_cast<double>(bmqst::StatUtil::value(
-            context.value(bmqst::StatContext::e_DIRECT_VALUE, currentValue),
-            latestSnapshot));
-    }
-    bsls::Types::Int64 limit = bmqst::StatUtil::value(
-        context.value(bmqst::StatContext::e_DIRECT_VALUE, limitValue),
-        latestSnapshot);
-
-    bsls::Types::Int64 result = 0;
-    if (limit != 0) {
-        result = static_cast<bsls::Types::Int64>(
-            avg / static_cast<double>(limit) * 100.0);
-    }
-
-    return result;
-}
-
 }  // close unnamed namespace
 
 // -----------------------------
@@ -249,15 +210,9 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES);
     }
     case QueueStatsDomain::Stat::e_MESSAGES_UTILIZATION: {
-        // Calculate queue utilization (in precents) as the average value of
-        // the current number of messages within publish interval divided by
-        // the limit number of messages.
-        return queueUtilization(
-            context,
-            latestSnapshot,
-            OLDEST_SNAPSHOT(DomainQueueStats::e_STAT_MESSAGES),
-            DomainQueueStats::e_STAT_MESSAGES,
-            DomainQueueStats::e_CFG_MSGS);
+        // Calculate queue messages utilization, in percents.
+        return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_MESSAGES) /
+               STAT_SINGLE(value, DomainQueueStats::e_CFG_MSGS);
     }
     case QueueStatsDomain::Stat::e_BYTES_CURRENT: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_BYTES);
@@ -266,15 +221,9 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
         return STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES);
     }
     case QueueStatsDomain::Stat::e_BYTES_UTILIZATION: {
-        // Calculate queue utilization (in precents) as the average value of
-        // the current number of bytes within publish interval divided by the
-        // limit number of bytes.
-        return queueUtilization(
-            context,
-            latestSnapshot,
-            OLDEST_SNAPSHOT(DomainQueueStats::e_STAT_BYTES),
-            DomainQueueStats::e_STAT_BYTES,
-            DomainQueueStats::e_CFG_BYTES);
+        // Calculate queue bytes utilization, in percents.
+        return 100 * STAT_RANGE(rangeMax, DomainQueueStats::e_STAT_BYTES) /
+               STAT_SINGLE(value, DomainQueueStats::e_CFG_BYTES);
     }
     case QueueStatsDomain::Stat::e_PUT_BYTES_ABS: {
         return STAT_SINGLE(value, DomainQueueStats::e_STAT_PUT);
