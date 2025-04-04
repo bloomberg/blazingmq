@@ -13,17 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiatorcontext.h                                     -*-C++-*-
-#ifndef INCLUDED_MQBNET_NEGOTIATORCONTEXT
-#define INCLUDED_MQBNET_NEGOTIATORCONTEXT
+// mqbnet_initialconnectionhandlercontext.h                        -*-C++-*-
+#ifndef INCLUDED_MQBNET_INITIALCONNECTIONHANDLERCONTEXT
+#define INCLUDED_MQBNET_INITIALCONNECTIONHANDLERCONTEXT
 
-//@PURPOSE: Provide a context for a session negotiator.
+//@PURPOSE: Provide a context for an initial connection handler.
 //
 //@CLASSES:
-//  mqbnet::NegotiatorContext: VST for the context associated to a negotiation
+//  mqbnet::InitialConnectionHandlerContext: VST for the context associated to
+//  an initial connection
 //
-//@DESCRIPTION: 'NegotiatorContext' provides the context associated to a
-// session being negotiated
+//@DESCRIPTION: 'InitialConnectionHandlerContext' provides the context
+// associated to an initial connection being established
 //
 
 // BDE
@@ -36,16 +37,16 @@ namespace mqbnet {
 class SessionEventProcessor;
 class Cluster;
 
-// =======================
-// class NegotiatorContext
-// =======================
+// =====================================
+// class InitialConnectionHandlerContext
+// =====================================
 
 /// VST for the context associated to a session being negotiated.  Each
 /// session being negotiated get its own context; and the Negotiator
 /// concrete implementation can modify some of the members during the
 /// negotiation (i.e., between the `negotiate()` method and the invocation
 /// of the `NegotiationCb` method.
-class NegotiatorContext {
+class InitialConnectionHandlerContext {
   private:
     // DATA
     bool d_isIncoming;
@@ -116,17 +117,18 @@ class NegotiatorContext {
     // CREATORS
 
     /// Create a new object having the specified `isIncoming` value.
-    NegotiatorContext(bool isIncoming);
+    InitialConnectionHandlerContext(bool isIncoming);
 
     // MANIPULATORS
-    NegotiatorContext& setMaxMissedHeartbeat(int value);
-    NegotiatorContext& setUserData(void* value);
-    NegotiatorContext& setResultState(void* value);
-    NegotiatorContext& setEventProcessor(SessionEventProcessor* value);
+    InitialConnectionHandlerContext& setMaxMissedHeartbeat(int value);
+    InitialConnectionHandlerContext& setUserData(void* value);
+    InitialConnectionHandlerContext& setResultState(void* value);
+    InitialConnectionHandlerContext&
+    setEventProcessor(SessionEventProcessor* value);
 
     /// Set the corresponding field to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    NegotiatorContext& setCluster(Cluster* cluster);
+    InitialConnectionHandlerContext& setCluster(Cluster* cluster);
 
     // ACCESSORS
     bool     isIncoming() const;

@@ -14,7 +14,8 @@
 // limitations under the License.
 
 // mqba_initialconnectionhandler.cpp                           -*-C++-*-
-#include "mqbnet_negotiator.h"
+
+// MQB
 #include <mqba_initialconnectionhandler.h>
 
 /// Implementation Notes
@@ -87,7 +88,7 @@ void InitialConnectionHandler::readCallback(
         return;  // RETURN
     }
 
-    switch (context->d_initialConnectionMessage.selectionId()) {
+    switch (context->d_initialConnectionMessage_p.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_ID_AUTHENTICATE_REQUEST: {
     } break;  // BREAK
     }
@@ -124,7 +125,7 @@ int InitialConnectionHandler::decodeNegotiationMessage(
         return rc_NOT_CONTROL_EVENT;  // RETURN
     }
 
-    int rc = event.loadControlEvent(&(context->d_initialConnectionMessage));
+    int rc = event.loadControlEvent(&(context->d_initialConnectionMessage_p));
     if (rc != 0) {
         errorDescription << "Invalid negotiation message received (failed "
                          << "decoding ControlEvent): [rc: " << rc << "]:\n"
@@ -138,22 +139,25 @@ int InitialConnectionHandler::decodeNegotiationMessage(
 void InitialConnectionHandler::scheduleRead(
     const InitialConnectionContextSp& context)
 {
+    // Schedule a TimedRead
     bmqio::Status status;
     context->d_channelSp->read(
         &status,
         bmqp::Protocol::k_PACKET_MIN_SIZE,
-        bdlf::BindUtil::bind(&InitialConnectionHandler::readCallback),
+        bdlf::BindUtil::bind(&InitialConnectionHandler::readCallback,
+                             this,
+                             bdlf::PlaceHolders::_1,  // status
+                             bdlf::PlaceHolders::_2,  // numNeeded
+                             bdlf::PlaceHolders::_3,  // blob
+                             context),
         bsls::TimeInterval(k_INITIALCONNECTION_READTIMEOUT));
+    // NOTE: In the above binding, we skip '_4' (i.e., Channel*) and
+    //       replace it by the channel shared_ptr (inside the context)
 
     if (!status) {
         bmqu::MemOutStream errStream;
-        errStream << "Read failed while orchestrating: " << status;
+        errStream << "Read failed while negotiating: " << status;
         bsl::string error(errStream.str().data(), errStream.str().length());
-        // TODO: remove
-        // callback was set to
-        //  TCPSessionFactory::negotiationComplete
-        //  within the function, resultCallback was set to
-        //  TransportManager::sessionResult
         context->d_initialConnectionCb(-1,
                                        error,
                                        bsl::shared_ptr<mqbnet::Session>());
@@ -184,24 +188,15 @@ void InitialConnectionHandler::initialConnect(
     InitialConnectionContextSp initialConnectionContext;
     initialConnectionContext.createInplace(d_allocator_p);
 
-    initialConnectionContext->d_handlerContext_p    = context;
-    initialConnectionContext->d_channelSp           = channel;
+    initialConnectionContext->d_initialConnectionHandlerContext_p = context;
+    initialConnectionContext->d_channelSp                         = channel;
     initialConnectionContext->d_initialConnectionCb = initialConnectionCb;
     initialConnectionContext->d_isReversed          = false;
     initialConnectionContext->d_clusterName         = "";
     initialConnectionContext->d_connectionType = ConnectionType::e_UNKNOWN;
 
-    // Create a unique NegotiatorContext for the channel, from the
-    // OperationContext.  This shared_ptr is bound to the 'negotiationComplete'
-    // callback below, which is what scopes its lifetime.
-    bsl::shared_ptr<mqbnet::NegotiatorContext> negotiatorContextSp;
-    negotiatorContextSp.createInplace(d_allocator_p, context->isIncoming());
-    (*negotiatorContextSp)
-        .setUserData(context->userData())
-        .setResultState(context->resultState());
-
     if (!context->isIncoming()) {
-        int rc = d_negotiator_p->negotiate(negotiatorContextSp.get(),
+        int rc = d_negotiator_p->negotiate(context,
                                            channel,
                                            initialConnectionCb);
         if (rc != 0) {

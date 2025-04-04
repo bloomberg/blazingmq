@@ -13,14 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_negotiationcontext.cpp                                  -*-C++-*-
-
-#include <mqba_negotiationcontext.h>
-
-#include <mqbscm_version.h>
+// mqba_initialconnectioncontext.cpp                           -*-C++-*-
+#include <mqba_initialconnectioncontext.h>
 
 namespace BloombergLP {
 namespace mqba {
 
-}  // close namespace mqba
-}  // close namespace BloombergLP
+}  // close package namespace
+}  // close enterprise namespace

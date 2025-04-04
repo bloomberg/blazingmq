@@ -13,17 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqba_negotiationcontext.h                                    -*-C++-*-
-#ifndef INCLUDED_MQBA_NEGOTIATIONCONTEXT
-#define INCLUDED_MQBA_NEGOTIATIONCONTEXT
+// mqba_initialconnectioncontext.h                                -*-C++-*-
+#ifndef INCLUDED_MQBA_INITIALCONNECTIONCONTEXT
+#define INCLUDED_MQBA_INITIALCONNECTIONCONTEXT
 
-/// @file mqba_negotiationcontext.h
+/// @file mqba_initialconnectioncontext.h
 ///
-/// @brief Provide the context for negotiator for establishing sessions.
+/// @brief Provide the context for initial connection handler for establishing
+/// sessions.
 ///
 
 // MQB
-#include <mqbnet_negotiator.h>
+#include <mqbnet_initialconnectionhandler.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -43,24 +44,27 @@ struct ConnectionType {
     };
 };
 
-// ========================
-// class NegotiationContext
-// ========================
+// ==============================
+// class InitialConnectionContext
+// ==============================
 
-// VST for an implementation of NegotiatiorContext
-struct NegotiationContext {
+// VST for an implementation of InitialConnectionContext
+struct InitialConnectionContext {
     // DATA
-    /// The associated negotiatorContext, passed in by the caller.
-    mqbnet::NegotiatorContext* d_negotiatorContext_p;
+    /// The associated InitialConnectionHandlerContext,
+    /// passed in by the caller.
+    mqbnet::InitialConnectionHandlerContext*
+        d_initialConnectionHandlerContext_p;
 
     /// The channel to use for the negotiation.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
 
     /// The callback to invoke to notify of the status of the negotiation.
-    mqbnet::Negotiator::NegotiationCb d_negotiationCb;
+    mqbnet::InitialConnectionHandler::InitialConnectionCb
+        d_initialConnectionCb;
 
     /// The negotiation message received from the remote peer.
-    bmqp_ctrlmsg::NegotiationMessage d_negotiationMessage;
+    bmqp_ctrlmsg::NegotiationMessage d_initialConnectionMessage_p;
 
     /// The cluster involved in the session being negotiated, or empty if
     /// none.
