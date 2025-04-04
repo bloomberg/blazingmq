@@ -19,6 +19,81 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+namespace {
+
+using namespace bmqp_ctrlmsg;
+typedef bsl::vector<QueueInfo> QueueInfos;
+
+// Helper method to check if queue key from QueueInfo matches keys in
+// queueKeys.
+bool isQueueKeyMatch(const QueueInfos&                           queuesInfo,
+                     const bsl::unordered_set<mqbu::StorageKey>& queueKeys)
+{
+    QueueInfos::const_iterator it = queuesInfo.cbegin();
+    for (; it != queuesInfo.cend(); ++it) {
+        mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(),
+                             it->key().data());
+        // Match by queueKey
+        if (queueKeys.find(key) != queueKeys.end()) {
+            return true;  // RETURN
+        }
+    }
+
+    return false;
+}
+
+// Helper method to apply range filter
+bool applyRangeFilter(const Parameters::Range& range,
+                      bsls::Types::Uint64      timestamp,
+                      bsls::Types::Uint64      offset,
+                      bsls::Types::Uint64      primaryLeaseId,
+                      bsls::Types::Uint64      sequenceNumber,
+                      bool*                    highBoundReached_p)
+{
+    // Check timestamp range
+    bool greaterOrEqualToHigherBound = range.d_timestampLt &&
+                                       timestamp >= *range.d_timestampLt;
+    if ((range.d_timestampGt && timestamp <= *range.d_timestampGt) ||
+        greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+        // Not inside range
+        return false;  // RETURN
+    }
+
+    // Check offset range
+    greaterOrEqualToHigherBound = range.d_offsetLt &&
+                                  offset >= *range.d_offsetLt;
+    if ((range.d_offsetGt && offset <= *range.d_offsetGt) ||
+        greaterOrEqualToHigherBound) {
+        if (highBoundReached_p && greaterOrEqualToHigherBound) {
+            *highBoundReached_p = true;
+        }
+        // Not inside range
+        return false;  // RETURN
+    }
+
+    // Check sequence number range
+    if (range.d_seqNumLt || range.d_seqNumGt) {
+        const CompositeSequenceNumber seqNum(primaryLeaseId, sequenceNumber);
+        greaterOrEqualToHigherBound = range.d_seqNumLt &&
+                                      range.d_seqNumLt <= seqNum;
+        if ((range.d_seqNumGt && seqNum <= *range.d_seqNumGt) ||
+            greaterOrEqualToHigherBound) {
+            if (highBoundReached_p && greaterOrEqualToHigherBound) {
+                *highBoundReached_p = true;
+            }
+            // Not inside range
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
+
+}  // close unnamed namespace
+
 // =============
 // class Filters
 // =============
@@ -74,46 +149,72 @@ bool Filters::apply(const mqbs::RecordHeader& recordHeader,
     }
 
     // Apply `range` filter
-    // Check timestamp range
-    const bsls::Types::Uint64 timestamp = recordHeader.timestamp();
-    bool greaterOrEqualToHigherBound    = d_range.d_timestampLt &&
-                                       timestamp >= *d_range.d_timestampLt;
-    if ((d_range.d_timestampGt && timestamp <= *d_range.d_timestampGt) ||
-        greaterOrEqualToHigherBound) {
-        if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached_p = true;
+    return applyRangeFilter(d_range,
+                            recordHeader.timestamp(),
+                            recordOffset,
+                            recordHeader.primaryLeaseId(),
+                            recordHeader.sequenceNumber(),
+                            highBoundReached_p);
+}
+
+bool Filters::apply(const mqbc::ClusterStateRecordHeader& recordHeader,
+                    const bmqp_ctrlmsg::ClusterMessage&   record,
+                    bsls::Types::Uint64                   recordOffset,
+                    bool* highBoundReached_p) const
+{
+    // Apply `queue key` filter
+    if (!d_queueKeys.empty()) {
+        using namespace bmqp_ctrlmsg;
+        bool queueKeyMatch = false;
+
+        mqbc::ClusterStateRecordType::Enum recordType =
+            recordHeader.recordType();
+        if (recordType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+            const LeaderAdvisory& leaderAdvisory =
+                record.choice().leaderAdvisory();
+            queueKeyMatch = isQueueKeyMatch(leaderAdvisory.queues(),
+                                            d_queueKeys);
         }
-        // Not inside range
-        return false;  // RETURN
+        else if (recordType == mqbc::ClusterStateRecordType::e_UPDATE) {
+            int selectionId = record.choice().selectionId();
+            if (selectionId ==
+                ClusterMessageChoice::SELECTION_ID_QUEUE_ASSIGNMENT_ADVISORY) {
+                const QueueAssignmentAdvisory& queueAdvisory =
+                    record.choice().queueAssignmentAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
+            else if (selectionId ==
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UNASSIGNED_ADVISORY) {
+                const QueueUnassignedAdvisory& queueAdvisory =
+                    record.choice().queueUnassignedAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
+            else if (selectionId ==
+                     ClusterMessageChoice::
+                         SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY) {
+                const QueueUnAssignmentAdvisory& queueAdvisory =
+                    record.choice().queueUnAssignmentAdvisory();
+                queueKeyMatch = isQueueKeyMatch(queueAdvisory.queues(),
+                                                d_queueKeys);
+            }
+        }
+
+        if (!queueKeyMatch) {
+            // Not matched
+            return false;  // RETURN
+        }
     }
 
-    // Check offset range
-    greaterOrEqualToHigherBound = d_range.d_offsetLt &&
-                                  recordOffset >= *d_range.d_offsetLt;
-    if ((d_range.d_offsetGt && recordOffset <= *d_range.d_offsetGt) ||
-        greaterOrEqualToHigherBound) {
-        if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached_p = true;
-        }
-        // Not inside range
-        return false;  // RETURN
-    }
-
-    // Check sequence number range
-    const CompositeSequenceNumber seqNum(recordHeader.primaryLeaseId(),
-                                         recordHeader.sequenceNumber());
-    greaterOrEqualToHigherBound = d_range.d_seqNumLt &&
-                                  d_range.d_seqNumLt <= seqNum;
-    if ((d_range.d_seqNumGt && seqNum <= *d_range.d_seqNumGt) ||
-        greaterOrEqualToHigherBound) {
-        if (highBoundReached_p && greaterOrEqualToHigherBound) {
-            *highBoundReached_p = true;
-        }
-        // Not inside range
-        return false;  // RETURN
-    }
-
-    return true;
+    // Apply `range` filter
+    return applyRangeFilter(d_range,
+                            recordHeader.timestamp(),
+                            recordOffset,
+                            recordHeader.electorTerm(),
+                            recordHeader.sequenceNumber(),
+                            highBoundReached_p);
 }
 
 }  // close package namespace
