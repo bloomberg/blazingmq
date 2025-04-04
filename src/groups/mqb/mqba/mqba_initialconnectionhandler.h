@@ -18,6 +18,7 @@
 #define INCLUDED_MQBA_INITIALCONNECTIONHANDLER
 
 // MQB
+#include <mqba_initialconnectioncontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_negotiator.h>
@@ -35,55 +36,13 @@ namespace BloombergLP {
 
 namespace mqba {
 
-// ==================
+// ==============================
 // class InitialConnectionHandler
-// ==================
+// ==============================
 
 class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   private:
     // PRIVATE TYPES
-    struct ConnectionType {
-        // Enum representing the type of session being negotiated, from that
-        // side of the connection's point of view.
-        enum Enum {
-            e_UNKNOWN,
-            e_CLUSTER_PROXY,   // Reverse connection proxy -> broker
-            e_CLUSTER_MEMBER,  // Cluster node -> cluster node
-            e_CLIENT,          // Either SDK or Proxy -> Proxy or cluster node
-            e_ADMIN
-        };
-    };
-    /// Struct used to hold the context associated to a session being
-    /// negotiated
-    struct InitialConnectionContext {
-        // PUBLIC DATA
-
-        /// The associated negotiatorContext, passed in by the caller.
-        mqbnet::InitialConnectionHandlerContext* d_handlerContext_p;
-
-        /// The channel to use for the negotiation.
-        bsl::shared_ptr<bmqio::Channel> d_channelSp;
-
-        /// The callback to invoke to notify of the status of the negotiation.
-        // TODO: should this type
-        mqbnet::InitialConnectionHandler::InitialConnectionCb
-            d_initialConnectionCb;
-
-        /// The initial connection message received from the remote peer.
-        bmqp_ctrlmsg::NegotiationMessage d_initialConnectionMessage;
-
-        /// The cluster involved in the session being negotiated, or empty if
-        /// none.
-        bsl::string d_clusterName;
-
-        /// True if this is a "reversed" connection (on either side of the
-        /// connection).
-        bool d_isReversed;
-
-        /// The type of the session being negotiated.
-        ConnectionType::Enum d_connectionType;
-    };
-
     typedef bsl::shared_ptr<InitialConnectionContext>
         InitialConnectionContextSp;
 
