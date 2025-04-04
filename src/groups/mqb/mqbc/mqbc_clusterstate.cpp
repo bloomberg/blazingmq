@@ -35,27 +35,8 @@ namespace mqbc {
 // class ClusterStateQueueInfo
 // ---------------------------
 
-bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
-{
-    if (appInfos.empty()) {
-        return true;  // RETURN
-    }
-
-    if (appInfos.size() == 1 &&
-        appInfos.count(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) == 1) {
-        return true;  // RETURN
-    }
-
-    return false;
-}
-
 bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
 {
-    if (containsDefaultAppIdOnly(d_appInfos) &&
-        containsDefaultAppIdOnly(appInfos)) {
-        return true;  // RETURN
-    }
-
     // This ignores the order
 
     if (d_appInfos.size() != appInfos.size()) {
@@ -502,9 +483,9 @@ bool ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
             // insists on re-assigning
             isNewAssignment = false;
 
-            if (queueIt->second->key() == key &&
-                queueIt->second->partitionId() == partitionId &&
-                queueIt->second->hasTheSameAppIds(appIdInfos)) {
+            ClusterStateQueueInfo fromAdvisory(advisory, d_allocator_p);
+
+            if (queueIt->second->isEquivalent(fromAdvisory)) {
                 // If queue info is unchanged, can simply return
                 return false;  // RETURN
             }

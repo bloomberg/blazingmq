@@ -695,7 +695,7 @@ def test_csl_repair_after_stop(cluster: Cluster):
     producer.open(tc.URI_FANOUT_SC, flags=["write,ack"], succeed=True)
 
 
-def test_open_authorize_change_primary(multi_node: Cluster):
+def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Add an App to Domain config of an existing queue, and then force a
     Replica to become new Primary.  Start new Consumer.  Make sure the Consumer
     receives previously posted data.
