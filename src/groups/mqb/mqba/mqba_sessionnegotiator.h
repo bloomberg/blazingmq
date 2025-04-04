@@ -34,7 +34,7 @@
 /// concurrently from many IO threads.
 
 // MQB
-#include <mqba_negotiationcontext.h>
+#include <mqba_initialconnectioncontext.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_session.h>
@@ -93,7 +93,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<NegotiationContext> NegotiationContextSp;
+    typedef bsl::shared_ptr<InitialConnectionContext>
+        InitialConnectionContextSp;
 
   private:
     // DATA
@@ -143,35 +144,35 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// `numNeeded` can be used to indicate if more bytes are needed in
     /// order to get a full message.  The specified `context` holds the
     /// negotiation context associated to this read.
-    void readCallback(const bmqio::Status&        status,
-                      int*                        numNeeded,
-                      bdlbb::Blob*                blob,
-                      const NegotiationContextSp& context);
+    void readCallback(const bmqio::Status&              status,
+                      int*                              numNeeded,
+                      bdlbb::Blob*                      blob,
+                      const InitialConnectionContextSp& context);
 
     /// Decode the negotiation messages received in the specified `blob` and
     /// store it, on success, in the corresponding member of the specified
     /// `context`, returning 0.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
     /// error.
-    int decodeNegotiationMessage(bsl::ostream&               errorDescription,
-                                 const NegotiationContextSp& context,
-                                 const bdlbb::Blob&          blob);
+    int decodeNegotiationMessage(bsl::ostream& errorDescription,
+                                 const InitialConnectionContextSp& context,
+                                 const bdlbb::Blob&                blob);
 
     /// Invoked when received a `ClientIdentity` negotiation message with
     /// the specified `context`.  Creates and return a Session on success,
     /// or return a null pointer and populate the specified
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
-    onClientIdentityMessage(bsl::ostream&               errorDescription,
-                            const NegotiationContextSp& context);
+    onClientIdentityMessage(bsl::ostream&                     errorDescription,
+                            const InitialConnectionContextSp& context);
 
     /// Invoked when received a `BrokerResponse` negotiation message with
     /// the specified `context`.  Creates and return a Session on success,
     /// or return a null pointer and populate the specified
     /// `errorDescription` with a description of the error on failure.
     bsl::shared_ptr<mqbnet::Session>
-    onBrokerResponseMessage(bsl::ostream&               errorDescription,
-                            const NegotiationContextSp& context);
+    onBrokerResponseMessage(bsl::ostream&                     errorDescription,
+                            const InitialConnectionContextSp& context);
 
     /// Send the specified `message` to the peer associated with the
     /// specified `context` and return 0 on success, or return a non-zero
@@ -179,7 +180,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// description of the error.
     int sendNegotiationMessage(bsl::ostream& errorDescription,
                                const bmqp_ctrlmsg::NegotiationMessage& message,
-                               const NegotiationContextSp& context);
+                               const InitialConnectionContextSp& context);
 
     /// Load into the specified `out` a new session created using the
     /// specified `context` and `description`; or leave `out` untouched and
@@ -187,25 +188,25 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// error in case of failure.
     void createSession(bsl::ostream&                     errorDescription,
                        bsl::shared_ptr<mqbnet::Session>* out,
-                       const NegotiationContextSp&       context,
+                       const InitialConnectionContextSp& context,
                        const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
-    bool checkIsDeprecatedSdkVersion(const NegotiationContext& context);
+    bool checkIsDeprecatedSdkVersion(const InitialConnectionContext& context);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using an unsupported version of the libbmq SDK.
-    bool checkIsUnsupportedSdkVersion(const NegotiationContext& context);
+    bool checkIsUnsupportedSdkVersion(const InitialConnectionContext& context);
 
     /// Initiate an outbound negotiation (i.e., send out some negotiation
     /// message and schedule a read of the response) using the specified
     /// `context`.
-    int initiateOutboundNegotiation(const NegotiationContextSp& context);
+    int initiateOutboundNegotiation(const InitialConnectionContextSp& context);
 
     /// Schedule a read for the negotiation of the session of the specified
     /// `context`.
-    void scheduleRead(const NegotiationContextSp& context);
+    void scheduleRead(const InitialConnectionContextSp& context);
 
   public:
     // TRAITS
@@ -253,7 +254,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// failure).  Note that if no negotiation are needed, the
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
-    int negotiate(mqbnet::NegotiatorContext*               context,
+    int negotiate(mqbnet::InitialConnectionHandlerContext* context,
                   const bsl::shared_ptr<bmqio::Channel>&   channel,
                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE;

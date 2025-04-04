@@ -14,8 +14,8 @@
 // limitations under the License.
 
 // mqbnet_negotiator.t.cpp                                            -*-C++-*-
+#include <mqbnet_initialconnectionhandlercontext.h>
 #include <mqbnet_negotiator.h>
-#include <mqbnet_negotiatorcontext.h>
 
 // MQB
 #include <mqbnet_session.h>
@@ -53,7 +53,7 @@ using namespace bsl;
 
 /// A test implementation of the `mqbnet::Negotiator` protocol
 struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
-    int negotiate(mqbnet::NegotiatorContext*               context,
+    int negotiate(mqbnet::InitialConnectionHandlerContext* context,
                   const bsl::shared_ptr<bmqio::Channel>&   channel,
                   const mqbnet::Negotiator::NegotiationCb& negotiationCb)
         BSLS_KEYWORD_OVERRIDE
@@ -64,7 +64,7 @@ struct NegotiatorTestImp : bsls::ProtocolTestImp<mqbnet::Negotiator> {
 };
 
 /// A mock implementation of SessionEventProcessor protocol, for testing
-/// `NegotiatorContext`.
+/// `InitialConnectionHandlerContext`.
 class MockSessionEventProcessor : public mqbnet::SessionEventProcessor {
   public:
     ~MockSessionEventProcessor() BSLS_KEYWORD_OVERRIDE {}
@@ -137,9 +137,9 @@ static void test1_Negotiator()
     {
         PV("Verify that methods are public and virtual");
 
-        mqbnet::NegotiatorContext*        dummyNegotiatorContext_p = 0;
-        bsl::shared_ptr<bmqio::Channel>   dummyChannelSp;
-        mqbnet::Negotiator::NegotiationCb dummyNegotiationCb;
+        mqbnet::InitialConnectionHandlerContext* dummyNegotiatorContext_p = 0;
+        bsl::shared_ptr<bmqio::Channel>          dummyChannelSp;
+        mqbnet::Negotiator::NegotiationCb        dummyNegotiationCb;
 
         BSLS_PROTOCOLTEST_ASSERT(testObj,
                                  negotiate(dummyNegotiatorContext_p,
@@ -150,25 +150,25 @@ static void test1_Negotiator()
 
 static void test2_NegotiatorContext()
 {
-    bmqtst::TestHelper::printTestName("NegotiatorContext");
+    bmqtst::TestHelper::printTestName("InitialConnectionHandlerContext");
 
     {
         PV("Constructor");
-        mqbnet::NegotiatorContext obj1(true);
+        mqbnet::InitialConnectionHandlerContext obj1(true);
         BMQTST_ASSERT_EQ(obj1.isIncoming(), true);
         BMQTST_ASSERT_EQ(obj1.maxMissedHeartbeat(), 0);
         BMQTST_ASSERT_EQ(obj1.eventProcessor(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
 
-        mqbnet::NegotiatorContext obj2(false);
+        mqbnet::InitialConnectionHandlerContext obj2(false);
         BMQTST_ASSERT_EQ(obj2.isIncoming(), false);
     }
 
     {
         PV("Manipulators/Accessors");
 
-        mqbnet::NegotiatorContext obj(true);
+        mqbnet::InitialConnectionHandlerContext obj(true);
 
         {  // MaxMissedHeartbeat
             const char value = 5;

@@ -247,9 +247,9 @@ class TransportManager {
     /// `status` representing whether it was a success or some failure, and
     /// the specified `session` being populated in case of `CHANNEL_UP`
     /// `event`.  The specified `resultState` is a user data provided by the
-    /// negotiator in the `NegotiatorContext` struct used during negotiation
-    /// of the session.  The specified `readCb` serves as read data callback
-    /// when `enableRead` is called.  If the negotiation has specified
+    /// negotiator in the `InitialConnectionHandlerContext` struct used during
+    /// negotiation of the session.  The specified `readCb` serves as read data
+    /// callback when `enableRead` is called.  If the negotiation has specified
     /// cluster name (as in the case of proxy or cluster node) connection,
     /// the specified `cluster` is the corresponding cluster.  Otherwise, if
     /// the negotiation has not specified cluster name (as in the case of
@@ -372,11 +372,11 @@ class TransportManager {
     ///   double connections); this is the case when the node is part of a
     ///   cluster.
     /// The optionally specified `userData` will be passed in to the
-    /// `negotiate` method of the negotiator (through the NegotiatorContext)
-    /// for any connections being established as a result of this cluster
-    /// creation.  Return 0 on success, or a non-zero value and populate the
-    /// specified `errorDescription` with a description of the error in case
-    /// of failure.
+    /// `negotiate` method of the negotiator (through the
+    /// InitialConnectionHandlerContext) for any connections being established
+    /// as a result of this cluster creation.  Return 0 on success, or a
+    /// non-zero value and populate the specified `errorDescription` with a
+    /// description of the error in case of failure.
     int createCluster(bsl::ostream&                           errorDescription,
                       bslma::ManagedPtr<mqbnet::Cluster>*     out,
                       const bsl::string&                      name,
@@ -387,11 +387,11 @@ class TransportManager {
     /// Connect out to the specified `uri`.  Note that the connection will
     /// be considered `persistent` with auto-reconnection when it goes down.
     /// The optionally specified `userData` will be passed in to the
-    /// `negotiate` method of the negotiator (through the NegotiatorContext)
-    /// for any connections being established as a result of this connection
-    /// creation.  Return 0 on success, or a non-zero value and populate the
-    /// specified `errorDescription` with a description of the error in case
-    /// of failure.
+    /// `negotiate` method of the negotiator (through the
+    /// InitialConnectionHandlerContext) for any connections being established
+    /// as a result of this connection creation.  Return 0 on success, or a
+    /// non-zero value and populate the specified `errorDescription` with a
+    /// description of the error in case of failure.
     int connectOut(bsl::ostream&            errorDescription,
                    const bslstl::StringRef& uri,
                    bslma::ManagedPtr<void>* userData = 0);
@@ -403,7 +403,7 @@ class TransportManager {
     /// the specified `clusterNode` with the corresponding
     /// `mqbnet::clusterNode` object.  Note that this is a method only
     /// intended to be used from the session negotiator in order to populate
-    /// the `resultState` of the `NegotiatorContext`.
+    /// the `resultState` of the `InitialConnectionHandlerContext`.
     void* getClusterNodeAndState(bsl::ostream&            errorDescription,
                                  ClusterNode**            clusterNode,
                                  const bslstl::StringRef& clusterName,

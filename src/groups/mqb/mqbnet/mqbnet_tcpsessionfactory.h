@@ -51,11 +51,11 @@
 // if no normal regular traffic was received from that peer.
 //
 // This can be enabled on a per channel basis, by setting the
-// 'maxMissedHeartbeat' on the 'NegotiatorContext' to a non-zero value
-// (cf. 'SessionNegotiator' implementation for the per-connection type value of
-// that setting).  Note that a value of 1 for 'maxMissedHeartbeat' will not
-// work as the channel will be closed immediately, without allowing for the
-// 'HeartbeatRsp' to be received.
+// 'maxMissedHeartbeat' on the 'InitialConnectionHandlerContext' to a non-zero
+// value (cf. 'SessionNegotiator' implementation for the per-connection type
+// value of that setting).  Note that a value of 1 for 'maxMissedHeartbeat'
+// will not work as the channel will be closed immediately, without allowing
+// for the 'HeartbeatRsp' to be received.
 //
 // It is implemented by keeping track of events received on the channel; and a
 // recurring scheduler event (default to every 3s, called the 'heartbeat
@@ -155,9 +155,9 @@ class TCPSessionFactory {
     /// the specified `status` representing whether it was a success or some
     /// failure, and the specified `session` being populated in case of
     /// `CHANNEL_UP` `event`.  The specified `resultState` is a user data
-    /// provided by the Negotiator in the `NegotiatorContext` struct used
-    /// during negotiation of the session.  The specified `readCb` serves as
-    /// the read data callback when `enableRead` is called.  If the
+    /// provided by the Negotiator in the `InitialConnectionHandlerContext`
+    /// struct used during negotiation of the session.  The specified `readCb`
+    /// serves as the read data callback when `enableRead` is called.  If the
     /// negotiation has specified cluster name (as in the case of proxy or
     /// cluster node) connection, the specified `cluster` is the
     /// corresponding cluster.  Otherwise, if the negotiation has not
@@ -190,7 +190,7 @@ class TCPSessionFactory {
         bmqp::HeartbeatMonitor d_monitor;
 
         explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel,
-                             const NegotiatorContext&               context,
+                             const InitialConnectionHandlerContext& context,
                              int initialMissedHeartbeatCounter,
                              const bsl::shared_ptr<Session>& monitoredSession);
     };
@@ -436,13 +436,14 @@ class TCPSessionFactory {
     /// `errorDescription` containing a description of the error.  In either
     /// case, the specified `callback` must be invoked to notify the channel
     /// factory of the status.
-    void negotiationComplete(
-        int                                       statusCode,
-        const bsl::string&                        errorDescription,
-        const bsl::shared_ptr<Session>&           session,
-        const bsl::shared_ptr<bmqio::Channel>&    channel,
-        const bsl::shared_ptr<OperationContext>&  context,
-        const bsl::shared_ptr<NegotiatorContext>& negotiatorContext);
+    void
+    negotiationComplete(int                             statusCode,
+                        const bsl::string&              errorDescription,
+                        const bsl::shared_ptr<Session>& session,
+                        const bsl::shared_ptr<bmqio::Channel>&   channel,
+                        const bsl::shared_ptr<OperationContext>& context,
+                        const bsl::shared_ptr<InitialConnectionHandlerContext>&
+                            negotiatorContext);
 
     /// Custom deleter of the session's shared_ptr for the specified
     /// `session` (of type `Session`) associated with the specified `sprep`
@@ -578,13 +579,13 @@ class TCPSessionFactory {
     /// non-zero code on error, in which case `resultCallback` will never be
     /// invoked.  The optionally specified `negotiationUserData` will be
     /// passed in to the `negotiate` method of the Negotiator (through the
-    /// NegotiatorContext).  The optionally specified `resultState` will be
-    /// used to set the initial value of the corresponding member of the
-    /// `NegotiatorContext` that will be created for negotiation of this
-    /// session; so that it can be retrieved in the `negotiationComplete`
-    /// callback method.  The optionally specified `shouldAutoReconnect`
-    /// will be used to determine if the factory should attempt to reconnect
-    /// upon loss of connection.
+    /// InitialConnectionHandlerContext).  The optionally specified
+    /// `resultState` will be used to set the initial value of the
+    /// corresponding member of the `InitialConnectionHandlerContext` that will
+    /// be created for negotiation of this session; so that it can be retrieved
+    /// in the `negotiationComplete` callback method.  The optionally specified
+    /// `shouldAutoReconnect` will be used to determine if the factory should
+    /// attempt to reconnect upon loss of connection.
     int connect(const bslstl::StringRef& endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,
