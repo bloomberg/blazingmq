@@ -13,19 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// mqbnet_negotiatorcontext.cpp                                 -*-C++-*-
-#include <mqbnet_negotiatorcontext.h>
+// mqbnet_initialconnectionhandlercontext.cpp                       -*-C++-*-
+#include <mqbnet_initialconnectionhandlercontext.h>
 
 #include <mqbscm_version.h>
 
 namespace BloombergLP {
 namespace mqbnet {
 
-// -----------------------
-// class NegotiatorContext
-// -----------------------
+// -------------------------------------
+// class InitialConnectionHandlerContext
+// -------------------------------------
 
-NegotiatorContext::NegotiatorContext(bool isIncoming)
+InitialConnectionHandlerContext::InitialConnectionHandlerContext(
+    bool isIncoming)
 : d_isIncoming(isIncoming)
 , d_maxMissedHeartbeat(0)
 , d_eventProcessor_p(0)
@@ -36,63 +37,68 @@ NegotiatorContext::NegotiatorContext(bool isIncoming)
     // NOTHING
 }
 
-NegotiatorContext& NegotiatorContext::setMaxMissedHeartbeat(int value)
+InitialConnectionHandlerContext&
+InitialConnectionHandlerContext::setMaxMissedHeartbeat(int value)
 {
     d_maxMissedHeartbeat = value;
     return *this;
 }
 
-NegotiatorContext& NegotiatorContext::setUserData(void* value)
+InitialConnectionHandlerContext&
+InitialConnectionHandlerContext::setUserData(void* value)
 {
     d_userData_p = value;
     return *this;
 }
 
-NegotiatorContext& NegotiatorContext::setResultState(void* value)
+InitialConnectionHandlerContext&
+InitialConnectionHandlerContext::setResultState(void* value)
 {
     d_resultState_p = value;
     return *this;
 }
 
-NegotiatorContext&
-NegotiatorContext::setEventProcessor(SessionEventProcessor* value)
+InitialConnectionHandlerContext&
+InitialConnectionHandlerContext::setEventProcessor(
+    SessionEventProcessor* value)
 {
     d_eventProcessor_p = value;
     return *this;
 }
 
-NegotiatorContext& NegotiatorContext::setCluster(Cluster* cluster)
+InitialConnectionHandlerContext&
+InitialConnectionHandlerContext::setCluster(Cluster* cluster)
 {
     d_cluster_p = cluster;
     return *this;
 }
 
-bool NegotiatorContext::isIncoming() const
+bool InitialConnectionHandlerContext::isIncoming() const
 {
     return d_isIncoming;
 }
 
-Cluster* NegotiatorContext::cluster() const
+Cluster* InitialConnectionHandlerContext::cluster() const
 {
     return d_cluster_p;
 }
 
-int NegotiatorContext::maxMissedHeartbeat() const
+int InitialConnectionHandlerContext::maxMissedHeartbeat() const
 {
     return d_maxMissedHeartbeat;
 }
 
-void* NegotiatorContext::userData() const
+void* InitialConnectionHandlerContext::userData() const
 {
     return d_userData_p;
 }
 
-void* NegotiatorContext::resultState() const
+void* InitialConnectionHandlerContext::resultState() const
 {
     return d_resultState_p;
 }
 
-SessionEventProcessor* NegotiatorContext::eventProcessor() const
+SessionEventProcessor* InitialConnectionHandlerContext::eventProcessor() const
 {
     return d_eventProcessor_p;
 }

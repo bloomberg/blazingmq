@@ -27,23 +27,25 @@
 //
 //@DESCRIPTION: 'mqbnet::Negotiator' is a protocol for a session negotiator
 // that uses a provided established channel to negotiate and create an
-// 'mqbnet::Session' object.  'mqbnet::NegotiatorContext' is a value-semantic
-// type holding the context associated with a session being negotiated.  It
-// allows bi-directional generic communication between the application layer
-// and the transport layer: for example, a user data information can be passed
-// in at application layer, kept and carried over in the transport layer and
-// retrieved in the negotiator concrete implementation.  Similarly, a 'cookie'
-// can be passed in from application layer, to the result callback notification
-// in the transport layer (usefull for 'listen-like' established connection
-// where the entry point doesn't allow to bind specific user data, which then
-// can be retrieved at application layer during negotiation).
+// 'mqbnet::Session' object.  'mqbnet::InitialConnectionHandlerContext' is a
+// value-semantic type holding the context associated with a session being
+// negotiated.  It allows bi-directional generic communication between the
+// application layer and the transport layer: for example, a user data
+// information can be passed in at application layer, kept and carried over in
+// the transport layer and retrieved in the negotiator concrete implementation.
+// Similarly, a 'cookie' can be passed in from application layer, to the result
+// callback notification in the transport layer (usefull for 'listen-like'
+// established connection where the entry point doesn't allow to bind specific
+// user data, which then can be retrieved at application layer during
+// negotiation).
 //
-// Note that the 'NegotiatorContext' passed in to the 'Negotiator::negotiate()'
-// method can be modified in the negotiator concrete implementation to set some
-// of its members that the caller will leverage and use.
+// Note that the 'InitialConnectionHandlerContext' passed in to the
+// 'Negotiator::negotiate()' method can be modified in the negotiator concrete
+// implementation to set some of its members that the caller will leverage and
+// use.
 
 // MQB
-#include <mqbnet_negotiatorcontext.h>
+#include <mqbnet_initialconnectionhandlercontext.h>
 
 // BDE
 #include <bsl_functional.h>
@@ -105,7 +107,7 @@ class Negotiator {
     /// `NegotiationCb` method.  Note that if no negotiation is needed, the
     /// `negotiationCb` may be invoked directly from inside the call to
     /// `negotiate`.
-    virtual int negotiate(NegotiatorContext*                     context,
+    virtual int negotiate(InitialConnectionHandlerContext*       context,
                           const bsl::shared_ptr<bmqio::Channel>& channel,
                           const NegotiationCb& negotiationCb) = 0;
 };
