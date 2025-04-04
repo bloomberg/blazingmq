@@ -665,6 +665,36 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
         )
 
 
+def test_csl_repair_after_stop(cluster: Cluster):
+    """Adding Apps to an existing queue in the absense of primary results in
+    the App missing in the CSL.  The CSL needs repair
+    """
+    proxies = cluster.proxy_cycle()
+
+    producer = next(proxies).create_client("producer")
+    producer.open(tc.URI_FANOUT_SC, flags=["write,ack"], succeed=True)
+
+    producer.post(tc.URI_FANOUT_SC, ["msg1"], block=True)
+
+    producer.close(tc.URI_FANOUT_SC, succeed=True)
+
+    cluster.stop_nodes()
+
+    updated_app_ids = default_app_ids.copy()
+    updated_app_ids.remove("foo")
+    updated_app_ids.append("new1")
+
+    cluster.config.domains[
+        tc.DOMAIN_FANOUT_SC
+    ].definition.parameters.mode.fanout.app_ids = updated_app_ids
+
+    cluster.deploy_domains()
+
+    cluster.start_nodes(wait_leader=True, wait_ready=True)
+
+    producer.open(tc.URI_FANOUT_SC, flags=["write,ack"], succeed=True)
+
+
 def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     """Add an App to Domain config of an existing queue, and then force a
     Replica to become new Primary.  Start new Consumer.  Make sure the Consumer

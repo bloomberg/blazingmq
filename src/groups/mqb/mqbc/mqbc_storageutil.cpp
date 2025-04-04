@@ -104,7 +104,7 @@ bool StorageUtil::loadDifference(mqbi::Storage::AppInfos*       result,
 }
 
 void StorageUtil::loadDifference(
-    bsl::unordered_set<bsl::string>*       result,
+    bsl::vector<bsl::string>*              result,
     const bsl::unordered_set<bsl::string>& baseSet,
     const bsl::unordered_set<bsl::string>& subtractionSet)
 {
@@ -113,7 +113,7 @@ void StorageUtil::loadDifference(
          cit != baseSet.cend();
          ++cit) {
         if (subtractionSet.end() == subtractionSet.find(*cit)) {
-            result->emplace(*cit);
+            result->push_back(*cit);
         }
     }
 }
@@ -139,8 +139,8 @@ bool StorageUtil::loadAddedAndRemovedEntries(
 }
 
 void StorageUtil::loadAddedAndRemovedEntries(
-    bsl::unordered_set<bsl::string>*       addedEntries,
-    bsl::unordered_set<bsl::string>*       removedEntries,
+    bsl::vector<bsl::string>*              addedEntries,
+    bsl::vector<bsl::string>*              removedEntries,
     const bsl::unordered_set<bsl::string>& existingEntries,
     const bsl::unordered_set<bsl::string>& newEntries)
 {
@@ -373,7 +373,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     }
 
     if (!removedIdKeyPairs.empty()) {
-        for (AppInfosCIter cit = removedIdKeyPairs.begin();
+        for (AppInfos::const_iterator cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
             rc = removeVirtualStorageInternal(storage,
@@ -444,7 +444,7 @@ int StorageUtil::addVirtualStoragesInternal(
     if (isFanout) {
         // Register appKeys with with the underlying physical 'storage'.
 
-        for (AppInfosCIter cit = appIdKeyPairs.begin();
+        for (AppInfos::const_iterator cit = appIdKeyPairs.begin();
              cit != appIdKeyPairs.end();
              ++cit) {
             if (0 != (rc = storage->addVirtualStorage(errorDesc,
@@ -795,14 +795,12 @@ int StorageUtil::processReplicationCommand(
 // FUNCTIONS
 bool StorageUtil::isStorageEmpty(bslmt::Mutex*       storagesLock,
                                  const StorageSpMap& storageMap,
-                                 const bmqt::Uri&    uri,
-                                 int                 partitionId)
+                                 const bmqt::Uri&    uri)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(uri.isValid());
-    BSLS_ASSERT_SAFE(0 <= partitionId);
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
 
@@ -2476,7 +2474,7 @@ void StorageUtil::registerQueue(const mqbi::Cluster*           cluster,
     AppInfos           appIdKeyPairsToUse;
     if (queueMode.isFanoutValue()) {
         if (cluster->isCSLModeEnabled() || !appIdKeyPairs.empty()) {
-            for (AppInfosCIter citer = appIdKeyPairs.begin();
+            for (AppInfos::const_iterator citer = appIdKeyPairs.begin();
                  citer != appIdKeyPairs.end();
                  ++citer) {
                 int rc = storageSp->addVirtualStorage(errorDesc,

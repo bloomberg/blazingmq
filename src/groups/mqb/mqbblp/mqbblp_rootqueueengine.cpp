@@ -314,12 +314,12 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     size_t numApps = 0;
 
     const bsl::vector<mqbconfm::Subscription>& subscriptions =
-        d_queueState_p->domain()->config().subscriptions();
+        config().subscriptions();
     d_hasAppSubscriptions = !subscriptions.empty();
 
     if (d_isFanout) {
         const bsl::vector<bsl::string>& cfgAppIds =
-            d_queueState_p->domain()->config().mode().fanout().appIDs();
+            config().mode().fanout().appIDs();
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
                                 errorDescription,
@@ -404,7 +404,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 
     if (!QueueEngineUtil::isBroadcastMode(d_queueState_p->queue())) {
         d_consumptionMonitor.setMaxIdleTime(
-            d_queueState_p->queue()->domain()->config().maxIdleTime() *
+            config().maxIdleTime() *
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND);
     }
 
@@ -1123,6 +1123,8 @@ void RootQueueEngine::releaseHandle(
 
             AppState* app(itApp->second.get());
 
+            BSLS_ASSERT_SAFE(itApp->first == app->appId());
+
             if (result.hasNoHandleStreamConsumers()) {
                 // No re-delivery attempts until entire handle stops consuming
                 // (read count drops to zero).
@@ -1202,7 +1204,7 @@ void RootQueueEngine::releaseHandle(
                     // state.  On the surface it results in alarm being
                     // (re)generated if the unauthorized app is used again
                     // after all previous clients are gone.
-                    if (!itApp->second->isAuthorized()) {
+                    if (!app->isAuthorized()) {
                         BALL_LOG_INFO
                             << "There are no more clients for the unauthorized"
                             << " appId [" << itApp->first
@@ -1462,8 +1464,7 @@ int RootQueueEngine::onRejectMessage(mqbi::QueueHandle*       handle,
         // replica/proxy will free the corresponding handles, and all message
         // iterators will be recreated with the correct 'rdaInfo' received from
         // primary, if a new consumer connects to the replica/proxy.
-        const int maxDeliveryAttempts =
-            d_queueState_p->domain()->config().maxDeliveryAttempts();
+        const int      maxDeliveryAttempts = config().maxDeliveryAttempts();
         const bool     domainIsUnlimited = (maxDeliveryAttempts == 0);
         bmqp::RdaInfo& rda = message->appMessageState(app.ordinal()).d_rdaInfo;
 
@@ -1817,7 +1818,7 @@ bool RootQueueEngine::logAlarmCb(const bsl::string& appId,
     storage->capacityMeter()->printShortSummary(out);
     out << ", max idle time "
         << bmqu::PrintUtil::prettyTimeInterval(
-               d_queueState_p->queue()->domain()->config().maxIdleTime() *
+               config().maxIdleTime() *
                bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND)
         << " appears to be stuck. It currently has " << numConsumers
         << " consumers." << ss.str() << '\n';
@@ -2089,16 +2090,9 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
 
     mqbcmd::FanoutQueueEngine& fanoutQueueEngine = out->makeFanout();
     // TODO: Implement in a way that makes sense
-    const mqbconfm::Domain& domainConfig =
-        d_queueState_p->queue()->domain()->config();
 
-    fanoutQueueEngine.mode() = d_queueState_p->queue()
-                                   ->domain()
-                                   ->config()
-
-                                   .mode()
-                                   .selectionName();
-    fanoutQueueEngine.maxConsumers() = domainConfig.maxConsumers();
+    fanoutQueueEngine.mode()         = config().mode().selectionName();
+    fanoutQueueEngine.maxConsumers() = config().maxConsumers();
     Apps& consumerStatesRef          = const_cast<Apps&>(d_apps);
 
     bsl::vector<mqbcmd::ConsumerState>& consumerStates =

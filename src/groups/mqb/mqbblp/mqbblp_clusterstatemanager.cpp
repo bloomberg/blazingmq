@@ -616,22 +616,7 @@ void ClusterStateManager::onLeaderSyncDataQueryResponse(
         // partitionId for that queue.  Then self got promoted to leader,
         // initiated the sync and ended up here.
 
-        const bmqt::Uri        queueUri(queueInfo.uri());
-        const mqbu::StorageKey receivedKey(
-            mqbu::StorageKey::BinaryRepresentation(),
-            queueInfo.key().data());
-
-        AppInfos appIdInfos(d_allocator_p);
-
-        mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                          queueInfo,
-                                          d_allocator_p);
-
-        registerQueueInfo(queueUri,
-                          queueInfo.partitionId(),
-                          receivedKey,
-                          appIdInfos,
-                          true);  // Force update?
+        registerQueueInfo(queueInfo, true);  // Force update?
         // Note that we don't inform the storage manager or the partition about
         // this queue, because writes to the partition are issued only by the
         // primary of that partition, and self may or may not be the primary.
@@ -1190,11 +1175,9 @@ ClusterStateManager::assignQueue(const bmqt::Uri&      uri,
                                           status);
 }
 
-void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
-                                            int              partitionId,
-                                            const mqbu::StorageKey& queueKey,
-                                            const AppInfos&         appIdInfos,
-                                            bool forceUpdate)
+void ClusterStateManager::registerQueueInfo(
+    const bmqp_ctrlmsg::QueueInfo& advisory,
+    bool                           forceUpdate)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1203,10 +1186,7 @@ void ClusterStateManager::registerQueueInfo(const bmqt::Uri& uri,
 
     mqbc::ClusterUtil::registerQueueInfo(d_state_p,
                                          d_cluster_p,
-                                         uri,
-                                         partitionId,
-                                         queueKey,
-                                         appIdInfos,
+                                         advisory,
                                          forceUpdate);
 }
 
@@ -1277,40 +1257,26 @@ void ClusterStateManager::sendClusterState(
                                         partitions);
 }
 
-void ClusterStateManager::registerAppId(const bsl::string&  appId,
-                                        const mqbi::Domain* domain)
+void ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
+                                       const bsl::vector<bsl::string>& removed,
+                                       const bsl::string& domainName,
+                                       const bsl::string& uri)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
     BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(domain);
+    BSLS_ASSERT_SAFE(!domainName.empty());
 
-    mqbc::ClusterUtil::registerAppId(d_clusterData_p,
-                                     d_clusterStateLedger_mp.get(),
-                                     *d_state_p,
-                                     appId,
-                                     domain,
-                                     d_allocator_p);
-}
-
-void ClusterStateManager::unregisterAppId(const bsl::string&  appId,
-                                          const mqbi::Domain* domain)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(dispatcher()->inDispatcherThread(d_cluster_p));
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(domain);
-
-    mqbc::ClusterUtil::unregisterAppId(d_clusterData_p,
-                                       d_clusterStateLedger_mp.get(),
-                                       *d_state_p,
-                                       appId,
-                                       domain,
-                                       d_allocator_p);
+    mqbc::ClusterUtil::updateAppIds(d_clusterData_p,
+                                    d_clusterStateLedger_mp.get(),
+                                    *d_state_p,
+                                    added,
+                                    removed,
+                                    domainName,
+                                    uri,
+                                    d_allocator_p);
 }
 
 void ClusterStateManager::initiateLeaderSync(bool wait)
@@ -1692,17 +1658,8 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
                 d_state_p->queueKeys().erase(assigned->key());
                 // no need to update d_state_p->domainStates() entry
                 // , queue was already known and registered
-                AppInfos appIdInfos(d_allocator_p);
-
-                mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                                  queueInfo,
-                                                  d_allocator_p);
-
                 BSLA_MAYBE_UNUSED const bool rc = d_state_p->assignQueue(
-                    uri,
-                    queueKey,
-                    queueInfo.partitionId(),
-                    appIdInfos);
+                    queueInfo);
                 BSLS_ASSERT_SAFE(rc == false);
             }
             else {
@@ -1712,16 +1669,7 @@ void ClusterStateManager::processQueueAssignmentAdvisory(
             }
         }
         else {
-            AppInfos appIdInfos(d_allocator_p);
-
-            mqbc::ClusterUtil::parseQueueInfo(&appIdInfos,
-                                              queueInfo,
-                                              d_allocator_p);
-
-            d_state_p->assignQueue(uri,
-                                   queueKey,
-                                   queueInfo.partitionId(),
-                                   appIdInfos);
+            d_state_p->assignQueue(queueInfo);
         }
 
         BALL_LOG_INFO << d_cluster_p->description()
