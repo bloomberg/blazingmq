@@ -1,10 +1,12 @@
 mqba_adminsession
 mqba_application
+mqba_authenticator
 mqba_clientsession
 mqba_commandrouter
 mqba_configprovider
 mqba_dispatcher
 mqba_domainmanager
 mqba_domainresolver
-mqba_negotiationcontext
+mqba_initialconnectioncontext
+mqba_initialconnectionhandler
 mqba_sessionnegotiator

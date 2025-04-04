@@ -1609,10 +1609,48 @@
       </documentation>
     </annotation>
     <choice>
+      <element name='authenticateRequest'      type='tns:AuthenticateRequest'/>
+      <element name='authenticateResponse'     type='tns:AuthenticateResponse'/>
       <element name='clientIdentity'           type='tns:ClientIdentity'/>
       <element name='brokerResponse'           type='tns:BrokerResponse'/>
       <element name='reverseConnectionRequest' type='tns:ReverseConnectionRequest'/>
     </choice>
+  </complexType>
+
+  <complexType name='AuthenticateRequest'>
+    <annotation>
+      <documentation>
+        This request is a messages sent from a client to a broker during
+        session initiation or reauthentication. The message indicates the client
+        is attempting to authenticate with the supplied authentication material
+        to initiate a session.
+
+        mechanism.: The authentication mechanism the client intends to use
+        data......: The client's authentication material
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='mechanism' type='string'/>
+      <element name='data'      type='hexBinary'  minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='AuthenticateResponse'>
+    <annotation>
+      <documentation>
+        Response of an 'Authenticate' request indicating the result of the operation.
+        The message is sent to a client from a broker during authentication.
+
+        status.....: Status of the request
+        lifetimeMs.: The duration (in milliseconds) the client's session is
+                     valid for. The client must re-authenticate before the
+                     lifetime expires or it will be disconnected.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='status'      type='tns:Status' />
+      <element name='lifetimeMs'  type='long'   minOccurs='0'/>
+    </sequence>
   </complexType>
 
   <simpleType name='ClientType'>
