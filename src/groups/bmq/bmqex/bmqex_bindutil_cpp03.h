@@ -36,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Thu Oct 17 16:05:31 2024
+// Generated on Wed Apr  2 14:55:13 2025
 // Command line: sim_cpp11_features.pl bmqex_bindutil.h
 
 #ifdef COMPILING_BMQEX_BINDUTIL_H
@@ -1147,6 +1147,3 @@ BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
 #endif  // ! defined(COMPILING_BMQEX_BINDUTIL_H)
 
 #endif  // ! defined(INCLUDED_BMQEX_BINDUTIL_CPP03)
-
-// SCRIPT-SHA: 60926cad35f1091c31a7d8cc9d33acc38edd25e4891f3e1d41fe7c40fd6e02f5
-// SOURCE-SHA: 5f2b7427931a119efbbe9a485a7c750fd96f10272c1f3732ffa7af0b1827d1de
