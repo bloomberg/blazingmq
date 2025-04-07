@@ -166,11 +166,9 @@ void InitialConnectionHandler::scheduleRead(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    mqbnet::Authenticator* authenticator,
-    mqbnet::Negotiator*    negotiator,
-    bslma::Allocator*      allocator)
-: d_authenticator_p(authenticator)
-, d_negotiator_p(negotiator)
+    mqbnet::Negotiator* negotiator,
+    bslma::Allocator*   allocator)
+: d_negotiator_p(negotiator)
 , d_threadPool(1, 100, allocator)
 , d_allocator_p(allocator)
 {

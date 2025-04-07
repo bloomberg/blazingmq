@@ -80,6 +80,7 @@
 // MQB
 
 #include <mqbcfg_messages.h>
+#include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_negotiator.h>
 #include <mqbstat_statcontroller.h>
 
@@ -278,6 +279,10 @@ class TCPSessionFactory {
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
     // BlobBuffer factory to use
     // (passed to the ChannelFactory)
+
+    // Initial Connection Handler to use for orchestraing
+    // authentication and negotiation
+    InitialConnectionHandler* d_initialConnectionHandler_p;
 
     Negotiator* d_negotiator_p;
     // Negotiator to use for
@@ -532,9 +537,10 @@ class TCPSessionFactory {
     TCPSessionFactory(const mqbcfg::TcpInterfaceConfig& config,
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
-                      Negotiator*                       negotiator,
-                      mqbstat::StatController*          statController,
-                      bslma::Allocator*                 allocator);
+                      InitialConnectionHandler* initialConnectionHandler,
+                      Negotiator*               negotiator,
+                      mqbstat::StatController*  statController,
+                      bslma::Allocator*         allocator);
 
     /// Destructor
     virtual ~TCPSessionFactory();

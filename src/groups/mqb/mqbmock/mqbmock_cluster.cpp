@@ -222,9 +222,11 @@ Cluster::Cluster(bdlbb::BlobBufferFactory* bufferFactory,
 , d_isStarted(false)
 , d_clusterDefinition(allocator)
 , d_channels(allocator)
+, d_initialConnectionHandler_mp()
 , d_negotiator_mp()
 , d_transportManager(&d_scheduler,
                      bufferFactory,
+                     d_initialConnectionHandler_mp,
                      d_negotiator_mp,
                      0,  // mqbstat::StatController*
                      allocator)
