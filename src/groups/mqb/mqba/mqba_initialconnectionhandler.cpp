@@ -22,6 +22,7 @@
 ///====================
 
 // MQB
+#include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
 
 // BMQ
@@ -166,9 +167,9 @@ void InitialConnectionHandler::scheduleRead(
 }
 
 InitialConnectionHandler::InitialConnectionHandler(
-    mqbnet::Negotiator* negotiator,
-    bslma::Allocator*   allocator)
-: d_negotiator_p(negotiator)
+    bslma::ManagedPtr<SessionNegotiator>& negotiator,
+    bslma::Allocator*                     allocator)
+: d_negotiator_mp(negotiator)
 , d_threadPool(1, 100, allocator)
 , d_allocator_p(allocator)
 {
@@ -183,7 +184,7 @@ void InitialConnectionHandler::initialConnect(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const InitialConnectionCb&               initialConnectionCb)
 {
-    d_negotiator_p->negotiate(context, channel, initialConnectionCb);
+    d_negotiator_mp->negotiate(context, channel, initialConnectionCb);
 }
 
 }  // close package namespace
