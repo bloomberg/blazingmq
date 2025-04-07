@@ -40,6 +40,7 @@
 
 // MQB
 
+#include "mqbnet_initialconnectionhandler.h"
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
@@ -117,6 +118,9 @@ class Cluster : public mqbi::Cluster {
     typedef bsl::function<void(const mqbi::DispatcherEvent& event)>
         EventProcessor;
 
+    typedef bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
+        InitialConnectionHandlerMp;
+
     typedef bslma::ManagedPtr<mqbnet::Negotiator> NegotiatorMp;
 
     typedef bslma::ManagedPtr<mqbnet::Cluster> NetClusterMp;
@@ -176,6 +180,9 @@ class Cluster : public mqbi::Cluster {
 
     TestChannelMap d_channels;
     // Test channels
+
+    // Initial Connection Handler
+    InitialConnectionHandlerMp d_initialConnectionHandler_mp;
 
     NegotiatorMp d_negotiator_mp;
     // Session negotiator

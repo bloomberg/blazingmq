@@ -66,6 +66,7 @@
 
 #include <mqbcfg_messages.h>
 #include <mqbnet_channel.h>
+#include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_negotiator.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_statcontroller.h>
@@ -195,6 +196,9 @@ class TransportManager {
     // BlobBufferFactory to use by the
     // sessions
 
+    // Initial Connection to use
+    bslma::ManagedPtr<InitialConnectionHandler> d_initialConnectionHandler_mp;
+
     bslma::ManagedPtr<Negotiator> d_negotiator_mp;
     // Negotiation to use
 
@@ -319,11 +323,13 @@ class TransportManager {
     /// Create a new `TransportManager` using the specified `scheduler`,
     /// `blobBufferFactory`, `negotiator` and `statController` and the
     /// specified `allocator` for any memory allocation.
-    TransportManager(bdlmt::EventScheduler*         scheduler,
-                     bdlbb::BlobBufferFactory*      blobBufferFactory,
-                     bslma::ManagedPtr<Negotiator>& negotiator,
-                     mqbstat::StatController*       statController,
-                     bslma::Allocator*              allocator);
+    TransportManager(
+        bdlmt::EventScheduler*                       scheduler,
+        bdlbb::BlobBufferFactory*                    blobBufferFactory,
+        bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
+        bslma::ManagedPtr<Negotiator>&               negotiator,
+        mqbstat::StatController*                     statController,
+        bslma::Allocator*                            allocator);
 
     /// Destructor
     virtual ~TransportManager();
