@@ -406,10 +406,10 @@ class TCPSessionFactory {
         const bsl::shared_ptr<bmqio::Channel>&                  channel,
         const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle);
 
-    /// Asynchronously negotiate on the specified `channel` using the
+    /// Asynchronously initial connection on the specified `channel` using the
     /// specified `context`.
-    void negotiate(const bsl::shared_ptr<bmqio::Channel>&   channel,
-                   const bsl::shared_ptr<OperationContext>& context);
+    void initialConnect(const bsl::shared_ptr<bmqio::Channel>&   channel,
+                        const bsl::shared_ptr<OperationContext>& context);
 
     // PRIVATE MANIPULATORS
 
