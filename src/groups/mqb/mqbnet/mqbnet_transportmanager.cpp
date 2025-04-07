@@ -120,7 +120,6 @@ int TransportManager::createAndStartTcpInterface(
                                        d_scheduler_p,
                                        d_blobBufferFactory_p,
                                        d_initialConnectionHandler_mp.get(),
-                                       d_negotiator_mp.get(),
                                        d_statController_p,
                                        alloc),
         alloc);
@@ -351,7 +350,6 @@ TransportManager::TransportManager(
     bdlmt::EventScheduler*                       scheduler,
     bdlbb::BlobBufferFactory*                    blobBufferFactory,
     bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
-    bslma::ManagedPtr<Negotiator>&               negotiator,
     mqbstat::StatController*                     statController,
     bslma::Allocator*                            allocator)
 : d_allocators(allocator)
@@ -359,7 +357,6 @@ TransportManager::TransportManager(
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_initialConnectionHandler_mp(initialConnectionHandler)
-, d_negotiator_mp(negotiator)
 , d_statController_p(statController)
 , d_tcpSessionFactory_mp(0)
 , d_connectionsState(allocator)

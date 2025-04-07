@@ -81,7 +81,6 @@
 
 #include <mqbcfg_messages.h>
 #include <mqbnet_initialconnectionhandler.h>
-#include <mqbnet_negotiator.h>
 #include <mqbstat_statcontroller.h>
 
 #include <bmqex_sequentialcontext.h>
@@ -283,11 +282,6 @@ class TCPSessionFactory {
     // Initial Connection Handler to use for orchestraing
     // authentication and negotiation
     InitialConnectionHandler* d_initialConnectionHandler_p;
-
-    Negotiator* d_negotiator_p;
-    // Negotiator to use for
-    // converting a Channel to a
-    // Session
 
     mqbstat::StatController* d_statController_p;
     // Channels' stat context (passed
@@ -538,7 +532,6 @@ class TCPSessionFactory {
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
                       InitialConnectionHandler* initialConnectionHandler,
-                      Negotiator*               negotiator,
                       mqbstat::StatController*  statController,
                       bslma::Allocator*         allocator);
 

@@ -67,7 +67,6 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_channel.h>
 #include <mqbnet_initialconnectionhandler.h>
-#include <mqbnet_negotiator.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbstat_statcontroller.h>
 
@@ -199,9 +198,6 @@ class TransportManager {
     // Initial Connection to use
     bslma::ManagedPtr<InitialConnectionHandler> d_initialConnectionHandler_mp;
 
-    bslma::ManagedPtr<Negotiator> d_negotiator_mp;
-    // Negotiation to use
-
     mqbstat::StatController* d_statController_p;
     // Stat controller
 
@@ -327,7 +323,6 @@ class TransportManager {
         bdlmt::EventScheduler*                       scheduler,
         bdlbb::BlobBufferFactory*                    blobBufferFactory,
         bslma::ManagedPtr<InitialConnectionHandler>& initialConnectionHandler,
-        bslma::ManagedPtr<Negotiator>&               negotiator,
         mqbstat::StatController*                     statController,
         bslma::Allocator*                            allocator);
 

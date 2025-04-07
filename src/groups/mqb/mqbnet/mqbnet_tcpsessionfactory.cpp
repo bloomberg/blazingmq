@@ -879,7 +879,6 @@ TCPSessionFactory::TCPSessionFactory(
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
     InitialConnectionHandler*         initialConnectionHandler,
-    Negotiator*                       negotiator,
     mqbstat::StatController*          statController,
     bslma::Allocator*                 allocator)
 : d_self(this)  // use default allocator
@@ -888,7 +887,6 @@ TCPSessionFactory::TCPSessionFactory(
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_initialConnectionHandler_p(initialConnectionHandler)
-, d_negotiator_p(negotiator)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()
 , d_resolutionContext(allocator)
