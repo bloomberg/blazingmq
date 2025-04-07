@@ -803,7 +803,7 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
             BSLS_ASSERT_SAFE(session);
             const ClusterNode* node = session->clusterNode();
 
-            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL " << "TCPSessionFactory '"
+            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL TCPSessionFactory '"
                           << d_config.name() << "'"
                           << ": Closing unresponsive channel after "
                           << info->d_monitor.maxMissedHeartbeats()
@@ -877,6 +877,7 @@ TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
+    InitialConnectionHandler*         initialConnectionHandler,
     Negotiator*                       negotiator,
     mqbstat::StatController*          statController,
     bslma::Allocator*                 allocator)
@@ -885,6 +886,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_config(config, allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_initialConnectionHandler_p(initialConnectionHandler)
 , d_negotiator_p(negotiator)
 , d_statController_p(statController)
 , d_tcpChannelFactory_mp()
@@ -1347,7 +1349,7 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     listenOptions.setEndpoint(endpoint.str());
 
     bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> listeningHandle_mp;
-    bmqio::Status status;
+    bmqio::Status                                      status;
     d_statChannelFactory_mp->listen(
         &status,
         &listeningHandle_mp,

@@ -19,7 +19,6 @@
 
 // MQB
 #include <mqba_initialconnectioncontext.h>
-#include <mqbnet_authenticator.h>
 #include <mqbnet_initialconnectionhandler.h>
 #include <mqbnet_negotiator.h>
 
@@ -50,8 +49,7 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
     // DATA
 
     /// Not own.
-    mqbnet::Authenticator* d_authenticator_p;
-    mqbnet::Negotiator*    d_negotiator_p;
+    mqbnet::Negotiator* d_negotiator_p;
 
     bdlmt::FixedThreadPool d_threadPool;
 
@@ -85,9 +83,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   public:
     // CREATORS
 
-    InitialConnectionHandler(mqbnet::Authenticator* authenticator,
-                             mqbnet::Negotiator*    negotiator,
-                             bslma::Allocator*      allocator);
+    InitialConnectionHandler(mqbnet::Negotiator* negotiator,
+                             bslma::Allocator*   allocator);
 
     /// Destructor
     ~InitialConnectionHandler() BSLS_KEYWORD_OVERRIDE;
