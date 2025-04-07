@@ -35,8 +35,27 @@ namespace mqbc {
 // class ClusterStateQueueInfo
 // ---------------------------
 
+bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
+{
+    if (appInfos.empty()) {
+        return true;  // RETURN
+    }
+
+    if (appInfos.size() == 1 &&
+        appInfos.count(bmqp::ProtocolUtil::k_DEFAULT_APP_ID) == 1) {
+        return true;  // RETURN
+    }
+
+    return false;
+}
+
 bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
 {
+    if (containsDefaultAppIdOnly(d_appInfos) &&
+        containsDefaultAppIdOnly(appInfos)) {
+        return true;  // RETURN
+    }
+
     // This ignores the order
 
     if (d_appInfos.size() != appInfos.size()) {
