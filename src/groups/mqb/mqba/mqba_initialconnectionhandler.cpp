@@ -183,26 +183,7 @@ void InitialConnectionHandler::initialConnect(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const InitialConnectionCb&               initialConnectionCb)
 {
-    InitialConnectionContextSp initialConnectionContext;
-    initialConnectionContext.createInplace(d_allocator_p);
-
-    initialConnectionContext->d_initialConnectionHandlerContext_p = context;
-    initialConnectionContext->d_channelSp                         = channel;
-    initialConnectionContext->d_initialConnectionCb = initialConnectionCb;
-    initialConnectionContext->d_isReversed          = false;
-    initialConnectionContext->d_clusterName         = "";
-    initialConnectionContext->d_connectionType = ConnectionType::e_UNKNOWN;
-
-    if (!context->isIncoming()) {
-        int rc = d_negotiator_p->negotiate(context,
-                                           channel,
-                                           initialConnectionCb);
-        if (rc != 0) {
-            return;
-        }
-    }
-
-    scheduleRead(initialConnectionContext);
+    d_negotiator_p->negotiate(context, channel, initialConnectionCb);
 }
 
 }  // close package namespace
