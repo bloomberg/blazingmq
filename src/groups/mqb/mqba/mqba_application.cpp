@@ -21,6 +21,7 @@
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
+#include <mqba_initialconnectionhandler.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
@@ -199,11 +200,13 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 
     // Print banner
     BALL_LOG_INFO
-        << "Starting" << "\n   ____  __  __  ___  _               _"
+        << "Starting"
+        << "\n   ____  __  __  ___  _               _"
         << "\n  | __ )|  \\/  |/ _ \\| |__  _ __ ___ | | _____ _ __"
         << "\n  |  _ \\| |\\/| | | | | '_ \\| '__/ _ \\| |/ / _ \\ '__|"
         << "\n  | |_) | |  | | |_| | |_) | | | (_) |   <  __/ |"
-        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|" << "\n"
+        << "\n  |____/|_|  |_|\\__\\_\\_.__/|_|  \\___/|_|\\_\\___|_|"
+        << "\n"
         << "\n    Instance..............: " << brkrCfg.brokerInstanceName()
         << "\n    Version...............: " << brkrCfg.brokerVersion()
         << "\n    Build Type............: " << MQBA_STRINGIFY(BMQ_BUILD_TYPE)
@@ -335,9 +338,17 @@ int Application::start(bsl::ostream& errorDescription)
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
 
+    bslma::ManagedPtr<mqbnet::InitialConnectionHandler>
+        initialConnectionHandlerMp(
+            new (*d_allocator_p) InitialConnectionHandler(
+                negotiatorMp.get(),
+                d_allocators.get("InitialConnectionHandler")),
+            d_allocator_p);
+
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
+                                   initialConnectionHandlerMp,
                                    negotiatorMp,
                                    d_statController_mp.get(),
                                    d_allocators.get("TransportManager")),
@@ -877,8 +888,8 @@ int Application::processCommand(const bslstl::StringRef& source,
     mqbcmd::Command command;
     bsl::string     parseError;
     if (const int rc = mqbcmd::ParseUtil::parse(&command, &parseError, cmd)) {
-        os << "Unable to decode command " << "(rc: " << rc << ", error: '"
-           << parseError << "')";
+        os << "Unable to decode command "
+           << "(rc: " << rc << ", error: '" << parseError << "')";
         return rc + 10 * rc_PARSE_ERROR;  // RETURN
     }
 
