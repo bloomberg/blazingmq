@@ -17,10 +17,10 @@
 #ifndef INCLUDED_MQBA_INITIALCONNECTIONHANDLER
 #define INCLUDED_MQBA_INITIALCONNECTIONHANDLER
 
+#include <mqbnet_initialconnectionhandler.h>
+
 // MQB
 #include <mqba_initialconnectioncontext.h>
-#include <mqbnet_initialconnectionhandler.h>
-#include <mqbnet_negotiator.h>
 
 // BMQ
 #include <bmqio_status.h>
@@ -35,6 +35,9 @@ namespace BloombergLP {
 
 namespace mqba {
 
+// FORWARD DECLARATION
+class SessionNegotiator;
+
 // ==============================
 // class InitialConnectionHandler
 // ==============================
@@ -48,8 +51,8 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   private:
     // DATA
 
-    /// Not own.
-    mqbnet::Negotiator* d_negotiator_p;
+    /// Negotiator to use for converting a Channel to a Session
+    bslma::ManagedPtr<mqba::SessionNegotiator> d_negotiator_mp;
 
     bdlmt::FixedThreadPool d_threadPool;
 
@@ -83,8 +86,9 @@ class InitialConnectionHandler : public mqbnet::InitialConnectionHandler {
   public:
     // CREATORS
 
-    InitialConnectionHandler(mqbnet::Negotiator* negotiator,
-                             bslma::Allocator*   allocator);
+    InitialConnectionHandler(
+        bslma::ManagedPtr<mqba::SessionNegotiator>& negotiator,
+        bslma::Allocator*                           allocator);
 
     /// Destructor
     ~InitialConnectionHandler() BSLS_KEYWORD_OVERRIDE;

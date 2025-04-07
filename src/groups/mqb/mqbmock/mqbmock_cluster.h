@@ -184,9 +184,6 @@ class Cluster : public mqbi::Cluster {
     // Initial Connection Handler
     InitialConnectionHandlerMp d_initialConnectionHandler_mp;
 
-    NegotiatorMp d_negotiator_mp;
-    // Session negotiator
-
     mqbnet::TransportManager d_transportManager;
     // Transport manager
 
