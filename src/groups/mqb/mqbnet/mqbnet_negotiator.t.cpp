@@ -15,6 +15,7 @@
 
 // mqbnet_negotiator.t.cpp                                            -*-C++-*-
 #include <mqbnet_negotiator.h>
+#include <mqbnet_negotiatorcontext.h>
 
 // MQB
 #include <mqbnet_session.h>
