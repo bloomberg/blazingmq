@@ -1026,18 +1026,6 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
 
     clusterState->queueKeys().erase(key);
 
-    // Apply 'queueAssignmentAdvisory' to CSL
-    BALL_LOG_INFO << clusterData->identity().description()
-                  << ": 'QueueAssignmentAdvisory' will be applied to "
-                  << " cluster state ledger: " << queueAdvisory;
-
-    const int rc = ledger->apply(queueAdvisory);
-    if (rc != 0) {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to apply queue assignment advisory: "
-                       << queueAdvisory << ", rc: " << rc;
-    }
-
     if (!cluster->isCSLModeEnabled()) {
         // In CSL mode, we assign the queue to ClusterState upon CSL commit
         // callback of QueueAssignmentAdvisory, so we don't assign it here.
@@ -1057,7 +1045,25 @@ ClusterUtil::assignQueue(ClusterState*         clusterState,
                       << ": Queue assigned: " << queueAdvisory;
 
         // Broadcast 'queueAssignmentAdvisory' to all followers
+        //
+        // NOTE: We must broadcast this control message before applying to CSL,
+        // because if CSL is running in eventual consistency it will
+        // immediately apply a commit with a higher seqeuence number than the
+        // QueueAssignmentAdvisory.  If we ever receive the commit before the
+        // QAA, we will alarm due to out-of-sequence advisory.
         clusterData->messageTransmitter().broadcastMessage(controlMsg);
+    }
+
+    // Apply 'queueAssignmentAdvisory' to CSL
+    BALL_LOG_INFO << clusterData->identity().description()
+                  << ": 'QueueAssignmentAdvisory' will be applied to "
+                  << " cluster state ledger: " << queueAdvisory;
+
+    const int rc = ledger->apply(queueAdvisory);
+    if (rc != 0) {
+        BALL_LOG_ERROR << clusterData->identity().description()
+                       << ": Failed to apply queue assignment advisory: "
+                       << queueAdvisory << ", rc: " << rc;
     }
 
     return QueueAssignmentResult::k_ASSIGNMENT_OK;

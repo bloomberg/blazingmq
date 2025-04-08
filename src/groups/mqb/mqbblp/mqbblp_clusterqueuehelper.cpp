@@ -6348,13 +6348,19 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
                                                            pid,
                                                            *d_clusterState_p);
 
-        // Apply 'queueUnassignedAdvisory' to CSL
-        d_clusterStateManager_p->unassignQueue(queueAdvisory);
-
         if (!d_cluster_p->isCSLModeEnabled()) {
             // Broadcast 'queueUnassignedAdvisory' to all followers
+            //
+            // NOTE: We must broadcast this control message before applying to
+            // CSL, because if CSL is running in eventual consistency it will
+            // immediately apply a commit with a higher seqeuence number than
+            // the QueueUnassignedAdvisory.  If we ever receive the commit
+            // before the QUA, we will alarm due to out-of-sequence advisory.
             d_clusterData_p->messageTransmitter().broadcastMessage(controlMsg);
         }
+
+        // Apply 'queueUnassignedAdvisory' to CSL
+        d_clusterStateManager_p->unassignQueue(queueAdvisory);
     }
 
     return rc_SUCCESS;  // RETURN
