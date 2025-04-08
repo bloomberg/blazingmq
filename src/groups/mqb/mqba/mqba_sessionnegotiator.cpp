@@ -66,12 +66,12 @@
 // MQB
 #include <mqba_adminsession.h>
 #include <mqba_clientsession.h>
-#include <mqba_initialconnectioncontext.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_dummysession.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_tcpsessionfactory.h>
 #include <mqbu_sdkversionutil.h>
 
