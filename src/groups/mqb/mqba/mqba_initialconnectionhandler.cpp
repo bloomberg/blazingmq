@@ -60,17 +60,43 @@ void InitialConnectionHandler::readCallback(
     bdlbb::Blob*                      blob,
     const InitialConnectionContextSp& context)
 {
-    bmqu::MemOutStream errStream;
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                     = 0,
+        rc_CONTINUE_READ               = 1,
+        rc_READ_ERROR                  = -1,
+        rc_UNRECOVERABLE_READ_ERROR    = -2,
+        rc_INVALID_NEGOTIATION_MESSAGE = -3,
+        rc_INVALID_NEGOTIATION_TYPE    = -4
+    };
+
+    BALL_LOG_TRACE << "InitialConnectionHandler readCb: "
+                   << "[status: " << status << ", peer: '"
+                   << context->d_channelSp->peerUri() << "']";
+
+    bsl::shared_ptr<mqbnet::Session> session;
+    bmqu::MemOutStream               errStream;
 
     if (!status) {
-        // do something
+        errStream << "Read error: " << status;
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb((10 * status.category()) +
+                                           rc_READ_ERROR,
+                                       error,
+                                       session);
         return;  // RETURN
     }
 
     bdlbb::Blob outPacket;
     int rc = bmqio::ChannelUtil::handleRead(&outPacket, numNeeded, blob);
     if (rc != 0) {
-        // do something
+        // This indicates a non recoverable error...
+        errStream << "Unrecoverable read error:\n"
+                  << bmqu::BlobStartHexDumper(blob);
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb((rc * 10) + rc_UNRECOVERABLE_READ_ERROR,
+                                       error,
+                                       session);
         return;  // RETURN
     }
 
@@ -83,15 +109,40 @@ void InitialConnectionHandler::readCallback(
     // because 'handleRead' above set it back to 4 at the end).
     *numNeeded = 0;
 
+    // Process the received blob
     rc = decodeNegotiationMessage(errStream, context, outPacket);
     if (rc != 0) {
-        // do something
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb((rc * 10) +
+                                           rc_INVALID_NEGOTIATION_MESSAGE,
+                                       error,
+                                       session);
         return;  // RETURN
     }
 
     switch (context->d_initialConnectionMessage_p.selectionId()) {
-    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_ID_AUTHENTICATE_REQUEST: {
+    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_ID_AUTHENTICATE_REQUEST:
+    case bmqp_ctrlmsg::NegotiationMessage::
+        SELECTION_ID_AUTHENTICATE_RESPONSE: {
+        // authn
     } break;  // BREAK
+    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY:
+    case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_BROKER_RESPONSE:
+    case bmqp_ctrlmsg::NegotiationMessage ::
+        SELECTION_INDEX_REVERSE_CONNECTION_REQUEST: {
+        rc = d_negotiator_mp->createSessionOnMsgType(context, session);
+        if (rc == rc_CONTINUE_READ) {
+            scheduleRead(context);
+        }
+    } break;  // BREAK
+    default: {
+        errStream << "Invalid negotiation message received (unknown type): "
+                  << context->d_initialConnectionMessage_p;
+        bsl::string error(errStream.str().data(), errStream.str().length());
+        context->d_initialConnectionCb(rc_INVALID_NEGOTIATION_TYPE,
+                                       error,
+                                       session);
+    }
     }
 }
 
@@ -184,7 +235,29 @@ void InitialConnectionHandler::initialConnect(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const InitialConnectionCb&               initialConnectionCb)
 {
-    d_negotiator_mp->negotiate(context, channel, initialConnectionCb);
+    // Create an InitialConnectionContext for that connection
+    InitialConnectionContextSp initialConnectionContext;
+    initialConnectionContext.createInplace(d_allocator_p);
+
+    initialConnectionContext->d_initialConnectionHandlerContext_p = context;
+    initialConnectionContext->d_channelSp                         = channel;
+    initialConnectionContext->d_initialConnectionCb = initialConnectionCb;
+    initialConnectionContext->d_isReversed          = false;
+    initialConnectionContext->d_clusterName         = "";
+    initialConnectionContext->d_connectionType = ConnectionType::e_UNKNOWN;
+
+    // Reading for inbound request or continue to read
+    // after sending a request ourselves
+
+    if (context->isIncoming()) {
+        scheduleRead(initialConnectionContext);
+    }
+    else {
+        if (d_negotiator_mp->negotiateOutboundOrReverse(
+                initialConnectionContext) == 0) {
+            scheduleRead(initialConnectionContext);
+        }
+    }
 }
 
 }  // close package namespace
