@@ -68,6 +68,17 @@ class InitialConnectionHandler {
 
     // MANIPULATORS
 
+    /// Method invoked by the client of this object to negotiate a session
+    /// using the specified `channel`.  The specified `initialConnectionCb`
+    /// must be called with the result, whether success or failure, of the
+    /// initial connection.  The specified `context` is an in-out member
+    /// holding the initial connection context to use; and the
+    /// InitialConnectionHandler concrete implementation can modify some of the
+    /// members during the initial connection (i.e., between the
+    /// `initialConnect()` method and the invocation of the
+    /// `initialConnectionCb` method.  Note that if no initial connection is
+    /// needed, the `initialConnectionCb` may be invoked directly from inside
+    /// the call to `initialConnect()`.
     virtual void
     initialConnect(mqbnet::InitialConnectionHandlerContext* context,
                    const bsl::shared_ptr<bmqio::Channel>&   channel,

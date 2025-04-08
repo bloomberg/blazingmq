@@ -75,42 +75,12 @@ class Cluster;
 /// Protocol for a session negotiator.
 class Negotiator {
   public:
-    // TYPES
-
-    /// Signature of the callback method to invoke when the negotiation is
-    /// complete, either successfully or with failure.  If the specified
-    /// `status` is 0, the negotiation was a success and the specified
-    /// `session` contains the resulting session; otherwise a non-zero
-    /// `status` value indicates that the negotiation failed, and the
-    /// specified `errorDescription` can contain a description of the error.
-    /// Note that the `session` should no longer be used once the
-    /// negotiation callback has been invoked.
-    typedef bsl::function<void(int                status,
-                               const bsl::string& errorDescription,
-                               const bsl::shared_ptr<Session>& session)>
-        NegotiationCb;
-
-  public:
     // CREATORS
 
     /// Destructor
     virtual ~Negotiator();
 
     // MANIPULATORS
-
-    /// Method invoked by the client of this object to negotiate a session
-    /// using the specified `channel`.  The specified `negotiationCb` must
-    /// be called with the result, whether success or failure, of the
-    /// negotiation.  The specified `context` is an in-out member holding
-    /// the negotiation context to use; and the Negotiator concrete
-    /// implementation can modify some of the members during the negotiation
-    /// (i.e., between the `negotiate()` method and the invocation of the
-    /// `NegotiationCb` method.  Note that if no negotiation is needed, the
-    /// `negotiationCb` may be invoked directly from inside the call to
-    /// `negotiate`.
-    virtual int negotiate(InitialConnectionHandlerContext*       context,
-                          const bsl::shared_ptr<bmqio::Channel>& channel,
-                          const NegotiationCb& negotiationCb) = 0;
 
     virtual int
     negotiateOutboundOrReverse(const bsl::shared_ptr<InitialConnectionContext>&
